@@ -38,9 +38,14 @@ const Community1 = ({
             <span className="text-slate-500/80 dark:text-slate-400/80">{headingHighlight}</span>
           </h2>
           <div className="flex items-center gap-4">
-            {socialLinks.map((link, index) => (
-              <Button key={index} size="lg" variant="outline" asChild>
-                <a href={link.url} target="_blank" className="size-10">
+            {socialLinks.map((link) => (
+              <Button key={link.url} size="lg" variant="outline" asChild>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="size-10"
+                >
                   {link.icon}
                 </a>
               </Button>

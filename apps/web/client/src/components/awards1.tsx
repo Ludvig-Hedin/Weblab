@@ -61,6 +61,7 @@ const Awards1 = ({ className }: Awards1Props) => {
                   <a
                     href={award.url}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="hover:underline"
                     title={award.name}
                   >

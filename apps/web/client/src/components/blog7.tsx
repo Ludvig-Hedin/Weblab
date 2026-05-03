@@ -98,6 +98,7 @@ const Blog7 = ({
                 <a
                   href={post.url}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="transition-opacity duration-200 fade-in hover:opacity-70"
                 >
                   <img
@@ -109,7 +110,7 @@ const Blog7 = ({
               </div>
               <CardHeader>
                 <h3 className="text-xl hover:underline md:text-xl">
-                  <a href={post.url} target="_blank">
+                  <a href={post.url} target="_blank" rel="noopener noreferrer">
                     {post.title}
                   </a>
                 </h3>
@@ -126,6 +127,7 @@ const Blog7 = ({
                 <a
                   href={post.url}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center text-slate-500 hover:underline dark:text-slate-400"
                 >
                   Read more

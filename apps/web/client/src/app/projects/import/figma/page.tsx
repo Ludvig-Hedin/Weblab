@@ -45,6 +45,7 @@ const Page = () => {
                                 <AnimatePresence mode="popLayout" initial={false}>
                                     <motion.div
                                         key={currentStep}
+                                        custom={1}
                                         variants={variants}
                                         initial="initial"
                                         animate="active"

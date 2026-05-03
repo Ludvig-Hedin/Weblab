@@ -38,6 +38,7 @@ This update improves the `/projects` page with richer project previews, cleaner 
 
 ## Follow-Up
 
+- If folders need to sync across devices/accounts, the next step is a small backend-backed folder model or user preference field instead of `localforage`.
 
 ## 2026-05-03 Suggestion Pill Refresh
 
@@ -48,4 +49,3 @@ This update improves the `/projects` page with richer project previews, cleaner 
   - recommended sections
   - placeholder content direction
   - visual guidance so the generated result is useful on first click
-- If folders need to sync across devices/accounts, the next step is a small backend-backed folder model or user preference field instead of `localforage`.

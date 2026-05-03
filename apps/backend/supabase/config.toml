@@ -12,6 +12,8 @@ site_url = "https://weblab.build"
 additional_redirect_urls = [
     "http://localhost:3000",
     "http://localhost:3000/auth/callback",
+    "https://weblab.build",
+    "https://weblab.build/auth/callback",
 ]
 jwt_expiry = 36000
 

@@ -25,7 +25,7 @@ interface Compliance1Props {
 const Compliance1 = ({
   tagline = "Compliance",
   heading = "Complete Compliance & Security Readiness",
-  description = "Stay compliant with privacy and healthcare regulations. Our platform meets GDPR HIPAA requirements, providing data protection compliance monitoring for regulated industries.",
+  description = "Stay compliant with privacy and healthcare regulations. Our platform meets GDPR and HIPAA requirements, providing data protection and compliance monitoring for regulated industries.",
   badges = [
     {
       image:
@@ -85,7 +85,7 @@ const Compliance1 = ({
                   key={index}
                   src={badge.image}
                   alt={badge.alt}
-                  className="h-22 opacity-50 grayscale md:h-28 dark:invert"
+                  className="h-20 opacity-50 grayscale md:h-28 dark:invert"
                 />
               ))}
             </div>
@@ -96,8 +96,8 @@ const Compliance1 = ({
                 key={index}
                 className={cn(
                   "relative overflow-hidden p-6 lg:px-8 lg:py-11",
-                  index === 0 && "border-b border-slate-200 dark:border-slate-800",
-                  index === features.length - 1 && "border-t border-slate-200 dark:border-slate-800",
+                  index !== features.length - 1 &&
+                    "border-b border-slate-200 dark:border-slate-800",
                 )}
               >
                 <div>

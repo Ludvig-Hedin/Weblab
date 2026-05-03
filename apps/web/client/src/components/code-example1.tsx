@@ -186,7 +186,7 @@ const CodeExample1 = ({
           </div>
           <div className="flex w-full flex-col gap-1 overflow-hidden">
             <Tabs
-              defaultValue={codeSnippets[0]?.language}
+              value={selectedLanguage}
               onValueChange={setSelectedLanguage}
             >
               <TabsList className="h-10 w-full">

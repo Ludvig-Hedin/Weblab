@@ -2,6 +2,7 @@
 
 import { env } from '@/env';
 import { Routes } from '@/utils/constants';
+import { trackEvent } from '@/utils/analytics/server';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
 import { SEED_USER, users } from '@weblab/db';
@@ -122,4 +123,56 @@ export async function devLogin() {
     return {
         redirectTo: Routes.AUTH_REDIRECT,
     };
+}
+
+export async function sendEmailOtp(email: string): Promise<{ error?: string }> {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+    });
+    if (error) return { error: error.message };
+    return {};
+}
+
+export async function verifyEmailOtp(
+    email: string,
+    token: string,
+): Promise<{ redirectTo?: string; error?: string }> {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) return { error: error.message };
+
+    const user = data.user;
+    if (!user) {
+        return { error: 'Verification succeeded but no user data was returned.' };
+    }
+
+    await db
+        .insert(users)
+        .values({
+            id: user.id,
+            firstName: '',
+            lastName: '',
+            displayName: user.email ?? '',
+            email: user.email ?? '',
+            avatarUrl: null,
+        })
+        .onConflictDoUpdate({
+            target: [users.id],
+            set: {
+                email: user.email ?? '',
+                updatedAt: new Date(),
+            },
+        });
+
+    trackEvent({
+        distinctId: user.id,
+        event: 'user_signed_in',
+        properties: {
+            $set_once: { signup_date: new Date().toISOString() },
+        },
+    });
+
+    return { redirectTo: Routes.AUTH_REDIRECT };
 }

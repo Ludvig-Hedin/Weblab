@@ -177,14 +177,21 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     body: `Created from Weblab on branch \`${prBranchName}\`.`,
                 });
 
+                const prUrl = prResult.url;
+                const toastOptions = prUrl
+                    ? {
+                          description: prUrl,
+                          action: {
+                              label: 'Open PR',
+                              onClick: () =>
+                                  window.open(prUrl, '_blank', 'noopener,noreferrer'),
+                          },
+                      }
+                    : undefined;
                 if (prResult.existing) {
-                    toast.success('Opened existing pull request', {
-                        description: prResult.url,
-                    });
+                    toast.success('Opened existing pull request', toastOptions);
                 } else {
-                    toast.success('Created pull request', {
-                        description: prResult.url,
-                    });
+                    toast.success('Created pull request', toastOptions);
                 }
             } else {
                 toast.success('Committed');

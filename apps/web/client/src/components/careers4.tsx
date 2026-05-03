@@ -88,7 +88,11 @@ const Careers4 = ({
                       {job.location}
                     </p>
                   </div>
-                  <a href={job.url} className="hover:text-slate-500 dark:hover:text-slate-400">
+                  <a
+                    href={job.url}
+                    aria-label={`View ${job.title} role`}
+                    className="hover:text-slate-500 dark:hover:text-slate-400"
+                  >
                     <ArrowRight className="size-4" />
                   </a>
                 </div>

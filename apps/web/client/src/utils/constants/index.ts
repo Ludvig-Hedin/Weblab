@@ -20,6 +20,7 @@ export const Routes = {
 
     // Auth
     LOGIN: '/login',
+    LOGIN_VERIFY: '/login/verify',
     AUTH_CALLBACK: '/auth/callback',
     AUTH_CODE_ERROR: '/auth/auth-code-error',
     AUTH_REDIRECT: '/auth/redirect',

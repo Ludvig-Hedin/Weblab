@@ -67,7 +67,8 @@ declare const messages: {
             "openingLocalFolder": "Opening…",
             "importingLocalFolder": "Uploading files…",
             "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
-            "recentProjects": "Recent Projects"
+            "recentProjects": "Recent Projects",
+            "importFromGitHub": "Import from GitHub"
         },
         "dialogs": {
             "delete": {

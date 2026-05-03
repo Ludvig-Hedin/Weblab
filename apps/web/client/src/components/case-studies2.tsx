@@ -21,7 +21,7 @@ const CaseStudies2 = ({ className }: CaseStudies2Props) => {
               <img
                 src="https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-1.svg"
                 alt="placeholder"
-                className="aspect-29/35 h-full w-full max-w-60 rounded-2xl object-cover"
+                className="aspect-[29/35] h-full w-full max-w-60 rounded-2xl object-cover"
               />
               <div className="flex h-full flex-col justify-between gap-10">
                 <q className="sm:text-xl">
@@ -68,7 +68,7 @@ const CaseStudies2 = ({ className }: CaseStudies2Props) => {
               <img
                 src="https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-2.svg"
                 alt="placeholder"
-                className="aspect-29/35 h-full w-full max-w-60 rounded-2xl object-cover"
+                className="aspect-[29/35] h-full w-full max-w-60 rounded-2xl object-cover"
               />
               <div className="flex h-full flex-col justify-between gap-10">
                 <q className="sm:text-xl">

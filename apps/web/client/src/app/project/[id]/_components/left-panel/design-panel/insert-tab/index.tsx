@@ -90,6 +90,7 @@ export const InsertTab = observer(() => {
         if (!query) return BLOCK_CATALOG;
         return BLOCK_CATALOG.filter((block) =>
             [block.label, block.description, block.registryName, block.componentName]
+                .filter(Boolean)
                 .join(' ')
                 .toLowerCase()
                 .includes(query),

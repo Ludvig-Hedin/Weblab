@@ -46,13 +46,13 @@ const Blogpost1 = ({
           <div className="flex flex-col items-center gap-1 text-sm md:flex-row md:gap-2 md:text-base">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8 border">
-                <AvatarImage src={author.image} />
+                <AvatarImage src={author.image} alt={`Avatar of ${author.name}`} />
                 <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="font-semibold">{author.name}</span>
             </div>
             <span className="text-slate-500 dark:text-slate-400">
-              Owner of{""}
+              Owner of{" "}
               <a
                 href={author.website}
                 className="font-semibold text-slate-950 hover:underline dark:text-slate-50"
@@ -138,7 +138,7 @@ const Blogpost1 = ({
             className="my-8 aspect-video w-full rounded-md object-cover"
           />
           <p>
-            The king thought long and hard, and finally came up with{""}
+            The king thought long and hard, and finally came up with{" "}
             <a href="#">a brilliant plan</a>: he would tax the jokes in the
             kingdom.
           </p>

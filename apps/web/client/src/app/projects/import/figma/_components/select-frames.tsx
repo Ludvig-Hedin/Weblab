@@ -63,6 +63,10 @@ export const FigmaSelectFrames = () => {
                                     return (
                                         <button
                                             key={frame.id}
+                                            type="button"
+                                            role="checkbox"
+                                            aria-checked={isSelected}
+                                            aria-label={`${frame.name}, ${frame.width}×${frame.height}`}
                                             onClick={() => toggleFrame(frame.id)}
                                             className={`w-full text-left p-3 border-b last:border-b-0 hover:bg-secondary transition-colors ${isSelected ? 'bg-secondary/50' : ''}`}
                                         >
@@ -93,7 +97,7 @@ export const FigmaSelectFrames = () => {
                 <Button onClick={prevStep} variant="outline" disabled={isFinalizing}>
                     Back
                 </Button>
-                <Button onClick={() => void nextStep()} disabled={!canImport || isFinalizing}>
+                <Button onClick={nextStep} disabled={!canImport || isFinalizing}>
                     Create Project
                 </Button>
             </StepFooter>

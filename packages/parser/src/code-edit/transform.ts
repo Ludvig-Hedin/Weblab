@@ -62,7 +62,7 @@ function addImportsFromStructureChanges(
     oidToCodeDiff: Map<string, CodeDiffRequest>,
 ): void {
     const imports = Array.from(oidToCodeDiff.values())
-        .flatMap((request) => request.structureChanges)
+        .flatMap((request) => request.structureChanges ?? [])
         .flatMap(getImportsFromAction);
 
     for (const importDeclaration of imports) {
@@ -97,7 +97,13 @@ function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration)
             return false;
         }
         return importedNames.every((name) =>
-            node.specifiers.some((specifier) => specifier.local.name === name),
+            node.specifiers.some((specifier) => {
+                const existingName =
+                    t.isImportSpecifier(specifier) && t.isIdentifier(specifier.imported)
+                        ? specifier.imported.name
+                        : specifier.local.name;
+                return existingName === name;
+            }),
         );
     });
 
@@ -106,12 +112,25 @@ function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration)
     }
 
     let insertIndex = 0;
-    for (let i = 0; i < ast.program.body.length; i++) {
-        if (t.isImportDeclaration(ast.program.body[i])) {
-            insertIndex = i + 1;
-        } else {
-            break;
+    // Skip leading directives (e.g. 'use client', 'use strict') so imports go after them.
+    while (insertIndex < ast.program.body.length) {
+        const node = ast.program.body[insertIndex];
+        if (
+            t.isExpressionStatement(node) &&
+            t.isStringLiteral(node.expression) &&
+            !node.expression.extra?.parenthesized
+        ) {
+            insertIndex++;
+            continue;
         }
+        break;
+    }
+    // Place after the contiguous run of imports starting at insertIndex.
+    while (
+        insertIndex < ast.program.body.length &&
+        t.isImportDeclaration(ast.program.body[insertIndex])
+    ) {
+        insertIndex++;
     }
 
     ast.program.body.splice(insertIndex, 0, importDeclaration);

@@ -140,17 +140,19 @@ Our team made up talented individuals who passionate about creating empower user
           />
           <div className="flex flex-col gap-7 md:flex-row lg:flex-col">
             <div className="flex flex-col justify-between gap-6 rounded-xl bg-slate-100 p-7 md:w-1/2 lg:w-auto dark:bg-slate-800">
-              <img
-                src={breakout.src}
-                alt={breakout.alt}
-                className="mr-auto h-12 dark:invert"
-              />
+              {breakout.src && (
+                <img
+                  src={breakout.src}
+                  alt={breakout.alt ?? ''}
+                  className="mr-auto h-12 dark:invert"
+                />
+              )}
               <div>
                 <p className="mb-2 text-lg font-semibold">{breakout.title}</p>
                 <p className="text-slate-500 dark:text-slate-400">{breakout.description}</p>
               </div>
               <Button variant="outline" className="mr-auto" asChild>
-                <a href={breakout.buttonUrl} target="_blank">
+                <a href={breakout.buttonUrl} target="_blank" rel="noopener noreferrer">
                   {breakout.buttonText}
                 </a>
               </Button>
@@ -194,7 +196,7 @@ Our team made up talented individuals who passionate about creating empower user
             </p>
           </div>
           <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 md:flex md:flex-wrap md:justify-between">
-            {achievements.map((item, idx) => (
+            {achievements?.map((item, idx) => (
               <div
                 className="flex flex-col gap-2 text-center md:text-left"
                 key={item.label + idx}

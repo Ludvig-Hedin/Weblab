@@ -1,3 +1,4 @@
+import { env } from '@/env';
 import { trackEvent } from '@/utils/analytics/server';
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/server';
@@ -7,7 +8,8 @@ import { extractNames } from '@weblab/utility';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
+    const siteUrl = env.NEXT_PUBLIC_SITE_URL;
     const code = searchParams.get('code');
 
     if (code) {
@@ -60,8 +62,7 @@ export async function GET(request: Request) {
                     },
                 });
 
-                // Always use the request origin to prevent open redirect via X-Forwarded-Host header manipulation
-                return NextResponse.redirect(`${origin}${Routes.AUTH_REDIRECT}`);
+                return NextResponse.redirect(`${siteUrl}${Routes.AUTH_REDIRECT}`);
             }
             console.error(`Error exchanging code for session: ${error}`);
         } catch (error) {
@@ -70,5 +71,5 @@ export async function GET(request: Request) {
     }
 
     // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`);
 }

@@ -278,7 +278,7 @@ const ProductQuickView4 = ({
 };
 
 const ProductImages = ({ images }: ProductImagesProps) => {
-  if (!images) return;
+  if (!images) return null;
 
   return (
     <Carousel className="h-full md:[&>div]:h-full">
@@ -320,8 +320,8 @@ const ProductForm = ({ hinges, selected }: ProductFormProps) => {
     },
   });
 
-  function onSubmit(values: FormType) {
-    console.log(values);
+  function onSubmit(_values: FormType) {
+    // TODO: wire submitted form values to cart logic
   }
 
   const colorHinges = hinges?.color;
@@ -397,7 +397,7 @@ const ProductForm = ({ hinges, selected }: ProductFormProps) => {
 };
 
 const ColorRadioGroup = ({ options, field }: RadioGroupProps) => {
-  if (!options) return;
+  if (!options) return null;
 
   return (
     <RadioGroup
@@ -432,7 +432,7 @@ const ColorRadioGroup = ({ options, field }: RadioGroupProps) => {
 };
 
 const SizeRadioGroup = ({ options, field }: RadioGroupProps) => {
-  if (!options) return;
+  if (!options) return null;
 
   return (
     <RadioGroup

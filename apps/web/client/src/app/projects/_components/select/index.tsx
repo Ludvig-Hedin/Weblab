@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { api } from '@/trpc/react';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
+import { Routes } from '@/utils/constants';
 import { Templates } from '../templates';
 import { StaticTemplates } from '../templates/static-templates';
 import { TemplateModal } from '../templates/template-modal';
@@ -174,6 +176,7 @@ export const SelectProject = ({
     externalSearchQuery?: string;
     onClearSearch?: () => void;
 } = {}) => {
+    const router = useRouter();
     const utils = api.useUtils();
     const { data: user } = api.user.get.useQuery();
     const { data: fetchedProjects, isLoading, refetch } = api.project.list.useQuery();
@@ -616,6 +619,15 @@ export const SelectProject = ({
                                 )}
                                 Open local folder
                             </Button>
+                            <Button
+                                onClick={() => router.push(Routes.IMPORT_GITHUB)}
+                                disabled={isCreatingProject || isImporting || isAiCreating}
+                                variant="outline"
+                                className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
+                            >
+                                <Icons.GitHubLogo className="h-4 w-4" />
+                                Import from GitHub
+                            </Button>
                         </div>
                     </div>
 
@@ -662,9 +674,6 @@ export const SelectProject = ({
                             <h2 className="text-foreground text-3xl font-normal tracking-tight">
                                 Projects
                             </h2>
-                            <p className="text-foreground-tertiary mt-1 text-sm">
-                                Live previews, tidy folders, and quick bulk actions.
-                            </p>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -866,20 +875,17 @@ export const SelectProject = ({
                 )}
 
                 <div>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-foreground-tertiary text-sm font-medium tracking-[0.18em] uppercase">
-                            {folderViewModels.length > 0 ? 'Unfiled projects' : 'Projects'}
-                        </h3>
-                        <span className="text-foreground-tertiary flex items-center gap-2 text-xs">
-                            {searchQuery !== debouncedSearchQuery && (
-                                <span className="text-foreground-tertiary/80 flex items-center gap-1">
-                                    <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
-                                    Searching…
-                                </span>
-                            )}
-                            {looseProjects.length} visible
-                        </span>
-                    </div>
+                    {/* <div className="mb-4 flex items-center justify-between">
+                    //     <span className="text-foreground-tertiary flex items-center gap-2 text-xs">
+                    //         {searchQuery !== debouncedSearchQuery && (
+                    //             <span className="text-foreground-tertiary/80 flex items-center gap-1">
+                    //                 <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
+                    //                 Searching…
+                    //             </span>
+                    //         )}
+                    //         {looseProjects.length} visible
+                    //     </span>
+                    // </div> */}
 
                     {looseProjects.length === 0 ? (
                         <div className="flex w-full items-center justify-center rounded-[26px] border border-dashed border-foreground/8 bg-foreground/3 py-16">

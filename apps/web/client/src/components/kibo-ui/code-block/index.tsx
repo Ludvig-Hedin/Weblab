@@ -20,6 +20,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { IconType } from "react-icons";
@@ -394,10 +395,11 @@ export const CodeBlockFilename = ({
 }: CodeBlockFilenameProps) => {
   const { value: activeValue } = useContext(CodeBlockContext);
   const defaultIcon = Object.entries(filenameIconMap).find(([pattern]) => {
+    if (typeof children !== "string") return false;
     const regex = new RegExp(
       `^${pattern.replace(/\\/g, "\\\\").replace(/\./g, "\\.").replace(/\*/g, ".*")}$`
     );
-    return regex.test(children as string);
+    return regex.test(children);
   })?.[1];
   const Icon = icon ?? defaultIcon;
 
@@ -486,8 +488,15 @@ export const CodeBlockCopyButton = ({
   ...props
 }: CodeBlockCopyButtonProps) => {
   const [isCopied, setIsCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { data, value } = useContext(CodeBlockContext);
   const code = data.find((item) => item.language === value)?.code;
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const copyToClipboard = () => {
     if (
@@ -502,7 +511,8 @@ export const CodeBlockCopyButton = ({
       setIsCopied(true);
       onCopy?.();
 
-      setTimeout(() => setIsCopied(false), timeout);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setIsCopied(false), timeout);
     }, onError);
   };
 
@@ -536,7 +546,7 @@ const CodeBlockFallback = ({ children, ...props }: CodeBlockFallbackProps) => (
       <code>
         {children
           ?.toString()
-          .split("")
+          .split(/\r?\n/)
           .map((line, i) => (
             <span className="line" key={i}>
               {line}

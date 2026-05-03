@@ -2,14 +2,14 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 
-interface Button {
+interface CtaButton {
   text: string;
   url: string;
   icon?: React.ReactNode;
 }
 interface Buttons {
-  primary?: Button;
-  secondary?: Button;
+  primary?: CtaButton;
+  secondary?: CtaButton;
 }
 
 interface CtaSimpleProps {

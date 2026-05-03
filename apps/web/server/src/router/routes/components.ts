@@ -1,9 +1,15 @@
 import { readdir, readFile } from 'fs/promises';
-import { extname, join, relative } from 'path';
+import { extname, isAbsolute, join, relative, resolve } from 'path';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 import { publicProcedure, router } from '../trpc';
+
+// Restrict scans to a single configurable sandbox base directory. Any projectRoot
+// passed by the caller must resolve to a path inside this base. Defaults to a
+// path that does not exist on most hosts, effectively disabling the endpoint
+// unless the operator opts in by setting SANDBOX_BASE_DIR.
+const SANDBOX_BASE_DIR = resolve(process.env.SANDBOX_BASE_DIR ?? '/project/sandbox');
 
 export interface DiscoveredComponent {
     name: string;
@@ -52,9 +58,11 @@ export function extractReactComponents(source: string, filePath: string): Discov
         return [];
     }
 
-    // Strip single-line comments before applying regexes to avoid matching
-    // commented-out exports (e.g. `// export const Foo = ...`).
-    const stripped = source.replace(/\/\/.*$/gm, '');
+    // Strip block and single-line comments before applying regexes to avoid matching
+    // commented-out exports (e.g. `// export const Foo = ...` or `/* ... */`).
+    const stripped = source
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
 
     const results: DiscoveredComponent[] = [];
     const seen = new Set<string>();
@@ -146,13 +154,20 @@ export const componentsRouter = router({
             }),
         )
         .query(async ({ input }) => {
-            // Extra runtime guard: resolve and re-check for traversal sequences after
-            // normalisation (covers encoded or platform-specific edge cases).
-            const { resolve } = await import('path');
-            if (resolve(input.projectRoot).includes('..')) {
+            // Resolve the requested root and ensure it is contained inside SANDBOX_BASE_DIR.
+            // Reject absolute paths outside the base and any traversal that escapes it.
+            const candidate = isAbsolute(input.projectRoot)
+                ? resolve(input.projectRoot)
+                : resolve(SANDBOX_BASE_DIR, input.projectRoot);
+            const rel = relative(SANDBOX_BASE_DIR, candidate);
+            if (
+                rel.startsWith('..') ||
+                isAbsolute(rel) ||
+                resolve(SANDBOX_BASE_DIR, rel) !== candidate
+            ) {
                 throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid project root path' });
             }
-            const srcDir = join(input.projectRoot, 'src');
-            return scanDirectory(srcDir, input.projectRoot);
+            const srcDir = join(candidate, 'src');
+            return scanDirectory(srcDir, candidate);
         }),
 });

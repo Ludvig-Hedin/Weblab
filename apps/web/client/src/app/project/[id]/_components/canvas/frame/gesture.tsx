@@ -214,6 +214,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                     toast.error('Failed to insert component', {
                         description: error instanceof Error ? error.message : 'Unknown error',
                     });
+                    editorEngine.state.setPendingInsertComponent(null);
                 }
                 return;
             }
@@ -243,6 +244,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                     toast.error('Failed to insert block', {
                         description: error instanceof Error ? error.message : 'Unknown error',
                     });
+                    editorEngine.state.setPendingInsertBlock(null);
                 }
                 return;
             }
@@ -272,6 +274,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                     toast.error('Failed to insert element', {
                         description: error instanceof Error ? error.message : 'Unknown error',
                     });
+                    editorEngine.state.setPendingInsertElement(null);
                 }
                 return;
             }

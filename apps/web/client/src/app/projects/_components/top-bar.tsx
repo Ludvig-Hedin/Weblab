@@ -305,6 +305,24 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                             <Icons.Upload className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
                             <p className="text-microPlus">{t(transKeys.projects.actions.import)}</p>
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                            className={cn(
+                                'focus:bg-blue-100 focus:text-blue-900',
+                                'hover:bg-blue-100 hover:text-blue-900',
+                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
+                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
+                                'group cursor-pointer select-none',
+                            )}
+                            onSelect={() => {
+                                router.push(Routes.IMPORT_GITHUB);
+                            }}
+                            disabled={isBusy}
+                        >
+                            <Icons.GitHubLogo className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
+                            <p className="text-microPlus">
+                                {t(transKeys.projects.actions.importFromGitHub)}
+                            </p>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <CurrentUserAvatar className="h-8 w-8" />

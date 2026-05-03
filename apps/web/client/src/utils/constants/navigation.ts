@@ -65,12 +65,6 @@ export const RESOURCES_LINKS: NavigationLink[] = [
         description: 'View the source code',
         external: true,
     },
-    {
-        title: 'Discord',
-        href: ExternalRoutes.DISCORD,
-        description: 'Join our community',
-        external: true,
-    },
 ];
 
 export const ABOUT_LINKS: NavigationLink[] = [

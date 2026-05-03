@@ -19,6 +19,14 @@ export type CodeBlockContentProps = HTMLAttributes<HTMLDivElement> & {
   syntaxHighlighting?: boolean;
 };
 
+const escapeHtml = (str: string) =>
+  str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 export const CodeBlockContent = async ({
   children,
   themes,
@@ -51,7 +59,7 @@ export const CodeBlockContent = async ({
           }),
         ],
       })
-    : children;
+    : `<pre><code>${escapeHtml(children)}</code></pre>`;
 
   return (
     <div

@@ -31,5 +31,6 @@ export function toComponentName(frameName: string): string {
         .split(/[\s_-]+/)
         .filter(Boolean);
     if (words.length === 0) return 'Frame';
-    return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+    const name = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+    return /^[0-9]/.test(name) ? `Frame${name}` : name;
 }

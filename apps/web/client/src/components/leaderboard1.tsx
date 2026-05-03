@@ -37,7 +37,7 @@ const Leaderboard1 = ({
   valuePrefix = "",
   className,
 }: Leaderboard1Props) => {
-  const maxValue = items[0]?.value || 1;
+  const maxValue = items.length > 0 ? Math.max(...items.map((item) => item.value), 1) : 1;
 
   return (
     <Card className={cn("w-full max-w-2xl", className)}>
