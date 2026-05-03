@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { extractCsbPort } from './helper';
 
+const SANDBOX_PRIVACY = 'private' as const;
+
 // Helper function to get existing frames in a canvas
 async function getExistingFrames(tx: any, canvasId: string): Promise<Frame[]> {
     const dbFrames = await tx.query.frames.findMany({
@@ -121,12 +123,17 @@ export const branchRouter = createTRPCRouter({
                     id: sourceBranch.sandboxId,
                     title: branchName,
                     tags: ['fork'],
+                    privacy: SANDBOX_PRIVACY,
                 });
 
                 const sandboxId = forkedSandbox.id;
                 // Extract port from source branch frames or fall back to 3000
                 const port = extractCsbPort(sourceBranch.frames) ?? 3000;
-                const previewUrl = getSandboxPreviewUrl(sandboxId, port);
+                const previewUrl = getSandboxPreviewUrl(
+                    sandboxId,
+                    port,
+                    forkedSandbox.previewToken,
+                );
 
                 // Create new branch
                 const newBranchId = uuidv4();
@@ -264,13 +271,18 @@ export const branchRouter = createTRPCRouter({
                         id: DEFAULT_NEW_PROJECT_TEMPLATE.id,
                         title: branchName,
                         tags: ['blank'],
+                        privacy: SANDBOX_PRIVACY,
                     });
 
                     const sandboxId = blankSandbox.id;
                     // Extract port from existing project frames or fall back to 3000
                     const allFrames = existingBranches.flatMap(branch => branch.frames || []);
                     const port = extractCsbPort(allFrames) ?? 3000;
-                    const previewUrl = getSandboxPreviewUrl(sandboxId, port);
+                    const previewUrl = getSandboxPreviewUrl(
+                        sandboxId,
+                        port,
+                        blankSandbox.previewToken,
+                    );
 
                     // Create new branch
                     const newBranchId = uuidv4();

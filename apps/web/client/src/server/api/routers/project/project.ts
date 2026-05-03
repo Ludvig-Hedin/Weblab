@@ -81,7 +81,7 @@ export const projectRouter = createTRPCRouter({
 
                 // Extract port from existing frame URL or fall back to 3000
                 const port = extractCsbPort(branch.frames) ?? 3000;
-                const url = getSandboxPreviewUrl(branch.sandboxId, port);
+                const url = branch.frames[0]?.url ?? getSandboxPreviewUrl(branch.sandboxId, port);
                 const app = new FirecrawlApp({ apiKey: env.FIRECRAWL_API_KEY });
 
                 // Optional: Add actions to click the button for CSB free tier

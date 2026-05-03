@@ -28,6 +28,8 @@ type ForkedBranch = {
     newSandboxUrl: string;
 };
 
+const SANDBOX_PRIVACY = 'private' as const;
+
 type SourceProjectWithRelations = Project & {
     canvas?: {
         frames: (DbFrame & { branch?: Branch | null })[];
@@ -69,9 +71,10 @@ async function forkAllBranches(
             id: sourceBranch.sandboxId,
             title: `${sourceProjectName} (Fork) - ${sourceBranch.name}`,
             tags: ['template-fork'],
+            privacy: SANDBOX_PRIVACY,
         });
 
-        const newSandboxUrl = getSandboxPreviewUrl(newSandbox.id, 3000);
+        const newSandboxUrl = getSandboxPreviewUrl(newSandbox.id, 3000, newSandbox.previewToken);
         const newBranch: Branch = {
             ...sourceBranch,
             id: uuidv4(),

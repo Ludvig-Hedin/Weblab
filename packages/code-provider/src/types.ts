@@ -166,9 +166,11 @@ export interface CreateProjectInput {
     title?: string;
     description?: string;
     tags?: string[];
+    privacy?: 'public' | 'unlisted' | 'private';
 }
 export interface CreateProjectOutput {
     id: string;
+    previewToken?: string;
 }
 
 export interface PauseProjectInput {}
@@ -231,6 +233,7 @@ export abstract class Provider {
     static createProjectFromGit(input: {
         repoUrl: string;
         branch: string;
+        privacy?: 'public' | 'unlisted' | 'private';
     }): Promise<CreateProjectOutput> {
         throw new Error('createProjectFromGit must be implemented by subclass');
     }

@@ -11,6 +11,8 @@ import { shortenUuid } from '@weblab/utility/src/id';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
+const SANDBOX_PRIVACY = 'private' as const;
+
 function getProvider({
     sandboxId,
     userId,
@@ -55,6 +57,7 @@ export const sandboxRouter = createTRPCRouter({
                 title: input.title || `${APP_NAME} Test Sandbox`,
                 description: `Test sandbox for ${APP_NAME} sync engine`,
                 tags: ['onlook-test'],
+                privacy: SANDBOX_PRIVACY,
             });
 
             return {
@@ -62,6 +65,7 @@ export const sandboxRouter = createTRPCRouter({
                 previewUrl: getSandboxPreviewUrl(
                     newSandbox.id,
                     DEFAULT_NEW_PROJECT_TEMPLATE.port,
+                    newSandbox.previewToken,
                 ),
             };
         }),
@@ -140,9 +144,14 @@ export const sandboxRouter = createTRPCRouter({
                         // Metadata
                         title: input.config?.title,
                         tags: input.config?.tags,
+                        privacy: SANDBOX_PRIVACY,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(sandbox.id, input.sandbox.port);
+                    const previewUrl = getSandboxPreviewUrl(
+                        sandbox.id,
+                        input.sandbox.port,
+                        sandbox.previewToken,
+                    );
 
                     return {
                         sandboxId: sandbox.id,
@@ -199,9 +208,14 @@ export const sandboxRouter = createTRPCRouter({
                     const sandbox = await CodesandboxProvider.createProjectFromGit({
                         repoUrl: input.repoUrl,
                         branch: input.branch,
+                        privacy: SANDBOX_PRIVACY,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(sandbox.id, DEFAULT_PORT);
+                    const previewUrl = getSandboxPreviewUrl(
+                        sandbox.id,
+                        DEFAULT_PORT,
+                        sandbox.previewToken,
+                    );
 
                     return {
                         sandboxId: sandbox.id,

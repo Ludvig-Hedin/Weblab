@@ -170,15 +170,22 @@ export class CodesandboxProvider extends Provider {
             title: input.title,
             description: input.description,
             tags: input.tags,
+            privacy: input.privacy,
         });
+        const previewToken =
+            input.privacy === 'private'
+                ? (await sdk.hosts.createToken(newSandbox.id)).token
+                : undefined;
         return {
             id: newSandbox.id,
+            previewToken,
         };
     }
 
     static async createProjectFromGit(input: {
         repoUrl: string;
         branch: string;
+        privacy?: 'public' | 'unlisted' | 'private';
     }): Promise<CreateProjectOutput> {
         const sdk = new CodeSandbox();
         const TIMEOUT_MS = 30000;
@@ -187,6 +194,7 @@ export class CodesandboxProvider extends Provider {
             source: 'git',
             url: input.repoUrl,
             branch: input.branch,
+            privacy: input.privacy,
             async setup(session) {
                 await session.setup.run();
             },
@@ -197,9 +205,14 @@ export class CodesandboxProvider extends Provider {
         });
 
         const newSandbox = await Promise.race([createPromise, timeoutPromise]);
+        const previewToken =
+            input.privacy === 'private'
+                ? (await sdk.hosts.createToken(newSandbox.id)).token
+                : undefined;
 
         return {
             id: newSandbox.id,
+            previewToken,
         };
     }
 
