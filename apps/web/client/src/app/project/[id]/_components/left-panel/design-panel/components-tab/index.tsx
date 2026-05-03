@@ -54,6 +54,8 @@ export const ComponentsTab = observer(() => {
     const handleTemplateClick = useCallback(
         (template: ComponentTemplate) => {
             editorEngine.state.setPendingInsertElement(template.properties);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             toast('Click on the canvas to place this component.');

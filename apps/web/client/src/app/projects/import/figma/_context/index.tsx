@@ -20,8 +20,6 @@ interface FigmaImportContextValue {
     nextStep: () => void;
     prevStep: () => void;
 
-    personalAccessToken: string;
-    setPersonalAccessToken: (v: string) => void;
     fileUrl: string;
     setFileUrl: (v: string) => void;
     isFetching: boolean;
@@ -47,7 +45,6 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter();
 
     const [currentStep, setCurrentStep] = useState<FigmaImportStep>(0);
-    const [personalAccessToken, setPersonalAccessToken] = useState('');
     const [fileUrl, setFileUrl] = useState('');
     const [isFetching, setIsFetching] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -64,12 +61,11 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const { mutateAsync: fetchFileMutation } = api.figma.fetchFile.useMutation();
 
     const fetchFile = async () => {
-        if (!personalAccessToken.trim() || !fileUrl.trim()) return;
+        if (!fileUrl.trim()) return;
         setIsFetching(true);
         setFetchError(null);
         try {
             const result = await fetchFileMutation({
-                personalAccessToken: personalAccessToken.trim(),
                 fileUrl: fileUrl.trim(),
             });
             setFileName(result.fileName);
@@ -112,15 +108,28 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
             });
 
+            const usedNames = new Set<string>();
+            const dedupedFrames = selectedFrames.map((frame) => {
+                const baseName = toComponentName(frame.name);
+                let uniqueName = baseName;
+                let counter = 2;
+                while (usedNames.has(uniqueName)) {
+                    uniqueName = `${baseName}${counter}`;
+                    counter++;
+                }
+                usedNames.add(uniqueName);
+                return { ...frame, name: uniqueName };
+            });
+
             const files: ProcessedFile[] = [
-                ...selectedFrames.map((frame) => ({
+                ...dedupedFrames.map((frame) => ({
                     path: `src/components/${toComponentName(frame.name)}.tsx`,
                     content: scaffoldFrameComponent(frame),
                     type: ProcessedFileType.TEXT as const,
                 })),
                 {
                     path: 'src/app/page.tsx',
-                    content: scaffoldAppPage(selectedFrames),
+                    content: scaffoldAppPage(dedupedFrames),
                     type: ProcessedFileType.TEXT as const,
                 },
             ];
@@ -137,9 +146,12 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
             });
 
-            await uploadToSandbox(files, provider);
-            await provider.setup({});
-            await provider.destroy();
+            try {
+                await uploadToSandbox(files, provider);
+                await provider.setup({});
+            } finally {
+                await provider.destroy();
+            }
 
             const project = await createProject({
                 project: {
@@ -190,8 +202,6 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 currentStep,
                 nextStep,
                 prevStep,
-                personalAccessToken,
-                setPersonalAccessToken,
                 fileUrl,
                 setFileUrl,
                 isFetching,

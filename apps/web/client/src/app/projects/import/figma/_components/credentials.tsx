@@ -10,18 +10,9 @@ import { StepContent, StepFooter, StepHeader } from '../../steps';
 import { useFigmaImport } from '../_context';
 
 export const FigmaCredentials = () => {
-    const {
-        prevStep,
-        personalAccessToken,
-        setPersonalAccessToken,
-        fileUrl,
-        setFileUrl,
-        isFetching,
-        fetchError,
-        fetchFile,
-    } = useFigmaImport();
+    const { prevStep, fileUrl, setFileUrl, isFetching, fetchError, fetchFile } = useFigmaImport();
 
-    const canFetch = personalAccessToken.trim().length > 0 && fileUrl.trim().length > 0;
+    const canFetch = fileUrl.trim().length > 0;
 
     return (
         <>
@@ -31,9 +22,9 @@ export const FigmaCredentials = () => {
                         <Icons.Figma className="w-6 h-6" />
                     </div>
                 </div>
-                <CardTitle className="text-xl font-normal">Connect to Figma</CardTitle>
+                <CardTitle className="text-xl font-normal">Import from Figma</CardTitle>
                 <CardDescription className="font-normal">
-                    Enter your Personal Access Token and file URL.
+                    Paste a Figma file URL to import your designs as React components.
                 </CardDescription>
             </StepHeader>
             <StepContent>
@@ -46,25 +37,11 @@ export const FigmaCredentials = () => {
                 >
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="figma-pat">Personal Access Token</Label>
-                            <Input
-                                id="figma-pat"
-                                type="password"
-                                placeholder="figd_..."
-                                value={personalAccessToken}
-                                onChange={(e) => setPersonalAccessToken(e.target.value)}
-                                disabled={isFetching}
-                            />
-                            <p className="text-xs text-foreground-secondary">
-                                Generate at figma.com → Settings → Personal access tokens
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
                             <Label htmlFor="figma-url">Figma File URL</Label>
                             <Input
                                 id="figma-url"
                                 type="url"
-                                placeholder="https://www.figma.com/file/..."
+                                placeholder="https://www.figma.com/design/..."
                                 value={fileUrl}
                                 onChange={(e) => setFileUrl(e.target.value)}
                                 disabled={isFetching}
@@ -92,7 +69,7 @@ export const FigmaCredentials = () => {
                             Fetching...
                         </>
                     ) : (
-                        'Fetch File'
+                        'Fetch Frames'
                     )}
                 </Button>
             </StepFooter>
