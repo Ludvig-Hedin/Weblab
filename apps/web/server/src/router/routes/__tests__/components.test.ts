@@ -49,4 +49,34 @@ describe('extractReactComponents', () => {
         const result = extractReactComponents('this is not valid JS {{{{', 'src/bad.tsx');
         expect(result).toEqual([]);
     });
+
+    it('extracts typed arrow components (const X: FC = ...)', () => {
+        const source = `export const Button: React.FC<ButtonProps> = ({ children }) => <button>{children}</button>;`;
+        const result = extractReactComponents(source, 'src/components/button.tsx');
+        expect(result).toEqual([
+            { name: 'Button', filePath: 'src/components/button.tsx', exportType: 'named' },
+        ]);
+    });
+
+    it('does not extract commented-out exports', () => {
+        const source = `
+            // export const CommentedOut = () => <div />;
+            export const RealComponent = () => <div />;
+        `;
+        const result = extractReactComponents(source, 'src/components/mixed.tsx');
+        expect(result).toEqual([
+            { name: 'RealComponent', filePath: 'src/components/mixed.tsx', exportType: 'named' },
+        ]);
+    });
+
+    it('extracts export default identifier re-export', () => {
+        const source = `
+            const MyPage = () => <main />;
+            export default MyPage;
+        `;
+        const result = extractReactComponents(source, 'src/app/page.tsx');
+        expect(result).toEqual([
+            { name: 'MyPage', filePath: 'src/app/page.tsx', exportType: 'default' },
+        ]);
+    });
 });
