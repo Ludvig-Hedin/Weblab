@@ -12,6 +12,7 @@ import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { BranchesTab } from './branches-tab';
+import { ComponentsTab } from './components-tab';
 import { BrandTab } from './brand-tab';
 import { HelpButton } from './help-button';
 import { ImagesTab } from './image-tab';
@@ -31,6 +32,11 @@ const tabs: {
         value: LeftPanelTabValue.INSERT,
         icon: <Icons.Plus className="h-5 w-5" />,
         hotkey: Hotkey.SIDEBAR_INSERT,
+    },
+    {
+        value: LeftPanelTabValue.COMPONENTS,
+        icon: <Icons.Component className="h-5 w-5" />,
+        hotkey: Hotkey.SIDEBAR_COMPONENTS,
     },
     {
         value: LeftPanelTabValue.LAYERS,
@@ -118,6 +124,8 @@ export const DesignPanel = observer(() => {
         switch (tab) {
             case LeftPanelTabValue.INSERT:
                 return t(transKeys.editor.panels.layers.tabs.insert);
+            case LeftPanelTabValue.COMPONENTS:
+                return t(transKeys.editor.panels.layers.tabs.components);
             case LeftPanelTabValue.LAYERS:
                 return t(transKeys.editor.panels.layers.tabs.layers);
             case LeftPanelTabValue.SEARCH:
@@ -189,6 +197,7 @@ export const DesignPanel = observer(() => {
                     <div className="bg-background/95 w-[272px] flex-1 rounded-xl">
                         <div className="h-full overflow-auto rounded-xl border p-0 shadow backdrop-blur-xl">
                             {selectedTab === LeftPanelTabValue.INSERT && <InsertTab />}
+                            {selectedTab === LeftPanelTabValue.COMPONENTS && <ComponentsTab />}
                             {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
                             {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
                             {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}

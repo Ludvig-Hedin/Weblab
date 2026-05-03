@@ -22,6 +22,7 @@ export class Hotkey {
     static readonly SIDEBAR_IMAGES = new Hotkey('alt+4', 'Images');
     static readonly SIDEBAR_BRANCHES = new Hotkey('alt+5', 'Branches');
     static readonly SIDEBAR_SEARCH = new Hotkey('alt+6', 'Search');
+    static readonly SIDEBAR_COMPONENTS = new Hotkey('alt+7', 'Components');
 
     // Mode switching
     static readonly MODE_DESIGN = new Hotkey('mod+1', 'Design Mode');

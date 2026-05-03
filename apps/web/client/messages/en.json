@@ -106,7 +106,22 @@
             "google": "Login with Google",
             "lastUsed": "You used this last time",
             "loginToEdit": "Login to Edit",
-            "shareProjects": "No credit card required • Get a site in seconds"
+            "shareProjects": "No credit card required • Get a site in seconds",
+            "email": "Continue with email",
+            "emailPlaceholder": "your@email.com",
+            "sendCode": "Send code",
+            "sending": "Sending..."
+        },
+        "verify": {
+            "title": "Check your email",
+            "description": "We sent a 6-digit code to {email}",
+            "enterCode": "Enter verification code",
+            "verify": "Verify",
+            "verifying": "Verifying...",
+            "resend": "Resend code",
+            "resendIn": "Resend in {seconds}s",
+            "back": "Back to login",
+            "wrongEmail": "Wrong email?"
         },
         "terms": {
             "agreement": "By signing up, you agree to our",
@@ -324,7 +339,7 @@
                     "layers": "Layers",
                     "insert": "Insert",
                     "pages": "Pages",
-                    "components": "Elements",
+                    "components": "Components",
                     "images": "Images",
                     "windows": {
                         "name": "Windows",
