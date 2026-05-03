@@ -1,13 +1,13 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { DefaultSettings, EditorAttributes } from '@onlook/constants';
+import { DefaultSettings, EditorAttributes } from '@weblab/constants';
 import type {
     DomElement,
     DropElementProperties,
     ElementPosition,
     ImageContentData,
     RectDimensions,
-} from '@onlook/models';
-import { EditorMode, InsertMode } from '@onlook/models';
+} from '@weblab/models';
+import { EditorMode, InsertMode } from '@weblab/models';
 import {
     type ActionElement,
     type ActionLocation,
@@ -15,10 +15,10 @@ import {
     type InsertElementAction,
     type RemoveElementAction,
     type UpdateStyleAction,
-} from '@onlook/models/actions';
-import { StyleChangeType } from '@onlook/models/style';
-import { colors } from '@onlook/ui/tokens';
-import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { StyleChangeType } from '@weblab/models/style';
+import { colors } from '@weblab/ui/tokens';
+import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@weblab/utility';
 import type React from 'react';
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';

@@ -1,13 +1,13 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { DefaultSettings } from '@onlook/constants';
-import { toDbProjectSettings } from '@onlook/db';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Separator } from '@onlook/ui/separator';
-import { toast } from '@onlook/ui/sonner';
+import { DefaultSettings } from '@weblab/constants';
+import { toDbProjectSettings } from '@weblab/db';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Separator } from '@weblab/ui/separator';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useState } from 'react';
 

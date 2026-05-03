@@ -1,7 +1,7 @@
 import {
     projectCreateRequests
-} from '@onlook/db';
-import { ProjectCreateRequestStatus } from '@onlook/models';
+} from '@weblab/db';
+import { ProjectCreateRequestStatus } from '@weblab/models';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

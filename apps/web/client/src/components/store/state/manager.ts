@@ -1,4 +1,4 @@
-import { SettingsTabValue } from '@onlook/models';
+import { SettingsTabValue } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
 
 import { HotkeyStore } from '@/components/store/hotkeys';

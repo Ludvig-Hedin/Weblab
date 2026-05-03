@@ -1,5 +1,5 @@
-import type { DomElement, EditTextResult, LayerNode } from '@onlook/models';
-import { EditorAttributes } from '@onlook/constants';
+import type { DomElement, EditTextResult, LayerNode } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getHtmlElement } from '../../helpers';
 import { buildLayerTree } from '../dom';

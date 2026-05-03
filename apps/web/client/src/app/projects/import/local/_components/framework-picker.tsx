@@ -4,14 +4,14 @@ import {
     isFrameworkReady,
     listFrameworkAdapters,
     type FrameworkId,
-} from '@onlook/framework';
+} from '@weblab/framework';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@onlook/ui/select';
+} from '@weblab/ui/select';
 
 import { useProjectCreation } from '../_context';
 

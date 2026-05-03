@@ -1,6 +1,6 @@
 import { getExtensions } from '@/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-mirror-config';
-import { SystemTheme } from '@onlook/models';
-import { cn } from '@onlook/ui/utils';
+import { SystemTheme } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
 import { basicSetup } from '@uiw/codemirror-extensions-basic-setup';
 import CodeMirror from '@uiw/react-codemirror';
 

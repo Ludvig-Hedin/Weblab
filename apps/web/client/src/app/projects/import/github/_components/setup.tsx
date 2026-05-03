@@ -1,8 +1,8 @@
-import { Button } from '@onlook/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
+import { Button } from '@weblab/ui/button';
+import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StepContent, StepFooter, StepHeader } from '../../steps';

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 
 export const ImageBackground = () => {
     return (

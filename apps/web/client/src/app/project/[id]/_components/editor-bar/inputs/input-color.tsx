@@ -1,7 +1,7 @@
 'use client';
 
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { Color } from '@onlook/utility';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { Color } from '@weblab/utility';
 import { useCallback, useState } from 'react';
 import { ColorPickerContent } from './color-picker';
 import { useColorUpdate } from '../hooks/use-color-update';

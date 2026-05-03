@@ -1,7 +1,7 @@
-import type { CodeAction } from '@onlook/models/actions';
-import type { CodeDiffRequest } from '@onlook/models/code';
-import { CodeActionType } from '@onlook/models/actions';
-import { assertNever } from '@onlook/utility';
+import type { CodeAction } from '@weblab/models/actions';
+import type { CodeDiffRequest } from '@weblab/models/code';
+import { CodeActionType } from '@weblab/models/actions';
+import { assertNever } from '@weblab/utility';
 
 import type { NodePath, T } from '../packages';
 import { t, traverse } from '../packages';

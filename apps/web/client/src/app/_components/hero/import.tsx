@@ -2,7 +2,7 @@
 
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons/index';
+import { Icons } from '@weblab/ui/icons/index';
 import localforage from 'localforage';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '../../auth/auth-context';

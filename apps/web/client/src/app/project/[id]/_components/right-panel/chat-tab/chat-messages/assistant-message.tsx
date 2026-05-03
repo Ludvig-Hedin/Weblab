@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@onlook/models';
+import type { ChatMessage } from '@weblab/models';
 import { observer } from 'mobx-react-lite';
 import { memo } from 'react';
 import { MessageContent } from './message-content';

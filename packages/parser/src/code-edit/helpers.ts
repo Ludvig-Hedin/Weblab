@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid/non-secure';
 
-import { EditorAttributes } from '@onlook/constants';
+import { EditorAttributes } from '@weblab/constants';
 
 import type { GeneratorOptions, T } from '../packages';
 import { generate, t } from '../packages';

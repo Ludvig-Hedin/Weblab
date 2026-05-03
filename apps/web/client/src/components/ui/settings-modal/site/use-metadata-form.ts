@@ -1,4 +1,4 @@
-import type { PageMetadata, TitleMetadata } from '@onlook/models';
+import type { PageMetadata, TitleMetadata } from '@weblab/models';
 import { useEffect, useState, useMemo } from 'react';
 
 interface UseMetadataFormProps {

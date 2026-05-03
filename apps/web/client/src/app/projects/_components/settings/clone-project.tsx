@@ -2,20 +2,20 @@
 
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import type { Project } from '@onlook/models';
+import type { Project } from '@weblab/models';
 import {
     AlertDialog,
     AlertDialogContent,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { DropdownMenuItem } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { cn } from '@weblab/ui/utils';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';

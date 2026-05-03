@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { capitalizeFirstLetter, stringToParsedValue } from '@onlook/utility';
+import { capitalizeFirstLetter, stringToParsedValue } from '@weblab/utility';
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

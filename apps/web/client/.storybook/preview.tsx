@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/nextjs-vite'
-import '@onlook/ui/globals.css'
+import '@weblab/ui/globals.css'
 import { Inter } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { ThemeProvider } from 'next-themes'

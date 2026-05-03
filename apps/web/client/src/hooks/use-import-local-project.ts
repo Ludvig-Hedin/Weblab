@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { toast } from 'sonner';
 
-import type { Provider } from '@onlook/code-provider';
-import { CodeProvider, createCodeProviderClient } from '@onlook/code-provider';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@onlook/constants';
+import type { Provider } from '@weblab/code-provider';
+import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import {

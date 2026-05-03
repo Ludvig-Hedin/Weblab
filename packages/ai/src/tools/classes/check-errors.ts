@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import type { CheckErrorsResult } from '@onlook/models';
-import type { ParsedError } from '@onlook/utility';
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import { Icons } from '@onlook/ui/icons';
+import type { CheckErrorsResult } from '@weblab/models';
+import type { ParsedError } from '@weblab/utility';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import { Icons } from '@weblab/ui/icons';
 
 import { ClientTool } from '../models/client';
 

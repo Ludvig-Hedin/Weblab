@@ -1,7 +1,7 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
 interface TemplateCardProps {
     title?: string;

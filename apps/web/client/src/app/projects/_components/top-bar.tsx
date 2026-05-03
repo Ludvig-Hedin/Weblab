@@ -8,18 +8,18 @@ import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-import { BrandLogo } from '@onlook/ui/brand';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
+import { BrandLogo } from '@weblab/ui/brand';
+import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { cn } from '@weblab/ui/utils';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';

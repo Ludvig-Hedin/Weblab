@@ -1,15 +1,15 @@
 import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState } from 'react';
 
-import type { GitCommit } from '@onlook/git';
-import { MessageCheckpointType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { toast } from '@onlook/ui/sonner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
-import { formatCommitDate, timeAgo } from '@onlook/utility';
+import type { GitCommit } from '@weblab/git';
+import { MessageCheckpointType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
+import { formatCommitDate, timeAgo } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { restoreCheckpoint } from '@/components/store/editor/git';

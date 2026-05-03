@@ -1,4 +1,4 @@
-# @onlook/file-system
+# @weblab/file-system
 
 Browser-based file system abstraction using ZenFS with IndexedDB storage.
 
@@ -7,7 +7,7 @@ Browser-based file system abstraction using ZenFS with IndexedDB storage.
 ### Basic Usage
 
 ```typescript
-import { FileSystem } from '@onlook/file-system';
+import { FileSystem } from '@weblab/file-system';
 
 // Create a file system instance with a root directory
 const fs = new FileSystem('/my-project');
@@ -28,7 +28,7 @@ const files = await fs.readDirectory('/');
 ### React Hooks
 
 ```typescript
-import { useFS, useFile, useDirectory } from '@onlook/file-system/hooks';
+import { useFS, useFile, useDirectory } from '@weblab/file-system/hooks';
 
 function FileExplorer() {
   const rootDir = '/my-project';

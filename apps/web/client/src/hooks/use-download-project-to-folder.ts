@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { EXCLUDED_SYNC_PATHS } from '@onlook/constants';
+import { EXCLUDED_SYNC_PATHS } from '@weblab/constants';
 
 import { useEditorEngine } from '@/components/store/editor';
 import {

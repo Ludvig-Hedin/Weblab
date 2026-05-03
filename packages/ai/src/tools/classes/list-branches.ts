@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import type { Branch } from '@onlook/models';
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import { Icons } from '@onlook/ui/icons';
-import { jsonClone } from '@onlook/utility/src/clone';
+import type { Branch } from '@weblab/models';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import { Icons } from '@weblab/ui/icons';
+import { jsonClone } from '@weblab/utility/src/clone';
 
 import { ClientTool } from '../models/client';
 

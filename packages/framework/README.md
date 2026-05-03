@@ -1,4 +1,4 @@
-# @onlook/framework
+# @weblab/framework
 
 Framework adapter abstraction for Onlook. One adapter per supported
 framework; the rest of the app reads project shape (validation, dev-server
@@ -52,7 +52,7 @@ toggling the flag is a UI/UX gate, not an implementation gate.
 
 The framework adapter declares which editor pipelines apply to its
 projects (`pipelines: ['jsx']`, `['html']`, or `['jsx', 'html']`). The
-implementations live in `@onlook/parser` under `src/pipelines/`:
+implementations live in `@weblab/parser` under `src/pipelines/`:
 
 - `jsxPipeline` — Babel-based, JSX/TSX. Wraps existing `getAstFromContent`
   / `addOidsToAst` / `transformAst` / `getContentFromAst` behind the

@@ -2,9 +2,9 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { type Deployment } from '@onlook/db';
-import { DeploymentStatus, DeploymentType } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
+import { type Deployment } from '@weblab/db';
+import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 interface PublishParams {

@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { integer, pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
-import { PriceKey } from '@onlook/stripe';
+import { PriceKey } from '@weblab/stripe';
 
 import { products } from './product';
 

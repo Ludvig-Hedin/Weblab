@@ -5,7 +5,7 @@ import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { GitHubRepository } from '@onlook/github';
+import type { GitHubRepository } from '@weblab/github';
 
 export const useRepositoryImport = () => {
     const router = useRouter();

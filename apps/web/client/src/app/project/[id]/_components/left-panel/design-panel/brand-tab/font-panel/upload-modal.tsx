@@ -3,14 +3,14 @@ import {
     AlertDialogContent,
     AlertDialogFooter,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useState, useRef } from 'react';
 import type { FontFile } from './font-files';
 import FontFiles from './font-files';
-import { extractFontParts } from '@onlook/utility';
+import { extractFontParts } from '@weblab/utility';
 
 interface UploadModalProps {
     isOpen: boolean;

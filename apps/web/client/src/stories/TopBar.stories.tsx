@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { TopBarPresentation } from '@/app/projects/_components/top-bar-presentation';
-import type { User } from '@onlook/models';
+import type { User } from '@weblab/models';
 import { fn } from '@storybook/test';
 
 /**

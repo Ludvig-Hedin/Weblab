@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
@@ -69,8 +69,8 @@ function PrototypeFeaturesHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                            Book a Demo
+                        <a href={Routes.PROJECTS}>
+                            Get Started
                         </a>
                     </Button>
                 </motion.div>
@@ -354,8 +354,8 @@ export default function PrototypeFeaturesPage() {
                 <PrototypeFeaturesGridSection />
                 <CTASection
                     ctaText={`Bring your team \nto Weblab today`}
-                    buttonText="Book a Demo"
-                    href={ExternalRoutes.BOOK_DEMO}
+                    buttonText="Get Started"
+                    href={Routes.PROJECTS}
                 />
                 <PrototypeFAQSection />
                 <NonProjectSettingsModal />

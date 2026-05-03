@@ -4,8 +4,8 @@ import {
     messageInsertSchema,
     messages,
     messageUpdateSchema
-} from '@onlook/db';
-import { MessageCheckpointType } from '@onlook/models';
+} from '@weblab/db';
+import { MessageCheckpointType } from '@weblab/models';
 import { asc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

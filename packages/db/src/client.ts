@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from '@onlook/db/src/schema';
+import * as schema from '@weblab/db/src/schema';
 
 /**
  * Cache the database connection in development. This avoids creating a new connection on every HMR

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { BranchTabValue } from '@onlook/models';
+import { BranchTabValue } from '@weblab/models';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -11,14 +11,14 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
-import { timeAgo } from '@onlook/utility';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
+import { timeAgo } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { BranchManagement } from './branch-management';

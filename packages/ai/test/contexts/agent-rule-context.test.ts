@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AgentRuleMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { AgentRuleMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import { AgentRuleContext } from '../../src/contexts/classes/agent-rule';
 

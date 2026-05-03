@@ -1,7 +1,7 @@
 import debounce from 'lodash.debounce';
 
-import { ONLOOK_CACHE_DIRECTORY, ONLOOK_PRELOAD_SCRIPT_FILE } from '@onlook/constants';
-import { RouterType } from '@onlook/models';
+import { ONLOOK_CACHE_DIRECTORY, ONLOOK_PRELOAD_SCRIPT_FILE } from '@weblab/constants';
+import { RouterType } from '@weblab/models';
 import {
     addOidsToAst,
     createTemplateNodeMap,
@@ -10,8 +10,8 @@ import {
     getContentFromAst,
     getContentFromTemplateNode,
     injectPreloadScript,
-} from '@onlook/parser';
-import { isRootLayoutFile, pathsEqual } from '@onlook/utility';
+} from '@weblab/parser';
+import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
 
 import type { JsxElementMetadata } from './index-cache';
 import { FileSystem } from './fs';

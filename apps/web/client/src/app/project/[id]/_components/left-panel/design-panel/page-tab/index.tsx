@@ -4,19 +4,19 @@ import {
     isFolderNode,
     isPageNode,
 } from '@/components/store/editor/pages/helper';
-import { RouterType } from '@onlook/models';
-import type { PageNode } from '@onlook/models/pages';
-import { Button } from '@onlook/ui/button';
+import { RouterType } from '@weblab/models';
+import type { PageNode } from '@weblab/models/pages';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { toast } from '@onlook/ui/sonner';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type NodeApi, type RowRendererProps, Tree, type TreeApi } from 'react-arborist';

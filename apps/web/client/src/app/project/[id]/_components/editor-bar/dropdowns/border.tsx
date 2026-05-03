@@ -1,8 +1,8 @@
 'use client';
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useMemo, useState } from 'react';
 import { useBoxControl } from '../hooks/use-box-control';

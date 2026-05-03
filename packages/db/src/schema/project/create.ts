@@ -1,8 +1,8 @@
 import { jsonb, pgEnum, pgTable, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 
-import type { CreateRequestContext } from '@onlook/models';
-import { ProjectCreateRequestStatus } from '@onlook/models';
+import type { CreateRequestContext } from '@weblab/models';
+import { ProjectCreateRequestStatus } from '@weblab/models';
 
 import { projects } from './project';
 

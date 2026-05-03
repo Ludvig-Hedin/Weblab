@@ -2,19 +2,19 @@ import { useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
-import type { PageNode } from '@onlook/models/pages';
+import type { PageNode } from '@weblab/models/pages';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger,
-} from '@onlook/ui/context-menu';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/context-menu';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { RouterType } from '@onlook/models';
+import { RouterType } from '@weblab/models';
 import { useStateManager } from '@/components/store/state';
 import { getParentPagePath, isFolderNode, isPageNode } from '@/components/store/editor/pages/helper';
 import { PageModal } from '../../page-tab/page-modal';

@@ -2,10 +2,10 @@ import type { PgTransaction } from 'drizzle-orm/pg-core';
 import { and, asc, count, eq, gte, lt } from 'drizzle-orm';
 import { v4 as uuid } from 'uuid';
 
-import { db } from '@onlook/db/src/client';
-import { UsageType } from '@onlook/models';
-import { SubscriptionStatus } from '@onlook/stripe';
-import { createStripeClient } from '@onlook/stripe/src/client';
+import { db } from '@weblab/db/src/client';
+import { UsageType } from '@weblab/models';
+import { SubscriptionStatus } from '@weblab/stripe';
+import { createStripeClient } from '@weblab/stripe/src/client';
 
 import type { Product } from '@/schema/subscription/product';
 import type { Subscription } from '@/schema/subscription/subscription';

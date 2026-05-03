@@ -10,13 +10,13 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';

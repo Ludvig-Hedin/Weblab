@@ -1,4 +1,4 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { registerOTel } from '@vercel/otel';
 import { LangfuseExporter } from 'langfuse-vercel';
 

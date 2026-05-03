@@ -1,7 +1,7 @@
 import type { ModelMessage, ToolUIPart } from 'ai';
 import { convertToModelMessages } from 'ai';
 
-import { type ChatMessage } from '@onlook/models';
+import { type ChatMessage } from '@weblab/models';
 
 import type { HydrateMessageOptions } from '../prompt';
 import { getHydratedUserMessage } from '../prompt';

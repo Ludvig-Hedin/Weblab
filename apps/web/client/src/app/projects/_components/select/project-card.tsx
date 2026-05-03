@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
-import type { Project } from '@onlook/models';
-import { Checkbox } from '@onlook/ui/checkbox';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
-import { timeAgo } from '@onlook/utility';
+import type { Project } from '@weblab/models';
+import { Checkbox } from '@weblab/ui/checkbox';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
+import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
 import { EditAppButton } from '../edit-app';

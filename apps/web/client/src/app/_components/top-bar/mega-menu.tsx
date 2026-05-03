@@ -1,9 +1,9 @@
 'use client';
 
 import { type NavigationLink } from '@/utils/constants/navigation';
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 import { useEffect, useRef, useState } from 'react';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 
 interface DropdownMenuProps {
     label: string;

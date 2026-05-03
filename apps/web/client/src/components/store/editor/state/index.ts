@@ -6,7 +6,7 @@ import {
     InsertMode,
     type DropElementProperties,
     type LeftPanelTabValue
-} from '@onlook/models';
+} from '@weblab/models';
 import { debounce } from 'lodash';
 import { makeAutoObservable, runInAction } from 'mobx';
 

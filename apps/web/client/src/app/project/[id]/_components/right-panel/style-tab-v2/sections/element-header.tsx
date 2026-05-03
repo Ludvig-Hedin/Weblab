@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import type { ActionElement } from '@onlook/models/actions';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+import type { ActionElement } from '@weblab/models/actions';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { SelectField } from '../controls/select-field';

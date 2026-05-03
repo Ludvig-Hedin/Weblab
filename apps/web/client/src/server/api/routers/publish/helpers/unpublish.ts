@@ -1,7 +1,7 @@
-import { type Deployment, type DrizzleDb } from '@onlook/db';
+import { type Deployment, type DrizzleDb } from '@weblab/db';
 import {
     DeploymentStatus
-} from '@onlook/models';
+} from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { deployFreestyle } from './deploy';
 import { updateDeployment } from './helpers';

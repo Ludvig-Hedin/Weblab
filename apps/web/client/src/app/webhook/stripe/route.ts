@@ -1,5 +1,5 @@
 import { env } from '@/env';
-import { createStripeClient } from '@onlook/stripe';
+import { createStripeClient } from '@weblab/stripe';
 import Stripe from 'stripe';
 import { handleSubscriptionCreated, handleSubscriptionDeleted, handleSubscriptionUpdated } from './subscription';
 

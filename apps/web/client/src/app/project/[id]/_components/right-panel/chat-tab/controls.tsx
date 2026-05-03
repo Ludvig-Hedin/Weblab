@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { observer } from 'mobx-react-lite';
 
 export const ChatControls = observer(() => {

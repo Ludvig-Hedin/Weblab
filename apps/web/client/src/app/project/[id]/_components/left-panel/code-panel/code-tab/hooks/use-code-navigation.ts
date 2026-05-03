@@ -1,8 +1,8 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import type { CodeNavigationTarget } from '@onlook/models';
-import { pathsEqual } from '@onlook/utility';
+import type { CodeNavigationTarget } from '@weblab/models';
+import { pathsEqual } from '@weblab/utility';
 import { reaction } from 'mobx';
 import { useEffect, useRef, useState } from 'react';
 

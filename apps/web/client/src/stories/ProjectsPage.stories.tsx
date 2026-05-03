@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { TopBarPresentation } from '@/app/projects/_components/top-bar-presentation';
 import { SelectProjectPresentation } from '@/app/projects/_components/select-presentation';
-import type { Project, User } from '@onlook/models';
+import type { Project, User } from '@weblab/models';
 import { fn } from '@storybook/test';
 import { useState } from 'react';
 

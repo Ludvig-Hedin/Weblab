@@ -1,5 +1,5 @@
-import type { UserSettings } from '@onlook/models';
-import { DefaultSettings } from '@onlook/constants';
+import type { UserSettings } from '@weblab/models';
+import { DefaultSettings } from '@weblab/constants';
 
 import type { UserSettings as DbUserSettings } from '../../schema';
 

@@ -1,4 +1,4 @@
-import { Separator } from '@onlook/ui/separator';
+import { Separator } from '@weblab/ui/separator';
 import { observer } from 'mobx-react-lite';
 import { CustomDomain } from './custom';
 import { DangerZone } from './danger-zone';

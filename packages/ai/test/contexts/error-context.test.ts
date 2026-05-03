@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ErrorMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { ErrorMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import { ErrorContext } from '../../src/contexts/classes/error';
 

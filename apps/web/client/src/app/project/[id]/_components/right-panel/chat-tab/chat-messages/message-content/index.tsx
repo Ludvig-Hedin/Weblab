@@ -1,6 +1,6 @@
-import type { ChatMessage } from '@onlook/models';
-import { Reasoning, ReasoningContent, ReasoningTrigger, Response } from '@onlook/ui/ai-elements';
-import { cn } from '@onlook/ui/utils';
+import type { ChatMessage } from '@weblab/models';
+import { Reasoning, ReasoningContent, ReasoningTrigger, Response } from '@weblab/ui/ai-elements';
+import { cn } from '@weblab/ui/utils';
 import type { ToolUIPart } from 'ai';
 import { observer } from 'mobx-react-lite';
 import { ToolCallDisplay } from './tool-call-display';

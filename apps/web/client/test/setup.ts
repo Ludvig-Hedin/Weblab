@@ -96,7 +96,7 @@ mock.module('@trpc/react-query', () => ({
 }));
 
 // Mock toast to avoid UI dependencies
-mock.module('@onlook/ui/sonner', () => ({
+mock.module('@weblab/ui/sonner', () => ({
     toast: {
         success: mock(() => {}),
         error: mock(() => {}),

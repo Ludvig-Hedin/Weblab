@@ -1,4 +1,4 @@
-# @onlook/image-server
+# @weblab/image-server
 
 Server-side image processing utilities for Onlook using Sharp.
 
@@ -16,7 +16,7 @@ This package is part of the Onlook monorepo and should be added as a dependency 
 ```json
 {
     "dependencies": {
-        "@onlook/image-server": "*"
+        "@weblab/image-server": "*"
     }
 }
 ```
@@ -26,7 +26,7 @@ This package is part of the Onlook monorepo and should be added as a dependency 
 ### Basic Image Compression
 
 ```typescript
-import { compressImageServer } from '@onlook/image-server';
+import { compressImageServer } from '@weblab/image-server';
 
 // Compress and save to file
 const result = await compressImageServer('input.jpg', 'output.webp', {
@@ -41,7 +41,7 @@ const result = await compressImageServer('input.jpg', undefined, { quality: 70 }
 ### Batch Processing
 
 ```typescript
-import { batchCompressImagesServer } from '@onlook/image-server';
+import { batchCompressImagesServer } from '@weblab/image-server';
 
 const results = await batchCompressImagesServer(
     ['image1.jpg', 'image2.png'],
@@ -53,8 +53,8 @@ const results = await batchCompressImagesServer(
 ### Using Compression Presets
 
 ```typescript
-import { compressImageServer } from '@onlook/image-server';
-import { COMPRESSION_IMAGE_PRESETS } from '@onlook/constants';
+import { compressImageServer } from '@weblab/image-server';
+import { COMPRESSION_IMAGE_PRESETS } from '@weblab/constants';
 
 // Use predefined presets
 const result = await compressImageServer('input.jpg', 'output.webp', COMPRESSION_IMAGE_PRESETS.web);

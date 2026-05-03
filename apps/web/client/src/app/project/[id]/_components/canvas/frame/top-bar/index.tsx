@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
-import type { Frame } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import type { Frame } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';

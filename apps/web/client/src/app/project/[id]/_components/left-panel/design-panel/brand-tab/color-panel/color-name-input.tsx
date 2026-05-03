@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
-import { toNormalCase } from '@onlook/utility';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
+import { toNormalCase } from '@weblab/utility';
 import { camelCase } from 'lodash';
 import { useEffect, useState } from 'react';
 

@@ -1,13 +1,13 @@
 import '@/styles/globals.css';
-import '@onlook/ui/globals.css';
+import '@weblab/ui/globals.css';
 
 import RB2BLoader from '@/components/rb2b-loader';
-import { APP_DOMAIN, APP_NAME, APP_TAGLINE } from '@onlook/constants';
+import { APP_DOMAIN, APP_NAME, APP_TAGLINE } from '@weblab/constants';
 import { TelemetryProvider } from '@/components/telemetry-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { TRPCReactProvider } from '@/trpc/react';
-import { Toaster } from '@onlook/ui/sonner';
+import { Toaster } from '@weblab/ui/sonner';
 import { type Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';

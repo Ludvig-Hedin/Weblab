@@ -3,9 +3,9 @@
 import { useStateManager } from '@/components/store/state';
 import { useGetBackground } from '@/hooks/use-get-background';
 import { transKeys } from '@/i18n/keys';
-import { ProductType, ScheduledSubscriptionAction } from '@onlook/stripe';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { ProductType, ScheduledSubscriptionAction } from '@weblab/stripe';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { useTranslations } from 'next-intl';

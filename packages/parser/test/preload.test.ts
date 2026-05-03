@@ -9,7 +9,7 @@ import {
     scanForPreloadScript,
 } from 'src';
 
-import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@onlook/constants';
+import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
 
 const __dirname = import.meta.dir;
 

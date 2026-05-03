@@ -1,4 +1,4 @@
-import type { RectDimensions } from '@onlook/models';
+import type { RectDimensions } from '@weblab/models';
 import React from 'react';
 import { BaseRect } from './base';
 

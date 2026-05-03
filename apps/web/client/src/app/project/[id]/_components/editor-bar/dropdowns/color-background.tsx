@@ -1,8 +1,8 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useMemo } from 'react';
 import { useColorUpdate } from '../hooks/use-color-update';

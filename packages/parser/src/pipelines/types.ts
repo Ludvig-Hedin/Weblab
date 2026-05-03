@@ -1,9 +1,9 @@
-import type { TemplateNode } from '@onlook/models';
-import type { CodeDiffRequest } from '@onlook/models/code';
+import type { TemplateNode } from '@weblab/models';
+import type { CodeDiffRequest } from '@weblab/models/code';
 
 /**
  * Identifier for an editor pipeline. Mirrors `EditorPipelineId` in
- * `@onlook/framework`. Adapters in the framework registry declare which
+ * `@weblab/framework`. Adapters in the framework registry declare which
  * pipelines apply to their project shape; this module provides the
  * implementations.
  */

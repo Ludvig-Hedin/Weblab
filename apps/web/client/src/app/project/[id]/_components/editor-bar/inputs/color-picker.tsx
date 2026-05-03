@@ -1,18 +1,18 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { SystemTheme } from '@onlook/models/assets';
-import type { TailwindColor } from '@onlook/models/style';
+import { SystemTheme } from '@weblab/models/assets';
+import type { TailwindColor } from '@weblab/models/style';
 import {
     ColorPicker,
     Gradient,
     type GradientState
-} from '@onlook/ui/color-picker';
-import { parseGradientFromCSS } from '@onlook/ui/color-picker/Gradient';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Separator } from '@onlook/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@onlook/ui/tabs';
-import { cn } from '@onlook/ui/utils';
-import { Color, toNormalCase, type Palette } from '@onlook/utility';
+} from '@weblab/ui/color-picker';
+import { parseGradientFromCSS } from '@weblab/ui/color-picker/Gradient';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Separator } from '@weblab/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
+import { cn } from '@weblab/ui/utils';
+import { Color, toNormalCase, type Palette } from '@weblab/utility';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGradientUpdate } from '../hooks/use-gradient-update';
 import { HoverOnlyTooltip } from '../hover-tooltip';

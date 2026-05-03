@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { encode } from 'gpt-tokenizer';
 
-import type { ChatMessage } from '@onlook/models';
+import type { ChatMessage } from '@weblab/models';
 
 import { countTokensWithRoles } from '../src/tokens/index.ts';
 

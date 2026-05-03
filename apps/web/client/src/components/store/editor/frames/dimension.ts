@@ -1,4 +1,4 @@
-import type { Frame } from "@onlook/models";
+import type { Frame } from "@weblab/models";
 
 export function roundDimensions(frame: Frame): Frame {
     return {

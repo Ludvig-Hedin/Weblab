@@ -4,12 +4,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
-import { EditorAttributes } from '@onlook/constants';
-import { EditorMode } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { TooltipProvider } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+import { EditorAttributes } from '@weblab/constants';
+import { EditorMode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { TooltipProvider } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';

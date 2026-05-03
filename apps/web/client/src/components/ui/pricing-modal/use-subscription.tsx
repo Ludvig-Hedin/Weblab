@@ -1,7 +1,7 @@
 import { useStateManager } from "@/components/store/state";
 import { api } from "@/trpc/react";
-import { ProductType, ScheduledSubscriptionAction } from "@onlook/stripe";
-import { toast } from "@onlook/ui/sonner";
+import { ProductType, ScheduledSubscriptionAction } from "@weblab/stripe";
+import { toast } from "@weblab/ui/sonner";
 import { useEffect, useState } from "react";
 
 export const useSubscription = () => {

@@ -1,6 +1,6 @@
 import { api } from '@/trpc/client';
-import { CodeProvider, createCodeProviderClient, type Provider } from '@onlook/code-provider';
-import type { Branch } from '@onlook/models';
+import { CodeProvider, createCodeProviderClient, type Provider } from '@weblab/code-provider';
+import type { Branch } from '@weblab/models';
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { ErrorManager } from '../error';
 import { CLISessionImpl, CLISessionType, type CLISession, type TerminalSession } from './terminal';

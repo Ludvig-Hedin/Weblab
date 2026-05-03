@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 
 import { Routes } from '@/utils/constants';
 import { UnicornBackground } from './unicorn-background';

@@ -1,8 +1,8 @@
 import type { EditorEngine } from '@/components/store/editor/engine';
-import type { CodeFileSystem } from '@onlook/file-system';
-import { useDirectory } from '@onlook/file-system/hooks';
-import { sanitizeFilename } from '@onlook/utility';
-import { isImageFile } from '@onlook/utility/src/file';
+import type { CodeFileSystem } from '@weblab/file-system';
+import { useDirectory } from '@weblab/file-system/hooks';
+import { sanitizeFilename } from '@weblab/utility';
+import { isImageFile } from '@weblab/utility/src/file';
 import path from 'path';
 import { useMemo, useState } from 'react';
 import { updateImageReferences } from '../utils/image-references';

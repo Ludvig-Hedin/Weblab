@@ -1,11 +1,11 @@
 'use client';
 
 import { api } from '@/trpc/react';
-import { ProjectRole } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Input } from '@onlook/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { toast } from '@onlook/ui/sonner';
+import { ProjectRole } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
 import { useState } from 'react';
 
 export const InviteMemberInput = ({ projectId }: { projectId: string }) => {

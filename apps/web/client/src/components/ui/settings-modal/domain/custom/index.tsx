@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
-import { ProductType } from '@onlook/stripe';
-import { Icons } from '@onlook/ui/icons';
+import { ProductType } from '@weblab/stripe';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { UpgradePrompt } from '../upgrade-prompt';
 import { DomainVerificationProvider } from './use-domain-verification';

@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import type { ChatSuggestion } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import type { ChatSuggestion } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';

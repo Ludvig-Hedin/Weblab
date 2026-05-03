@@ -1,4 +1,4 @@
-import { SystemTheme } from '@onlook/models';
+import { SystemTheme } from '@weblab/models';
 
 export function getTheme(): SystemTheme {
     try {

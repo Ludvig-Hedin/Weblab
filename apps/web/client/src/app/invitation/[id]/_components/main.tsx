@@ -1,14 +1,14 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { resetTelemetry } from '@/utils/telemetry';
 import { createClient } from '@/utils/supabase/client';
 import { getReturnUrlQueryParam } from '@/utils/url';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Skeleton } from '@onlook/ui/skeleton';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Skeleton } from '@weblab/ui/skeleton';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 

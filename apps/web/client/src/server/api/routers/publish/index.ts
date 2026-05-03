@@ -1,6 +1,6 @@
 import {
     DeploymentType
-} from '@onlook/models';
+} from '@weblab/models';
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../../trpc";
 import { deploymentRouter } from './deployment';

@@ -1,6 +1,6 @@
 import { Routes } from '@/utils/constants';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import Link from 'next/link';
 
 export const CancelButton = () => {

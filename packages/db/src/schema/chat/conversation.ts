@@ -3,8 +3,8 @@ import { jsonb, pgEnum, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import type { ChatSuggestion } from '@onlook/models';
-import { AgentType } from '@onlook/models';
+import type { ChatSuggestion } from '@weblab/models';
+import { AgentType } from '@weblab/models';
 
 import { projects } from '../project';
 import { CONVERSATION_MESSAGe_RELATION_NAME, messages } from './message';

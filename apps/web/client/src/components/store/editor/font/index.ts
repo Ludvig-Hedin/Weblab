@@ -1,8 +1,8 @@
 'use client';
 
-import { type CodeDiff, type FontUploadFile } from '@onlook/models';
-import type { Font } from '@onlook/models/assets';
-import { generate } from '@onlook/parser';
+import { type CodeDiff, type FontUploadFile } from '@weblab/models';
+import type { Font } from '@weblab/models/assets';
+import { generate } from '@weblab/parser';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';
 import { addFontToConfig, ensureFontConfigFileExists, getFontConfigPath, readFontConfigFile, removeFontFromConfig, scanExistingFonts, scanFontConfig } from './font-config';

@@ -1,6 +1,6 @@
 import { type InferUITools, type ToolSet } from 'ai';
 
-import { ChatType } from '@onlook/models';
+import { ChatType } from '@weblab/models';
 
 import type { BaseTool } from './models/base';
 import {

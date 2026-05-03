@@ -1,4 +1,4 @@
-import type { RemoveElementAction } from '@onlook/models/actions';
+import type { RemoveElementAction } from '@weblab/models/actions';
 
 import { getHtmlElement } from '../../../helpers';
 import { getBranchId } from '../../state';

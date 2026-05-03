@@ -1,7 +1,7 @@
 import { describe, expect, mock, test } from 'bun:test';
 
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import { ReadFileTool } from '@onlook/ai/src/tools/classes/read-file';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import { ReadFileTool } from '@weblab/ai/src/tools/classes/read-file';
 
 describe('ReadFileTool', () => {
     test('should format file content with line numbers', async () => {

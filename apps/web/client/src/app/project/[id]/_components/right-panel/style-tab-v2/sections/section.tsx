@@ -1,7 +1,7 @@
 'use client';
 
-import { AccordionContent, AccordionItem, AccordionTrigger } from '@onlook/ui/accordion';
-import { cn } from '@onlook/ui/utils';
+import { AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
+import { cn } from '@weblab/ui/utils';
 
 export interface SectionProps {
     id: string;

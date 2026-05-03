@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/file-system",
+    "name": "@weblab/file-system",
     "description": "Browser-based file system abstraction for Onlook",
     "version": "0.0.0",
     "private": true,
@@ -34,8 +34,8 @@
         "./hooks": "./src/hooks/index.ts"
     },
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "@types/lodash.debounce": "^4.0.9",
         "@types/react": "^18.3.1",
         "eslint": "^9.0.0",

@@ -1,5 +1,5 @@
-import type { Action, Branch } from '@onlook/models';
-import { type ParsedError, compareErrors, isErrorMessage, shouldIgnoreMessage, TerminalBuffer } from '@onlook/utility';
+import type { Action, Branch } from '@weblab/models';
+import { type ParsedError, compareErrors, isErrorMessage, shouldIgnoreMessage, TerminalBuffer } from '@weblab/utility';
 import { makeAutoObservable } from 'mobx';
 
 export class ErrorManager {

@@ -1,6 +1,6 @@
 'use client';
 
-import { jsonClone } from '@onlook/utility';
+import { jsonClone } from '@weblab/utility';
 import localforage from 'localforage';
 import { LRUCache } from 'lru-cache';
 import type { CacheConfig, CachedItem, PersistentCacheData, Serializable } from './types';

@@ -1,5 +1,5 @@
-import type { ProjectSettings as DbProjectSettings } from '@onlook/db';
-import { DefaultSettings } from '@onlook/constants';
+import type { ProjectSettings as DbProjectSettings } from '@weblab/db';
+import { DefaultSettings } from '@weblab/constants';
 
 export const createDefaultProjectSettings = (projectId: string): DbProjectSettings => {
     return {

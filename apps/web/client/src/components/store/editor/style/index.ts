@@ -1,11 +1,11 @@
-import type { DomElement, DomElementStyles, Font } from '@onlook/models';
+import type { DomElement, DomElementStyles, Font } from '@weblab/models';
 import {
     type Change,
     type StyleActionTarget,
     type UpdateStyleAction,
-} from '@onlook/models/actions';
-import { StyleChangeType, type StyleChange } from '@onlook/models/style';
-import { convertFontString } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { StyleChangeType, type StyleChange } from '@weblab/models/style';
+import { convertFontString } from '@weblab/utility';
 import { makeAutoObservable, reaction } from 'mobx';
 import type { CSSProperties } from 'react';
 import type { EditorEngine } from '../engine';

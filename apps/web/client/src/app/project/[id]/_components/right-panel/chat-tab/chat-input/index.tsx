@@ -6,16 +6,16 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import type { ChatMessage, ImageMessageContext, LocalModelOption, QueuedMessage } from '@onlook/models';
-import { ChatType } from '@onlook/models';
-import { MessageContextType } from '@onlook/models/chat';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { Textarea } from '@onlook/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
-import { compressImageInBrowser, convertToBase64DataUrl } from '@onlook/utility';
+import type { ChatMessage, ImageMessageContext, LocalModelOption, QueuedMessage } from '@weblab/models';
+import { ChatType } from '@weblab/models';
+import { MessageContextType } from '@weblab/models/chat';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
+import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility';
 
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';
@@ -29,7 +29,7 @@ import { ChatContextWindow } from './chat-context';
 import { ChatModeToggle } from './chat-mode-toggle';
 import { ModelSelector } from './model-selector';
 import { QueueItems } from './queue-items';
-import { type ChatModel } from '@onlook/models';
+import { type ChatModel } from '@weblab/models';
 
 interface ChatInputProps {
     messages: ChatMessage[];

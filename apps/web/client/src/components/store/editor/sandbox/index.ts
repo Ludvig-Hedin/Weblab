@@ -1,9 +1,9 @@
 import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
-import type { Provider } from '@onlook/code-provider';
-import { EXCLUDED_SYNC_PATHS } from '@onlook/constants';
-import type { CodeFileSystem } from '@onlook/file-system';
-import { type FileEntry } from '@onlook/file-system';
-import type { Branch, RouterConfig } from '@onlook/models';
+import type { Provider } from '@weblab/code-provider';
+import { EXCLUDED_SYNC_PATHS } from '@weblab/constants';
+import type { CodeFileSystem } from '@weblab/file-system';
+import { type FileEntry } from '@weblab/file-system';
+import type { Branch, RouterConfig } from '@weblab/models';
 import { makeAutoObservable, reaction } from 'mobx';
 import type { EditorEngine } from '../engine';
 import type { ErrorManager } from '../error';

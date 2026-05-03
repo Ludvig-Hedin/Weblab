@@ -1,6 +1,6 @@
 'use client';
 
-import { Slider } from '@onlook/ui/slider';
+import { Slider } from '@weblab/ui/slider';
 
 export interface SliderFieldProps {
     /** Current value as a string (we keep all values as strings to match useStyleValue). */

@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { SystemTheme } from '@onlook/models/assets';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
+import { SystemTheme } from '@weblab/models/assets';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 

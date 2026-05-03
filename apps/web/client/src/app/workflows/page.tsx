@@ -1,11 +1,11 @@
 'use client';
 
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
-import { ExternalRoutes, Routes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons';
+import { Routes } from '@/utils/constants';
+import { Icons } from '@weblab/ui/icons';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { CTASection } from '../_components/landing-page/cta-section';
@@ -166,8 +166,8 @@ export default function WorkflowsPage() {
                 {/* CTA Section */}
                 <CTASection
                     ctaText={`Ready to add ${APP_NAME}\nto your workflow?`}
-                    buttonText="Book a Demo"
-                    href={ExternalRoutes.BOOK_DEMO}
+                    buttonText="Get Started"
+                    href={Routes.PROJECTS}
                 />
 
                 <NonProjectSettingsModal />

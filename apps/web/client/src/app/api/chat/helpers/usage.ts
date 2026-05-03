@@ -1,6 +1,6 @@
 import { createClient as createTRPCClient } from '@/trpc/request-server';
 import { createClient as createSupabaseClient } from '@/utils/supabase/request-server';
-import { UsageType, type Usage } from '@onlook/models';
+import { UsageType, type Usage } from '@weblab/models';
 import { type NextRequest } from 'next/server';
 
 export const checkMessageLimit = async (req: NextRequest): Promise<{

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-import type { GitMessageCheckpoint } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import type { GitMessageCheckpoint } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -11,10 +11,10 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dialog';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { restoreCheckpoint } from '@/components/store/editor/git';

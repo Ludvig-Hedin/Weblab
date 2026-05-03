@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { generateGradientCSS, type GradientState } from '@onlook/ui/color-picker';
+import { generateGradientCSS, type GradientState } from '@weblab/ui/color-picker';
 import { useCallback } from 'react';
 
 interface GradientUpdateOptions {

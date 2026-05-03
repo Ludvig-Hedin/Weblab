@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/mcp",
+    "name": "@weblab/mcp",
     "description": "Weblab MCP server — exposes Weblab's file, bash, and project tools via Model Context Protocol",
     "type": "module",
     "module": "src/server.ts",
@@ -26,8 +26,8 @@
     },
     "license": "Apache-2.0",
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },

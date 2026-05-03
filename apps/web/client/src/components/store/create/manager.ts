@@ -1,8 +1,8 @@
 import { api } from '@/trpc/client';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@onlook/constants';
-import { createDefaultProject } from '@onlook/db';
-import { CreateRequestContextType } from '@onlook/models';
-import { type ImageMessageContext } from '@onlook/models/chat';
+import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
+import { createDefaultProject } from '@weblab/db';
+import { CreateRequestContextType } from '@weblab/models';
+import { type ImageMessageContext } from '@weblab/models/chat';
 import { makeAutoObservable } from "mobx";
 import { parseRepoUrl } from '../editor/pages/helper';
 

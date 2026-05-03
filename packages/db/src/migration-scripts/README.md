@@ -49,7 +49,7 @@ bun run migrate-to-branching.ts
 
 #### Programmatic Usage
 ```typescript
-import { migrateToBranching } from '@onlook/db/src/migration-scripts/migrate-to-branching';
+import { migrateToBranching } from '@weblab/db/src/migration-scripts/migrate-to-branching';
 
 await migrateToBranching();
 ```

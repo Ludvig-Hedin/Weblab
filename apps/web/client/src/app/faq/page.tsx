@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FAQDropdown } from '../_components/landing-page/faq-dropdown';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { WebsiteLayout } from '../_components/website-layout';
-import { ExternalRoutes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 
 const faqSections = [
     {
@@ -245,8 +245,8 @@ export default function FAQPage() {
 
             <CTASection
                 ctaText={`Still have questions?`}
-                buttonText="Book a Demo"
-                href={ExternalRoutes.BOOK_DEMO}
+                buttonText="Get Started"
+                href={Routes.PROJECTS}
             />
         </WebsiteLayout>
     );

@@ -3,12 +3,12 @@ import { memo, useCallback, useMemo, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
-import type { DomElement, LayerNode } from '@onlook/models/element';
-import { MouseAction } from '@onlook/models/editor';
-import { Icons } from '@onlook/ui/icons';
-import { NodeIcon } from '@onlook/ui/node-icon';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+import type { DomElement, LayerNode } from '@weblab/models/element';
+import { MouseAction } from '@weblab/models/editor';
+import { Icons } from '@weblab/ui/icons';
+import { NodeIcon } from '@weblab/ui/node-icon';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 

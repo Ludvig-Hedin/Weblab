@@ -1,9 +1,9 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { api } from '@/trpc/react';
-import { DeploymentStatus, DeploymentType } from '@onlook/models/hosting';
-import { Button } from '@onlook/ui/button';
-import { toast } from '@onlook/ui/sonner';
+import { DeploymentStatus, DeploymentType } from '@weblab/models/hosting';
+import { Button } from '@weblab/ui/button';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 
 export const DangerZone = observer(() => {

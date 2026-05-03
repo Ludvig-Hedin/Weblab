@@ -1,4 +1,4 @@
-import { getAstFromContent, getContentFromAst, t, traverse } from '@onlook/parser';
+import { getAstFromContent, getContentFromAst, t, traverse } from '@weblab/parser';
 import path from 'path';
 
 /**

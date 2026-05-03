@@ -1,4 +1,4 @@
-import type { PreviewImg, Project } from '@onlook/models';
+import type { PreviewImg, Project } from '@weblab/models';
 
 import type { Project as DbProject } from '../../schema';
 

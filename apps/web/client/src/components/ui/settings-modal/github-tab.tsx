@@ -2,10 +2,10 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Badge } from '@onlook/ui/badge';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
+import { Badge } from '@weblab/ui/badge';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 
 import { api } from '@/trpc/react';
 

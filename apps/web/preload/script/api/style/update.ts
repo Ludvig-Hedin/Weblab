@@ -1,4 +1,4 @@
-import type { Change, DomElement, StyleChange } from '@onlook/models';
+import type { Change, DomElement, StyleChange } from '@weblab/models';
 
 import { getElementByDomId } from '../elements';
 import { cssManager } from './css-manager';

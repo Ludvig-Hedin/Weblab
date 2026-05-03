@@ -4,19 +4,19 @@ import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-fold
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
-import { ProductType } from '@onlook/stripe';
-import { Badge } from '@onlook/ui/badge';
-import { Button } from '@onlook/ui/button';
+import { ProductType } from '@weblab/stripe';
+import { Badge } from '@weblab/ui/badge';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';

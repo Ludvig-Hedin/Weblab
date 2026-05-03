@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/code-provider",
+    "name": "@weblab/code-provider",
     "description": "A library with a set of providers for code sandboxing",
     "main": "./src/index.ts",
     "type": "module",
@@ -28,15 +28,15 @@
     "license": "Apache-2.0",
     "homepage": "https://onlook.com",
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },
     "dependencies": {
         "@codesandbox/sdk": "^1.1.6",
-        "@onlook/models": "*",
-        "@onlook/parser": "*",
-        "@onlook/utility": "*"
+        "@weblab/models": "*",
+        "@weblab/parser": "*",
+        "@weblab/utility": "*"
     }
 }

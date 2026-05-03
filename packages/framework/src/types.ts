@@ -1,4 +1,4 @@
-import type { RouterType } from '@onlook/models';
+import type { RouterType } from '@weblab/models';
 
 /**
  * Identifier for a supported framework. Stored verbatim in the
@@ -15,7 +15,7 @@ export type FrameworkId =
 
 /**
  * Identifier for an editor pipeline (parser/oid-injection/edit/generate strategy).
- * The pipeline implementations live in `@onlook/parser`'s pipelines module
+ * The pipeline implementations live in `@weblab/parser`'s pipelines module
  * (introduced in Phase 2). Adapters declare which pipelines apply to their
  * project shape.
  */

@@ -1,7 +1,7 @@
 import path from 'path';
 import { describe, expect, test } from 'bun:test';
 
-import { MessageContextType } from '@onlook/models';
+import { MessageContextType } from '@weblab/models';
 
 import type { HydrateMessageOptions } from '../../src/prompt/provider';
 import { FileContext, HighlightContext } from '../../src/contexts/classes';

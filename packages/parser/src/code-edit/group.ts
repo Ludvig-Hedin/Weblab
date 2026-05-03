@@ -1,5 +1,5 @@
-import type { CodeGroup, CodeUngroup } from '@onlook/models/actions';
-import { CodeActionType } from '@onlook/models/actions';
+import type { CodeGroup, CodeUngroup } from '@weblab/models/actions';
+import { CodeActionType } from '@weblab/models/actions';
 
 import type { NodePath, T } from '../packages';
 import { t } from '../packages';

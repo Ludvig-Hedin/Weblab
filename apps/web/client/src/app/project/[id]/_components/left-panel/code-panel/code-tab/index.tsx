@@ -3,10 +3,10 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { hashContent } from '@/services/sync-engine/sync-engine';
 import { EditorView } from '@codemirror/view';
-import { useDirectory, useFile } from '@onlook/file-system/hooks';
-import { MessageContextType } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
-import { pathsEqual } from '@onlook/utility';
+import { useDirectory, useFile } from '@weblab/file-system/hooks';
+import { MessageContextType } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
+import { pathsEqual } from '@weblab/utility';
 import { motion } from 'motion/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { CodeEditorArea } from './file-content';

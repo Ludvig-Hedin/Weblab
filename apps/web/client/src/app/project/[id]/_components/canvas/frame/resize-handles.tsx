@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { DefaultSettings } from '@onlook/constants';
-import type { Frame } from '@onlook/models';
-import { cn } from '@onlook/ui/utils';
+import { DefaultSettings } from '@weblab/constants';
+import type { Frame } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import type { MouseEvent } from 'react';
 

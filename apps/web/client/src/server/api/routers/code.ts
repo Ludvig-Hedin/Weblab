@@ -1,7 +1,7 @@
 import { env } from '@/env';
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { applyCodeChange } from '@onlook/ai';
-import type { WebSearchResult } from '@onlook/models';
+import { applyCodeChange } from '@weblab/ai';
+import type { WebSearchResult } from '@weblab/models';
 import Exa from 'exa-js';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';

@@ -1,12 +1,12 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { camelCase } from 'lodash';
 import { useState } from 'react';
 

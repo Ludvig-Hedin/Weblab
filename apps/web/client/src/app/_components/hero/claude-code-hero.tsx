@@ -1,12 +1,12 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
-import { ExternalRoutes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 import { UnicornBackground } from './unicorn-background';
 
 export function ClaudeCodeHero() {
@@ -54,8 +54,8 @@ export function ClaudeCodeHero() {
                         size="lg"
                         className="bg-foreground-primary text-background-primary hover:bg-foreground-hover cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                            Book a Demo
+                        <a href={Routes.PROJECTS}>
+                            Get Started
                             <Icons.ArrowRight className="ml-2 h-4 w-4" />
                         </a>
                     </Button>

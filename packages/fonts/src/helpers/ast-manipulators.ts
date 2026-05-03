@@ -1,7 +1,7 @@
-import type { Font } from '@onlook/models';
-import type { NodePath, T } from '@onlook/parser';
-import { createAndInsertImport } from '@onlook/fonts';
-import { generate, getAstFromContent, t, traverse } from '@onlook/parser';
+import type { Font } from '@weblab/models';
+import type { NodePath, T } from '@weblab/parser';
+import { createAndInsertImport } from '@weblab/fonts';
+import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
 
 import { createFontFamilyProperty } from './ast-generators';
 import {

@@ -4,10 +4,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { toast } from '@onlook/ui/sonner';
-import { Switch } from '@onlook/ui/switch';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
+import { Switch } from '@weblab/ui/switch';
 
 import { api } from '@/trpc/react';
 

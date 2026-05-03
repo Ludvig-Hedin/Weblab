@@ -1,4 +1,4 @@
-import { type Frame } from '@onlook/models';
+import { type Frame } from '@weblab/models';
 
 import type { Frame as DbFrame } from '../../schema';
 

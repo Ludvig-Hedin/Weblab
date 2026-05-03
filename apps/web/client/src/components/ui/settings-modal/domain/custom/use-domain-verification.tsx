@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import type { CustomDomainVerification } from '@onlook/db/src/schema/domain/custom/verification';
-import { VerificationRequestStatus, type DomainInfo } from '@onlook/models';
+import type { CustomDomainVerification } from '@weblab/db/src/schema/domain/custom/verification';
+import { VerificationRequestStatus, type DomainInfo } from '@weblab/models';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 

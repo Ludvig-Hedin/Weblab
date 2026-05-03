@@ -1,4 +1,4 @@
-import { EditorAttributes } from '@onlook/constants';
+import { EditorAttributes } from '@weblab/constants';
 import type {
     Action,
     ActionElement,
@@ -10,8 +10,8 @@ import type {
     UngroupElementsAction,
     UpdateStyleAction,
     WriteCodeAction,
-} from '@onlook/models/actions';
-import { assertNever, createDomId, createOid } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { assertNever, createDomId, createOid } from '@weblab/utility';
 
 export function reverse<T>(change: Change<T>): Change<T> {
     return { updated: change.original, original: change.updated };

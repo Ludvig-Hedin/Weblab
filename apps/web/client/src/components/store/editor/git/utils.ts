@@ -1,5 +1,5 @@
-import type { GitMessageCheckpoint } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
+import type { GitMessageCheckpoint } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
 

@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/scripts",
+    "name": "@weblab/scripts",
     "version": "0.0.1",
     "private": true,
     "type": "module",
@@ -22,8 +22,8 @@
         "prompts": "^2.4.2"
     },
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "@types/jest": "^30.0.0",
         "@types/node": "^20.10.5",

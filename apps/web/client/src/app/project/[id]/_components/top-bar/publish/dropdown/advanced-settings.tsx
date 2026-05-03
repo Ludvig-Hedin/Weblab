@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
-import { SettingsTabValue } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { SettingsTabValue } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 export const AdvancedSettingsSection = () => {
     const stateManager = useStateManager();

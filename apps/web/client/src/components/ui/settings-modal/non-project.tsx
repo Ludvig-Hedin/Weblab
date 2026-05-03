@@ -1,11 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
-import { cn } from '@onlook/ui/utils';
-import { capitalizeFirstLetter } from '@onlook/utility';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
+import { cn } from '@weblab/ui/utils';
+import { capitalizeFirstLetter } from '@weblab/utility';
 
 import { useStateManager } from '@/components/store/state';
 import { AccountTab } from './account-tab';

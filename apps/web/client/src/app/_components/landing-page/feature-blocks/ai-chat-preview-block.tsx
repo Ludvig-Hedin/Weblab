@@ -1,4 +1,4 @@
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import React from 'react';
 import { AiChatInteractive } from '../../shared/mockups/ai-chat-interactive';
 

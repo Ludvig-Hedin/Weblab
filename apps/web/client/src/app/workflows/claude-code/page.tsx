@@ -1,11 +1,11 @@
 'use client';
 
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
-import { ExternalRoutes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons';
+import { Routes } from '@/utils/constants';
+import { Icons } from '@weblab/ui/icons';
 import { motion } from 'motion/react';
 import { ClaudeCodeHero } from '../../_components/hero/claude-code-hero';
 import { CTASection } from '../../_components/landing-page/cta-section';
@@ -254,8 +254,8 @@ export default function ClaudeCodeWorkflowPage() {
                 {/* CTA Section */}
                 <CTASection
                     ctaText={`Try ${APP_NAME} with your\nClaude Code project`}
-                    buttonText="Book a Demo"
-                    href={ExternalRoutes.BOOK_DEMO}
+                    buttonText="Get Started"
+                    href={Routes.PROJECTS}
                 />
 
                 <NonProjectSettingsModal />

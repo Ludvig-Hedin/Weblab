@@ -243,7 +243,7 @@ Scope: 18 modified files + 4 unpushed commits + a large set of new untracked fil
 - **Impact:** user-facing
 - **Risk:** low
 - **Summary:** `${baseUrl.replace(/\/$/, '')}/api` always appends `/api`. If a user pastes `http://localhost:11434/api`, the SDK will be configured with `http://localhost:11434/api/api`. Mirror issue in the probe route.
-- **Suggested approach:** Normalize once: strip a single trailing `/api` segment if present before appending. Extract a small util in `@onlook/models` and reuse in both places.
+- **Suggested approach:** Normalize once: strip a single trailing `/api` segment if present before appending. Extract a small util in `@weblab/models` and reuse in both places.
 
 ## CR-020 — `ChatModel` type widened; route forwards arbitrary `ollama/<anything>`
 
@@ -293,7 +293,7 @@ Changes: CR-007/010/011 fixes, settings data layer expansion (13 new DB columns,
 - **Type:** maintainability
 - **Impact:** user-facing
 - **Risk:** low
-- **Summary:** `AI_SETTINGS.defaultModel` is set to `'moonshotai/kimi-k2'` — same anti-pattern as the old CR-008 (`KIMI_K2_6` hardcode). The canonical default model lives in `CHAT_MODEL_OPTIONS[0].model` in `@onlook/models`, but `packages/constants` cannot import from `packages/models` without risking a circular dependency. Instead the string drifts independently.
+- **Summary:** `AI_SETTINGS.defaultModel` is set to `'moonshotai/kimi-k2'` — same anti-pattern as the old CR-008 (`KIMI_K2_6` hardcode). The canonical default model lives in `CHAT_MODEL_OPTIONS[0].model` in `@weblab/models`, but `packages/constants` cannot import from `packages/models` without risking a circular dependency. Instead the string drifts independently.
 - **Suggested approach:** Either (a) move `AI_SETTINGS.defaultModel` to `packages/models` where `CHAT_MODEL_OPTIONS` is defined, or (b) define a shared `DEFAULT_CHAT_MODEL` constant in `packages/models` and import it from both constants and models. Remove the raw string.
 
 ## CR-026 — `ChatSettings` and `AISettings` are overlapping interfaces; `toDbUserSettings` is inconsistent
@@ -337,7 +337,7 @@ preload script rebuild, .gitignore + backlog maintenance.
 - **Impact:** user-facing
 - **Risk:** low
 - **Summary:** The H1 rendered the brand name as a raw string literal `"Download Weblab"`, violating the CLAUDE.md rule "never hardcode the name — always import `APP_NAME`."
-- **Fix applied:** Added `import { APP_NAME } from '@onlook/constants'` and changed the H1 to `Download {APP_NAME}`.
+- **Fix applied:** Added `import { APP_NAME } from '@weblab/constants'` and changed the H1 to `Download {APP_NAME}`.
 - **Status:** auto-fixed (2026-05-03 review)
 
 ## CR-031 — Duplicate `rounded-lg` class in `select-folder.tsx` drag-zone div *(auto-fixed)*

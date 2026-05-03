@@ -1,4 +1,4 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { vujahdayScript } from '@/app/fonts';
 import { AiChatPreviewBlock } from './feature-blocks/ai-chat-preview-block';

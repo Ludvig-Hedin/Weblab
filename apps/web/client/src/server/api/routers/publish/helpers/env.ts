@@ -1,4 +1,4 @@
-import type { Provider } from '@onlook/code-provider';
+import type { Provider } from '@weblab/code-provider';
 
 /**
  * Parse .env file content into key-value pairs

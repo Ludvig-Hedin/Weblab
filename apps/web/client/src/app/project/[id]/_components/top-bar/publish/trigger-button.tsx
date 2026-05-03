@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
-import { DeploymentStatus, DeploymentType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 
 export const TriggerButton = observer(() => {

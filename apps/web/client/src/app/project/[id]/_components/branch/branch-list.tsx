@@ -1,11 +1,11 @@
-import type { Branch } from "@onlook/models";
+import type { Branch } from "@weblab/models";
 import {
     DropdownMenuItem,
     DropdownMenuLabel,
-} from "@onlook/ui/dropdown-menu";
-import { Icons } from "@onlook/ui/icons";
-import { ScrollArea } from "@onlook/ui/scroll-area";
-import { timeAgo } from "@onlook/utility";
+} from "@weblab/ui/dropdown-menu";
+import { Icons } from "@weblab/ui/icons";
+import { ScrollArea } from "@weblab/ui/scroll-area";
+import { timeAgo } from "@weblab/utility";
 import { useMemo, useState } from "react";
 
 interface BranchListProps {

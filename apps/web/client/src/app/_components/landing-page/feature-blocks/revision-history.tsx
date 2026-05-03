@@ -1,4 +1,4 @@
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import React, { useState, useEffect } from 'react';
 
 function VersionRow({ title, subtitle, children, selected, onClick }: { title: string, subtitle: string, children?: React.ReactNode, selected?: boolean, onClick?: () => void }) {

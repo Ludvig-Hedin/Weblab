@@ -1,6 +1,6 @@
-import type { DomElement, ParentDomElement } from '@onlook/models';
-import type { ActionLocation } from '@onlook/models/actions';
-import { EditorAttributes } from '@onlook/constants';
+import type { DomElement, ParentDomElement } from '@weblab/models';
+import type { ActionLocation } from '@weblab/models/actions';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getInstanceId, getOid } from '../../helpers/ids';
 import { getBranchId, getFrameId } from '../state';

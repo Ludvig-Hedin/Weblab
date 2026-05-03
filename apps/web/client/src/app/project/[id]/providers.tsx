@@ -2,7 +2,7 @@
 
 import { EditorEngineProvider } from '@/components/store/editor';
 import { HostingProvider } from '@/components/store/hosting';
-import type { Branch, Project } from '@onlook/models';
+import type { Branch, Project } from '@weblab/models';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 

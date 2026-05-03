@@ -1,11 +1,11 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { api } from '@/trpc/react';
-import { DeploymentStatus, DeploymentType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { toast } from '@onlook/ui/sonner';
-import { timeAgo } from '@onlook/utility';
+import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { toast } from '@weblab/ui/sonner';
+import { timeAgo } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import stripAnsi from 'strip-ansi';

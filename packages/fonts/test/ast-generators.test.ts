@@ -1,5 +1,5 @@
-import { generate } from '@onlook/parser';
-import type { Font, FontConfig } from '@onlook/models';
+import { generate } from '@weblab/parser';
+import type { Font, FontConfig } from '@weblab/models';
 import {
     generateFontVariableExport,
     createLocalFontConfig,
@@ -8,7 +8,7 @@ import {
 import { runDataDrivenTests } from './test-utils';
 import { describe } from 'bun:test';
 import path from 'path';
-import { t } from '@onlook/parser';
+import { t } from '@weblab/parser';
 
 const __dirname = import.meta.dir;
 

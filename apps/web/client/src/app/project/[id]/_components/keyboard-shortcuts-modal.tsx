@@ -8,8 +8,8 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { HotkeyLabel } from '@onlook/ui/hotkey-label';
+} from '@weblab/ui/dialog';
+import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';

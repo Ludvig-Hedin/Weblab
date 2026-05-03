@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 
-import { Icons } from '@onlook/ui/icons/index';
+import { Icons } from '@weblab/ui/icons/index';
 
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { transKeys } from '@/i18n/keys';

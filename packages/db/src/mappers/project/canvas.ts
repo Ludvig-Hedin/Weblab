@@ -1,4 +1,4 @@
-import type { Canvas } from '@onlook/models';
+import type { Canvas } from '@weblab/models';
 
 import type { UserCanvas as DbUserCanvas } from '../../schema';
 

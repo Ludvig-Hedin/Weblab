@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/repo",
+    "name": "@weblab/repo",
     "version": "0.0.0",
     "description": "Onlook Monorepo",
     "homepage": "https://onlook.com",
@@ -18,21 +18,21 @@
         "docs"
     ],
     "scripts": {
-        "build": "bun --filter @onlook/web build:client",
-        "start": "bun --filter @onlook/web start:client",
-        "dev": "bun --filter @onlook/web dev",
+        "build": "bun --filter @weblab/web build:client",
+        "start": "bun --filter @weblab/web start:client",
+        "dev": "bun --filter @weblab/web dev",
         "test": "bun --filter '*' test",
-        "docs": "bun --filter @onlook/docs dev",
-        "dev:admin": "bun --filter @onlook/admin dev",
-        "backend:start": "bun --filter @onlook/backend start",
-        "db:gen": "bun --filter @onlook/db db:gen",
+        "docs": "bun --filter @weblab/docs dev",
+        "dev:admin": "bun --filter @weblab/admin dev",
+        "backend:start": "bun --filter @weblab/backend start",
+        "db:gen": "bun --filter @weblab/db db:gen",
         "db:push": "cd packages/db && bun db:push",
         "db:seed": "cd packages/db && bun db:seed",
         "db:migrate": "cd packages/db && bun db:migrate",
         "db:reset": "cd apps/backend && bun run reset",
         "format": "bun --filter '*' format",
         "lint": "bun --filter '*' lint",
-        "typecheck": "bun --filter @onlook/web-client typecheck",
+        "typecheck": "bun --filter @weblab/web-client typecheck",
         "clean": "git clean -xdf node_modules",
         "clean:workspaces": "bun --filter '*' clean",
         "setup:env": "cd packages/scripts && bun run start",
@@ -50,7 +50,7 @@
         "url": "https://github.com/Ludvig-Hedin/Weblab/issues"
     },
     "devDependencies": {
-        "@onlook/eslint": "*"
+        "@weblab/eslint": "*"
     },
     "packageManager": "bun@1.3.1"
 }

@@ -1,11 +1,11 @@
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import { ScheduledSubscriptionAction } from '@onlook/stripe';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { MotionCard } from '@onlook/ui/motion-card';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { toast } from '@onlook/ui/sonner';
+import { ScheduledSubscriptionAction } from '@weblab/stripe';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { MotionCard } from '@weblab/ui/motion-card';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';

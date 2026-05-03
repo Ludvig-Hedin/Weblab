@@ -1,4 +1,4 @@
-import type { RectDimension, RectPosition } from '@onlook/models';
+import type { RectDimension, RectPosition } from '@weblab/models';
 
 export interface SnapBounds {
     left: number;

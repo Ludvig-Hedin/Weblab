@@ -1,7 +1,7 @@
-import { type QueuedMessage } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
+import { type QueuedMessage } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
 export const QueuedMessageItem = ({ message, removeFromQueue }: {
     message: QueuedMessage;

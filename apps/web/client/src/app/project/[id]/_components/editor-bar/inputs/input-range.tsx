@@ -1,11 +1,11 @@
-import { UNITS } from '@onlook/constants';
+import { UNITS } from '@weblab/constants';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { debounce } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 

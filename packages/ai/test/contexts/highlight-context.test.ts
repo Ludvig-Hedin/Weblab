@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { HighlightMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { HighlightMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import { HighlightContext } from '../../src/contexts/classes/highlight';
 

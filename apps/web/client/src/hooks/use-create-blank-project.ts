@@ -3,7 +3,7 @@
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@onlook/constants';
+import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import localforage from 'localforage';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

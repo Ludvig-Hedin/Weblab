@@ -1,4 +1,4 @@
-import type { DomElementStyles } from '@onlook/models';
+import type { DomElementStyles } from '@weblab/models';
 
 import { getHtmlElement, jsonClone } from '../../helpers';
 

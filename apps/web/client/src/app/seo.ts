@@ -1,4 +1,4 @@
-import { APP_DOMAIN, APP_NAME } from '@onlook/constants';
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const organizationSchema = {
     "@context": "https://schema.org",

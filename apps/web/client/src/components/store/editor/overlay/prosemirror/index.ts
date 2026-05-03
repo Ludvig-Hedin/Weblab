@@ -1,4 +1,4 @@
-import { isColorEmpty } from '@onlook/utility';
+import { isColorEmpty } from '@weblab/utility';
 import { baseKeymap } from 'prosemirror-commands';
 import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';

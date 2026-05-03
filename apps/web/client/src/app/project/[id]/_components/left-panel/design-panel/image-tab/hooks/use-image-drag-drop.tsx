@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorMode, InsertMode, type ImageContentData } from '@onlook/models';
+import { EditorMode, InsertMode, type ImageContentData } from '@weblab/models';
 import { usePostHog } from 'posthog-js/react';
 import { useCallback, useState } from 'react';
 

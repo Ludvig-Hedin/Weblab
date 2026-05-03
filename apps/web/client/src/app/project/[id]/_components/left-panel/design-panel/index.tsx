@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
-import { LeftPanelTabValue } from '@onlook/models';
-import { HotkeyLabel } from '@onlook/ui/hotkey-label';
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+import { LeftPanelTabValue } from '@weblab/models';
+import { HotkeyLabel } from '@weblab/ui/hotkey-label';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';

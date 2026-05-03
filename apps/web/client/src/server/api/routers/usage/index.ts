@@ -1,6 +1,6 @@
-import { rateLimits, subscriptions, usageRecords } from '@onlook/db';
-import { UsageType, type UsageResult } from '@onlook/models';
-import { FREE_PRODUCT_CONFIG, SubscriptionStatus } from '@onlook/stripe';
+import { rateLimits, subscriptions, usageRecords } from '@weblab/db';
+import { UsageType, type UsageResult } from '@weblab/models';
+import { FREE_PRODUCT_CONFIG, SubscriptionStatus } from '@weblab/stripe';
 import { sub } from 'date-fns/sub';
 import { and, desc, eq, gt, gte, lt, lte, ne, sql, sum } from 'drizzle-orm';
 import type { PgTransaction } from 'drizzle-orm/pg-core';

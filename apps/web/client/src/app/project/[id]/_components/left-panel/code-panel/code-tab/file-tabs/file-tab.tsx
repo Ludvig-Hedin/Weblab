@@ -1,7 +1,7 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { useEffect, useState } from 'react';
 import type { EditorFile } from '../shared/types';
 import { isDirty } from '../shared/utils';

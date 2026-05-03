@@ -1,7 +1,7 @@
-import { VARIANTS } from '@onlook/fonts';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { extractFontParts } from '@onlook/utility';
+import { VARIANTS } from '@weblab/fonts';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { extractFontParts } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 
 export interface FontFile {

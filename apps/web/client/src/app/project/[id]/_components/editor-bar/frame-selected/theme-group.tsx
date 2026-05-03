@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { SystemTheme } from '@onlook/models/assets';
-import { Icons } from '@onlook/ui/icons';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@onlook/ui/select';
-import { toast } from '@onlook/ui/sonner';
+import { SystemTheme } from '@weblab/models/assets';
+import { Icons } from '@weblab/ui/icons';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
 
 import { type FrameData } from '@/components/store/editor/frames';
 import { HoverOnlyTooltip } from '../hover-tooltip';

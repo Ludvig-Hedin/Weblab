@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Canvas as DbCanvas } from '@onlook/db';
+import type { Canvas as DbCanvas } from '@weblab/db';
 
 export const createDefaultCanvas = (projectId: string): DbCanvas => {
     return {

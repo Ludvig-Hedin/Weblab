@@ -1,5 +1,5 @@
-import type { DomainInfo } from '@onlook/models';
-import { DomainType } from '@onlook/models';
+import type { DomainInfo } from '@weblab/models';
+import { DomainType } from '@weblab/models';
 
 import type { PreviewDomain, ProjectCustomDomain } from '../schema';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { TailwindColorEditorMockup } from '../shared/mockups/tailwind-color-editor';
 import { ComponentsMockup } from '../shared/mockups/components-mockup';
 import { AiChatInteractive } from '../shared/mockups/ai-chat-interactive';

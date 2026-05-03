@@ -1,6 +1,6 @@
 import mime from 'mime-lite';
 
-import { BINARY_EXTENSIONS, IMAGE_EXTENSIONS } from '@onlook/constants';
+import { BINARY_EXTENSIONS, IMAGE_EXTENSIONS } from '@weblab/constants';
 
 /**
  * Check if a file is binary based on its extension

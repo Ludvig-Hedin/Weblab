@@ -1,9 +1,9 @@
-import { deployments, deploymentUpdateSchema, previewDomains, projectCustomDomains, type Deployment, type DrizzleDb } from '@onlook/db';
+import { deployments, deploymentUpdateSchema, previewDomains, projectCustomDomains, type Deployment, type DrizzleDb } from '@weblab/db';
 import {
     DeploymentStatus,
     DeploymentType
-} from '@onlook/models';
-import { assertNever } from '@onlook/utility';
+} from '@weblab/models';
+import { assertNever } from '@weblab/utility';
 import { TRPCError } from '@trpc/server';
 import { and, eq, ne } from 'drizzle-orm';
 import { z } from "zod";

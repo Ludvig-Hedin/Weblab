@@ -1,4 +1,4 @@
-# @onlook/github
+# @weblab/github
 
 GitHub integration package for Onlook.
 

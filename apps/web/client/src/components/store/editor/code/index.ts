@@ -1,6 +1,6 @@
-import { type Action, type CodeDiffRequest, type FileToRequests } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
-import { assertNever } from '@onlook/utility';
+import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
+import { assertNever } from '@weblab/utility';
 import { makeAutoObservable } from 'mobx';
 
 import { type EditorEngine } from '@/components/store/editor/engine';

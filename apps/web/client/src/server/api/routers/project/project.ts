@@ -2,8 +2,8 @@ import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { trackEvent } from '@/utils/analytics/server';
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { initModel } from '@onlook/ai';
-import { getSandboxPreviewUrl, STORAGE_BUCKETS } from '@onlook/constants';
+import { initModel } from '@weblab/ai';
+import { getSandboxPreviewUrl, STORAGE_BUCKETS } from '@weblab/constants';
 import {
     branches,
     canvases,
@@ -28,10 +28,10 @@ import {
     userProjects,
     type Canvas,
     type UserCanvas
-} from '@onlook/db';
-import { compressImageServer } from '@onlook/image-server';
-import { LLMProvider, OPENROUTER_MODELS, ProjectCreateRequestStatus, ProjectRole } from '@onlook/models';
-import { getScreenshotPath } from '@onlook/utility';
+} from '@weblab/db';
+import { compressImageServer } from '@weblab/image-server';
+import { LLMProvider, OPENROUTER_MODELS, ProjectCreateRequestStatus, ProjectRole } from '@weblab/models';
+import { getScreenshotPath } from '@weblab/utility';
 import { generateText } from 'ai';
 import { and, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';

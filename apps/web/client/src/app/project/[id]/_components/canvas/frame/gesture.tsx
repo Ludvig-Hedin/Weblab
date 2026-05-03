@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
 import type { FrameData } from '@/components/store/editor/frames';
 import { getRelativeMousePositionToFrameView } from '@/components/store/editor/overlay/utils';
-import type { DomElement, ElementPosition, Frame } from '@onlook/models';
-import { EditorMode, InsertMode, MouseAction } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+import type { DomElement, ElementPosition, Frame } from '@weblab/models';
+import { EditorMode, InsertMode, MouseAction } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 import throttle from 'lodash/throttle';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect, useMemo } from 'react';

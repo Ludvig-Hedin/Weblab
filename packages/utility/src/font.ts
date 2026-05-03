@@ -1,6 +1,6 @@
 import { camelCase } from 'lodash';
 
-import { DEFAULT, VARIANTS } from '@onlook/fonts';
+import { DEFAULT, VARIANTS } from '@weblab/fonts';
 
 /**
  * Extracts the actual font name from a font file name

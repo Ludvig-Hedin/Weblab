@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { Icons } from '@onlook/ui/icons/index';
+import { Icons } from '@weblab/ui/icons/index';
 import { InvitationRow } from './invitation-row';
 import { InviteMemberInput } from './invite-member-input';
 import { MemberRow } from './member-row';

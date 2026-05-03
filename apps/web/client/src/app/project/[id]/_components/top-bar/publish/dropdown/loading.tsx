@@ -1,7 +1,7 @@
 import { useHostingType } from '@/components/store/hosting/type';
-import { DeploymentType } from '@onlook/models/hosting';
-import { Button } from '@onlook/ui/button';
-import { Progress } from '@onlook/ui/progress';
+import { DeploymentType } from '@weblab/models/hosting';
+import { Button } from '@weblab/ui/button';
+import { Progress } from '@weblab/ui/progress';
 import { useState } from 'react';
 
 export const LoadingState = ({ type }: { type: DeploymentType }) => {

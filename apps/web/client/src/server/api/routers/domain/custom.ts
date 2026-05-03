@@ -1,5 +1,5 @@
-import { customDomainVerification, projectCustomDomains, ProjectCustomDomainStatus, toDomainInfoFromPublished, userProjects } from '@onlook/db';
-import { VerificationRequestStatus } from '@onlook/models';
+import { customDomainVerification, projectCustomDomains, ProjectCustomDomainStatus, toDomainInfoFromPublished, userProjects } from '@weblab/db';
+import { VerificationRequestStatus } from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

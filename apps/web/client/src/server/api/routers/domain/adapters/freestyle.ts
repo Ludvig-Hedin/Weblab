@@ -4,7 +4,7 @@ import type {
     HostingProviderAdapter,
     DeploymentRequest,
     DeploymentResponse
-} from '@onlook/models';
+} from '@weblab/models';
 
 export class FreestyleAdapter implements HostingProviderAdapter {
     async deploy(request: DeploymentRequest): Promise<DeploymentResponse> {

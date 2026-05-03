@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { Canvas } from './canvas';

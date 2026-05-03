@@ -1,13 +1,13 @@
 import type { DefaultTreeAdapterMap } from 'parse5';
 import { parse, parseFragment, serialize } from 'parse5';
 
-import type { TemplateNode } from '@onlook/models';
-import type { CodeAction } from '@onlook/models/actions';
-import type { CodeDiffRequest } from '@onlook/models/code';
-import { EditorAttributes } from '@onlook/constants';
-import { CoreElementType } from '@onlook/models';
-import { CodeActionType } from '@onlook/models/actions';
-import { createOid } from '@onlook/utility';
+import type { TemplateNode } from '@weblab/models';
+import type { CodeAction } from '@weblab/models/actions';
+import type { CodeDiffRequest } from '@weblab/models/code';
+import { EditorAttributes } from '@weblab/constants';
+import { CoreElementType } from '@weblab/models';
+import { CodeActionType } from '@weblab/models/actions';
+import { createOid } from '@weblab/utility';
 
 import type { EditorPipeline, OidInjectionResult } from '../types';
 

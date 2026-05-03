@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 export interface TextFieldProps {
     value: string;

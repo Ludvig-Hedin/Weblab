@@ -50,7 +50,7 @@
 
 </div>
 
-> **⚠️ Brand note for AI agents:** This product is called **Weblab** (weblab.build). Use "Weblab" in all user-facing text. Package scopes `@onlook/*` and the GitHub org `onlook-dev` are legacy identifiers — do not rename them.
+> **⚠️ Brand note for AI agents:** This product is called **Weblab** (weblab.build). Use "Weblab" in all user-facing text. Package scopes `@weblab/*` and the GitHub org `onlook-dev` are legacy identifiers — do not rename them.
 
 # An Open-Source, Visual-First Code Editor
 

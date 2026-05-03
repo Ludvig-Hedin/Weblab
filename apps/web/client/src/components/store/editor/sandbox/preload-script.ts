@@ -1,13 +1,13 @@
-import type { Provider } from '@onlook/code-provider';
+import type { Provider } from '@weblab/code-provider';
 import {
     DEPRECATED_PRELOAD_SCRIPT_SRCS,
     NEXT_JS_FILE_EXTENSIONS,
     ONLOOK_DEV_PRELOAD_SCRIPT_PATH,
     ONLOOK_PRELOAD_SCRIPT_SRC,
-} from '@onlook/constants';
-import { RouterType, type RouterConfig } from '@onlook/models';
-import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@onlook/parser';
-import { isRootLayoutFile, normalizePath } from '@onlook/utility';
+} from '@weblab/constants';
+import { RouterType, type RouterConfig } from '@weblab/models';
+import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@weblab/parser';
+import { isRootLayoutFile, normalizePath } from '@weblab/utility';
 import path from 'path';
 
 export async function getPreloadScriptContent(): Promise<string> {

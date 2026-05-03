@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import type { DropElementProperties } from '@onlook/models/element';
-import { EditorMode } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+import type { DropElementProperties } from '@weblab/models/element';
+import { EditorMode } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import type { ElementPreset, PresetCategory } from './presets';
 import { useEditorEngine } from '@/components/store/editor';

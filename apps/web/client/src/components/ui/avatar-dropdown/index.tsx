@@ -6,16 +6,16 @@ import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/client';
 import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { getReturnUrlQueryParam } from '@/utils/url';
-import { Avatar, AvatarFallback, AvatarImage } from '@onlook/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { getInitials } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { getInitials } from '@weblab/utility';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { UsageSection } from './plans';

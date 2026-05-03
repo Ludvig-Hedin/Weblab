@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/email",
+    "name": "@weblab/email",
     "description": "A library for sending emails",
     "main": "./src/index.ts",
     "type": "module",
@@ -30,8 +30,8 @@
     "license": "Apache-2.0",
     "homepage": "https://onlook.com",
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "@react-email/preview-server": "4.3.1",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"

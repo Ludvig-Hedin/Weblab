@@ -3,8 +3,8 @@ import { observer } from 'mobx-react-lite';
 import { EditorState, Selection, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 
-import { EditorAttributes } from '@onlook/constants';
-import { colors } from '@onlook/ui/tokens';
+import { EditorAttributes } from '@weblab/constants';
+import { colors } from '@weblab/ui/tokens';
 
 import { useEditorEngine } from '@/components/store/editor';
 import {

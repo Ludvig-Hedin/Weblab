@@ -1,5 +1,5 @@
 import type { EditorEngine } from '@/components/store/editor/engine';
-import type { Frame } from '@onlook/models';
+import type { Frame } from '@weblab/models';
 
 export interface MouseMoveHandlerOptions {
     editorEngine: EditorEngine;

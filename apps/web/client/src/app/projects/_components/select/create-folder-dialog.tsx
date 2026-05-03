@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { Button } from '@onlook/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@onlook/ui/dialog';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
+import { Button } from '@weblab/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
 
 interface CreateFolderDialogProps {
     open: boolean;

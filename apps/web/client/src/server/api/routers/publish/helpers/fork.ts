@@ -1,4 +1,4 @@
-import { CodeProvider, createCodeProviderClient, getStaticCodeProvider, type Provider } from '@onlook/code-provider';
+import { CodeProvider, createCodeProviderClient, getStaticCodeProvider, type Provider } from '@weblab/code-provider';
 
 export async function forkBuildSandbox(
     sandboxId: string,

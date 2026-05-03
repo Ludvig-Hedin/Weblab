@@ -5,14 +5,14 @@
     "": {
       "name": "@onlook/repo",
       "devDependencies": {
-        "@onlook/eslint": "*",
+        "@weblab/eslint": "*",
       },
     },
     "apps/backend": {
-      "name": "@onlook/backend",
+      "name": "@weblab/backend",
       "devDependencies": {
-        "@onlook/typescript": "*",
         "@types/bun": "latest",
+        "@weblab/typescript": "*",
         "supabase": "^2.45.5",
       },
       "peerDependencies": {
@@ -20,7 +20,7 @@
       },
     },
     "apps/desktop": {
-      "name": "@onlook/desktop",
+      "name": "@weblab/desktop",
       "version": "0.0.1",
       "dependencies": {
         "electron-updater": "^6.3.9",
@@ -31,7 +31,7 @@
       },
     },
     "apps/web": {
-      "name": "@onlook/web",
+      "name": "@weblab/web",
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -40,7 +40,7 @@
       },
     },
     "apps/web/client": {
-      "name": "@onlook/web-client",
+      "name": "@weblab/web-client",
       "version": "0.1.0",
       "dependencies": {
         "@ai-sdk/provider-utils": "^3.0.10",
@@ -50,21 +50,6 @@
         "@codemirror/lang-javascript": "^6.2.3",
         "@codemirror/lang-json": "^6.0.1",
         "@codemirror/lang-markdown": "^6.1.7",
-        "@onlook/code-provider": "*",
-        "@onlook/constants": "*",
-        "@onlook/db": "*",
-        "@onlook/email": "*",
-        "@onlook/fonts": "*",
-        "@onlook/github": "*",
-        "@onlook/growth": "*",
-        "@onlook/image-server": "*",
-        "@onlook/models": "*",
-        "@onlook/parser": "*",
-        "@onlook/penpal": "*",
-        "@onlook/rpc": "*",
-        "@onlook/stripe": "*",
-        "@onlook/ui": "*",
-        "@onlook/utility": "*",
         "@opentelemetry/api-logs": "0.57.2",
         "@opentelemetry/instrumentation": "0.57.2",
         "@opentelemetry/sdk-logs": "0.57.2",
@@ -78,6 +63,21 @@
         "@uiw/codemirror-extensions-basic-setup": "^4.23.10",
         "@uiw/react-codemirror": "^4.23.10",
         "@vercel/otel": "^1.13.0",
+        "@weblab/code-provider": "*",
+        "@weblab/constants": "*",
+        "@weblab/db": "*",
+        "@weblab/email": "*",
+        "@weblab/fonts": "*",
+        "@weblab/github": "*",
+        "@weblab/growth": "*",
+        "@weblab/image-server": "*",
+        "@weblab/models": "*",
+        "@weblab/parser": "*",
+        "@weblab/penpal": "*",
+        "@weblab/rpc": "*",
+        "@weblab/stripe": "*",
+        "@weblab/ui": "*",
+        "@weblab/utility": "*",
         "@xterm/addon-fit": "^0.10.0",
         "@xterm/xterm": "^5.5.0",
         "@zenfs/core": "2.4.0",
@@ -130,8 +130,6 @@
       "devDependencies": {
         "@chromatic-com/storybook": "^4.1.2",
         "@eslint/eslintrc": "^3.3.1",
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@storybook/addon-a11y": "^10.0.4",
         "@storybook/addon-actions": "^9.0.8",
         "@storybook/addon-docs": "^10.0.4",
@@ -146,6 +144,8 @@
         "@types/webfontloader": "^1.6.38",
         "@vitest/browser-playwright": "^4.0.7",
         "@vitest/coverage-v8": "^4.0.7",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "chromatic": "^13.3.3",
         "eslint": "^9.0.0",
         "eslint-plugin-storybook": "^10.0.4",
@@ -159,11 +159,11 @@
       },
     },
     "apps/web/preload": {
-      "name": "@onlook/web-preload",
+      "name": "@weblab/web-preload",
       "dependencies": {
-        "@onlook/constants": "*",
-        "@onlook/models": "*",
-        "@onlook/penpal": "*",
+        "@weblab/constants": "*",
+        "@weblab/models": "*",
+        "@weblab/penpal": "*",
         "css-tree": "^3.1.0",
         "lodash-es": "^4.17.21",
         "lodash.debounce": "^4.0.8",
@@ -171,11 +171,11 @@
         "penpal": "^7.0.4",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/bun": "latest",
         "@types/css-tree": "^2.3.10",
         "@types/lodash.debounce": "^4.0.9",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "concurrently": "^9.1.2",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
@@ -185,18 +185,18 @@
       },
     },
     "apps/web/server": {
-      "name": "@onlook/web-server",
+      "name": "@weblab/web-server",
       "dependencies": {
         "@fastify/websocket": "^11.0.2",
-        "@onlook/rpc": "*",
         "@trpc/server": "^11.0.0",
+        "@weblab/rpc": "*",
         "fastify": "^5.2.2",
         "zod": "^4.1.3",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/bun": "latest",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
@@ -205,7 +205,7 @@
       },
     },
     "docs": {
-      "name": "@onlook/docs",
+      "name": "@weblab/docs",
       "version": "0.0.0",
       "dependencies": {
         "fumadocs-core": "16.0.2",
@@ -230,12 +230,12 @@
       },
     },
     "packages/ai": {
-      "name": "@onlook/ai",
+      "name": "@weblab/ai",
       "version": "0.0.0",
       "dependencies": {
         "@mendable/firecrawl-js": "^1.29.1",
-        "@onlook/ui": "*",
         "@openrouter/ai-sdk-provider": "^1.2.0",
+        "@weblab/ui": "*",
         "ai": "5.0.60",
         "exa-js": "^1.8.26",
         "fg": "^0.0.3",
@@ -247,43 +247,43 @@
         "zod": "^4.1.3",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/code-provider": {
-      "name": "@onlook/code-provider",
+      "name": "@weblab/code-provider",
       "version": "0.0.0",
       "dependencies": {
         "@codesandbox/sdk": "^1.1.6",
-        "@onlook/models": "*",
-        "@onlook/parser": "*",
-        "@onlook/utility": "*",
+        "@weblab/models": "*",
+        "@weblab/parser": "*",
+        "@weblab/utility": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/constants": {
-      "name": "@onlook/constants",
+      "name": "@weblab/constants",
       "version": "0.0.0",
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/db": {
-      "name": "@onlook/db",
+      "name": "@weblab/db",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/stripe": "*",
+        "@weblab/stripe": "*",
         "dotenv": "^17.2.1",
         "drizzle-orm": "^0.44.5",
         "drizzle-zod": "^0.8.3",
@@ -292,14 +292,14 @@
         "uuid": "^11.1.0",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
+        "@weblab/eslint": "*",
         "ai": "5.0.60",
         "drizzle-kit": "^0.31.4",
         "typescript": "^5.8.2",
       },
     },
     "packages/email": {
-      "name": "@onlook/email",
+      "name": "@weblab/email",
       "version": "0.0.0",
       "dependencies": {
         "@react-email/components": "0.5.7",
@@ -309,15 +309,15 @@
         "resend": "^4.5.1",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@react-email/preview-server": "4.3.1",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/file-system": {
-      "name": "@onlook/file-system",
+      "name": "@weblab/file-system",
       "version": "0.0.0",
       "dependencies": {
         "@zenfs/core": "2.4.0",
@@ -325,10 +325,10 @@
         "lodash.debounce": "^4.0.8",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/lodash.debounce": "^4.0.9",
         "@types/react": "^18.3.1",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "react": "^18.3.1",
         "typescript": "^5.5.4",
@@ -338,47 +338,47 @@
       },
     },
     "packages/fonts": {
-      "name": "@onlook/fonts",
+      "name": "@weblab/fonts",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/parser": "*",
+        "@weblab/parser": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/framework": {
-      "name": "@onlook/framework",
+      "name": "@weblab/framework",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/models": "*",
+        "@weblab/models": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/git": {
-      "name": "@onlook/git",
+      "name": "@weblab/git",
       "version": "0.0.0",
       "dependencies": {
         "globby": "^14.1.0",
         "isomorphic-git": "^1.29.0",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/github": {
-      "name": "@onlook/github",
+      "name": "@weblab/github",
       "version": "0.0.0",
       "dependencies": {
         "@octokit/app": "^14.0.2",
@@ -387,42 +387,42 @@
         "uuid": "^11.1.0",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
         "@types/node": "^18.16.3",
         "@types/uuid": "^10.0.0",
+        "@weblab/eslint": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/growth": {
-      "name": "@onlook/growth",
+      "name": "@weblab/growth",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/parser": "*",
-        "@onlook/utility": "*",
+        "@weblab/parser": "*",
+        "@weblab/utility": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/image-server": {
-      "name": "@onlook/image-server",
+      "name": "@weblab/image-server",
       "version": "0.0.0",
       "dependencies": {
         "sharp": "^0.33.5",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/mcp": {
-      "name": "@onlook/mcp",
+      "name": "@weblab/mcp",
       "version": "0.0.1",
       "bin": {
         "weblab-mcp": "./src/server.ts",
@@ -432,68 +432,68 @@
         "zod": "^4.1.3",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/models": {
-      "name": "@onlook/models",
+      "name": "@weblab/models",
       "version": "0.0.0",
       "dependencies": {
         "zod": "^4.1.3",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "ai": "5.0.60",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/parser": {
-      "name": "@onlook/parser",
+      "name": "@weblab/parser",
       "version": "0.0.0",
       "dependencies": {
         "@babel/standalone": "^7.27.0",
         "@babel/types": "^7.27.0",
-        "@onlook/models": "*",
+        "@weblab/models": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/babel__standalone": "^7.1.9",
         "@types/babel__traverse": "^7.0.14",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/penpal": {
-      "name": "@onlook/penpal",
+      "name": "@weblab/penpal",
       "version": "0.0.0",
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/rpc": {
-      "name": "@onlook/rpc",
+      "name": "@weblab/rpc",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/web-server": "*",
+        "@weblab/web-server": "*",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/scripts": {
-      "name": "@onlook/scripts",
+      "name": "@weblab/scripts",
       "version": "0.0.1",
       "bin": {
         "env": "dist/index.js",
@@ -505,42 +505,42 @@
         "prompts": "^2.4.2",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/jest": "^30.0.0",
         "@types/node": "^20.10.5",
         "@types/prompts": "^2.4.9",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "jest": "^30.0.5",
         "typescript": "^5.3.3",
       },
     },
     "packages/stripe": {
-      "name": "@onlook/stripe",
+      "name": "@weblab/stripe",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/models": "*",
+        "@weblab/models": "*",
         "dotenv": "^16.5.0",
         "stripe": "^18.2.1",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
+        "@weblab/eslint": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/types": {
-      "name": "@onlook/types",
+      "name": "@weblab/types",
       "version": "0.0.0",
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "packages/ui": {
-      "name": "@onlook/ui",
+      "name": "@weblab/ui",
       "version": "0.0.0",
       "dependencies": {
         "@ai-sdk/ui-utils": "^1.2.11",
@@ -608,10 +608,10 @@
         "vaul": "^1.1.2",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
-        "@onlook/utility": "*",
         "@types/color-namer": "^1.3.3",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "@weblab/utility": "*",
         "eslint": "^9.0.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -619,11 +619,11 @@
       },
     },
     "packages/utility": {
-      "name": "@onlook/utility",
+      "name": "@weblab/utility",
       "version": "0.0.0",
       "dependencies": {
-        "@onlook/constants": "*",
-        "@onlook/fonts": "*",
+        "@weblab/constants": "*",
+        "@weblab/fonts": "*",
         "browser-image-compression": "^2.0.2",
         "culori": "^4.0.1",
         "free-email-domains": "^1.2.16",
@@ -636,15 +636,15 @@
         "uuid": "^11.1.0",
       },
       "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
         "@types/culori": "^2.0.4",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4",
       },
     },
     "tooling/eslint": {
-      "name": "@onlook/eslint",
+      "name": "@weblab/eslint",
       "version": "0.1.0",
       "dependencies": {
         "@eslint/compat": "^1.2.9",
@@ -661,15 +661,15 @@
         "typescript-eslint": "^8.0.0",
       },
       "devDependencies": {
-        "@onlook/prettier": "*",
-        "@onlook/typescript": "*",
+        "@weblab/prettier": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "prettier": "^3.3.3",
         "typescript": "^5.5.4",
       },
     },
     "tooling/prettier": {
-      "name": "@onlook/prettier",
+      "name": "@weblab/prettier",
       "version": "0.1.0",
       "dependencies": {
         "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
@@ -677,13 +677,13 @@
         "prettier-plugin-tailwindcss": "^0.6.11",
       },
       "devDependencies": {
-        "@onlook/typescript": "*",
         "@types/node": "^20.0.0",
+        "@weblab/typescript": "*",
         "typescript": "^5.5.4",
       },
     },
     "tooling/typescript": {
-      "name": "@onlook/typescript",
+      "name": "@weblab/typescript",
       "version": "0.0.0",
     },
   },
@@ -1424,70 +1424,6 @@
 
     "@octokit/webhooks-types": ["@octokit/webhooks-types@7.6.1", "", {}, "sha512-S8u2cJzklBC0FgTwWVLaM8tMrDuDMVE4xiTK4EYXM9GntyvrdbSoxqDQa+Fh57CCNApyIpyeqPhhFEmHPfrXgw=="],
 
-    "@onlook/ai": ["@onlook/ai@workspace:packages/ai"],
-
-    "@onlook/backend": ["@onlook/backend@workspace:apps/backend"],
-
-    "@onlook/code-provider": ["@onlook/code-provider@workspace:packages/code-provider"],
-
-    "@onlook/constants": ["@onlook/constants@workspace:packages/constants"],
-
-    "@onlook/db": ["@onlook/db@workspace:packages/db"],
-
-    "@onlook/desktop": ["@onlook/desktop@workspace:apps/desktop"],
-
-    "@onlook/docs": ["@onlook/docs@workspace:docs"],
-
-    "@onlook/email": ["@onlook/email@workspace:packages/email"],
-
-    "@onlook/eslint": ["@onlook/eslint@workspace:tooling/eslint"],
-
-    "@onlook/file-system": ["@onlook/file-system@workspace:packages/file-system"],
-
-    "@onlook/fonts": ["@onlook/fonts@workspace:packages/fonts"],
-
-    "@onlook/framework": ["@onlook/framework@workspace:packages/framework"],
-
-    "@onlook/git": ["@onlook/git@workspace:packages/git"],
-
-    "@onlook/github": ["@onlook/github@workspace:packages/github"],
-
-    "@onlook/growth": ["@onlook/growth@workspace:packages/growth"],
-
-    "@onlook/image-server": ["@onlook/image-server@workspace:packages/image-server"],
-
-    "@onlook/mcp": ["@onlook/mcp@workspace:packages/mcp"],
-
-    "@onlook/models": ["@onlook/models@workspace:packages/models"],
-
-    "@onlook/parser": ["@onlook/parser@workspace:packages/parser"],
-
-    "@onlook/penpal": ["@onlook/penpal@workspace:packages/penpal"],
-
-    "@onlook/prettier": ["@onlook/prettier@workspace:tooling/prettier"],
-
-    "@onlook/rpc": ["@onlook/rpc@workspace:packages/rpc"],
-
-    "@onlook/scripts": ["@onlook/scripts@workspace:packages/scripts"],
-
-    "@onlook/stripe": ["@onlook/stripe@workspace:packages/stripe"],
-
-    "@onlook/types": ["@onlook/types@workspace:packages/types"],
-
-    "@onlook/typescript": ["@onlook/typescript@workspace:tooling/typescript"],
-
-    "@onlook/ui": ["@onlook/ui@workspace:packages/ui"],
-
-    "@onlook/utility": ["@onlook/utility@workspace:packages/utility"],
-
-    "@onlook/web": ["@onlook/web@workspace:apps/web"],
-
-    "@onlook/web-client": ["@onlook/web-client@workspace:apps/web/client"],
-
-    "@onlook/web-preload": ["@onlook/web-preload@workspace:apps/web/preload"],
-
-    "@onlook/web-server": ["@onlook/web-server@workspace:apps/web/server"],
-
     "@openrouter/ai-sdk-provider": ["@openrouter/ai-sdk-provider@1.2.0", "", { "peerDependencies": { "ai": "^5.0.0", "zod": "^3.24.1 || ^v4" } }, "sha512-stuIwq7Yb7DNmk3GuCtz+oS3nZOY4TXEV3V5KsknDGQN7Fpu3KRMQVWRc1J073xKdf0FC9EHOctSyzsACmp5Ag=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
@@ -1942,7 +1878,7 @@
 
     "@types/btoa-lite": ["@types/btoa-lite@1.0.2", "", {}, "sha512-ZYbcE2x7yrvNFJiU7xJGrpF/ihpkM7zKgw8bha3LNJSesvTtUNxbpzaT7WXBIryf6jovisrxTBvymxMeLLj1Mg=="],
 
-    "@types/bun": ["@types/bun@1.3.1", "", { "dependencies": { "bun-types": "1.3.1" } }, "sha512-4jNMk2/K9YJtfqwoAa28c8wK+T7nvJFOjxI4h/7sORWcypRNxBpr+TPNaCfVWq70tLCJsqoFwcf0oI0JU/fvMQ=="],
+    "@types/bun": ["@types/bun@1.3.13", "", { "dependencies": { "bun-types": "1.3.13" } }, "sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw=="],
 
     "@types/cacheable-request": ["@types/cacheable-request@6.0.3", "", { "dependencies": { "@types/http-cache-semantics": "*", "@types/keyv": "^3.1.4", "@types/node": "*", "@types/responselike": "^1.0.0" } }, "sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw=="],
 
@@ -2246,6 +2182,70 @@
 
     "@webassemblyjs/wast-printer": ["@webassemblyjs/wast-printer@1.14.1", "", { "dependencies": { "@webassemblyjs/ast": "1.14.1", "@xtuc/long": "4.2.2" } }, "sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw=="],
 
+    "@weblab/ai": ["@weblab/ai@workspace:packages/ai"],
+
+    "@weblab/backend": ["@weblab/backend@workspace:apps/backend"],
+
+    "@weblab/code-provider": ["@weblab/code-provider@workspace:packages/code-provider"],
+
+    "@weblab/constants": ["@weblab/constants@workspace:packages/constants"],
+
+    "@weblab/db": ["@weblab/db@workspace:packages/db"],
+
+    "@weblab/desktop": ["@weblab/desktop@workspace:apps/desktop"],
+
+    "@weblab/docs": ["@weblab/docs@workspace:docs"],
+
+    "@weblab/email": ["@weblab/email@workspace:packages/email"],
+
+    "@weblab/eslint": ["@weblab/eslint@workspace:tooling/eslint"],
+
+    "@weblab/file-system": ["@weblab/file-system@workspace:packages/file-system"],
+
+    "@weblab/fonts": ["@weblab/fonts@workspace:packages/fonts"],
+
+    "@weblab/framework": ["@weblab/framework@workspace:packages/framework"],
+
+    "@weblab/git": ["@weblab/git@workspace:packages/git"],
+
+    "@weblab/github": ["@weblab/github@workspace:packages/github"],
+
+    "@weblab/growth": ["@weblab/growth@workspace:packages/growth"],
+
+    "@weblab/image-server": ["@weblab/image-server@workspace:packages/image-server"],
+
+    "@weblab/mcp": ["@weblab/mcp@workspace:packages/mcp"],
+
+    "@weblab/models": ["@weblab/models@workspace:packages/models"],
+
+    "@weblab/parser": ["@weblab/parser@workspace:packages/parser"],
+
+    "@weblab/penpal": ["@weblab/penpal@workspace:packages/penpal"],
+
+    "@weblab/prettier": ["@weblab/prettier@workspace:tooling/prettier"],
+
+    "@weblab/rpc": ["@weblab/rpc@workspace:packages/rpc"],
+
+    "@weblab/scripts": ["@weblab/scripts@workspace:packages/scripts"],
+
+    "@weblab/stripe": ["@weblab/stripe@workspace:packages/stripe"],
+
+    "@weblab/types": ["@weblab/types@workspace:packages/types"],
+
+    "@weblab/typescript": ["@weblab/typescript@workspace:tooling/typescript"],
+
+    "@weblab/ui": ["@weblab/ui@workspace:packages/ui"],
+
+    "@weblab/utility": ["@weblab/utility@workspace:packages/utility"],
+
+    "@weblab/web": ["@weblab/web@workspace:apps/web"],
+
+    "@weblab/web-client": ["@weblab/web-client@workspace:apps/web/client"],
+
+    "@weblab/web-preload": ["@weblab/web-preload@workspace:apps/web/preload"],
+
+    "@weblab/web-server": ["@weblab/web-server@workspace:apps/web/server"],
+
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.11", "", {}, "sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw=="],
 
     "@xstate/fsm": ["@xstate/fsm@1.6.5", "", {}, "sha512-b5o1I6aLNeYlU/3CPlj/Z91ybk1gUsKT+5NAJI+2W4UjvS5KLG28K9v5UvNoFVjHV8PajVZ00RH3vnjyQO7ZAw=="],
@@ -2484,7 +2484,7 @@
 
     "builder-util-runtime": ["builder-util-runtime@9.2.10", "", { "dependencies": { "debug": "^4.3.4", "sax": "^1.2.4" } }, "sha512-6p/gfG1RJSQeIbz8TK5aPNkoztgY1q5TgmGFMAXcY8itsGW6Y2ld1ALsZ5UJn8rog7hKF3zHx5iQbNQ8uLcRlw=="],
 
-    "bun-types": ["bun-types@1.3.1", "", { "dependencies": { "@types/node": "*" }, "peerDependencies": { "@types/react": "^19" } }, "sha512-NMrcy7smratanWJ2mMXdpatalovtxVggkj11bScuWuiOoXTiKIu2eVS1/7qbyI/4yHedtsn175n4Sm4JcdHLXw=="],
+    "bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "bytes": ["bytes@3.1.2", "", {}, "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg=="],
 
@@ -5518,42 +5518,6 @@
 
     "@octokit/rest/@octokit/plugin-paginate-rest": ["@octokit/plugin-paginate-rest@11.4.4-cjs.2", "", { "dependencies": { "@octokit/types": "^13.7.0" }, "peerDependencies": { "@octokit/core": "5" } }, "sha512-2dK6z8fhs8lla5PaOTgqfCGBxgAv/le+EhPs27KklPhm1bKObpu6lXzwfUEQ16ajXzqNrKMujsFyo9K2eaoISw=="],
 
-    "@onlook/docs/eslint": ["eslint@9.0.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.2.0", "@eslint-community/regexpp": "^4.6.1", "@eslint/eslintrc": "^3.0.2", "@eslint/js": "9.0.0", "@humanwhocodes/config-array": "^0.12.3", "@humanwhocodes/module-importer": "^1.0.1", "@nodelib/fs.walk": "^1.2.8", "ajv": "^6.12.4", "chalk": "^4.0.0", "cross-spawn": "^7.0.2", "debug": "^4.3.2", "escape-string-regexp": "^4.0.0", "eslint-scope": "^8.0.1", "eslint-visitor-keys": "^4.0.0", "espree": "^10.0.1", "esquery": "^1.4.2", "esutils": "^2.0.2", "fast-deep-equal": "^3.1.3", "file-entry-cache": "^8.0.0", "find-up": "^5.0.0", "glob-parent": "^6.0.2", "graphemer": "^1.4.0", "ignore": "^5.2.0", "imurmurhash": "^0.1.4", "is-glob": "^4.0.0", "is-path-inside": "^3.0.3", "json-stable-stringify-without-jsonify": "^1.0.1", "levn": "^0.4.1", "lodash.merge": "^4.6.2", "minimatch": "^3.1.2", "natural-compare": "^1.4.0", "optionator": "^0.9.3", "strip-ansi": "^6.0.1", "text-table": "^0.2.0" }, "bin": { "eslint": "bin/eslint.js" } }, "sha512-IMryZ5SudxzQvuod6rUdIUz29qFItWx281VhtFVc2Psy/ZhlCeD/5DT6lBIJ4H3G+iamGJoTln1v+QSuPw0p7Q=="],
-
-    "@onlook/docs/typescript": ["typescript@5.5.4", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q=="],
-
-    "@onlook/file-system/@types/react": ["@types/react@18.3.26", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.0.2" } }, "sha512-RFA/bURkcKzx/X9oumPG9Vp3D3JUgus/d0b67KB0t5S/raciymilkOa66olh78MUI92QLbEJevO7rvqU/kjwKA=="],
-
-    "@onlook/file-system/react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
-
-    "@onlook/github/@types/node": ["@types/node@18.19.130", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg=="],
-
-    "@onlook/prettier/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
-
-    "@onlook/scripts/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
-
-    "@onlook/stripe/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
-
-    "@onlook/ui/react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
-
-    "@onlook/ui/react-dom": ["react-dom@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0", "scheduler": "^0.23.2" }, "peerDependencies": { "react": "^18.3.1" } }, "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw=="],
-
-    "@onlook/utility/tailwind-merge": ["tailwind-merge@3.3.1", "", {}, "sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g=="],
-
-    "@onlook/web-client/@types/culori": ["@types/culori@4.0.1", "", {}, "sha512-43M51r/22CjhbOXyGT361GZ9vncSVQ39u62x5eJdBQFviI8zWp2X5jzqg7k4M6PVgDQAClpy2bUe2dtwEgEDVQ=="],
-
-    "@onlook/web-client/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
-
-    "@onlook/web-client/ai": ["ai@5.0.26", "", { "dependencies": { "@ai-sdk/gateway": "1.0.15", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.7", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-bGNtG+nYQ2U+5mzuLbxIg9WxGQJ2u5jv2gYgP8C+CJ1YI4qqIjvjOgGEZWzvNet8jiOGIlqstsht9aQefKzmBw=="],
-
-    "@onlook/web-client/lucide-react": ["lucide-react@0.486.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-xWop/wMsC1ikiEVLZrxXjPKw4vU/eAip33G2mZHgbWnr4Nr5Rt4Vx4s/q1D3B/rQVbxjOuqASkEZcUxDEKzecw=="],
-
-    "@onlook/web-client/postcss": ["postcss@8.5.6", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="],
-
-    "@onlook/web-client/tailwind-merge": ["tailwind-merge@3.3.1", "", {}, "sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g=="],
-
-    "@onlook/web-client/tldts": ["tldts@7.0.17", "", { "dependencies": { "tldts-core": "^7.0.17" }, "bin": { "tldts": "bin/cli.js" } }, "sha512-Y1KQBgDd/NUc+LfOtKS6mNsC9CCaH+m2P1RoIZy7RAPo3C3/t8X45+zgut31cRZtZ3xKPjfn3TkGTrctC2TQIQ=="],
-
     "@react-email/preview-server/@types/node": ["@types/node@22.14.1", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-u0HuPQwe/dHrItgHHpmw3N2fYCR6x4ivMNbPHRkBVP4CvN+kiRrKHWk3i8tXiO/joPwXLMYvF9TTF0eqgHIuOw=="],
 
     "@react-email/preview-server/@types/react": ["@types/react@19.0.10", "", { "dependencies": { "csstype": "^3.0.2" } }, "sha512-JuRQ9KXLEjaUNjTWpzuR231Z2WpIwczOkBEIvbHNCzQefFIT0L8IqE6NV6ULLyC1SI/i234JnDoMkfg+RjQj2g=="],
@@ -5693,6 +5657,42 @@
     "@vitest/expect/tinyrainbow": ["tinyrainbow@2.0.0", "", {}, "sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw=="],
 
     "@vitest/mocker/@vitest/spy": ["@vitest/spy@4.0.7", "", {}, "sha512-FW4X8hzIEn4z+HublB4hBF/FhCVaXfIHm8sUfvlznrcy1MQG7VooBgZPMtVCGZtHi0yl3KESaXTqsKh16d8cFg=="],
+
+    "@weblab/docs/eslint": ["eslint@9.0.0", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.2.0", "@eslint-community/regexpp": "^4.6.1", "@eslint/eslintrc": "^3.0.2", "@eslint/js": "9.0.0", "@humanwhocodes/config-array": "^0.12.3", "@humanwhocodes/module-importer": "^1.0.1", "@nodelib/fs.walk": "^1.2.8", "ajv": "^6.12.4", "chalk": "^4.0.0", "cross-spawn": "^7.0.2", "debug": "^4.3.2", "escape-string-regexp": "^4.0.0", "eslint-scope": "^8.0.1", "eslint-visitor-keys": "^4.0.0", "espree": "^10.0.1", "esquery": "^1.4.2", "esutils": "^2.0.2", "fast-deep-equal": "^3.1.3", "file-entry-cache": "^8.0.0", "find-up": "^5.0.0", "glob-parent": "^6.0.2", "graphemer": "^1.4.0", "ignore": "^5.2.0", "imurmurhash": "^0.1.4", "is-glob": "^4.0.0", "is-path-inside": "^3.0.3", "json-stable-stringify-without-jsonify": "^1.0.1", "levn": "^0.4.1", "lodash.merge": "^4.6.2", "minimatch": "^3.1.2", "natural-compare": "^1.4.0", "optionator": "^0.9.3", "strip-ansi": "^6.0.1", "text-table": "^0.2.0" }, "bin": { "eslint": "bin/eslint.js" } }, "sha512-IMryZ5SudxzQvuod6rUdIUz29qFItWx281VhtFVc2Psy/ZhlCeD/5DT6lBIJ4H3G+iamGJoTln1v+QSuPw0p7Q=="],
+
+    "@weblab/docs/typescript": ["typescript@5.5.4", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q=="],
+
+    "@weblab/file-system/@types/react": ["@types/react@18.3.26", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.0.2" } }, "sha512-RFA/bURkcKzx/X9oumPG9Vp3D3JUgus/d0b67KB0t5S/raciymilkOa66olh78MUI92QLbEJevO7rvqU/kjwKA=="],
+
+    "@weblab/file-system/react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
+
+    "@weblab/github/@types/node": ["@types/node@18.19.130", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg=="],
+
+    "@weblab/prettier/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
+
+    "@weblab/scripts/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
+
+    "@weblab/stripe/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+
+    "@weblab/ui/react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
+
+    "@weblab/ui/react-dom": ["react-dom@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0", "scheduler": "^0.23.2" }, "peerDependencies": { "react": "^18.3.1" } }, "sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw=="],
+
+    "@weblab/utility/tailwind-merge": ["tailwind-merge@3.3.1", "", {}, "sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g=="],
+
+    "@weblab/web-client/@types/culori": ["@types/culori@4.0.1", "", {}, "sha512-43M51r/22CjhbOXyGT361GZ9vncSVQ39u62x5eJdBQFviI8zWp2X5jzqg7k4M6PVgDQAClpy2bUe2dtwEgEDVQ=="],
+
+    "@weblab/web-client/@types/node": ["@types/node@20.19.23", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ=="],
+
+    "@weblab/web-client/ai": ["ai@5.0.26", "", { "dependencies": { "@ai-sdk/gateway": "1.0.15", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.7", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-bGNtG+nYQ2U+5mzuLbxIg9WxGQJ2u5jv2gYgP8C+CJ1YI4qqIjvjOgGEZWzvNet8jiOGIlqstsht9aQefKzmBw=="],
+
+    "@weblab/web-client/lucide-react": ["lucide-react@0.486.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-xWop/wMsC1ikiEVLZrxXjPKw4vU/eAip33G2mZHgbWnr4Nr5Rt4Vx4s/q1D3B/rQVbxjOuqASkEZcUxDEKzecw=="],
+
+    "@weblab/web-client/postcss": ["postcss@8.5.6", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="],
+
+    "@weblab/web-client/tailwind-merge": ["tailwind-merge@3.3.1", "", {}, "sha512-gBXpgUm/3rp1lMZZrM/w7D8GKqshif0zAymAhbCyIt8KMe+0v9DQ7cdYLR4FHH/cKpdTXb+A/tKKU3eolfsI+g=="],
+
+    "@weblab/web-client/tldts": ["tldts@7.0.17", "", { "dependencies": { "tldts-core": "^7.0.17" }, "bin": { "tldts": "bin/cli.js" } }, "sha512-Y1KQBgDd/NUc+LfOtKS6mNsC9CCaH+m2P1RoIZy7RAPo3C3/t8X45+zgut31cRZtZ3xKPjfn3TkGTrctC2TQIQ=="],
 
     "@zenfs/core/@types/node": ["@types/node@24.9.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-QoiaXANRkSXK6p0Duvt56W208du4P9Uye9hWLWgGMDTEoKPhuenzNcC4vGUmrNkiOKTlIrBoyNQYNpSwfEZXSg=="],
 
@@ -6764,24 +6764,6 @@
 
     "@octokit/rest/@octokit/plugin-paginate-rest/@octokit/types": ["@octokit/types@13.10.0", "", { "dependencies": { "@octokit/openapi-types": "^24.2.0" } }, "sha512-ifLaO34EbbPj0Xgro4G5lP5asESjwHracYJvVaPIyXMuiuXLlhic3S47cBdTb+jfODkTE5YtGCLt3Ay3+J97sA=="],
 
-    "@onlook/docs/eslint/@eslint/js": ["@eslint/js@9.0.0", "", {}, "sha512-RThY/MnKrhubF6+s1JflwUjPEsnCEmYCWwqa/aRISKWNXGZ9epUwft4bUMM35SdKF9xvBrLydAM1RDHd1Z//ZQ=="],
-
-    "@onlook/docs/eslint/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
-
-    "@onlook/docs/eslint/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
-
-    "@onlook/github/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
-
-    "@onlook/ui/react-dom/scheduler": ["scheduler@0.23.2", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ=="],
-
-    "@onlook/web-client/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@1.0.15", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.7" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-xySXoQ29+KbGuGfmDnABx+O6vc7Gj7qugmj1kGpn0rW0rQNn6UKUuvscKMzWyv1Uv05GyC1vqHq8ZhEOLfXscQ=="],
-
-    "@onlook/web-client/ai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@3.0.7", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@standard-schema/spec": "^1.0.0", "eventsource-parser": "^3.0.5" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-o3BS5/t8KnBL3ubP8k3w77AByOypLm+pkIL/DCw0qKkhDbvhCy+L3hRTGPikpdb8WHcylAeKsjgwOxhj4cqTUA=="],
-
-    "@onlook/web-client/postcss/nanoid": ["nanoid@3.3.11", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w=="],
-
-    "@onlook/web-client/tldts/tldts-core": ["tldts-core@7.0.17", "", {}, "sha512-DieYoGrP78PWKsrXr8MZwtQ7GLCUeLxihtjC1jZsW1DnvSMdKPitJSe8OSYDM2u5H6g3kWJZpePqkp43TfLh0g=="],
-
     "@react-email/preview-server/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.10", "", { "os": "aix", "cpu": "ppc64" }, "sha512-0NFWnA+7l41irNuaSVlLfgNT12caWJVLzp5eAVhZ0z1qpxbockccEt3s+149rE64VUI3Ml2zt8Nv5JVc4QXTsw=="],
 
     "@react-email/preview-server/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.25.10", "", { "os": "android", "cpu": "arm" }, "sha512-dQAxF1dW1C3zpeCDc5KqIYuZ1tgAdRXNoZP7vkBIRtKZPYe2xVr/d3SkirklCHudW1B45tGiUlz2pUWDfbDD4w=="],
@@ -7035,6 +7017,24 @@
     "@typescript-eslint/typescript-estree/minimatch/brace-expansion": ["brace-expansion@2.0.2", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ=="],
 
     "@vitest/expect/@vitest/utils/@vitest/pretty-format": ["@vitest/pretty-format@3.2.4", "", { "dependencies": { "tinyrainbow": "^2.0.0" } }, "sha512-IVNZik8IVRJRTr9fxlitMKeJeXFFFN0JaB9PHPGQ8NKQbGpfjlTx9zO4RefN8gp7eqjNy8nyK3NZmBzOPeIxtA=="],
+
+    "@weblab/docs/eslint/@eslint/js": ["@eslint/js@9.0.0", "", {}, "sha512-RThY/MnKrhubF6+s1JflwUjPEsnCEmYCWwqa/aRISKWNXGZ9epUwft4bUMM35SdKF9xvBrLydAM1RDHd1Z//ZQ=="],
+
+    "@weblab/docs/eslint/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
+
+    "@weblab/docs/eslint/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
+
+    "@weblab/github/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
+
+    "@weblab/ui/react-dom/scheduler": ["scheduler@0.23.2", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ=="],
+
+    "@weblab/web-client/ai/@ai-sdk/gateway": ["@ai-sdk/gateway@1.0.15", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.7" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-xySXoQ29+KbGuGfmDnABx+O6vc7Gj7qugmj1kGpn0rW0rQNn6UKUuvscKMzWyv1Uv05GyC1vqHq8ZhEOLfXscQ=="],
+
+    "@weblab/web-client/ai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@3.0.7", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@standard-schema/spec": "^1.0.0", "eventsource-parser": "^3.0.5" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-o3BS5/t8KnBL3ubP8k3w77AByOypLm+pkIL/DCw0qKkhDbvhCy+L3hRTGPikpdb8WHcylAeKsjgwOxhj4cqTUA=="],
+
+    "@weblab/web-client/postcss/nanoid": ["nanoid@3.3.11", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w=="],
+
+    "@weblab/web-client/tldts/tldts-core": ["tldts-core@7.0.17", "", {}, "sha512-DieYoGrP78PWKsrXr8MZwtQ7GLCUeLxihtjC1jZsW1DnvSMdKPitJSe8OSYDM2u5H6g3kWJZpePqkp43TfLh0g=="],
 
     "@zenfs/core/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
@@ -7620,10 +7620,6 @@
 
     "@octokit/rest/@octokit/plugin-paginate-rest/@octokit/types/@octokit/openapi-types": ["@octokit/openapi-types@24.2.0", "", {}, "sha512-9sIH3nSUttelJSXUrmGzl7QUBFul0/mB8HRYl3fOlgHbIWG+WnYDXU3v/2zMtAvuzZ/ed00Ei6on975FhBfzrg=="],
 
-    "@onlook/docs/eslint/chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
-
-    "@onlook/docs/eslint/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
-
     "@react-email/preview-server/next/postcss/nanoid": ["nanoid@3.3.11", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w=="],
 
     "@react-email/preview-server/ora/chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
@@ -7675,6 +7671,10 @@
     "@storybook/test/@testing-library/jest-dom/chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
     "@storybook/test/@vitest/expect/@vitest/utils/@vitest/pretty-format": ["@vitest/pretty-format@2.0.5", "", { "dependencies": { "tinyrainbow": "^1.2.0" } }, "sha512-h8k+1oWHfwTkyTkb9egzwNMfJAEx4veaPSnMeKbVSjp4euqGSbQlm5+6VHwTr7u4FJslVVsUG5nopCaAYdOmSQ=="],
+
+    "@weblab/docs/eslint/chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
+
+    "@weblab/docs/eslint/strip-ansi/ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 
     "app-builder-lib/tar/minizlib/minipass": ["minipass@3.3.6", "", { "dependencies": { "yallist": "^4.0.0" } }, "sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw=="],
 

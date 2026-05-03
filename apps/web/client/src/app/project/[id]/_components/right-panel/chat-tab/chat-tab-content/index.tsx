@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import type { ChatMessage, ChatModel, LocalModelOption } from '@onlook/models';
-import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@onlook/models';
+import type { ChatMessage, ChatModel, LocalModelOption } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 
 import { api } from '@/trpc/react';
 import { useChat } from '../../../../_hooks/use-chat';

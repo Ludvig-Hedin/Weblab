@@ -1,7 +1,7 @@
 import type { FileUIPart } from 'ai';
 
-import type { ChatMessage, MessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { ChatMessage, MessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import {
     AgentRuleContext,

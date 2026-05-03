@@ -7,13 +7,13 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
 import { useTranslations } from 'next-intl';
 import { useAuthContext } from '../auth/auth-context';
 import { DevLoginButton, LoginButton } from './login-button';
-import { SignInMethod } from '@onlook/models/auth';
-import { Icons } from '@onlook/ui/icons';
+import { SignInMethod } from '@weblab/models/auth';
+import { Icons } from '@weblab/ui/icons';
 
 export function AuthModal() {
     const { setIsAuthModalOpen, isAuthModalOpen } = useAuthContext();

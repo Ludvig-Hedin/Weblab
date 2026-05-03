@@ -1,11 +1,11 @@
-import type { DomElement } from '@onlook/models';
+import type { DomElement } from '@weblab/models';
 import type {
     ActionElement,
     ActionLocation,
     ActionTarget,
     InsertElementAction,
-} from '@onlook/models/actions';
-import { createDomId, createOid } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { createDomId, createOid } from '@weblab/utility';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';
 import { getCleanedElement } from '../history/helpers';

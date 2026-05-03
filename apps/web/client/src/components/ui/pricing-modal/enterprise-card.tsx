@@ -1,7 +1,7 @@
-import { APP_NAME } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { MotionCard } from '@onlook/ui/motion-card';
+import { APP_NAME } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { MotionCard } from '@weblab/ui/motion-card';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 

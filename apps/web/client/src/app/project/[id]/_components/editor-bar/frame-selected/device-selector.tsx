@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { DEVICE_OPTIONS, Orientation } from '@onlook/constants';
-import type { WindowMetadata } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons/index';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger } from '@onlook/ui/select';
-import { cn } from '@onlook/ui/utils';
-import { computeWindowMetadata, getDeviceType } from '@onlook/utility';
+import { DEVICE_OPTIONS, Orientation } from '@weblab/constants';
+import type { WindowMetadata } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons/index';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger } from '@weblab/ui/select';
+import { cn } from '@weblab/ui/utils';
+import { computeWindowMetadata, getDeviceType } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useState } from 'react';
 import { HoverOnlyTooltip } from '../hover-tooltip';

@@ -6,7 +6,7 @@
  * Callers must gate UI on `isFsAccessSupported()` before invoking anything else.
  */
 
-import { IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@onlook/constants';
+import { IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@weblab/constants';
 
 export interface PickDirectoryOptions {
     mode?: 'read' | 'readwrite';

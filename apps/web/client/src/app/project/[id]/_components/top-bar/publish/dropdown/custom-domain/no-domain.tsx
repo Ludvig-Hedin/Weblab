@@ -1,4 +1,4 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import { useCustomDomainContext } from './provider';
 
 export const NoCustomDomain = () => {

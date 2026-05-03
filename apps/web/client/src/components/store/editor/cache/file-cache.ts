@@ -1,6 +1,6 @@
 'use client';
 
-import type { SandboxDirectory, SandboxFile } from '@onlook/models';
+import type { SandboxDirectory, SandboxFile } from '@weblab/models';
 import { UnifiedCacheManager } from './unified-cache';
 
 export class FileCacheManager {

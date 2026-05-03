@@ -1,5 +1,5 @@
-import type { FileOperations } from '@onlook/utility';
-import { CUSTOM_OUTPUT_DIR, JS_FILE_EXTENSIONS } from '@onlook/constants';
+import type { FileOperations } from '@weblab/utility';
+import { CUSTOM_OUTPUT_DIR, JS_FILE_EXTENSIONS } from '@weblab/constants';
 
 import type { T } from '../packages';
 import { genASTParserOptionsByFileExtension } from '../helpers';

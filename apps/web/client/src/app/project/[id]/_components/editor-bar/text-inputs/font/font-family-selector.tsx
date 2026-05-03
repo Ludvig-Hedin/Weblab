@@ -1,11 +1,11 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { BrandTabValue, LeftPanelTabValue } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { toNormalCase } from '@onlook/utility';
+import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { toNormalCase } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useEffect } from 'react';
 import { useDropdownControl } from '../../hooks/use-dropdown-manager';

@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { DeviceSettings } from './device-settings';

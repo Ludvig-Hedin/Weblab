@@ -1,8 +1,8 @@
-import { deployments, deploymentUpdateSchema } from '@onlook/db';
+import { deployments, deploymentUpdateSchema } from '@weblab/db';
 import {
     DeploymentStatus,
     DeploymentType
-} from '@onlook/models';
+} from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { and, desc, eq, or } from 'drizzle-orm';
 import { z } from "zod";

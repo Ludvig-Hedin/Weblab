@@ -1,9 +1,9 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { CodeBlock } from '@onlook/ui/ai-elements';
-import { Button } from '@onlook/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@onlook/ui/collapsible';
-import { Icons } from '@onlook/ui/icons';
-import { cn, getTruncatedFileName } from '@onlook/ui/utils';
+import { CodeBlock } from '@weblab/ui/ai-elements';
+import { Button } from '@weblab/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
+import { Icons } from '@weblab/ui/icons';
+import { cn, getTruncatedFileName } from '@weblab/ui/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import { observer } from 'mobx-react-lite';
 import { memo, useEffect, useMemo, useState } from 'react';

@@ -1,10 +1,10 @@
 'use client';
 
 import { ExternalRoutes } from '@/utils/constants';
-import { APP_NAME } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { APP_NAME } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { WebsiteLayout } from '../_components/website-layout';
@@ -101,6 +101,15 @@ export default function DownloadPage() {
 
                 <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
                     {OPTIONS.map((option, index) => {
+                        // Hide the iOS card while the TestFlight invite URL is still a
+                        // placeholder. Once the real invite is published, this short-
+                        // circuits and the card renders.
+                        if (
+                            option.id === 'ios' &&
+                            ExternalRoutes.DOWNLOAD_IOS.includes('PLACEHOLDER')
+                        ) {
+                            return null;
+                        }
                         const Icon = Icons[option.icon] as React.ComponentType<{
                             className?: string;
                         }>;

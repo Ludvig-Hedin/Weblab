@@ -1,8 +1,8 @@
 import debounce from 'lodash/debounce';
 import { connect, WindowMessenger } from 'penpal';
 
-import type { PromisifiedPenpalParentMethods } from '@onlook/penpal';
-import { PENPAL_CHILD_CHANNEL } from '@onlook/penpal';
+import type { PromisifiedPenpalParentMethods } from '@weblab/penpal';
+import { PENPAL_CHILD_CHANNEL } from '@weblab/penpal';
 
 import { preloadMethods } from './api';
 

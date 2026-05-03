@@ -1,6 +1,6 @@
-import { BrandWordmark } from '@onlook/ui/brand';
+import { BrandWordmark } from '@weblab/ui/brand';
 import { ExternalRoutes, Routes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { useRouter } from 'next/navigation';
 
 export function Footer() {
@@ -48,6 +48,7 @@ export function Footer() {
                             <li><a href={Routes.WORKFLOWS_VIBE_CODING} className="hover:underline" title="Vibe coding for teams">Vibe Coding</a></li>
                         </ul>
                     </div>
+                    {/*
                     <div>
                         <h3 className="text-regularPlus mb-4 text-foreground-primary">Follow Us</h3>
                         <div className="flex gap-6 mt-2 items-center">
@@ -71,6 +72,8 @@ export function Footer() {
                             </a>
                         </div>
                     </div>
+                    */}
+               
                 </div>
             </div>
             {/* Bottom Bar */}

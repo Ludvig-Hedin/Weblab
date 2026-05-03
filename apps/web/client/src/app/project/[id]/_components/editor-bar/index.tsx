@@ -1,8 +1,8 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorMode, type DomElement } from '@onlook/models';
-import { cn } from '@onlook/ui/utils';
+import { EditorMode, type DomElement } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { DivSelected } from './div-selected';

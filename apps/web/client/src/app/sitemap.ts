@@ -1,4 +1,4 @@
-import { APP_DOMAIN } from '@onlook/constants';
+import { APP_DOMAIN } from '@weblab/constants';
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {

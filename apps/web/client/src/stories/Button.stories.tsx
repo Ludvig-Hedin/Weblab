@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import { Heart, Plus, Trash2 } from 'lucide-react';
 
 const meta = {

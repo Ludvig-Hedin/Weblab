@@ -5,8 +5,8 @@ import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 
-import type { Project } from '@onlook/models';
-import { STORAGE_BUCKETS, Tags } from '@onlook/constants';
+import type { Project } from '@weblab/models';
+import { STORAGE_BUCKETS, Tags } from '@weblab/constants';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -14,8 +14,8 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,8 +23,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 
 import type { StaticTemplate } from '../templates/static-templates';
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';

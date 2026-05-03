@@ -1,6 +1,6 @@
-import type { Conversation as DbConversation } from '@onlook/db';
-import type { ChatConversation } from '@onlook/models';
-import { AgentType } from '@onlook/models';
+import type { Conversation as DbConversation } from '@weblab/db';
+import type { ChatConversation } from '@weblab/models';
+import { AgentType } from '@weblab/models';
 
 export const fromDbConversation = (conversation: DbConversation): ChatConversation => {
     return {

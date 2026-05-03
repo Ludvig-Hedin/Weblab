@@ -7,15 +7,15 @@ import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ImageMessageContext, User } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { Textarea } from '@onlook/ui/textarea';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
-import { compressImageInBrowser } from '@onlook/utility';
+import type { ImageMessageContext, User } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
+import { compressImageInBrowser } from '@weblab/utility';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { validateImageLimit } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/helpers';

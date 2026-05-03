@@ -2,17 +2,17 @@
 
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
-import { ScheduledSubscriptionAction } from '@onlook/stripe';
-import { Button } from '@onlook/ui/button';
+import { ScheduledSubscriptionAction } from '@weblab/stripe';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
-import { toast } from '@onlook/ui/sonner';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import { useSubscription } from '../pricing-modal/use-subscription';

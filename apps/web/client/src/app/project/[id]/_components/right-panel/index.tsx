@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { ResizablePanel } from '@onlook/ui/resizable';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@onlook/ui/tabs';
-import { cn } from '@onlook/ui/utils';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { ResizablePanel } from '@weblab/ui/resizable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { env } from '@/env';

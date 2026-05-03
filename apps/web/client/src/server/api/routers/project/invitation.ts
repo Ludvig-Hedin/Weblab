@@ -8,10 +8,10 @@ import {
     userCanvases,
     userProjects,
     users,
-} from '@onlook/db';
-import { constructInvitationLink, getResendClient, sendInvitationEmail } from '@onlook/email';
-import { ProjectRole } from '@onlook/models';
-import { isFreeEmail } from '@onlook/utility';
+} from '@weblab/db';
+import { constructInvitationLink, getResendClient, sendInvitationEmail } from '@weblab/email';
+import { ProjectRole } from '@weblab/models';
+import { isFreeEmail } from '@weblab/utility';
 import { TRPCError } from '@trpc/server';
 import { addDays, isAfter } from 'date-fns';
 import { and, eq, ilike, isNull } from 'drizzle-orm';

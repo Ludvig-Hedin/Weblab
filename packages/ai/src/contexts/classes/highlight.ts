@@ -1,6 +1,6 @@
-import type { HighlightMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import type { HighlightMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 
 import { CODE_FENCE } from '../../prompt/constants';
 import { wrapXml } from '../../prompt/helpers';

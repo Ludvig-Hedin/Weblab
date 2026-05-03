@@ -3,15 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ImageMessageContext, MessageContext } from '@onlook/models';
-import { type ProjectCreateRequest } from '@onlook/db';
+import type { ImageMessageContext, MessageContext } from '@weblab/models';
+import { type ProjectCreateRequest } from '@weblab/db';
 import {
     ChatType,
     CreateRequestContextType,
     MessageContextType,
     ProjectCreateRequestStatus,
-} from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
+} from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';

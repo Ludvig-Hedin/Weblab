@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';
 
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 import { api } from '@/trpc/react';
 

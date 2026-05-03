@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
-import type { PageNode } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
-import { capitalizeFirstLetter } from '@onlook/utility';
+import type { PageNode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
+import { capitalizeFirstLetter } from '@weblab/utility';
 
 import type { SettingTab } from './helpers';
 import { useEditorEngine } from '@/components/store/editor';

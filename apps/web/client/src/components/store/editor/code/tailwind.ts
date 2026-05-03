@@ -1,6 +1,6 @@
-import type { CodeDiffRequest } from '@onlook/models/code';
-import { StyleChangeType, type StyleChange } from '@onlook/models/style';
-import { CssToTailwindTranslator, propertyMap } from '@onlook/utility';
+import type { CodeDiffRequest } from '@weblab/models/code';
+import { StyleChangeType, type StyleChange } from '@weblab/models/style';
+import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 import { twMerge } from 'tailwind-merge';
 
 export function addTailwindToRequest(

@@ -8,7 +8,7 @@ import { useState } from 'react';
  * Mock tRPC client for Storybook
  *
  * This mock provides a functional tRPC context without making real API calls.
- * It prevents the import chain: AppRouter → subscriptionRouter/usageRouter → @onlook/stripe → dotenv.config()
+ * It prevents the import chain: AppRouter → subscriptionRouter/usageRouter → @weblab/stripe → dotenv.config()
  *
  * The mock client uses a dummy HTTP link that will never be called in Storybook
  * since we don't actually trigger mutations/queries in stories.

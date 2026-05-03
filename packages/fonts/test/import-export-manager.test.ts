@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { generate, parse } from '@onlook/parser';
+import { generate, parse } from '@weblab/parser';
 import {
     removeFontImportFromFile,
     addFontImportToFile,

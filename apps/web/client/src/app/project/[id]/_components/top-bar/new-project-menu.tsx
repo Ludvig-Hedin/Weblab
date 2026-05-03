@@ -10,8 +10,8 @@ import {
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';

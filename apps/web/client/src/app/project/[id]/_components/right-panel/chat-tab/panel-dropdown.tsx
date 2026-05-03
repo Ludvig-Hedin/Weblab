@@ -1,16 +1,16 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import type { ChatSettings } from '@onlook/models';
+import type { ChatSettings } from '@weblab/models';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';

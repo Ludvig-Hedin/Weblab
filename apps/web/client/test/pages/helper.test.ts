@@ -1,5 +1,5 @@
 import type { ReaddirEntry } from '@codesandbox/sdk';
-import { RouterType } from '@onlook/models';
+import { RouterType } from '@weblab/models';
 import { describe, expect, mock, test } from 'bun:test';
 import { scanAppDirectory, updatePageMetadataInSandbox } from '../../src/components/store/editor/pages/helper';
 

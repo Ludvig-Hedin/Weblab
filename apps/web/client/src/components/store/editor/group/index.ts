@@ -1,11 +1,11 @@
-import type { DomElement } from '@onlook/models';
+import type { DomElement } from '@weblab/models';
 import type {
     ActionTarget,
     GroupContainer,
     GroupElementsAction,
     UngroupElementsAction
-} from '@onlook/models/actions';
-import { createDomId, createOid } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { createDomId, createOid } from '@weblab/utility';
 import type { EditorEngine } from '../engine';
 
 export class GroupManager {

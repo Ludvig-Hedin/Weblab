@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { WebsiteLayout } from '../_components/website-layout';
 import { ExternalRoutes, Routes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 
 interface SitemapLink {
     title: string;

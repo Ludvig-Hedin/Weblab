@@ -2,8 +2,8 @@ import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
-import { DeploymentType, SettingsTabValue } from '@onlook/models';
-import { ProductType } from '@onlook/stripe';
+import { DeploymentType, SettingsTabValue } from '@weblab/models';
+import { ProductType } from '@weblab/stripe';
 import { createContext, useContext, useState } from 'react';
 
 const useCustomDomain = () => {

@@ -1,4 +1,4 @@
-import type { DomElement, LayerNode } from '@onlook/models';
+import type { DomElement, LayerNode } from '@weblab/models';
 
 import { getHtmlElement, isValidHtmlElement } from '../../../helpers';
 import { buildLayerTree } from '../../dom';

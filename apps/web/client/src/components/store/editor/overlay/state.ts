@@ -1,4 +1,4 @@
-import type { DomElementStyles, RectDimensions } from '@onlook/models';
+import type { DomElementStyles, RectDimensions } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
 import { nanoid } from 'nanoid/non-secure';
 

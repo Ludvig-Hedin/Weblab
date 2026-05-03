@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import type { ImageMessageContext, MessageContext } from '@onlook/models/chat';
-import { MessageContextType } from '@onlook/models/chat';
-import { assertNever } from '@onlook/utility';
+import type { ImageMessageContext, MessageContext } from '@weblab/models/chat';
+import { MessageContextType } from '@weblab/models/chat';
+import { assertNever } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
 import { useMemo } from 'react';

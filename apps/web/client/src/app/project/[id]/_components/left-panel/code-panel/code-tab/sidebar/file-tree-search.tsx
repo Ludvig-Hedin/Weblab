@@ -1,5 +1,5 @@
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
 import { forwardRef } from 'react';
 
 interface FileTreeSearchProps {

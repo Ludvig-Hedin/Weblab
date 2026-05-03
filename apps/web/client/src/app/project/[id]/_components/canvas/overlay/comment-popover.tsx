@@ -2,9 +2,9 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { createClient } from '@/utils/supabase/client';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';

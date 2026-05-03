@@ -2,9 +2,9 @@
 
 import { Routes } from '@/utils/constants';
 import { NAVIGATION_CATEGORIES } from '@/utils/constants/navigation';
-import { BrandLogo } from '@onlook/ui/brand';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { BrandLogo } from '@weblab/ui/brand';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { GitHubButton } from './github';

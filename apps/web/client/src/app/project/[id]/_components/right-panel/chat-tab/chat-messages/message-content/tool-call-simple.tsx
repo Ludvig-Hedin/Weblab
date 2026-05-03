@@ -1,6 +1,6 @@
-import { BaseTool, TOOLS_MAP } from '@onlook/ai';
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '@onlook/ui/ai-elements';
-import { Icons } from '@onlook/ui/icons';
+import { BaseTool, TOOLS_MAP } from '@weblab/ai';
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '@weblab/ui/ai-elements';
+import { Icons } from '@weblab/ui/icons';
 import type { ToolUIPart } from 'ai';
 import { memo } from 'react';
 

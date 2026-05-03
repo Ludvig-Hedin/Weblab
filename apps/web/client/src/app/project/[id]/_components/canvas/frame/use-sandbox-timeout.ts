@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
-import type { Frame } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
+import type { Frame } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 import { useEffect, useState } from 'react';
 
 const SANDBOX_TIMEOUT_MS = 30000;

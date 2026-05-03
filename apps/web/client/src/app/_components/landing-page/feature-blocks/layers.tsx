@@ -1,6 +1,6 @@
-import { Icons } from '@onlook/ui/icons';
-import { NodeIcon } from '@onlook/ui/node-icon';
-import { cn } from '@onlook/ui/utils';
+import { Icons } from '@weblab/ui/icons';
+import { NodeIcon } from '@weblab/ui/node-icon';
+import { cn } from '@weblab/ui/utils';
 import React from 'react';
 import { Illustrations } from '../illustrations';
 

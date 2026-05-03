@@ -1,6 +1,6 @@
 import { Routes } from '@/utils/constants';
-import { legacySubscriptions, prices, subscriptions, fromDbSubscription, users } from '@onlook/db';
-import { createBillingPortalSession, createCheckoutSession, createCustomer, isTierUpgrade, PriceKey, releaseSubscriptionSchedule, SubscriptionStatus, updateSubscription, updateSubscriptionNextPeriod } from '@onlook/stripe';
+import { legacySubscriptions, prices, subscriptions, fromDbSubscription, users } from '@weblab/db';
+import { createBillingPortalSession, createCheckoutSession, createCustomer, isTierUpgrade, PriceKey, releaseSubscriptionSchedule, SubscriptionStatus, updateSubscription, updateSubscriptionNextPeriod } from '@weblab/stripe';
 import { and, eq, isNull } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { z } from 'zod';

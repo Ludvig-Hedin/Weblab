@@ -1,6 +1,6 @@
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@onlook/ui/collapsible';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';

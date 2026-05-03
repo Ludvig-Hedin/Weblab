@@ -1,8 +1,8 @@
 import { makeAutoObservable } from 'mobx';
 import stripAnsi from 'strip-ansi';
 
-import { APP_NAME, SUPPORT_EMAIL } from '@onlook/constants';
-import { type GitCommit } from '@onlook/git';
+import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
+import { type GitCommit } from '@weblab/git';
 
 import type { SandboxManager } from '../sandbox';
 import { escapeShellString, prepareCommitMessage, sanitizeCommitMessage, withSyncPaused } from '@/utils/git';

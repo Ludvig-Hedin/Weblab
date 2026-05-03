@@ -1,9 +1,9 @@
 'use client';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
-import { STORAGE_BUCKETS } from '@onlook/constants';
-import type { Project } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import { STORAGE_BUCKETS } from '@weblab/constants';
+import type { Project } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { AnimatePresence, motion } from 'motion/react';
 import { useMemo } from 'react';
 import { Carousel } from '../carousel';

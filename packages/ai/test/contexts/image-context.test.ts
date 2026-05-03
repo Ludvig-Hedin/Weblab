@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ImageMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { ImageMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import { ImageContext } from '../../src/contexts/classes/image';
 

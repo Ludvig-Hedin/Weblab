@@ -1,10 +1,10 @@
-import { APP_NAME } from '@onlook/constants';
-import type { OGImage, PageMetadata, TitleMetadata } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Separator } from '@onlook/ui/separator';
-import { Textarea } from '@onlook/ui/textarea';
+import { APP_NAME } from '@weblab/constants';
+import type { OGImage, PageMetadata, TitleMetadata } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Separator } from '@weblab/ui/separator';
+import { Textarea } from '@weblab/ui/textarea';
 import { useRef } from 'react';
 import type React from 'react';
 import type { FaviconRef } from './favicon';

@@ -1,5 +1,5 @@
-import { cn } from '@onlook/ui/utils';
-import { Icons } from '@onlook/ui/icons';
+import { cn } from '@weblab/ui/utils';
+import { Icons } from '@weblab/ui/icons';
 import { EditorView } from '@codemirror/view';
 
 interface FloatingAddToChatButtonProps {

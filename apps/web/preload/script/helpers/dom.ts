@@ -1,4 +1,4 @@
-import { DOM_IGNORE_TAGS, EditorAttributes } from '@onlook/constants';
+import { DOM_IGNORE_TAGS, EditorAttributes } from '@weblab/constants';
 
 export function getHtmlElement(domId: string): HTMLElement | null {
     return document.querySelector(`[${EditorAttributes.DATA_ONLOOK_DOM_ID}="${domId}"]`);

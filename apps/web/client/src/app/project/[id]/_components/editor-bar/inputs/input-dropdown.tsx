@@ -1,14 +1,14 @@
 'use client';
 
-import { UNITS } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
+import { UNITS } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { useInputControl } from '../hooks/use-input-control';
 
 const OPTION_OVERRIDES: Record<string, string | undefined> = {

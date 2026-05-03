@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@onlook/ui/dialog';
+import { Button } from '@weblab/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
 
 interface SubscriptionCancelModalProps {
     open: boolean;

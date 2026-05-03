@@ -1,9 +1,9 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
-import { EditorMode, type Frame } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
-import { colors } from '@onlook/ui/tokens';
+import { EditorMode, type Frame } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
+import { colors } from '@weblab/ui/tokens';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RightClickMenu } from '../../right-click-menu';

@@ -1,8 +1,8 @@
 import type { CssNode, Declaration, Raw, Rule, SelectorList } from 'css-tree';
 import { generate, parse, walk } from 'css-tree';
 
-import type { StyleChange } from '@onlook/models';
-import { EditorAttributes } from '@onlook/constants';
+import type { StyleChange } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getDomIdSelector } from '../../helpers';
 

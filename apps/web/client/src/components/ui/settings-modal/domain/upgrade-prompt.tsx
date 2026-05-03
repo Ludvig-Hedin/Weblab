@@ -1,5 +1,5 @@
-import { APP_NAME } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
+import { APP_NAME } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
 
 export const UpgradePrompt = ({ onClick }: { onClick: () => void }) => {
     return (

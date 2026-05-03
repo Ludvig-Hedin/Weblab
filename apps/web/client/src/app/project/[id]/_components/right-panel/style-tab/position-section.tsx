@@ -1,10 +1,10 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { Input } from '@onlook/ui/input';
-import { cn } from '@onlook/ui/utils';
-import { stringToParsedValue } from '@onlook/utility';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { Input } from '@weblab/ui/input';
+import { cn } from '@weblab/ui/utils';
+import { stringToParsedValue } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useState } from 'react';
 

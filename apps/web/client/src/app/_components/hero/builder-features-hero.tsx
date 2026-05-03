@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 
-import { ExternalRoutes, Routes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 import { UnicornBackground } from './unicorn-background';
 
 export function BuilderFeaturesHero() {
@@ -57,8 +57,8 @@ export function BuilderFeaturesHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                            Book a Demo
+                        <a href={Routes.PROJECTS}>
+                            Get Started
                         </a>
                     </Button>
                 </motion.div>

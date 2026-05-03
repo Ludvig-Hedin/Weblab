@@ -1,5 +1,5 @@
-import type { Project } from '@onlook/models';
-import { STORAGE_BUCKETS } from '@onlook/constants';
+import type { Project } from '@weblab/models';
+import { STORAGE_BUCKETS } from '@weblab/constants';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
 

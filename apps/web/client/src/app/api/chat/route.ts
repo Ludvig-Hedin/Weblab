@@ -1,10 +1,10 @@
 import { type NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ChatMessage, ChatMetadata, ChatModel } from '@onlook/models';
-import { createRootAgentStream } from '@onlook/ai';
-import { toDbMessage } from '@onlook/db';
-import { CHAT_MODEL_OPTIONS, ChatType } from '@onlook/models';
+import type { ChatMessage, ChatMetadata, ChatModel } from '@weblab/models';
+import { createRootAgentStream } from '@weblab/ai';
+import { toDbMessage } from '@weblab/db';
+import { CHAT_MODEL_OPTIONS, ChatType } from '@weblab/models';
 
 import { api } from '@/trpc/server';
 import { trackEvent } from '@/utils/analytics/server';

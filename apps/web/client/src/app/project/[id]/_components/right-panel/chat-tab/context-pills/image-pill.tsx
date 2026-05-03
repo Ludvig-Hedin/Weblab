@@ -1,6 +1,6 @@
-import { type ImageMessageContext, MessageContextType } from '@onlook/models/chat';
-import { Icons } from '@onlook/ui/icons';
-import { isVideoFile } from '@onlook/utility';
+import { type ImageMessageContext, MessageContextType } from '@weblab/models/chat';
+import { Icons } from '@weblab/ui/icons';
+import { isVideoFile } from '@weblab/utility';
 import { motion } from 'motion/react';
 import React from 'react';
 import { getTruncatedName } from './helpers';

@@ -1,9 +1,9 @@
 'use client';
 
-import { type QueuedMessage } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@onlook/ui/collapsible';
-import { Icons } from '@onlook/ui/icons';
+import { type QueuedMessage } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
+import { Icons } from '@weblab/ui/icons';
 import { useState } from 'react';
 import { QueuedMessageItem } from './queue-item';
 

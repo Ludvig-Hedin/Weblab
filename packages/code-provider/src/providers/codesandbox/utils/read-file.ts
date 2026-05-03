@@ -1,4 +1,4 @@
-import { convertToBase64 } from '@onlook/utility';
+import { convertToBase64 } from '@weblab/utility';
 
 import type { ReadFileInput, ReadFileOutput } from '../../../types';
 import type { WebSocketSession } from '@codesandbox/sdk';

@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { NumberInput } from '@onlook/ui/number-input';
-import { cn } from '@onlook/ui/utils';
+import { NumberInput } from '@weblab/ui/number-input';
+import { cn } from '@weblab/ui/utils';
 
 import { ColorField } from '../controls/color-field';
 import { PropertyControl } from '../controls/property-control';

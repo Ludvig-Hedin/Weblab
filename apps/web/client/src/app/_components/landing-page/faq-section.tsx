@@ -1,6 +1,6 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { Routes } from '@/utils/constants';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import React from 'react';
 import { ButtonLink } from '../button-link';
 import { FAQDropdown } from './faq-dropdown';

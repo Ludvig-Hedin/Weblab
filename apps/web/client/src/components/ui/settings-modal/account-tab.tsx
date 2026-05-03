@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@onlook/ui/avatar';
-import { Badge } from '@onlook/ui/badge';
-import { Button } from '@onlook/ui/button';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { toast } from '@onlook/ui/sonner';
-import { getInitials } from '@onlook/utility';
+import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
+import { Badge } from '@weblab/ui/badge';
+import { Button } from '@weblab/ui/button';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
+import { getInitials } from '@weblab/utility';
 
 import { api } from '@/trpc/react';
 import { createClient } from '@/utils/supabase/client';

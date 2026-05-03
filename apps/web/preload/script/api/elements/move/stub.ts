@@ -1,4 +1,4 @@
-import { EditorAttributes } from '@onlook/constants';
+import { EditorAttributes } from '@weblab/constants';
 
 import {
     DisplayDirection,

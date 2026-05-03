@@ -1,9 +1,9 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorAttributes } from '@onlook/constants';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { EditorAttributes } from '@weblab/constants';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 

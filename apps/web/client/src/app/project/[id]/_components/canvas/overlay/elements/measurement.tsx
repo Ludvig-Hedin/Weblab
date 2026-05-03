@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from 'react';
 
-import type { RectDimensions } from '@onlook/models';
-import { colors } from '@onlook/ui/tokens';
+import type { RectDimensions } from '@weblab/models';
+import { colors } from '@weblab/ui/tokens';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { adaptRectToCanvas, adaptValueToCanvas } from '@/components/store/editor/overlay/utils';

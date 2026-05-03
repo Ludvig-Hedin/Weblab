@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { htmlPipeline } from 'src/pipelines/html';
 
-import { EditorAttributes } from '@onlook/constants';
+import { EditorAttributes } from '@weblab/constants';
 
 describe('htmlPipeline.parse', () => {
     test('parses a full HTML document', () => {

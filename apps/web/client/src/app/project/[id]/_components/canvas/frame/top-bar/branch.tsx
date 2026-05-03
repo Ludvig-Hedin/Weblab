@@ -1,14 +1,14 @@
 import { useEditorEngine } from "@/components/store/editor";
-import type { Frame } from "@onlook/models";
-import { Button } from "@onlook/ui/button";
+import type { Frame } from "@weblab/models";
+import { Button } from "@weblab/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuSeparator,
     DropdownMenuTrigger
-} from "@onlook/ui/dropdown-menu";
-import { Icons } from "@onlook/ui/icons";
-import { cn } from "@onlook/ui/utils";
+} from "@weblab/ui/dropdown-menu";
+import { Icons } from "@weblab/ui/icons";
+import { cn } from "@weblab/ui/utils";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { BranchControls } from "../../../branch/branch-controls";

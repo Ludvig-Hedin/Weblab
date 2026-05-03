@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
 import type { FrameData } from '@/components/store/editor/frames';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { useState } from 'react';
 import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';

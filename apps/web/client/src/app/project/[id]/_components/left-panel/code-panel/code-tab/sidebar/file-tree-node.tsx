@@ -1,6 +1,6 @@
 'use client';
 
-import type { FileEntry } from '@onlook/file-system/hooks';
+import type { FileEntry } from '@weblab/file-system/hooks';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -10,16 +10,16 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
-} from '@onlook/ui/alert-dialog';
+} from '@weblab/ui/alert-dialog';
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuSeparator,
     ContextMenuTrigger,
-} from '@onlook/ui/context-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/context-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactElement } from 'react';
 import type { NodeApi } from 'react-arborist';

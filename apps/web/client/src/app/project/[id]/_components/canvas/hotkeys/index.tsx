@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 
-import { DefaultSettings } from '@onlook/constants';
-import { EditorMode, InsertMode, LeftPanelTabValue } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
+import { DefaultSettings } from '@weblab/constants';
+import { EditorMode, InsertMode, LeftPanelTabValue } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';

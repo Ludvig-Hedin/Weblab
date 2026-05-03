@@ -1,9 +1,9 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { Button } from '@onlook/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { useEffect, useState } from 'react';
 import { useDropdownControl } from '../hooks/use-dropdown-manager';
 import { HoverOnlyTooltip } from '../hover-tooltip';

@@ -1,5 +1,5 @@
 import type React from 'react';
-import { MotionCardContent, MotionCardFooter, MotionCardHeader } from '@onlook/ui/motion-card';
+import { MotionCardContent, MotionCardFooter, MotionCardHeader } from '@weblab/ui/motion-card';
 import { MotionConfig } from 'motion/react';
 import { AnimatePresence } from 'motion/react';
 

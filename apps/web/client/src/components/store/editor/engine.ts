@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { CodeFileSystem } from '@onlook/file-system';
-import { type Branch } from '@onlook/models';
+import type { CodeFileSystem } from '@weblab/file-system';
+import { type Branch } from '@weblab/models';
 import type { PostHog } from 'posthog-js/react';
 import { ActionManager } from './action';
 import { ApiManager } from './api';

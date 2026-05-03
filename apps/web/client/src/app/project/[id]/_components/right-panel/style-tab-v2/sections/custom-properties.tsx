@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { TextField } from '../controls/text-field';

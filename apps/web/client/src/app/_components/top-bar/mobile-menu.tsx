@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import * as Portal from '@radix-ui/react-portal';
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@onlook/ui/accordion';
-import { cn } from '@onlook/ui/utils';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
+import { cn } from '@weblab/ui/utils';
 
 import { ExternalRoutes } from '@/utils/constants';
 import { NAVIGATION_CATEGORIES } from '@/utils/constants/navigation';
@@ -111,13 +111,11 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                     {/* Bottom CTA */}
                     <div className="p-4">
                         <a
-                            href={ExternalRoutes.BOOK_DEMO}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href="/projects"
                             onClick={() => onOpenChange(false)}
                             className="bg-foreground-primary text-background block w-full rounded-lg px-4 py-3 text-center text-sm font-medium transition-opacity hover:opacity-90"
                         >
-                            Book a Demo
+                            Get Started
                         </a>
                     </div>
                 </div>

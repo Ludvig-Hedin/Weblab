@@ -1,6 +1,6 @@
-import type { NodePath, T } from '@onlook/parser';
-import { createAndInsertImport } from '@onlook/fonts';
-import { generate, t, traverse } from '@onlook/parser';
+import type { NodePath, T } from '@weblab/parser';
+import { createAndInsertImport } from '@weblab/fonts';
+import { generate, t, traverse } from '@weblab/parser';
 
 /**
  * Removes a font import from a file using AST traversal

@@ -1,6 +1,6 @@
 import { useEditorEngine } from "@/components/store/editor";
-import { EditorMode } from "@onlook/models";
-import { cn } from "@onlook/ui/utils";
+import { EditorMode } from "@weblab/models";
+import { cn } from "@weblab/ui/utils";
 import { observer } from "mobx-react-lite";
 import { CodePanel } from "./code-panel";
 import { DesignPanel } from "./design-panel";

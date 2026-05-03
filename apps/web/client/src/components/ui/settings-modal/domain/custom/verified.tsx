@@ -1,13 +1,13 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { timeAgo } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { timeAgo } from '@weblab/utility';
 import { useState } from 'react';
 import { useDomainVerification } from './use-domain-verification';
 

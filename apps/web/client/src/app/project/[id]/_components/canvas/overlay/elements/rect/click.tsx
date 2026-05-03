@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 
-import type { DomElementStyles, RectDimensions } from '@onlook/models';
-import { colors } from '@onlook/ui/tokens';
+import type { DomElementStyles, RectDimensions } from '@weblab/models';
+import { colors } from '@weblab/ui/tokens';
 
 import { adaptValueToCanvas } from '@/components/store/editor/overlay/utils';
 import { BaseRect } from './base';

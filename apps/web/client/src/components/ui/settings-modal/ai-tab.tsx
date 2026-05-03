@@ -4,11 +4,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
-import type { LocalModelOption } from '@onlook/models';
-import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
+import type { LocalModelOption } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
 import {
     Select,
     SelectContent,
@@ -16,9 +16,9 @@ import {
     SelectSeparator,
     SelectTrigger,
     SelectValue,
-} from '@onlook/ui/select';
-import { toast } from '@onlook/ui/sonner';
-import { Switch } from '@onlook/ui/switch';
+} from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
+import { Switch } from '@weblab/ui/switch';
 
 import { api } from '@/trpc/react';
 

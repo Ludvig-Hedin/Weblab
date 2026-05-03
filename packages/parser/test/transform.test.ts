@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { transformAst } from 'src/code-edit/transform';
 import { getAstFromContent, getContentFromAst } from 'src/parse';
 
-import type { CodeDiffRequest } from '@onlook/models';
+import type { CodeDiffRequest } from '@weblab/models';
 
 describe('transformAst', () => {
     test('renames tags and replaces classes for a matching element', async () => {

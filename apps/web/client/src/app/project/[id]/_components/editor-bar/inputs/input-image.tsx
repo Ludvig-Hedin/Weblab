@@ -1,18 +1,18 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { DefaultSettings } from '@onlook/constants';
-import { LeftPanelTabValue, type ImageContentData } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { DefaultSettings } from '@weblab/constants';
+import { LeftPanelTabValue, type ImageContentData } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
-import { addImageFolderPrefix } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
+import { addImageFolderPrefix } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ImageFit } from '../hooks/use-background-image-update';

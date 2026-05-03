@@ -1,4 +1,4 @@
-import { ChatType, type DomElement } from '@onlook/models';
+import { ChatType, type DomElement } from '@weblab/models';
 import {
     MessageContextType,
     type AgentRuleMessageContext,
@@ -7,8 +7,8 @@ import {
     type FileMessageContext,
     type HighlightMessageContext,
     type MessageContext
-} from '@onlook/models/chat';
-import { assertNever, type ParsedError } from '@onlook/utility';
+} from '@weblab/models/chat';
+import { assertNever, type ParsedError } from '@weblab/utility';
 import { makeAutoObservable, reaction } from 'mobx';
 import { type EditorEngine } from '../engine';
 import { type FrameData } from '../frames';

@@ -1,4 +1,4 @@
-import type { DomElement, DomElementStyles, RectDimensions } from '@onlook/models';
+import type { DomElement, DomElementStyles, RectDimensions } from '@weblab/models';
 import { debounce } from 'lodash';
 import { makeAutoObservable, reaction } from 'mobx';
 import type { EditorEngine } from '../engine';

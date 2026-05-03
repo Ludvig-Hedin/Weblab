@@ -1,7 +1,7 @@
 import type { RowRendererProps } from 'react-arborist';
 
-import type { FileEntry } from '@onlook/file-system/hooks';
-import { cn } from '@onlook/ui/utils';
+import type { FileEntry } from '@weblab/file-system/hooks';
+import { cn } from '@weblab/ui/utils';
 
 export const FileTreeRow = ({
     attrs,

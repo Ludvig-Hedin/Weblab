@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { EditorMode } from '@onlook/models';
+import { EditorMode } from '@weblab/models';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState } from 'react';
 import { OverlayChatInput } from './chat';

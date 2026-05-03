@@ -1,6 +1,6 @@
-import type { T } from '@onlook/parser';
-import type { FileOperations } from '@onlook/utility';
-import { generate, getAstFromContent, t, traverse } from '@onlook/parser';
+import type { T } from '@weblab/parser';
+import type { FileOperations } from '@weblab/utility';
+import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
 
 import { getLayoutPath } from './helpers';
 

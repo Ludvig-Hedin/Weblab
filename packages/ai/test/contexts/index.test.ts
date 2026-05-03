@@ -10,8 +10,8 @@ import type {
     HighlightMessageContext,
     ImageMessageContext,
     MessageContext,
-} from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+} from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import {
     AgentRuleContext,

@@ -6,8 +6,8 @@ import {
     normalizePagePath,
     validateNextJsRoute,
 } from '@/components/store/editor/pages/helper';
-import { RouterType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { RouterType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -15,10 +15,10 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { Input } from '@onlook/ui/input';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dialog';
+import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 import { useEffect, useMemo, useState } from 'react';
 
 interface PageModalProps {

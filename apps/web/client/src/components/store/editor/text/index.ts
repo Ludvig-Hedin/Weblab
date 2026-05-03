@@ -1,5 +1,5 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import type { DomElement, EditTextResult, ElementPosition } from '@onlook/models';
+import type { DomElement, EditTextResult, ElementPosition } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';
 import { adaptRectToCanvas } from '../overlay/utils';

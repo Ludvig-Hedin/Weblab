@@ -1,5 +1,5 @@
-import { Button } from "@onlook/ui/button";
-import { Icons } from "@onlook/ui/icons/index";
+import { Button } from "@weblab/ui/button";
+import { Icons } from "@weblab/ui/icons/index";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "sonner";

@@ -1,8 +1,8 @@
 import { Hotkey } from '@/components/hotkey';
 import { IDE } from '@/components/ide';
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorAttributes } from '@onlook/constants';
-import { DEFAULT_IDE, EditorMode, type DomElement } from '@onlook/models';
+import { EditorAttributes } from '@weblab/constants';
+import { DEFAULT_IDE, EditorMode, type DomElement } from '@weblab/models';
 import { useRef } from 'react';
 import {
     ContextMenu,
@@ -10,10 +10,10 @@ import {
     ContextMenuItem,
     ContextMenuSeparator,
     ContextMenuTrigger,
-} from '@onlook/ui/context-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Kbd } from '@onlook/ui/kbd';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/context-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Kbd } from '@weblab/ui/kbd';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 
 interface RightClickMenuProps {

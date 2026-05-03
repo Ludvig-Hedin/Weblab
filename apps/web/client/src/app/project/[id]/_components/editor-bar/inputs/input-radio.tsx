@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 import type { ReactNode } from 'react';
 
 type IconOption = {

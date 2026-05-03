@@ -1,4 +1,4 @@
-import { normalizePath } from '@onlook/utility';
+import { normalizePath } from '@weblab/utility';
 
 import type { WriteFileInput, WriteFileOutput } from '../../../types';
 import type { WebSocketSession } from '@codesandbox/sdk';

@@ -2,7 +2,7 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/client';
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -10,7 +10,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
+} from '@weblab/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -18,11 +18,11 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Switch } from '@onlook/ui/switch';
-import { Textarea } from '@onlook/ui/textarea';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Switch } from '@weblab/ui/switch';
+import { Textarea } from '@weblab/ui/textarea';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';

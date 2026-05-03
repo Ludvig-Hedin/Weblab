@@ -7,7 +7,7 @@ import {
     userCanvases,
     userCanvasUpdateSchema,
     type UserCanvas
-} from '@onlook/db';
+} from '@weblab/db';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

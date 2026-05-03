@@ -1,6 +1,6 @@
 import type { NodeApi } from 'react-arborist';
 
-import type { LayerNode } from '@onlook/models/element';
+import type { LayerNode } from '@weblab/models/element';
 
 interface TreeRowProps {
     node: NodeApi<LayerNode>;

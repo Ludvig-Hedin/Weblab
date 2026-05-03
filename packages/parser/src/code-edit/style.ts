@@ -1,4 +1,4 @@
-import { customTwMerge } from '@onlook/utility';
+import { customTwMerge } from '@weblab/utility';
 
 import type { T } from '../packages';
 import { t } from '../packages';

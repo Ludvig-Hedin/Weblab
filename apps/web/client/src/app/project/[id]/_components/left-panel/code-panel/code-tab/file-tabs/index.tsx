@@ -5,9 +5,9 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { pathsEqual } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { pathsEqual } from '@weblab/utility';
 import { useEffect, useRef } from 'react';
 import type { EditorFile } from '../shared/types';
 import { FileTab } from './file-tab';

@@ -1,6 +1,6 @@
-import type { Font } from '@onlook/models';
-import type { T } from '@onlook/parser';
-import { generate, getAstFromContent, t, traverse } from '@onlook/parser';
+import type { Font } from '@weblab/models';
+import type { T } from '@weblab/parser';
+import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
 
 import { removeFontsFromClassName } from './class-utils';
 

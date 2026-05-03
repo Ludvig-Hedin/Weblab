@@ -7,17 +7,17 @@ import {
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
-} from '@onlook/ui/accordion';
+} from '@weblab/ui/accordion';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { Icons } from '@onlook/ui/icons';
-import { ScrollArea } from '@onlook/ui/scroll-area';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dialog';
+import { Icons } from '@weblab/ui/icons';
+import { ScrollArea } from '@weblab/ui/scroll-area';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { CodeDiff } from '../../right-panel/chat-tab/code-display/code-diff';
 

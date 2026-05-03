@@ -3,12 +3,12 @@ import { useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
-import { ChatType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { Textarea } from '@onlook/ui/textarea';
-import { cn } from '@onlook/ui/utils';
+import { ChatType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { cn } from '@weblab/ui/utils';
 
 import type { InputState } from './helpers';
 import { useEditorEngine } from '@/components/store/editor';

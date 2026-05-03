@@ -1,5 +1,5 @@
-import { Button } from '@onlook/ui/button';
-import { cn } from '@onlook/ui/utils';
+import { Button } from '@weblab/ui/button';
+import { cn } from '@weblab/ui/utils';
 import { forwardRef } from 'react';
 
 interface ToolbarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

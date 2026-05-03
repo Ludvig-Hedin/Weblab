@@ -2,7 +2,7 @@
 
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import type { Project } from '@onlook/models';
+import type { Project } from '@weblab/models';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -10,10 +10,10 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { DropdownMenuItem } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 

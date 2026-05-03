@@ -1,9 +1,9 @@
 import { trackEvent } from '@/utils/analytics/server';
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/server';
-import { users } from '@onlook/db';
-import { db } from '@onlook/db/src/client';
-import { extractNames } from '@onlook/utility';
+import { users } from '@weblab/db';
+import { db } from '@weblab/db/src/client';
+import { extractNames } from '@weblab/utility';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {

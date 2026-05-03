@@ -1,20 +1,20 @@
 'use client';
 
 import { transKeys } from '@/i18n/keys';
-import type { User } from '@onlook/models';
-import { Avatar, AvatarFallback, AvatarImage } from '@onlook/ui/avatar';
-import { Button } from '@onlook/ui/button';
+import type { User } from '@weblab/models';
+import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { BrandLogo } from '@onlook/ui/brand';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { cn } from '@onlook/ui/utils';
-import { getInitials } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { BrandLogo } from '@weblab/ui/brand';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { cn } from '@weblab/ui/utils';
+import { getInitials } from '@weblab/utility';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';

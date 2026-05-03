@@ -112,7 +112,63 @@ Once a user installs the app, it will check GitHub Releases on every launch and 
 
 ---
 
-## 5. Code signing (optional, removes the Gatekeeper warning)
+## 5. Sign-in (OAuth via deep link)
+
+Google and a handful of other providers refuse to authenticate inside an
+embedded BrowserWindow. To make sign-in work cleanly, the desktop app routes
+OAuth through the user's default system browser and uses a `weblab://` deep
+link to come back. **No web app code changes are required.**
+
+### What happens, step by step
+
+1. User clicks "Sign in with Google" inside the BrowserWindow.
+2. The web app initiates the Supabase OAuth flow normally. The PKCE
+   `code_verifier` cookie is set in the BrowserWindow's persistent partition
+   (`persist:weblab`).
+3. The BrowserWindow tries to navigate to `accounts.google.com`. We detect
+   that host in `main.js` (`BLOCKED_OAUTH_HOSTS`) and intercept the
+   navigation via `will-navigate` / `setWindowOpenHandler`, opening it via
+   `shell.openExternal` instead.
+4. The user signs in in their default browser.
+5. Supabase redirects to `weblab://auth/callback?code=...`.
+6. The OS dispatches that URL back to the desktop app via `open-url` on
+   macOS or `second-instance` on Windows/Linux. We register `weblab://` as
+   the default protocol handler in `app.setAsDefaultProtocolClient`.
+7. `handleDeepLink` rewrites the URL to
+   `https://weblab.build/auth/callback?code=...&native=1` and loads it in
+   the existing BrowserWindow.
+8. The server-side `/auth/callback` route exchanges the code using the
+   `code_verifier` cookie that's still in this BrowserWindow's cookie jar.
+   Session cookies get set in `persist:weblab`. User is signed in.
+
+### Required Supabase configuration
+
+In your Supabase project → **Authentication → URL Configuration**:
+
+- Add `weblab://auth/callback` to the **Redirect URLs** allow-list.
+- Keep `https://weblab.build/auth/callback` for the web app and the
+  https-bounce step above.
+
+That's all — same allow-list entry as iOS, no per-platform config.
+
+### Testing the deep link locally
+
+```bash
+# macOS
+open "weblab://auth/callback?code=test"
+
+# Windows  (cmd)
+start weblab://auth/callback?code=test
+
+# Linux
+xdg-open "weblab://auth/callback?code=test"
+```
+
+The desktop app should load `https://weblab.build/auth/callback?code=test&native=1`.
+
+---
+
+## 6. Code signing (optional, removes the Gatekeeper warning)
 
 Skip this for now if you're just sharing with friends.  
 Add these secrets to your GitHub repo when you're ready:
@@ -126,7 +182,7 @@ Then uncomment the two `CSC_*` lines in `desktop-release.yml`.
 
 ---
 
-## File naming reference (electron-builder defaults)
+## 7. File naming reference (electron-builder defaults)
 
 | Platform | Output filename              |
 |----------|------------------------------|

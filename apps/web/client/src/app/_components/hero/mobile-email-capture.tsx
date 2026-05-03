@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { Input } from '@onlook/ui/input';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { Input } from '@weblab/ui/input';
 import { motion } from 'motion/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 

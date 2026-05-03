@@ -2,10 +2,10 @@
 
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
-import { FREE_PRODUCT_CONFIG, ProductType, ScheduledSubscriptionAction } from '@onlook/stripe';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Progress } from '@onlook/ui/progress';
+import { FREE_PRODUCT_CONFIG, ProductType, ScheduledSubscriptionAction } from '@weblab/stripe';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Progress } from '@weblab/ui/progress';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 import { useEffect } from 'react';

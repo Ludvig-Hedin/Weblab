@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState } from 'react';
 
-import type { Provider } from '@onlook/code-provider';
-import { CodeProvider, createCodeProviderClient } from '@onlook/code-provider';
-import { NEXT_JS_FILE_EXTENSIONS, SandboxTemplates, Templates } from '@onlook/constants';
-import { RouterType } from '@onlook/models';
-import { isTargetFile } from '@onlook/utility';
-import type { FrameworkId } from '@onlook/framework';
+import type { Provider } from '@weblab/code-provider';
+import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+import { NEXT_JS_FILE_EXTENSIONS, SandboxTemplates, Templates } from '@weblab/constants';
+import { RouterType } from '@weblab/models';
+import { isTargetFile } from '@weblab/utility';
+import type { FrameworkId } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
 import { ProcessedFileType } from '@/app/projects/types';

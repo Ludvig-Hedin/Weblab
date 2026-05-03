@@ -1,6 +1,6 @@
-import { IdeType } from '@onlook/models/ide';
-import type { Icons } from '@onlook/ui/icons';
-import { assertNever } from '@onlook/utility';
+import { IdeType } from '@weblab/models/ide';
+import type { Icons } from '@weblab/ui/icons';
+import { assertNever } from '@weblab/utility';
 
 export class IDE {
     static readonly VS_CODE = new IDE('VSCode', IdeType.VS_CODE, 'vscode', 'VSCodeLogo');

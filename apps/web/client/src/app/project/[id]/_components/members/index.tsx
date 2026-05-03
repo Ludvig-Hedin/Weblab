@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Popover, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { useState, useRef, useEffect } from 'react';
 import { MembersContent } from './members-content';
 

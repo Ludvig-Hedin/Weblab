@@ -1,5 +1,5 @@
 import { api } from '@/trpc/client';
-import { type ChatConversation } from '@onlook/models';
+import { type ChatConversation } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
 import { toast } from 'sonner';
 import type { EditorEngine } from '../engine';

@@ -3,7 +3,7 @@ import parserEstree from 'prettier/plugins/estree';
 import parserTypescript from 'prettier/plugins/typescript';
 import prettier from 'prettier/standalone';
 
-import { NEXT_JS_FILE_EXTENSIONS } from '@onlook/constants';
+import { NEXT_JS_FILE_EXTENSIONS } from '@weblab/constants';
 
 export async function formatContent(filePath: string, content: string): Promise<string> {
     try {

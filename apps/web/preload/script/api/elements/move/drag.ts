@@ -1,5 +1,5 @@
-import type { DomElement, ElementPosition } from '@onlook/models';
-import { EditorAttributes } from '@onlook/constants';
+import type { DomElement, ElementPosition } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getHtmlElement, isValidHtmlElement } from '../../../helpers';
 import { getOrAssignDomId } from '../../../helpers/ids';

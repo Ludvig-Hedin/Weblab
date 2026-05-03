@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient as createSupabaseClient } from '@/utils/supabase/request-server';
-import { db } from '@onlook/db/src/client';
+import { db } from '@weblab/db/src/client';
 import { createHydrationHelpers } from '@trpc/react-query/rsc';
 import { TRPCError } from '@trpc/server';
 import type { NextRequest } from 'next/server';

@@ -3,8 +3,8 @@ import { relations } from 'drizzle-orm';
 import { boolean, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 
-import type { ChatMessage } from '@onlook/models';
-import { type MessageCheckpoints, type MessageContext } from '@onlook/models';
+import type { ChatMessage } from '@weblab/models';
+import { type MessageCheckpoints, type MessageContext } from '@weblab/models';
 
 import { conversations } from './conversation';
 

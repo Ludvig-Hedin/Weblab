@@ -1,9 +1,9 @@
 import { useEditorEngine } from "@/components/store/editor";
-import { BranchTabValue, LeftPanelTabValue, type Branch } from "@onlook/models";
+import { BranchTabValue, LeftPanelTabValue, type Branch } from "@weblab/models";
 import {
     DropdownMenuItem
-} from "@onlook/ui/dropdown-menu";
-import { Icons } from "@onlook/ui/icons";
+} from "@weblab/ui/dropdown-menu";
+import { Icons } from "@weblab/ui/icons";
 import { useState } from "react";
 
 interface BranchControlsProps {

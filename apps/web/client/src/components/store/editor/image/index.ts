@@ -1,5 +1,5 @@
-import { type ActionTarget, type ImageContentData } from '@onlook/models';
-import { convertToBase64DataUrl, getBaseName, getMimeType, isImageFile, sanitizeFilename, stripImageFolderPrefix } from '@onlook/utility';
+import { type ActionTarget, type ImageContentData } from '@weblab/models';
+import { convertToBase64DataUrl, getBaseName, getMimeType, isImageFile, sanitizeFilename, stripImageFolderPrefix } from '@weblab/utility';
 import { makeAutoObservable } from 'mobx';
 import path from 'path';
 import type { EditorEngine } from '../engine';

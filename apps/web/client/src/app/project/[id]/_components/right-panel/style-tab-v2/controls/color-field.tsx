@@ -1,8 +1,8 @@
 'use client';
 
-import type { TailwindColor } from '@onlook/models/style';
-import { Popover, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { Color } from '@onlook/utility';
+import type { TailwindColor } from '@weblab/models/style';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { Color } from '@weblab/utility';
 
 import { ColorPickerContent } from '../../../editor-bar/inputs/color-picker';
 

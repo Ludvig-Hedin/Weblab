@@ -1,8 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { legacySubscriptions, subscriptions } from '@onlook/db';
-import { db } from '@onlook/db/src/client';
-import { SubscriptionStatus } from '@onlook/stripe';
+import { legacySubscriptions, subscriptions } from '@weblab/db';
+import { db } from '@weblab/db/src/client';
+import { SubscriptionStatus } from '@weblab/stripe';
 
 interface UserSubscriptionStatus {
     hasActiveSubscription: boolean;

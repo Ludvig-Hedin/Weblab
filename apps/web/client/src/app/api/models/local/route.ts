@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import type { LocalModelOption } from '@onlook/models';
-import { OLLAMA_DEFAULT_BASE_URL } from '@onlook/models';
+import type { LocalModelOption } from '@weblab/models';
+import { OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 import { getSupabaseUser } from '../../chat/helpers';
 
 interface OllamaTagsResponse {

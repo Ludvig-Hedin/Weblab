@@ -1,7 +1,7 @@
 'use client';
 
 import { useGetBackground } from '@/hooks/use-get-background';
-import { MotionCard } from '@onlook/ui/motion-card';
+import { MotionCard } from '@weblab/ui/motion-card';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import useResizeObserver from 'use-resize-observer';
 import { ConnectGithub } from './_components/connect';

@@ -1,11 +1,11 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { DefaultSettings, DEVICE_OPTIONS, Orientation } from '@onlook/constants';
-import type { WindowMetadata } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { computeWindowMetadata } from '@onlook/utility';
+import { DefaultSettings, DEVICE_OPTIONS, Orientation } from '@weblab/constants';
+import type { WindowMetadata } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { computeWindowMetadata } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import React, { useState } from 'react';
 

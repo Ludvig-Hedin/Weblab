@@ -1,5 +1,5 @@
-import { EditorAttributes } from '@onlook/constants';
-import { createOid } from '@onlook/utility';
+import { EditorAttributes } from '@weblab/constants';
+import { createOid } from '@weblab/utility';
 
 import type { T } from './packages';
 import { isReactFragment } from './helpers';

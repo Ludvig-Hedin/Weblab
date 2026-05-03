@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { SHORTCUT_SECTIONS } from '@/app/project/[id]/_components/keyboard-shortcuts-modal';
 import { DEFAULT_HOTKEYS, makeReadableCommand } from '@/components/hotkey';

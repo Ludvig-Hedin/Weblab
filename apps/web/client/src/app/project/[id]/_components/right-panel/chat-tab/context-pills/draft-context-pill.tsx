@@ -1,6 +1,6 @@
-import { type MessageContext, MessageContextType } from '@onlook/models/chat';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { type MessageContext, MessageContextType } from '@weblab/models/chat';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { motion } from 'motion/react';
 import React from 'react';
 import { getContextIcon, getTruncatedName } from './helpers';

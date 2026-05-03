@@ -1,7 +1,7 @@
 import { protectedProcedure } from '@/server/api/trpc';
 import { trackEvent } from '@/utils/analytics/server';
-import { CodeProvider, getStaticCodeProvider } from '@onlook/code-provider';
-import { getSandboxPreviewUrl, Tags } from '@onlook/constants';
+import { CodeProvider, getStaticCodeProvider } from '@weblab/code-provider';
+import { getSandboxPreviewUrl, Tags } from '@weblab/constants';
 import {
     branches,
     canvases,
@@ -17,8 +17,8 @@ import {
     type Canvas,
     type Frame as DbFrame,
     type Project
-} from '@onlook/db';
-import { ProjectRole } from '@onlook/models';
+} from '@weblab/db';
+import { ProjectRole } from '@weblab/models';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';

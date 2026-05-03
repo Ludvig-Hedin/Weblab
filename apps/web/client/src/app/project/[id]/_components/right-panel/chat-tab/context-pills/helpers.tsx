@@ -1,8 +1,8 @@
-import { getContextClass, getContextLabel } from '@onlook/ai';
-import { DefaultSettings } from '@onlook/constants';
-import { MessageContextType, type MessageContext } from '@onlook/models/chat';
-import { NodeIcon } from '@onlook/ui/node-icon';
-import { getTruncatedFileName } from '@onlook/ui/utils';
+import { getContextClass, getContextLabel } from '@weblab/ai';
+import { DefaultSettings } from '@weblab/constants';
+import { MessageContextType, type MessageContext } from '@weblab/models/chat';
+import { NodeIcon } from '@weblab/ui/node-icon';
+import { getTruncatedFileName } from '@weblab/ui/utils';
 
 export function getTruncatedName(context: MessageContext) {
     let name = getContextLabel(context);

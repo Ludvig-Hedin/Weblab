@@ -1,5 +1,5 @@
-import type { TemplateNode } from '@onlook/models';
-import { CoreElementType, DynamicType } from '@onlook/models';
+import type { TemplateNode } from '@weblab/models';
+import { CoreElementType, DynamicType } from '@weblab/models';
 
 import type { NodePath, T } from '../packages';
 import { getOidFromJsxElement } from '../code-edit/helpers';

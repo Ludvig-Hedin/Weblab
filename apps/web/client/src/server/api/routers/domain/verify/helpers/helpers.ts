@@ -1,5 +1,5 @@
-import { customDomains, customDomainVerification, userProjects, type CustomDomain, type DrizzleDb } from '@onlook/db';
-import { VerificationRequestStatus } from '@onlook/models';
+import { customDomains, customDomainVerification, userProjects, type CustomDomain, type DrizzleDb } from '@weblab/db';
+import { VerificationRequestStatus } from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { parse } from 'tldts';

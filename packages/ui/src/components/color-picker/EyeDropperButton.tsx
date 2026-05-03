@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from 'react';
 import useEyeDropper from 'use-eye-dropper';
 
-import { Color } from '@onlook/utility';
+import { Color } from '@weblab/utility';
 
 import { Button } from '../button';
 import { Icons } from '../icons';

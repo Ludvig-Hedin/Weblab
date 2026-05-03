@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/rpc",
+    "name": "@weblab/rpc",
     "description": "An rpc library for Onlook web",
     "main": "./src/index.ts",
     "type": "module",
@@ -28,12 +28,12 @@
     "license": "Apache-2.0",
     "homepage": "https://onlook.com",
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },
     "dependencies": {
-        "@onlook/web-server": "*"
+        "@weblab/web-server": "*"
     }
 }

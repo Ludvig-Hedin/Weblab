@@ -8,7 +8,7 @@ import onlyWarn from 'eslint-plugin-only-warn';
 import prettierPlugin from 'eslint-plugin-prettier';
 import tseslint from 'typescript-eslint';
 
-import prettierConfig from '@onlook/prettier';
+import prettierConfig from '@weblab/prettier';
 
 export default tseslint.config(
     includeIgnoreFile(path.join(import.meta.dirname, '../../.gitignore')),

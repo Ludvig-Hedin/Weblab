@@ -2,11 +2,11 @@
 
 import { observer } from 'mobx-react-lite';
 
-import type { ImageMessageContext } from '@onlook/models/chat';
-import { MessageContextType } from '@onlook/models/chat';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { convertToBase64DataUrl, getMimeType } from '@onlook/utility';
+import type { ImageMessageContext } from '@weblab/models/chat';
+import { MessageContextType } from '@weblab/models/chat';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { convertToBase64DataUrl, getMimeType } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { BreadcrumbNavigation } from './breadcrumb-navigation';

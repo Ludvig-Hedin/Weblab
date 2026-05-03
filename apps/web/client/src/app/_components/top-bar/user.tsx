@@ -3,7 +3,7 @@
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import Link from 'next/link';
 
 export const AuthButton = () => {

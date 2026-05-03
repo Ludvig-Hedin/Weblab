@@ -1,6 +1,6 @@
 'use client';
 
-import type { Project } from '@onlook/models';
+import type { Project } from '@weblab/models';
 import { useMemo } from 'react';
 
 export function MasonryLayout<T extends Project>({ items, spacing, renderItem }: {

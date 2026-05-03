@@ -1,7 +1,7 @@
 import type React from 'react';
 import { clamp } from 'lodash';
 
-import { Color } from '@onlook/utility';
+import { Color } from '@weblab/utility';
 
 import { usePointerStroke } from '../../hooks/use-pointer-stroke';
 import { ColorHandle } from './ColorSlider';

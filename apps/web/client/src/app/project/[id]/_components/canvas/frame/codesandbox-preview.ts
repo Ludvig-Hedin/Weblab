@@ -1,4 +1,4 @@
-import { CSB_DOMAIN } from '@onlook/constants';
+import { CSB_DOMAIN } from '@weblab/constants';
 
 export function isCodeSandboxPreviewUrl(url: string): boolean {
     try {

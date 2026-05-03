@@ -4,7 +4,7 @@ import type {
     DynamicType,
     TemplateNode,
     TemplateTag,
-} from '@onlook/models';
+} from '@weblab/models';
 
 import type { NodePath, T } from '../packages';
 import { t } from '../packages';

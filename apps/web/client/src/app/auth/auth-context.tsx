@@ -1,7 +1,7 @@
 'use client';
 
 import { LocalForageKeys } from '@/utils/constants';
-import { SignInMethod } from '@onlook/models/auth';
+import { SignInMethod } from '@weblab/models/auth';
 import localforage from 'localforage';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';

@@ -1,8 +1,8 @@
-import { initModel, SUGGESTION_SYSTEM_PROMPT } from '@onlook/ai';
-import { conversations } from '@onlook/db';
-import type { ChatSuggestion } from '@onlook/models';
-import { LLMProvider, OPENROUTER_MODELS } from '@onlook/models';
-import { ChatSuggestionsSchema } from '@onlook/models/chat';
+import { initModel, SUGGESTION_SYSTEM_PROMPT } from '@weblab/ai';
+import { conversations } from '@weblab/db';
+import type { ChatSuggestion } from '@weblab/models';
+import { LLMProvider, OPENROUTER_MODELS } from '@weblab/models';
+import { ChatSuggestionsSchema } from '@weblab/models/chat';
 import { convertToModelMessages, generateObject } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

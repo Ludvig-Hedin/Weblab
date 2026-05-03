@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
-import type { Font } from '@onlook/models';
-import { convertFontString } from '@onlook/utility';
+import type { Font } from '@weblab/models';
+import { convertFontString } from '@weblab/utility';
 import { useEffect, useState } from 'react';
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify';

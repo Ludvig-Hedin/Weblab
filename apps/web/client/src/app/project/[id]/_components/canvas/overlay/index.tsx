@@ -1,8 +1,8 @@
 import { useEditorEngine } from '@/components/store/editor';
 import type { ClickRectState } from '@/components/store/editor/overlay/state';
-import { EditorAttributes } from '@onlook/constants';
-import { EditorMode } from '@onlook/models';
-import { cn } from '@onlook/ui/utils';
+import { EditorAttributes } from '@weblab/constants';
+import { EditorMode } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { useMemo } from 'react';
 import { OverlayButtons } from './elements/buttons';

@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/penpal",
+    "name": "@weblab/penpal",
     "description": "A utility library to facilitates rpc-style calls with penpal between preload and iframe",
     "main": "./src/index.ts",
     "type": "module",
@@ -30,8 +30,8 @@
     "license": "Apache-2.0",
     "homepage": "https://onlook.com",
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },

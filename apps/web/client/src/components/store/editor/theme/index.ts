@@ -1,5 +1,5 @@
 
-import { DEFAULT_COLOR_NAME, TAILWIND_WEB_COLORS } from '@onlook/constants';
+import { DEFAULT_COLOR_NAME, TAILWIND_WEB_COLORS } from '@weblab/constants';
 import type {
     ClassReplacement,
     ColorUpdate,
@@ -7,10 +7,10 @@ import type {
     ParsedColors,
     ThemeColors,
     UpdateResult,
-} from '@onlook/models/assets';
-import { SystemTheme } from '@onlook/models/assets';
-import type { CodeDiffRequest } from '@onlook/models/code';
-import type { TailwindColor } from '@onlook/models/style';
+} from '@weblab/models/assets';
+import { SystemTheme } from '@weblab/models/assets';
+import type { CodeDiffRequest } from '@weblab/models/code';
+import type { TailwindColor } from '@weblab/models/style';
 import {
     generate,
     getAstFromContent,
@@ -19,9 +19,9 @@ import {
     isObjectExpression,
     transformAst,
     traverse
-} from '@onlook/parser';
-import { getOidFromJsxElement } from '@onlook/parser/src/code-edit/helpers';
-import { Color } from '@onlook/utility';
+} from '@weblab/parser';
+import { getOidFromJsxElement } from '@weblab/parser/src/code-edit/helpers';
+import { Color } from '@weblab/utility';
 import { camelCase } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';

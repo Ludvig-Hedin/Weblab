@@ -1,6 +1,6 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { useEffect, useState } from 'react';
 
 const DEFAULT_STAR_COUNT = 22000;

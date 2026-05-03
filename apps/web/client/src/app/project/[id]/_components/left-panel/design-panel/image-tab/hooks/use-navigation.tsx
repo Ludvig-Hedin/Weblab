@@ -1,4 +1,4 @@
-import { DEFAULT_IMAGE_DIRECTORY } from '@onlook/constants';
+import { DEFAULT_IMAGE_DIRECTORY } from '@weblab/constants';
 import { useMemo, useState } from 'react';
 
 export const useNavigation = (initialFolder = DEFAULT_IMAGE_DIRECTORY) => {

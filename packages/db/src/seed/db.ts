@@ -9,9 +9,9 @@ import type {
     RateLimit,
     Subscription,
     User,
-} from '@onlook/db';
-import type { MessageContext } from '@onlook/models';
-import { Tags } from '@onlook/constants';
+} from '@weblab/db';
+import type { MessageContext } from '@weblab/models';
+import { Tags } from '@weblab/constants';
 import {
     branches,
     canvases,
@@ -34,10 +34,10 @@ import {
     userCanvases,
     userProjects,
     users,
-} from '@onlook/db';
-import { db } from '@onlook/db/src/client';
-import { MessageContextType, ProjectRole } from '@onlook/models';
-import { PriceKey, ProductType, SubscriptionStatus } from '@onlook/stripe';
+} from '@weblab/db';
+import { db } from '@weblab/db/src/client';
+import { MessageContextType, ProjectRole } from '@weblab/models';
+import { PriceKey, ProductType, SubscriptionStatus } from '@weblab/stripe';
 
 import { createDefaultProject } from '@/defaults/project';
 import { createDefaultBranch } from '../defaults/branch';

@@ -6,12 +6,12 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@onlook/ui/alert-dialog';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Popover, PopoverAnchor, PopoverContent } from '@onlook/ui/popover';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/alert-dialog';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Popover, PopoverAnchor, PopoverContent } from '@weblab/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -12,7 +12,7 @@ interface CTASectionProps {
     showSubtext?: boolean;
 }
 
-export function CTASection({ href, onClick, ctaText = "Ready to stop rebuilding?\nYour design system, on a canvas.", buttonText = "Book a Demo", showSubtext = true }: CTASectionProps = {}) {
+export function CTASection({ href, onClick, ctaText = "Ready to stop rebuilding?\nYour design system, on a canvas.", buttonText = "Get Started", showSubtext = true }: CTASectionProps = {}) {
     const router = useRouter();
 
     const handleGetStartedClick = () => {

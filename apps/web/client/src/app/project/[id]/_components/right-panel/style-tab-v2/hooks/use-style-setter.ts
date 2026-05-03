@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 
-import { cssToTailwind } from '@onlook/utility';
+import { cssToTailwind } from '@weblab/utility';
 
 import type { WriteTarget } from '@/components/store/editor/style/preferences';
 import { useEditorEngine } from '@/components/store/editor';

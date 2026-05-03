@@ -4,7 +4,7 @@ import type {
     ScheduledChange,
     ScheduledSubscriptionAction,
     Subscription,
-} from '@onlook/stripe';
+} from '@weblab/stripe';
 
 import type {
     Price as DbPrice,

@@ -1,15 +1,15 @@
-import { DefaultSettings } from '@onlook/constants';
+import { DefaultSettings } from '@weblab/constants';
 import {
     createFontSrcObjects,
     createLocalFontConfig,
     findFontExportDeclaration,
     hasLocalFontImport,
     mergeLocalFontSources,
-} from '@onlook/fonts';
-import type { FontConfig, FontUploadFile } from '@onlook/models';
-import type { T } from '@onlook/parser';
-import { t } from '@onlook/parser';
-import { getFontFileName, sanitizeFilename } from '@onlook/utility';
+} from '@weblab/fonts';
+import type { FontConfig, FontUploadFile } from '@weblab/models';
+import type { T } from '@weblab/parser';
+import { t } from '@weblab/parser';
+import { getFontFileName, sanitizeFilename } from '@weblab/utility';
 import { camelCase } from 'lodash';
 import * as pathModule from 'path';
 import type { EditorEngine } from '../engine';

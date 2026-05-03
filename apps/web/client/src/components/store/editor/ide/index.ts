@@ -1,4 +1,4 @@
-import { EditorMode, type CodeNavigationTarget } from "@onlook/models";
+import { EditorMode, type CodeNavigationTarget } from "@weblab/models";
 import { makeAutoObservable } from "mobx";
 import type { EditorEngine } from "../engine";
 

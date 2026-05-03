@@ -1,6 +1,6 @@
-import { Button } from '@onlook/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import React from 'react';
 import { InputSeparator } from './separator';
 import { ToolbarButton } from './toolbar-button';

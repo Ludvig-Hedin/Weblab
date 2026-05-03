@@ -1,5 +1,5 @@
-import type { TemplateNode } from '@onlook/models';
-import type { CodeDiffRequest } from '@onlook/models/code';
+import type { TemplateNode } from '@weblab/models';
+import type { CodeDiffRequest } from '@weblab/models/code';
 
 import type { T } from '../../packages';
 import type { EditorPipeline, OidInjectionResult } from '../types';
@@ -19,7 +19,7 @@ import { createTemplateNodeMap } from '../../template-node/map';
 export const jsxPipeline: EditorPipeline<T.File> = {
     id: 'jsx',
     /**
-     * Mirrors `JSX_FILE_EXTENSIONS` from `@onlook/constants/files`. Kept
+     * Mirrors `JSX_FILE_EXTENSIONS` from `@weblab/constants/files`. Kept
      * inline here so the parser package doesn't depend on constants for a
      * single regex; if it ever drifts, update both places.
      */

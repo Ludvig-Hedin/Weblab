@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { DefaultSettings } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
-import { urlToRelativePath } from '@onlook/utility/src/image';
+import { DefaultSettings } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { urlToRelativePath } from '@weblab/utility/src/image';
 import React, {
     forwardRef,
     useCallback,

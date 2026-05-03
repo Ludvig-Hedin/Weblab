@@ -1,6 +1,6 @@
-import type { CoreElementType, DomElement, DynamicType } from '@onlook/models';
-import type { ActionElement, ActionLocation } from '@onlook/models/actions';
-import { EditorAttributes } from '@onlook/constants';
+import type { CoreElementType, DomElement, DynamicType } from '@weblab/models';
+import type { ActionElement, ActionLocation } from '@weblab/models/actions';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getHtmlElement } from '../../../helpers';
 import { getInstanceId, getOid, getOrAssignDomId } from '../../../helpers/ids';

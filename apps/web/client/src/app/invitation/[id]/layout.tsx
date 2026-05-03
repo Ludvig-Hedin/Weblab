@@ -1,4 +1,4 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { createClient } from '@/utils/supabase/server';
 import { type Metadata } from 'next';
 import { HandleAuth } from './_components/auth';

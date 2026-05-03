@@ -1,6 +1,6 @@
-import type { CodeInsert, PasteParams } from '@onlook/models';
-import { EditorAttributes } from '@onlook/constants';
-import { assertNever } from '@onlook/utility';
+import type { CodeInsert, PasteParams } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
+import { assertNever } from '@weblab/utility';
 
 import type { NodePath, T } from '../packages';
 import { t } from '../packages';

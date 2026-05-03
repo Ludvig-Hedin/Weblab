@@ -1,6 +1,6 @@
-import type { AgentRuleMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import type { AgentRuleMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 
 import { wrapXml } from '../../prompt/helpers';
 import { BaseContext } from '../models/base';

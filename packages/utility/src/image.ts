@@ -1,6 +1,6 @@
 import imageCompression from 'browser-image-compression';
 
-import { DefaultSettings } from '@onlook/constants';
+import { DefaultSettings } from '@weblab/constants';
 
 import { isImageFile } from './file';
 import { normalizePath } from './folder';

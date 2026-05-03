@@ -3,14 +3,14 @@
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { type ChatMessage } from '@onlook/models/chat';
+import { type ChatMessage } from '@weblab/models/chat';
 import {
     Conversation,
     ConversationContent,
     ConversationScrollButton
-} from '@onlook/ui/ai-elements';
-import { Icons } from '@onlook/ui/icons';
-import { assertNever } from '@onlook/utility';
+} from '@weblab/ui/ai-elements';
+import { Icons } from '@weblab/ui/icons';
+import { assertNever } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';

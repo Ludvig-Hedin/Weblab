@@ -1,4 +1,4 @@
-import { Tooltip, TooltipTrigger, TooltipContent } from "@onlook/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@weblab/ui/tooltip";
 import type { ReactNode } from "react";
 
 interface HoverOnlyTooltipProps {

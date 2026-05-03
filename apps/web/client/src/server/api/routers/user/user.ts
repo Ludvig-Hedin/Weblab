@@ -1,7 +1,7 @@
 import { trackEvent } from '@/utils/analytics/server';
 import { callUserWebhook } from '@/utils/n8n/webhook';
-import { authUsers, fromDbUser, userInsertSchema, users, type User } from '@onlook/db';
-import { extractNames } from '@onlook/utility';
+import { authUsers, fromDbUser, userInsertSchema, users, type User } from '@weblab/db';
+import { extractNames } from '@weblab/utility';
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

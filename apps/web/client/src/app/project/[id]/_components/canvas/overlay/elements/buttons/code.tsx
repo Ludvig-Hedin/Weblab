@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorMode } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import { EditorMode } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 
 export const OverlayOpenCode = observer(({ isInputting }: { isInputting: boolean }) => {

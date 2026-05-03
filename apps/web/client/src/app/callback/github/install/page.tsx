@@ -2,9 +2,9 @@
 
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
-import { Button } from '@onlook/ui/button';
-import { Card, CardContent, CardDescription, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';

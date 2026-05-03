@@ -1,12 +1,12 @@
 'use client';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
-import { STORAGE_BUCKETS } from '@onlook/constants';
-import type { Project } from '@onlook/models';
+import { STORAGE_BUCKETS } from '@weblab/constants';
+import type { Project } from '@weblab/models';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { EditAppButton } from '../edit-app';
-import { timeAgo } from '@onlook/utility';
+import { timeAgo } from '@weblab/utility';
 
 export function SquareProjectCard({
     project,

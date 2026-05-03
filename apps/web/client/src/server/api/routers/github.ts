@@ -1,8 +1,8 @@
-import { users, type DrizzleDb } from '@onlook/db';
+import { users, type DrizzleDb } from '@weblab/db';
 import {
     createInstallationOctokit,
     generateInstallationUrl
-} from '@onlook/github';
+} from '@weblab/github';
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

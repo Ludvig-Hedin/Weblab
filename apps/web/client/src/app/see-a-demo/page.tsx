@@ -3,8 +3,8 @@
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/client';
 import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { useRouter } from 'next/navigation';
 
 export default function DemoOnlyPage() {
@@ -58,8 +58,8 @@ export default function DemoOnlyPage() {
                             size="lg"
                             className="bg-foreground-primary text-background-primary hover:bg-foreground-hover"
                         >
-                            <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                                Book a Demo
+                            <a href="/projects">
+                                Get Started
                             </a>
                         </Button>
                         <Button

@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { stringToParsedValue } from '@onlook/utility';
+import { stringToParsedValue } from '@weblab/utility';
 import { useEffect, useState } from 'react';
 import { InputIcon } from '../../inputs/input-icon';
 

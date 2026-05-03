@@ -1,5 +1,5 @@
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import { useDomainVerification } from './use-domain-verification';

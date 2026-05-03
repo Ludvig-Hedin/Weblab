@@ -2,7 +2,7 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { NumberInput } from '@onlook/ui/number-input';
+import { NumberInput } from '@weblab/ui/number-input';
 
 import { PropertyControl } from '../controls/property-control';
 import { TextField } from '../controls/text-field';

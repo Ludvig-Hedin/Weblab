@@ -1,7 +1,7 @@
 'use client';
 
-import type { Project } from '@onlook/models';
-import { timeAgo } from '@onlook/utility';
+import type { Project } from '@weblab/models';
+import { timeAgo } from '@weblab/utility';
 import { useMemo } from 'react';
 
 interface SquareProjectCardPresentationProps {

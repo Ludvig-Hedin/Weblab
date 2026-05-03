@@ -1,7 +1,7 @@
-import type { VerificationRecord } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import type { VerificationRecord } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { Fragment, useState } from 'react';
 import { useDomainVerification } from './use-domain-verification';

@@ -1,4 +1,4 @@
-import { editorServerConfig } from '@onlook/rpc';
+import { editorServerConfig } from '@weblab/rpc';
 
 import { createServer } from './server';
 

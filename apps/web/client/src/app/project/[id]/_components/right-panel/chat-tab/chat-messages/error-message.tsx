@@ -1,7 +1,7 @@
 import { useStateManager } from '@/components/store/state';
-import type { Usage } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import type { Usage } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 
 interface ErrorMessageProps {

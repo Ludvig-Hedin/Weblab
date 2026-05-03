@@ -1,4 +1,4 @@
-import type { User } from '@onlook/models';
+import type { User } from '@weblab/models';
 
 import type { User as DbUser } from '../../schema';
 

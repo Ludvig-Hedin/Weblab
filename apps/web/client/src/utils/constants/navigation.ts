@@ -1,4 +1,4 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { ExternalRoutes, Routes } from './index';
 
 export interface NavigationLink {
@@ -83,12 +83,6 @@ export const ABOUT_LINKS: NavigationLink[] = [
         title: 'FAQ',
         href: Routes.FAQ,
         description: 'Common questions',
-    },
-    {
-        title: 'Book a Demo',
-        href: ExternalRoutes.BOOK_DEMO,
-        description: 'Schedule a demo with our team',
-        external: true,
     },
 ];
 

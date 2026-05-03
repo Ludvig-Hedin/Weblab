@@ -1,6 +1,6 @@
 'use client';
 
-import type { Branch, Project } from '@onlook/models';
+import type { Branch, Project } from '@weblab/models';
 import { usePostHog } from 'posthog-js/react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { EditorEngine } from './engine';

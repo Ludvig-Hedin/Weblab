@@ -1,5 +1,5 @@
-import { FuzzyEditFileTool, SearchReplaceEditTool, SearchReplaceMultiEditFileTool, TerminalCommandTool, TypecheckTool, WebSearchTool, WriteFileTool } from '@onlook/ai';
-import type { WebSearchResult } from '@onlook/models';
+import { FuzzyEditFileTool, SearchReplaceEditTool, SearchReplaceMultiEditFileTool, TerminalCommandTool, TypecheckTool, WebSearchTool, WriteFileTool } from '@weblab/ai';
+import type { WebSearchResult } from '@weblab/models';
 import type { ToolUIPart } from 'ai';
 import { observer } from 'mobx-react-lite';
 import stripAnsi from 'strip-ansi';

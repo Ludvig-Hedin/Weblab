@@ -9,7 +9,7 @@ import {
     isNodeElementArray,
 } from 'src/template-node/map';
 
-import { CoreElementType, DynamicType } from '@onlook/models';
+import { CoreElementType, DynamicType } from '@weblab/models';
 
 import type { NodePath } from '@babel/traverse';
 

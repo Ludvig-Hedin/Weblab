@@ -1,8 +1,8 @@
 import { relations } from 'drizzle-orm';
 import { jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import type { AVerificationRecord, TxtVerificationRecord } from '@onlook/models';
-import { VerificationRequestStatus } from '@onlook/models';
+import type { AVerificationRecord, TxtVerificationRecord } from '@weblab/models';
+import { VerificationRequestStatus } from '@weblab/models';
 
 import { projects } from '../../project';
 import { customDomains } from './domain';

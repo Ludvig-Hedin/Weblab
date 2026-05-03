@@ -1,5 +1,5 @@
-import { DeploymentStatus } from "@onlook/models";
-import { timeAgo } from "@onlook/utility";
+import { DeploymentStatus } from "@weblab/models";
+import { timeAgo } from "@weblab/utility";
 import { ActionSection } from "./action";
 import { NoCustomDomain } from "./no-domain";
 import { useCustomDomainContext } from "./provider";

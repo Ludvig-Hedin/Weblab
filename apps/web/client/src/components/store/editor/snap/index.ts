@@ -1,4 +1,4 @@
-import type { RectDimension, RectPosition } from '@onlook/models';
+import type { RectDimension, RectPosition } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';
 import type { SnapBounds, SnapConfig, SnapFrame, SnapLine, SnapTarget } from './types';

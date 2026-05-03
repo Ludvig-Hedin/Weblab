@@ -2,9 +2,9 @@
 
 import { useGetBackground } from '@/hooks/use-get-background';
 import { Routes } from '@/utils/constants';
-import { BrandLogo } from '@onlook/ui/brand';
-import { Icons } from '@onlook/ui/icons';
-import { MotionCard } from '@onlook/ui/motion-card';
+import { BrandLogo } from '@weblab/ui/brand';
+import { Icons } from '@weblab/ui/icons';
+import { MotionCard } from '@weblab/ui/motion-card';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import Link from 'next/link';
 import useResizeObserver from 'use-resize-observer';

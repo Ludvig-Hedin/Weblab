@@ -1,12 +1,12 @@
 'use client';
 
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
-import { ExternalRoutes, Routes } from '@/utils/constants';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Routes } from '@/utils/constants';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { motion } from 'motion/react';
 import { UnicornBackground } from '../../_components/hero/unicorn-background';
 import { CTASection } from '../../_components/landing-page/cta-section';
@@ -104,8 +104,8 @@ function VibeCodingHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                            Book a Demo
+                        <a href={Routes.PROJECTS}>
+                            Get Started
                         </a>
                     </Button>
                 </motion.div>
@@ -405,8 +405,8 @@ export default function VibeCodingWorkflowPage() {
                 {/* CTA Section */}
                 <CTASection
                     ctaText={`Ready to vibe code\nwith your team?`}
-                    buttonText="Book a Demo"
-                    href={ExternalRoutes.BOOK_DEMO}
+                    buttonText="Get Started"
+                    href={Routes.PROJECTS}
                 />
 
                 <NonProjectSettingsModal />

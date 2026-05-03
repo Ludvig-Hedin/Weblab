@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SelectProjectPresentation } from '@/app/projects/_components/select-presentation';
-import type { Project } from '@onlook/models';
+import type { Project } from '@weblab/models';
 import { fn } from '@storybook/test';
 
 /**

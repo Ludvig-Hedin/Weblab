@@ -1,4 +1,4 @@
-import { FileOperations } from '@onlook/utility';
+import { FileOperations } from '@weblab/utility';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import fs from 'fs';
 import path from 'path';

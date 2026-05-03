@@ -1,10 +1,10 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
-import { Button } from '@onlook/ui/button';
-import { CardDescription, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
+import { Button } from '@weblab/ui/button';
+import { CardDescription, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
 import { motion } from 'motion/react';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 import { useImportGithubProject } from '../_context';

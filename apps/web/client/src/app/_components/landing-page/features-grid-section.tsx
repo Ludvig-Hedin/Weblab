@@ -1,4 +1,4 @@
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 import React from 'react';
 
 export function FeaturesGridSection() {

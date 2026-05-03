@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import { Scan } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';

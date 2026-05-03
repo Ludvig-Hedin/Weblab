@@ -1,7 +1,7 @@
 import type { EditorEngine } from '@/components/store/editor/engine';
 import type { ToolCall } from '@ai-sdk/provider-utils';
-import { getToolClassesFromType } from '@onlook/ai';
-import { toast } from '@onlook/ui/sonner';
+import { getToolClassesFromType } from '@weblab/ai';
+import { toast } from '@weblab/ui/sonner';
 
 export async function handleToolCall(toolCall: ToolCall<string, unknown>, editorEngine: EditorEngine, addToolResult: (toolResult: { tool: string, toolCallId: string, output: any }) => Promise<void>) {
     const toolName = toolCall.toolName;

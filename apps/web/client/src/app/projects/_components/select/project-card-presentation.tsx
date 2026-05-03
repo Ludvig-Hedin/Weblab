@@ -1,15 +1,15 @@
 'use client';
 
-import type { Project } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import type { Project } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { timeAgo } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { timeAgo } from '@weblab/utility';
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
 

@@ -1,6 +1,6 @@
 import { trackEvent } from '@/utils/analytics/server';
-import { customDomains, customDomainVerification, projectCustomDomains, type CustomDomainVerification } from '@onlook/db';
-import { VerificationRequestStatus } from '@onlook/models';
+import { customDomains, customDomainVerification, projectCustomDomains, type CustomDomainVerification } from '@weblab/db';
+import { VerificationRequestStatus } from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { and, eq, or } from 'drizzle-orm';
 import { z } from 'zod';

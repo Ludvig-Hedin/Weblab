@@ -1,5 +1,5 @@
-import type { DropElementProperties } from '@onlook/models/element';
-import type { Icons } from '@onlook/ui/icons';
+import type { DropElementProperties } from '@weblab/models/element';
+import type { Icons } from '@weblab/ui/icons';
 
 export type IconKey = keyof typeof Icons;
 

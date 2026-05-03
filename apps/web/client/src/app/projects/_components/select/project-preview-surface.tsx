@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 import { getFaviconUrl } from './project-card-utils';
 

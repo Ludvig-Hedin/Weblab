@@ -1,4 +1,4 @@
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
 
 import { BaseTool } from './base';
 

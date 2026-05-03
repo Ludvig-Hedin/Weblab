@@ -2,10 +2,10 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Language, LANGUAGE_DISPLAY_NAMES } from '@onlook/constants';
-import { Label } from '@onlook/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { toast } from '@onlook/ui/sonner';
+import { Language, LANGUAGE_DISPLAY_NAMES } from '@weblab/constants';
+import { Label } from '@weblab/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
 
 import { api } from '@/trpc/react';
 

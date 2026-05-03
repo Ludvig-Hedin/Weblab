@@ -1,6 +1,6 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { memo } from 'react';
 
 export const FontFamily = memo(

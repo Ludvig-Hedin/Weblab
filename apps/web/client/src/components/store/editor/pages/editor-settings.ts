@@ -1,4 +1,4 @@
-import type { PageEditorSettings, PageNode } from '@onlook/models/pages';
+import type { PageEditorSettings, PageNode } from '@weblab/models/pages';
 import type { SandboxManager } from '../sandbox';
 
 const PAGE_SETTINGS_PATH = '.onlook/page-settings.json';

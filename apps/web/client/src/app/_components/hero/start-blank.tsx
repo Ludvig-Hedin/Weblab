@@ -1,6 +1,6 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons/index';
+import { Icons } from '@weblab/ui/icons/index';
 
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 

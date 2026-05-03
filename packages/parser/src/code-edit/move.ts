@@ -1,4 +1,4 @@
-import type { CodeMove } from '@onlook/models/actions';
+import type { CodeMove } from '@weblab/models/actions';
 
 import type { NodePath, T } from '../packages';
 import { addKeyToElement, getOidFromJsxElement, jsxFilter } from './helpers';

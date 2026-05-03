@@ -1,6 +1,6 @@
-import type { JsxElementMetadata } from '@onlook/file-system';
-import type { LayerNode } from '@onlook/models';
-import { getTemplateNodeChild } from '@onlook/parser';
+import type { JsxElementMetadata } from '@weblab/file-system';
+import type { LayerNode } from '@weblab/models';
+import { getTemplateNodeChild } from '@weblab/parser';
 import { makeAutoObservable } from 'mobx';
 import type { BranchData } from '../branch/manager';
 import type { EditorEngine } from '../engine';

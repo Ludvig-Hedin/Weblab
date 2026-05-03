@@ -1,6 +1,6 @@
 import { env } from '@/env';
-import { previewDomains, toDomainInfoFromPreview } from '@onlook/db';
-import { getValidSubdomain } from '@onlook/utility';
+import { previewDomains, toDomainInfoFromPreview } from '@weblab/db';
+import { getValidSubdomain } from '@weblab/utility';
 import { TRPCError } from '@trpc/server';
 import { and, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';

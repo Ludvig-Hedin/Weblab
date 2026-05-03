@@ -1,7 +1,7 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { DEFAULT_COLOR_NAME } from '@onlook/constants';
-import type { TailwindColor } from '@onlook/models/style';
-import { Color } from '@onlook/utility';
+import { DEFAULT_COLOR_NAME } from '@weblab/constants';
+import type { TailwindColor } from '@weblab/models/style';
+import { Color } from '@weblab/utility';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ColorUpdateOptions {

@@ -1,4 +1,4 @@
-import type { SandboxDirectory, SandboxFile } from '@onlook/models';
+import type { SandboxDirectory, SandboxFile } from '@weblab/models';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { FileCacheManager } from '../../src/components/store/editor/cache/file-cache';
 

@@ -1,4 +1,4 @@
-import type { Branch } from '@onlook/models';
+import type { Branch } from '@weblab/models';
 
 import type { Branch as DbBranch } from '../../schema';
 

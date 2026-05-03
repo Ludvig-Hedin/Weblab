@@ -1,5 +1,5 @@
 import type { EditorEngine } from '@/components/store/editor/engine';
-import { toast } from '@onlook/ui/sonner';
+import { toast } from '@weblab/ui/sonner';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export enum ImageFit {

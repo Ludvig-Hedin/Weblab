@@ -1,9 +1,9 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorMode } from '@onlook/models';
-import { ResizablePanel } from '@onlook/ui/resizable';
-import { cn } from '@onlook/ui/utils';
+import { EditorMode } from '@weblab/models';
+import { ResizablePanel } from '@weblab/ui/resizable';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { CodeTab } from './code-tab';
 

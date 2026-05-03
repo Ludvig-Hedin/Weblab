@@ -1,7 +1,7 @@
 import { api } from '@/trpc/client';
-import { DefaultSettings } from '@onlook/constants';
-import { DefaultDesktopFrame } from '@onlook/db';
-import type { Canvas, RectPosition } from '@onlook/models';
+import { DefaultSettings } from '@weblab/constants';
+import { DefaultDesktopFrame } from '@weblab/db';
+import type { Canvas, RectPosition } from '@weblab/models';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';

@@ -1,9 +1,9 @@
 import { transKeys } from '@/i18n/keys';
 import { Routes } from '@/utils/constants';
-import type { Project } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+import type { Project } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';

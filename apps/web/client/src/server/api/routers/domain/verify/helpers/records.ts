@@ -1,6 +1,6 @@
-import { FREESTYLE_IP_ADDRESS } from '@onlook/constants';
-import { type CustomDomainVerification } from '@onlook/db';
-import { type AVerificationRecord } from '@onlook/models';
+import { FREESTYLE_IP_ADDRESS } from '@weblab/constants';
+import { type CustomDomainVerification } from '@weblab/db';
+import { type AVerificationRecord } from '@weblab/models';
 import { promises as dns } from 'dns';
 import { parse } from 'tldts';
 

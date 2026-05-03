@@ -1,5 +1,5 @@
-import type { Message as DbMessage } from '@onlook/db';
-import { type ChatMessage } from '@onlook/models';
+import type { Message as DbMessage } from '@weblab/db';
+import { type ChatMessage } from '@weblab/models';
 
 export const fromDbMessage = (message: DbMessage): ChatMessage => {
     return {

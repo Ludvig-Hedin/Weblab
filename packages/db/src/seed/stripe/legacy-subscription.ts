@@ -2,12 +2,12 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
 
-import { db } from '@onlook/db/src/client';
-import { createStripeClient } from '@onlook/stripe/src/client';
+import { db } from '@weblab/db/src/client';
+import { createStripeClient } from '@weblab/stripe/src/client';
 import {
     createCodeForCoupon,
     createLegacyCoupon,
-} from '@onlook/stripe/src/scripts/production/coupon';
+} from '@weblab/stripe/src/scripts/production/coupon';
 
 import { legacySubscriptions } from '@/schema/subscription/legacy';
 

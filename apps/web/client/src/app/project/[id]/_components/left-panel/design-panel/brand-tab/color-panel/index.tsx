@@ -1,9 +1,9 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { SystemTheme } from '@onlook/models/assets';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
-import type { Color } from '@onlook/utility';
+import { SystemTheme } from '@weblab/models/assets';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
+import type { Color } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import { ColorNameInput } from './color-name-input';

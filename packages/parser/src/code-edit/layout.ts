@@ -1,4 +1,4 @@
-import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@onlook/constants';
+import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
 
 import type { T } from '../packages';
 import { t, traverse } from '../packages';

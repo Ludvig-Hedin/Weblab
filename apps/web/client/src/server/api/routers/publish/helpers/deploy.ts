@@ -1,10 +1,10 @@
 import { trackEvent } from '@/utils/analytics/server.ts';
-import { deployments, type Deployment, type DrizzleDb } from '@onlook/db';
+import { deployments, type Deployment, type DrizzleDb } from '@weblab/db';
 import {
     DeploymentStatus,
     DeploymentType,
     HostingProvider
-} from '@onlook/models';
+} from '@weblab/models';
 import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'crypto';
 import {

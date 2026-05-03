@@ -1,6 +1,6 @@
 'use client';
 
-import type { Frame, LayerNode } from '@onlook/models';
+import type { Frame, LayerNode } from '@weblab/models';
 import { debounce } from 'lodash';
 import { makeAutoObservable, reaction, runInAction } from 'mobx';
 import type { EditorEngine } from '../engine';

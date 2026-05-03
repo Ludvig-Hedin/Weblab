@@ -1,4 +1,4 @@
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 export interface IllustrationProps {
     className?: string;

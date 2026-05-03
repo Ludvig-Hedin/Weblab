@@ -24,7 +24,7 @@ const config = {
         '<THIRD_PARTY_MODULES>',
         '',
         '<TYPES>^@onlook',
-        '^@onlook/(.*)$',
+        '^@weblab/(.*)$',
         '',
         '<TYPES>^[.|..|@]',
         '^@/',

@@ -1,15 +1,15 @@
 'use client';
 
-import { VARIANTS } from '@onlook/fonts';
-import { Button } from '@onlook/ui/button';
+import { VARIANTS } from '@weblab/fonts';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { convertFontWeight } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { convertFontWeight } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useDropdownControl } from '../../hooks/use-dropdown-manager';
 import { useTextControl } from '../../hooks/use-text-control';

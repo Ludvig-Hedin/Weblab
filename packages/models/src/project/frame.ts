@@ -1,4 +1,4 @@
-import type { Orientation, Theme } from '@onlook/constants';
+import type { Orientation, Theme } from '@weblab/constants';
 
 import type { RectDimension, RectPosition } from './rect';
 

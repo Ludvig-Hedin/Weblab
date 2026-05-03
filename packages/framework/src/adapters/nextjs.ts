@@ -1,4 +1,4 @@
-import { RouterType } from '@onlook/models';
+import { RouterType } from '@weblab/models';
 
 import type { FrameworkAdapter, ProjectFiles, ValidationResult } from '../types';
 

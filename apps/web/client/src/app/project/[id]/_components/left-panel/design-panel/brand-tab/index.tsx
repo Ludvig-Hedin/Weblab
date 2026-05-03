@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { BrandTabValue } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { BrandTabValue } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import ColorPanel from './color-panel';

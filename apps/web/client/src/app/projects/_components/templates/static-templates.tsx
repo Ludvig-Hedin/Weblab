@@ -2,8 +2,8 @@
 
 import { motion } from 'motion/react';
 
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 export type StaticTemplateId =
     | 'portfolio'

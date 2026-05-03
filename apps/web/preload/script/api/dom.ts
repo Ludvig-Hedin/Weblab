@@ -1,7 +1,7 @@
 import debounce from 'lodash/debounce';
 
-import type { LayerNode } from '@onlook/models';
-import { EditorAttributes } from '@onlook/constants';
+import type { LayerNode } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
 
 import { isValidHtmlElement } from '../helpers/dom';
 import { getInstanceId, getOid, getOrAssignDomId } from '../helpers/ids';

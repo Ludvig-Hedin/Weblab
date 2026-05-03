@@ -1,8 +1,8 @@
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { toast } from '@onlook/ui/sonner';
-import { getValidUrl } from '@onlook/utility';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
+import { getValidUrl } from '@weblab/utility';
 import Link from 'next/link';
 import { useState } from 'react';
 

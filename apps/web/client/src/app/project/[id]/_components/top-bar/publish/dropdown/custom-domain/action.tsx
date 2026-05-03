@@ -1,7 +1,7 @@
-import { DeploymentStatus } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { cn } from '@onlook/ui/utils';
+import { DeploymentStatus } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { cn } from '@weblab/ui/utils';
 import stripAnsi from 'strip-ansi';
 import { UrlSection } from '../url';
 import { useCustomDomainContext } from './provider';

@@ -2,9 +2,9 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Accordion } from '@onlook/ui/accordion';
-import { ScrollArea } from '@onlook/ui/scroll-area';
-import { ToggleGroup, ToggleGroupItem } from '@onlook/ui/toggle-group';
+import { Accordion } from '@weblab/ui/accordion';
+import { ScrollArea } from '@weblab/ui/scroll-area';
+import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
 import type { WriteTarget } from '@/components/store/editor/style/preferences';
 import { useEditorEngine } from '@/components/store/editor';

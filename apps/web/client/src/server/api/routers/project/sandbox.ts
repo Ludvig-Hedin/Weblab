@@ -5,9 +5,9 @@ import {
     CodeProvider,
     createCodeProviderClient,
     getStaticCodeProvider,
-} from '@onlook/code-provider';
-import { APP_NAME, DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@onlook/constants';
-import { shortenUuid } from '@onlook/utility/src/id';
+} from '@weblab/code-provider';
+import { APP_NAME, DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@weblab/constants';
+import { shortenUuid } from '@weblab/utility/src/id';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 

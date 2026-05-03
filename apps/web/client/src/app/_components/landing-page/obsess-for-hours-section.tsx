@@ -1,4 +1,4 @@
-import { Icons } from '@onlook/ui/icons/index';
+import { Icons } from '@weblab/ui/icons/index';
 import { vujahdayScript } from '../../fonts';
 
 export function ObsessForHoursSection() {

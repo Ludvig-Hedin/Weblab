@@ -17,9 +17,9 @@ import type {
     UngroupElementsAction,
     UpdateStyleAction,
     WriteCodeAction
-} from '@onlook/models';
-import { CodeActionType } from '@onlook/models';
-import { getAstFromContent, getContentFromAst, transformAst } from '@onlook/parser';
+} from '@weblab/models';
+import { CodeActionType } from '@weblab/models';
+import { getAstFromContent, getContentFromAst, transformAst } from '@weblab/parser';
 import { getOrCreateCodeDiffRequest } from './helpers';
 import { getInsertedElement } from './insert';
 import { addTailwindToRequest } from './tailwind';

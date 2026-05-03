@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Frame as DbFrame } from '@onlook/db';
+import type { Frame as DbFrame } from '@weblab/db';
 
 export enum DefaultFrameType {
     DESKTOP = 'desktop',

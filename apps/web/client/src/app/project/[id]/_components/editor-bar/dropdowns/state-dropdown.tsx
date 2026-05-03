@@ -1,11 +1,11 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 
 export const StateDropdown = () => {
     return (

@@ -1,4 +1,4 @@
-import { Icons } from "@onlook/ui/icons";
+import { Icons } from "@weblab/ui/icons";
 
 export const FileIcon = ({ path, isDirectory }: { path: string, isDirectory: boolean }) => {
 

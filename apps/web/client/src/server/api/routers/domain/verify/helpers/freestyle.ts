@@ -1,5 +1,5 @@
-import { FREESTYLE_CUSTOM_HOSTNAME } from '@onlook/constants';
-import { customDomainVerification, type CustomDomainVerification, type DrizzleDb } from '@onlook/db';
+import { FREESTYLE_CUSTOM_HOSTNAME } from '@weblab/constants';
+import { customDomainVerification, type CustomDomainVerification, type DrizzleDb } from '@weblab/db';
 import { TRPCError } from '@trpc/server';
 import { type HandleVerifyDomainError, type HandleVerifyDomainResponse } from 'freestyle-sandboxes';
 import { initializeFreestyleSdk } from '../../freestyle';

@@ -2,7 +2,7 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 
 import { openFeedbackWidget } from '@/utils/telemetry';
 

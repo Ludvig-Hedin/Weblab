@@ -1,8 +1,8 @@
 'use client';
 
-import { Icons } from '@onlook/ui/icons';
-import { NodeIcon } from '@onlook/ui/node-icon';
-import { cn } from '@onlook/ui/utils';
+import { Icons } from '@weblab/ui/icons';
+import { NodeIcon } from '@weblab/ui/node-icon';
+import { cn } from '@weblab/ui/utils';
 import React, { useState } from 'react';
 import { DesignMockup, DesignMockupMobile } from './design-mockup/design-mockup';
 

@@ -1,6 +1,6 @@
-import type { CodeFileSystem } from '@onlook/file-system';
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import type { SandboxManager } from '@onlook/web-client/src/components/store/editor/sandbox';
+import type { CodeFileSystem } from '@weblab/file-system';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import type { SandboxManager } from '@weblab/web-client/src/components/store/editor/sandbox';
 
 export async function getFileSystem(
     branchId: string,

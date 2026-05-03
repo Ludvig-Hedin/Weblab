@@ -1,8 +1,8 @@
-import { EditorAttributes } from '@onlook/constants';
-import type { ActionElement, ActionLocation, PasteParams } from '@onlook/models/actions';
-import { CodeActionType, type CodeInsert } from '@onlook/models/actions';
-import { StyleChangeType } from '@onlook/models/style';
-import { customTwMerge } from '@onlook/utility';
+import { EditorAttributes } from '@weblab/constants';
+import type { ActionElement, ActionLocation, PasteParams } from '@weblab/models/actions';
+import { CodeActionType, type CodeInsert } from '@weblab/models/actions';
+import { StyleChangeType } from '@weblab/models/style';
+import { customTwMerge } from '@weblab/utility';
 import { getTailwindClasses } from './tailwind';
 
 export function getInsertedElement(

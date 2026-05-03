@@ -1,11 +1,11 @@
 import type { Root, Rule } from 'postcss';
 import postcss from 'postcss';
 
-import type { T } from '@onlook/parser';
-import { DEFAULT_COLOR_NAME } from '@onlook/constants';
-import { SystemTheme } from '@onlook/models/assets';
-import { generate, getAstFromContent, parse, traverse } from '@onlook/parser';
-import { parseHslValue } from '@onlook/utility';
+import type { T } from '@weblab/parser';
+import { DEFAULT_COLOR_NAME } from '@weblab/constants';
+import { SystemTheme } from '@weblab/models/assets';
+import { generate, getAstFromContent, parse, traverse } from '@weblab/parser';
+import { parseHslValue } from '@weblab/utility';
 
 export function addTailwindNestedColor(
     colorObj: T.ObjectExpression,

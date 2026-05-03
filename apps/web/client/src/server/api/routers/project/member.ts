@@ -1,4 +1,4 @@
-import { fromDbUser, userProjects } from '@onlook/db';
+import { fromDbUser, userProjects } from '@weblab/db';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

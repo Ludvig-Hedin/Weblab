@@ -1,12 +1,12 @@
 import { trackEvent } from '@/utils/analytics/server';
-import { prices, rateLimits, subscriptions } from '@onlook/db';
-import { db } from '@onlook/db/src/client';
+import { prices, rateLimits, subscriptions } from '@weblab/db';
+import { db } from '@weblab/db/src/client';
 import {
     getSubscriptionSchedule,
     isTierUpgrade,
     ScheduledSubscriptionAction,
     SubscriptionStatus,
-} from '@onlook/stripe';
+} from '@weblab/stripe';
 import { and, eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 import { v4 as uuid } from 'uuid';

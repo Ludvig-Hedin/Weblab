@@ -2,8 +2,8 @@
 
 import { Routes } from '@/utils/constants';
 import { getReturnUrlQueryParam } from '@/utils/url';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 export const HandleAuth = () => {

@@ -1,5 +1,5 @@
 import { Routes } from '@/utils/constants';
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import Link from 'next/link';
 
 export default function AuthCodeErrorPage() {

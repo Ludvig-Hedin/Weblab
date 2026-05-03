@@ -2,14 +2,14 @@ import type { LanguageModel } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOllama } from 'ollama-ai-provider-v2';
 
-import type { InitialModelPayload, ModelConfig, OllamaModelId } from '@onlook/models';
+import type { InitialModelPayload, ModelConfig, OllamaModelId } from '@weblab/models';
 import {
     getMaxTokens,
     LLMProvider,
     OLLAMA_DEFAULT_BASE_URL,
     OPENROUTER_MODELS,
-} from '@onlook/models';
-import { assertNever } from '@onlook/utility';
+} from '@weblab/models';
+import { assertNever } from '@weblab/utility';
 
 export function initModel(payload: InitialModelPayload): ModelConfig {
     let model: LanguageModel;

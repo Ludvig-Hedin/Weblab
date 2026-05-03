@@ -1,9 +1,9 @@
-import type { Provider } from '@onlook/code-provider';
-import type { FileEntry } from '@onlook/file-system';
-import type { PageMetadata, PageNode, RouterConfig } from '@onlook/models';
-import { RouterType } from '@onlook/models';
-import type { T } from '@onlook/parser';
-import { formatContent, generate, getAstFromContent, t, traverse } from '@onlook/parser';
+import type { Provider } from '@weblab/code-provider';
+import type { FileEntry } from '@weblab/file-system';
+import type { PageMetadata, PageNode, RouterConfig } from '@weblab/models';
+import { RouterType } from '@weblab/models';
+import type { T } from '@weblab/parser';
+import { formatContent, generate, getAstFromContent, t, traverse } from '@weblab/parser';
 import { nanoid } from 'nanoid';
 import type { SandboxManager } from '../sandbox';
 

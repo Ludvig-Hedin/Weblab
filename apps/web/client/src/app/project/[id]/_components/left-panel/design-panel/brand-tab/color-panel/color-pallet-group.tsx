@@ -1,16 +1,16 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { SystemTheme } from '@onlook/models/assets';
-import type { TailwindColor } from '@onlook/models/style';
-import { Button } from '@onlook/ui/button';
+import { SystemTheme } from '@weblab/models/assets';
+import type { TailwindColor } from '@weblab/models/style';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
-import { Color, generateUniqueName, toNormalCase } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
+import { Color, generateUniqueName, toNormalCase } from '@weblab/utility';
 import { useState } from 'react';
 import { ColorNameInput } from './color-name-input';
 import { ColorPopover } from './color-popover';

@@ -1,6 +1,6 @@
 'use client';
 
-import { DeploymentType } from '@onlook/models';
+import { DeploymentType } from '@weblab/models';
 import { useHostingContext } from './provider';
 
 export function useHostingType(type: DeploymentType) {

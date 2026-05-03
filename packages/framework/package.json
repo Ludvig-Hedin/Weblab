@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/framework",
+    "name": "@weblab/framework",
     "description": "Framework adapter abstraction (Next.js, Vite, Remix, Astro, TanStack Start, static HTML).",
     "version": "0.0.0",
     "repository": {
@@ -31,12 +31,12 @@
         "./adapters/*": "./src/adapters/*.ts"
     },
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },
     "dependencies": {
-        "@onlook/models": "*"
+        "@weblab/models": "*"
     }
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { useEffect, useRef, useState } from 'react';
 import { useDropdownControl } from '../../hooks/use-dropdown-manager';
 import { useTextControl } from '../../hooks/use-text-control';

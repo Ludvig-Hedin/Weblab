@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { Frame } from '@onlook/models';
+import type { Frame } from '@weblab/models';
 
 import { calculateNonOverlappingPosition } from '../src/frame';
 

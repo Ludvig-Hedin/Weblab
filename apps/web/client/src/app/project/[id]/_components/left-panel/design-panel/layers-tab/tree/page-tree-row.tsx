@@ -1,8 +1,8 @@
 import type { RowRendererProps } from 'react-arborist';
 import { forwardRef } from 'react';
 
-import type { PageNode } from '@onlook/models/pages';
-import { cn } from '@onlook/ui/utils';
+import type { PageNode } from '@weblab/models/pages';
+import { cn } from '@weblab/ui/utils';
 
 export const PageTreeRow = forwardRef<
     HTMLDivElement,

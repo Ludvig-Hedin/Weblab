@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { ChevronRight, FolderClosed, FolderOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { timeAgo } from '@onlook/utility';
+import { timeAgo } from '@weblab/utility';
 
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';
 import { getDisplayUrl, getProjectPreviewImageUrl, getProjectSiteUrl } from './project-card-utils';

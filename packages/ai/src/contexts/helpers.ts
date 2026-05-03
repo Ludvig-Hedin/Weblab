@@ -1,5 +1,5 @@
-import type { MessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { MessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import type { ContextClass } from './models';
 import {

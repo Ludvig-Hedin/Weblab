@@ -1,13 +1,13 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
-import { Button } from '@onlook/ui/button';
-import { Icons, type IconProps } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { Icons, type IconProps } from '@weblab/ui/icons';
 import { AuthModal } from '../_components/auth-modal';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { WebsiteLayout } from '../_components/website-layout';
 import { FAQSection } from '../_components/landing-page/faq-section';
-import { ExternalRoutes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 import Link from 'next/link';
 
 const HIGHLIGHTED_FEATURES = [
@@ -114,8 +114,8 @@ Best regards,
                                     size="lg"
                                     asChild
                                 >
-                                    <a href={ExternalRoutes.BOOK_DEMO} target="_blank" rel="noopener noreferrer">
-                                        Book a demo
+                                    <a href="/projects">
+                                        Get Started
                                     </a>
                                 </Button>
                             </div>
@@ -176,7 +176,7 @@ Best regards,
             </div>
             <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
                 <div className="mt-16 w-full">
-                    <CTASection href={ExternalRoutes.BOOK_DEMO} />
+                    <CTASection href={Routes.PROJECTS} />
                 </div>
             </div>
             <AuthModal />

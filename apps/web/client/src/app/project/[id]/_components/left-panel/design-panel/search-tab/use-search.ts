@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { CoreElementType, type LayerNode } from '@onlook/models/element';
+import { CoreElementType, type LayerNode } from '@weblab/models/element';
 
 import { useEditorEngine } from '@/components/store/editor';
 

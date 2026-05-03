@@ -1,5 +1,5 @@
-import type { CodeInsertImage, CodeRemoveImage } from '@onlook/models/actions';
-import { DefaultSettings } from '@onlook/constants';
+import type { CodeInsertImage, CodeRemoveImage } from '@weblab/models/actions';
+import { DefaultSettings } from '@weblab/constants';
 
 import type { NodePath, T } from '../packages';
 import { addClassToNode } from './style';

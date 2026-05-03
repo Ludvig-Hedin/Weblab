@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 export function useResizable({
     defaultWidth = 240,

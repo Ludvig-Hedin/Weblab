@@ -1,6 +1,6 @@
-import { DefaultSettings } from '@onlook/constants';
-import { addFontToTailwindTheme, removeFontFromTailwindTheme } from '@onlook/fonts';
-import type { Font } from '@onlook/models';
+import { DefaultSettings } from '@weblab/constants';
+import { addFontToTailwindTheme, removeFontFromTailwindTheme } from '@weblab/fonts';
+import type { Font } from '@weblab/models';
 import type { SandboxManager } from '../sandbox';
 import { normalizePath } from '../sandbox/helpers';
 

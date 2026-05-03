@@ -1,5 +1,5 @@
 {
-    "extends": "@onlook/typescript/next-react.json",
+    "extends": "@weblab/typescript/next-react.json",
     "compilerOptions": {
         "baseUrl": ".",
         "allowArbitraryExtensions": true,

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ProjectCard } from '@/app/projects/_components/select/project-card';
 import { HighlightText } from '@/app/projects/_components/select/highlight-text';
-import type { Project } from '@onlook/models';
+import type { Project } from '@weblab/models';
 
 /**
  * ProjectCard displays individual project information with hover effects,

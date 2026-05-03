@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
-import { EditorAttributes } from '@onlook/constants';
-import { HotkeyLabel } from '@onlook/ui/hotkey-label';
-import { Input } from '@onlook/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@onlook/ui/tooltip';
+import { EditorAttributes } from '@weblab/constants';
+import { HotkeyLabel } from '@weblab/ui/hotkey-label';
+import { Input } from '@weblab/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';

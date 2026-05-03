@@ -1,7 +1,7 @@
-import type { Font, RawFont } from '@onlook/models';
-import type { T } from '@onlook/parser';
-import { RouterType } from '@onlook/models';
-import { t } from '@onlook/parser';
+import type { Font, RawFont } from '@weblab/models';
+import type { T } from '@weblab/parser';
+import { RouterType } from '@weblab/models';
+import { t } from '@weblab/parser';
 
 /**
  * Converts a RawFont to a Font

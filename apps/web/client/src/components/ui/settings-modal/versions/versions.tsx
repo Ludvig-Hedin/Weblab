@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@onlook/ui/accordion';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { Separator } from '@onlook/ui/separator';
-import { toast } from '@onlook/ui/sonner';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { Separator } from '@weblab/ui/separator';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 import React, { useState } from 'react';
 import { NoVersions } from './empty-state/version';

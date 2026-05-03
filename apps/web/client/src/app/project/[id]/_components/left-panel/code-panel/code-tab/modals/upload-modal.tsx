@@ -1,4 +1,4 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,12 +6,12 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
-import { isBinaryFile } from '@onlook/utility';
+} from '@weblab/ui/dialog';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
+import { isBinaryFile } from '@weblab/utility';
 import path from 'path';
 import { useCallback, useEffect, useState } from 'react';
 

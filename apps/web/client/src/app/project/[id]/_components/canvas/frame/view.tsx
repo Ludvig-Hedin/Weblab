@@ -5,15 +5,15 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { observer } from 'mobx-react-lite';
 import { connect, WindowMessenger } from 'penpal';
 
-import type { Frame } from '@onlook/models';
+import type { Frame } from '@weblab/models';
 import type {
     PenpalChildMethods,
     PenpalParentMethods,
     PromisifiedPendpalChildMethods,
-} from '@onlook/penpal';
-import { PENPAL_PARENT_CHANNEL } from '@onlook/penpal';
-import { WebPreview, WebPreviewBody } from '@onlook/ui/ai-elements';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/penpal';
+import { PENPAL_PARENT_CHANNEL } from '@weblab/penpal';
+import { WebPreview, WebPreviewBody } from '@weblab/ui/ai-elements';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 

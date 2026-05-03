@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { colors } from '@onlook/ui/tokens';
+import { colors } from '@weblab/ui/tokens';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { adaptValueToCanvas } from '@/components/store/editor/overlay/utils';

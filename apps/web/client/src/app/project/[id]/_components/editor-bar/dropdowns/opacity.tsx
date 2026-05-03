@@ -1,8 +1,8 @@
 'use client';
 
 import { useEditorEngine } from "@/components/store/editor";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@onlook/ui/dropdown-menu";
-import { Input } from "@onlook/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@weblab/ui/dropdown-menu";
+import { Input } from "@weblab/ui/input";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef, useState } from "react";
 import { useDropdownControl } from "../hooks/use-dropdown-manager";

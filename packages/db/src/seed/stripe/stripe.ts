@@ -1,10 +1,10 @@
 import type Stripe from 'stripe';
 import { config } from 'dotenv';
 
-import type { PriceKey } from '@onlook/stripe';
-import { db } from '@onlook/db/src/client';
-import { PRO_PRODUCT_CONFIG, ProductType } from '@onlook/stripe';
-import { getProProductAndPrices } from '@onlook/stripe/src/scripts/dev/product';
+import type { PriceKey } from '@weblab/stripe';
+import { db } from '@weblab/db/src/client';
+import { PRO_PRODUCT_CONFIG, ProductType } from '@weblab/stripe';
+import { getProProductAndPrices } from '@weblab/stripe/src/scripts/dev/product';
 
 import { prices, products } from '../../schema';
 

@@ -2,13 +2,13 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { ProjectRole, type User } from '@onlook/models';
-import { Avatar, AvatarFallback, AvatarImage } from '@onlook/ui/avatar';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons/index';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
-import { getInitials } from '@onlook/utility';
+import { ProjectRole, type User } from '@weblab/models';
+import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons/index';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
+import { getInitials } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 

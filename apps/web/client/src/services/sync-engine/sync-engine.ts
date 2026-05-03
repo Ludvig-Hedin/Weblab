@@ -4,10 +4,10 @@
  * On initial start, it pulls all files from the provider and stores them in the local file system.
  * After this, it watches for changes either in the local file system or the provider and syncs the changes back and forth.
  */
-import { type Provider, type ProviderFileWatcher } from '@onlook/code-provider';
+import { type Provider, type ProviderFileWatcher } from '@weblab/code-provider';
 
 import { normalizePath } from '@/components/store/editor/sandbox/helpers';
-import type { CodeFileSystem } from '@onlook/file-system';
+import type { CodeFileSystem } from '@weblab/file-system';
 
 export interface SyncConfig {
     include?: string[];

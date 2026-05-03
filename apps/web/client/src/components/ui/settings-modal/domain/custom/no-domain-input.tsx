@@ -1,6 +1,6 @@
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
 import { useState } from 'react';
 import { useDomainVerification, VerificationState } from './use-domain-verification';
 

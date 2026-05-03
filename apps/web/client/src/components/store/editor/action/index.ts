@@ -1,5 +1,5 @@
-import type { DomElement, LayerNode } from '@onlook/models';
-import { EditorMode } from '@onlook/models';
+import type { DomElement, LayerNode } from '@weblab/models';
+import { EditorMode } from '@weblab/models';
 import {
     type Action,
     type EditTextAction,
@@ -11,9 +11,9 @@ import {
     type RemoveImageAction,
     type UngroupElementsAction,
     type UpdateStyleAction,
-} from '@onlook/models/actions';
-import { StyleChangeType } from '@onlook/models/style';
-import { assertNever } from '@onlook/utility';
+} from '@weblab/models/actions';
+import { StyleChangeType } from '@weblab/models/style';
+import { assertNever } from '@weblab/utility';
 import { cloneDeep, debounce } from 'lodash';
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';

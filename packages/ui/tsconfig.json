@@ -1,5 +1,5 @@
 {
-    "extends": "@onlook/typescript/react-library.json",
+    "extends": "@weblab/typescript/react-library.json",
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {

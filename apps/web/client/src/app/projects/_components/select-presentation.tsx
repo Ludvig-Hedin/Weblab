@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Carousel } from './carousel';
 import { AnimatePresence, motion } from 'motion/react';
 
-import type { Project } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
+import type { Project } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 import { Templates } from './templates';
 import { TemplateModalPresentation } from './templates/template-modal-presentation';

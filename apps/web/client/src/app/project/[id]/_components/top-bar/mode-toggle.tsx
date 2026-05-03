@@ -1,11 +1,11 @@
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { EditorMode } from '@onlook/models';
-import { HotkeyLabel } from '@onlook/ui/hotkey-label';
-import { ToggleGroup, ToggleGroupItem } from '@onlook/ui/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+import { EditorMode } from '@weblab/models';
+import { HotkeyLabel } from '@weblab/ui/hotkey-label';
+import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';

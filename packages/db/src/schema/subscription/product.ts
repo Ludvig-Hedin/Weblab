@@ -1,6 +1,6 @@
 import { pgEnum, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
-import { ProductType } from '@onlook/stripe';
+import { ProductType } from '@weblab/stripe';
 
 export const productType = pgEnum('product_type', ProductType);
 

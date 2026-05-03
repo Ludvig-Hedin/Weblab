@@ -1,6 +1,6 @@
 'use client';
 
-import { MODEL_MAX_TOKENS, OPENROUTER_MODELS } from '@onlook/models';
+import { MODEL_MAX_TOKENS, OPENROUTER_MODELS } from '@weblab/models';
 import {
     Context,
     ContextCacheUsage,
@@ -12,7 +12,7 @@ import {
     ContextOutputUsage,
     ContextReasoningUsage,
     ContextTrigger
-} from '@onlook/ui/ai-elements/context';
+} from '@weblab/ui/ai-elements/context';
 import type { LanguageModelUsage } from 'ai';
 import { useMemo } from 'react';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { type FileEntry } from '@onlook/file-system/hooks';
-import { pathsEqual } from '@onlook/utility';
+import { type FileEntry } from '@weblab/file-system/hooks';
+import { pathsEqual } from '@weblab/utility';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NodeApi, Tree, type RowRendererProps, type TreeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';

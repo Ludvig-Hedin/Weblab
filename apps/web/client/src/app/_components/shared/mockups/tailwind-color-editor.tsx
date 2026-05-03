@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Color } from '@onlook/utility';
-import { ColorPicker } from '@onlook/ui/color-picker';
-import { Icons } from '@onlook/ui/icons';
+import { Color } from '@weblab/utility';
+import { ColorPicker } from '@weblab/ui/color-picker';
+import { Icons } from '@weblab/ui/icons';
 import { ColorSwatchGroup } from '../../landing-page/color-swatch-group';
 import { ToolbarButton } from '@/app/project/[id]/_components/editor-bar/toolbar-button';
 import { InputSeparator } from '@/app/project/[id]/_components/editor-bar/separator';
-import { Icons as EditorIcons } from '@onlook/ui/icons';
+import { Icons as EditorIcons } from '@weblab/ui/icons';
 
 export function TailwindColorEditorMockup() {
   const [color, setColor] = useState<Color>(() => Color.from('#0088FF').withAlpha(1));

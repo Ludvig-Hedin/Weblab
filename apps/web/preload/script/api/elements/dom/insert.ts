@@ -1,6 +1,6 @@
-import type { DomElement, LayerNode } from '@onlook/models';
-import type { ActionElement, ActionLocation } from '@onlook/models/actions';
-import { EditorAttributes, INLINE_ONLY_CONTAINERS } from '@onlook/constants';
+import type { DomElement, LayerNode } from '@weblab/models';
+import type { ActionElement, ActionLocation } from '@weblab/models/actions';
+import { EditorAttributes, INLINE_ONLY_CONTAINERS } from '@weblab/constants';
 
 import { assertNever, getHtmlElement } from '../../../helpers';
 import { getInstanceId, getOid, getOrAssignDomId } from '../../../helpers/ids';

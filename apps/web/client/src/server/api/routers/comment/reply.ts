@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { commentReplies, projectComments } from '@onlook/db';
+import { commentReplies, projectComments } from '@weblab/db';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { verifyProjectAccess } from '../project/helper';
 import { sanitiseAuthorName } from './helpers';

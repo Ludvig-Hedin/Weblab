@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 
-import { NodeIcon } from '@onlook/ui/node-icon';
-import { cn } from '@onlook/ui/utils';
+import { NodeIcon } from '@weblab/ui/node-icon';
+import { cn } from '@weblab/ui/utils';
 
 import { Highlight } from './highlight';
 import type { SearchResult } from './use-search';

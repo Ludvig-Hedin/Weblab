@@ -1,5 +1,5 @@
-import { generate, getAstFromContent, t, traverse } from '@onlook/parser';
-import { type FileOperations } from '@onlook/utility';
+import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
+import { type FileOperations } from '@weblab/utility';
 
 import { getLayoutPath } from './helpers';
 import { builtWithScript } from './script';

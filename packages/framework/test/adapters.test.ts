@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { RouterType } from '@onlook/models';
+import { RouterType } from '@weblab/models';
 
 import type { ProjectFile } from '../src';
 import {

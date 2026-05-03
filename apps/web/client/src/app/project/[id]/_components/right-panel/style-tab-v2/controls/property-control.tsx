@@ -11,9 +11,9 @@ import {
     ContextMenuRadioItem,
     ContextMenuSeparator,
     ContextMenuTrigger,
-} from '@onlook/ui/context-menu';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/context-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import type { WriteTarget } from '@/components/store/editor/style/preferences';
 import { useEditorEngine } from '@/components/store/editor';

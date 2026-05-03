@@ -1,11 +1,11 @@
-import { initModel } from '@onlook/ai';
+import { initModel } from '@weblab/ai';
 import {
     conversationInsertSchema,
     conversations,
     conversationUpdateSchema,
     fromDbConversation
-} from '@onlook/db';
-import { LLMProvider, OPENROUTER_MODELS } from '@onlook/models';
+} from '@weblab/db';
+import { LLMProvider, OPENROUTER_MODELS } from '@weblab/models';
 import { generateText } from 'ai';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';

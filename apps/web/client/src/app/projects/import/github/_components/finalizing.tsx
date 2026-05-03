@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
-import { CardDescription, CardTitle } from '@onlook/ui/card';
-import { ProgressWithInterval } from '@onlook/ui/progress-with-interval';
+import { Button } from '@weblab/ui/button';
+import { CardDescription, CardTitle } from '@weblab/ui/card';
+import { ProgressWithInterval } from '@weblab/ui/progress-with-interval';
 import { motion } from 'motion/react';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 import { useImportGithubProject } from '../_context';

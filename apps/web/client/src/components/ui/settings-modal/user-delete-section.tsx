@@ -1,14 +1,14 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/client';
-import { Button } from '@onlook/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@onlook/ui/dialog';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { toast } from '@onlook/ui/sonner';
+import { Button } from '@weblab/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
 import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

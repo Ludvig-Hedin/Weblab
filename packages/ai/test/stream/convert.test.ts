@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ChatMessage } from '@onlook/models';
+import type { ChatMessage } from '@weblab/models';
 
 import {
     convertToStreamMessages,

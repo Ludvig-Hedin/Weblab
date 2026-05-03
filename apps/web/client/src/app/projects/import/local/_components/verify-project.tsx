@@ -1,10 +1,10 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { type NextJsProjectValidation } from '@/app/projects/types';
-import { Button } from '@onlook/ui/button';
-import { CardDescription, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
+import { Button } from '@weblab/ui/button';
+import { CardDescription, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { StepContent, StepFooter, StepHeader } from '../../steps';

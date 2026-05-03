@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/backend",
+    "name": "@weblab/backend",
     "private": true,
     "scripts": {
         "start": "supabase start",
@@ -12,7 +12,7 @@
     },
     "dependencies": {},
     "devDependencies": {
-        "@onlook/typescript": "*",
+        "@weblab/typescript": "*",
         "@types/bun": "latest",
         "supabase": "^2.45.5"
     },

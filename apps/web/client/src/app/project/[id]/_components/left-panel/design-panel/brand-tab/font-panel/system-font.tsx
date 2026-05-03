@@ -1,6 +1,6 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { VARIANTS } from '@onlook/fonts';
-import { Icons } from '@onlook/ui/icons/index';
+import { VARIANTS } from '@weblab/fonts';
+import { Icons } from '@weblab/ui/icons/index';
 import { observer } from 'mobx-react-lite';
 import { FontFamily } from './font-family';
 

@@ -1,6 +1,6 @@
 import { useHostingType } from '@/components/store/hosting';
-import { DeploymentType } from '@onlook/models';
-import { Separator } from '@onlook/ui/separator';
+import { DeploymentType } from '@weblab/models';
+import { Separator } from '@weblab/ui/separator';
 import { observer } from 'mobx-react-lite';
 import { AdvancedSettingsSection } from './advanced-settings';
 import { CustomDomainSection } from './custom-domain';

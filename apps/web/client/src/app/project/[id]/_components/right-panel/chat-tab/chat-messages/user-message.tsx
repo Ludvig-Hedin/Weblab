@@ -1,9 +1,9 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { nanoid } from 'nanoid';
 
-import type { ChatMessage, GitMessageCheckpoint } from '@onlook/models';
-import { ChatType, MessageCheckpointType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import type { ChatMessage, GitMessageCheckpoint } from '@weblab/models';
+import { ChatType, MessageCheckpointType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,12 +11,12 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { Textarea } from '@onlook/ui/textarea';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';

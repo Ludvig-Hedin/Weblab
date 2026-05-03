@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import { Color } from '@onlook/utility';
+import { Color } from '@weblab/utility';
 
 import { Icons } from '../icons';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover';

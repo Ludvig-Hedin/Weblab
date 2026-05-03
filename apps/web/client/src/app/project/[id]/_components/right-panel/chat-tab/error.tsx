@@ -1,11 +1,11 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { ChatType } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@onlook/ui/collapsible';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { cn } from '@onlook/ui/utils';
-import type { ParsedError } from '@onlook/utility';
+import { ChatType } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
+import type { ParsedError } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';

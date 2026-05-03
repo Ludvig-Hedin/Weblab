@@ -1,14 +1,14 @@
 import type { ToolSet } from 'ai';
 import { generateObject, NoSuchToolError, smoothStream, stepCountIs, streamText } from 'ai';
 
-import type { ChatMessage, ChatModel, ModelConfig, OllamaModelId } from '@onlook/models';
+import type { ChatMessage, ChatModel, ModelConfig, OllamaModelId } from '@weblab/models';
 import {
     ChatType,
     getProviderFromModel,
     LLMProvider,
     OLLAMA_DEFAULT_BASE_URL,
     OPENROUTER_MODELS,
-} from '@onlook/models';
+} from '@weblab/models';
 
 import type { ToolCall } from '@ai-sdk/provider-utils';
 import {

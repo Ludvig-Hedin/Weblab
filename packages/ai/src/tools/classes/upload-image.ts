@@ -2,11 +2,11 @@ import mime from 'mime-lite';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import type { ImageMessageContext } from '@onlook/models';
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import type { SandboxManager } from '@onlook/web-client/src/components/store/editor/sandbox';
-import { MessageContextType } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import type { ImageMessageContext } from '@weblab/models';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import type { SandboxManager } from '@weblab/web-client/src/components/store/editor/sandbox';
+import { MessageContextType } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 
 import { ClientTool } from '../models/client';
 import { BRANCH_ID_SCHEMA } from '../shared/type';

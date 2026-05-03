@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import { ScheduledSubscriptionAction, SubscriptionStatus } from '@onlook/stripe';
+import { ScheduledSubscriptionAction, SubscriptionStatus } from '@weblab/stripe';
 
 import { users } from '../user/user';
 import { prices } from './price';

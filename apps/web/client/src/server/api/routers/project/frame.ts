@@ -1,4 +1,4 @@
-import { frameInsertSchema, frames, frameUpdateSchema, fromDbFrame } from '@onlook/db';
+import { frameInsertSchema, frames, frameUpdateSchema, fromDbFrame } from '@weblab/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

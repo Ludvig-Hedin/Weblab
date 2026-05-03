@@ -1,6 +1,6 @@
 import { render } from '@react-email/components';
 
-import { APP_NAME, SUPPORT_EMAIL } from '@onlook/constants';
+import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
 
 import type { InviteUserEmailProps } from './templates';
 import type { SendEmailParams } from './types/send-email';

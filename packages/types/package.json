@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/types",
+    "name": "@weblab/types",
     "description": "Common types shared between onlook packages",
     "version": "0.0.0",
     "repository": {
@@ -28,8 +28,8 @@
         "./*": "./src/*/index.ts"
     },
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     }

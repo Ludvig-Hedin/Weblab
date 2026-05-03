@@ -1,6 +1,6 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { EditorAttributes } from '@onlook/constants';
-import type { ElementPosition, RectDimensions } from '@onlook/models';
+import { EditorAttributes } from '@weblab/constants';
+import type { ElementPosition, RectDimensions } from '@weblab/models';
 
 /**
  * Calculates the cumulative offset between an element and its ancestor,

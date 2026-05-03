@@ -1,6 +1,6 @@
-import type { DomElement, LayerNode } from '@onlook/models';
-import type { ActionTarget, GroupContainer } from '@onlook/models/actions';
-import { EditorAttributes } from '@onlook/constants';
+import type { DomElement, LayerNode } from '@weblab/models';
+import type { ActionTarget, GroupContainer } from '@weblab/models/actions';
+import { EditorAttributes } from '@weblab/constants';
 
 import { getHtmlElement } from '../../../helpers';
 import { getOrAssignDomId } from '../../../helpers/ids';

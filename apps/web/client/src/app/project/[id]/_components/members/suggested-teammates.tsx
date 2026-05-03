@@ -1,8 +1,8 @@
 import { api } from '@/trpc/react';
-import { ProjectRole } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
+import { ProjectRole } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
 
 interface SuggestedTeammateProps {
     projectId: string;

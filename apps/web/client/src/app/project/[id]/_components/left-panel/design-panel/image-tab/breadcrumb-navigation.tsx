@@ -1,7 +1,7 @@
 'use client';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@onlook/ui/breadcrumb';
-import { Icons } from '@onlook/ui/icons';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@weblab/ui/breadcrumb';
+import { Icons } from '@weblab/ui/icons';
 import type { BreadcrumbSegment } from './types';
 
 interface BreadcrumbNavigationProps {

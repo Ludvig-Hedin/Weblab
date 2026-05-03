@@ -1,3 +1,3 @@
-import baseConfig from "@onlook/eslint/base";
+import baseConfig from "@weblab/eslint/base";
 
 export default [...baseConfig];

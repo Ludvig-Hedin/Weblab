@@ -1,8 +1,8 @@
 'use client';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { EditorAttributes } from '@onlook/constants';
-import { EditorMode } from '@onlook/models';
+import { EditorAttributes } from '@weblab/constants';
+import { EditorMode } from '@weblab/models';
 import { throttle } from 'lodash';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import { DragSelectOverlay } from './overlay/drag-select';
 import { PanOverlay } from './overlay/pan';
 import { RecenterCanvasButton } from './recenter-canvas-button';
 import { getFramesInSelection, getSelectedFrameData } from './selection-utils';
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 
 const ZOOM_SENSITIVITY = 0.006;
 const PAN_SENSITIVITY = 0.52;

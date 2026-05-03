@@ -1,4 +1,4 @@
-import type { CodeDiffRequest } from '@onlook/models/code';
+import type { CodeDiffRequest } from '@weblab/models/code';
 
 export async function getOrCreateCodeDiffRequest(
     oid: string,

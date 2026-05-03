@@ -2,8 +2,8 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { Button } from '@onlook/ui/button';
-import { NumberInput } from '@onlook/ui/number-input';
+import { Button } from '@weblab/ui/button';
+import { NumberInput } from '@weblab/ui/number-input';
 
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';

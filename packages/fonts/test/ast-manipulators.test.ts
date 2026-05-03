@@ -1,6 +1,6 @@
 import { describe } from 'bun:test';
-import { generate, parse } from '@onlook/parser';
-import type { Font } from '@onlook/models';
+import { generate, parse } from '@weblab/parser';
+import type { Font } from '@weblab/models';
 import {
     removeFontDeclaration,
     addFontToTailwindTheme,

@@ -4,9 +4,9 @@ import { observer } from 'mobx-react-lite';
 import { Tree } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 
-import { type LayerNode } from '@onlook/models/element';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
+import { type LayerNode } from '@weblab/models/element';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { RightClickMenu } from '../../../right-click-menu';

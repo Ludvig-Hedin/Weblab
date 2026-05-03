@@ -1,7 +1,7 @@
 import { type Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/server';

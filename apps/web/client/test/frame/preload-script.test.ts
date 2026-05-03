@@ -4,7 +4,7 @@ import {
     copyPreloadScriptToPublic,
     getPreloadScriptContent,
 } from '@/components/store/editor/sandbox/preload-script';
-import type { RouterConfig } from '@onlook/models';
+import type { RouterConfig } from '@weblab/models';
 
 const routerConfig = {
     type: 'app',

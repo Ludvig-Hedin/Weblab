@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
-import { Icons } from '@onlook/ui/icons';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@onlook/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { cn } from '@onlook/ui/utils';
+import { Icons } from '@weblab/ui/icons';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { RestartSandboxButton } from './restart-sandbox-button';

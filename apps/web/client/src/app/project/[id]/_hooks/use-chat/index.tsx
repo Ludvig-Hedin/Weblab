@@ -13,9 +13,9 @@ import type {
     GitMessageCheckpoint,
     MessageContext,
     QueuedMessage,
-} from '@onlook/models';
-import { ChatType } from '@onlook/models';
-import { jsonClone } from '@onlook/utility';
+} from '@weblab/models';
+import { ChatType } from '@weblab/models';
+import { jsonClone } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { handleToolCall } from '@/components/tools';

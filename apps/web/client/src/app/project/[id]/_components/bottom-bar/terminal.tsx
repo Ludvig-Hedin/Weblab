@@ -3,7 +3,7 @@
 import '@xterm/xterm/css/xterm.css';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { cn } from '@onlook/ui/utils';
+import { cn } from '@weblab/ui/utils';
 import { type ITheme } from '@xterm/xterm';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';

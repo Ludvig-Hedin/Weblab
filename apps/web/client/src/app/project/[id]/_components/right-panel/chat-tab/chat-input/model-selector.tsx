@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
-import type { ChatModel, LocalModelOption } from '@onlook/models';
-import { CHAT_MODEL_OPTIONS } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import type { ChatModel, LocalModelOption } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,9 +12,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 
 export const ModelSelector = ({
     value,

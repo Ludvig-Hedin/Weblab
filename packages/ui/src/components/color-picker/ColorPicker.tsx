@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import styled from '@emotion/styled';
 import tw from 'tailwind-styled-components';
 
-import { Color, mod } from '@onlook/utility';
+import { Color, mod } from '@weblab/utility';
 
 import { cn } from '../../utils';
 import { DraftableInput } from '../draftable-input';

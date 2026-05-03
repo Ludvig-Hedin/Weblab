@@ -4,9 +4,9 @@ import { env } from '@/env';
 import { Routes } from '@/utils/constants';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
-import { SEED_USER, users } from '@onlook/db';
-import { db } from '@onlook/db/src/client';
-import { SignInMethod } from '@onlook/models';
+import { SEED_USER, users } from '@weblab/db';
+import { db } from '@weblab/db/src/client';
+import { SignInMethod } from '@weblab/models';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 

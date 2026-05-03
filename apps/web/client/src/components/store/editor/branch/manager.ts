@@ -1,8 +1,8 @@
 import { api } from '@/trpc/client';
-import { CodeFileSystem } from '@onlook/file-system';
-import type { Branch, RouterType } from '@onlook/models';
-import { toast } from '@onlook/ui/sonner';
-import type { ParsedError } from '@onlook/utility';
+import { CodeFileSystem } from '@weblab/file-system';
+import type { Branch, RouterType } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
+import type { ParsedError } from '@weblab/utility';
 import { makeAutoObservable, reaction } from 'mobx';
 import type { EditorEngine } from '../engine';
 import { ErrorManager } from '../error';

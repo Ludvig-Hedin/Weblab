@@ -1,7 +1,7 @@
 import type { TextUIPart, ToolUIPart } from 'ai';
 import { encode } from 'gpt-tokenizer';
 
-import { type ChatMessage } from '@onlook/models';
+import { type ChatMessage } from '@weblab/models';
 
 export async function countTokensWithRoles(messages: ChatMessage[]): Promise<number> {
     const perMessageExtra = 4; // ~role + metadata tokens (OpenAI chat format)

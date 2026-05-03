@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 >
 > - All user-facing strings, UI copy, metadata, and i18n messages must use **"Weblab"**, not "Onlook".
 > - The brand constant is `APP_NAME = 'Weblab'` in `packages/constants/src/editor.ts` — always import it; never hardcode the name.
-> - Package scopes (`@onlook/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes still use the old name — **do not rename those** (Phase 2 work).
+> - Package scopes (`@weblab/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes still use the old name — **do not rename those** (Phase 2 work).
 > - If you encounter "Onlook" in user-visible text, treat it as a bug and replace it with `APP_NAME`.
 
 ## Commands
@@ -19,10 +19,10 @@ bun dev              # Start Next.js client (port 3000) via Turbo
 bun backend:start    # Start Supabase local backend
 
 # Build
-bun build            # Build @onlook/web-client for production
+bun build            # Build @weblab/web-client for production
 
 # Quality
-bun typecheck        # TypeScript check (scoped to @onlook/web-client)
+bun typecheck        # TypeScript check (scoped to @weblab/web-client)
 bun lint             # ESLint across all workspaces (max-warnings 0)
 bun format           # Auto-fix lint issues
 
@@ -56,14 +56,14 @@ Bun workspaces monorepo with four workspace directories:
 
 ### Key Shared Packages
 
-- **@onlook/ui** — Radix UI + TailwindCSS component library; prefer it over custom components
-- **@onlook/types** — Shared TypeScript types; import types from here, not re-declared locally
-- **@onlook/db** — Drizzle ORM schema + Postgres migrations (source of truth for DB types)
-- **@onlook/ai** — LLM integrations (OpenRouter primary, OpenAI fallback, Langfuse observability)
-- **@onlook/parser** — Babel-based JSX/TSX parser for code transformations
-- **@onlook/rpc** — tRPC interface definitions shared between client and server
-- **@onlook/penpal** — Cross-frame/iframe RPC (used for sandboxed code execution)
-- **@onlook/github** — Octokit-based GitHub API client
+- **@weblab/ui** — Radix UI + TailwindCSS component library; prefer it over custom components
+- **@weblab/types** — Shared TypeScript types; import types from here, not re-declared locally
+- **@weblab/db** — Drizzle ORM schema + Postgres migrations (source of truth for DB types)
+- **@weblab/ai** — LLM integrations (OpenRouter primary, OpenAI fallback, Langfuse observability)
+- **@weblab/parser** — Babel-based JSX/TSX parser for code transformations
+- **@weblab/rpc** — tRPC interface definitions shared between client and server
+- **@weblab/penpal** — Cross-frame/iframe RPC (used for sandboxed code execution)
+- **@weblab/github** — Octokit-based GitHub API client
 
 Changes to any package ripple into the 12+ dependent packages — scope changes narrowly.
 
@@ -111,7 +111,7 @@ Changes to any package ripple into the 12+ dependent packages — scope changes 
 ## Styling & UI
 
 - TailwindCSS 4.x-first; global styles imported in `src/app/layout.tsx`.
-- Prefer `@onlook/ui` components and local patterns over custom implementations.
+- Prefer `@weblab/ui` components and local patterns over custom implementations.
 - Preserve dark theme defaults via `ThemeProvider` in layout.
 
 ## Internationalization

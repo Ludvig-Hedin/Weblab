@@ -1,7 +1,7 @@
 'use client';
 
 import { api as clientApi } from '@/trpc/client';
-import type { GitHubOrganization, GitHubRepository } from '@onlook/github';
+import type { GitHubOrganization, GitHubRepository } from '@weblab/github';
 import { useState } from 'react';
 
 export const useGitHubData = () => {

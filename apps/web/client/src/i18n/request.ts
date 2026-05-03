@@ -1,4 +1,4 @@
-import { Language } from '@onlook/constants';
+import { Language } from '@weblab/constants';
 import { getRequestConfig } from 'next-intl/server';
 import { cookies, headers } from 'next/headers';
 

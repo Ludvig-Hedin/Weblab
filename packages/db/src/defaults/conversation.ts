@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Conversation as DbConversation } from '@onlook/db';
-import { AgentType } from '@onlook/models';
+import type { Conversation as DbConversation } from '@weblab/db';
+import { AgentType } from '@weblab/models';
 
 export const createDefaultConversation = (projectId: string): DbConversation => {
     return {

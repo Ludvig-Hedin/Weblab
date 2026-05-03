@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { Branch, BranchMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
+import type { Branch, BranchMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
 
 import { BranchContext } from '../../src/contexts/classes/branch';
 

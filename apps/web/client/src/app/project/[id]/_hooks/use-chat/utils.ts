@@ -1,5 +1,5 @@
 import type { EditorEngine } from '@/components/store/editor/engine';
-import { type ChatMessage, type GitMessageCheckpoint, type MessageContext, MessageCheckpointType } from "@onlook/models";
+import { type ChatMessage, type GitMessageCheckpoint, type MessageContext, MessageCheckpointType } from "@weblab/models";
 import { v4 as uuidv4 } from 'uuid';
 
 export const prepareMessagesForSuggestions = (messages: ChatMessage[]) => {

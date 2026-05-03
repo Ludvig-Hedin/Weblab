@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { DirectEditingInteractive } from '../../shared/mockups/direct-editing-interactive';
 
 

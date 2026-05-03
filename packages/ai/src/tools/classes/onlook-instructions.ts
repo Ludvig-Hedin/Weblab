@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import type { EditorEngine } from '@onlook/web-client/src/components/store/editor/engine';
-import { Icons } from '@onlook/ui/icons';
+import type { EditorEngine } from '@weblab/web-client/src/components/store/editor/engine';
+import { Icons } from '@weblab/ui/icons';
 
 import { ONLOOK_INSTRUCTIONS } from '../../prompt/constants';
 import { ClientTool } from '../models/client';

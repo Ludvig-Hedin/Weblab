@@ -1,5 +1,5 @@
-import { convertRawFont, FAMILIES } from '@onlook/fonts';
-import type { Font, RawFont } from '@onlook/models';
+import { convertRawFont, FAMILIES } from '@weblab/fonts';
+import type { Font, RawFont } from '@weblab/models';
 import * as FlexSearch from 'flexsearch';
 import { makeAutoObservable } from 'mobx';
 

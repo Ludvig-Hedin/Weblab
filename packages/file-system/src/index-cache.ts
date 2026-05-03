@@ -1,4 +1,4 @@
-import type { TemplateNode } from '@onlook/models';
+import type { TemplateNode } from '@weblab/models';
 
 export interface JsxElementMetadata extends TemplateNode {
     oid: string;

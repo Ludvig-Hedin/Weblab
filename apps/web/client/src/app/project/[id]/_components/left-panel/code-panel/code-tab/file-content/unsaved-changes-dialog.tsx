@@ -1,4 +1,4 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 
 interface UnsavedChangesDialogProps {
     onSave: () => Promise<void>;

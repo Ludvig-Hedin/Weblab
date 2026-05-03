@@ -1,6 +1,6 @@
-import type { ImageMessageContext } from '@onlook/models';
-import { MessageContextType } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
+import type { ImageMessageContext } from '@weblab/models';
+import { MessageContextType } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 
 import { BaseContext } from '../models/base';
 

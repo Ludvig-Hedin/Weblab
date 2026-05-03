@@ -1,13 +1,13 @@
 import { env } from '@/env';
 import { api } from '@/trpc/react';
-import type { ProjectInvitation } from '@onlook/db';
-import { constructInvitationLink } from '@onlook/email';
-import { Avatar, AvatarFallback } from '@onlook/ui/avatar';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
-import { getInitials } from '@onlook/utility';
+import type { ProjectInvitation } from '@weblab/db';
+import { constructInvitationLink } from '@weblab/email';
+import { Avatar, AvatarFallback } from '@weblab/ui/avatar';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { getInitials } from '@weblab/utility';
 import { useState } from 'react';
 
 export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation }) => {

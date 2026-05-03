@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/client';
-import type { Branch } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { timeAgo } from '@onlook/utility/src/time';
+import type { Branch } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { timeAgo } from '@weblab/utility/src/time';
 import { observer } from 'mobx-react-lite';
 import { useState } from 'react';
 import { toast } from 'sonner';

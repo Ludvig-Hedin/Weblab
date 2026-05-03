@@ -2,7 +2,7 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { InsertMode } from '@onlook/models';
+import { InsertMode } from '@weblab/models';
 import {
     CommandDialog,
     CommandEmpty,
@@ -11,8 +11,8 @@ import {
     CommandItem,
     CommandList,
     CommandShortcut,
-} from '@onlook/ui/command';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/command';
+import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
 

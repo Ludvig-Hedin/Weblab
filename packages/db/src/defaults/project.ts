@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import type { Project as DbProject } from '@onlook/db';
+import type { Project as DbProject } from '@weblab/db';
 
 export const createDefaultProject = ({
     overrides = {},

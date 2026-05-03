@@ -1,7 +1,7 @@
 "use client";
 import { WebsiteLayout } from '@/app/_components/website-layout';
-import { useReducedMotion } from '@onlook/ui/hooks';
-import { Icons } from '@onlook/ui/icons';
+import { useReducedMotion } from '@weblab/ui/hooks';
+import { Icons } from '@weblab/ui/icons';
 import { motion } from 'motion/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useParallaxCursor } from '../../hooks/use-parallax-cursor';
@@ -118,55 +118,17 @@ export default function AboutPage() {
                             Design deserves<br />better tools
                         </motion.h1>
 
-                        {/* Stats - shown below title on mobile/midsize, hidden on large screens */}
                         <motion.div
-                            className="block lg:hidden mb-24"
-                            {...getBlurAnimationProps(0.1)}
+                            className=" max-w-lg text-left"
+                            {...getBlurAnimationProps(0.2)}
                         >
-                            <div className="grid grid-cols-2 gap-y-6 gap-x-6 w-full">
-                                {/* Stat 1 */}
-                                <div className="text-left">
-                                    <div className="text-3xl font-light mb-1">{contributors !== null ? contributors.toLocaleString() : ''}</div>
-                                    <div className="text-regular text-foreground-tertiary/80">Open-Source<br />Contributors</div>
-                                </div>
-                                {/* Stat 2 */}
-                                <div className="text-left">
-                                    <div className="text-3xl font-light mb-1">3</div>
-                                    <div className="text-regular text-foreground-tertiary/80">Team members</div>
-                                </div>
-                            </div>
+                            <p className="text-lg md:text-large max-w-lg md:max-w-none text-foreground-secondary text-left font-light text-balance">
+                                Weblab was founded to obliterate the divide between creativity and implementation.<br /><br />
+                                For too long, the most brilliant creative teams have been severed by the complexity of tools.
+                                We're building a global movement, led by a passionate and highly technical team based in San Francisco called "The Odyssey" to build a bridge that will end the gap between creativity and implementation.<br /><br />
+                                If you're deeply opinionated about design, developer tools, and how AI can enhance the creative process, or are looking to be a part of an entirely new kind of organization, apply to join The Odyssey below.
+                            </p>
                         </motion.div>
-
-                        <div className="flex gap-12 flex-col md:flex-row md:items-start md:justify-between">
-                            <motion.div
-                                className=" max-w-lg text-left"
-                                {...getBlurAnimationProps(0.2)}
-                            >
-                                <p className="text-lg md:text-large max-w-lg md:max-w-none text-foreground-secondary text-left font-light text-balance">
-                                    Weblab was founded to obliterate the divide between creativity and implementation.<br /><br />
-                                    For too long, the most brilliant creative teams have been severed by the complexity of tools.
-                                    We're building a global movement, led by a passionate and highly technical team based in San Francisco called "The Odyssey" to build a bridge that will end the gap between creativity and implementation.<br /><br />
-                                    If you're deeply opinionated about design, developer tools, and how AI can enhance the creative process, or are looking to be a part of an entirely new kind of organization, apply to join The Odyssey below.
-                                </p>
-                            </motion.div>
-                            <motion.div
-                                className="flex flex-col mt-12 lg:mt-0 hidden lg:block md:w-[340px] md:ml-auto"
-                                {...getBlurAnimationProps(0.3)}
-                            >
-                                <div className="grid grid-cols-2 gap-y-12 gap-x-16 w-full">
-                                    {/* Stat 1 */}
-                                    <div className="text-left">
-                                        <div className="text-4xl font-light mb-2">{contributors !== null ? contributors.toLocaleString() : ''}</div>
-                                        <div className="text-regularPlus text-foreground-tertiary/80">Open-Source<br />Contributors</div>
-                                    </div>
-                                    {/* Stat 2 */}
-                                    <div className="text-left">
-                                        <div className="text-4xl font-light mb-2">3</div>
-                                        <div className="text-regularPlus text-foreground-tertiary/80">Team members</div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </div>
                     </div>
                 </section>
 
@@ -193,7 +155,7 @@ export default function AboutPage() {
                                 transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
                                 style={{ willChange: "opacity, filter", transform: "translateZ(0)" }}
                             >
-                                Frustrated with the status quo of creating software, Daniel and Kiet teamed up to give engineers, builders, designers, and product managers a new way to collaborate in code.
+                                Frustrated with the status quo of creating software, Ludvig set out to give engineers, builders, designers, and product managers a new way to collaborate in code.
                             </motion.p>
                             <motion.div
                                 className="flex justify-start mt-8"

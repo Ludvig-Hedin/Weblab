@@ -3,18 +3,18 @@
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-import { getSandboxPreviewUrl } from '@onlook/constants';
-import type { Project, User } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { getSandboxPreviewUrl } from '@weblab/constants';
+import type { Project, User } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@onlook/ui/tooltip';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from 'next/navigation';

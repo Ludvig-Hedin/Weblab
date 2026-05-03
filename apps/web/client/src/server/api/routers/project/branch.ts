@@ -1,8 +1,8 @@
-import { CodeProvider, getStaticCodeProvider } from '@onlook/code-provider';
-import { DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@onlook/constants';
-import { branches, branchInsertSchema, branchUpdateSchema, canvases, createDefaultFrame, frames, fromDbBranch, fromDbFrame } from '@onlook/db';
-import type { Frame } from '@onlook/models';
-import { calculateNonOverlappingPosition, generateUniqueBranchName } from '@onlook/utility';
+import { CodeProvider, getStaticCodeProvider } from '@weblab/code-provider';
+import { DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@weblab/constants';
+import { branches, branchInsertSchema, branchUpdateSchema, canvases, createDefaultFrame, frames, fromDbBranch, fromDbFrame } from '@weblab/db';
+import type { Frame } from '@weblab/models';
+import { calculateNonOverlappingPosition, generateUniqueBranchName } from '@weblab/utility';
 import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';

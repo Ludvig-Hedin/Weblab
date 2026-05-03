@@ -1,4 +1,4 @@
-import { Language } from '@onlook/constants';
+import { Language } from '@weblab/constants';
 import messages from '../messages/en.json';
 
 declare module 'next-intl' {

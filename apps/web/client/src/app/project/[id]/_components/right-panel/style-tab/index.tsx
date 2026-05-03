@@ -2,22 +2,22 @@
 
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { BrandTabValue, LeftPanelTabValue } from '@onlook/models';
-import type { ActionElement } from '@onlook/models/actions';
-import { Button } from '@onlook/ui/button';
-import { Input } from '@onlook/ui/input';
-import { ScrollArea } from '@onlook/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { Slider } from '@onlook/ui/slider';
-import { toast } from '@onlook/ui/sonner';
-import { Textarea } from '@onlook/ui/textarea';
-import { cn } from '@onlook/ui/utils';
+import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
+import type { ActionElement } from '@weblab/models/actions';
+import { Button } from '@weblab/ui/button';
+import { Input } from '@weblab/ui/input';
+import { ScrollArea } from '@weblab/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { Slider } from '@weblab/ui/slider';
+import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { cn } from '@weblab/ui/utils';
 import {
     getAutolayoutStyles,
     LayoutMode,
     LayoutProperty,
     parseModeAndValue,
-} from '@onlook/utility';
+} from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';

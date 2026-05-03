@@ -1,4 +1,4 @@
-import type { LayerNode } from '@onlook/models';
+import type { LayerNode } from '@weblab/models';
 
 export interface WindowMutatedData {
     added: Record<string, LayerNode>;

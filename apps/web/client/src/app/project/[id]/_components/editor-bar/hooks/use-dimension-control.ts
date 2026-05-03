@@ -5,7 +5,7 @@ import {
     LayoutProperty,
     parseModeAndValue,
     stringToParsedValue,
-} from '@onlook/utility';
+} from '@weblab/utility';
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback } from 'react';
 

@@ -1,15 +1,15 @@
-import type { Provider } from '@onlook/code-provider';
+import type { Provider } from '@weblab/code-provider';
 import {
     CUSTOM_OUTPUT_DIR,
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
     ONLOOK_PRELOAD_SCRIPT_FILE,
     SUPPORTED_LOCK_FILES
-} from '@onlook/constants';
-import type { Deployment, deploymentUpdateSchema } from '@onlook/db';
-import { addBuiltWithScript, injectBuiltWithScript } from '@onlook/growth';
-import { DeploymentStatus } from '@onlook/models';
-import { addNextBuildConfig } from '@onlook/parser';
+} from '@weblab/constants';
+import type { Deployment, deploymentUpdateSchema } from '@weblab/db';
+import { addBuiltWithScript, injectBuiltWithScript } from '@weblab/growth';
+import { DeploymentStatus } from '@weblab/models';
+import { addNextBuildConfig } from '@weblab/parser';
 import {
     convertToBase64,
     isBinaryFile,
@@ -18,7 +18,7 @@ import {
     LogTimer,
     updateGitignore,
     type FileOperations,
-} from '@onlook/utility';
+} from '@weblab/utility';
 import { type FreestyleFile } from 'freestyle-sandboxes';
 import type { z } from 'zod';
 

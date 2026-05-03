@@ -1,4 +1,4 @@
-import { previewDomains, projectCustomDomains, toDomainInfoFromPreview, toDomainInfoFromPublished } from '@onlook/db';
+import { previewDomains, projectCustomDomains, toDomainInfoFromPreview, toDomainInfoFromPublished } from '@weblab/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';

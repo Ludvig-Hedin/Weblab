@@ -5,11 +5,11 @@ import {
     parseFontDeclarations,
     removeFontDeclaration,
     validateGoogleFontSetup,
-} from '@onlook/fonts';
-import type { CodeDiff, Font } from '@onlook/models';
-import { RouterType } from '@onlook/models';
-import type { T } from '@onlook/parser';
-import { generate, getAstFromContent, t } from '@onlook/parser';
+} from '@weblab/fonts';
+import type { CodeDiff, Font } from '@weblab/models';
+import { RouterType } from '@weblab/models';
+import type { T } from '@weblab/parser';
+import { generate, getAstFromContent, t } from '@weblab/parser';
 import { camelCase } from 'lodash';
 import type { EditorEngine } from '../engine';
 import { normalizePath } from '../sandbox/helpers';

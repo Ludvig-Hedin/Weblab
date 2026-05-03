@@ -1,10 +1,10 @@
 'use client';
 
 import { api } from '@/trpc/react';
-import { Tags } from '@onlook/constants';
-import type { Project } from '@onlook/models';
-import { DropdownMenuItem } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+import { Tags } from '@weblab/constants';
+import type { Project } from '@weblab/models';
+import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { toast } from 'sonner';
 
 export function CreateTemplate({ project, refetch }: { project: Project; refetch: () => void }) {

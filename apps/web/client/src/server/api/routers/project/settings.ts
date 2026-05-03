@@ -2,7 +2,7 @@ import {
     projectSettings,
     projectSettingsInsertSchema,
     fromDbProjectSettings
-} from '@onlook/db';
+} from '@weblab/db';
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';

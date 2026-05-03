@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { type Frame, projects, userProjects, type DrizzleDb } from "@onlook/db";
+import { type Frame, projects, userProjects, type DrizzleDb } from "@weblab/db";
 
 /** Type representing a db instance or transaction that has query capabilities */
 type DbOrTx = Pick<DrizzleDb, 'query'>;

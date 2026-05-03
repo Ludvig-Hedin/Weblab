@@ -8,7 +8,7 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 >
 > - All user-facing strings, UI copy, page metadata, and i18n message files must use **"Weblab"** — never "Onlook".
 > - The single source of truth is `APP_NAME = 'Weblab'` exported from `packages/constants/src/editor.ts`. Always import it; never hardcode the brand name as a string literal.
-> - Package scopes (`@onlook/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes intentionally still use the old identifier — **do not rename these** (they are Phase 2 work).
+> - Package scopes (`@weblab/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes intentionally still use the old identifier — **do not rename these** (they are Phase 2 work).
 > - If you find "Onlook" in any user-visible text (UI, metadata, i18n JSON), that is a bug — replace with `{APP_NAME}` (JSX) or `${APP_NAME}` (template literal) after importing the constant.
 
 ### Purpose & Scope
@@ -113,7 +113,7 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 
 - TailwindCSS-first styling; global styles are already imported in
   `apps/web/client/src/app/layout.tsx`.
-- Prefer existing UI components from `@onlook/ui` and local patterns.
+- Prefer existing UI components from `@weblab/ui` and local patterns.
 - Preserve dark theme defaults via `ThemeProvider` usage in layout.
 
 ### Internationalization

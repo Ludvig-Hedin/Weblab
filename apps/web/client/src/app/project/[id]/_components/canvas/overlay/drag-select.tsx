@@ -1,6 +1,6 @@
 'use client';
 
-import { colors } from '@onlook/ui/tokens';
+import { colors } from '@weblab/ui/tokens';
 import { observer } from 'mobx-react-lite';
 
 interface DragSelectOverlayProps {

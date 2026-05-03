@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { index, pgEnum, pgTable, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
-import { UsageType } from '@onlook/models';
+import { UsageType } from '@weblab/models';
 
 import { users } from '../user';
 

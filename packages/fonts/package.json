@@ -1,5 +1,5 @@
 {
-    "name": "@onlook/fonts",
+    "name": "@weblab/fonts",
     "description": "Onlook supported fonts",
     "version": "0.0.0",
     "repository": {
@@ -29,12 +29,12 @@
         "./*": "./src/*/index.ts"
     },
     "devDependencies": {
-        "@onlook/eslint": "*",
-        "@onlook/typescript": "*",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "eslint": "^9.0.0",
         "typescript": "^5.5.4"
     },
     "dependencies": {
-        "@onlook/parser": "*"
+        "@weblab/parser": "*"
     }
 }

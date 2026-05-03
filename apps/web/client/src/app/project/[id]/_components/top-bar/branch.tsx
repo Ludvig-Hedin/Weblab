@@ -1,12 +1,12 @@
 import { useEditorEngine } from "@/components/store/editor";
-import { Button } from "@onlook/ui/button";
+import { Button } from "@weblab/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuSeparator,
     DropdownMenuTrigger
-} from "@onlook/ui/dropdown-menu";
-import { Icons } from "@onlook/ui/icons";
+} from "@weblab/ui/dropdown-menu";
+import { Icons } from "@weblab/ui/icons";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { BranchControls } from "../branch/branch-controls";

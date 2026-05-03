@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import type { CssValue } from '.';

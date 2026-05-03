@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, test } from 'bun:test';
 
-import { JS_FILE_EXTENSIONS } from '@onlook/constants';
-import { type FileOperations } from '@onlook/utility';
+import { JS_FILE_EXTENSIONS } from '@weblab/constants';
+import { type FileOperations } from '@weblab/utility';
 
 import { getAstFromContent, getContentFromAst } from '../src';
 import { addNextBuildConfig } from '../src/code-edit/next-config';

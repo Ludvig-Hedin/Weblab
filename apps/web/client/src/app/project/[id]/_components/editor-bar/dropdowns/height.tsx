@@ -1,10 +1,10 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import { ToolbarButton } from '../toolbar-button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { LayoutMode } from '@onlook/utility';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { LayoutMode } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useDimensionControl } from '../hooks/use-dimension-control';
 import { useDropdownControl } from '../hooks/use-dropdown-manager';

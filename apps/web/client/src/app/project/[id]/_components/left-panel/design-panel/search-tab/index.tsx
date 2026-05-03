@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { LeftPanelTabValue } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { LeftPanelTabValue } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Input } from '@onlook/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@onlook/ui/popover';
-import { ToggleGroup, ToggleGroupItem } from '@onlook/ui/toggle-group';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { SearchResultRow } from './search-result-row';

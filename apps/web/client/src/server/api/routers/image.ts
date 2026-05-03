@@ -1,4 +1,4 @@
-import { compressImageServer, type CompressionOptions, type CompressionResult } from '@onlook/image-server';
+import { compressImageServer, type CompressionOptions, type CompressionResult } from '@weblab/image-server';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 

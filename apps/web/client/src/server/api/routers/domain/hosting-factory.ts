@@ -1,4 +1,4 @@
-import { HostingProvider, type HostingProviderAdapter } from '@onlook/models';
+import { HostingProvider, type HostingProviderAdapter } from '@weblab/models';
 import { FreestyleAdapter } from './adapters/freestyle';
 
 export class HostingProviderFactory {

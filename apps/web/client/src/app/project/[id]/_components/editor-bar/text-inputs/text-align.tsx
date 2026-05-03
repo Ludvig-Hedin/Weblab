@@ -1,13 +1,13 @@
 'use client';
 
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
 import { observer } from 'mobx-react-lite';
 import { useTextControl, type TextAlign } from '../hooks/use-text-control';
 import { useDropdownControl } from '../hooks/use-dropdown-manager';

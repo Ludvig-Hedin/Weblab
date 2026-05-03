@@ -1,5 +1,5 @@
 import { useEditorEngine } from '@/components/store/editor';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { useEffect, useState } from 'react';
 import type { CssValue } from '.';
 import { InputRadio } from '../../inputs/input-radio';

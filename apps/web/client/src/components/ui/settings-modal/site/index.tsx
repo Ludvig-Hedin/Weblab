@@ -1,10 +1,10 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
-import { DefaultSettings } from '@onlook/constants';
-import { type PageMetadata } from '@onlook/models';
-import { Icons } from '@onlook/ui/icons';
-import { toast } from '@onlook/ui/sonner';
-import { createSecureUrl } from '@onlook/utility';
+import { DefaultSettings } from '@weblab/constants';
+import { type PageMetadata } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
+import { createSecureUrl } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import { useMemo, useState } from 'react';
 import { MetadataForm } from './metadata-form';

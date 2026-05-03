@@ -1,9 +1,9 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { useGetBackground } from '@/hooks/use-get-background';
-import { Card, CardDescription, CardHeader, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
+import { Card, CardDescription, CardHeader, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
 import { useRouter } from 'next/navigation';
 import { TopBar } from '../_components/top-bar';
 

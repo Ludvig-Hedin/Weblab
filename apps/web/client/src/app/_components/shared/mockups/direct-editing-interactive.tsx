@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Icons } from '@onlook/ui/icons';
+import { Icons } from '@weblab/ui/icons';
 import { Illustrations } from '../../landing-page/illustrations';
 
 function DraggableElement({

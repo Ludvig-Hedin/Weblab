@@ -1,17 +1,17 @@
 import { useEditorEngine } from '@/components/store/editor';
 import { isFolderNode, isPageNode } from '@/components/store/editor/pages/helper';
-import { LeftPanelTabValue, type Frame, type PageNode } from '@onlook/models';
-import { Button } from '@onlook/ui/button';
+import { LeftPanelTabValue, type Frame, type PageNode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@onlook/ui/dropdown-menu';
-import { Icons } from '@onlook/ui/icons';
-import { Separator } from '@onlook/ui/separator';
-import { cn } from '@onlook/ui/utils';
-import { inferPageFromUrl, pathsEqual } from '@onlook/utility';
+} from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Separator } from '@weblab/ui/separator';
+import { cn } from '@weblab/ui/utils';
+import { inferPageFromUrl, pathsEqual } from '@weblab/utility';
 import { observer } from 'mobx-react-lite';
 import React, { useMemo, useState } from 'react';
 import { HoverOnlyTooltip } from '../../../editor-bar/hover-tooltip';

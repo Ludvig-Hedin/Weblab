@@ -3,7 +3,7 @@ import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { DeploymentStatus, DeploymentType } from '@onlook/models';
+import { DeploymentStatus, DeploymentType } from '@weblab/models';
 
 import { projects } from '../project';
 import { users } from '../user/user';

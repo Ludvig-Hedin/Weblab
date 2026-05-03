@@ -1,4 +1,4 @@
-import type { PageEditorSettings, PageMetadata, PageNode } from '@onlook/models/pages';
+import type { PageEditorSettings, PageMetadata, PageNode } from '@weblab/models/pages';
 import { makeAutoObservable } from 'mobx';
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';

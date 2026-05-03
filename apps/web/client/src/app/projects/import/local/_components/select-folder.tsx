@@ -3,11 +3,11 @@ import {
     type NextJsProjectValidation,
     type ProcessedFile,
 } from '@/app/projects/types';
-import { APP_NAME, IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@onlook/constants';
-import { Button } from '@onlook/ui/button';
-import { CardDescription, CardTitle } from '@onlook/ui/card';
-import { Icons } from '@onlook/ui/icons';
-import { isBinaryFile } from '@onlook/utility';
+import { APP_NAME, IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { CardDescription, CardTitle } from '@weblab/ui/card';
+import { Icons } from '@weblab/ui/icons';
+import { isBinaryFile } from '@weblab/utility';
 import { motion } from 'motion/react';
 import { useCallback, useRef, useState } from 'react';
 import { StepContent, StepFooter, StepHeader } from '../../steps';

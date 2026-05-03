@@ -1,4 +1,4 @@
-import { Button } from '@onlook/ui/button';
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,10 +6,10 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@onlook/ui/dialog';
-import { Input } from '@onlook/ui/input';
-import { Label } from '@onlook/ui/label';
-import { cn } from '@onlook/ui/utils';
+} from '@weblab/ui/dialog';
+import { Input } from '@weblab/ui/input';
+import { Label } from '@weblab/ui/label';
+import { cn } from '@weblab/ui/utils';
 import path from 'path';
 import { useEffect, useMemo, useState } from 'react';
 import { getFileTemplate } from '../shared/file-templates';

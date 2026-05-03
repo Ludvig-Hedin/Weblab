@@ -1,7 +1,7 @@
 'use client';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@onlook/ui/select';
-import { cn } from '@onlook/ui/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { cn } from '@weblab/ui/utils';
 
 export interface SelectFieldOption {
     value: string;

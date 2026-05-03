@@ -1,10 +1,10 @@
 'use client';
-import { APP_NAME } from '@onlook/constants';
+import { APP_NAME } from '@weblab/constants';
 
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
-import { ExternalRoutes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 import { BuilderFeaturesHero } from '../../_components/hero/builder-features-hero';
 import { BuilderBenefitsSection } from '../../_components/landing-page/builder-benefits-section';
 import { CTASection } from '../../_components/landing-page/cta-section';
@@ -77,8 +77,8 @@ export default function BuilderFeaturesPage() {
                 <BuilderFeaturesGridSection />
                 <CTASection
                     ctaText={`Bring your team \nto ${APP_NAME} today`}
-                    buttonText="Book a Demo"
-                    href={ExternalRoutes.BOOK_DEMO}
+                    buttonText="Get Started"
+                    href={Routes.PROJECTS}
                 />
                 <FAQSection faqs={builderFaqs} />
                 <NonProjectSettingsModal />
