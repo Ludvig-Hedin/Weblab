@@ -613,7 +613,7 @@ export class InsertManager {
                     targetDomId: parentDomId,
                     targetOid: null,
                 },
-                editText: null,
+                editText: false,
                 pasteParams: null,
                 codeBlock: null,
             };
