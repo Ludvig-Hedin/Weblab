@@ -5,6 +5,6 @@ export default function Layout() {
             <body className="custom">
                 <main />
             
-        <Script src="https://cdn.jsdelivr.net/gh/onlook-dev/onlook@d3887f2/apps/web/client/public/onlook-preload-script.js" strategy="afterInteractive" type="module" id="onlook-preload-script"></Script>
+        <Script src="https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@main/apps/web/client/public/weblab-preload-script.js" strategy="afterInteractive" type="module" id="weblab-preload-script"></Script>
       </body>
         </html>);}

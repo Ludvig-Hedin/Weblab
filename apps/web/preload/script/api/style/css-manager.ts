@@ -13,9 +13,9 @@ class CSSManager {
     public injectDefaultStyles() {
         try {
             const styleElement = document.createElement('style');
-            styleElement.id = EditorAttributes.ONLOOK_STYLESHEET_ID;
+            styleElement.id = EditorAttributes.WEBLAB_STYLESHEET_ID;
             styleElement.textContent = `
-            [${EditorAttributes.DATA_ONLOOK_EDITING_TEXT}="true"] {
+            [${EditorAttributes.DATA_WEBLAB_EDITING_TEXT}="true"] {
                 opacity: 0;
             }
             nextjs-portal {
@@ -37,7 +37,7 @@ class CSSManager {
 
     private get stylesheet(): CssNode {
         const styleElement: HTMLStyleElement = (document.getElementById(
-            EditorAttributes.ONLOOK_STYLESHEET_ID,
+            EditorAttributes.WEBLAB_STYLESHEET_ID,
         ) || this.createStylesheet()) as HTMLStyleElement;
         styleElement.textContent = styleElement.textContent || '';
         return parse(styleElement.textContent);
@@ -45,14 +45,14 @@ class CSSManager {
 
     private set stylesheet(ast: CssNode) {
         const styleElement: HTMLStyleElement = (document.getElementById(
-            EditorAttributes.ONLOOK_STYLESHEET_ID,
+            EditorAttributes.WEBLAB_STYLESHEET_ID,
         ) || this.createStylesheet()) as HTMLStyleElement;
         styleElement.textContent = generate(ast);
     }
 
     private createStylesheet(): HTMLStyleElement {
         const styleElement = document.createElement('style');
-        styleElement.id = EditorAttributes.ONLOOK_STYLESHEET_ID;
+        styleElement.id = EditorAttributes.WEBLAB_STYLESHEET_ID;
         document.head.appendChild(styleElement);
         return styleElement;
     }

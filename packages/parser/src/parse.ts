@@ -69,7 +69,7 @@ export function removeIdsFromAst(ast: T.File) {
             }
             const attributes = path.node.attributes;
             const existingAttrIndex = attributes.findIndex(
-                (attr: any) => attr.name?.name === EditorAttributes.DATA_ONLOOK_ID,
+                (attr: any) => attr.name?.name === EditorAttributes.DATA_WEBLAB_ID,
             );
 
             if (existingAttrIndex !== -1) {
@@ -81,7 +81,7 @@ export function removeIdsFromAst(ast: T.File) {
                 const value = path.node.value;
                 if (
                     t.isStringLiteral(value) &&
-                    value.value.startsWith(EditorAttributes.ONLOOK_MOVE_KEY_PREFIX)
+                    value.value.startsWith(EditorAttributes.WEBLAB_MOVE_KEY_PREFIX)
                 ) {
                     return path.remove();
                 }

@@ -42,7 +42,7 @@ export function startDrag(domId: string): number | null {
               };
 
     el.setAttribute(
-        EditorAttributes.DATA_ONLOOK_DRAG_START_POSITION,
+        EditorAttributes.DATA_WEBLAB_DRAG_START_POSITION,
         JSON.stringify({ ...pos, offset }),
     );
     return originalIndex;
@@ -58,7 +58,7 @@ export function dragAbsolute(domId: string, x: number, y: number, origin: Elemen
     const parent = el.parentElement;
     if (parent) {
         const pos = JSON.parse(
-            el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_START_POSITION) || '{}',
+            el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_START_POSITION) || '{}',
         );
 
         const parentRect = parent.getBoundingClientRect();
@@ -81,7 +81,7 @@ export function drag(domId: string, dx: number, dy: number, x: number, y: number
     }
 
     const pos = JSON.parse(
-        el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_START_POSITION) || '{}',
+        el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_START_POSITION) || '{}',
     );
 
     if (el.style.position !== 'fixed') {
@@ -158,7 +158,7 @@ export function endDrag(domId: string): {
 }
 
 function prepareElementForDragging(el: HTMLElement) {
-    const saved = el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_SAVED_STYLE);
+    const saved = el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE);
     if (saved) {
         return;
     }
@@ -173,23 +173,23 @@ function prepareElementForDragging(el: HTMLElement) {
         top: el.style.top,
     };
 
-    el.setAttribute(EditorAttributes.DATA_ONLOOK_DRAG_SAVED_STYLE, JSON.stringify(style));
-    el.setAttribute(EditorAttributes.DATA_ONLOOK_DRAGGING, 'true');
+    el.setAttribute(EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE, JSON.stringify(style));
+    el.setAttribute(EditorAttributes.DATA_WEBLAB_DRAGGING, 'true');
 
     // Ensure element appears above others during drag
     el.style.zIndex = '1000';
 
-    if (el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_DIRECTION) !== null) {
+    if (el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_DIRECTION) !== null) {
         const parent = el.parentElement;
         if (parent) {
             const displayDirection = getDisplayDirection(parent);
-            el.setAttribute(EditorAttributes.DATA_ONLOOK_DRAG_DIRECTION, displayDirection);
+            el.setAttribute(EditorAttributes.DATA_WEBLAB_DRAG_DIRECTION, displayDirection);
         }
     }
 }
 
 function getDragElement(): HTMLElement | undefined {
-    const el = document.querySelector(`[${EditorAttributes.DATA_ONLOOK_DRAGGING}]`);
+    const el = document.querySelector(`[${EditorAttributes.DATA_WEBLAB_DRAGGING}]`);
     if (!el) {
         return;
     }
@@ -203,10 +203,10 @@ function cleanUpElementAfterDragging(el: HTMLElement) {
 }
 
 function removeDragAttributes(el: HTMLElement) {
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_DRAG_SAVED_STYLE);
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_DRAGGING);
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_DRAG_DIRECTION);
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_DRAG_START_POSITION);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DRAGGING);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DRAG_DIRECTION);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DRAG_START_POSITION);
 }
 
 function getAbsolutePosition(element: HTMLElement) {
@@ -219,7 +219,7 @@ function getAbsolutePosition(element: HTMLElement) {
 
 export function endAllDrag() {
     const draggingElements = document.querySelectorAll(
-        `[${EditorAttributes.DATA_ONLOOK_DRAGGING}]`,
+        `[${EditorAttributes.DATA_WEBLAB_DRAGGING}]`,
     );
     for (const el of Array.from(draggingElements)) {
         cleanUpElementAfterDragging(el as HTMLElement);

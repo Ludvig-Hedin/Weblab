@@ -82,7 +82,7 @@ export function stopEditingText(domId: string): { newContent: string; domEl: Dom
 }
 
 function prepareElementForEditing(el: HTMLElement) {
-    el.setAttribute(EditorAttributes.DATA_ONLOOK_EDITING_TEXT, 'true');
+    el.setAttribute(EditorAttributes.DATA_WEBLAB_EDITING_TEXT, 'true');
 }
 
 function cleanUpElementAfterEditing(el: HTMLElement) {
@@ -91,7 +91,7 @@ function cleanUpElementAfterEditing(el: HTMLElement) {
 }
 
 function removeEditingAttributes(el: HTMLElement) {
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_EDITING_TEXT);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_EDITING_TEXT);
 }
 
 function updateTextContent(el: HTMLElement, content: string): void {

@@ -12,7 +12,7 @@ export function createStub(el: HTMLElement) {
     const styles = window.getComputedStyle(el);
     const className = el.className;
 
-    stub.id = EditorAttributes.ONLOOK_STUB_ID;
+    stub.id = EditorAttributes.WEBLAB_STUB_ID;
     stub.style.width = styles.width;
     stub.style.height = styles.height;
     stub.style.margin = styles.margin;
@@ -25,7 +25,7 @@ export function createStub(el: HTMLElement) {
 }
 
 export function moveStub(el: HTMLElement, x: number, y: number) {
-    const stub = document.getElementById(EditorAttributes.ONLOOK_STUB_ID);
+    const stub = document.getElementById(EditorAttributes.WEBLAB_STUB_ID);
     if (!stub) {
         return;
     }
@@ -35,7 +35,7 @@ export function moveStub(el: HTMLElement, x: number, y: number) {
         return;
     }
 
-    let displayDirection = el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_DIRECTION);
+    let displayDirection = el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_DIRECTION);
     if (!displayDirection) {
         displayDirection = getDisplayDirection(parent);
     }
@@ -77,7 +77,7 @@ export function moveStub(el: HTMLElement, x: number, y: number) {
 }
 
 export function removeStub() {
-    const stub = document.getElementById(EditorAttributes.ONLOOK_STUB_ID);
+    const stub = document.getElementById(EditorAttributes.WEBLAB_STUB_ID);
     if (!stub) {
         return;
     }
@@ -85,7 +85,7 @@ export function removeStub() {
 }
 
 export function getCurrentStubIndex(parent: HTMLElement, el: HTMLElement): number {
-    const stub = document.getElementById(EditorAttributes.ONLOOK_STUB_ID);
+    const stub = document.getElementById(EditorAttributes.WEBLAB_STUB_ID);
     if (!stub) {
         return -1;
     }

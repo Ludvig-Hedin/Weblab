@@ -9,7 +9,7 @@ import {
     scanForPreloadScript,
 } from 'src';
 
-import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
+import { DEPRECATED_PRELOAD_SCRIPT_SRCS, WEBLAB_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
 
 const __dirname = import.meta.dir;
 
@@ -20,7 +20,7 @@ export default function Document() {
     return (
         <html>
             <head>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
                 <Script type="module" src="${DEPRECATED_PRELOAD_SCRIPT_SRCS[0]}" />
             </head>
             <body>
@@ -37,7 +37,7 @@ export default function Document() {
         const result = await getContentFromAst(ast, input);
 
         // Current environment script should remain
-        expect(result).toContain(`src="${ONLOOK_PRELOAD_SCRIPT_SRC}"`);
+        expect(result).toContain(`src="${WEBLAB_PRELOAD_SCRIPT_SRC}"`);
         // Deprecated script for current environment should be removed
         expect(result).not.toContain(`src="${DEPRECATED_PRELOAD_SCRIPT_SRCS[0]}"`);
         // Other deprecated scripts should also be removed
@@ -50,7 +50,7 @@ export default function Document() {
     return (
         <html>
             <body>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
             </body>
         </html>
     );
@@ -72,7 +72,7 @@ export default function Document() {
     return (
         <html>
             <body>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
                 <Script type="module" src="${DEPRECATED_PRELOAD_SCRIPT_SRCS[0]}" />
             </body>
         </html>
@@ -96,7 +96,7 @@ export default function Document() {
     return (
         <html>
             <body>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
             </body>
         </html>
     );
@@ -121,7 +121,7 @@ export default function Document() {
     return (
         <html>
             <head>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
                 <Script type="module" src="https://example.com/other-script.js" />
             </head>
             <body>
@@ -138,7 +138,7 @@ export default function Document() {
         const result = await getContentFromAst(ast, input);
 
         // Should keep both scripts since neither is deprecated
-        expect(result).toContain(`src="${ONLOOK_PRELOAD_SCRIPT_SRC}"`);
+        expect(result).toContain(`src="${WEBLAB_PRELOAD_SCRIPT_SRC}"`);
         expect(result).toContain('src="https://example.com/other-script.js"');
     });
 
@@ -148,7 +148,7 @@ export default function Document() {
     return (
         <html>
             <head>
-                <Script type="module" src="${ONLOOK_PRELOAD_SCRIPT_SRC}" />
+                <Script type="module" src="${WEBLAB_PRELOAD_SCRIPT_SRC}" />
                 <Script type="module" src="${DEPRECATED_PRELOAD_SCRIPT_SRCS[0]}" />
             </head>
             <body>
@@ -165,7 +165,7 @@ export default function Document() {
         const result = await getContentFromAst(ast, input);
 
         // Should keep the current script
-        expect(result).toContain(`src="${ONLOOK_PRELOAD_SCRIPT_SRC}"`);
+        expect(result).toContain(`src="${WEBLAB_PRELOAD_SCRIPT_SRC}"`);
         // Should remove deprecated scripts
         expect(result).not.toContain(`src="${DEPRECATED_PRELOAD_SCRIPT_SRCS[0]}"`);
     });
@@ -258,7 +258,7 @@ describe('scanForPreloadScript', () => {
     }
 
     test('should handle exactly one valid script in body as injected correctly', () => {
-        const bodyWithScript = createScriptElement(ONLOOK_PRELOAD_SCRIPT_SRC, 'body');
+        const bodyWithScript = createScriptElement(WEBLAB_PRELOAD_SCRIPT_SRC, 'body');
         const ast = createComponentWithJSX(bodyWithScript);
 
         const result = scanForPreloadScript(ast);
@@ -269,7 +269,7 @@ describe('scanForPreloadScript', () => {
     });
 
     test('should handle valid script outside body as not injected correctly', () => {
-        const scriptElement = createScriptElement(ONLOOK_PRELOAD_SCRIPT_SRC);
+        const scriptElement = createScriptElement(WEBLAB_PRELOAD_SCRIPT_SRC);
         const divWithScript = t.jsxElement(
             t.jsxOpeningElement(t.jsxIdentifier('div'), [], false),
             t.jsxClosingElement(t.jsxIdentifier('div')),

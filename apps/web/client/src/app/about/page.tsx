@@ -89,14 +89,11 @@ export default function AboutPage() {
                 </p>
                 <h2>Company Facts</h2>
                 <ul>
-                    <li>90+ open-source contributors</li>
-                    <li>3 team members</li>
                     <li>Based in San Francisco, California</li>
                 </ul>
-                <h2>Founders</h2>
+                <h2>Founder</h2>
                 <ul>
-                    <li>Daniel Farrell — Design & Growth. Designer for over a decade, first 100 employee at Bird, former Head of Growth.</li>
-                    <li>Kiet Ho — Engineering. Ex-Amazon, maintained the design system at ServiceNow.</li>
+                    <li>Ludvig Hedin — Founder.</li>
                 </ul>
                 <h2>Our Values</h2>
                 <ul>
@@ -170,49 +167,22 @@ export default function AboutPage() {
                                 </ButtonLink>
                             </motion.div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-12">
-                            {/* Founder 1 */}
+                        <div className="grid grid-cols-1 gap-x-16 gap-y-12">
+                            {/* Founder */}
                             <motion.div
                                 className="flex gap-8 items-start rounded-2xl"
                                 {...getBlurAnimationProps(0.7)}
                             >
-                                <img src="/assets/about-daniel.png" alt="Daniel Farrell" className="w-28 h-28 rounded-2xl object-cover bg-neutral-800 flex-shrink-0" />
+                                <img src="https://media.licdn.com/dms/image/v2/D4D03AQHqRctd79-hsA/profile-displayphoto-scale_400_400/B4DZwtkKUzJsAk-/0/1770290980803?e=1779321600&v=beta&t=h5p7iJBnHKbyO0BgMBunltmLzYdrKXWkN0CXb6h7lb4" alt="Ludvig Hedin" className="w-28 h-28 rounded-2xl object-cover bg-neutral-800 flex-shrink-0" />
                                 <div className="flex flex-col">
-                                    <h4 className="text-title3 md:text-largePlus mb-1">Daniel Farrell</h4>
-                                    <p className="text-foreground-secondary mb-4 text-large md:text-regular">Design & Growth</p>
-                                    <p className="text-foreground-secondary text-lg md:text-sm font-light mb-5 max-w-xs text-balance">Designer for over a decade, First 100 employee at Bird, former Head of Growth.</p>
+                                    <h4 className="text-title3 md:text-largePlus mb-1">Ludvig Hedin</h4>
+                                    <p className="text-foreground-secondary mb-4 text-large md:text-regular">Founder</p>
                                     <div className="flex md:gap-3 gap-6 items-center">
-                                        <a href="https://github.com/drfarrell" target="_blank" rel="noopener noreferrer" aria-label="Daniel's GitHub">
+                                        <a href="https://github.com/Ludvig-Hedin" target="_blank" rel="noopener noreferrer" aria-label="Ludvig's GitHub">
                                             <Icons.GitHubLogo className="w-6.5 md:w-4.5 h-6.5 md:h-4.5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                                         </a>
-                                        <a href="https://www.linkedin.com/in/danielrfarrell/" target="_blank" rel="noopener noreferrer" aria-label="Daniel's LinkedIn">
+                                        <a href="https://www.linkedin.com/in/ludvig-hedin-058bba194/" target="_blank" rel="noopener noreferrer" aria-label="Ludvig's LinkedIn">
                                             <Icons.SocialLinkedIn className="w-7 md:w-5 h-7 md:h-5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                                        </a>
-                                        <a href="https://x.com/D_R_Farrell" target="_blank" rel="noopener noreferrer" aria-label="Daniel's X">
-                                            <Icons.SocialX className="w-7 md:w-5 h-7 md:h-5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                                        </a>
-                                    </div>
-                                </div>
-                            </motion.div>
-                            {/* Founder 2 */}
-                            <motion.div
-                                className="flex gap-8 items-start rounded-2xl"
-                                {...getBlurAnimationProps(0.9)}
-                            >
-                                <img src="/assets/about-kiet.png" alt="Kiet Ho" className="w-28 h-28 rounded-2xl object-cover bg-neutral-800 flex-shrink-0" />
-                                <div className="flex flex-col">
-                                    <h4 className="text-title3 md:text-largePlus mb-1">Kiet Ho</h4>
-                                    <p className="text-foreground-secondary mb-4 text-large md:text-regular">Engineering</p>
-                                    <p className="text-foreground-secondary text-lg md:text-sm font-light mb-5 max-w-xs text-balance">Ex-Amazon, maintained the design system at ServiceNow, jiu-jitsu fighter.</p>
-                                    <div className="flex md:gap-3 gap-6 items-center">
-                                        <a href="https://github.com/Kitenite" target="_blank" rel="noopener noreferrer" aria-label="Kiet's GitHub">
-                                            <Icons.GitHubLogo className="w-6.5 md:w-4.5 h-6.5 md:h-4.5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                                        </a>
-                                        <a href="https://www.linkedin.com/in/kiet-ho/" target="_blank" rel="noopener noreferrer" aria-label="Kiet's LinkedIn">
-                                            <Icons.SocialLinkedIn className="w-7 md:w-5 h-7 md:h-5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                                        </a>
-                                        <a href="https://x.com/flyakiet" target="_blank" rel="noopener noreferrer" aria-label="Kiet's X">
-                                            <Icons.SocialX className="w-7 md:w-5 h-7 md:h-5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                                         </a>
                                     </div>
                                 </div>

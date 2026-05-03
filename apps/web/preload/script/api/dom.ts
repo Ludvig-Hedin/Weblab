@@ -25,7 +25,7 @@ function processDomDebounced(root: HTMLElement = document.body): ProcessDomResul
         return null;
     }
 
-    const rootDomId = root.getAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID);
+    const rootDomId = root.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID);
     if (!rootDomId) {
         console.warn('Root dom id not found');
         return null;
@@ -112,7 +112,7 @@ export function buildLayerTree(root: HTMLElement): Map<string, LayerNode> | null
         // Get parent's domId
         const parentElement = (currentNode as HTMLElement).parentElement;
         if (parentElement) {
-            const parentDomId = parentElement.getAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID);
+            const parentDomId = parentElement.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID);
             if (parentDomId) {
                 layerNode.parent = parentDomId;
 
@@ -141,7 +141,7 @@ function processNode(node: HTMLElement): LayerNode {
         .trim()
         .slice(0, 500);
     const style = window.getComputedStyle(node);
-    const component = node.getAttribute(EditorAttributes.DATA_ONLOOK_COMPONENT_NAME);
+    const component = node.getAttribute(EditorAttributes.DATA_WEBLAB_COMPONENT_NAME);
     const tagName = node.tagName.toLowerCase();
     const htmlId = node.getAttribute('id');
     const hasCustomAttributes = Array.from(node.attributes).some((attribute) => {
@@ -149,7 +149,7 @@ function processNode(node: HTMLElement): LayerNode {
             attribute.name !== 'class' &&
             attribute.name !== 'style' &&
             attribute.name !== 'id' &&
-            !attribute.name.startsWith('data-onlook-')
+            !attribute.name.startsWith('data-weblab-')
         );
     });
     const role = node.getAttribute('role')?.toLowerCase() ?? null;

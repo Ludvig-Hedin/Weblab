@@ -3,7 +3,7 @@ import {
     CUSTOM_OUTPUT_DIR,
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
-    ONLOOK_PRELOAD_SCRIPT_FILE,
+    WEBLAB_PRELOAD_SCRIPT_FILE,
     SUPPORTED_LOCK_FILES
 } from '@weblab/constants';
 import type { Deployment, deploymentUpdateSchema } from '@weblab/db';
@@ -342,7 +342,7 @@ export class PublishManager {
             filePath.includes('/dist/') ||
             filePath.includes('/build/') ||
             filePath.includes('/coverage/') ||
-            filePath.endsWith(`/${ONLOOK_PRELOAD_SCRIPT_FILE}`)
+            filePath.endsWith(`/${WEBLAB_PRELOAD_SCRIPT_FILE}`)
         );
     }
 

@@ -44,8 +44,8 @@ export const updateElementInstance = (domId: string, instanceId: string, compone
         console.warn('Failed to updateElementInstanceId: Element not found');
         return;
     }
-    el.setAttribute(EditorAttributes.DATA_ONLOOK_INSTANCE_ID, instanceId);
-    el.setAttribute(EditorAttributes.DATA_ONLOOK_COMPONENT_NAME, component);
+    el.setAttribute(EditorAttributes.DATA_WEBLAB_INSTANCE_ID, instanceId);
+    el.setAttribute(EditorAttributes.DATA_WEBLAB_COMPONENT_NAME, component);
 };
 
 export const getParentElement = (domId: string) => {

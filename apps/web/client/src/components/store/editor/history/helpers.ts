@@ -200,9 +200,9 @@ export function getCleanedElement(
         tagName: copiedEl.tagName,
         attributes: {
             class: copiedEl.attributes.class ?? '',
-            [EditorAttributes.DATA_ONLOOK_DOM_ID]: domId,
-            [EditorAttributes.DATA_ONLOOK_ID]: oid,
-            [EditorAttributes.DATA_ONLOOK_INSERTED]: 'true',
+            [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
+            [EditorAttributes.DATA_WEBLAB_ID]: oid,
+            [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
         },
         styles: { ...copiedEl.styles },
         textContent: copiedEl.textContent,

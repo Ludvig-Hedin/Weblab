@@ -34,11 +34,11 @@ export const getDomElement = (el: HTMLElement, getStyle: boolean): DomElement =>
     const parent = el.parentElement;
     const parentDomElement: ParentDomElement | null = parent
         ? {
-              domId: parent.getAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID)!,
+              domId: parent.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID)!,
               frameId: getFrameId(),
               branchId: getBranchId(),
-              oid: parent.getAttribute(EditorAttributes.DATA_ONLOOK_ID)!,
-              instanceId: parent.getAttribute(EditorAttributes.DATA_ONLOOK_INSTANCE_ID)!,
+              oid: parent.getAttribute(EditorAttributes.DATA_WEBLAB_ID)!,
+              instanceId: parent.getAttribute(EditorAttributes.DATA_WEBLAB_INSTANCE_ID)!,
               rect: parent.getBoundingClientRect(),
           }
         : null;
@@ -46,11 +46,11 @@ export const getDomElement = (el: HTMLElement, getStyle: boolean): DomElement =>
     const rect = el.getBoundingClientRect();
     const styles = getStyle ? getStyles(el) : null;
     const domElement: DomElement = {
-        domId: el.getAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID)!,
-        oid: el.getAttribute(EditorAttributes.DATA_ONLOOK_ID)!,
+        domId: el.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID)!,
+        oid: el.getAttribute(EditorAttributes.DATA_WEBLAB_ID)!,
         frameId: getFrameId(),
         branchId: getBranchId(),
-        instanceId: el.getAttribute(EditorAttributes.DATA_ONLOOK_INSTANCE_ID)!,
+        instanceId: el.getAttribute(EditorAttributes.DATA_WEBLAB_INSTANCE_ID)!,
         rect,
         tagName: el.tagName,
         parent: parentDomElement,
@@ -61,7 +61,7 @@ export const getDomElement = (el: HTMLElement, getStyle: boolean): DomElement =>
 
 export function restoreElementStyle(el: HTMLElement) {
     try {
-        const saved = el.getAttribute(EditorAttributes.DATA_ONLOOK_DRAG_SAVED_STYLE);
+        const saved = el.getAttribute(EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE);
         if (saved) {
             const style = JSON.parse(saved);
             for (const key in style) {
@@ -81,7 +81,7 @@ export function getElementLocation(targetEl: HTMLElement): ActionLocation | unde
 
     const location: ActionLocation = {
         type: 'index',
-        targetDomId: parent.getAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID)!,
+        targetDomId: parent.getAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID)!,
         targetOid: getInstanceId(parent) || getOid(parent) || null,
         index: Array.from(targetEl.parentElement?.children || []).indexOf(targetEl),
         originalIndex: Array.from(targetEl.parentElement?.children || []).indexOf(targetEl),

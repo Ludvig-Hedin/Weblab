@@ -25,7 +25,7 @@ export function getInsertedElement(
             actionElement.attributes['class'],
             newClasses,
         ),
-        [EditorAttributes.DATA_ONLOOK_ID]: actionElement.oid,
+        [EditorAttributes.DATA_WEBLAB_ID]: actionElement.oid,
         ...(actionElement.tagName.toLowerCase() === 'img' && {
             src: actionElement.attributes['src'],
             alt: actionElement.attributes['alt'],

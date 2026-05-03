@@ -2,8 +2,8 @@ import type { Provider } from '@weblab/code-provider';
 import {
     DEPRECATED_PRELOAD_SCRIPT_SRCS,
     NEXT_JS_FILE_EXTENSIONS,
-    ONLOOK_DEV_PRELOAD_SCRIPT_PATH,
-    ONLOOK_PRELOAD_SCRIPT_SRC,
+    WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
+    WEBLAB_PRELOAD_SCRIPT_SRC,
 } from '@weblab/constants';
 import { RouterType, type RouterConfig } from '@weblab/models';
 import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@weblab/parser';
@@ -12,7 +12,7 @@ import path from 'path';
 
 export async function getPreloadScriptContent(): Promise<string> {
     const candidateSources = Array.from(
-        new Set([ONLOOK_PRELOAD_SCRIPT_SRC, ...DEPRECATED_PRELOAD_SCRIPT_SRCS]),
+        new Set([WEBLAB_PRELOAD_SCRIPT_SRC, ...DEPRECATED_PRELOAD_SCRIPT_SRCS]),
     );
     const failures: string[] = [];
 
@@ -45,7 +45,7 @@ export async function copyPreloadScriptToPublic(provider: Provider, routerConfig
         const scriptContent = await getPreloadScriptContent();
         await provider.writeFile({
             args: {
-                path: ONLOOK_DEV_PRELOAD_SCRIPT_PATH,
+                path: WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
                 content: scriptContent,
                 overwrite: true
             }

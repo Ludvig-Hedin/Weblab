@@ -8,7 +8,7 @@ const server = serve({
         if (url.pathname === '/') {
             try {
                 const resolvedPath = path.resolve(
-                    import.meta.dir + '/../../client/public/onlook-preload-script.js',
+                    import.meta.dir + '/../../client/public/weblab-preload-script.js',
                 );
 
                 const file = Bun.file(resolvedPath);

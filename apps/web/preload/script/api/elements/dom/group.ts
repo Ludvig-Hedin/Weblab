@@ -43,7 +43,7 @@ export function groupElements(
     childrenWithIndices.forEach(({ element }) => {
         const newElement = element.cloneNode(true) as HTMLElement;
 
-        newElement.setAttribute(EditorAttributes.DATA_ONLOOK_INSERTED, 'true');
+        newElement.setAttribute(EditorAttributes.DATA_WEBLAB_INSERTED, 'true');
         containerEl.appendChild(newElement);
         element.style.display = 'none';
         removeIdsFromChildElement(element);
@@ -103,16 +103,16 @@ function createContainerElement(target: GroupContainer): HTMLElement {
     Object.entries(target.attributes).forEach(([key, value]) => {
         containerEl.setAttribute(key, value);
     });
-    containerEl.setAttribute(EditorAttributes.DATA_ONLOOK_INSERTED, 'true');
-    containerEl.setAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID, target.domId);
-    containerEl.setAttribute(EditorAttributes.DATA_ONLOOK_ID, target.oid);
+    containerEl.setAttribute(EditorAttributes.DATA_WEBLAB_INSERTED, 'true');
+    containerEl.setAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID, target.domId);
+    containerEl.setAttribute(EditorAttributes.DATA_WEBLAB_ID, target.oid);
     return containerEl;
 }
 
 function removeIdsFromChildElement(el: HTMLElement) {
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID);
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_ID);
-    el.removeAttribute(EditorAttributes.DATA_ONLOOK_INSERTED);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_ID);
+    el.removeAttribute(EditorAttributes.DATA_WEBLAB_INSERTED);
 
     const children = Array.from(el.children);
     if (children.length === 0) {

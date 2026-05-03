@@ -8,7 +8,7 @@ import { generate, t } from '../packages';
 export function getOidFromJsxElement(element: T.JSXOpeningElement): string | null {
     const attribute = element.attributes.find(
         (attr): attr is T.JSXAttribute =>
-            t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_ONLOOK_ID,
+            t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_ID,
     );
 
     if (!attribute?.value) {
@@ -63,7 +63,7 @@ export function addKeyToElement(element: T.JSXElement | T.JSXFragment, replace =
         return;
     }
 
-    const keyValue = EditorAttributes.ONLOOK_MOVE_KEY_PREFIX + nanoid(4);
+    const keyValue = EditorAttributes.WEBLAB_MOVE_KEY_PREFIX + nanoid(4);
     const keyAttribute = t.jsxAttribute(t.jsxIdentifier('key'), t.stringLiteral(keyValue));
 
     // Replace existing key or add new one

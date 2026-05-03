@@ -30,7 +30,7 @@ describe('htmlPipeline.injectOids', () => {
         expect(result.modified).toBe(true);
 
         const html = htmlPipeline.generate(result.ast, '<div><p>a</p><p>b</p></div>') as string;
-        const matches = html.match(new RegExp(`${EditorAttributes.DATA_ONLOOK_ID}=`, 'g')) ?? [];
+        const matches = html.match(new RegExp(`${EditorAttributes.DATA_WEBLAB_ID}=`, 'g')) ?? [];
         // div + 2 paragraphs = 3 oid attributes
         expect(matches.length).toBe(3);
     });
@@ -39,7 +39,7 @@ describe('htmlPipeline.injectOids', () => {
         const ast = htmlPipeline.parse('<div><script>alert(1)</script><style>.a {}</style></div>')!;
         htmlPipeline.injectOids(ast);
         const html = htmlPipeline.generate(ast, '') as string;
-        const matches = html.match(new RegExp(`${EditorAttributes.DATA_ONLOOK_ID}=`, 'g')) ?? [];
+        const matches = html.match(new RegExp(`${EditorAttributes.DATA_WEBLAB_ID}=`, 'g')) ?? [];
         // Only the outer div gets an oid; <script> and <style> are skipped.
         expect(matches.length).toBe(1);
     });

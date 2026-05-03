@@ -34,7 +34,7 @@ export function createInsertedElement(insertedChild: CodeInsert): T.JSXElement {
     if (insertedChild.codeBlock) {
         element =
             getAstFromCodeblock(insertedChild.codeBlock, true) || createJSXElement(insertedChild);
-        addParamToElement(element, EditorAttributes.DATA_ONLOOK_ID, insertedChild.oid);
+        addParamToElement(element, EditorAttributes.DATA_WEBLAB_ID, insertedChild.oid);
     } else {
         element = createJSXElement(insertedChild);
     }
@@ -46,7 +46,7 @@ export function createInsertedElement(insertedChild: CodeInsert): T.JSXElement {
 }
 
 function addPasteParamsToElement(element: T.JSXElement, pasteParams: PasteParams): void {
-    addParamToElement(element, EditorAttributes.DATA_ONLOOK_ID, pasteParams.oid);
+    addParamToElement(element, EditorAttributes.DATA_WEBLAB_ID, pasteParams.oid);
 }
 
 function createJSXElement(insertedChild: CodeInsert): T.JSXElement {

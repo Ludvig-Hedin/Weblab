@@ -1,6 +1,6 @@
 import debounce from 'lodash.debounce';
 
-import { ONLOOK_CACHE_DIRECTORY, ONLOOK_PRELOAD_SCRIPT_FILE } from '@weblab/constants';
+import { WEBLAB_CACHE_DIRECTORY, WEBLAB_PRELOAD_SCRIPT_FILE } from '@weblab/constants';
 import { RouterType } from '@weblab/models';
 import {
     addOidsToAst,
@@ -32,7 +32,7 @@ export class CodeFileSystem extends FileSystem {
     private projectId: string;
     private branchId: string;
     private options: Required<CodeEditorOptions>;
-    private indexPath = `${ONLOOK_CACHE_DIRECTORY}/index.json`;
+    private indexPath = `${WEBLAB_CACHE_DIRECTORY}/index.json`;
 
     constructor(projectId: string, branchId: string, options: CodeEditorOptions = {}) {
         super(`/${projectId}/${branchId}`);
@@ -241,9 +241,9 @@ export class CodeFileSystem extends FileSystem {
 
     private async undobounceSaveIndexToFile(): Promise<void> {
         try {
-            await this.createDirectory(ONLOOK_CACHE_DIRECTORY);
+            await this.createDirectory(WEBLAB_CACHE_DIRECTORY);
         } catch {
-            console.warn(`[CodeEditorApi] Failed to create ${ONLOOK_CACHE_DIRECTORY} directory`);
+            console.warn(`[CodeEditorApi] Failed to create ${WEBLAB_CACHE_DIRECTORY} directory`);
         }
         const index = getIndexFromCache(this.getCacheKey());
         if (index) {
@@ -255,7 +255,7 @@ export class CodeFileSystem extends FileSystem {
 
     private isJsxFile(path: string): boolean {
         // Exclude the onlook preload script from JSX processing
-        if (path.endsWith(ONLOOK_PRELOAD_SCRIPT_FILE)) {
+        if (path.endsWith(WEBLAB_PRELOAD_SCRIPT_FILE)) {
             return false;
         }
         return /\.(jsx?|tsx?)$/i.test(path);

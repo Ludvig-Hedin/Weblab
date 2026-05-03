@@ -1,11 +1,11 @@
 import { DOM_IGNORE_TAGS, EditorAttributes } from '@weblab/constants';
 
 export function getHtmlElement(domId: string): HTMLElement | null {
-    return document.querySelector(`[${EditorAttributes.DATA_ONLOOK_DOM_ID}="${domId}"]`);
+    return document.querySelector(`[${EditorAttributes.DATA_WEBLAB_DOM_ID}="${domId}"]`);
 }
 
 export function getDomIdSelector(domId: string, escape = false) {
-    const selector = `[${EditorAttributes.DATA_ONLOOK_DOM_ID}="${domId}"]`;
+    const selector = `[${EditorAttributes.DATA_WEBLAB_DOM_ID}="${domId}"]`;
     if (!escape) {
         return selector;
     }
@@ -26,14 +26,14 @@ export function isValidHtmlElement(element: Element): boolean {
         element instanceof Node &&
         element.nodeType === Node.ELEMENT_NODE &&
         !DOM_IGNORE_TAGS.includes(element.tagName) &&
-        !element.hasAttribute(EditorAttributes.DATA_ONLOOK_IGNORE) &&
+        !element.hasAttribute(EditorAttributes.DATA_WEBLAB_IGNORE) &&
         (element as HTMLElement).style.display !== 'none'
     );
 }
 
 export function isOnlookInDoc(doc: Document): boolean {
     const attributeExists = doc.evaluate(
-        `//*[@${EditorAttributes.DATA_ONLOOK_ID}]`,
+        `//*[@${EditorAttributes.DATA_WEBLAB_ID}]`,
         doc,
         null,
         XPathResult.BOOLEAN_TYPE,

@@ -19,7 +19,7 @@ export function listenForDomMutation() {
                     const el = node as HTMLElement;
                     if (
                         node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID) &&
+                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
                         !shouldIgnoreMutatedNode(el)
                     ) {
                         dedupNewElement(el);
@@ -37,7 +37,7 @@ export function listenForDomMutation() {
                     const el = node as HTMLElement;
                     if (
                         node.nodeType === Node.ELEMENT_NODE &&
-                        el.hasAttribute(EditorAttributes.DATA_ONLOOK_DOM_ID) &&
+                        el.hasAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID) &&
                         !shouldIgnoreMutatedNode(el)
                     ) {
                         if (parent) {
@@ -81,11 +81,11 @@ export function listenForResize() {
 }
 
 function shouldIgnoreMutatedNode(node: HTMLElement): boolean {
-    if (node.id === EditorAttributes.ONLOOK_STUB_ID) {
+    if (node.id === EditorAttributes.WEBLAB_STUB_ID) {
         return true;
     }
 
-    if (node.getAttribute(EditorAttributes.DATA_ONLOOK_INSERTED)) {
+    if (node.getAttribute(EditorAttributes.DATA_WEBLAB_INSERTED)) {
         return true;
     }
 
@@ -95,20 +95,20 @@ function shouldIgnoreMutatedNode(node: HTMLElement): boolean {
 function dedupNewElement(newEl: HTMLElement) {
     // If the element has an oid and there's an inserted element with the same oid,
     // replace the existing element with the new one and restore the attributes
-    const oid = newEl.getAttribute(EditorAttributes.DATA_ONLOOK_ID);
+    const oid = newEl.getAttribute(EditorAttributes.DATA_WEBLAB_ID);
     if (!oid) {
         return;
     }
     document
         .querySelectorAll(
-            `[${EditorAttributes.DATA_ONLOOK_ID}="${oid}"][${EditorAttributes.DATA_ONLOOK_INSERTED}]`,
+            `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_WEBLAB_INSERTED}]`,
         )
         .forEach((targetEl) => {
             const ATTRIBUTES_TO_REPLACE = [
-                EditorAttributes.DATA_ONLOOK_DOM_ID,
-                EditorAttributes.DATA_ONLOOK_DRAG_SAVED_STYLE,
-                EditorAttributes.DATA_ONLOOK_EDITING_TEXT,
-                EditorAttributes.DATA_ONLOOK_INSTANCE_ID,
+                EditorAttributes.DATA_WEBLAB_DOM_ID,
+                EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE,
+                EditorAttributes.DATA_WEBLAB_EDITING_TEXT,
+                EditorAttributes.DATA_WEBLAB_INSTANCE_ID,
             ];
 
             ATTRIBUTES_TO_REPLACE.forEach((attr) => {

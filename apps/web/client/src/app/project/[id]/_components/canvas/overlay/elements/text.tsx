@@ -192,8 +192,8 @@ export const TextEditor = observer(() => {
                 outlineOffset: '-1px',
                 borderRadius: '1px',
             }}
-            data-onlook-ignore={EditorAttributes.DATA_ONLOOK_IGNORE}
-            id={EditorAttributes.ONLOOK_RECT_ID}
+            data-weblab-ignore={EditorAttributes.DATA_WEBLAB_IGNORE}
+            id={EditorAttributes.WEBLAB_RECT_ID}
         />
     );
 });

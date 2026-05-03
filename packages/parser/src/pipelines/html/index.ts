@@ -135,7 +135,7 @@ function setElementText(element: Element, text: string): void {
  */
 function findElementByOid(root: Node, oid: string): Element | null {
     for (const el of walkElements(root)) {
-        if (getAttribute(el, EditorAttributes.DATA_ONLOOK_ID) === oid) return el;
+        if (getAttribute(el, EditorAttributes.DATA_WEBLAB_ID) === oid) return el;
     }
     return null;
 }
@@ -158,7 +158,7 @@ function buildElement(
         tagName: tagName.toLowerCase(),
         attrs: [
             ...Object.entries(attributes).map(([name, value]) => ({ name, value })),
-            { name: EditorAttributes.DATA_ONLOOK_ID, value: oid },
+            { name: EditorAttributes.DATA_WEBLAB_ID, value: oid },
         ],
         namespaceURI: 'http://www.w3.org/1999/xhtml',
         childNodes: [],
@@ -306,13 +306,13 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
         for (const element of walkElements(ast.root)) {
             if (shouldSkipElement(element)) continue;
 
-            const existing = getAttribute(element, EditorAttributes.DATA_ONLOOK_ID);
+            const existing = getAttribute(element, EditorAttributes.DATA_WEBLAB_ID);
             if (existing && !localOids.has(existing) && !globalOids.has(existing)) {
                 localOids.add(existing);
                 continue;
             }
             const newOid = generateUniqueOid(globalOids, localOids);
-            setAttribute(element, EditorAttributes.DATA_ONLOOK_ID, newOid);
+            setAttribute(element, EditorAttributes.DATA_WEBLAB_ID, newOid);
             localOids.add(newOid);
             modified = true;
         }
@@ -324,7 +324,7 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
         const map = new Map<string, TemplateNode>();
         for (const element of walkElements(ast.root)) {
             if (shouldSkipElement(element)) continue;
-            const oid = getAttribute(element, EditorAttributes.DATA_ONLOOK_ID);
+            const oid = getAttribute(element, EditorAttributes.DATA_WEBLAB_ID);
             if (!oid) continue;
 
             const loc = element.sourceCodeLocation;
@@ -360,7 +360,7 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
         const pendingStructuralChanges: CodeAction[] = [];
 
         for (const element of walkElements(ast.root)) {
-            const oid = getAttribute(element, EditorAttributes.DATA_ONLOOK_ID);
+            const oid = getAttribute(element, EditorAttributes.DATA_WEBLAB_ID);
             if (!oid) continue;
             const diff = edits.get(oid);
             if (!diff) continue;

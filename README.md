@@ -6,7 +6,7 @@
   <p align="center">
     Cursor for Designers
     <br />
-    <a href="https://docs.onlook.com"><strong>Explore the docs »</strong></a>
+    <a href="https://docs.weblab.build"><strong>Explore the docs »</strong></a>
     <br />
   </p>
   <p align="center">

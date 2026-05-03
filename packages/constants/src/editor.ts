@@ -8,32 +8,32 @@ export const HOSTING_DOMAIN = 'onlook.live'; // keep: hosting infra, change in P
 export const MAX_NAME_LENGTH = 50;
 export enum EditorAttributes {
     // DOM attributes
-    ONLOOK_TOOLBAR = 'onlook-toolbar',
-    ONLOOK_RECT_ID = 'onlook-rect',
-    ONLOOK_STYLESHEET_ID = 'onlook-stylesheet',
-    ONLOOK_STUB_ID = 'onlook-drag-stub',
-    ONLOOK_MOVE_KEY_PREFIX = 'olk-',
+    WEBLAB_TOOLBAR = 'weblab-toolbar',
+    WEBLAB_RECT_ID = 'weblab-rect',
+    WEBLAB_STYLESHEET_ID = 'weblab-stylesheet',
+    WEBLAB_STUB_ID = 'weblab-drag-stub',
+    WEBLAB_MOVE_KEY_PREFIX = 'wbl-',
     OVERLAY_CONTAINER_ID = 'overlay-container',
     CANVAS_CONTAINER_ID = 'canvas-container',
-    STYLESHEET_ID = 'onlook-default-stylesheet',
+    STYLESHEET_ID = 'weblab-default-stylesheet',
 
-    // IDs
-    DATA_ONLOOK_ID = 'data-oid',
-    DATA_ONLOOK_INSTANCE_ID = 'data-oiid',
-    DATA_ONLOOK_DOM_ID = 'data-odid',
-    DATA_ONLOOK_COMPONENT_NAME = 'data-ocname',
+    // IDs (short codes injected into compiled output — kept stable)
+    DATA_WEBLAB_ID = 'data-oid',
+    DATA_WEBLAB_INSTANCE_ID = 'data-oiid',
+    DATA_WEBLAB_DOM_ID = 'data-odid',
+    DATA_WEBLAB_COMPONENT_NAME = 'data-ocname',
 
     // Data attributes
-    DATA_ONLOOK_IGNORE = 'data-onlook-ignore',
-    DATA_ONLOOK_INSERTED = 'data-onlook-inserted',
-    DATA_ONLOOK_DRAG_SAVED_STYLE = 'data-onlook-drag-saved-style',
-    DATA_ONLOOK_DRAGGING = 'data-onlook-dragging',
-    DATA_ONLOOK_DRAG_DIRECTION = 'data-onlook-drag-direction',
-    DATA_ONLOOK_DRAG_START_POSITION = 'data-onlook-drag-start-position',
-    DATA_ONLOOK_NEW_INDEX = 'data-onlook-new-index',
-    DATA_ONLOOK_EDITING_TEXT = 'data-onlook-editing-text',
-    DATA_ONLOOK_DYNAMIC_TYPE = 'data-onlook-dynamic-type',
-    DATA_ONLOOK_CORE_ELEMENT_TYPE = 'data-onlook-core-element-type',
+    DATA_WEBLAB_IGNORE = 'data-weblab-ignore',
+    DATA_WEBLAB_INSERTED = 'data-weblab-inserted',
+    DATA_WEBLAB_DRAG_SAVED_STYLE = 'data-weblab-drag-saved-style',
+    DATA_WEBLAB_DRAGGING = 'data-weblab-dragging',
+    DATA_WEBLAB_DRAG_DIRECTION = 'data-weblab-drag-direction',
+    DATA_WEBLAB_DRAG_START_POSITION = 'data-weblab-drag-start-position',
+    DATA_WEBLAB_NEW_INDEX = 'data-weblab-new-index',
+    DATA_WEBLAB_EDITING_TEXT = 'data-weblab-editing-text',
+    DATA_WEBLAB_DYNAMIC_TYPE = 'data-weblab-dynamic-type',
+    DATA_WEBLAB_CORE_ELEMENT_TYPE = 'data-weblab-core-element-type',
 }
 
 export const DefaultSettings = {

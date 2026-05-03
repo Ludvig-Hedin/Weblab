@@ -34,8 +34,8 @@ export const BaseRect: React.FC<RectProps> = ({
                 pointerEvents: 'none',
             }}
             className={className}
-            data-onlook-ignore="true"
-            id={EditorAttributes.ONLOOK_RECT_ID}
+            data-weblab-ignore="true"
+            id={EditorAttributes.WEBLAB_RECT_ID}
         >
             <svg
                 overflow="visible"

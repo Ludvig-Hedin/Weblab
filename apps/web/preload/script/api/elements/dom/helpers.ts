@@ -86,7 +86,7 @@ export function getElementType(domId: string): {
     dynamicType: DynamicType | null;
     coreType: CoreElementType | null;
 } {
-    const el = document.querySelector(`[${EditorAttributes.DATA_ONLOOK_DOM_ID}="${domId}"]`);
+    const el = document.querySelector(`[${EditorAttributes.DATA_WEBLAB_DOM_ID}="${domId}"]`);
 
     if (!el) {
         console.warn('No element found', { domId });
@@ -94,9 +94,9 @@ export function getElementType(domId: string): {
     }
 
     const dynamicType =
-        (el.getAttribute(EditorAttributes.DATA_ONLOOK_DYNAMIC_TYPE) as DynamicType) || null;
+        (el.getAttribute(EditorAttributes.DATA_WEBLAB_DYNAMIC_TYPE) as DynamicType) || null;
     const coreType =
-        (el.getAttribute(EditorAttributes.DATA_ONLOOK_CORE_ELEMENT_TYPE) as CoreElementType) ||
+        (el.getAttribute(EditorAttributes.DATA_WEBLAB_CORE_ELEMENT_TYPE) as CoreElementType) ||
         null;
 
     return { dynamicType, coreType };
@@ -107,21 +107,21 @@ export function setElementType(
     dynamicType: DynamicType | null,
     coreElementType: CoreElementType | null,
 ) {
-    const el = document.querySelector(`[${EditorAttributes.DATA_ONLOOK_DOM_ID}="${domId}"]`);
+    const el = document.querySelector(`[${EditorAttributes.DATA_WEBLAB_DOM_ID}="${domId}"]`);
 
     if (el) {
         if (dynamicType) {
-            el.setAttribute(EditorAttributes.DATA_ONLOOK_DYNAMIC_TYPE, dynamicType);
+            el.setAttribute(EditorAttributes.DATA_WEBLAB_DYNAMIC_TYPE, dynamicType);
         }
         if (coreElementType) {
-            el.setAttribute(EditorAttributes.DATA_ONLOOK_CORE_ELEMENT_TYPE, coreElementType);
+            el.setAttribute(EditorAttributes.DATA_WEBLAB_CORE_ELEMENT_TYPE, coreElementType);
         }
     }
 }
 
 export function getFirstOnlookElement(): DomElement | null {
     const body = document.body;
-    const firstElement = body.querySelector(`[${EditorAttributes.DATA_ONLOOK_ID}]`);
+    const firstElement = body.querySelector(`[${EditorAttributes.DATA_WEBLAB_ID}]`);
     if (firstElement) {
         return getDomElement(firstElement as HTMLElement, true);
     }

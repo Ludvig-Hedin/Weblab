@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { injectPreloadScriptIntoHtml } from 'src/pipelines/html/inject-preload';
 
-const SCRIPT_SRC = '/onlook-preload-script.js';
+const SCRIPT_SRC = '/weblab-preload-script.js';
 
 describe('injectPreloadScriptIntoHtml', () => {
     test('injects a script tag into the head', () => {
@@ -10,7 +10,7 @@ describe('injectPreloadScriptIntoHtml', () => {
             SCRIPT_SRC,
         );
         expect(out).toContain('<script');
-        expect(out).toContain('src="/onlook-preload-script.js"');
+        expect(out).toContain('src="/weblab-preload-script.js"');
         // Must appear inside <head>.
         const headIdx = out.indexOf('<head>');
         const scriptIdx = out.indexOf('<script');
@@ -35,7 +35,7 @@ describe('injectPreloadScriptIntoHtml', () => {
             '<!doctype html><html><body><h1>x</h1></body></html>',
             SCRIPT_SRC,
         );
-        expect(out).toContain('src="/onlook-preload-script.js"');
+        expect(out).toContain('src="/weblab-preload-script.js"');
     });
 
     test('preserves existing scripts in the head', () => {
@@ -44,6 +44,6 @@ describe('injectPreloadScriptIntoHtml', () => {
             SCRIPT_SRC,
         );
         expect(out).toContain('src="/app.js"');
-        expect(out).toContain('src="/onlook-preload-script.js"');
+        expect(out).toContain('src="/weblab-preload-script.js"');
     });
 });

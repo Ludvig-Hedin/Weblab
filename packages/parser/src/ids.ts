@@ -21,7 +21,7 @@ function generateUniqueOid(globalOids: Set<string>, localOids: Set<string>): str
  */
 function createOidAttribute(oidValue: string): T.JSXAttribute {
     return t.jSXAttribute(
-        t.jSXIdentifier(EditorAttributes.DATA_ONLOOK_ID),
+        t.jSXIdentifier(EditorAttributes.DATA_WEBLAB_ID),
         t.stringLiteral(oidValue),
     );
 }
@@ -190,7 +190,7 @@ export function getAllExistingOids(attributes: (T.JSXAttribute | T.JSXSpreadAttr
     let hasInvalid = false;
 
     attributes.forEach((attr, index) => {
-        if (t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_ONLOOK_ID) {
+        if (t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_ID) {
             oidIndices.push(index);
 
             const existingAttrValue = attr.value;
@@ -222,7 +222,7 @@ export function getExistingOid(
     attributes: (T.JSXAttribute | T.JSXSpreadAttribute)[],
 ): { value: string; index: number; shouldRemove: boolean } | null {
     const existingAttrIndex = attributes.findIndex(
-        (attr) => t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_ONLOOK_ID,
+        (attr) => t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_ID,
     );
 
     if (existingAttrIndex === -1) {

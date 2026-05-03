@@ -128,7 +128,7 @@ export function insertElement(
 
 export function createElement(element: ActionElement) {
     const newEl = document.createElement(element.tagName);
-    newEl.setAttribute(EditorAttributes.DATA_ONLOOK_INSERTED, 'true');
+    newEl.setAttribute(EditorAttributes.DATA_WEBLAB_INSERTED, 'true');
 
     for (const [key, value] of Object.entries(element.attributes)) {
         newEl.setAttribute(key, value);

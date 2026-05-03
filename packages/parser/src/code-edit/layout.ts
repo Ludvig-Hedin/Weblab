@@ -1,4 +1,4 @@
-import { DEPRECATED_PRELOAD_SCRIPT_SRCS, ONLOOK_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
+import { DEPRECATED_PRELOAD_SCRIPT_SRCS, WEBLAB_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
 
 import type { T } from '../packages';
 import { t, traverse } from '../packages';
@@ -113,10 +113,10 @@ function getPreloadScript(): T.JSXElement {
         t.jsxOpeningElement(
             t.jsxIdentifier('Script'),
             [
-                t.jsxAttribute(t.jsxIdentifier('src'), t.stringLiteral(ONLOOK_PRELOAD_SCRIPT_SRC)),
+                t.jsxAttribute(t.jsxIdentifier('src'), t.stringLiteral(WEBLAB_PRELOAD_SCRIPT_SRC)),
                 t.jsxAttribute(t.jsxIdentifier('strategy'), t.stringLiteral('afterInteractive')),
                 t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('module')),
-                t.jsxAttribute(t.jsxIdentifier('id'), t.stringLiteral('onlook-preload-script')),
+                t.jsxAttribute(t.jsxIdentifier('id'), t.stringLiteral('weblab-preload-script')),
             ],
             false,
         ),
@@ -135,7 +135,7 @@ function addScriptToJSXElement(node: T.JSXElement): void {
                 (attr) =>
                     t.isJSXAttribute(attr) &&
                     t.isJSXIdentifier(attr.name, { name: 'src' }) &&
-                    t.isStringLiteral(attr.value, { value: ONLOOK_PRELOAD_SCRIPT_SRC }),
+                    t.isStringLiteral(attr.value, { value: WEBLAB_PRELOAD_SCRIPT_SRC }),
             ),
     );
     if (!alreadyInjected) {
@@ -278,7 +278,7 @@ export function scanForPreloadScript(ast: T.File): {
 
             const src = srcAttr?.value;
             if (!src || !t.isStringLiteral(src)) return;
-            if (src.value === ONLOOK_PRELOAD_SCRIPT_SRC) {
+            if (src.value === WEBLAB_PRELOAD_SCRIPT_SRC) {
                 scriptCount++;
                 // Check if this script is inside a body tag
                 const parentBodyPath = path.findParent((parentPath) => {
