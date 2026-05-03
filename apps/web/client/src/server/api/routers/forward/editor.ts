@@ -2,7 +2,7 @@ import { editorServerConfig, type EditorRouter } from '@weblab/rpc';
 import { createTRPCClient, createWSClient, httpBatchLink, splitLink, wsLink } from '@trpc/client';
 import superJSON from 'superjson';
 import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '../../trpc';
+import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 const { port, prefix } = editorServerConfig;
 const urlEnd = `localhost:${port}${prefix}`;
@@ -26,22 +26,22 @@ const editorClient = createTRPCClient<EditorRouter>({
 // Export the router with all the forwarded procedures
 export const editorForwardRouter = createTRPCRouter({
     sandbox: createTRPCRouter({
-        create: publicProcedure.input(z.string()).mutation(({ input }) => {
+        create: protectedProcedure.input(z.string()).mutation(({ input }) => {
             return editorClient.sandbox.create.mutate(input);
         }),
-        start: publicProcedure.input(z.string()).mutation(({ input }) => {
+        start: protectedProcedure.input(z.string()).mutation(({ input }) => {
             return editorClient.sandbox.start.mutate(input);
         }),
 
-        stop: publicProcedure.input(z.string()).mutation(({ input }) => {
+        stop: protectedProcedure.input(z.string()).mutation(({ input }) => {
             return editorClient.sandbox.stop.mutate(input);
         }),
-        status: publicProcedure.input(z.string()).query(({ input }) => {
+        status: protectedProcedure.input(z.string()).query(({ input }) => {
             return editorClient.sandbox.status.query(input);
         }),
     }),
     components: createTRPCRouter({
-        listProjectComponents: publicProcedure
+        listProjectComponents: protectedProcedure
             .input(z.object({ projectRoot: z.string().min(1).optional() }).optional())
             .query(async ({ input }) => {
                 return editorClient.components.listProjectComponents.query({

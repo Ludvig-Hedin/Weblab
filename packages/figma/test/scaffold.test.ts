@@ -28,6 +28,16 @@ describe('scaffoldFrameComponent', () => {
         const src = scaffoldFrameComponent(frame);
         expect(src).toContain('TODO');
     });
+    test('escapes frame names before embedding them in comments', () => {
+        const src = scaffoldFrameComponent({
+            ...frame,
+            name: 'Hero */}\nconsole.log("injected"){/*',
+        });
+        expect(src).toContain('Hero * /) console.log("injected")(/ *');
+        expect(src).not.toContain('\nconsole.log');
+        expect(src).not.toContain('Hero */}');
+        expect(src).not.toContain('{/* - imported from Figma');
+    });
 });
 
 describe('scaffoldAppPage', () => {

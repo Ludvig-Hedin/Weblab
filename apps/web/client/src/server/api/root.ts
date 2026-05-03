@@ -2,7 +2,6 @@ import { createCallerFactory, createTRPCRouter } from '~/server/api/trpc';
 import {
     chatRouter,
     commentRouter,
-    componentsRouter,
     domainRouter,
     editorForwardRouter,
     figmaRouter,
@@ -29,7 +28,6 @@ import { branchRouter } from './routers/project/branch';
  */
 export const appRouter = createTRPCRouter({
     sandbox: sandboxRouter,
-    components: componentsRouter,
     user: userRouter,
     invitation: invitationRouter,
     project: projectRouter,

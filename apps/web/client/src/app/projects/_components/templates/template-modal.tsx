@@ -3,7 +3,6 @@
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-import { getSandboxPreviewUrl } from '@weblab/constants';
 import type { Project, User } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
@@ -102,7 +101,11 @@ export function TemplateModal({
             return;
         }
 
-        const sandboxUrl = getSandboxPreviewUrl(branches[0].sandbox.id, 3000);
+        const sandboxUrl = branches[0].frames[0]?.url;
+        if (!sandboxUrl) {
+            toast.error('Template preview is not available');
+            return;
+        }
         window.open(sandboxUrl, '_blank');
     }
 

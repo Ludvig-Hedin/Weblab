@@ -1,5 +1,9 @@
 # Activity Log
 
+## 2026-05-03
+
+- Fixed OAuth callback redirects to stay on the request origin after Supabase exchanges the session code, preserving auth cookies on preview, staging, and custom hosts. User-facing auth reliability fix.
+
 ## 2026-04-29
 
 - Fixed Search tab invalidation so results refresh when frame selection or layer mappings change while a query is open.

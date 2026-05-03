@@ -43,12 +43,12 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-035 | auto-fixed (2026-05-03 review) |
 | CR-036 | auto-fixed (2026-05-03 review) |
 | CR-037 | open (2026-05-03 review) |
-| CR-038 | open (2026-05-03 review) |
-| CR-039 | open (2026-05-03 review) |
-| CR-040 | open (2026-05-03 review) |
-| CR-041 | open (2026-05-03 review) |
-| CR-042 | open (2026-05-03 review) |
-| CR-043 | open (2026-05-03 review) |
+| CR-038 | auto-fixed (2026-05-03 review) |
+| CR-039 | auto-fixed (2026-05-03 review) |
+| CR-040 | auto-fixed (2026-05-03 review) |
+| CR-041 | auto-fixed (2026-05-03 review) |
+| CR-042 | auto-fixed (2026-05-03 review) |
+| CR-043 | auto-fixed (2026-05-03 review) |
 
 ---
 
@@ -438,66 +438,66 @@ preload script rebuild, .gitignore + backlog maintenance.
 
 ---
 
-## CR-038 — Auth regression: `api.forward.components.listProjectComponents` is `publicProcedure`, not `protectedProcedure`
+## CR-038 — Auth regression: `api.forward.components.listProjectComponents` is `publicProcedure`, not `protectedProcedure`  *(auto-fixed)*
 
 - **Area:** [apps/web/client/src/server/api/routers/forward/editor.ts](apps/web/client/src/server/api/routers/forward/editor.ts) (lines 43–55), consumer [components-tab/index.tsx](apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/components-tab/index.tsx) (line 24)
 - **Type:** security / bug
 - **Impact:** user-facing (component-listing endpoint exposed without authentication)
 - **Risk:** high
 - **Summary:** The components-tab UI was migrated from `api.components.listProjectComponents` (`protectedProcedure`, see [components.ts](apps/web/client/src/server/api/routers/components.ts) line 45) to `api.forward.components.listProjectComponents` (`publicProcedure`). The new path proxies through the editor server, which performs a recursive filesystem scan of `SANDBOX_BASE_DIR`. Result: any unauthenticated client can hit `/api/trpc/forward.components.listProjectComponents` and read project-component names + relative file paths — a strict downgrade from the prior protected behavior. The other procedures in `editorForwardRouter` (`sandbox.create/start/stop/status`) are also `publicProcedure`, so this likely follows the existing forward-router convention, but the existing convention itself merits a security review independent of this change.
-- **Suggested approach:** (1) Change `listProjectComponents` (and ideally all `editorForwardRouter` procedures) to `protectedProcedure` so the session check from tRPC context applies before any forward call hits the editor server. (2) If protected auth is incompatible with the editor-server forwarding pattern (e.g. the editor server is itself behind network ACLs / VPN), document why public is acceptable and add a server-side rate limit. (3) Consider using `protectedProcedure` plus an explicit `projectId` argument so the listing is scoped to projects the user owns.
+- **Fix applied:** Replaced the import `publicProcedure` with `protectedProcedure` in `forward/editor.ts` and converted **every** procedure in `editorForwardRouter` (the new `components.listProjectComponents` plus the pre-existing `sandbox.create/start/stop/status`) to `protectedProcedure`. Verified zero callers of `api.forward.sandbox.*` and `api.forward.components.*` exist anywhere in the client other than the components-tab (which already runs inside an authenticated project route), so no UI behavior changes — only the auth posture tightens. The session check from tRPC context now applies before any forward call hits the editor server.
 
 ---
 
-## CR-039 — Behavior regression: editor-server component scanner misses `observer()`/HOC-wrapped components
+## CR-039 — Behavior regression: editor-server component scanner misses `observer()`/HOC-wrapped components  *(auto-fixed)*
 
 - **Area:** [apps/web/server/src/router/routes/components.ts](apps/web/server/src/router/routes/components.ts) (regex set at lines 25–37) vs. [apps/web/client/src/server/api/routers/components.utils.ts](apps/web/client/src/server/api/routers/components.utils.ts) (HOC_WRAPPED_RE)
 - **Type:** bug (behavior regression)
 - **Impact:** user-facing (My Components panel will show fewer components after the migration)
 - **Risk:** medium
 - **Summary:** The editor server's `extractReactComponents` has 4 patterns: `NAMED_FUNCTION_RE`, `NAMED_ARROW_RE`, `DEFAULT_FUNCTION_RE`, `DEFAULT_IDENTIFIER_RE`. The client's `extractComponents` (the now-orphaned implementation that used to back `api.components.listProjectComponents`) has those same 4 plus a 5th: `HOC_WRAPPED_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*[a-z][A-Za-z0-9_]*\s*\(/gm`. This catches `export const Foo = observer(() => …)` and other HOC-wrapped exports. The existing test `__tests__/components.test.ts` ('detects observer-wrapped component via HOC_WRAPPED_RE') asserts this contract.
-- **Suggested approach:** Port `HOC_WRAPPED_RE` to `apps/web/server/src/router/routes/components.ts` (or, better, dedupe — see CR-043). Once consolidated, ensure the test file targets the canonical extractor. This codebase uses `mobx-react-lite`'s `observer()` pervasively, so the gap is meaningful.
+- **Fix applied:** Added `HOC_WRAPPED_RE` plus a matching loop in `apps/web/server/src/router/routes/components.ts` between the named-arrow and default-function passes. Loop order is deliberate: HOC runs **after** `NAMED_ARROW_RE` so a bare arrow body wins when both patterns happen to match (the `seen` set then de-dupes). Test coverage added to `apps/web/server/src/router/routes/__tests__/components.test.ts`: `extracts observer-wrapped components via HOC_WRAPPED_RE` and `extracts withRouter-wrapped components via HOC_WRAPPED_RE` (mirroring the now-deleted client-side test cases).
 
 ---
 
-## CR-040 — Orphaned client-side `componentsRouter` (and its test) after switch to forward route
+## CR-040 — Orphaned client-side `componentsRouter` (and its test) after switch to forward route  *(auto-fixed)*
 
 - **Area:** [root.ts](apps/web/client/src/server/api/root.ts) line 32, [components.ts](apps/web/client/src/server/api/routers/components.ts), [components.utils.ts](apps/web/client/src/server/api/routers/components.utils.ts), [__tests__/components.test.ts](apps/web/client/src/server/api/routers/__tests__/components.test.ts)
 - **Type:** dead code / DX
 - **Impact:** internal
 - **Risk:** medium (decision dependency: see CR-038, CR-039)
 - **Summary:** `grep -rn "api\.components\."` in the client returns zero hits — the only consumer (`components-tab/index.tsx`) now uses `api.forward.components.*`. The old `componentsRouter` is still imported and registered at `components: componentsRouter` in `root.ts`. It's still wired but unreachable from any UI surface. The unit test file targets `extractComponents` (the utility), so the test's value depends on whether the utility stays.
-- **Suggested approach:** Decide whether the canonical scanner lives on the editor server (then drop `routers/components.ts`, `components.utils.ts`, the `components: componentsRouter` registration, and the test once `HOC_WRAPPED_RE` is ported per CR-039) OR on the client tRPC server (then revert the forward migration). Do not auto-remove right now — depends on the auth resolution in CR-038 and the scanner consolidation in CR-043.
+- **Fix applied:** With CR-038 and CR-039 resolved, picked the editor server as the canonical scanner. Removed the orphan `componentsRouter` import and `components: componentsRouter` registration from `apps/web/client/src/server/api/root.ts`; removed the `./components` re-export from `apps/web/client/src/server/api/routers/index.ts`; deleted `apps/web/client/src/server/api/routers/components.ts`, `apps/web/client/src/server/api/routers/components.utils.ts`, and `apps/web/client/src/server/api/routers/__tests__/components.test.ts` (`git rm`). All test coverage previously in the deleted client test (HOC, withRouter, multi-line, comment stripping, dedup, multi-component) was ported to `apps/web/server/src/router/routes/__tests__/components.test.ts` so no coverage was lost.
 
 ---
 
-## CR-041 — Stale untracked `apps/web/client/public/onlook-preload-script.js` (481 KB) shipped at the public URL
+## CR-041 — Stale untracked `apps/web/client/public/onlook-preload-script.js` (481 KB) shipped at the public URL  *(auto-fixed)*
 
 - **Area:** untracked file `apps/web/client/public/onlook-preload-script.js`
 - **Type:** brand compliance / repo hygiene
 - **Impact:** user-facing (file is served at `/onlook-preload-script.js` on dev server)
 - **Risk:** low (no app code references it; only legacy entries in `DEPRECATED_PRELOAD_SCRIPT_SRCS`, parser test fixtures, and `CODERABBIT_REVIEWS.md` historical notes)
 - **Summary:** Cherry-pick commit `49f22efc` explicitly states this file was "Excluded from cherry-pick (already deleted on main)." It re-appeared in the working tree (likely from a worktree cleanup) but nothing imports it — the active preload is `weblab-preload-script.js` (see `WEBLAB_PRELOAD_SCRIPT_FILE` in `packages/constants/src/files.ts`). CLAUDE.md mandates that any "Onlook" reference outside the explicit allowlist is a bug; the file's presence in `public/` makes it both a brand-compliance violation and a 481 KB asset served on every public deploy.
-- **Suggested approach:** Delete the working-copy file (`rm apps/web/client/public/onlook-preload-script.js`). Verified safe: the only string matches are (a) the URL constants in `DEPRECATED_PRELOAD_SCRIPT_SRCS` that point at the upstream `cdn.jsdelivr.net/gh/onlook-dev/...` (different host, intentionally legacy) and (b) test fixtures + review notes (allowed per CLAUDE.md). Not auto-fixed because deleting an untracked file is destructive — flagging for explicit human approval.
+- **Fix applied:** Removed via `git clean -f apps/web/client/public/onlook-preload-script.js` after explicit user authorization in this review session. Pre-flight `grep` confirmed no live references — only allowlisted legacy CDN URLs in `DEPRECATED_PRELOAD_SCRIPT_SRCS`, parser test fixtures, and `CODERABBIT_REVIEWS.md` historical notes (all of which are explicitly allowed per CLAUDE.md).
 
 ---
 
-## CR-042 — Untracked `branches.diff` scratch file at repo root
+## CR-042 — Untracked `branches.diff` scratch file at repo root  *(auto-fixed)*
 
 - **Area:** untracked file `branches.diff` (repo root)
 - **Type:** repo hygiene
 - **Impact:** internal
 - **Risk:** low
 - **Summary:** 18-byte file containing only `===== main =====` — clearly a leftover from an interactive `git diff` redirect. Should not be committed; not in `.gitignore` so it will keep showing up in `git status`.
-- **Suggested approach:** Delete the file (`rm branches.diff`) or add `*.diff` (or specifically `branches.diff`) to `.gitignore`. Not auto-fixed for the same reason as CR-041.
+- **Fix applied:** Removed via `git clean -f branches.diff` (same `git clean` invocation as CR-041). No content worth preserving — verified the file held only the literal `===== main =====` divider.
 
 ---
 
-## CR-043 — Duplicate React component-extraction logic between client and editor server
+## CR-043 — Duplicate React component-extraction logic between client and editor server  *(auto-fixed)*
 
 - **Area:** [apps/web/server/src/router/routes/components.ts](apps/web/server/src/router/routes/components.ts) (`extractReactComponents`, regex set, `scanDirectory`, `SKIP_DIRS`) vs. [apps/web/client/src/server/api/routers/components.utils.ts](apps/web/client/src/server/api/routers/components.utils.ts) (`extractComponents`, regex set, etc.)
 - **Type:** refactor / DX
 - **Impact:** internal (drift risk — see CR-039 for an existing drift)
 - **Risk:** low–medium
 - **Summary:** Two near-identical implementations of "scan a project and extract React components" now coexist: one in `apps/web/server` (used by the new forward path), one in `apps/web/client` (the now-orphan `componentsRouter`). The patterns differ (CR-039), the field names differ (`name` vs. `componentName`, hence the `forward/editor.ts` remap), and the directory walker is duplicated.
-- **Suggested approach:** Extract the scanner + regex set into a shared package (probably `@weblab/parser` or a new `@weblab/component-scanner`) so both surfaces import the same logic. Pick one canonical field name to drop the remap in `forward/editor.ts`. Until that consolidation, treat `apps/web/server/.../components.ts` as the source of truth and add the `HOC_WRAPPED_RE` pattern there (CR-039).
+- **Fix applied:** Consolidated to a single canonical scanner on the editor server (`apps/web/server/src/router/routes/components.ts`). (1) Renamed `DiscoveredComponent.name` → `componentName` in the editor server so its wire-shape matches `ComponentInsertData` from `@weblab/models/element`. (2) Dropped the `.map(({ name, ...rest }) => ({ ...rest, componentName: name }))` remap in `apps/web/client/src/server/api/routers/forward/editor.ts` — the forward route now `return`s the editor-server response directly. (3) Deleted the orphan client-side scanner (CR-040). The only remaining gap to a fully shared package (e.g. `@weblab/parser`) is that the regex set still lives in `apps/web/server`; pulling it into a workspace package is now a pure refactor with no behavior implications and can land separately.

@@ -33,6 +33,9 @@ export const branchRouter = createTRPCRouter({
                 where: input.onlyDefault ?
                     and(eq(branches.isDefault, true), eq(branches.projectId, input.projectId)) :
                     eq(branches.projectId, input.projectId),
+                with: {
+                    frames: true,
+                },
             });
             // TODO: Create a default branch if none exists for backwards compatibility
 
@@ -42,7 +45,10 @@ export const branchRouter = createTRPCRouter({
                     message: 'Branches not found',
                 });
             }
-            return dbBranches.map(fromDbBranch);
+            return dbBranches.map((branch) => ({
+                ...fromDbBranch(branch),
+                frames: branch.frames.map(fromDbFrame),
+            }));
         }),
     create: protectedProcedure
         .input(branchInsertSchema)

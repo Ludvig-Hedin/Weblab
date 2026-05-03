@@ -1,9 +1,19 @@
 import type { FigmaTopLevelFrame } from './types';
 import { toComponentName } from './utils';
 
+const toTsxCommentText = (value: string): string => {
+    return value
+        .replace(/\r?\n/g, ' ')
+        .replace(/\*\//g, '* /')
+        .replace(/\/\*/g, '/ *')
+        .replace(/\{/g, '(')
+        .replace(/\}/g, ')');
+};
+
 export function scaffoldFrameComponent(frame: FigmaTopLevelFrame): string {
     const name = toComponentName(frame.name);
-    return `// TODO: Replace this stub with the actual implementation for "${frame.name}"
+    const commentName = toTsxCommentText(frame.name);
+    return `// TODO: Replace this stub with the actual implementation for "${commentName}"
 export default function ${name}() {
   return (
     <div
@@ -14,7 +24,7 @@ export default function ${name}() {
         position: 'relative',
       }}
     >
-      {/* ${frame.name} – imported from Figma */}
+      {/* ${commentName} - imported from Figma */}
     </div>
   );
 }

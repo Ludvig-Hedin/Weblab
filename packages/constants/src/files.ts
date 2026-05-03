@@ -12,7 +12,7 @@ export const WEBLAB_DEV_PRELOAD_SCRIPT_SRC = `/${WEBLAB_PRELOAD_SCRIPT_FILE}`;
 export const WEBLAB_DEV_PRELOAD_SCRIPT_PATH = `public/${WEBLAB_PRELOAD_SCRIPT_FILE}`;
 // Fetch url to load from CDN
 const WEBLAB_PROD_PRELOAD_SCRIPT_SRC =
-    'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@main/apps/web/client/public/weblab-preload-script.js';
+    'https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js';
 // Officially exported src to load from local or CDN
 export const WEBLAB_PRELOAD_SCRIPT_SRC = isDev
     ? WEBLAB_DEV_PRELOAD_SCRIPT_SRC

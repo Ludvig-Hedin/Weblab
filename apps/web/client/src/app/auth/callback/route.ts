@@ -1,4 +1,3 @@
-import { env } from '@/env';
 import { trackEvent } from '@/utils/analytics/server';
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/server';
@@ -9,11 +8,6 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url);
-    const configuredSiteUrl = env.NEXT_PUBLIC_SITE_URL;
-    const siteUrl =
-        configuredSiteUrl === 'http://localhost:3000' && origin !== configuredSiteUrl
-            ? origin
-            : configuredSiteUrl;
     const code = searchParams.get('code');
 
     if (code) {
@@ -66,7 +60,7 @@ export async function GET(request: Request) {
                     },
                 });
 
-                return NextResponse.redirect(`${siteUrl}${Routes.AUTH_REDIRECT}`);
+                return NextResponse.redirect(`${origin}${Routes.AUTH_REDIRECT}`);
             }
             console.error(`Error exchanging code for session: ${error}`);
         } catch (error) {
@@ -75,5 +69,5 @@ export async function GET(request: Request) {
     }
 
     // return the user to an error page with instructions
-    return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`);
+    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }

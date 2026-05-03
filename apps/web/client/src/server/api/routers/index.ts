@@ -1,6 +1,5 @@
 export * from './chat';
 export * from './comment';
-export * from './components';
 export * from './code';
 export * from './domain';
 export * from './figma';

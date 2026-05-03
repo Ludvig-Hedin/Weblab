@@ -12,7 +12,7 @@ import { publicProcedure, router } from '../trpc';
 const SANDBOX_BASE_DIR = resolve(process.env.SANDBOX_BASE_DIR ?? '/project/sandbox');
 
 export interface DiscoveredComponent {
-    name: string;
+    componentName: string;
     filePath: string;
     exportType: 'default' | 'named';
 }
@@ -32,6 +32,10 @@ const NAMED_FUNCTION_RE = /export\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 //   export const Foo: React.FC<Props> = ({ children }) => ...
 //   export const Foo: FC = (props) => ...
 const NAMED_ARROW_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)(?:\s*:\s*[^=]+?)?\s*=\s*(?:\([^)]*\)|[A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=]+?)?\s*=>/gm;
+// Detects observer()/HOC-wrapped exports: `export const Foo = observer(...)`,
+// `export const Connected = withRouter(Inner)`, `export const Memoized = memo(...)`, etc.
+// Matches when the right-hand side is a lower-case identifier followed by `(`.
+const HOC_WRAPPED_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*[a-z][A-Za-z0-9_]*\s*\(/gm;
 const DEFAULT_FUNCTION_RE = /export\s+default\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 // Matches: export default ComponentName (re-exported identifier, declared elsewhere)
 const DEFAULT_IDENTIFIER_RE = /^\s*export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?\s*$/gm;
@@ -72,7 +76,7 @@ export function extractReactComponents(source: string, filePath: string): Discov
         const name = match[1];
         if (name && !seen.has(name)) {
             seen.add(name);
-            results.push({ name, filePath, exportType: 'named' });
+            results.push({ componentName: name, filePath, exportType: 'named' });
         }
     }
 
@@ -81,7 +85,18 @@ export function extractReactComponents(source: string, filePath: string): Discov
         const name = match[1];
         if (name && !seen.has(name)) {
             seen.add(name);
-            results.push({ name, filePath, exportType: 'named' });
+            results.push({ componentName: name, filePath, exportType: 'named' });
+        }
+    }
+
+    // observer()/HOC-wrapped exports — must run after NAMED_ARROW_RE so a bare arrow
+    // body wins over the HOC pattern when both happen to match (they shouldn't, but
+    // dedupe via `seen` keeps results stable).
+    for (const match of stripped.matchAll(HOC_WRAPPED_RE)) {
+        const name = match[1];
+        if (name && !seen.has(name)) {
+            seen.add(name);
+            results.push({ componentName: name, filePath, exportType: 'named' });
         }
     }
 
@@ -90,7 +105,7 @@ export function extractReactComponents(source: string, filePath: string): Discov
         const name = match[1];
         if (name && !seen.has(name)) {
             seen.add(name);
-            results.push({ name, filePath, exportType: 'default' });
+            results.push({ componentName: name, filePath, exportType: 'default' });
         }
     }
 
@@ -99,12 +114,12 @@ export function extractReactComponents(source: string, filePath: string): Discov
     for (const match of stripped.matchAll(DEFAULT_IDENTIFIER_RE)) {
         const name = match[1];
         if (!name) continue;
-        const existing = results.find((r) => r.name === name);
+        const existing = results.find((r) => r.componentName === name);
         if (existing) {
             existing.exportType = 'default';
         } else if (!seen.has(name)) {
             seen.add(name);
-            results.push({ name, filePath, exportType: 'default' });
+            results.push({ componentName: name, filePath, exportType: 'default' });
         }
     }
 
