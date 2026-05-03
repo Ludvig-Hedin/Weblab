@@ -10,9 +10,18 @@ import { StepContent, StepFooter, StepHeader } from '../../steps';
 import { useFigmaImport } from '../_context';
 
 export const FigmaCredentials = () => {
-    const { prevStep, fileUrl, setFileUrl, isFetching, fetchError, fetchFile } = useFigmaImport();
+    const {
+        prevStep,
+        fileUrl,
+        setFileUrl,
+        personalAccessToken,
+        setPersonalAccessToken,
+        isFetching,
+        fetchError,
+        fetchFile,
+    } = useFigmaImport();
 
-    const canFetch = fileUrl.trim().length > 0;
+    const canFetch = fileUrl.trim().length > 0 && personalAccessToken.trim().length > 0;
 
     return (
         <>
@@ -44,6 +53,20 @@ export const FigmaCredentials = () => {
                                 placeholder="https://www.figma.com/design/..."
                                 value={fileUrl}
                                 onChange={(e) => setFileUrl(e.target.value)}
+                                disabled={isFetching}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && canFetch) void fetchFile();
+                                }}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="figma-token">Personal access token</Label>
+                            <Input
+                                id="figma-token"
+                                type="password"
+                                placeholder="figd_..."
+                                value={personalAccessToken}
+                                onChange={(e) => setPersonalAccessToken(e.target.value)}
                                 disabled={isFetching}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && canFetch) void fetchFile();

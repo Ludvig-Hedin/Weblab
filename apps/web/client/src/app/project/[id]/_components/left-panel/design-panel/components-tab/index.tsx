@@ -21,7 +21,7 @@ export const ComponentsTab = observer(() => {
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
     const { data: userComponents, isLoading: isLoadingComponents } =
-        api.components.listProjectComponents.useQuery({}, { staleTime: 30_000 });
+        api.forward.components.listProjectComponents.useQuery({}, { staleTime: 30_000 });
 
     const filteredTemplates = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();

@@ -4,6 +4,7 @@ import {
     commentRouter,
     componentsRouter,
     domainRouter,
+    editorForwardRouter,
     figmaRouter,
     frameRouter,
     githubRouter,
@@ -46,6 +47,7 @@ export const appRouter = createTRPCRouter({
     subscription: subscriptionRouter,
     usage: usageRouter,
     publish: publishRouter,
+    forward: editorForwardRouter,
 });
 
 // export type definition of API

@@ -205,6 +205,7 @@
                 "name": "レイヤー",
                 "tabs": {
                     "layers": "レイヤー",
+                    "insert": "挿入",
                     "pages": "ページ",
                     "components": "コンポーネント",
                     "images": "画像",
@@ -323,7 +324,8 @@
             "openingLocalFolder": "開いています…",
             "importingLocalFolder": "ファイルをアップロード中…",
             "localFolderUnsupportedTooltip": "ローカルフォルダへのアクセスには Chrome、Edge、または Arc が必要です",
-            "recentProjects": "最近のプロジェクト"
+            "recentProjects": "最近のプロジェクト",
+            "importFromGitHub": "GitHubからインポート"
         },
         "dialogs": {
             "delete": {
@@ -365,7 +367,22 @@
             "google": "Googleでログイン",
             "lastUsed": "最後に使用したアカウント",
             "loginToEdit": "編集するにはログインしてください",
-            "shareProjects": "クレジットカード不要 • サイトを秒で作成"
+            "shareProjects": "クレジットカード不要 • サイトを秒で作成",
+            "email": "メールアドレスで続ける",
+            "emailPlaceholder": "your@email.com",
+            "sendCode": "コードを送信",
+            "sending": "送信中..."
+        },
+        "verify": {
+            "title": "メールを確認してください",
+            "description": "{email} に6桁のコードを送信しました",
+            "enterCode": "確認コードを入力",
+            "verify": "確認",
+            "verifying": "確認中...",
+            "resend": "コードを再送",
+            "resendIn": "{seconds}秒後に再送",
+            "back": "ログインに戻る",
+            "wrongEmail": "メールアドレスが違いますか？"
         },
         "terms": {
             "agreement": "サインアップすることで、以下に同意したとみなされます",

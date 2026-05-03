@@ -8,8 +8,12 @@ import { extractNames } from '@weblab/utility';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const siteUrl = env.NEXT_PUBLIC_SITE_URL;
+    const { searchParams, origin } = new URL(request.url);
+    const configuredSiteUrl = env.NEXT_PUBLIC_SITE_URL;
+    const siteUrl =
+        configuredSiteUrl === 'http://localhost:3000' && origin !== configuredSiteUrl
+            ? origin
+            : configuredSiteUrl;
     const code = searchParams.get('code');
 
     if (code) {

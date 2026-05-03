@@ -15,16 +15,6 @@ export type StaticTemplateId =
     | 'docs'
     | 'app';
 
-export type StaticTemplateId =
-    | 'portfolio'
-    | 'saas'
-    | 'blog'
-    | 'dashboard'
-    | 'ecommerce'
-    | 'agency'
-    | 'docs'
-    | 'app';
-
 export interface StaticTemplate {
     id: StaticTemplateId;
     name: string;

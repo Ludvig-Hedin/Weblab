@@ -39,14 +39,9 @@ export function groupElements(
     const insertIndex = Math.min(...childrenWithIndices.map((c) => c.index));
     parentEl.insertBefore(containerEl, parentEl.children[insertIndex] ?? null);
 
-    // Move children into container
+    // Move children into container (move, not clone, to avoid duplicate IDs and stale listeners)
     childrenWithIndices.forEach(({ element }) => {
-        const newElement = element.cloneNode(true) as HTMLElement;
-
-        newElement.setAttribute(EditorAttributes.DATA_WEBLAB_INSERTED, 'true');
-        containerEl.appendChild(newElement);
-        element.style.display = 'none';
-        removeIdsFromChildElement(element);
+        containerEl.appendChild(element);
     });
 
     const domEl = getDomElement(containerEl, true);
@@ -109,17 +104,4 @@ function createContainerElement(target: GroupContainer): HTMLElement {
     return containerEl;
 }
 
-function removeIdsFromChildElement(el: HTMLElement) {
-    el.removeAttribute(EditorAttributes.DATA_WEBLAB_DOM_ID);
-    el.removeAttribute(EditorAttributes.DATA_WEBLAB_ID);
-    el.removeAttribute(EditorAttributes.DATA_WEBLAB_INSERTED);
 
-    const children = Array.from(el.children);
-    if (children.length === 0) {
-        return;
-    }
-
-    children.forEach((child) => {
-        removeIdsFromChildElement(child as HTMLElement);
-    });
-}

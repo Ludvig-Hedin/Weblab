@@ -94,6 +94,13 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
             preventDefault: true,
         },
     );
+    useHotkeys(
+        Hotkey.SIDEBAR_COMPONENTS.command,
+        () => toggleLeftPanelTab(LeftPanelTabValue.COMPONENTS),
+        {
+            preventDefault: true,
+        },
+    );
 
     // Find in design (cmd+f) — opens & focuses Search tab, suppresses browser Find.
     // enableOnFormTags so it works even when other inputs (chat, etc.) are focused.

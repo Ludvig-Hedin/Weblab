@@ -150,15 +150,17 @@ export const componentsRouter = router({
                 projectRoot: z
                     .string()
                     .min(1)
-                    .refine((p) => !p.includes('..'), 'Invalid project root path'),
-            }),
+                    .refine((p) => !p.includes('..'), 'Invalid project root path')
+                    .optional(),
+            }).optional(),
         )
         .query(async ({ input }) => {
             // Resolve the requested root and ensure it is contained inside SANDBOX_BASE_DIR.
             // Reject absolute paths outside the base and any traversal that escapes it.
-            const candidate = isAbsolute(input.projectRoot)
-                ? resolve(input.projectRoot)
-                : resolve(SANDBOX_BASE_DIR, input.projectRoot);
+            const projectRoot = input?.projectRoot ?? '.';
+            const candidate = isAbsolute(projectRoot)
+                ? resolve(projectRoot)
+                : resolve(SANDBOX_BASE_DIR, projectRoot);
             const rel = relative(SANDBOX_BASE_DIR, candidate);
             if (
                 rel.startsWith('..') ||

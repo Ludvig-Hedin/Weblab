@@ -22,6 +22,8 @@ interface FigmaImportContextValue {
 
     fileUrl: string;
     setFileUrl: (v: string) => void;
+    personalAccessToken: string;
+    setPersonalAccessToken: (v: string) => void;
     isFetching: boolean;
     fetchError: string | null;
     fetchFile: () => Promise<void>;
@@ -46,6 +48,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
 
     const [currentStep, setCurrentStep] = useState<FigmaImportStep>(0);
     const [fileUrl, setFileUrl] = useState('');
+    const [personalAccessToken, setPersonalAccessToken] = useState('');
     const [isFetching, setIsFetching] = useState(false);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [fileName, setFileName] = useState('');
@@ -67,6 +70,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         try {
             const result = await fetchFileMutation({
                 fileUrl: fileUrl.trim(),
+                personalAccessToken: personalAccessToken.trim(),
             });
             setFileName(result.fileName);
             setFrames(result.frames);
@@ -204,6 +208,8 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 prevStep,
                 fileUrl,
                 setFileUrl,
+                personalAccessToken,
+                setPersonalAccessToken,
                 isFetching,
                 fetchError,
                 fetchFile,

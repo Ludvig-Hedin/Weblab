@@ -86,11 +86,19 @@ function getImportsFromAction(action: CodeAction): T.ImportDeclaration[] {
 
 function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration): void {
     const source = importDeclaration.source.value;
-    const importedNames = importDeclaration.specifiers.map((specifier) =>
-        t.isImportSpecifier(specifier) && t.isIdentifier(specifier.imported)
-            ? specifier.imported.name
-            : specifier.local.name,
-    );
+    const localNames = importDeclaration.specifiers.map((specifier) => specifier.local.name);
+    const importedNames = importDeclaration.specifiers.map(getImportedName);
+
+    const hasConflictingLocal = ast.program.body.some((node) => {
+        if (!t.isImportDeclaration(node) || node.source.value === source) {
+            return false;
+        }
+        return node.specifiers.some((specifier) => localNames.includes(specifier.local.name));
+    });
+
+    if (hasConflictingLocal) {
+        return;
+    }
 
     const hasImport = ast.program.body.some((node) => {
         if (!t.isImportDeclaration(node) || node.source.value !== source) {
@@ -98,11 +106,7 @@ function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration)
         }
         return importedNames.every((name) =>
             node.specifiers.some((specifier) => {
-                const existingName =
-                    t.isImportSpecifier(specifier) && t.isIdentifier(specifier.imported)
-                        ? specifier.imported.name
-                        : specifier.local.name;
-                return existingName === name;
+                return getImportedName(specifier) === name;
             }),
         );
     });
@@ -134,6 +138,12 @@ function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration)
     }
 
     ast.program.body.splice(insertIndex, 0, importDeclaration);
+}
+
+function getImportedName(specifier: T.ImportDeclaration['specifiers'][number]): string {
+    return t.isImportSpecifier(specifier) && t.isIdentifier(specifier.imported)
+        ? specifier.imported.name
+        : specifier.local.name;
 }
 
 function applyStructureChanges(path: NodePath<T.JSXElement>, actions: CodeAction[]): void {

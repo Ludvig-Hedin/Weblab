@@ -40,4 +40,17 @@ export const editorForwardRouter = createTRPCRouter({
             return editorClient.sandbox.status.query(input);
         }),
     }),
+    components: createTRPCRouter({
+        listProjectComponents: publicProcedure
+            .input(z.object({ projectRoot: z.string().min(1).optional() }).optional())
+            .query(async ({ input }) => {
+                const components = await editorClient.components.listProjectComponents.query({
+                    projectRoot: input?.projectRoot ?? '.',
+                });
+                return components.map(({ name, ...component }) => ({
+                    ...component,
+                    componentName: name,
+                }));
+            }),
+    }),
 });

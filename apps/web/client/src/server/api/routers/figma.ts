@@ -2,21 +2,21 @@ import { extractFigmaFileKey, fetchFigmaFile, extractTopLevelFrames } from '@web
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
-import { env } from '@/env';
 
 export const figmaRouter = createTRPCRouter({
     fetchFile: protectedProcedure
         .input(
             z.object({
                 fileUrl: z.string().url(),
+                personalAccessToken: z.string().min(1).optional(),
             }),
         )
         .mutation(async ({ input }) => {
-            const pat = env.FIGMA_PERSONAL_ACCESS_TOKEN;
+            const pat = input.personalAccessToken;
             if (!pat) {
                 throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Figma integration is not configured on this server.',
+                    code: 'BAD_REQUEST',
+                    message: 'Paste a Figma personal access token to import this file.',
                 });
             }
             const fileKey = extractFigmaFileKey(input.fileUrl);

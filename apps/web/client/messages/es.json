@@ -64,7 +64,8 @@
             "openingLocalFolder": "Abriendo…",
             "importingLocalFolder": "Subiendo archivos…",
             "localFolderUnsupportedTooltip": "El acceso a carpetas locales requiere Chrome, Edge o Arc",
-            "recentProjects": "Proyectos Recientes"
+            "recentProjects": "Proyectos Recientes",
+            "importFromGitHub": "Importar desde GitHub"
         },
         "dialogs": {
             "delete": {
@@ -106,7 +107,22 @@
             "google": "Iniciar sesión con Google",
             "lastUsed": "Usó esto la última vez",
             "loginToEdit": "Iniciar sesión para Editar",
-            "shareProjects": "Sin tarjeta de crédito • Crea un sitio en segundos"
+            "shareProjects": "Sin tarjeta de crédito • Crea un sitio en segundos",
+            "email": "Continuar con correo electrónico",
+            "emailPlaceholder": "your@email.com",
+            "sendCode": "Enviar código",
+            "sending": "Enviando..."
+        },
+        "verify": {
+            "title": "Revisa tu correo",
+            "description": "Enviamos un código de 6 dígitos a {email}",
+            "enterCode": "Ingresa el código de verificación",
+            "verify": "Verificar",
+            "verifying": "Verificando...",
+            "resend": "Reenviar código",
+            "resendIn": "Reenviar en {seconds}s",
+            "back": "Volver al inicio de sesión",
+            "wrongEmail": "¿Correo incorrecto?"
         },
         "terms": {
             "agreement": "Al registrarse, acepta nuestra",
@@ -322,6 +338,7 @@
                 "name": "Capas",
                 "tabs": {
                     "layers": "Capas",
+                    "insert": "Insertar",
                     "pages": "Páginas",
                     "components": "Elementos",
                     "images": "Imágenes",

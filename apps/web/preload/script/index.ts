@@ -37,6 +37,31 @@ const findWeblabParent = (): Window => {
     return window.parent;
 };
 
+/**
+ * Derive the trusted parent origin from the browser's security context.
+ * Prefers the Permissions API's ancestorOrigins (Chromium/Safari), falls back
+ * to document.referrer, and only widens to '*' when no information is available.
+ */
+const getTrustedParentOrigins = (): string[] => {
+    // ancestorOrigins is available in Chromium and Safari (not Firefox)
+    if (typeof window.location.ancestorOrigins !== 'undefined' && window.location.ancestorOrigins.length > 0) {
+        const parentOrigin = window.location.ancestorOrigins[0];
+        if (parentOrigin) {
+            return [parentOrigin];
+        }
+    }
+    // document.referrer gives the URL of the page that loaded this iframe
+    if (document.referrer) {
+        try {
+            return [new URL(document.referrer).origin];
+        } catch {
+            // malformed referrer — fall through
+        }
+    }
+    console.warn(`${PENPAL_CHILD_CHANNEL} - Could not determine parent origin; falling back to '*'`);
+    return ['*'];
+};
+
 const createMessageConnection = async () => {
     if (isConnecting || penpalParent) {
         return penpalParent;
@@ -47,8 +72,7 @@ const createMessageConnection = async () => {
 
     const messenger = new WindowMessenger({
         remoteWindow: findWeblabParent(),
-        // TODO: Use a proper origin
-        allowedOrigins: ['*'],
+        allowedOrigins: getTrustedParentOrigins(),
     });
 
     const connection = connect({

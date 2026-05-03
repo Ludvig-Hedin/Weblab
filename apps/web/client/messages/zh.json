@@ -64,7 +64,8 @@
             "openingLocalFolder": "正在打开…",
             "importingLocalFolder": "正在上传文件…",
             "localFolderUnsupportedTooltip": "本地文件夹访问需要 Chrome、Edge 或 Arc 浏览器",
-            "recentProjects": "最近项目"
+            "recentProjects": "最近项目",
+            "importFromGitHub": "从 GitHub 导入"
         },
         "dialogs": {
             "delete": {
@@ -106,7 +107,22 @@
             "google": "使用 Google 登录",
             "lastUsed": "上次使用了此方式",
             "loginToEdit": "登入後即可編輯",
-            "shareProjects": "无需信用卡 • 秒建网站"
+            "shareProjects": "无需信用卡 • 秒建网站",
+            "email": "使用邮箱继续",
+            "emailPlaceholder": "your@email.com",
+            "sendCode": "发送验证码",
+            "sending": "发送中..."
+        },
+        "verify": {
+            "title": "请查收邮件",
+            "description": "我们已向 {email} 发送了一个 6 位验证码",
+            "enterCode": "输入验证码",
+            "verify": "验证",
+            "verifying": "验证中...",
+            "resend": "重新发送验证码",
+            "resendIn": "{seconds}秒后重新发送",
+            "back": "返回登录",
+            "wrongEmail": "邮箱填错了？"
         },
         "terms": {
             "agreement": "注册即表示您同意我们的",
@@ -322,6 +338,7 @@
                 "name": "图层",
                 "tabs": {
                     "layers": "图层",
+                    "insert": "插入",
                     "pages": "页面",
                     "components": "组件",
                     "images": "图像",
