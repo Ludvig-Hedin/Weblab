@@ -69,8 +69,11 @@ export const ComponentsTab = observer(() => {
     );
 
     const handleComponentClick = useCallback(
-        (_data: ComponentInsertData) => {
-            // Will be wired up in Task 7 — for now switch to design mode and prompt user
+        (data: ComponentInsertData) => {
+            editorEngine.state.setPendingInsertComponent(data);
+            editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             toast('Click on the canvas to place this component.');
         },

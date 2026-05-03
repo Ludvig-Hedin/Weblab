@@ -1,6 +1,7 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { DefaultSettings, EditorAttributes, type ShadcnBlockManifestItem } from '@weblab/constants';
 import type {
+    ComponentInsertData,
     DomElement,
     DropElementProperties,
     ElementPosition,
@@ -683,10 +684,86 @@ export class InsertManager {
         }
     }
 
+    async insertDroppedComponent(
+        frame: FrameData,
+        dropPosition: { x: number; y: number },
+        data: ComponentInsertData,
+    ) {
+        if (!frame.view) {
+            console.error('No frame view found');
+            return;
+        }
+
+        const location = await frame.view.getInsertLocation(dropPosition.x, dropPosition.y);
+        if (!location) {
+            console.error('Failed to get insert location for component drop');
+            return;
+        }
+
+        const domId = createDomId();
+        const oid = createOid();
+        const element: ActionElement = {
+            domId,
+            oid,
+            branchId: frame.frame.branchId,
+            tagName: 'section',
+            styles: {},
+            children: [],
+            attributes: {
+                [EditorAttributes.DATA_WEBLAB_ID]: oid,
+                [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
+                [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+            },
+            textContent: null,
+        };
+
+        const codeBlock = getUserComponentCodeBlock(data);
+
+        const action: InsertElementAction = {
+            type: 'insert-element',
+            targets: [
+                {
+                    frameId: frame.frame.id,
+                    branchId: frame.frame.branchId,
+                    domId,
+                    oid: null,
+                },
+            ],
+            element,
+            location,
+            editText: false,
+            pasteParams: null,
+            codeBlock,
+        };
+
+        await this.editorEngine.action.run(action);
+    }
+
     clear() {
         // Clear drawing state
         this.isDrawing = false;
     }
+}
+
+function getUserComponentCodeBlock(data: ComponentInsertData): string {
+    const importPath = toImportPath(data.filePath);
+    const importLine =
+        data.exportType === 'default'
+            ? `import ${data.componentName} from "${importPath}";`
+            : `import { ${data.componentName} } from "${importPath}";`;
+
+    return `${importLine}
+
+<section data-weblab-inserted="true">
+  <${data.componentName} />
+</section>;`;
+}
+
+function toImportPath(filePath: string): string {
+    // filePath is relative to project root, e.g. "src/components/MyCard.tsx"
+    // Convert to @/ alias path — this is valid for any Next.js/Vite project with src/
+    const withoutSrc = filePath.startsWith('src/') ? filePath.slice(4) : filePath;
+    return `@/${withoutSrc.replace(/\.(tsx|ts|jsx|js)$/, '')}`;
 }
 
 function getShadcnBlockCodeBlock(block: ShadcnBlockManifestItem): string {

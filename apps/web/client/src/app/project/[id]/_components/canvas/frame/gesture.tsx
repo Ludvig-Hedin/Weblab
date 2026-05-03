@@ -189,6 +189,35 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                 return;
             }
 
+            if (editorEngine.state.pendingInsertComponent) {
+                const frameData = getFrameData();
+                if (!frameData) {
+                    toast.error('Unable to insert component', {
+                        description: 'Frame data not available',
+                    });
+                    editorEngine.state.setPendingInsertComponent(null);
+                    return;
+                }
+
+                try {
+                    const dropPosition = getRelativeMousePosition(e);
+                    await editorEngine.insert.insertDroppedComponent(
+                        frameData,
+                        dropPosition,
+                        editorEngine.state.pendingInsertComponent,
+                    );
+                    editorEngine.state.setPendingInsertComponent(null);
+                    editorEngine.state.setEditorMode(EditorMode.DESIGN);
+                    editorEngine.state.setInsertMode(null);
+                } catch (error) {
+                    console.error('Failed to insert component from panel:', error);
+                    toast.error('Failed to insert component', {
+                        description: error instanceof Error ? error.message : 'Unknown error',
+                    });
+                }
+                return;
+            }
+
             if (editorEngine.state.pendingInsertBlock) {
                 const frameData = getFrameData();
                 if (!frameData) {
@@ -249,7 +278,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
 
             editorEngine.frames.select([frame]);
         },
-        [editorEngine.frames, editorEngine.insert, editorEngine.move, editorEngine.state, frame, getFrameData, getRelativeMousePosition],
+        [editorEngine.frames, editorEngine.insert, editorEngine.move, editorEngine.state, frame, getFrameData, getRelativeMousePosition, editorEngine.state.pendingInsertComponent],
     );
 
     async function handleDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
@@ -260,7 +289,11 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
     }
 
     async function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-        if (editorEngine.state.pendingInsertElement || editorEngine.state.pendingInsertBlock) {
+        if (
+            editorEngine.state.pendingInsertElement ||
+            editorEngine.state.pendingInsertBlock ||
+            editorEngine.state.pendingInsertComponent
+        ) {
             return;
         }
         if (editorEngine.state.editorMode === EditorMode.DESIGN || editorEngine.state.editorMode === EditorMode.CODE) {
@@ -301,6 +334,23 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
         e.stopPropagation();
 
         try {
+            const componentData = e.dataTransfer.getData('application/weblab-component');
+            if (componentData) {
+                const frameData = editorEngine.frames.get(frame.id);
+                if (!frameData) {
+                    throw new Error('Frame data not found');
+                }
+                const dropPosition = getRelativeMousePosition(e);
+                await editorEngine.insert.insertDroppedComponent(
+                    frameData,
+                    dropPosition,
+                    JSON.parse(componentData),
+                );
+                editorEngine.state.setEditorMode(EditorMode.DESIGN);
+                editorEngine.state.setInsertMode(null);
+                return;
+            }
+
             const propertiesData = e.dataTransfer.getData('application/json');
             if (!propertiesData) {
                 throw new Error('No element properties in drag data');
@@ -354,9 +404,12 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                 editorEngine.state.insertMode === InsertMode.INSERT_LINK ||
                 editorEngine.state.insertMode === InsertMode.INSERT_INPUT) && 'cursor-crosshair',
             editorEngine.state.insertMode === InsertMode.INSERT_TEXT && 'cursor-text',
-            (editorEngine.state.pendingInsertElement || editorEngine.state.pendingInsertBlock) && 'cursor-crosshair',
+            (editorEngine.state.pendingInsertElement ||
+                editorEngine.state.pendingInsertBlock ||
+                editorEngine.state.pendingInsertComponent) &&
+                'cursor-crosshair',
         );
-    }, [editorEngine.state.editorMode, editorEngine.state.insertMode, editorEngine.state.pendingInsertElement, editorEngine.state.pendingInsertBlock, isResizing]);
+    }, [editorEngine.state.editorMode, editorEngine.state.insertMode, editorEngine.state.pendingInsertElement, editorEngine.state.pendingInsertBlock, editorEngine.state.pendingInsertComponent, isResizing]);
 
     const handleMouseOut = () => {
         if (editorEngine.move.isPreparing) {
