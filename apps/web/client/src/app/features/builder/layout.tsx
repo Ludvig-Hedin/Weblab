@@ -41,13 +41,13 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: 'Visual Builder | Weblab',
         description:
             'Design with your real React components on an infinite canvas. Changes become mergeable PRs.',
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: 'https://weblab.build/features/builder',
     },

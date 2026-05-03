@@ -41,7 +41,7 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         site: '@weblab',
         creator: '@weblab',
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
                 url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
             },
         ],
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/workflows/claude-code`,
     },

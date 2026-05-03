@@ -48,32 +48,30 @@ export function Footer() {
                             <li><a href={Routes.WORKFLOWS_VIBE_CODING} className="hover:underline" title="Vibe coding for teams">Vibe Coding</a></li>
                         </ul>
                     </div>
-                    {/*
                     <div>
                         <h3 className="text-regularPlus mb-4 text-foreground-primary">Follow Us</h3>
                         <div className="flex gap-6 mt-2 items-center">
-                            <a href={ExternalRoutes.X} target="_blank" rel="noopener noreferrer" title="Follow Weblab on X">
+                            {/* <a href={ExternalRoutes.X} target="_blank" rel="noopener noreferrer" title="Follow Weblab on X" aria-label="Follow Weblab on X">
                                 <Icons.SocialX className="w-6 h-6 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                            </a>
-                            <a href={ExternalRoutes.LINKEDIN} target="_blank" rel="noopener noreferrer" title="Connect with Weblab on LinkedIn">
+                            </a> */}
+                            <a href={ExternalRoutes.LINKEDIN} target="_blank" rel="noopener noreferrer" title="Connect with Weblab on LinkedIn" aria-label="Connect with Weblab on LinkedIn">
                                 <Icons.SocialLinkedIn className="w-6 h-6 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                             </a>
-                            <a href={ExternalRoutes.SUBSTACK} target="_blank" rel="noopener noreferrer" title="Subscribe to Weblab on Substack">
+                            <a href={ExternalRoutes.SUBSTACK} target="_blank" rel="noopener noreferrer" title="Subscribe to Weblab on Substack" aria-label="Subscribe to Weblab on Substack">
                                 <Icons.SocialSubstack className="w-6 h-6 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                             </a>
-                            <a href={ExternalRoutes.YOUTUBE} target="_blank" rel="noopener noreferrer" title="Watch Weblab on YouTube">
+                            <a href={ExternalRoutes.YOUTUBE} target="_blank" rel="noopener noreferrer" title="Watch Weblab on YouTube" aria-label="Watch Weblab on YouTube">
                                 <Icons.SocialYoutube className="w-6 h-6 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                             </a>
-                            <a href={ExternalRoutes.GITHUB} target="_blank" rel="noopener noreferrer" title="View Weblab on GitHub">
+                            <a href={ExternalRoutes.GITHUB} target="_blank" rel="noopener noreferrer" title="View Weblab on GitHub" aria-label="View Weblab on GitHub">
                                 <Icons.GitHubLogo className="w-5.5 h-5.5 text-foreground-secondary hover:text-foreground-primary transition-colors" />
                             </a>
-                            <a href={ExternalRoutes.DISCORD} target="_blank" rel="noopener noreferrer" title="Join the Weblab Discord community">
+                            {/* <a href={ExternalRoutes.DISCORD} target="_blank" rel="noopener noreferrer" title="Join the Weblab Discord community" aria-label="Join the Weblab Discord community">
                                 <Icons.DiscordLogo className="w-6 h-6 text-foreground-secondary hover:text-foreground-primary transition-colors" />
-                            </a>
+                            </a> */}
                         </div>
                     </div>
-                    */}
-               
+
                 </div>
             </div>
             {/* Bottom Bar */}

@@ -39,12 +39,12 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: 'Features | ${APP_NAME}',
         description: 'AI-powered visual editor with infinite canvas, real-time collaboration, and direct PR output.',
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/features`,
     },

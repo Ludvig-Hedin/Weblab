@@ -26,12 +26,12 @@ export const baseOptions: BaseLayoutProps = {
             external: true,
             icon: <Icons.GitHubLogo className="w-4 h-4" />
         },
-        {
-            type: 'main',
-            text: 'Discord',
-            url: 'https://discord.gg/hERDfFZCsH',
-            external: true,
-            icon: <Icons.DiscordLogo className="w-4 h-4" />
-        }
+        // {
+        //     type: 'main',
+        //     text: 'Discord',
+        //     url: 'https://discord.gg/hERDfFZCsH',
+        //     external: true,
+        //     icon: <Icons.DiscordLogo className="w-4 h-4" />
+        // }
     ]
 };

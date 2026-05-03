@@ -20,7 +20,7 @@ import { faqSchema, organizationSchema } from './seo';
 
 const isProduction = env.NODE_ENV === 'production';
 
-const description = `The power of Cursor for your own website. ${APP_NAME} lets you edit your React website and write your changes back to code in real-time. Iterate and experiment with AI.`;
+const description = `${APP_NAME} lets you design with your real components and ship PRs, not prototypes. Edit your React app visually, write changes back to code in real-time, and iterate with AI.`;
 
 export const metadata: Metadata = {
     title: `${APP_NAME} – ${APP_TAGLINE}`,
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         site: '@weblab', // update when Twitter handle changes
         creator: '@weblab',
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
                 url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
             },
         ],
-    },
+    }, */
 };
 
 const inter = Inter({

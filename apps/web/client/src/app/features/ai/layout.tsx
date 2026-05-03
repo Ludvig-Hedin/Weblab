@@ -41,13 +41,13 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: 'AI Visual Editor | Weblab',
         description:
             'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs.',
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: 'https://weblab.build/features/ai',
     },

@@ -39,12 +39,12 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: 'Workflows | ${APP_NAME}',
         description: 'Visual design layer for Claude Code, Cursor, and AI coding tools.',
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/workflows`,
     },

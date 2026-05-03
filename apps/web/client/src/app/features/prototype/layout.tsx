@@ -43,13 +43,13 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: 'AI Prototype Generator | ${APP_NAME}',
         description:
             'Create functional React prototypes with real interactions in minutes. Not static mockups — working applications.',
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/features/prototype`,
     },

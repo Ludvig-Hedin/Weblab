@@ -1,4 +1,4 @@
-import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
+import { /* FaDiscord, */ FaGithub /* , FaXTwitter */ } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,9 @@ const Community1 = ({
   heading = "Join our community",
   headingHighlight = "of designers & developers",
   socialLinks = [
-    { icon: <FaXTwitter />, url: "https://x.com/shadcnblocks" },
+    // { icon: <FaXTwitter />, url: "https://x.com/shadcnblocks" },
     { icon: <FaGithub />, url: "https://github.com/shadcnblocks" },
-    { icon: <FaDiscord />, url: "#" },
+    // { icon: <FaDiscord />, url: "#" },
   ],
   className,
 }: Community1Props) => {

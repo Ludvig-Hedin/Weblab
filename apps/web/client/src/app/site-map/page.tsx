@@ -26,7 +26,7 @@ const sitemapSections: SitemapSection[] = [
             {
                 title: "Home",
                 href: Routes.HOME,
-                description: "Weblab homepage — Cursor for Designers. AI-powered visual editor for frontend development."
+                description: "Weblab homepage — design with your real components and ship PRs, not prototypes. AI-powered visual editor for frontend development."
             },
             {
                 title: "Pricing",
@@ -119,24 +119,24 @@ const sitemapSections: SitemapSection[] = [
                 description: "Browse the open-source codebase, contribute, or report issues.",
                 external: true
             },
-            {
-                title: "Discord",
-                href: ExternalRoutes.DISCORD,
-                description: "Join the Weblab community for support and discussions.",
-                external: true
-            },
+            // {
+            //     title: "Discord",
+            //     href: ExternalRoutes.DISCORD,
+            //     description: "Join the Weblab community for support and discussions.",
+            //     external: true
+            // },
         ]
     },
     {
         title: "Social",
         anchor: "social",
         links: [
-            {
-                title: "X (Twitter)",
-                href: ExternalRoutes.X,
-                description: "Follow @weblab for updates and announcements.",
-                external: true
-            },
+            // {
+            //     title: "X (Twitter)",
+            //     href: ExternalRoutes.X,
+            //     description: "Follow @weblab for updates and announcements.",
+            //     external: true
+            // },
             {
                 title: "LinkedIn",
                 href: ExternalRoutes.LINKEDIN,
@@ -248,7 +248,7 @@ export default function SitemapPage() {
                 </p>
                 <h2>Main Pages</h2>
                 <ul>
-                    <li>Home — Cursor for Designers, AI-powered visual editor</li>
+                    <li>Home — design with your real components, AI-powered visual editor</li>
                     <li>Pricing — Plans and pricing for individuals and teams</li>
                     <li>About — Team, mission, and company story</li>
                     <li>FAQ — Frequently asked questions</li>

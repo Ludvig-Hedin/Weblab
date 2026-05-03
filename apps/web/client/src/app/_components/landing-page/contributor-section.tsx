@@ -165,13 +165,13 @@ interface ContributorSectionProps {
      */
     contributorCount?: number;
     githubLink?: string;
-    discordLink?: string;
+    // discordLink?: string;
 }
 
 export function ContributorSection({
     contributorCount = 0,
     githubLink = "https://github.com/Ludvig-Hedin/Weblab",
-    discordLink = "https://discord.gg/ZZzadNQtns"
+    // discordLink = "https://discord.gg/ZZzadNQtns"
 }: ContributorSectionProps) {
     const [starCount, setStarCount] = useState<string>("0");
     const [isLoading, setIsLoading] = useState(true);
@@ -218,14 +218,14 @@ export function ContributorSection({
                         Contribute to Weblab
                         <Icons.GitHubLogo className="w-4.5 h-4.5" />
                     </Link>
-                    <Link
+                    {/* <Link
                         href={discordLink}
                         target="_blank"
                         className="border border-foreground-primary/50 text-foreground-primary text-regularPlus rounded-lg px-6 py-3 flex items-center gap-2 hover:bg-foreground-primary/10 transition cursor-pointer"
                     >
                         Join the Discord
                         <Icons.DiscordLogo className="w-4.5 h-4.5" />
-                    </Link>
+                    </Link> */}
                 </div>
             </div>
         </div>

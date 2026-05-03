@@ -409,7 +409,7 @@ declare const messages: {
             "contactUs": {
                 "title": "Contact Us",
                 "website": "Website",
-                "discord": "Discord",
+
                 "github": "GitHub",
                 "email": "Email"
             },

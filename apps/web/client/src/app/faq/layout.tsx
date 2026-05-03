@@ -25,11 +25,11 @@ export const metadata: Metadata = {
         url: `https://${APP_DOMAIN}/faq`,
         siteName: APP_NAME,
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: `FAQ | ${APP_NAME}`,
         description: `Everything you need to know about ${APP_NAME} - the AI-powered visual editor for frontend development.`,
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/faq`,
     },

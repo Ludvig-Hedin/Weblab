@@ -35,13 +35,13 @@ export const metadata: Metadata = {
             },
         ],
     },
-    twitter: {
+    /* twitter: {
         card: 'summary_large_image',
         title: `About ${APP_NAME}`,
         description:
             `Meet the team behind ${APP_NAME}. Founded to obliterate the divide between creativity and implementation.`,
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
-    },
+    }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/about`,
     },
@@ -94,9 +94,9 @@ const organizationJsonLd = {
     },
     sameAs: [
         'https://github.com/Ludvig-Hedin/Weblab',
-        'https://x.com/weblab',
+        // 'https://x.com/weblab',
         'https://www.linkedin.com/company/weblab/',
-        'https://discord.gg/ZZzadNQtns',
+        // 'https://discord.gg/ZZzadNQtns',
         'https://weblab.substack.com/',
     ],
 };
