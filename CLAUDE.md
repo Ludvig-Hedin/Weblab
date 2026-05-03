@@ -2,14 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ⚠️ Brand Name — Read First
+## ⚠️ Brand — Read First
 
-> **This product is called Weblab** (domain: weblab.build).
+> **This product is Weblab** (domain: weblab.build, GitHub: github.com/Ludvig-Hedin/Weblab).
 >
-> - All user-facing strings, UI copy, metadata, and i18n messages must use **"Weblab"**, not "Onlook".
-> - The brand constant is `APP_NAME = 'Weblab'` in `packages/constants/src/editor.ts` — always import it; never hardcode the name.
-> - Package scopes (`@weblab/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes still use the old name — **do not rename those** (Phase 2 work).
-> - If you encounter "Onlook" in user-visible text, treat it as a bug and replace it with `APP_NAME`.
+> - Brand constant: `APP_NAME = 'Weblab'` in `packages/constants/src/editor.ts` — always import it; never hardcode the name.
+> - Package scope is `@weblab/*`. DOM attributes are `data-weblab-*`. URL protocol is `weblab://`. Cache dir is `.weblab`.
+> - The folder name on disk (`onlook/`) is intentionally unchanged — it's a local path, not a user-facing identifier.
+> - Allowed remaining "Onlook" references (do not strip):
+>   - `LICENSE.md` — legal attribution to On Off, Inc. (original Onlook team) per Apache-2.0 derivative-work requirements
+>   - `CODE_REVIEW_BACKLOG.md` — historical bug reports
+>   - `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts` — legacy CDN URLs the parser must still recognize and remove from old customer code
+>   - Test fixtures with intentionally-deprecated inputs (e.g., `packages/parser/test/data/layout/does-not-duplicate/input.tsx`)
+> - Any other "Onlook" mention in code, docs, or UI is a bug — replace it.
 
 ## Commands
 

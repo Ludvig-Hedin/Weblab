@@ -50,7 +50,7 @@
 
 </div>
 
-> **⚠️ Brand note for AI agents:** This product is called **Weblab** (weblab.build). Use "Weblab" in all user-facing text. Package scopes `@weblab/*` and the GitHub org `onlook-dev` are legacy identifiers — do not rename them.
+> **⚠️ Brand note for AI agents:** This product is **Weblab** (weblab.build, github.com/Ludvig-Hedin/Weblab). Brand constant: `APP_NAME` from `@weblab/constants`. Package scope `@weblab/*`. DOM attrs `data-weblab-*`. The local folder name `onlook/` is intentionally unchanged. Allowed remaining "Onlook" references: `LICENSE.md` (legal attribution), `CODE_REVIEW_BACKLOG.md` (history), `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts`, and a few test fixtures with deprecated inputs.
 
 # An Open-Source, Visual-First Code Editor
 

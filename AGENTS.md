@@ -2,14 +2,19 @@
 
 Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 
-### ⚠️ Brand Name — Critical for All Agents
+### ⚠️ Brand — Critical for All Agents
 
-> **This product is called Weblab** (domain: weblab.build).
+> **This product is Weblab** (domain: weblab.build, GitHub: github.com/Ludvig-Hedin/Weblab).
 >
-> - All user-facing strings, UI copy, page metadata, and i18n message files must use **"Weblab"** — never "Onlook".
-> - The single source of truth is `APP_NAME = 'Weblab'` exported from `packages/constants/src/editor.ts`. Always import it; never hardcode the brand name as a string literal.
-> - Package scopes (`@weblab/*`), the GitHub org (`onlook-dev`), and `data-onlook-*` DOM attributes intentionally still use the old identifier — **do not rename these** (they are Phase 2 work).
-> - If you find "Onlook" in any user-visible text (UI, metadata, i18n JSON), that is a bug — replace with `{APP_NAME}` (JSX) or `${APP_NAME}` (template literal) after importing the constant.
+> - Single source of truth: `APP_NAME = 'Weblab'` exported from `packages/constants/src/editor.ts`. Always import it; never hardcode the brand name as a string literal in JSX or metadata.
+> - Package scope is `@weblab/*`. DOM attributes are `data-weblab-*`. URL protocol is `weblab://`. Cache dir is `.weblab`.
+> - The repo folder on disk is named `onlook/` for backward compatibility with shell history and tooling — it's a local path, not a user-facing identifier.
+> - Allowed remaining "Onlook" references (do not strip):
+>   - `LICENSE.md` — Apache-2.0 derivative-work attribution to On Off, Inc.
+>   - `CODE_REVIEW_BACKLOG.md` — historical bug reports
+>   - `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts` — legacy CDN URLs the parser still recognizes and removes from old customer code
+>   - Test fixtures with intentionally-deprecated inputs
+> - Any other "Onlook" mention in code, docs, or UI is a bug — replace with `{APP_NAME}` (JSX) or `${APP_NAME}` (template literal).
 
 ### Purpose & Scope
 
