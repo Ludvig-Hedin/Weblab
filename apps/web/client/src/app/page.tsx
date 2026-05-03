@@ -11,7 +11,7 @@ import { CTASection } from './_components/landing-page/cta-section';
 import { FAQSection } from './_components/landing-page/faq-section';
 import { ResponsiveMockupSection } from './_components/landing-page/responsive-mockup-section';
 import { TestimonialsSection } from './_components/landing-page/testimonials-section';
-import { WhatCanOnlookDoSection } from './_components/landing-page/what-can-onlook-do-section';
+import { WhatCanWeblabDoSection } from './_components/landing-page/what-can-weblab-do-section';
 import { WebsiteLayout } from './_components/website-layout';
 
 export default function Main() {
@@ -23,7 +23,7 @@ export default function Main() {
                 </div>
                 <ResponsiveMockupSection />
                 {/* <CodeOneToOneSection /> */}
-                <WhatCanOnlookDoSection />
+                <WhatCanWeblabDoSection />
                 {/* <ObsessForHoursSection /> */}
                 {/* <ContributorSection /> */}
                 {/* <TestimonialsSection /> */}

@@ -98,7 +98,7 @@ function ParallaxContainer({ children, speed = 0.1 }: { children: React.ReactNod
     );
 }
 
-export function WhatCanOnlookDoSection() {
+export function WhatCanWeblabDoSection() {
     // Detect operating system for keyboard shortcuts
     const os = useOperatingSystem();
 

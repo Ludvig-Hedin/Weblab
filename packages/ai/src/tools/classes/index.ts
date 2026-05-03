@@ -6,7 +6,7 @@ export { GlobTool } from './glob';
 export { GrepTool } from './grep';
 export { ListBranchesTool } from './list-branches';
 export { ListFilesTool } from './list-files';
-export { OnlookInstructionsTool } from './onlook-instructions';
+export { WeblabInstructionsTool } from './weblab-instructions';
 export { ReadFileTool } from './read-file';
 export { ReadStyleGuideTool } from './read-style-guide';
 export { SandboxTool } from './sandbox';

@@ -186,7 +186,10 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright 2024 On Off, Inc.
+   This software is a derivative work of Onlook (https://github.com/onlook-dev/onlook).
+
+   Original work Copyright 2024 On Off, Inc. (the Onlook team)
+   Modified work Copyright 2025 Ludvig Hedin
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

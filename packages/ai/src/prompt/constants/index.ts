@@ -2,7 +2,7 @@ export * from './ask';
 export * from './base';
 export * from './create';
 export * from './format';
-export * from './onlook';
+export * from './weblab';
 export * from './shell';
 export * from './signatures';
 export * from './suggest';
