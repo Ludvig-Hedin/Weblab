@@ -1,6 +1,6 @@
 {
     "name": "@weblab/fonts",
-    "description": "Onlook supported fonts",
+    "description": "Weblab supported fonts",
     "version": "0.0.0",
     "repository": {
         "type": "git",
@@ -19,7 +19,7 @@
         "fonts"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

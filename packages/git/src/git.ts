@@ -24,7 +24,7 @@ export interface GitCommit {
     timestamp: number;
 }
 
-const GIT_AUTHOR = { name: 'Onlook', email: 'git@weblab.build' };
+const GIT_AUTHOR = { name: 'Weblab', email: 'git@weblab.build' };
 const DISPLAY_NAME_NAMESPACE = 'weblab-display-name';
 
 export async function isRepoInitialized(dir: string) {

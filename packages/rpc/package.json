@@ -1,6 +1,6 @@
 {
     "name": "@weblab/rpc",
-    "description": "An rpc library for Onlook web",
+    "description": "An rpc library for Weblab web",
     "main": "./src/index.ts",
     "type": "module",
     "module": "src/index.ts",
@@ -22,7 +22,7 @@
         "rpc"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

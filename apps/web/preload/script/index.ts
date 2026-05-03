@@ -10,7 +10,7 @@ export let penpalParent: PromisifiedPenpalParentMethods | null = null;
 let isConnecting = false;
 
 /**
- * Find the correct parent window for Onlook connection.
+ * Find the correct parent window for Weblab connection.
  * Handles both direct iframes (Next.js) and nested iframes (Storybook).
  */
 const findOnlookParent = (): Window => {
@@ -21,13 +21,13 @@ const findOnlookParent = (): Window => {
     }
 
     // Check if we're in a direct iframe (parent is the top window)
-    // This is the Next.js case: Onlook -> Next.js iframe
+    // This is the Next.js case: Weblab -> Next.js iframe
     if (window.parent === window.top) {
         return window.parent;
     }
 
     // We're in a nested iframe (parent is NOT the top window)
-    // This is the Storybook case: Onlook -> CodeSandbox -> Storybook preview iframe
+    // This is the Storybook case: Weblab -> CodeSandbox -> Storybook preview iframe
     if (window.top) {
         console.log(`${PENPAL_CHILD_CHANNEL} - Using window.top for nested iframe scenario`);
         return window.top;

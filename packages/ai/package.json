@@ -1,6 +1,6 @@
 {
     "name": "@weblab/ai",
-    "description": "A AI library for Onlook",
+    "description": "A AI library for Weblab",
     "type": "module",
     "module": "src/index.ts",
     "types": "src/index.ts",
@@ -21,7 +21,7 @@
         "AI"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

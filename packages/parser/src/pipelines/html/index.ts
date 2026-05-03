@@ -416,7 +416,7 @@ export const htmlPipeline: EditorPipeline<HtmlAst> = {
 };
 
 /**
- * Maps HTML tag names to Onlook's `CoreElementType` enum so the editor's
+ * Maps HTML tag names to Weblab's `CoreElementType` enum so the editor's
  * existing UI affordances (button-vs-text-vs-image insertion menus) work
  * for HTML projects. Tags not in this list resolve to null and are treated
  * as generic containers.

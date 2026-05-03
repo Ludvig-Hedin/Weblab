@@ -3,7 +3,7 @@ export enum IdeType {
     CURSOR = 'Cursor',
     ZED = 'Zed',
     WINDSURF = 'Windsurf',
-    ONLOOK = 'Onlook',
+    ONLOOK = 'Weblab',
 }
 
 export const DEFAULT_IDE = IdeType.ONLOOK;

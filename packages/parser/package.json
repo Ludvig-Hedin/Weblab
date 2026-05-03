@@ -1,6 +1,6 @@
 {
     "name": "@weblab/parser",
-    "description": "A jsx/tsx parser library for Onlook",
+    "description": "A jsx/tsx parser library for Weblab",
     "main": "./src/index.ts",
     "type": "module",
     "module": "src/index.ts",
@@ -22,7 +22,7 @@
         "parser"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

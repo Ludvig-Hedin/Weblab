@@ -30,7 +30,7 @@ const fileOps: FileOperations = {
     },
 };
 
-describe('Built with Onlook Script', () => {
+describe('Built with Weblab Script', () => {
     const tempDir = path.join(process.cwd(), 'temp-test-project');
     const appDir = path.join(tempDir, 'app');
     const publicDir = path.join(tempDir, 'public');

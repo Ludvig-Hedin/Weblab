@@ -1,6 +1,6 @@
 {
     "name": "@weblab/typescript",
-    "description": "The Onlook TypeScript Configuration",
+    "description": "The Weblab TypeScript Configuration",
     "version": "0.0.0",
     "private": true,
     "exports": {

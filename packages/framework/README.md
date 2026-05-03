@@ -1,6 +1,6 @@
 # @weblab/framework
 
-Framework adapter abstraction for Onlook. One adapter per supported
+Framework adapter abstraction for Weblab. One adapter per supported
 framework; the rest of the app reads project shape (validation, dev-server
 contract, editor pipelines) through this package.
 

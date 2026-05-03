@@ -1,6 +1,6 @@
 {
     "name": "@weblab/image-server",
-    "description": "Server-side image processing utilities for Onlook",
+    "description": "Server-side image processing utilities for Weblab",
     "main": "./src/index.ts",
     "type": "module",
     "module": "src/index.ts",
@@ -24,7 +24,7 @@
         "compression"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

@@ -1,6 +1,6 @@
 {
     "name": "@weblab/ui",
-    "description": "A tailwind ui library for Onlook",
+    "description": "A tailwind ui library for Weblab",
     "version": "0.0.0",
     "private": true,
     "type": "module",
@@ -28,7 +28,7 @@
         "ui"
     ],
     "author": {
-        "name": "Onlook",
+        "name": "Weblab",
         "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",

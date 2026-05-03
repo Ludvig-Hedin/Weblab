@@ -5,7 +5,7 @@ import { getLayoutPath } from './helpers';
 import { builtWithScript } from './script';
 
 /**
- * Injects the Built with Onlook script into a Next.js layout file
+ * Injects the Built with Weblab script into a Next.js layout file
  * @param projectPath Path to the project root
  * @param fileOps File operations interface
  */

@@ -8,7 +8,7 @@ import { ClientTool } from '../models/client';
 
 export class WeblabInstructionsTool extends ClientTool {
     static readonly toolName = 'onlook_instructions';
-    static readonly description = 'Get Onlook-specific instructions and guidelines';
+    static readonly description = 'Get Weblab-specific instructions and guidelines';
     static readonly parameters = z.object({});
     static readonly icon = Icons.WeblabLogo;
 
@@ -20,6 +20,6 @@ export class WeblabInstructionsTool extends ClientTool {
     }
 
     static getLabel(input?: z.infer<typeof WeblabInstructionsTool.parameters>): string {
-        return 'Reading Onlook instructions';
+        return 'Reading Weblab instructions';
     }
 }

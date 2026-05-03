@@ -35,7 +35,7 @@ jobs:
       - name: Upload DMG artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Onlook.dmg
+          files: apps/desktop/dist/Weblab.dmg
           token: ${{ secrets.GITHUB_TOKEN }}
 
   build-win:
@@ -61,7 +61,7 @@ jobs:
       - name: Upload EXE artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Onlook-Setup.exe
+          files: apps/desktop/dist/Weblab-Setup.exe
           token: ${{ secrets.GITHUB_TOKEN }}
 
   build-linux:
@@ -87,5 +87,5 @@ jobs:
       - name: Upload AppImage artifacts
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/dist/Onlook.AppImage
+          files: apps/desktop/dist/Weblab.AppImage
           token: ${{ secrets.GITHUB_TOKEN }}

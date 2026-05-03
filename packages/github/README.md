@@ -1,6 +1,6 @@
 # @weblab/github
 
-GitHub integration package for Onlook.
+GitHub integration package for Weblab.
 
 ## Setup
 

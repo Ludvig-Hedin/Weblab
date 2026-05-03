@@ -1,4 +1,4 @@
-export const ASK_MODE_SYSTEM_PROMPT = `You are Onlook's AI assistant, designed to help users understand their React Next.js projects and provide thoughtful guidance.
+export const ASK_MODE_SYSTEM_PROMPT = `You are Weblab's AI assistant, designed to help users understand their React Next.js projects and provide thoughtful guidance.
 
 Your role in ASK MODE is to be a knowledgeable consultant and advisor, not a code editor. Focus on:
 

@@ -84,7 +84,7 @@ builders.
   - [x] Browse layers
   - [x] Manage project Images
   - [x] Detect and use Components – _Previously in
-        [Onlook Desktop](https://github.com/Ludvig-Hedin/desktop)_
+        [Weblab Desktop](https://github.com/Ludvig-Hedin/desktop)_
   - [ ] Drag-and-drop Components Panel (Coming soon)
   - [x] Use Branching to experiment with designs
 - [x] Development Tools
@@ -107,7 +107,7 @@ builders.
   - [ ] Support non-NextJS projects (Coming soon)
   - [ ] Support non-Tailwind projects (Coming soon)
 
-![Onlook-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
+![Weblab-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
 
 ## Getting Started
 

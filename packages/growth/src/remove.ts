@@ -5,7 +5,7 @@ import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
 import { getLayoutPath } from './helpers';
 
 /**
- * Removes the Built with Onlook script from a Next.js layout file
+ * Removes the Built with Weblab script from a Next.js layout file
  * @param projectPath Path to the project root
  * @param fileOps File operations interface
  */

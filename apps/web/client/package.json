@@ -1,5 +1,5 @@
 {
-  "productName": "Onlook",
+  "productName": "Weblab",
   "name": "@weblab/web-client",
   "version": "0.1.0",
   "private": true,
@@ -7,7 +7,7 @@
   "description": "The first-ever devtool for designers",
   "license": "Apache-2.0",
   "author": {
-    "name": "Onlook",
+    "name": "Weblab",
     "email": "contact@weblab.build"
   },
   "repository": {

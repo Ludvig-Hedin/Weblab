@@ -40,7 +40,7 @@ Scope: code-based review of the main user flows in `apps/web/client`.
 - Files:
   - `apps/web/client/src/app/projects/import/local/_context/index.tsx`
   - `apps/web/client/src/app/projects/import/local/_components/select-folder.tsx`
-- UI says Onlook only works with `NextJS + React + Tailwind`, but validation only checks for Next.js, React, and router structure.
+- UI says Weblab only works with `NextJS + React + Tailwind`, but validation only checks for Next.js, React, and router structure.
 - Impact: unsupported projects can be accepted, then fail later after the user has already invested time uploading and waiting.
 
 ### Local import errors are not explained in the UI

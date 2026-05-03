@@ -46,7 +46,7 @@ export const builtWithScript = `
                 svg.setAttribute('fill', 'none');
                 svg.classList.add('logo');
 
-                // Add SVG path for the Onlook logo
+                // Add SVG path for the Weblab logo
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('fill', 'currentColor');
                 path.setAttribute(
@@ -57,7 +57,7 @@ export const builtWithScript = `
                 svg.appendChild(path);
 
                 const text = document.createElement('span');
-                text.textContent = 'Built with Onlook';
+                text.textContent = 'Built with Weblab';
 
                 badge.appendChild(svg);
                 badge.appendChild(text);
