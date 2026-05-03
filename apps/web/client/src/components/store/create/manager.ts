@@ -1,9 +1,11 @@
-import { api } from '@/trpc/client';
+import { makeAutoObservable } from 'mobx';
+
 import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { createDefaultProject } from '@weblab/db';
 import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
-import { makeAutoObservable } from "mobx";
+
+import { api } from '@/trpc/client';
 import { parseRepoUrl } from '../editor/pages/helper';
 
 export class CreateManager {
@@ -42,7 +44,7 @@ export class CreateManager {
                     sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
                     config,
                 }),
-                this.generateProjectName(prompt)
+                this.generateProjectName(prompt),
             ]);
             const project = createDefaultProject({
                 overrides: {
@@ -70,8 +72,7 @@ export class CreateManager {
             });
 
             return newProject;
-        }
-        catch (error) {
+        } catch (error) {
             console.error(error);
             this.error = error instanceof Error ? error.message : 'An unknown error occurred';
         }
@@ -87,17 +88,18 @@ export class CreateManager {
             const { owner, repo } = parseRepoUrl(repoUrl);
             const { branch, isPrivateRepo } = await api.github.validate.mutate({
                 owner: owner,
-                repo: repo
+                repo: repo,
             });
 
             if (isPrivateRepo) {
-                this.error = "The repository you've provided is private. Only public repositories are supported";
+                this.error =
+                    "The repository you've provided is private. Only public repositories are supported";
                 return;
             }
 
             const [{ sandboxId, previewUrl }, projectName] = await Promise.all([
                 this.createSandboxFromGithub(repoUrl, branch),
-                this.generateProjectName(`Import from GitHub repository: ${repo}`)
+                this.generateProjectName(`Import from GitHub repository: ${repo}`),
             ]);
             const project = createDefaultProject({
                 overrides: {
@@ -111,8 +113,7 @@ export class CreateManager {
                 sandboxUrl: previewUrl,
             });
             return newProject;
-        }
-        catch (error) {
+        } catch (error) {
             console.error(error);
             this.error = error instanceof Error ? error.message : 'An unknown error occurred';
         }
@@ -121,7 +122,45 @@ export class CreateManager {
     async createSandboxFromGithub(repoUrl: string, branch: string) {
         return await api.sandbox.createFromGitHub.mutate({
             repoUrl,
-            branch
+            branch,
         });
+    }
+
+    async startPublicGitHubTemplate(input: {
+        userId: string;
+        name: string;
+        description: string;
+        repoUrl: string;
+        branch: string;
+    }) {
+        this.error = null;
+        try {
+            if (!input.userId) {
+                console.error('No user ID found');
+                return;
+            }
+
+            const { sandboxId, previewUrl } = await this.createSandboxFromGithub(
+                input.repoUrl,
+                input.branch,
+            );
+            const project = createDefaultProject({
+                overrides: {
+                    name: input.name,
+                    description: input.description,
+                    tags: ['template-import'],
+                },
+            });
+
+            return await api.project.create.mutate({
+                project,
+                userId: input.userId,
+                sandboxId,
+                sandboxUrl: previewUrl,
+            });
+        } catch (error) {
+            console.error(error);
+            this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+        }
     }
 }

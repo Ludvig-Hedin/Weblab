@@ -6,6 +6,8 @@ import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
 import { useGetBackground } from '@/hooks/use-get-background';
 import { api } from '@/trpc/react';
+import { ExternalTemplates } from '../_components/templates/external-templates';
+import { EXTERNAL_TEMPLATES } from '../_components/templates/template-data';
 import { TopBar } from '../_components/top-bar';
 
 const Page = () => {
@@ -24,13 +26,14 @@ const Page = () => {
                 }}
             >
                 <TopBar />
-                <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-10 px-6 pb-16 select-none">
+                <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center gap-12 overflow-y-auto px-6 py-14 select-none">
                     <div className="flex flex-col items-center gap-3 text-center">
                         <h1 className="text-foreground text-5xl font-light tracking-tight">
                             Never start from scratch
                         </h1>
                         <p className="text-foreground-secondary text-lg">
-                            Describe what you want to build and let AI kick it off.
+                            Describe what you want to build, or start from a proven Next.js
+                            template.
                         </p>
                     </div>
                     <Create
@@ -39,6 +42,7 @@ const Page = () => {
                         setIsCreatingProject={setIsCreatingProject}
                         user={user ?? null}
                     />
+                    <ExternalTemplates templates={EXTERNAL_TEMPLATES} />
                 </div>
             </div>
         </CreateManagerProvider>

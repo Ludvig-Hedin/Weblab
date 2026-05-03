@@ -29,6 +29,7 @@ export const Routes = {
     PROJECTS: '/projects',
     PROJECT: '/project',
     NEW_PROJECT: '/projects/new',
+    PROJECT_TEMPLATES: '/projects/templates',
     IMPORT_PROJECT: '/projects/import',
     IMPORT_GITHUB: '/projects/import/github',
 
