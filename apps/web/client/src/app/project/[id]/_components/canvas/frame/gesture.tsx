@@ -278,7 +278,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
 
             editorEngine.frames.select([frame]);
         },
-        [editorEngine.frames, editorEngine.insert, editorEngine.move, editorEngine.state, frame, getFrameData, getRelativeMousePosition, editorEngine.state.pendingInsertComponent],
+        [editorEngine.frames, editorEngine.insert, editorEngine.move, editorEngine.state, frame, getFrameData, getRelativeMousePosition],
     );
 
     async function handleDoubleClick(e: React.MouseEvent<HTMLDivElement>) {

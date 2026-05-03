@@ -129,6 +129,7 @@ export const InsertTab = observer(() => {
             if (preset.comingSoon) return;
             editorEngine.state.setPendingInsertElement(preset.properties);
             editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             toast('Click on the canvas to place this element.');
@@ -164,6 +165,7 @@ export const InsertTab = observer(() => {
             }
             editorEngine.state.setPendingInsertElement(null);
             editorEngine.state.setPendingInsertBlock(block);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             toast('Click on the canvas to place this block.');

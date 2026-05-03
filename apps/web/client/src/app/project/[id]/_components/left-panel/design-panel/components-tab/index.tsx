@@ -44,6 +44,8 @@ export const ComponentsTab = observer(() => {
             event.dataTransfer.setData('application/json', JSON.stringify(properties));
             event.dataTransfer.effectAllowed = 'copy';
             editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
         },
         [editorEngine.state],
@@ -63,6 +65,9 @@ export const ComponentsTab = observer(() => {
         (e: React.DragEvent<HTMLButtonElement>, data: ComponentInsertData) => {
             e.dataTransfer.setData('application/weblab-component', JSON.stringify(data));
             e.dataTransfer.effectAllowed = 'copy';
+            editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
         },
         [editorEngine.state],

@@ -128,6 +128,7 @@ export class StateManager {
             this.branchTab = null;
             this.manageBranchId = null;
             this.pendingInsertElement = null;
+            this.pendingInsertBlock = null;
             this.pendingInsertComponent = null;
         });
         this.resetCanvasScrollingDebounced.cancel();
