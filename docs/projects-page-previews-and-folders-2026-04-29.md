@@ -38,4 +38,14 @@ This update improves the `/projects` page with richer project previews, cleaner 
 
 ## Follow-Up
 
+
+## 2026-05-03 Suggestion Pill Refresh
+
+- The empty-state suggestion pills on `/projects` now prefill fuller project prompts instead of short `"Create a ..."` stubs.
+- The weaker `About Page` and `Resume` starters were replaced with `SaaS Landing` and `Dashboard`.
+- Each preset now includes:
+  - a concrete product or persona
+  - recommended sections
+  - placeholder content direction
+  - visual guidance so the generated result is useful on first click
 - If folders need to sync across devices/accounts, the next step is a small backend-backed folder model or user preference field instead of `localforage`.

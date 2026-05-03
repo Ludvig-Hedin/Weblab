@@ -50,11 +50,31 @@ import {
 const STARRED_TEMPLATES_KEY = 'onlook_starred_templates';
 
 export const PROJECT_SUGGESTIONS: CreateSuggestion[] = [
-    { label: 'Personal Page', prompt: 'Create a personal page for ' },
-    { label: 'Landing Page', prompt: 'Create a landing page for ' },
-    { label: 'About Page', prompt: 'Create an about page for ' },
-    { label: 'Resume', prompt: 'Create a resume site for ' },
-    { label: 'Portfolio', prompt: 'Create a portfolio site for ' },
+    {
+        label: 'Personal Site',
+        prompt:
+            'Create a polished personal website for Alex Morgan, a product designer and creative developer. Include a strong hero with name, role, short intro, featured work, a short about section, testimonials, and a contact section with placeholder links. Use clean editorial styling, thoughtful typography, and placeholder copy that is easy to replace.',
+    },
+    {
+        label: 'SaaS Landing',
+        prompt:
+            'Create a modern SaaS landing page for FlowPilot, an AI workflow tool for small teams. Include a hero with headline and CTA, product screenshot area, 3 feature sections, social proof logos, pricing cards, FAQ, and a final CTA. Use realistic placeholder copy, polished visuals, and a layout that feels launch-ready with minimal edits.',
+    },
+    {
+        label: 'Portfolio',
+        prompt:
+            'Create a portfolio site for Nina Patel, a freelance brand designer. Include a hero, selected projects grid with placeholder case studies, services, client logos, short bio, testimonials, and a contact CTA. Make it feel premium and visual, with believable placeholder project names and short descriptions the user can quickly swap out.',
+    },
+    {
+        label: 'Dashboard',
+        prompt:
+            'Create a clean analytics dashboard for PulseOps, a customer support platform. Include top KPI cards, charts for tickets and response time, a recent activity feed, team performance table, and filters in the header. Use realistic sample data, clear information hierarchy, and a polished product UI style.',
+    },
+    {
+        label: 'E-commerce',
+        prompt:
+            'Create a stylish e-commerce homepage for Northline Studio, a modern home office brand. Include a hero banner, featured products, category cards, a best sellers section, customer reviews, and a newsletter signup. Use realistic placeholder product names, prices, and images/copy so the page feels immediately usable.',
+    },
 ];
 
 const STATIC_TEMPLATE_ALIASES: Record<StaticTemplate['id'], string[]> = {
