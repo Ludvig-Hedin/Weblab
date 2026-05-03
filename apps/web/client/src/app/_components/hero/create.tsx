@@ -358,13 +358,18 @@ export const Create = observer(
                                 <Textarea
                                     ref={textareaRef}
                                     className={cn(
-                                        'border-none text-small min-h-[60px] overflow-auto rounded-none border-0 caret-[#109BFF] shadow-none',
+                                        'text-small min-h-[60px] resize-none overflow-auto rounded-none !border-0 !p-0 caret-[#109BFF] !shadow-none',
                                         'text-foreground-primary selection:bg-[#109BFF]/30 selection:text-[#109BFF]',
                                         'placeholder:text-foreground-primary/50 cursor-text',
-                                        'bg-transparent transition-[height] duration-300 ease-in-out focus-visible:ring-0 dark:bg-transparent',
+                                        'bg-transparent transition-[height] duration-300 ease-in-out outline-none dark:bg-transparent',
+                                        'focus:border-transparent focus:outline-none focus:ring-0 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
                                     )}
                                     placeholder="Describe what you want to build"
-                                    style={{ border: 'none !important', resize: 'none' }}
+                                    style={{
+                                        borderWidth: 0,
+                                        outline: 'none',
+                                        resize: 'none',
+                                    }}
                                     value={inputValue}
                                     onChange={(e) => {
                                         setInputValue(e.target.value);
