@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import type { DropElementProperties } from '@weblab/models/element';
+import type { ComponentInsertData, DropElementProperties } from '@weblab/models/element';
 import { EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
@@ -10,6 +10,8 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { api } from '@/trpc/react';
+import { ComponentCard } from './component-card';
 import type { ComponentTemplate } from './templates';
 import { COMPONENT_TEMPLATES, TEMPLATE_CATEGORIES } from './templates';
 
@@ -17,6 +19,9 @@ export const ComponentsTab = observer(() => {
     const editorEngine = useEditorEngine();
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+    const { data: userComponents, isLoading: isLoadingComponents } =
+        api.components.listProjectComponents.useQuery({});
 
     const filteredTemplates = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -54,6 +59,24 @@ export const ComponentsTab = observer(() => {
         [editorEngine.state],
     );
 
+    const handleComponentDragStart = useCallback(
+        (e: React.DragEvent<HTMLButtonElement>, data: ComponentInsertData) => {
+            e.dataTransfer.setData('application/weblab-component', JSON.stringify(data));
+            e.dataTransfer.effectAllowed = 'copy';
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+        },
+        [editorEngine.state],
+    );
+
+    const handleComponentClick = useCallback(
+        (_data: ComponentInsertData) => {
+            // Will be wired up in Task 7 — for now switch to design mode and prompt user
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            toast('Click on the canvas to place this component.');
+        },
+        [editorEngine.state],
+    );
+
     return (
         <div className="text-active flex h-full w-full flex-col overflow-hidden text-xs">
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
@@ -83,6 +106,33 @@ export const ComponentsTab = observer(() => {
 
             <div className="flex-1 overflow-auto px-3 pb-4">
                 <div className="flex flex-col gap-3">
+                    {/* My Components section */}
+                    <div className="mb-1 flex flex-col gap-1.5">
+                        <span className="text-foreground-primary px-1 py-1 text-sm font-medium">
+                            My Components
+                        </span>
+                        {isLoadingComponents ? (
+                            <p className="text-muted-foreground px-1 py-4 text-center text-xs">
+                                Scanning project…
+                            </p>
+                        ) : !userComponents?.length ? (
+                            <p className="text-muted-foreground px-1 py-4 text-center text-xs">
+                                No components found in src/
+                            </p>
+                        ) : (
+                            <div className="flex flex-col gap-1">
+                                {userComponents.map((comp) => (
+                                    <ComponentCard
+                                        key={`${comp.filePath}:${comp.componentName}`}
+                                        data={comp}
+                                        onDragStart={handleComponentDragStart}
+                                        onClick={handleComponentClick}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {TEMPLATE_CATEGORIES.map(({ value, label }) => {
                         const templates = groupedTemplates[value] ?? [];
                         if (templates.length === 0) return null;

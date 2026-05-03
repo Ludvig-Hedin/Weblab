@@ -39,3 +39,9 @@ export interface RectDimensions {
     top: number;
     left: number;
 }
+
+export interface ComponentInsertData {
+    componentName: string;
+    filePath: string;
+    exportType: 'default' | 'named';
+}
