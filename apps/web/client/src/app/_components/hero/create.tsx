@@ -316,7 +316,7 @@ export const Create = observer(
                 <div
                     data-create-container
                     className={cn(
-                        'bg-background-primary w-[600px] max-w-full cursor-text flex-col rounded-xl border focus-within:border-0 transition-colors duration-200',
+                        'bg-background-primary w-[600px] max-w-full cursor-text flex-col rounded-xl border transition-colors duration-200',
                         '[&[data-dragging-image=true]]:bg-blue-500/40',
                         isDragging && 'cursor-copy bg-blue-500/40',
                     )}
@@ -358,7 +358,7 @@ export const Create = observer(
                                 <Textarea
                                     ref={textareaRef}
                                     className={cn(
-                                        'text-small min-h-[60px] resize-none overflow-auto rounded-none !border-0 !p-0 caret-[#109BFF] !shadow-none',
+                                        'text-small min-h-[60px] resize-none overflow-auto rounded-none !border-0 px-3 py-2 caret-[#109BFF] !shadow-none',
                                         'text-foreground-primary selection:bg-[#109BFF]/30 selection:text-[#109BFF]',
                                         'placeholder:text-foreground-primary/50 cursor-text',
                                         'bg-transparent transition-[height] duration-300 ease-in-out outline-none dark:bg-transparent',
