@@ -1,13 +1,22 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import localforage from 'localforage';
+import { toast } from 'sonner';
+
+import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
+
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
-import localforage from 'localforage';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
+
+function buildBlankProjectName(): string {
+    const now = new Date();
+    const month = now.toLocaleString(undefined, { month: 'short' });
+    const day = now.getDate();
+    return `New Project · ${month} ${day}`;
+}
 
 export function useCreateBlankProject() {
     const { data: user } = api.user.get.useQuery();
@@ -37,7 +46,7 @@ export function useCreateBlankProject() {
 
             const newProject = await createProject({
                 project: {
-                    name: 'New Project',
+                    name: buildBlankProjectName(),
                     description: 'Your new blank project',
                     tags: ['blank'],
                 },
@@ -55,7 +64,12 @@ export function useCreateBlankProject() {
 
             if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
                 toast.error('Sandbox service temporarily unavailable', {
-                    description: 'Please try again in a few moments. Our servers may be experiencing high load.',
+                    description:
+                        'Please try again in a few moments. Our servers may be experiencing high load.',
+                    action: {
+                        label: 'Retry',
+                        onClick: () => void handleStartBlankProject(),
+                    },
                 });
             } else {
                 toast.error('Failed to create project', {

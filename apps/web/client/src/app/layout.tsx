@@ -25,7 +25,10 @@ const description = `The power of Cursor for your own website. ${APP_NAME} lets 
 export const metadata: Metadata = {
     title: `${APP_NAME} – ${APP_TAGLINE}`,
     description,
-    icons: [{ rel: 'icon', url: '/favicon.ico' }],
+    icons: [
+        { rel: 'icon', url: '/favicon.svg', type: 'image/svg+xml' },
+        { rel: 'icon', url: '/favicon.png', type: 'image/png' },
+    ],
     openGraph: {
         url: `https://${APP_DOMAIN}/`,
         type: 'website',

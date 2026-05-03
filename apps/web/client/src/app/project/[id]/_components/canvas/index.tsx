@@ -55,9 +55,12 @@ export const Canvas = observer(() => {
             return;
         }
 
-        // Switch to chat mode when clicking on empty canvas space during code editing
+        // While in CODE mode, a stray click on empty canvas used to silently
+        // flip the user back to DESIGN mode and lose context. Stay in CODE
+        // mode and just clear any selection — the explicit Esc / mode-switch
+        // shortcut is the only way to leave the mode now.
         if (editorEngine.state.editorMode === EditorMode.CODE) {
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            editorEngine.clearUI();
             return;
         }
         // Start drag selection only in design mode

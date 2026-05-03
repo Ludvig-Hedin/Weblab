@@ -9,9 +9,13 @@ export class Hotkey {
     static readonly COMMENT = new Hotkey('c', 'Comment');
     static readonly TOGGLE_COMMENTS = new Hotkey('shift+c', 'Toggle Comments');
     static readonly PREVIEW = new Hotkey('p', 'Preview');
+    // The `r`, `f`, and `d` keys all start a div insert. `r` is the canonical
+    // shortcut shown in the modal; `f` and `d` are aliases kept for muscle
+    // memory but labelled distinctly so users see they're not three different
+    // actions.
     static readonly INSERT_DIV = new Hotkey('r', 'Insert Div');
-    static readonly INSERT_DIV_F = new Hotkey('f', 'Insert Div');
-    static readonly INSERT_DIV_D = new Hotkey('d', 'Insert Div');
+    static readonly INSERT_DIV_F = new Hotkey('f', 'Insert Div (alt)');
+    static readonly INSERT_DIV_D = new Hotkey('d', 'Insert Div (alt)');
     static readonly INSERT_FLEX_DIV = new Hotkey('shift+f', 'Insert Flex Div');
     static readonly INSERT_BUTTON = new Hotkey('b', 'Insert Button');
     static readonly RELOAD_APP = new Hotkey('mod+r', 'Reload App');
@@ -42,7 +46,9 @@ export class Hotkey {
     static readonly UNDO = new Hotkey('mod+z', 'Undo');
     static readonly REDO = new Hotkey('mod+shift+z', 'Redo');
     static readonly GROUP = new Hotkey('mod+g', 'Group');
-    static readonly WRAP_IN_DIV = new Hotkey('mod+alt+g', 'Wrap in Div');
+    // Aliased to GROUP — same handler. Labelled distinctly so the modal does
+    // not imply a different action.
+    static readonly WRAP_IN_DIV = new Hotkey('mod+alt+g', 'Group (alt)');
     static readonly UNGROUP = new Hotkey('mod+shift+g', 'Unwrap parent');
     static readonly OPEN_DEV_TOOL = new Hotkey('mod+shift+i', 'Open Devtool');
     static readonly ADD_AI_CHAT = new Hotkey('mod+shift+l', 'Add to AI chat');
@@ -82,8 +88,21 @@ export class Hotkey {
     }
 
     get readableCommand() {
-        const isMac =
-            typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
+        // navigator.platform is deprecated. Prefer userAgentData when present
+        // and fall back to a userAgent sniff so platform detection still works
+        // on browsers that have already removed the legacy property.
+        const isMac = (() => {
+            if (typeof navigator === 'undefined') return false;
+            const navWithUA = navigator as Navigator & {
+                userAgentData?: { platform?: string };
+            };
+            const platform =
+                navWithUA.userAgentData?.platform ??
+                navigator.platform ??
+                navigator.userAgent ??
+                '';
+            return platform.toUpperCase().includes('MAC');
+        })();
         return this.command
             .replace('mod', isMac ? '⌘' : 'Ctrl')
             .split('+')

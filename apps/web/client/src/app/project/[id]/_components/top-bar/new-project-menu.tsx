@@ -1,10 +1,9 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
-import { useImportLocalProject } from '@/hooks/use-import-local-project';
-import { transKeys } from '@/i18n/keys';
-import { Routes } from '@/utils/constants';
+import { useRouter } from 'next/navigation';
+import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
+
 import {
     DropdownMenuItem,
     DropdownMenuSub,
@@ -12,9 +11,12 @@ import {
     DropdownMenuSubTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
-import { observer } from 'mobx-react-lite';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+
+import { useEditorEngine } from '@/components/store/editor';
+import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
+import { useImportLocalProject } from '@/hooks/use-import-local-project';
+import { transKeys } from '@/i18n/keys';
+import { Routes } from '@/utils/constants';
 
 interface NewProjectMenuProps {
     onShowCloneDialog: (open: boolean) => void;
@@ -40,7 +42,7 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
 
     const handleImportWithScreenshot = async () => {
         try {
-            editorEngine.screenshot.captureScreenshot();
+            void editorEngine.screenshot.captureScreenshot();
         } catch (error) {
             console.error('Failed to capture screenshot:', error);
         }
@@ -51,18 +53,18 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
     return (
         <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
-                <div className="flex flex-row center items-center">
+                <div className="center flex flex-row items-center">
                     <Icons.Plus className="mr-2" />
                     {t(transKeys.projects.actions.newProject)}
                 </div>
             </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-48 ml-2">
+            <DropdownMenuSubContent className="ml-2 w-48">
                 <DropdownMenuItem
                     onClick={handleStartBlankWithScreenshot}
                     disabled={isCreatingProject}
                     className="cursor-pointer"
                 >
-                    <div className="flex flex-row center items-center group">
+                    <div className="center group flex flex-row items-center">
                         {isCreatingProject ? (
                             <Icons.LoadingSpinner className="mr-2 animate-spin" />
                         ) : (
@@ -76,7 +78,7 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
                     disabled={isImporting || isCreatingProject}
                     className="cursor-pointer"
                 >
-                    <div className="flex flex-row center items-center group">
+                    <div className="center group flex flex-row items-center">
                         {isImporting ? (
                             <Icons.LoadingSpinner className="mr-2 animate-spin" />
                         ) : (
@@ -86,7 +88,7 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
                     </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push(Routes.IMPORT_PROJECT)}>
-                    <div className="flex flex-row center items-center group">
+                    <div className="center group flex flex-row items-center">
                         <Icons.Upload className="mr-2" />
                         {t(transKeys.projects.actions.import)}
                     </div>
@@ -95,7 +97,7 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
                     onClick={() => onShowCloneDialog(true)}
                     className="cursor-pointer"
                 >
-                    <div className="flex flex-row center items-center group">
+                    <div className="center group flex flex-row items-center">
                         <Icons.Copy className="mr-2" />
                         {t(transKeys.projects.actions.cloneProject)}
                     </div>

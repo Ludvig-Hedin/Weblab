@@ -25,7 +25,7 @@ export const TopBar = () => {
 
     return (
         <div className="relative w-full max-w-6xl mx-auto flex items-center justify-between p-3 h-12 text-sm text-foreground-secondary select-none">
-            {/* Left side - Logo and GitHub stars grouped together */}
+            {/* Left side */}
             <div className="flex items-center gap-4 text-foreground-secondary">
                 {LINKS.map((link) => (
                     <a href={link.href} key={link.href} className={cn(
@@ -37,7 +37,6 @@ export const TopBar = () => {
                     </a>
                 ))}
                 
-                {/* GitHub stars visible on mobile, grouped with logo */}
                 <div className="md:hidden">
                     <GitHubButton />
                 </div>

@@ -15,6 +15,16 @@ export type StaticTemplateId =
     | 'docs'
     | 'app';
 
+export type StaticTemplateId =
+    | 'portfolio'
+    | 'saas'
+    | 'blog'
+    | 'dashboard'
+    | 'ecommerce'
+    | 'agency'
+    | 'docs'
+    | 'app';
+
 export interface StaticTemplate {
     id: StaticTemplateId;
     name: string;
@@ -87,7 +97,7 @@ const TEMPLATES: StaticTemplate[] = [
 interface StaticTemplatesProps {
     onUseTemplate: (template: StaticTemplate) => void;
     isCreating?: boolean;
-    availableTemplateIds?: Set<string>;
+    availableTemplateIds?: ReadonlySet<string>;
 }
 
 export function StaticTemplates({
