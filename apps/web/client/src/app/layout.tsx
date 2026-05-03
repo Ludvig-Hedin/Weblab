@@ -40,8 +40,8 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        site: '@onlookdev', // update when Twitter handle changes
-        creator: '@onlookdev',
+        site: '@weblab', // update when Twitter handle changes
+        creator: '@weblab',
         title: `${APP_NAME} – ${APP_TAGLINE}`,
         description,
         images: [
@@ -78,7 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body>
                 {isProduction && (
                     <>
-                        <Script src="https://z.onlook.com/cdn-cgi/zaraz/i.js" strategy="lazyOnload" />
+                        <Script src="https://z.weblab.build/cdn-cgi/zaraz/i.js" strategy="lazyOnload" />
                         <RB2BLoader />
                     </>
                 )}

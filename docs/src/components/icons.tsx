@@ -20,7 +20,7 @@ function ArrowLeft({ className, ...props }: IconProps) {
     );
 }
 
-function OnlookLogo({ className, ...props }: IconProps) {
+function WeblabLogo({ className, ...props }: IconProps) {
     return (
         <svg
             viewBox="0 0 24 24"
@@ -70,5 +70,5 @@ export const Icons = {
     ArrowLeft,
     DiscordLogo,
     GitHubLogo,
-    OnlookLogo,
+    WeblabLogo,
 };

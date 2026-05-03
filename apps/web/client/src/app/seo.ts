@@ -8,8 +8,8 @@ export const organizationSchema = {
     logo: `https://${APP_DOMAIN}/favicon.ico`,
     sameAs: [
         "https://github.com/Ludvig-Hedin/Weblab",
-        "https://twitter.com/onlookdev", // update when social handles change
-        "https://www.linkedin.com/company/onlook-dev/",
+        "https://twitter.com/weblab", // update when social handles change
+        "https://www.linkedin.com/company/weblab/",
     ],
 };
 

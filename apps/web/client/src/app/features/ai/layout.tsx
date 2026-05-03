@@ -33,7 +33,7 @@ export const metadata: Metadata = {
         description:
             'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs, not throwaway code.',
         type: 'website',
-        url: 'https://onlook.com/features/ai',
+        url: 'https://weblab.build/features/ai',
         siteName: 'Weblab',
         images: [
             {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
     },
     alternates: {
-        canonical: 'https://onlook.com/features/ai',
+        canonical: 'https://weblab.build/features/ai',
     },
     robots: {
         index: true,
@@ -73,7 +73,7 @@ const jsonLd = {
     operatingSystem: 'Web',
     description:
         'Weblab is an AI-powered visual editor that builds frontend UIs using your real React, Vue, or Angular components. AI is constrained to your design system. Changes become mergeable pull requests.',
-    url: 'https://onlook.com/features/ai',
+    url: 'https://weblab.build/features/ai',
     featureList: [
         'AI constrained to your design system',
         'Visual canvas with real code underneath',

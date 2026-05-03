@@ -17,9 +17,9 @@
     <br />
     <a href="https://youtu.be/RSX_3EaO5eU?feature=shared">View Demo</a>
     ·
-    <a href="https://github.com/onlook-dev/onlook/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/Ludvig-Hedin/Weblab/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/onlook-dev/onlook/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/Ludvig-Hedin/Weblab/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
   <!-- PROJECT SHIELDS -->
 <!--
@@ -39,14 +39,14 @@
 [![LinkedIn][linkedin-shield]][linkedin-url]
 [![Twitter][twitter-shield]][twitter-url]
 
-[中文](https://www.readme-i18n.com/onlook-dev/onlook?lang=zh) |
-[Español](https://www.readme-i18n.com/onlook-dev/onlook?lang=es) |
-[Deutsch](https://www.readme-i18n.com/onlook-dev/onlook?lang=de) |
-[français](https://www.readme-i18n.com/onlook-dev/onlook?lang=fr) |
-[Português](https://www.readme-i18n.com/onlook-dev/onlook?lang=pt) |
-[Русский](https://www.readme-i18n.com/onlook-dev/onlook?lang=ru) |
-[日本語](https://www.readme-i18n.com/onlook-dev/onlook?lang=ja) |
-[한국어](https://www.readme-i18n.com/onlook-dev/onlook?lang=ko)
+[中文](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=zh) |
+[Español](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=es) |
+[Deutsch](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=de) |
+[français](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=fr) |
+[Português](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=pt) |
+[Русский](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=ru) |
+[日本語](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=ja) |
+[한국어](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=ko)
 
 </div>
 
@@ -63,7 +63,7 @@ Make, Webflow, etc.
 
 We're actively looking for contributors to help make Weblab for Web an
 incredible prompt-to-build experience. Check the
-[open issues](https://github.com/onlook-dev/onlook/issues) for a full list of
+[open issues](https://github.com/Ludvig-Hedin/Weblab/issues) for a full list of
 proposed features (and known issues), and join our
 [Discord](https://discord.gg/hERDfFZCsH) to collaborate with hundreds of other
 builders.
@@ -73,9 +73,9 @@ builders.
 - [x] Create Next.js app in seconds
   - [x] Start from text or image
   - [x] Use prebuilt templates
-  - [ ] Import from Figma
-  - [ ] Import from GitHub repo
-  - [ ] Make a PR to a GitHub repo
+  - [ ] Import from Figma (Coming soon)
+  - [ ] Import from GitHub repo (Coming soon)
+  - [ ] Make a PR to a GitHub repo (Coming soon)
 - [x] Visually edit your app
   - [x] Use Figma-like UI
   - [x] Preview your app in real-time
@@ -84,8 +84,8 @@ builders.
   - [x] Browse layers
   - [x] Manage project Images
   - [x] Detect and use Components – _Previously in
-        [Onlook Desktop](https://github.com/onlook-dev/desktop)_
-  - [ ] Drag-and-drop Components Panel
+        [Onlook Desktop](https://github.com/Ludvig-Hedin/desktop)_
+  - [ ] Drag-and-drop Components Panel (Coming soon)
   - [x] Use Branching to experiment with designs
 - [x] Development Tools
   - [x] Real-time code editor
@@ -97,22 +97,22 @@ builders.
   - [x] Link your custom domain    
 - [ ] Collaborate with your team
   - [x] Real-time editing
-  - [ ] Leave comments
+  - [x] Leave comments
 - [ ] Advanced AI capabilities
   - [x] Queue multiple messages at once
-  - [ ] Use Images as references and as assets in a project
+  - [ ] Use Images as references and as assets in a project (Coming soon)
   - [ ] Setup and use MCPs in projects
   - [ ] Allow Weblab to use itself as a toolcall for branch creation and iteration
 - [ ] Advanced project support
-  - [ ] Support non-NextJS projects
-  - [ ] Support non-Tailwind projects
+  - [ ] Support non-NextJS projects (Coming soon)
+  - [ ] Support non-Tailwind projects (Coming soon)
 
 ![Onlook-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
 
 ## Getting Started
 
 Use our [hosted app](https://weblab.build) or
-[run locally](https://docs.onlook.com/developers/running-locally).
+[run locally](https://docs.weblab.build/developers/running-locally).
 
 ### Usage
 
@@ -147,10 +147,10 @@ objects, and experiment with layouts.
 
 ## Documentation
 
-For full documentation, visit [docs.onlook.com](https://docs.onlook.com)
+For full documentation, visit [docs.weblab.build](https://docs.weblab.build)
 
 To see how to Contribute, visit
-[Contributing to Weblab](https://docs.onlook.com/developers) in our docs.
+[Contributing to Weblab](https://docs.weblab.build/developers) in our docs.
 
 ## How it works
 
@@ -169,7 +169,7 @@ displays DOM elements declaratively (e.g. jsx/tsx/html). We are focused on
 making it work well with Next.js and TailwindCSS for now.
 
 For a full walkthrough, check out our
-[Architecture Docs](https://docs.onlook.com/developers/architecture).
+[Architecture Docs](https://docs.weblab.build/developers/architecture).
 
 ### Our Tech Stack
 
@@ -207,14 +207,14 @@ For a full walkthrough, check out our
 
 If you have a suggestion that would make this better, please fork the repo and
 create a pull request. You can also
-[open issues](https://github.com/onlook-dev/onlook/issues).
+[open issues](https://github.com/Ludvig-Hedin/Weblab/issues).
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
 
 #### Contributors
 
-<a href="https://github.com/onlook-dev/onlook/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=onlook-dev/onlook" />
+<a href="https://github.com/Ludvig-Hedin/Weblab/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Ludvig-Hedin/Weblab" />
 </a>
 
 ## Contact
@@ -222,11 +222,11 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
 ![image](https://github.com/user-attachments/assets/60684b68-1925-4550-8efd-51a1509fc953)
 
 - Team: [Discord](https://discord.gg/hERDfFZCsH) -
-  [Twitter](https://twitter.com/onlookdev) -
-  [LinkedIn](https://www.linkedin.com/company/onlook-dev/) -
+  [Twitter](https://twitter.com/weblab) -
+  [LinkedIn](https://www.linkedin.com/company/weblab/) -
   [Email](mailto:contact@weblab.build)
 - Project:
-  [https://github.com/onlook-dev/onlook](https://github.com/onlook-dev/onlook)
+  [https://github.com/Ludvig-Hedin/Weblab](https://github.com/Ludvig-Hedin/Weblab)
 - Website: [https://weblab.build](https://weblab.build)
 
 ## License
@@ -237,19 +237,19 @@ information.
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
 [contributors-shield]: https://img.shields.io/github/contributors/onlook-dev/studio.svg?style=for-the-badge
-[contributors-url]: https://github.com/onlook-dev/onlook/graphs/contributors
+[contributors-url]: https://github.com/Ludvig-Hedin/Weblab/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/onlook-dev/studio.svg?style=for-the-badge
-[forks-url]: https://github.com/onlook-dev/onlook/network/members
+[forks-url]: https://github.com/Ludvig-Hedin/Weblab/network/members
 [stars-shield]: https://img.shields.io/github/stars/onlook-dev/studio.svg?style=for-the-badge
-[stars-url]: https://github.com/onlook-dev/onlook/stargazers
+[stars-url]: https://github.com/Ludvig-Hedin/Weblab/stargazers
 [issues-shield]: https://img.shields.io/github/issues/onlook-dev/studio.svg?style=for-the-badge
-[issues-url]: https://github.com/onlook-dev/onlook/issues
+[issues-url]: https://github.com/Ludvig-Hedin/Weblab/issues
 [license-shield]: https://img.shields.io/github/license/onlook-dev/studio.svg?style=for-the-badge
-[license-url]: https://github.com/onlook-dev/onlook/blob/master/LICENSE.txt
+[license-url]: https://github.com/Ludvig-Hedin/Weblab/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/company/onlook-dev
+[linkedin-url]: https://www.linkedin.com/company/weblab
 [twitter-shield]: https://img.shields.io/badge/-Twitter-black?logo=x&colorB=555
-[twitter-url]: https://x.com/onlookdev
+[twitter-url]: https://x.com/weblab
 [discord-shield]: https://img.shields.io/badge/-Discord-black?logo=discord&colorB=555
 [discord-url]: https://discord.gg/hERDfFZCsH
 [React.js]: https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB

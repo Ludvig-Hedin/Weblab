@@ -41,7 +41,7 @@ export const metadata: Metadata = {
         title: 'AI for Frontend Development | Weblab',
         description: 'Build frontend UIs with AI constrained to your design system. Your real React, Vue, or Angular components. Mergeable PRs, not throwaway code.',
         type: 'website',
-        url: 'https://onlook.com/features/ai-for-frontend',
+        url: 'https://weblab.build/features/ai-for-frontend',
         siteName: 'Weblab',
         images: [
             {
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
     },
     alternates: {
-        canonical: 'https://onlook.com/features/ai-for-frontend',
+        canonical: 'https://weblab.build/features/ai-for-frontend',
     },
     robots: {
         index: true,
@@ -79,7 +79,7 @@ const jsonLd = {
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web',
     description: 'Weblab is an AI-powered visual editor for frontend development. It connects to your existing React, Vue, or Angular codebase and constrains AI to your real components and design system. Changes become pull requests engineers can merge directly.',
-    url: 'https://onlook.com/features/ai-for-frontend',
+    url: 'https://weblab.build/features/ai-for-frontend',
     offers: {
         '@type': 'Offer',
         price: '0',

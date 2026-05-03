@@ -157,20 +157,6 @@ export const Icons = {
         <BrandLogo className={className} {...props} />
     ),
 
-    // Backward-compat aliases (deprecated — use Weblab* names above)
-    OnlookLogo: ({ className, ...props }: IconProps) => (
-        <BrandSymbol className={className} {...props} />
-    ),
-    OnlookIcon: ({ className, ...props }: IconProps) => (
-        <BrandSymbol className={className} {...props} />
-    ),
-    OnlookTextLogo: ({ className, ...props }: IconProps) => (
-        <BrandWordmark className={className} {...props} />
-    ),
-    OnlookFullLogo: ({ className, ...props }: IconProps) => (
-        <BrandLogo className={className} {...props} />
-    ),
-
     GoogleLogo: ({ className, ...props }: IconProps) => (
         <svg
             width="24"

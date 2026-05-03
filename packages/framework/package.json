@@ -22,10 +22,10 @@
     ],
     "author": {
         "name": "Onlook",
-        "email": "contact@onlook.com"
+        "email": "contact@weblab.build"
     },
     "license": "Apache-2.0",
-    "homepage": "https://onlook.com",
+    "homepage": "https://weblab.build",
     "exports": {
         ".": "./src/index.ts",
         "./adapters/*": "./src/adapters/*.ts"

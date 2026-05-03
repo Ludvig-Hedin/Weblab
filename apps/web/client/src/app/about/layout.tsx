@@ -94,8 +94,8 @@ const organizationJsonLd = {
     },
     sameAs: [
         'https://github.com/Ludvig-Hedin/Weblab',
-        'https://x.com/onlookdev',
-        'https://www.linkedin.com/company/onlook-dev/',
+        'https://x.com/weblab',
+        'https://www.linkedin.com/company/weblab/',
         'https://discord.gg/ZZzadNQtns',
         'https://onlook.substack.com/',
     ],

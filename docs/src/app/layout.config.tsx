@@ -13,7 +13,7 @@ export const baseOptions: BaseLayoutProps = {
     nav: {
         title: (
             <div className="flex items-center gap-2">
-                <Icons.OnlookLogo className="w-4 h-4" />
+                <Icons.WeblabLogo className="w-4 h-4" />
                 <span>{APP_NAME} Docs</span>
             </div>
         ),

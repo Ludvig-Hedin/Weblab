@@ -186,7 +186,7 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   This software is a derivative work of Onlook (https://github.com/onlook-dev/onlook).
+   This software is a derivative work of Onlook (https://github.com/Ludvig-Hedin/Weblab).
 
    Original work Copyright 2024 On Off, Inc. (the Onlook team)
    Modified work Copyright 2025 Ludvig Hedin

@@ -63,7 +63,7 @@ export const builtWithScript = `
                 badge.appendChild(text);
 
                 badge.addEventListener('click', () => {
-                    window.open('https://onlook.com', '_blank');
+                    window.open('https://weblab.build', '_blank');
                 });
 
                 badge.addEventListener('mouseenter', () => {

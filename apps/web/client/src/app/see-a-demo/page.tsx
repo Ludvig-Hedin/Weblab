@@ -89,7 +89,7 @@ export default function DemoOnlyPage() {
                 {/* Right column - Docs placeholder */}
                 <div 
                     className="hidden lg:flex flex-col items-start justify-start bg-background-secondary rounded-lg h-[500px] border border-border overflow-hidden relative group cursor-pointer"
-                    onClick={() => window.open('https://docs.onlook.com', '_blank', 'noopener,noreferrer')}
+                    onClick={() => window.open('https://docs.weblab.build', '_blank', 'noopener,noreferrer')}
                 >
                     <div className="w-full bg-background-primary rounded-tl-lg relative left-20 top-20 overflow-hidden transition-all duration-300 group-hover:scale-102">
                         <img src="/assets/demo-docs.png" alt="Demo Only Mockup" className="w-full h-auto transition-opacity duration-300 group-hover:opacity-40" />
@@ -102,7 +102,7 @@ export default function DemoOnlyPage() {
                             className="bg-background-primary hover:bg-background-tertiary"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                window.open('https://docs.onlook.com', '_blank', 'noopener,noreferrer');
+                                window.open('https://docs.weblab.build', '_blank', 'noopener,noreferrer');
                             }}
                         >
                             <span className="flex items-center gap-2">

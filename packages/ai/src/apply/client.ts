@@ -63,7 +63,7 @@ export async function applyCodeChangeWithRelace(
         relaceMetadata: metadata
             ? {
                   onlookUserId: metadata.userId,
-                  onlookProjectId: metadata.projectId,
+                  weblabProjectId: metadata.projectId,
                   onlookConversationId: metadata.conversationId,
               }
             : undefined,

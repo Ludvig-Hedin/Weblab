@@ -33,7 +33,7 @@ export const metadata: Metadata = {
         description:
             'Design with your real React components on an infinite canvas. Changes become mergeable PRs.',
         type: 'website',
-        url: 'https://onlook.com/features/builder',
+        url: 'https://weblab.build/features/builder',
         siteName: 'Weblab',
         images: [
             {
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
         images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
     },
     alternates: {
-        canonical: 'https://onlook.com/features/builder',
+        canonical: 'https://weblab.build/features/builder',
     },
     robots: {
         index: true,
@@ -73,7 +73,7 @@ const jsonLd = {
     operatingSystem: 'Web',
     description:
         'Weblab is a visual builder that works with your existing codebase. Design with your real React, Vue, or Angular components on an infinite canvas. Changes become mergeable pull requests.',
-    url: 'https://onlook.com/features/builder',
+    url: 'https://weblab.build/features/builder',
     featureList: [
         'Infinite canvas for visual design',
         'Works with your existing codebase',

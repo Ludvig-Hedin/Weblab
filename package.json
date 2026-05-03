@@ -2,13 +2,13 @@
     "name": "@weblab/repo",
     "version": "0.0.0",
     "description": "Onlook Monorepo",
-    "homepage": "https://onlook.com",
+    "homepage": "https://weblab.build",
     "license": "Apache-2.0",
     "private": true,
     "type": "module",
     "author": {
         "name": "Onlook",
-        "email": "contact@onlook.com"
+        "email": "contact@weblab.build"
     },
     "workspaces": [
         "packages/*",

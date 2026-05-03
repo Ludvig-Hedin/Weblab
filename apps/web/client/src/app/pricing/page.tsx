@@ -81,7 +81,7 @@ Looking forward to hearing from you.
 Best regards,
 [Your name]`);
 
-        window.location.href = `mailto:daniel@onlook.com?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:daniel@weblab.build?subject=${subject}&body=${body}`;
     };
 
     return (

@@ -3,12 +3,12 @@
   "name": "@weblab/web-client",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://onlook.com",
+  "homepage": "https://weblab.build",
   "description": "The first-ever devtool for designers",
   "license": "Apache-2.0",
   "author": {
     "name": "Onlook",
-    "email": "contact@onlook.com"
+    "email": "contact@weblab.build"
   },
   "repository": {
     "type": "git",

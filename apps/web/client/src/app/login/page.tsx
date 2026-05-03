@@ -55,7 +55,7 @@ export default function LoginPage() {
                     <p className="text-small text-foreground-onlook">
                         {t(transKeys.welcome.terms.agreement)}{' '}
                         <Link
-                            href="https://onlook.com/privacy-policy"
+                            href="https://weblab.build/privacy-policy"
                             target="_blank"
                             className="text-foreground-secondary hover:text-foreground-primary underline transition-colors duration-200"
                         >
@@ -64,7 +64,7 @@ export default function LoginPage() {
                         {' '}
                         {t(transKeys.welcome.terms.and)}{' '}
                         <Link
-                            href="https://onlook.com/terms-of-service"
+                            href="https://weblab.build/terms-of-service"
                             target="_blank"
                             className="text-foreground-secondary hover:text-foreground-primary underline transition-colors duration-200"
                         >

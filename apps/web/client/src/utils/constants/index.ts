@@ -39,13 +39,13 @@ export const Routes = {
 } as const;
 
 export const ExternalRoutes = {
-    DOCS: 'https://docs.onlook.com',
+    DOCS: 'https://docs.weblab.build',
     BLOG: 'https://onlook.substack.com',
-    X: 'https://x.com/onlookdev',
+    X: 'https://x.com/weblab',
     GITHUB: 'https://github.com/Ludvig-Hedin/Weblab',
-    CONTACT: 'mailto:contact@onlook.com',
-    LINKEDIN: 'https://www.linkedin.com/company/onlook-dev/',
-    YOUTUBE: 'https://www.youtube.com/@onlookdev',
+    CONTACT: 'mailto:contact@weblab.build',
+    LINKEDIN: 'https://www.linkedin.com/company/weblab/',
+    YOUTUBE: 'https://www.youtube.com/@weblab',
     SUBSTACK: 'https://onlook.substack.com/',
     DISCORD: 'https://discord.gg/ZZzadNQtns',
     BOOK_DEMO: 'https://meetings.hubspot.com/daniel-onlook/onboarding-to-onlook-with-daniel',

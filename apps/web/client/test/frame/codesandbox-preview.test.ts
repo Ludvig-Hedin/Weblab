@@ -8,7 +8,7 @@ describe('isCodeSandboxPreviewUrl', () => {
     });
 
     test('returns false for non-csb preview urls', () => {
-        expect(isCodeSandboxPreviewUrl('https://onlook.com/')).toBe(false);
+        expect(isCodeSandboxPreviewUrl('https://weblab.build/')).toBe(false);
     });
 
     test('returns false for invalid urls', () => {

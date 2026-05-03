@@ -232,7 +232,7 @@ export function WeblabInterfaceMockup() {
             <div className="grid grid-cols-3 items-center h-10 px-2.5 relative z-10">
                 {/* Left: Logo + Project Name + Chevron */}
                 <div className="flex items-center gap-1 min-w-0">
-                    <Icons.OnlookLogo className="w-5 h-5 shrink-0" />
+                    <Icons.WeblabLogo className="w-5 h-5 shrink-0" />
                     <span className="text-xs text-foreground-secondary ml-1 truncate max-w-[100px]">Villainterest</span>
                     <Icons.ChevronDown className="w-4 h-4 text-neutral-400 ml-0.5" />
                 </div>

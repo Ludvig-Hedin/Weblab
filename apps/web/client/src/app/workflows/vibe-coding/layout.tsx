@@ -44,8 +44,8 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        site: '@onlookdev',
-        creator: '@onlookdev',
+        site: '@weblab',
+        creator: '@weblab',
         title: 'Vibe Coding for Teams | ${APP_NAME}',
         description:
             `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Real components, real-time collaboration, real PRs.`,

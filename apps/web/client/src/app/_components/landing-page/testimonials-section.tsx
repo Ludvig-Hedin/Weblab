@@ -99,7 +99,7 @@ export function TestimonialsSection() {
                 {/* Column 3 */}
                 <div className="flex flex-col gap-8 flex-1 mt-0 md:mt-24">
                     <TestimonialCard
-                        text="this is getting pretty ergonomically close to the synthesis of generative code & design. great product @onlookdev 🐣"
+                        text="this is getting pretty ergonomically close to the synthesis of generative code & design. great product @weblab 🐣"
                         name="Tina He"
                         label="Product Lead, Developer Tools at Coinbase"
                         profileImage="/assets/testimonials-tina.png"

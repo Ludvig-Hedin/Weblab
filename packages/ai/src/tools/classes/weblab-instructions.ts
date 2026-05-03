@@ -10,7 +10,7 @@ export class WeblabInstructionsTool extends ClientTool {
     static readonly toolName = 'onlook_instructions';
     static readonly description = 'Get Onlook-specific instructions and guidelines';
     static readonly parameters = z.object({});
-    static readonly icon = Icons.OnlookLogo;
+    static readonly icon = Icons.WeblabLogo;
 
     async handle(
         _input: z.infer<typeof WeblabInstructionsTool.parameters>,

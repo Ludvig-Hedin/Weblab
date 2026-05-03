@@ -18,7 +18,7 @@ function containsNullByte(bytes: Uint8Array): boolean {
     return false;
 }
 
-export const ONLOOK_DISPLAY_NAME_NOTE_REF = 'refs/notes/onlook-display-name';
+export const WEBLAB_DISPLAY_NAME_NOTE_REF = 'refs/notes/weblab-display-name';
 
 export interface GitStatus {
     files: string[];
@@ -481,7 +481,7 @@ export class GitManager {
         const sanitizedDisplayName = sanitizeCommitMessage(displayName);
         const escapedDisplayName = prepareCommitMessage(sanitizedDisplayName);
         const result = await this.runCommand(
-            `git --no-pager notes --ref=${ONLOOK_DISPLAY_NAME_NOTE_REF} add -f -m ${escapedDisplayName} ${commitOid}`,
+            `git --no-pager notes --ref=${WEBLAB_DISPLAY_NAME_NOTE_REF} add -f -m ${escapedDisplayName} ${commitOid}`,
         );
 
         if (result.success && this.commits) {
@@ -501,7 +501,7 @@ export class GitManager {
     async getCommitNote(commitOid: string): Promise<string | null> {
         try {
             const result = await this.runCommand(
-                `git --no-pager notes --ref=${ONLOOK_DISPLAY_NAME_NOTE_REF} show ${commitOid}`,
+                `git --no-pager notes --ref=${WEBLAB_DISPLAY_NAME_NOTE_REF} show ${commitOid}`,
                 true,
             );
             if (result.success && result.output) {

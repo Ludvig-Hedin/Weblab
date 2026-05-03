@@ -1,6 +1,6 @@
 # Desktop Releases Guide
 
-The Weblab desktop app is an Electron wrapper around [onlook.com](https://onlook.com).  
+The Weblab desktop app is an Electron wrapper around [weblab.build](https://weblab.build).  
 This doc covers three paths: building locally, sharing with friends, and publishing an official release.
 
 ---

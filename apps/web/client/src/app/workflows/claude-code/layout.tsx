@@ -43,8 +43,8 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        site: '@onlookdev',
-        creator: '@onlookdev',
+        site: '@weblab',
+        creator: '@weblab',
         title: `Claude Code for Designers | ${APP_NAME}`,
         description:
             'The visual canvas your Claude Code workflow is missing. Design with your real components, collaborate with your team, ship PRs.',

@@ -104,7 +104,7 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 - **Impact:** user-facing
 - **Risk:** low
 - **Summary:** The redesigned project tile iframe dropped `referrerPolicy="no-referrer"`. Each project tile now leaks the projects-page Referer to the embedded site on load. Minor but cheap to restore.
-- **Suggested approach:** re-add `referrerPolicy="no-referrer"` (and consider `sandbox` to prevent third-party JS in the previewed site from running freely against an iframe context attached to onlook.com).
+- **Suggested approach:** re-add `referrerPolicy="no-referrer"` (and consider `sandbox` to prevent third-party JS in the previewed site from running freely against an iframe context attached to weblab.build).
 
 ---
 
@@ -206,7 +206,7 @@ Scope: 18 modified files + 4 unpushed commits + a large set of new untracked fil
 - **Type:** bug (brand)
 - **Impact:** internal (OpenRouter dashboard attribution)
 - **Risk:** low
-- **Summary:** Outbound headers were `HTTP-Referer: https://onlook.com` and `X-Title: Onlook`, in violation of the CLAUDE.md "Weblab" rule for user-facing strings.
+- **Summary:** Outbound headers were `HTTP-Referer: https://weblab.build` and `X-Title: Onlook`, in violation of the CLAUDE.md "Weblab" rule for user-facing strings.
 - **Fix applied:** swapped to `https://weblab.build` and `Weblab`. No behavior change beyond the OpenRouter attribution string.
 
 ## CR-016 — `/api/models/local` is unauthenticated and unrate-limited

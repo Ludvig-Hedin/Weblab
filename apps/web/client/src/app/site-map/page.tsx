@@ -134,7 +134,7 @@ const sitemapSections: SitemapSection[] = [
             {
                 title: "X (Twitter)",
                 href: ExternalRoutes.X,
-                description: "Follow @onlookdev for updates and announcements.",
+                description: "Follow @weblab for updates and announcements.",
                 external: true
             },
             {
