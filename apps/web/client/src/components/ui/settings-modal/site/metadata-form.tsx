@@ -88,7 +88,7 @@ export const MetadataForm = ({
     const renderTitle = () => {
         if (isSimpleTitle) {
             return (
-                <div className="grid grid-cols-2 text-foreground-onlook">
+                <div className="grid grid-cols-2 text-foreground-weblab">
                     <div className="flex items-center">
                         <h2 className="text-regular font-medium">Title</h2>
                     </div>
@@ -104,9 +104,9 @@ export const MetadataForm = ({
         } else {
             return (
                 <div className="flex flex-col gap-4">
-                    <h2 className="text-title3 text-foreground-onlook">Title Settings</h2>
+                    <h2 className="text-title3 text-foreground-weblab">Title Settings</h2>
 
-                    <div className="grid grid-cols-2 text-foreground-onlook">
+                    <div className="grid grid-cols-2 text-foreground-weblab">
                         <div className="flex items-center">
                             <h3 className="text-regular font-medium">Default Title</h3>
                         </div>
@@ -119,7 +119,7 @@ export const MetadataForm = ({
                         />
                     </div>
                     {!isRoot ? (
-                        <div className="grid grid-cols-2 text-foreground-onlook">
+                        <div className="grid grid-cols-2 text-foreground-weblab">
                             <div className="flex flex-col max-w-52">
                                 <h3 className="text-regular font-medium">Absolute Title</h3>
                                 <p className="text-small">
@@ -135,7 +135,7 @@ export const MetadataForm = ({
                             />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 text-foreground-onlook">
+                        <div className="grid grid-cols-2 text-foreground-weblab">
                             <div className="flex flex-col max-w-52">
                                 <h3 className="text-regular font-medium">Title Template</h3>
                                 <p className="text-small">
@@ -172,7 +172,7 @@ export const MetadataForm = ({
                 )}
 
                 <div className="grid grid-cols-2 h-44">
-                    <div className="flex flex-col text-foreground-onlook col-span-1 max-w-52">
+                    <div className="flex flex-col text-foreground-weblab col-span-1 max-w-52">
                         <h2 className="text-regular font-medium">Page Description</h2>
                         <p className="text-small">
                             This is the information that will show up on search engines below your
@@ -198,7 +198,7 @@ export const MetadataForm = ({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <h2 className="text-regular text-foreground-onlook">Search Engine Preview</h2>
+                    <h2 className="text-regular text-foreground-weblab">Search Engine Preview</h2>
                     <div className="bg-background/50 p-4 rounded-md border gap-1.5 flex flex-col">
                         <p className="text-miniPlus text-blue-500">{projectUrl}</p>
                         <h3 className="text-regular">{title || DEFAULT_TITLE}</h3>
@@ -211,7 +211,7 @@ export const MetadataForm = ({
                 {/* TODO: Implement */}
                 <div className="flex flex-col gap-4">
                     <h2 className="text-title3">Imagery</h2>
-                    <div className="grid grid-cols-2 text-foreground-onlook">
+                    <div className="grid grid-cols-2 text-foreground-weblab">
                         <div className="flex flex-col max-w-52">
                             <p className="text-regular font-medium">Social Preview</p>
                             <p className="text-small">Cropped to 1200 × 630 pixels</p>

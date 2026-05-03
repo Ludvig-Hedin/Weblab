@@ -74,7 +74,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                     event.preventDefault();
                     setShowCloneDialog(true);
                 }}
-                className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+                className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
             >
                 <Icons.Copy className="w-4 h-4" />
                 Clone Project

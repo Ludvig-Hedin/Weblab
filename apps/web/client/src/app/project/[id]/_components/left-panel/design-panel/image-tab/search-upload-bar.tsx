@@ -52,7 +52,7 @@ export const SearchUploadBar = ({ search, setSearch, isUploading, onUpload }: Se
                     <Button
                         variant="default"
                         size="icon"
-                        className="h-8 w-8 text-foreground-primary border-border-primary hover:border-border-onlook bg-background-secondary hover:bg-background-onlook border"
+                        className="h-8 w-8 text-foreground-primary border-border-primary hover:border-border-weblab bg-background-secondary hover:bg-background-weblab border"
                         onClick={handleUploadClick}
                         disabled={isUploading}
                     >

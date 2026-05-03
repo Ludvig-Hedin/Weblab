@@ -3,7 +3,7 @@ import { vujahdayScript } from '../../fonts';
 
 export function ObsessForHoursSection() {
     return (
-        <div className="w-full mx-auto py-32 px-8 flex bg-background-onlook/80 flex-col md:flex-row items-start gap-24 md:gap-12">
+        <div className="w-full mx-auto py-32 px-8 flex bg-background-weblab/80 flex-col md:flex-row items-start gap-24 md:gap-12">
             <div className="w-full max-w-6xl mx-auto flex flex-col gap-12">
                 {/* Responsive heading */}
                 <div className="w-full flex flex-col items-center justify-center mb-12 md:flex-row md:gap-1">

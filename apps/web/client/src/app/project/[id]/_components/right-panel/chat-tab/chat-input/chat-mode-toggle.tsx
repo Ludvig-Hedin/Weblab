@@ -48,7 +48,7 @@ export const ChatModeToggle = observer(
                             size="sm"
                             disabled={disabled}
                             className={cn(
-                                'text-foreground-onlook group flex h-8 items-center gap-1.5 px-2',
+                                'text-foreground-weblab group flex h-8 items-center gap-1.5 px-2',
                                 disabled && 'cursor-not-allowed opacity-50',
                             )}
                         >
@@ -78,7 +78,7 @@ export const ChatModeToggle = observer(
                         onClick={() => onChatModeChange(ChatType.EDIT)}
                         className={cn(
                             'flex items-center gap-2 px-3 py-2',
-                            chatMode === ChatType.EDIT && 'bg-background-onlook',
+                            chatMode === ChatType.EDIT && 'bg-background-weblab',
                         )}
                     >
                         <Icons.Build className="h-4 w-4" />
@@ -88,7 +88,7 @@ export const ChatModeToggle = observer(
                         onClick={() => onChatModeChange(ChatType.ASK)}
                         className={cn(
                             'flex items-center gap-2 px-3 py-2',
-                            chatMode === ChatType.ASK && 'bg-background-onlook',
+                            chatMode === ChatType.ASK && 'bg-background-weblab',
                         )}
                     >
                         <Icons.Ask className="h-4 w-4" />

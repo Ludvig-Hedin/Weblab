@@ -20,27 +20,27 @@ describe('createSecureUrl', () => {
     });
 
     it('should add https to a domain without a protocol', () => {
-        expect(createSecureUrl('onlook.dev')).toBe('https://onlook.dev');
+        expect(createSecureUrl('weblab.build')).toBe('https://weblab.build');
     });
 
     it('should convert http to https', () => {
-        expect(createSecureUrl('http://onlook.dev')).toBe('https://onlook.dev');
+        expect(createSecureUrl('http://weblab.build')).toBe('https://weblab.build');
     });
 
     it('should keep an existing https protocol', () => {
-        expect(createSecureUrl('https://onlook.dev')).toBe('https://onlook.dev');
+        expect(createSecureUrl('https://weblab.build')).toBe('https://weblab.build');
     });
 
     it('should handle domains with paths and queries', () => {
-        expect(createSecureUrl('onlook.dev/path?query=1')).toBe('https://onlook.dev/path?query=1');
+        expect(createSecureUrl('weblab.build/path?query=1')).toBe('https://weblab.build/path?query=1');
     });
 
     it('should handle www subdomains', () => {
-        expect(createSecureUrl('www.onlook.dev')).toBe('https://www.onlook.dev');
+        expect(createSecureUrl('www.weblab.build')).toBe('https://www.weblab.build');
     });
 
     it('should trim whitespace from the url', () => {
-        expect(createSecureUrl('  http://onlook.dev/path ')).toBe('https://onlook.dev/path');
+        expect(createSecureUrl('  http://weblab.build/path ')).toBe('https://weblab.build/path');
     });
 
     it('should return an empty string for an invalid url string', () => {
@@ -52,7 +52,7 @@ describe('createSecureUrl', () => {
     });
 
     it('should handle other protocols and convert them to https', () => {
-        expect(createSecureUrl('ftp://onlook.dev')).toBe('https://onlook.dev');
+        expect(createSecureUrl('ftp://weblab.build')).toBe('https://weblab.build');
     });
 
     it('should return an empty string for a url that does not contain a domain', () => {

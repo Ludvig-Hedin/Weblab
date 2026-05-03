@@ -92,7 +92,7 @@ describe('Built with Weblab Script', () => {
 
         // Verify the content of the script
         const scriptContent = fs.readFileSync(scriptPath, 'utf8');
-        expect(scriptContent).toContain('class BuiltWithOnlook extends HTMLElement');
+        expect(scriptContent).toContain('class BuiltWithWeblab extends HTMLElement');
     });
 
     test('removeBuiltWithScriptFromLayout removes Script component from layout.tsx', async () => {

@@ -119,7 +119,7 @@ export function setElementType(
     }
 }
 
-export function getFirstOnlookElement(): DomElement | null {
+export function getFirstWeblabElement(): DomElement | null {
     const body = document.body;
     const firstElement = body.querySelector(`[${EditorAttributes.DATA_WEBLAB_ID}]`);
     if (firstElement) {

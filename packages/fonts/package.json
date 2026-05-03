@@ -15,7 +15,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "fonts"
     ],
     "author": {

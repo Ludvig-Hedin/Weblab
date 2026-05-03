@@ -14,10 +14,10 @@ export const PageTreeRow = forwardRef<
             {...attrs}
             className={cn(
                 'h-6 w-full cursor-pointer rounded outline-none',
-                'text-foreground-onlook/70',
+                'text-foreground-weblab/70',
                 !attrs['aria-selected'] && [
-                    isHighlighted && 'bg-background-onlook text-foreground-primary',
-                    'hover:text-foreground-primary hover:bg-background-onlook',
+                    isHighlighted && 'bg-background-weblab text-foreground-primary',
+                    'hover:text-foreground-primary hover:bg-background-weblab',
                 ],
                 attrs['aria-selected'] && [
                     '!bg-[#109BFF] dark:!bg-[#109BFF]',

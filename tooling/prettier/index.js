@@ -23,7 +23,7 @@ const config = {
         '^(next/(.*)$)|^(next$)',
         '<THIRD_PARTY_MODULES>',
         '',
-        '<TYPES>^@onlook',
+        '<TYPES>^@weblab',
         '^@weblab/(.*)$',
         '',
         '<TYPES>^[.|..|@]',

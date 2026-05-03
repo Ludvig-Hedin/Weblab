@@ -122,7 +122,7 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                                 "group px-2 py-1 w-fit h-fit cursor-pointer mr-0.5 ml-1",
                                 isDirty
                                     ? "text-background-primary hover:text-blue-100 hover:bg-blue-500 bg-foreground-primary"
-                                    : "hover:bg-background-onlook hover:text-blue-200"
+                                    : "hover:bg-background-weblab hover:text-blue-200"
                             )}
                         >
                             {isSaving ? (

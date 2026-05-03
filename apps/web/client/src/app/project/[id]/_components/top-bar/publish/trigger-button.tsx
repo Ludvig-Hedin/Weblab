@@ -20,7 +20,7 @@ export const TriggerButton = observer(() => {
     const isFailed = isPreviewFailed || isCustomFailed;
     const isDeploying = isPreviewDeploying || isCustomDeploying;
 
-    let colorClasses = 'border-input bg-background hover:bg-background-onlook text-foreground-primary';
+    let colorClasses = 'border-input bg-background hover:bg-background-weblab text-foreground-primary';
     let icon: React.ReactNode | null = <Icons.Globe className="mr-1 h-4 w-4" />;
     let text = 'Publish';
 
@@ -37,7 +37,7 @@ export const TriggerButton = observer(() => {
             'border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-600 hover:border-red-500';
         icon = <Icons.ExclamationTriangle className="mr-1 h-4 w-4" />;
     } else {
-        colorClasses = 'border-input bg-background hover:bg-background-onlook text-foreground-primary hover:border-foreground-primary';
+        colorClasses = 'border-input bg-background hover:bg-background-weblab text-foreground-primary hover:border-foreground-primary';
     }
 
     return (

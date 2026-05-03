@@ -5,7 +5,7 @@ export function ComponentsBlock() {
     return (
         <div className="flex flex-col gap-6">
             {/* Custom Components Menu + Calendar Preview */}
-            <div className="flex flex-row gap-8 relative min-h-[400px] overflow-hidden bg-background-onlook/80 rounded-lg">
+            <div className="flex flex-row gap-8 relative min-h-[400px] overflow-hidden bg-background-weblab/80 rounded-lg">
                 {/* Left menu container with grey background and overflow hidden */}
                 <div className="w-56 h-100 rounded-xl overflow-hidden absolute lg:left-1/20 md:left-1/30 left-1/8 top-12 flex flex-col items-center justify-start bg-black border-[0.5px] border-foreground-primary/20">
                     <p className="text-foreground-primary text-regular font-light w-full text-left px-3 py-2 border-b-[0.5px] border-foreground-primary/20">Components</p>
@@ -150,15 +150,15 @@ export function ComponentsBlock() {
                                     {item.label === 'Table' && (
                                         <div className="w-16 h-16 bg-black rounded-[4px] p-0.5 select-none" >
                                             <div className="grid grid-cols-3 gap-[1px] text-[3px] text-zinc-300">
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">Name</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">Age</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">City</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">John</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">25</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">NYC</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">Jane</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">30</div>
-                                                <div className="bg-background-onlook p-1 rounded-[1px]">LA</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">Name</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">Age</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">City</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">John</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">25</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">NYC</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">Jane</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">30</div>
+                                                <div className="bg-background-weblab p-1 rounded-[1px]">LA</div>
                                             </div>
                                         </div>
                                     )}

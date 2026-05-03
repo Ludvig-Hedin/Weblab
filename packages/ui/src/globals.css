@@ -213,7 +213,7 @@
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
     --background: 0 0% 100%; /* white */
-    --background-onlook: 0 0% 90%; /* light gray */
+    --background-weblab: 0 0% 90%; /* light gray */
     --background-brand: 206 100% 66%; /* blue[300] */
     --background-brand-secondary: 206 100% 78%; /* blue[200] */
     --background-primary: 0 0% 100%; /* white */
@@ -226,7 +226,7 @@
     --background-disabled: 0 0% 95%; /* very light gray */
 
     --foreground: 0 0% 10%; /* black */
-    --foreground-onlook: 0 0% 20%; /* dark gray */
+    --foreground-weblab: 0 0% 20%; /* dark gray */
     --foreground-brand: 205 100% 53%; /* blue[400] */
     --foreground-primary: 0 0% 10%; /* black */
     --foreground-secondary: 0 0% 20%; /* dark gray */
@@ -466,7 +466,7 @@
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
     --background: 20 14.3% 4.1%; /* shadcn */
-    --background-onlook: 0 0% 10%; /* gray[900] */
+    --background-weblab: 0 0% 10%; /* gray[900] */
     --background-brand: 206 100% 28%; /* blue[700] */
     --background-brand-secondary: 206 100% 44%; /* blue[500] */
     --background-primary: 0 0% 10%; /* gray[900] */
@@ -479,7 +479,7 @@
     --background-disabled: 0 0% 10%; /* gray[900] */
 
     --foreground: 60 9.1% 97.8%; /* shadcn */
-    --foreground-onlook: 0 0% 67%; /* gray[200] */
+    --foreground-weblab: 0 0% 67%; /* gray[200] */
     --foreground-brand: 205 100% 53%; /* blue[400] */
     --foreground-primary: 0 0% 100%; /* gray[50] */
     --foreground-secondary: 0 0% 67%; /* gray[200] */

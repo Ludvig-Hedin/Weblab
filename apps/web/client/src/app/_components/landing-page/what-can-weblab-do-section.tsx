@@ -32,7 +32,7 @@ function useOperatingSystem() {
 function VersionRow({ title, subtitle, children, selected, onClick }: { title: string, subtitle: string, children?: React.ReactNode, selected?: boolean, onClick?: () => void }) {
     return (
         <div
-            className={`flex flex-row items-center justify-between px-4 py-3 cursor-pointer transition-colors ${selected ? 'bg-background-onlook/90' : 'bg-transparent'} hover:bg-background-onlook/90`}
+            className={`flex flex-row items-center justify-between px-4 py-3 cursor-pointer transition-colors ${selected ? 'bg-background-weblab/90' : 'bg-transparent'} hover:bg-background-weblab/90`}
             onClick={onClick}
         >
             <div>

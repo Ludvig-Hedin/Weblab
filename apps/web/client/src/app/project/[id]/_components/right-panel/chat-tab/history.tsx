@@ -74,10 +74,10 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
                                         {sortedConversations.map((conversation) => (
                                             <div
                                                 className={cn(
-                                                    'flex flex-row w-full py-2 items-center rounded-md hover:bg-background-onlook cursor-pointer select-none group relative',
+                                                    'flex flex-row w-full py-2 items-center rounded-md hover:bg-background-weblab cursor-pointer select-none group relative',
                                                     conversation.id ===
                                                     editorEngine.chat.conversation.current?.id &&
-                                                    'bg-background-onlook text-primary font-semibold',
+                                                    'bg-background-weblab text-primary font-semibold',
                                                 )}
                                                 key={conversation.id}
                                                 onClick={() =>

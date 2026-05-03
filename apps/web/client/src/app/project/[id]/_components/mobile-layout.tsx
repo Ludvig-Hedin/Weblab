@@ -68,7 +68,7 @@ export const MobileLayout = observer(() => {
                         id="mobile-tabpanel-preview"
                         role="tabpanel"
                         aria-labelledby="mobile-tab-preview"
-                        className="relative h-full w-full overflow-hidden bg-background-onlook"
+                        className="relative h-full w-full overflow-hidden bg-background-weblab"
                     >
                         <Canvas />
                     </div>

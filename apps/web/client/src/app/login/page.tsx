@@ -31,7 +31,7 @@ export default function LoginPage() {
                         <h1 className="text-title1 leading-tight">
                             {t(transKeys.welcome.title)}
                         </h1>
-                        <p className="text-foreground-onlook text-regular">
+                        <p className="text-foreground-weblab text-regular">
                             {t(transKeys.welcome.description)}
                         </p>
                     </div>
@@ -52,7 +52,7 @@ export default function LoginPage() {
                         />
                     </div>
                     {env.NEXT_PUBLIC_SHOW_DEV_LOGIN && <DevLoginButton returnUrl={returnUrl} />}
-                    <p className="text-small text-foreground-onlook">
+                    <p className="text-small text-foreground-weblab">
                         {t(transKeys.welcome.terms.agreement)}{' '}
                         <Link
                             href="https://weblab.build/privacy-policy"

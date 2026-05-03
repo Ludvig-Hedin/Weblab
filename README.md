@@ -11,7 +11,7 @@
   </p>
   <p align="center">
     👨‍💻👩‍💻👨‍💻
-    <a href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack">We're hiring engineers in SF!</a>
+    <a href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack">We're hiring engineers in SF!</a>
     👩‍💻👨‍💻👩‍💻
   </p>
     <br />
@@ -236,15 +236,15 @@ information.
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors-shield]: https://img.shields.io/github/contributors/onlook-dev/studio.svg?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [contributors-url]: https://github.com/Ludvig-Hedin/Weblab/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/onlook-dev/studio.svg?style=for-the-badge
+[forks-shield]: https://img.shields.io/github/forks/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [forks-url]: https://github.com/Ludvig-Hedin/Weblab/network/members
-[stars-shield]: https://img.shields.io/github/stars/onlook-dev/studio.svg?style=for-the-badge
+[stars-shield]: https://img.shields.io/github/stars/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [stars-url]: https://github.com/Ludvig-Hedin/Weblab/stargazers
-[issues-shield]: https://img.shields.io/github/issues/onlook-dev/studio.svg?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [issues-url]: https://github.com/Ludvig-Hedin/Weblab/issues
-[license-shield]: https://img.shields.io/github/license/onlook-dev/studio.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/Ludvig-Hedin/Weblab.svg?style=for-the-badge
 [license-url]: https://github.com/Ludvig-Hedin/Weblab/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/company/weblab

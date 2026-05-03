@@ -121,7 +121,7 @@ const UploadModal = observer(
 
         return (
             <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-                <AlertDialogContent className="max-w-2xl bg-background-onlook/20 p-0 max-h-[80vh] gap-0">
+                <AlertDialogContent className="max-w-2xl bg-background-weblab/20 p-0 max-h-[80vh] gap-0">
                     <div className="relative flex flex-col">
                         {/* Loading overlay */}
                         {isUploading && (

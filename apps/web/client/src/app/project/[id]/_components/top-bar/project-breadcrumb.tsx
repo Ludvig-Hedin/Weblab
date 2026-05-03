@@ -109,7 +109,7 @@ export const ProjectBreadcrumb = observer(() => {
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant='ghost'
-                        className="ml-1 px-0 gap-2 text-foreground-onlook text-small hover:text-foreground-active hover:!bg-transparent cursor-pointer group"
+                        className="ml-1 px-0 gap-2 text-foreground-weblab text-small hover:text-foreground-active hover:!bg-transparent cursor-pointer group"
                     >
                         <Icons.WeblabLogo
                             className={cn(
@@ -117,7 +117,7 @@ export const ProjectBreadcrumb = observer(() => {
                                 isClosingProject && 'animate-pulse',
                             )}
                         />
-                        <span className="mx-0 max-w-[60px] md:max-w-[100px] lg:max-w-[200px] px-0 text-foreground-onlook text-small truncate cursor-pointer group-hover:text-foreground-active">
+                        <span className="mx-0 max-w-[60px] md:max-w-[100px] lg:max-w-[200px] px-0 text-foreground-weblab text-small truncate cursor-pointer group-hover:text-foreground-active">
                             {isClosingProject ? 'Stopping project...' : project?.name}
                         </span>
                     </Button>

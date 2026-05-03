@@ -85,7 +85,7 @@ export default function ClaudeCodeWorkflowPage() {
                     </ul>
                     <h2>Coming Soon: {APP_NAME} MCP for Claude Code</h2>
                     <p>
-                        Use /onlook directly in Claude Code to open your UI in a visual canvas, iterate with your
+                        Use /weblab directly in Claude Code to open your UI in a visual canvas, iterate with your
                         design system, and push changes back — all without leaving the terminal.
                     </p>
                 </section>
@@ -236,12 +236,12 @@ export default function ClaudeCodeWorkflowPage() {
                                     {APP_NAME} MCP for Claude Code
                                 </h2>
                                 <p className="text-foreground-secondary mb-8 max-w-xl text-lg text-balance">
-                                    Use <code className="bg-foreground-primary/10 rounded px-2 py-0.5 font-mono text-base">/onlook</code> directly in Claude Code to open your UI in a visual canvas, iterate with your design system, and push changes back — all without leaving the terminal.
+                                    Use <code className="bg-foreground-primary/10 rounded px-2 py-0.5 font-mono text-base">/weblab</code> directly in Claude Code to open your UI in a visual canvas, iterate with your design system, and push changes back — all without leaving the terminal.
                                 </p>
                                 <div className="bg-background-secondary/50 rounded-lg border border-foreground-primary/20 p-6 font-mono text-sm">
                                     <span className="text-foreground-tertiary">$</span>{' '}
                                     <span className="text-foreground-secondary">claude</span>{' '}
-                                    <span className="text-foreground-primary">/onlook open ./src/components/Hero.tsx</span>
+                                    <span className="text-foreground-primary">/weblab open ./src/components/Hero.tsx</span>
                                 </div>
                             </motion.div>
                         </div>

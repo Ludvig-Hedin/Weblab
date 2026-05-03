@@ -62,9 +62,9 @@ export async function applyCodeChangeWithRelace(
         instructions: instruction,
         relaceMetadata: metadata
             ? {
-                  onlookUserId: metadata.userId,
+                  weblabUserId: metadata.userId,
                   weblabProjectId: metadata.projectId,
-                  onlookConversationId: metadata.conversationId,
+                  weblabConversationId: metadata.conversationId,
               }
             : undefined,
     };

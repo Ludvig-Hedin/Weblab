@@ -69,7 +69,7 @@ implementations live in `@weblab/parser` under `src/pipelines/`:
 - Author + register real CodeSandbox templates for the five non-Next
   frameworks.
 - Wire preload-script injection for static-HTML projects: write
-  `onlook-preload-script.js` next to `index.html` at upload time and
+  `weblab-preload-script.js` next to `index.html` at upload time and
   inject a `<script>` tag into the `<head>` so DOM clicks in the preview
   iframe propagate to the editor.
 - Implement the structural edit operations on the HTML pipeline (port

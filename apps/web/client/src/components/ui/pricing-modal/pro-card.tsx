@@ -195,7 +195,7 @@ export const ProCard = ({
             <motion.div className="p-6 flex flex-col h-full">
                 <div className="space-y-1">
                     <h2 className="text-title2">{t(transKeys.pricing.plans.pro.name)}</h2>
-                    <p className="text-foreground-onlook text-largePlus">{formatPrice(selectedTierData?.cost ?? 0)}</p>
+                    <p className="text-foreground-weblab text-largePlus">{formatPrice(selectedTierData?.cost ?? 0)}</p>
                 </div>
                 <div className="border-[0.5px] border-border-primary -mx-6 my-6" />
                 <p className="text-foreground-primary text-title3 text-balance">{t(transKeys.pricing.plans.pro.description)}</p>

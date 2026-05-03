@@ -283,7 +283,7 @@ export function DirectEditingInteractive() {
     }, [draggedElement, dragOffset]);
 
     return (
-        <div className="w-full h-100 bg-background-onlook/80 rounded-lg overflow-hidden">
+        <div className="w-full h-100 bg-background-weblab/80 rounded-lg overflow-hidden">
             <div className="w-90 h-100 bg-[#0A484D] rounded-lg relative left-1/2 top-60 transform -translate-x-1/2 -translate-y-1/2 canvas-container text-[#F0EFE3]">
                 <div className="w-full h-8 border-b border-[#F0EFE3]/50 px-2 flex flex-row items-center justify-between">
                     <div className="flex flex-row items-center gap-1 select-none">

@@ -13,7 +13,7 @@ let isConnecting = false;
  * Find the correct parent window for Weblab connection.
  * Handles both direct iframes (Next.js) and nested iframes (Storybook).
  */
-const findOnlookParent = (): Window => {
+const findWeblabParent = (): Window => {
     // If we're not in an iframe, something is wrong
     if (window === window.top) {
         console.warn(`${PENPAL_CHILD_CHANNEL} - Not in an iframe, using window.parent as fallback`);
@@ -46,7 +46,7 @@ const createMessageConnection = async () => {
     console.log(`${PENPAL_CHILD_CHANNEL} - Creating penpal connection`);
 
     const messenger = new WindowMessenger({
-        remoteWindow: findOnlookParent(),
+        remoteWindow: findWeblabParent(),
         // TODO: Use a proper origin
         allowedOrigins: ['*'],
     });

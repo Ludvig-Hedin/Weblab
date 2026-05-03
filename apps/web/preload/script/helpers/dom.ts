@@ -31,7 +31,7 @@ export function isValidHtmlElement(element: Element): boolean {
     );
 }
 
-export function isOnlookInDoc(doc: Document): boolean {
+export function isWeblabInDoc(doc: Document): boolean {
     const attributeExists = doc.evaluate(
         `//*[@${EditorAttributes.DATA_WEBLAB_ID}]`,
         doc,

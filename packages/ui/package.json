@@ -24,7 +24,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "ui"
     ],
     "author": {

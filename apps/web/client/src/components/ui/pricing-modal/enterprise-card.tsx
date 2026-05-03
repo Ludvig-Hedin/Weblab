@@ -50,7 +50,7 @@ Best regards,
             <motion.div className="p-6 flex flex-col h-full">
                 <div className="space-y-1">
                     <h2 className="text-title2">{ENTERPRISE_TIER.name}</h2>
-                    <p className="text-foreground-onlook text-largePlus">{ENTERPRISE_TIER.price}</p>
+                    <p className="text-foreground-weblab text-largePlus">{ENTERPRISE_TIER.price}</p>
                 </div>
                 <div className="border-[0.5px] border-border-primary -mx-6 my-6" />
                 <p className="text-foreground-primary text-title3 text-balance">{ENTERPRISE_TIER.description}</p>

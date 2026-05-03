@@ -162,7 +162,7 @@ export default function AboutPage() {
                                 transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
                                 style={{ willChange: "opacity, filter", transform: "translateZ(0)" }}
                             >
-                                <ButtonLink href="https://onlook.substack.com" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
+                                <ButtonLink href="https://weblab.substack.com" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
                                     Read more on Substack
                                 </ButtonLink>
                             </motion.div>
@@ -264,7 +264,7 @@ export default function AboutPage() {
                                 {...getBlurAnimationProps(0.2)}
                             >
                                 <span className="mb-8 text-foreground-primary text-3xl font-light">Earn your stake<br />in the future of<br />creative work</span>
-                                <ButtonLink href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
+                                <ButtonLink href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
                                     Claim your desk
                                 </ButtonLink>
                             </motion.div>
@@ -313,7 +313,7 @@ export default function AboutPage() {
                                     {...getBlurAnimationProps(0.2)}
                                 >
                                     <span className="mb-8 text-foreground-primary text-lg md:text-3xl font-light">Earn your stake<br />in the future of<br />creative work</span>
-                                    <ButtonLink href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
+                                    <ButtonLink href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
                                         Claim your desk
                                     </ButtonLink>
                                 </motion.div>
@@ -414,7 +414,7 @@ export default function AboutPage() {
                             className="flex justify-start"
                             {...getBlurAnimationProps(0.5)}
                         >
-                            <ButtonLink href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
+                            <ButtonLink href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
                                 Browse open roles
                             </ButtonLink>
                         </motion.div>
@@ -474,7 +474,7 @@ export default function AboutPage() {
                             <motion.div
                                 {...getBlurAnimationProps(0.1)}
                             >
-                                <ButtonLink href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
+                                <ButtonLink href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack" target="_blank" rel="noopener noreferrer" rightIcon={<span className="ml-2">→</span>}>
                                     Take the leap
                                 </ButtonLink>
                             </motion.div>
@@ -566,7 +566,7 @@ export default function AboutPage() {
                     </div>
                 </section>
             </main>
-            <CTASection href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack" ctaText="Apply today" buttonText="Browse open roles" showSubtext={false} />
+            <CTASection href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack" ctaText="Apply today" buttonText="Browse open roles" showSubtext={false} />
         </WebsiteLayout>
     );
 } 

@@ -109,7 +109,7 @@ export const FreeCard = ({
             <motion.div className="p-6 flex flex-col h-full">
                 <div className="space-y-1">
                     <h2 className="text-title2">{FREE_TIER.name}</h2>
-                    <p className="text-foreground-onlook text-largePlus">{FREE_TIER.price}</p>
+                    <p className="text-foreground-weblab text-largePlus">{FREE_TIER.price}</p>
                 </div>
                 <div className="border-[0.5px] border-border-primary -mx-6 my-6" />
                 <p className="text-foreground-primary text-title3 text-balance">{FREE_TIER.description}</p>

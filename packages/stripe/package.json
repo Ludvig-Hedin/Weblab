@@ -16,7 +16,7 @@
         "format": "eslint --fix ."
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "stripe"
     ],
     "author": {

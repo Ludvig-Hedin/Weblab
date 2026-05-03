@@ -87,7 +87,7 @@ export function ProjectCardPresentation({
                             <Button
                                 size="default"
                                 variant="ghost"
-                                className="w-8 h-8 p-0 flex items-center justify-center hover:bg-background-onlook cursor-pointer backdrop-blur-lg"
+                                className="w-8 h-8 p-0 flex items-center justify-center hover:bg-background-weblab cursor-pointer backdrop-blur-lg"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <Icons.DotsHorizontal />
@@ -106,7 +106,7 @@ export function ProjectCardPresentation({
                                         event.preventDefault();
                                         onRename(project);
                                     }}
-                                    className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+                                    className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                                 >
                                     <Icons.Pencil className="w-4 h-4" />
                                     Rename Project
@@ -118,7 +118,7 @@ export function ProjectCardPresentation({
                                         event.preventDefault();
                                         onClone(project);
                                     }}
-                                    className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+                                    className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                                 >
                                     <Icons.Copy className="w-4 h-4" />
                                     Clone Project
@@ -130,7 +130,7 @@ export function ProjectCardPresentation({
                                         event.preventDefault();
                                         onToggleTemplate(project);
                                     }}
-                                    className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+                                    className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                                 >
                                     {isTemplate ? (
                                         <>

@@ -51,7 +51,7 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
                         size={'icon'}
                         className={`flex-1 h-full px-0.5 py-1.5 bg-background-secondary rounded-sm ${theme === SystemTheme.SYSTEM
                             ? 'bg-background-tertiary hover:bg-background-tertiary'
-                            : 'hover:bg-background-tertiary/50 text-foreground-onlook'
+                            : 'hover:bg-background-tertiary/50 text-foreground-weblab'
                             }`}
                         variant={'ghost'}
                         onClick={() => changeTheme(SystemTheme.SYSTEM)}
@@ -62,7 +62,7 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
                         size={'icon'}
                         className={`flex-1 h-full px-0.5 py-1.5 bg-background-secondary rounded-sm ${theme === SystemTheme.DARK
                             ? 'bg-background-tertiary hover:bg-background-tertiary'
-                            : 'hover:bg-background-tertiary/50 text-foreground-onlook'
+                            : 'hover:bg-background-tertiary/50 text-foreground-weblab'
                             }`}
                         variant={'ghost'}
                         onClick={() => changeTheme(SystemTheme.DARK)}
@@ -73,7 +73,7 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
                         size={'icon'}
                         className={`flex-1 h-full px-0.5 py-1.5 bg-background-secondary rounded-sm ${theme === SystemTheme.LIGHT
                             ? 'bg-background-tertiary hover:bg-background-tertiary'
-                            : 'hover:bg-background-tertiary/50 text-foreground-onlook'
+                            : 'hover:bg-background-tertiary/50 text-foreground-weblab'
                             }`}
                         variant={'ghost'}
                         onClick={() => changeTheme(SystemTheme.LIGHT)}

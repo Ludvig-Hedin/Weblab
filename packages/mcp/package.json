@@ -16,7 +16,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "weblab",
         "mcp"
     ],

@@ -1,6 +1,6 @@
 {
     "name": "@weblab/models",
-    "description": "Common models shared between onlook packages",
+    "description": "Common models shared between weblab packages",
     "version": "0.0.0",
     "repository": {
         "type": "git",
@@ -17,7 +17,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "models"
     ],
     "author": {

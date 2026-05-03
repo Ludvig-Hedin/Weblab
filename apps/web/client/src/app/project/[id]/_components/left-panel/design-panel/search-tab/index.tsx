@@ -99,8 +99,8 @@ export const SearchTab = observer(() => {
             inputRef.current?.focus();
             inputRef.current?.select();
         };
-        window.addEventListener('onlook:search:focus', onFocus);
-        return () => window.removeEventListener('onlook:search:focus', onFocus);
+        window.addEventListener('weblab:search:focus', onFocus);
+        return () => window.removeEventListener('weblab:search:focus', onFocus);
     }, []);
 
     // Auto-focus when tab becomes active

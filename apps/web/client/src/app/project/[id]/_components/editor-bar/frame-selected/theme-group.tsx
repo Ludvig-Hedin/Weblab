@@ -83,7 +83,7 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
                             value={option.value}
                             className="cursor-pointer text-xs"
                         >
-                            <OptionIcon className="text-foreground-onlook h-3.5 w-3.5" />
+                            <OptionIcon className="text-foreground-weblab h-3.5 w-3.5" />
                             {option.label}
                         </SelectItem>
                     );

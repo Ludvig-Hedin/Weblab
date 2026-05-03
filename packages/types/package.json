@@ -1,6 +1,6 @@
 {
     "name": "@weblab/types",
-    "description": "Common types shared between onlook packages",
+    "description": "Common types shared between weblab packages",
     "version": "0.0.0",
     "repository": {
         "type": "git",
@@ -15,7 +15,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "types"
     ],
     "author": {

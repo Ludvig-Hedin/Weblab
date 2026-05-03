@@ -105,7 +105,7 @@ export const DeviceSelector = observer(() => {
                                     device === `${category}:${name}` && 'bg-background-tertiary/50 text-foreground-primary'
                                 )}
                             >
-                                <DeviceIcon deviceType={category} orientation={metadata.orientation} className={`${device === `${category}:${name}` ? 'text-foreground-primary' : 'text-foreground-onlook'}`} />
+                                <DeviceIcon deviceType={category} orientation={metadata.orientation} className={`${device === `${category}:${name}` ? 'text-foreground-primary' : 'text-foreground-weblab'}`} />
                                 {name} <span className={`text-micro ${device === `${category}:${name}` ? 'text-foreground-primary' : 'text-foreground-tertiary'}`}>{dimensions.replace('x', '×')}</span>
                             </SelectItem>
                         ))}

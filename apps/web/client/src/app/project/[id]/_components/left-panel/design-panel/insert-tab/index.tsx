@@ -212,7 +212,7 @@ const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
             disabled={disabled}
             title={preset.description ?? preset.label}
             className={cn(
-                'group bg-background-secondary/40 hover:bg-background-onlook border-border-primary/40 hover:border-border-primary relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors',
+                'group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors',
                 disabled &&
                     'hover:bg-background-secondary/40 hover:border-border-primary/40 cursor-not-allowed opacity-40',
             )}
@@ -224,7 +224,7 @@ const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
             )}
             <span className="text-foreground-primary line-clamp-1 text-[11px]">{preset.label}</span>
             {disabled && (
-                <span className="bg-background-onlook/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
+                <span className="bg-background-weblab/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
                     Soon
                 </span>
             )}

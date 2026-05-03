@@ -28,8 +28,8 @@ import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
-const RECENT_SEARCHES_KEY = 'onlook_recent_searches';
-const RECENT_COLORS_KEY = 'onlook_recent_colors';
+const RECENT_SEARCHES_KEY = 'weblab_recent_searches';
+const RECENT_COLORS_KEY = 'weblab_recent_colors';
 
 interface TopBarProps {
     searchQuery?: string;

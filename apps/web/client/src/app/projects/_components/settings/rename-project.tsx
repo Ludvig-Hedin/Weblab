@@ -46,7 +46,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
         ]);
 
         // Optimistically update list ordering and title immediately
-        window.dispatchEvent(new CustomEvent('onlook_project_updated', {
+        window.dispatchEvent(new CustomEvent('weblab_project_updated', {
             detail: {
                 id: project.id,
                 name: projectName,
@@ -56,7 +56,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                 },
             },
         }));
-        window.dispatchEvent(new CustomEvent('onlook_project_modified', { detail: { id: project.id } }));
+        window.dispatchEvent(new CustomEvent('weblab_project_modified', { detail: { id: project.id } }));
         setShowRenameDialog(false);
         refetch();
     };
@@ -68,7 +68,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                     event.preventDefault();
                     setShowRenameDialog(true);
                 }}
-                className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+                className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
             >
                 <Icons.Pencil className="w-4 h-4" />
                 {t(transKeys.projects.actions.renameProject)}

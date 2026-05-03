@@ -77,7 +77,7 @@ export const BrandTab = observer(() => {
                     </div>
 
                     <div
-                        className="grid grid-cols-12 gap-0 rounded-lg overflow-hidden h-[40px] max-h-[40px] bg-background-onlook border-[0.5px] border-foreground/50 hover:border-[0.5px] hover:border-foreground cursor-pointer hover:border-transparent transition-all duration-200"
+                        className="grid grid-cols-12 gap-0 rounded-lg overflow-hidden h-[40px] max-h-[40px] bg-background-weblab border-[0.5px] border-foreground/50 hover:border-[0.5px] hover:border-foreground cursor-pointer hover:border-transparent transition-all duration-200"
                         onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
                     >
                         {brandColors.length > 0 ? (

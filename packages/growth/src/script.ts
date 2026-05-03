@@ -2,7 +2,7 @@ export const builtWithScript = `
 (function () {
     if (typeof window !== 'undefined') {
         // Define custom element
-        class BuiltWithOnlook extends HTMLElement {
+        class BuiltWithWeblab extends HTMLElement {
             constructor() {
                 super();
                 const shadow = this.attachShadow({ mode: 'open' });
@@ -80,12 +80,12 @@ export const builtWithScript = `
         }
 
         // Register custom element
-        customElements.define('built-with-onlook', BuiltWithOnlook);
+        customElements.define('built-with-weblab', BuiltWithWeblab);
 
         // Run after page load
         window.addEventListener('load', function () {
             // Create and append the custom element
-            const badge = document.createElement('built-with-onlook');
+            const badge = document.createElement('built-with-weblab');
             document.body.appendChild(badge);
         });
     }

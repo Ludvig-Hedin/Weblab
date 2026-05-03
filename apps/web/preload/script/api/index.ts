@@ -13,7 +13,7 @@ import {
     getActionElement,
     getActionLocation,
     getElementType,
-    getFirstOnlookElement,
+    getFirstWeblabElement,
     setElementType,
 } from './elements/dom/helpers';
 import { insertImage, removeImage } from './elements/dom/image';
@@ -54,7 +54,7 @@ const rawMethods = {
     setBranchId,
     getComputedStyleByDomId,
     updateElementInstance,
-    getFirstOnlookElement,
+    getFirstWeblabElement,
     captureScreenshot,
     buildLayerTree,
 

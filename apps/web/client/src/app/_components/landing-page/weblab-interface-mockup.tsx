@@ -186,7 +186,7 @@ export function WeblabInterfaceMockup() {
 
     return (
         <div className={cn(
-            "relative w-full max-w-6xl mx-auto aspect-[16/10] rounded-xl overflow-hidden shadow-2xl border border-neutral-800 bg-background-onlook select-none -mt-10 transition-all duration-1000 ease-out",
+            "relative w-full max-w-6xl mx-auto aspect-[16/10] rounded-xl overflow-hidden shadow-2xl border border-neutral-800 bg-background-weblab select-none -mt-10 transition-all duration-1000 ease-out",
             isVisible
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-8"
@@ -266,7 +266,7 @@ export function WeblabInterfaceMockup() {
             {/* Main Content */}
             <div className="flex h-[calc(100%-2.5rem)] relative">
                 {/* Sidebar */}
-                <div className="w-14 h-full flex flex-col items-center justify-between bg-background-onlook/80 backdrop-blur-xl mr-[-4] px-2">
+                <div className="w-14 h-full flex flex-col items-center justify-between bg-background-weblab/80 backdrop-blur-xl mr-[-4] px-2">
                     <div className="flex flex-col items-center py-4 gap-5">
                         {/* Active: Layers */}
                         <div
@@ -351,8 +351,8 @@ export function WeblabInterfaceMockup() {
                                                     layer.isInstance && !isSelected && isHovered && 'text-purple-800 dark:text-purple-200 bg-purple-400/30 dark:bg-purple-900/60',
                                                     // Regular selection styling
                                                     !isComponent && !layer.isInstance && isSelected && 'bg-[#109BFF] dark:bg-[#109BFF]/90 text-white dark:text-primary',
-                                                    !isComponent && !layer.isInstance && isHovered && !isSelected && 'bg-background-onlook text-foreground-onlook',
-                                                    !isComponent && !layer.isInstance && !isSelected && !isHovered && 'text-foreground-onlook',
+                                                    !isComponent && !layer.isInstance && isHovered && !isSelected && 'bg-background-weblab text-foreground-weblab',
+                                                    !isComponent && !layer.isInstance && !isSelected && !isHovered && 'text-foreground-weblab',
                                                     // Rounded corners
                                                     isHovered && !isSelected && 'rounded',
                                                     isSelected && 'rounded',
@@ -440,7 +440,7 @@ export function WeblabInterfaceMockup() {
                                         <button className="px-2 py-2 rounded-lg bg-background-secondary/0 hover:bg-background-secondary group cursor-copy" disabled>
                                             <Icons.Image className="h-4 w-4 text-foreground-tertiary/50 group-hover:text-foreground-primary" />
                                         </button>
-                                        <button className={`px-2 py-2 rounded-full cursor-pointer ${currentIndex === PRESET_SENTENCE.length ? 'bg-foreground-primary' : 'bg-foreground-onlook'}`} disabled>
+                                        <button className={`px-2 py-2 rounded-full cursor-pointer ${currentIndex === PRESET_SENTENCE.length ? 'bg-foreground-primary' : 'bg-foreground-weblab'}`} disabled>
                                             <Icons.ArrowRight className="h-3.5 w-3.5 text-background-secondary" />
                                         </button>
                                     </div>

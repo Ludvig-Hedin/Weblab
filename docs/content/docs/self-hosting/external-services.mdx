@@ -22,7 +22,7 @@ For assistance with self-hosting these services, please contact us at [founders@
 ### 3. AI Providers
 To configure custom AI providers:
 1. Update the providers in [`packages/ai/src/chat/providers.ts`](https://github.com/weblab.build/blob/main/packages/ai/src/chat/providers.ts). We already support Anthropic and OpenRouter as examples. You can follow the same format to add a new provider.
-2. Update the usages by searching for [`initModel`](https://github.com/search?q=repo%3Aonlook-dev%2Fonlook+%22await+initModel%22&type=code)
+2. Update the usages by searching for [`initModel`](https://github.com/search?q=repo%3ALudvig-Hedin%2FWeblab+%22await+initModel%22&type=code)
 3. Update your API keys in the `apps/web/client/.env` file to the provider's expected API keys.
 
 Note: We support any provider from the [AI SDK providers](https://ai-sdk.dev/providers/ai-sdk-providers). You can add a custom provider by following these AI SDK provider guides: [OpenAI compatible](https://ai-sdk.dev/providers/openai-compatible-providers/custom-providers) and [Community](https://ai-sdk.dev/providers/community-providers/custom-providers).

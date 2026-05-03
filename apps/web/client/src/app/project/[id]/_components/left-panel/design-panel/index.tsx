@@ -138,7 +138,7 @@ export const DesignPanel = observer(() => {
     return (
         <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
             {/* Left sidebar with tabs */}
-            <div className="bg-background-onlook/60 flex w-14 flex-col items-center gap-1.5 px-1.5 py-1.5 backdrop-blur-xl">
+            <div className="bg-background-weblab/60 flex w-14 flex-col items-center gap-1.5 px-1.5 py-1.5 backdrop-blur-xl">
                 {tabs.map((tab) => {
                     const label = getTabLabel(tab.value);
 

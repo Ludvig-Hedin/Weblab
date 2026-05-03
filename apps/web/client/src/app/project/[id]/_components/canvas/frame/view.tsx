@@ -255,7 +255,7 @@ export const FrameComponent = observer(
                     getElementIndex: promisifyMethod(penpalChild?.getElementIndex),
                     getComputedStyleByDomId: promisifyMethod(penpalChild?.getComputedStyleByDomId),
                     updateElementInstance: promisifyMethod(penpalChild?.updateElementInstance),
-                    getFirstOnlookElement: promisifyMethod(penpalChild?.getFirstOnlookElement),
+                    getFirstWeblabElement: promisifyMethod(penpalChild?.getFirstWeblabElement),
                     setElementType: promisifyMethod(penpalChild?.setElementType),
                     getElementType: promisifyMethod(penpalChild?.getElementType),
                     getParentElement: promisifyMethod(penpalChild?.getParentElement),

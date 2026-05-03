@@ -41,22 +41,22 @@ export const Routes = {
 
 export const ExternalRoutes = {
     DOCS: 'https://docs.weblab.build',
-    BLOG: 'https://onlook.substack.com',
+    BLOG: 'https://weblab.substack.com',
     X: 'https://x.com/weblab',
     GITHUB: 'https://github.com/Ludvig-Hedin/Weblab',
     CONTACT: 'mailto:contact@weblab.build',
     LINKEDIN: 'https://www.linkedin.com/company/weblab/',
     YOUTUBE: 'https://www.youtube.com/@weblab',
-    SUBSTACK: 'https://onlook.substack.com/',
+    SUBSTACK: 'https://weblab.substack.com/',
     DISCORD: 'https://discord.gg/ZZzadNQtns',
-    BOOK_DEMO: 'https://meetings.hubspot.com/daniel-onlook/onboarding-to-onlook-with-daniel',
-    DOWNLOAD_MAC: 'https://github.com/weblab/weblab/releases/latest/download/Weblab.dmg',
-    DOWNLOAD_WIN: 'https://github.com/weblab/weblab/releases/latest/download/Weblab-Setup.exe',
-    DOWNLOAD_LINUX: 'https://github.com/weblab/weblab/releases/latest/download/Weblab.AppImage',
+    BOOK_DEMO: 'https://weblab.build/contact',
+    DOWNLOAD_MAC: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
+    DOWNLOAD_WIN: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe',
+    DOWNLOAD_LINUX: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.AppImage',
     // iOS — placeholder until App Store listing is live. Until then point at
     // the TestFlight invite URL or the GitHub release for the unsigned IPA.
     DOWNLOAD_IOS: 'https://testflight.apple.com/join/PLACEHOLDER',
-    DOWNLOAD_PAGE: 'https://github.com/weblab/weblab/releases/latest',
+    DOWNLOAD_PAGE: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest',
 };
 
 export const Git = {

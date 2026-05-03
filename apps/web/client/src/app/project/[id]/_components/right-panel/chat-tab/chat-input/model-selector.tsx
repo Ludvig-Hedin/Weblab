@@ -63,7 +63,7 @@ export const ModelSelector = ({
                         onClick={() => onChange(option.model)}
                         className={cn(
                             'flex flex-col items-start gap-0.5 px-3 py-2',
-                            option.model === value && 'bg-background-onlook',
+                            option.model === value && 'bg-background-weblab',
                         )}
                     >
                         <span className="text-sm font-medium">{option.label}</span>
@@ -87,7 +87,7 @@ export const ModelSelector = ({
                             onClick={() => onChange(option.model)}
                             className={cn(
                                 'flex flex-col items-start gap-0.5 px-3 py-2',
-                                option.model === value && 'bg-background-onlook',
+                                option.model === value && 'bg-background-weblab',
                             )}
                         >
                             <div className="flex w-full items-center justify-between">

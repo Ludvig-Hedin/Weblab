@@ -254,7 +254,7 @@ export class CodeFileSystem extends FileSystem {
     private debouncedSaveIndexToFile = debounce(this.undobounceSaveIndexToFile, 1000);
 
     private isJsxFile(path: string): boolean {
-        // Exclude the onlook preload script from JSX processing
+        // Exclude the weblab preload script from JSX processing
         if (path.endsWith(WEBLAB_PRELOAD_SCRIPT_FILE)) {
             return false;
         }

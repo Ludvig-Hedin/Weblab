@@ -48,7 +48,7 @@ export const LoginButton = ({
                     'w-full items-center justify-center text-active text-small',
                     isLastSignInMethod
                         ? 'bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100 text-small hover:bg-blue-200/50 dark:hover:bg-blue-800 hover:border-blue-500/70 dark:hover:border-blue-500'
-                        : 'bg-background-onlook',
+                        : 'bg-background-weblab',
                 )}
                 onClick={handleLoginClick}
                 disabled={!!signingInMethod}

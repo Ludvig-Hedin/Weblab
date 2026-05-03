@@ -170,7 +170,7 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
     return (
         <div className="group">
             <div
-                className="aspect-square bg-background-secondary rounded-md border border-border-primary overflow-hidden cursor-pointer hover:border-border-onlook transition-colors relative"
+                className="aspect-square bg-background-secondary rounded-md border border-border-primary overflow-hidden cursor-pointer hover:border-border-weblab transition-colors relative"
                 onDragStart={handleDragStart}
                 onDragEnd={onImageDragEnd}
                 onDragOver={(e) => {
@@ -214,7 +214,7 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
                                 <Button
                                     size="icon"
                                     variant="secondary"
-                                    className="h-6 w-6 bg-background-secondary/90 hover:bg-background-onlook"
+                                    className="h-6 w-6 bg-background-secondary/90 hover:bg-background-weblab"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();

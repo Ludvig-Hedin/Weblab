@@ -3,11 +3,11 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Expose two surfaces to the renderer:
 //   - `weblabNative` — a tiny detection object the web app can read to know
 //     it's running inside the desktop wrapper. Mirrors the iOS injection.
-//   - `onlookDesktop` — kept for backwards compatibility with existing checks.
+//   - `weblabDesktop` — kept for backwards compatibility with existing checks.
 const bridge = {
     platform: process.platform,
     target: 'desktop',
-    version: ipcRenderer.sendSync('onlook:get-version'),
+    version: ipcRenderer.sendSync('weblab:get-version'),
     /**
      * Open an OAuth URL in the user's default browser. Returns true if the
      * URL was handed off successfully. After the user signs in the OS will
@@ -20,4 +20,4 @@ const bridge = {
 };
 
 contextBridge.exposeInMainWorld('weblabNative', bridge);
-contextBridge.exposeInMainWorld('onlookDesktop', bridge);
+contextBridge.exposeInMainWorld('weblabDesktop', bridge);

@@ -32,7 +32,7 @@ function AiMessage({ text }: { text: string }) {
 function ToolCallDisplay({ toolName }: { toolName: string }) {
   return (
     <div className="px-2">
-      <div className="border rounded-lg bg-background-onlook/20 relative">
+      <div className="border rounded-lg bg-background-weblab/20 relative">
         <div className="flex items-center justify-between text-foreground-secondary transition-colors pl-3 py-2">
           <div className="flex items-center gap-2">
             <Icons.LoadingSpinner className="h-4 w-4 text-foreground-secondary animate-spin" />
@@ -108,7 +108,7 @@ export function AiChatInteractive() {
   };
 
   return (
-    <div className="w-full h-100 bg-background-onlook/80 rounded-lg relative overflow-hidden">
+    <div className="w-full h-100 bg-background-weblab/80 rounded-lg relative overflow-hidden">
       <div
         className="w-80 bottom-8 left-1/2 -translate-x-1/2 absolute bg-black/85 border border-foreground-primary/20 rounded-xl shadow-lg overflow-hidden flex flex-col"
       >
@@ -150,7 +150,7 @@ export function AiChatInteractive() {
               <button className="px-2 py-2 rounded-lg bg-background-secondary/0 hover:bg-background-secondary group cursor-copy" disabled>
                 <Icons.Image className="h-4 w-4 text-foreground-tertiary/50 group-hover:text-foreground-primary" />
               </button>
-              <button className={`px-2 py-2 rounded-full cursor-pointer ${currentIndex === PRESET_SENTENCE.length ? 'bg-foreground-primary' : 'bg-foreground-onlook'}`} disabled>
+              <button className={`px-2 py-2 rounded-full cursor-pointer ${currentIndex === PRESET_SENTENCE.length ? 'bg-foreground-primary' : 'bg-foreground-weblab'}`} disabled>
                 <Icons.ArrowRight className="h-4 w-4 text-background-secondary" />
               </button>
             </div>

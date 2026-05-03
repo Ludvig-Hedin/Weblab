@@ -17,7 +17,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "AI"
     ],
     "author": {

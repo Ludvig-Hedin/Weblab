@@ -11,7 +11,7 @@ interface TestimonialCardProps {
 
 function TestimonialCard({ text, name, label, profileImage, profileColor = '#222', href }: TestimonialCardProps) {
   const cardContent = (
-    <div className={`bg-background-onlook border border-foreground-secondary/10 rounded-xl p-6 flex flex-col justify-between min-h-[160px] duration-200 select-none ${href ? 'cursor-pointer hover:bg-background-onlook hover:border-foreground-secondary/20 transition-colors duration-50' : ''}`}>
+    <div className={`bg-background-weblab border border-foreground-secondary/10 rounded-xl p-6 flex flex-col justify-between min-h-[160px] duration-200 select-none ${href ? 'cursor-pointer hover:bg-background-weblab hover:border-foreground-secondary/20 transition-colors duration-50' : ''}`}>
       <div className="text-foreground-primary text-regular mb-6">{text}</div>
       <div className="flex items-center gap-3 mt-auto">
         {/* Profile picture */}

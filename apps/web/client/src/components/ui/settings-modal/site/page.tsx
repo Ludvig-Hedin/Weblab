@@ -226,7 +226,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
     };
 
     const detailsSection = (
-        <div className="flex flex-col gap-4 text-foreground-onlook">
+        <div className="flex flex-col gap-4 text-foreground-weblab">
             <h2 className="text-title3">Editor Details</h2>
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col max-w-52">

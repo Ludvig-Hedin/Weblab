@@ -289,7 +289,7 @@ export const PagesTab = observer(() => {
                     />
                     {searchQuery && (
                         <button
-                            className="hover:bg-background-onlook group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] active:bg-transparent"
+                            className="hover:bg-background-weblab group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] active:bg-transparent"
                             onClick={() => setSearchQuery('')}
                         >
                             <Icons.CrossS className="text-foreground-primary/50 group-hover:text-foreground-primary h-3 w-3" />
@@ -303,7 +303,7 @@ export const PagesTab = observer(() => {
                                 <Button
                                     variant={'default'}
                                     size={'icon'}
-                                    className="text-foreground-primary border-border-primary hover:border-border-onlook bg-background-secondary hover:bg-background-onlook h-fit w-fit border p-2"
+                                    className="text-foreground-primary border-border-primary hover:border-border-weblab bg-background-secondary hover:bg-background-weblab h-fit w-fit border p-2"
                                 >
                                     <Icons.Plus />
                                 </Button>

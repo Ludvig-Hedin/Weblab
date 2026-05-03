@@ -132,8 +132,8 @@ Best regards,
                                         key={feature.title}
                                         className="flex items-start gap-4 p-0 rounded-lg"
                                     >
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-foreground-onlook/10 flex items-center justify-center">
-                                            <IconComponent className="w-5 h-5 text-foreground-onlook" />
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-foreground-weblab/10 flex items-center justify-center">
+                                            <IconComponent className="w-5 h-5 text-foreground-weblab" />
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <h3 className="text-base font-medium text-foreground">
@@ -158,7 +158,7 @@ Best regards,
                                     key={feature}
                                     className="flex items-center gap-3 text-base text-foreground-secondary"
                                 >
-                                    <Icons.CheckCircled className="w-5 h-5 text-foreground-onlook flex-shrink-0" />
+                                    <Icons.CheckCircled className="w-5 h-5 text-foreground-weblab flex-shrink-0" />
                                     <span>{feature}</span>
                                 </div>
                             ))}

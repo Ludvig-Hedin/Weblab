@@ -22,7 +22,7 @@ export function TailwindColorEditorMockup() {
   ];
 
   return (
-    <div className="w-full h-100 bg-background-onlook/80 rounded-lg relative overflow-hidden">
+    <div className="w-full h-100 bg-background-weblab/80 rounded-lg relative overflow-hidden">
       {/* Morphing shader preview bound to picker color, positioned to the right of the dropdown */}
       <div
         className="absolute top-24 left-[200px] z-10 w-[640px] h-[420px] rounded-[28px] border border-foreground-primary/10 overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"

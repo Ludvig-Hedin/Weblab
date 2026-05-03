@@ -19,7 +19,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "email",
         "resend"
     ],

@@ -1,6 +1,6 @@
 {
     "name": "@weblab/constants",
-    "description": "Common constants shared between onlook packages",
+    "description": "Common constants shared between weblab packages",
     "version": "0.0.0",
     "repository": {
         "type": "git",
@@ -15,7 +15,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "constants"
     ],
     "author": {

@@ -18,7 +18,7 @@
         "typecheck": "tsc --noEmit"
     },
     "keywords": [
-        "onlook",
+        "weblab",
         "sandbox"
     ],
     "author": {

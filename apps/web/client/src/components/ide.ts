@@ -7,7 +7,7 @@ export class IDE {
     static readonly CURSOR = new IDE('Cursor', IdeType.CURSOR, 'cursor', 'CursorLogo');
     static readonly ZED = new IDE('Zed', IdeType.ZED, 'zed', 'ZedLogo');
     static readonly WINDSURF = new IDE('Windsurf', IdeType.WINDSURF, 'windsurf', 'WindsurfLogo');
-    static readonly ONLOOK = new IDE('Code Panel', IdeType.ONLOOK, 'onlook', 'WeblabLogo');
+    static readonly WEBLAB = new IDE('Code Panel', IdeType.WEBLAB, 'weblab', 'WeblabLogo');
 
     private constructor(
         public readonly displayName: string,
@@ -30,8 +30,8 @@ export class IDE {
                 return IDE.ZED;
             case IdeType.WINDSURF:
                 return IDE.WINDSURF;
-            case IdeType.ONLOOK:
-                return IDE.ONLOOK;
+            case IdeType.WEBLAB:
+                return IDE.WEBLAB;
             default:
                 assertNever(type);
         }

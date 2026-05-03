@@ -299,7 +299,7 @@ export const Canvas = observer(() => {
             <div
                 ref={containerRef}
                 className={cn(
-                    'overflow-hidden bg-background-onlook flex flex-grow relative',
+                    'overflow-hidden bg-background-weblab flex flex-grow relative',
                     editorEngine.state.editorMode === EditorMode.COMMENT && 'cursor-crosshair',
                 )}
                 onMouseDown={handleCanvasMouseDown}

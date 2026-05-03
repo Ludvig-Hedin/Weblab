@@ -198,7 +198,7 @@ export const TreeNode = memo(
                             isComponentAncestor(node) && !node.data.instanceId && !hovered,
                         'text-purple-500 dark:text-purple-200':
                             isComponentAncestor(node) && !node.data.instanceId && hovered,
-                        'text-foreground-onlook':
+                        'text-foreground-weblab':
                             !isComponentAncestor(node) &&
                             !node.data.instanceId &&
                             !selected &&
@@ -211,7 +211,7 @@ export const TreeNode = memo(
                         'rounded-t': selected && node.isInternal,
                         'rounded-b': isParentSelected && parentGroupEnd(node),
                         'rounded-none': isParentSelected && node.nextSibling,
-                        'bg-background-onlook': hovered,
+                        'bg-background-weblab': hovered,
                         'bg-[#109BFF] dark:bg-[#109BFF]/90': selected,
                         'bg-[#109BFF]/10 dark:bg-[#109BFF]/10': isParentSelected,
                         'bg-[#109BFF]/20 dark:bg-[#109BFF]/20': hovered && isParentSelected,

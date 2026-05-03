@@ -141,7 +141,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
                         onClick={handleOrientationChange}
                     >
                         <Icons.Portrait
-                            className={`h-4 w-4 ${metadata.orientation !== Orientation.Portrait ? 'text-foreground-secondary hover:text-foreground-onlook' : ''}`}
+                            className={`h-4 w-4 ${metadata.orientation !== Orientation.Portrait ? 'text-foreground-secondary hover:text-foreground-weblab' : ''}`}
                         />
                     </Button>
                     <Button
@@ -151,7 +151,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
                         onClick={handleOrientationChange}
                     >
                         <Icons.Landscape
-                            className={`h-4 w-4 ${metadata.orientation !== Orientation.Landscape ? 'text-foreground-secondary hover:text-foreground-onlook' : ''}`}
+                            className={`h-4 w-4 ${metadata.orientation !== Orientation.Landscape ? 'text-foreground-secondary hover:text-foreground-weblab' : ''}`}
                         />
                     </Button>
                 </div>

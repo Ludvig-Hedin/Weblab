@@ -274,7 +274,7 @@ const prototypeFaqs = [
 
 function PrototypeFAQSection() {
     return (
-        <div className="bg-background-onlook/80 w-full px-8 py-48" id="faq">
+        <div className="bg-background-weblab/80 w-full px-8 py-48" id="faq">
             <div className="mx-auto flex max-w-6xl flex-col items-start gap-24 md:flex-row md:gap-12">
                 <div className="flex flex-1 flex-col items-start">
                     <h3 className="text-foreground-primary mt-4 mb-12 max-w-3xl text-5xl leading-[1.1] font-light text-balance md:text-6xl">

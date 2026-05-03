@@ -37,7 +37,7 @@ export function CreateTemplate({ project, refetch }: { project: Project; refetch
     return (
         <DropdownMenuItem
             onSelect={handleTemplateToggle}
-            className="text-foreground-active hover:!bg-background-onlook hover:!text-foreground-active gap-2"
+            className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
         >
             {isTemplate ? (
                 <Icons.CrossL className="w-4 h-4 text-purple-600" />

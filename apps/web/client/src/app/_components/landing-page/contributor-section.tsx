@@ -201,7 +201,7 @@ export function ContributorSection({
     return (
         <div className="relative w-full flex items-center justify-center py-32 mt-8 overflow-hidden px-4">
             {/* Main Contributors Content */}
-            <div className="w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center justify-center bg-background-onlook rounded-3xl px-12 py-32 shadow-xl overflow-hidden md:[--md-scale:1] [--md-scale:0]" style={{ minWidth: 420 }}>
+            <div className="w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center justify-center bg-background-weblab rounded-3xl px-12 py-32 shadow-xl overflow-hidden md:[--md-scale:1] [--md-scale:0]" style={{ minWidth: 420 }}>
                 {/* Floating Circles: two concentric rings */}
                 <FloatingRings repo={repo} />
                 <h2 className="text-foreground-primary text-3xl md:text-4xl font-light text-center mb-2">
