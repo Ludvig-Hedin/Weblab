@@ -1,5 +1,5 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { DefaultSettings, EditorAttributes } from '@weblab/constants';
+import { DefaultSettings, EditorAttributes, type ShadcnBlockManifestItem } from '@weblab/constants';
 import type {
     DomElement,
     DropElementProperties,
@@ -572,6 +572,63 @@ export class InsertManager {
         }
     }
 
+    async insertDroppedBlock(
+        frame: FrameData,
+        dropPosition: { x: number; y: number },
+        block: ShadcnBlockManifestItem,
+    ) {
+        if (!frame.view) {
+            console.error('No frame view found');
+            return;
+        }
+
+        const location = await frame.view.getInsertLocation(dropPosition.x, dropPosition.y);
+
+        if (!location) {
+            console.error('Failed to get insert location for block drop');
+            return;
+        }
+
+        const domId = createDomId();
+        const oid = createOid();
+        const element: ActionElement = {
+            domId,
+            oid,
+            branchId: frame.frame.branchId,
+            tagName: 'section',
+            styles: {},
+            children: [],
+            attributes: {
+                [EditorAttributes.DATA_WEBLAB_ID]: oid,
+                [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
+                [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+                [EditorAttributes.DATA_WEBLAB_COMPONENT_NAME]: block.componentName,
+            },
+            textContent: null,
+        };
+
+        const codeBlock = getShadcnBlockCodeBlock(block);
+
+        const action: InsertElementAction = {
+            type: 'insert-element',
+            targets: [
+                {
+                    frameId: frame.frame.id,
+                    branchId: frame.frame.branchId,
+                    domId,
+                    oid: null,
+                },
+            ],
+            element,
+            location,
+            editText: false,
+            pasteParams: null,
+            codeBlock,
+        };
+
+        await this.editorEngine.action.run(action);
+    }
+
     private async insertChildElements(
         frame: FrameData,
         parentDomId: string,
@@ -630,4 +687,31 @@ export class InsertManager {
         // Clear drawing state
         this.isDrawing = false;
     }
+}
+
+function getShadcnBlockCodeBlock(block: ShadcnBlockManifestItem): string {
+    const importLine = `import { ${block.componentName} } from "${block.importPath}";`;
+
+    if (block.category !== 'primitive') {
+        return `${importLine}
+
+<section data-weblab-inserted="true" data-ocname="${block.componentName}">
+  <${block.componentName} />
+</section>;`;
+    }
+
+    const primitiveMarkup: Record<string, string> = {
+        button: '<Button>Button</Button>',
+        card: '<Card className="p-6">Card content</Card>',
+        badge: '<Badge>Badge</Badge>',
+        separator: '<Separator />',
+        progress: '<Progress value={60} />',
+        avatar: '<Avatar className="size-10" />',
+    };
+
+    return `${importLine}
+
+<section data-weblab-inserted="true" data-ocname="${block.componentName}">
+  ${primitiveMarkup[block.registryName] ?? `<${block.componentName} />`}
+</section>;`;
 }

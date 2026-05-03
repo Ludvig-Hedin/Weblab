@@ -1,5 +1,10 @@
 import type { FileUIPart } from 'ai';
 
+import {
+    SHADCN_AVAILABLE_REGISTRY_HINT,
+    SHADCN_BLOCKS,
+    SHADCN_CORE_COMPONENTS,
+} from '@weblab/constants';
 import type { ChatMessage, MessageContext } from '@weblab/models';
 import { MessageContextType } from '@weblab/models';
 
@@ -30,8 +35,30 @@ export interface HydrateMessageOptions {
 export function getSystemPrompt() {
     let prompt = '';
     prompt += wrapXml('role', SYSTEM_PROMPT);
+    prompt += wrapXml('shadcn-block-catalog', getShadcnBlockCatalogPrompt());
     prompt += wrapXml('shell', SHELL_PROMPT);
     return prompt;
+}
+
+function getShadcnBlockCatalogPrompt() {
+    const installedBlocks = SHADCN_BLOCKS.map(
+        (block) =>
+            `- ${block.registryName}: ${block.label} (${block.category}) → import { ${block.componentName} } from "${block.importPath}" — ${block.description}`,
+    ).join('\n');
+    const installedPrimitives = SHADCN_CORE_COMPONENTS.map(
+        (component) =>
+            `- ${component.registryName}: import { ${component.componentName} } from "${component.importPath}"`,
+    ).join('\n');
+
+    return [
+        'Installed shadcnblocks available in this project:',
+        installedBlocks,
+        '',
+        'Installed shadcn/ui primitives available in this project:',
+        installedPrimitives,
+        '',
+        SHADCN_AVAILABLE_REGISTRY_HINT,
+    ].join('\n');
 }
 
 export function getCreatePageSystemPrompt() {
@@ -122,7 +149,7 @@ export function getHydratedUserMessage(
             .join('\n');
         prompt += wrapXml(
             'local-images',
-            'These images already exist in the project at the specified paths. Reference them directly in your code without uploading:\n' +
+            'These images already exist in the project. In Next.js, reference them in src/url attributes by stripping the "public/" prefix (e.g. public/images/hero.png → /images/hero.png). Do NOT call upload_image for these.\n' +
                 localImageList,
         );
     }

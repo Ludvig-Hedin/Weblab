@@ -13,8 +13,11 @@ import { moveElementInNode } from './move';
 import { removeElementFromNode } from './remove';
 import { addClassToNode, renameNodeTag, replaceNodeClasses, updateNodeProp } from './style';
 import { updateNodeTextContent } from './text';
+import { getAstFromContent } from '../parse';
 
 export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffRequest>): void {
+    addImportsFromStructureChanges(ast, oidToCodeDiff);
+
     traverse(ast, {
         JSXElement(path) {
             const currentOid = getOidFromJsxElement(path.node.openingElement);
@@ -52,6 +55,66 @@ export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffReq
             }
         },
     });
+}
+
+function addImportsFromStructureChanges(
+    ast: T.File,
+    oidToCodeDiff: Map<string, CodeDiffRequest>,
+): void {
+    const imports = Array.from(oidToCodeDiff.values())
+        .flatMap((request) => request.structureChanges)
+        .flatMap(getImportsFromAction);
+
+    for (const importDeclaration of imports) {
+        addImportIfMissing(ast, importDeclaration);
+    }
+}
+
+function getImportsFromAction(action: CodeAction): T.ImportDeclaration[] {
+    if (action.type !== CodeActionType.INSERT || !action.codeBlock) {
+        return [];
+    }
+
+    const ast = getAstFromContent(action.codeBlock);
+    if (!ast) {
+        return [];
+    }
+    return ast.program.body.filter((node): node is T.ImportDeclaration =>
+        t.isImportDeclaration(node),
+    );
+}
+
+function addImportIfMissing(ast: T.File, importDeclaration: T.ImportDeclaration): void {
+    const source = importDeclaration.source.value;
+    const importedNames = importDeclaration.specifiers.map((specifier) =>
+        t.isImportSpecifier(specifier) && t.isIdentifier(specifier.imported)
+            ? specifier.imported.name
+            : specifier.local.name,
+    );
+
+    const hasImport = ast.program.body.some((node) => {
+        if (!t.isImportDeclaration(node) || node.source.value !== source) {
+            return false;
+        }
+        return importedNames.every((name) =>
+            node.specifiers.some((specifier) => specifier.local.name === name),
+        );
+    });
+
+    if (hasImport) {
+        return;
+    }
+
+    let insertIndex = 0;
+    for (let i = 0; i < ast.program.body.length; i++) {
+        if (t.isImportDeclaration(ast.program.body[i])) {
+            insertIndex = i + 1;
+        } else {
+            break;
+        }
+    }
+
+    ast.program.body.splice(insertIndex, 0, importDeclaration);
 }
 
 function applyStructureChanges(path: NodePath<T.JSXElement>, actions: CodeAction[]): void {

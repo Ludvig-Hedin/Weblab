@@ -189,6 +189,35 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                 return;
             }
 
+            if (editorEngine.state.pendingInsertBlock) {
+                const frameData = getFrameData();
+                if (!frameData) {
+                    toast.error('Unable to insert block', {
+                        description: 'Frame data not available',
+                    });
+                    editorEngine.state.setPendingInsertBlock(null);
+                    return;
+                }
+
+                try {
+                    const dropPosition = getRelativeMousePosition(e);
+                    await editorEngine.insert.insertDroppedBlock(
+                        frameData,
+                        dropPosition,
+                        editorEngine.state.pendingInsertBlock,
+                    );
+                    editorEngine.state.setPendingInsertBlock(null);
+                    editorEngine.state.setEditorMode(EditorMode.DESIGN);
+                    editorEngine.state.setInsertMode(null);
+                } catch (error) {
+                    console.error('Failed to insert block from palette:', error);
+                    toast.error('Failed to insert block', {
+                        description: error instanceof Error ? error.message : 'Unknown error',
+                    });
+                }
+                return;
+            }
+
             if (editorEngine.state.pendingInsertElement) {
                 const frameData = getFrameData();
                 if (!frameData) {
@@ -231,7 +260,7 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
     }
 
     async function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-        if (editorEngine.state.pendingInsertElement) {
+        if (editorEngine.state.pendingInsertElement || editorEngine.state.pendingInsertBlock) {
             return;
         }
         if (editorEngine.state.editorMode === EditorMode.DESIGN || editorEngine.state.editorMode === EditorMode.CODE) {
@@ -286,6 +315,13 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                 }
                 const dropPosition = getRelativeMousePosition(e);
                 await editorEngine.insert.insertDroppedImage(frameData, dropPosition, properties, e.altKey);
+            } else if (properties.type === 'shadcn-block') {
+                const frameData = editorEngine.frames.get(frame.id);
+                if (!frameData) {
+                    throw new Error('Frame data not found');
+                }
+                const dropPosition = getRelativeMousePosition(e);
+                await editorEngine.insert.insertDroppedBlock(frameData, dropPosition, properties.block);
             } else {
                 const frameData = editorEngine.frames.get(frame.id);
                 if (!frameData) {
@@ -318,9 +354,9 @@ export const GestureScreen = observer(({ frame, isResizing }: { frame: Frame, is
                 editorEngine.state.insertMode === InsertMode.INSERT_LINK ||
                 editorEngine.state.insertMode === InsertMode.INSERT_INPUT) && 'cursor-crosshair',
             editorEngine.state.insertMode === InsertMode.INSERT_TEXT && 'cursor-text',
-            editorEngine.state.pendingInsertElement && 'cursor-crosshair',
+            (editorEngine.state.pendingInsertElement || editorEngine.state.pendingInsertBlock) && 'cursor-crosshair',
         );
-    }, [editorEngine.state.editorMode, editorEngine.state.insertMode, editorEngine.state.pendingInsertElement, isResizing]);
+    }, [editorEngine.state.editorMode, editorEngine.state.insertMode, editorEngine.state.pendingInsertElement, editorEngine.state.pendingInsertBlock, isResizing]);
 
     const handleMouseOut = () => {
         if (editorEngine.move.isPreparing) {
