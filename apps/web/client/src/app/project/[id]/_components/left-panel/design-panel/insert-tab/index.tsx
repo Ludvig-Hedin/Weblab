@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import {
+    SHADCN_BLOCKS,
+    SHADCN_CORE_COMPONENTS,
+    type ShadcnBlockCategory,
+    type ShadcnBlockManifestItem,
+} from '@weblab/constants';
 import type { DropElementProperties } from '@weblab/models/element';
 import { EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
@@ -12,7 +18,20 @@ import type { ElementPreset, PresetCategory } from './presets';
 import { useEditorEngine } from '@/components/store/editor';
 import { ELEMENT_PRESETS, PRESET_CATEGORIES } from './presets';
 
-type Mode = 'elements' | 'layouts';
+type Mode = 'elements' | 'blocks';
+
+const BLOCK_CATEGORIES: { value: ShadcnBlockCategory; label: string }[] = [
+    { value: 'cta', label: 'Calls to Action' },
+    { value: 'analytics', label: 'Analytics' },
+    { value: 'company', label: 'Company' },
+    { value: 'content', label: 'Content' },
+    { value: 'commerce', label: 'Commerce' },
+    { value: 'help', label: 'Help' },
+    { value: 'logos', label: 'Logos' },
+    { value: 'primitive', label: 'UI Primitives' },
+];
+
+const BLOCK_CATALOG = [...SHADCN_BLOCKS, ...SHADCN_CORE_COMPONENTS];
 
 export const InsertTab = observer(() => {
     const editorEngine = useEditorEngine();
@@ -26,6 +45,18 @@ export const InsertTab = observer(() => {
         forms: false,
         advanced: false,
     }));
+    const [collapsedBlocks, setCollapsedBlocks] = useState<Record<ShadcnBlockCategory, boolean>>(
+        () => ({
+            cta: false,
+            logos: false,
+            company: false,
+            content: false,
+            commerce: false,
+            help: false,
+            analytics: false,
+            primitive: false,
+        }),
+    );
 
     const filteredPresets = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -54,11 +85,40 @@ export const InsertTab = observer(() => {
         return groups;
     }, [filteredPresets]);
 
+    const filteredBlocks = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return BLOCK_CATALOG;
+        return BLOCK_CATALOG.filter((block) =>
+            [block.label, block.description, block.registryName, block.componentName]
+                .join(' ')
+                .toLowerCase()
+                .includes(query),
+        );
+    }, [searchQuery]);
+
+    const groupedBlocks = useMemo(() => {
+        const groups: Record<ShadcnBlockCategory, ShadcnBlockManifestItem[]> = {
+            cta: [],
+            logos: [],
+            company: [],
+            content: [],
+            commerce: [],
+            help: [],
+            analytics: [],
+            primitive: [],
+        };
+        for (const block of filteredBlocks) {
+            groups[block.category].push(block);
+        }
+        return groups;
+    }, [filteredBlocks]);
+
     const handlePresetDragStart = useCallback(
         (event: React.DragEvent<HTMLButtonElement>, properties: DropElementProperties) => {
             event.dataTransfer.setData('application/json', JSON.stringify(properties));
             event.dataTransfer.effectAllowed = 'copy';
             editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
         },
         [editorEngine.state],
@@ -68,9 +128,47 @@ export const InsertTab = observer(() => {
         (preset: ElementPreset) => {
             if (preset.comingSoon) return;
             editorEngine.state.setPendingInsertElement(preset.properties);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             toast('Click on the canvas to place this element.');
+        },
+        [editorEngine.state],
+    );
+
+    const handleBlockDragStart = useCallback(
+        (event: React.DragEvent<HTMLButtonElement>, block: ShadcnBlockManifestItem) => {
+            event.dataTransfer.setData(
+                'application/json',
+                JSON.stringify({ type: 'shadcn-block', block }),
+            );
+            event.dataTransfer.setData(
+                'application/weblab-block+json',
+                JSON.stringify({ type: 'shadcn-block', block }),
+            );
+            event.dataTransfer.effectAllowed = 'copy';
+            editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+        },
+        [editorEngine.state],
+    );
+
+    const handleBlockClick = useCallback(
+        (block: ShadcnBlockManifestItem) => {
+            if (!block.installed) {
+                toast.error('Block is not installed', {
+                    description: `Run bunx --bun shadcn@latest add @shadcnblocks/${block.registryName}`,
+                });
+                return;
+            }
+            editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertBlock(block);
+            editorEngine.state.setPendingInsertComponent(null);
+            editorEngine.state.setInsertMode(null);
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            toast('Click on the canvas to place this block.');
         },
         [editorEngine.state],
     );
@@ -83,6 +181,10 @@ export const InsertTab = observer(() => {
         setCollapsed((prev) => ({ ...prev, [category]: !prev[category] }));
     };
 
+    const toggleBlockCategory = (category: ShadcnBlockCategory) => {
+        setCollapsedBlocks((prev) => ({ ...prev, [category]: !prev[category] }));
+    };
+
     return (
         <div className="text-active flex h-full w-full flex-col overflow-hidden text-xs">
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
@@ -91,7 +193,7 @@ export const InsertTab = observer(() => {
 
             <div className="px-3 pb-2">
                 <div className="border-border-primary/50 flex items-center gap-4 border-b">
-                    {(['elements', 'layouts'] as Mode[]).map((value) => (
+                    {(['elements', 'blocks'] as Mode[]).map((value) => (
                         <button
                             key={value}
                             type="button"
@@ -109,28 +211,26 @@ export const InsertTab = observer(() => {
                 </div>
             </div>
 
-            {mode === 'elements' && (
-                <div className="px-3 pb-2">
-                    <div className="relative">
-                        <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
-                        <Input
-                            className="h-8 pr-8 pl-7 text-xs"
-                            placeholder="Search elements"
-                            value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
-                        />
-                        {searchQuery && (
-                            <button
-                                type="button"
-                                className="text-muted-foreground hover:text-foreground-primary absolute top-1/2 right-2 -translate-y-1/2"
-                                onClick={() => setSearchQuery('')}
-                            >
-                                <Icons.CrossS className="h-3 w-3" />
-                            </button>
-                        )}
-                    </div>
+            <div className="px-3 pb-2">
+                <div className="relative">
+                    <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
+                    <Input
+                        className="h-8 pr-8 pl-7 text-xs"
+                        placeholder={mode === 'elements' ? 'Search elements' : 'Search blocks'}
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground-primary absolute top-1/2 right-2 -translate-y-1/2"
+                            onClick={() => setSearchQuery('')}
+                        >
+                            <Icons.CrossS className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
-            )}
+            </div>
 
             <div className="flex-1 overflow-auto px-3 pb-4">
                 {mode === 'elements' ? (
@@ -177,7 +277,48 @@ export const InsertTab = observer(() => {
                         )}
                     </div>
                 ) : (
-                    <LayoutsEmptyState />
+                    <div className="flex flex-col gap-3">
+                        {BLOCK_CATEGORIES.map(({ value, label }) => {
+                            const blocks = groupedBlocks[value];
+                            if (blocks.length === 0) return null;
+                            const isCollapsed = collapsedBlocks[value];
+                            return (
+                                <div key={value} className="flex flex-col gap-1.5">
+                                    <button
+                                        type="button"
+                                        className="text-foreground-primary flex w-full items-center justify-between px-1 py-1 text-sm font-medium"
+                                        onClick={() => toggleBlockCategory(value)}
+                                        aria-expanded={!isCollapsed}
+                                    >
+                                        <span>{label}</span>
+                                        <Icons.ChevronDown
+                                            className={cn(
+                                                'text-muted-foreground h-3.5 w-3.5 transition-transform',
+                                                isCollapsed && '-rotate-90',
+                                            )}
+                                        />
+                                    </button>
+                                    {!isCollapsed && (
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            {blocks.map((block) => (
+                                                <BlockCard
+                                                    key={block.registryName}
+                                                    block={block}
+                                                    onDragStart={handleBlockDragStart}
+                                                    onClick={handleBlockClick}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        {filteredBlocks.length === 0 && (
+                            <div className="text-muted-foreground flex items-center justify-center py-12 text-xs">
+                                No matching blocks
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
         </div>
@@ -232,14 +373,52 @@ const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
     );
 };
 
-const LayoutsEmptyState = () => (
-    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-        <div className="bg-background-secondary/40 border-border-primary/40 flex h-12 w-12 items-center justify-center rounded-xl border">
-            <Icons.LayoutMasonry className="h-5 w-5" />
-        </div>
-        <div className="flex flex-col gap-1">
-            <p className="text-foreground-primary text-sm font-medium">Section templates</p>
-            <p className="text-xs">Pre-built sections are coming soon.</p>
-        </div>
-    </div>
-);
+interface BlockCardProps {
+    block: ShadcnBlockManifestItem;
+    onDragStart: (
+        event: React.DragEvent<HTMLButtonElement>,
+        block: ShadcnBlockManifestItem,
+    ) => void;
+    onClick: (block: ShadcnBlockManifestItem) => void;
+}
+
+const BlockCard = ({ block, onDragStart, onClick }: BlockCardProps) => {
+    const disabled = !block.installed;
+
+    return (
+        <button
+            type="button"
+            draggable={!disabled}
+            onDragStart={(event) => {
+                if (disabled) {
+                    event.preventDefault();
+                    return;
+                }
+                onDragStart(event, block);
+            }}
+            onClick={() => onClick(block)}
+            disabled={disabled}
+            title={block.description}
+            className={cn(
+                'group bg-background-secondary/40 hover:bg-background-onlook border-border-primary/40 hover:border-border-primary relative flex min-h-24 flex-col items-start justify-between gap-2 rounded-lg border p-2 text-left transition-colors',
+                disabled &&
+                    'hover:bg-background-secondary/40 hover:border-border-primary/40 cursor-not-allowed opacity-40',
+            )}
+        >
+            <div className="flex w-full items-center justify-between gap-2">
+                <Icons.LayoutMasonry className="text-foreground-primary h-4 w-4 shrink-0" />
+                <span className="text-muted-foreground truncate text-[10px]">
+                    {block.registryName}
+                </span>
+            </div>
+            <div className="flex flex-col gap-1">
+                <span className="text-foreground-primary line-clamp-1 text-[11px] font-medium">
+                    {block.label}
+                </span>
+                <span className="text-muted-foreground line-clamp-2 text-[10px] leading-3">
+                    {block.description}
+                </span>
+            </div>
+        </button>
+    );
+};

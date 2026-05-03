@@ -30,6 +30,7 @@ export interface DropElementProperties {
     styles: Record<string, string>;
     textContent: string | null;
     attributes?: Record<string, string>;
+    children?: DropElementProperties[];
 }
 
 export interface RectDimensions {
@@ -37,4 +38,10 @@ export interface RectDimensions {
     height: number;
     top: number;
     left: number;
+}
+
+export interface ComponentInsertData {
+    componentName: string;
+    filePath: string;
+    exportType: 'default' | 'named';
 }

@@ -4,9 +4,11 @@ import {
     ChatType,
     EditorMode,
     InsertMode,
+    type ComponentInsertData,
     type DropElementProperties,
     type LeftPanelTabValue
 } from '@weblab/models';
+import type { ShadcnBlockManifestItem } from '@weblab/constants';
 import { debounce } from 'lodash';
 import { makeAutoObservable, runInAction } from 'mobx';
 
@@ -22,6 +24,8 @@ export class StateManager {
     editorMode: EditorMode = EditorMode.DESIGN;
     insertMode: InsertMode | null = null;
     pendingInsertElement: DropElementProperties | null = null;
+    pendingInsertBlock: ShadcnBlockManifestItem | null = null;
+    pendingInsertComponent: ComponentInsertData | null = null;
     leftPanelTab: LeftPanelTabValue | null = null;
     brandTab: BrandTabValue | null = null;
     branchTab: BranchTabValue | null = null;
@@ -43,6 +47,14 @@ export class StateManager {
 
     setPendingInsertElement(properties: DropElementProperties | null) {
         this.pendingInsertElement = properties;
+    }
+
+    setPendingInsertBlock(block: ShadcnBlockManifestItem | null) {
+        this.pendingInsertBlock = block;
+    }
+
+    setPendingInsertComponent(data: ComponentInsertData | null) {
+        this.pendingInsertComponent = data;
     }
 
     setLeftPanelTab(tab: LeftPanelTabValue | null) {
@@ -116,6 +128,8 @@ export class StateManager {
             this.branchTab = null;
             this.manageBranchId = null;
             this.pendingInsertElement = null;
+            this.pendingInsertBlock = null;
+            this.pendingInsertComponent = null;
         });
         this.resetCanvasScrollingDebounced.cancel();
     }

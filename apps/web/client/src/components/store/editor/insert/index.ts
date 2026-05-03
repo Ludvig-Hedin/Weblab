@@ -1,6 +1,7 @@
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { DefaultSettings, EditorAttributes } from '@weblab/constants';
+import { DefaultSettings, EditorAttributes, type ShadcnBlockManifestItem } from '@weblab/constants';
 import type {
+    ComponentInsertData,
     DomElement,
     DropElementProperties,
     ElementPosition,
@@ -565,11 +566,229 @@ export class InsertManager {
             codeBlock: null,
         };
 
-        this.editorEngine.action.run(action);
+        await this.editorEngine.action.run(action);
+
+        if (properties.children?.length && frame.view) {
+            await this.insertChildElements(frame, domId, properties.children);
+        }
+    }
+
+    async insertDroppedBlock(
+        frame: FrameData,
+        dropPosition: { x: number; y: number },
+        block: ShadcnBlockManifestItem,
+    ) {
+        if (!frame.view) {
+            console.error('No frame view found');
+            return;
+        }
+
+        const location = await frame.view.getInsertLocation(dropPosition.x, dropPosition.y);
+
+        if (!location) {
+            console.error('Failed to get insert location for block drop');
+            return;
+        }
+
+        const domId = createDomId();
+        const oid = createOid();
+        const element: ActionElement = {
+            domId,
+            oid,
+            branchId: frame.frame.branchId,
+            tagName: 'section',
+            styles: {},
+            children: [],
+            attributes: {
+                [EditorAttributes.DATA_WEBLAB_ID]: oid,
+                [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
+                [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+                [EditorAttributes.DATA_WEBLAB_COMPONENT_NAME]: block.componentName,
+            },
+            textContent: null,
+        };
+
+        const codeBlock = getShadcnBlockCodeBlock(block);
+
+        const action: InsertElementAction = {
+            type: 'insert-element',
+            targets: [
+                {
+                    frameId: frame.frame.id,
+                    branchId: frame.frame.branchId,
+                    domId,
+                    oid: null,
+                },
+            ],
+            element,
+            location,
+            editText: false,
+            pasteParams: null,
+            codeBlock,
+        };
+
+        await this.editorEngine.action.run(action);
+    }
+
+    private async insertChildElements(
+        frame: FrameData,
+        parentDomId: string,
+        children: DropElementProperties[],
+    ): Promise<void> {
+        for (const child of children) {
+            const childDomId = createDomId();
+            const childOid = createOid();
+
+            const childElement: ActionElement = {
+                domId: childDomId,
+                oid: childOid,
+                branchId: frame.frame.branchId,
+                tagName: child.tagName,
+                styles: child.styles,
+                children: [],
+                attributes: {
+                    [EditorAttributes.DATA_WEBLAB_ID]: childOid,
+                    [EditorAttributes.DATA_WEBLAB_DOM_ID]: childDomId,
+                    [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+                    ...child.attributes,
+                },
+                textContent: child.textContent || null,
+            };
+
+            const insertAction: InsertElementAction = {
+                type: 'insert-element',
+                targets: [
+                    {
+                        frameId: frame.frame.id,
+                        branchId: frame.frame.branchId,
+                        domId: childDomId,
+                        oid: null,
+                    },
+                ],
+                element: childElement,
+                location: {
+                    type: 'append',
+                    targetDomId: parentDomId,
+                    targetOid: null,
+                },
+                editText: false,
+                pasteParams: null,
+                codeBlock: null,
+            };
+
+            await this.editorEngine.action.run(insertAction);
+
+            if (child.children?.length) {
+                await this.insertChildElements(frame, childDomId, child.children);
+            }
+        }
+    }
+
+    async insertDroppedComponent(
+        frame: FrameData,
+        dropPosition: { x: number; y: number },
+        data: ComponentInsertData,
+    ) {
+        if (!frame.view) {
+            console.error('No frame view found');
+            return;
+        }
+
+        const location = await frame.view.getInsertLocation(dropPosition.x, dropPosition.y);
+        if (!location) {
+            console.error('Failed to get insert location for component drop');
+            return;
+        }
+
+        const domId = createDomId();
+        const oid = createOid();
+        const element: ActionElement = {
+            domId,
+            oid,
+            branchId: frame.frame.branchId,
+            tagName: 'section',
+            styles: {},
+            children: [],
+            attributes: {
+                [EditorAttributes.DATA_WEBLAB_ID]: oid,
+                [EditorAttributes.DATA_WEBLAB_DOM_ID]: domId,
+                [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+            },
+            textContent: null,
+        };
+
+        const codeBlock = getUserComponentCodeBlock(data);
+
+        const action: InsertElementAction = {
+            type: 'insert-element',
+            targets: [
+                {
+                    frameId: frame.frame.id,
+                    branchId: frame.frame.branchId,
+                    domId,
+                    oid: null,
+                },
+            ],
+            element,
+            location,
+            editText: false,
+            pasteParams: null,
+            codeBlock,
+        };
+
+        await this.editorEngine.action.run(action);
     }
 
     clear() {
         // Clear drawing state
         this.isDrawing = false;
     }
+}
+
+function getUserComponentCodeBlock(data: ComponentInsertData): string {
+    const importPath = toImportPath(data.filePath);
+    const importLine =
+        data.exportType === 'default'
+            ? `import ${data.componentName} from "${importPath}";`
+            : `import { ${data.componentName} } from "${importPath}";`;
+
+    return `${importLine}
+
+<section data-weblab-inserted="true">
+  <${data.componentName} />
+</section>;`;
+}
+
+function toImportPath(filePath: string): string {
+    // filePath is relative to project root, e.g. "src/components/MyCard.tsx"
+    // Convert to @/ alias path — this is valid for any Next.js/Vite project with src/
+    const withoutSrc = filePath.startsWith('src/') ? filePath.slice(4) : filePath;
+    return `@/${withoutSrc.replace(/\.(tsx|ts|jsx|js)$/, '')}`;
+}
+
+function getShadcnBlockCodeBlock(block: ShadcnBlockManifestItem): string {
+    const importLine = `import { ${block.componentName} } from "${block.importPath}";`;
+
+    if (block.category !== 'primitive') {
+        return `${importLine}
+
+<section data-weblab-inserted="true" data-ocname="${block.componentName}">
+  <${block.componentName} />
+</section>;`;
+    }
+
+    const primitiveMarkup: Record<string, string> = {
+        button: '<Button>Button</Button>',
+        card: '<Card className="p-6">Card content</Card>',
+        badge: '<Badge>Badge</Badge>',
+        separator: '<Separator />',
+        progress: '<Progress value={60} />',
+        avatar: '<Avatar className="size-10" />',
+    };
+
+    return `${importLine}
+
+<section data-weblab-inserted="true" data-ocname="${block.componentName}">
+  ${primitiveMarkup[block.registryName] ?? `<${block.componentName} />`}
+</section>;`;
 }

@@ -39,6 +39,10 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-031 | auto-fixed (2026-05-03 review) |
 | CR-032 | open (2026-05-03 review) |
 | CR-033 | auto-fixed (2026-05-03 review) |
+| CR-034 | open (2026-05-03 review) |
+| CR-035 | auto-fixed (2026-05-03 review) |
+| CR-036 | auto-fixed (2026-05-03 review) |
+| CR-037 | open (2026-05-03 review) |
 
 ---
 
@@ -218,6 +222,54 @@ Scope: 18 modified files + 4 unpushed commits + a large set of new untracked fil
 - **Summary:** No `getSupabaseUser` check, no rate limit. SSRF is correctly mitigated (loopback-only allowlist on `baseUrl`), but the inconsistency with `/api/chat` and `/api/transcribe` (both auth + rate-limited) is worth addressing.
 - **Suggested approach:** Wrap with `getSupabaseUser` and reuse the in-memory limiter from `transcribe/helpers/rate-limit.ts` (or factor a shared limiter).
 
+---
+
+# Review pass 2026-05-03 — feat/import-from-figma worktree + latest brand commits
+
+Scope: nested worktree `.claude/worktrees/happy-ellis-e087a2` local changes on `claude/happy-ellis-e087a2`, plus the top-level latest three local commits at `47852f42`, `0aff6afe`, and `f82c64c4`.
+
+## CR-034 — Brand rename still has non-allowed `Onlook`/`onlook` references in infra and lock metadata
+
+- **Area/Scope:** `Dockerfile`, `docker-compose.yml`, `bun.lock`, docs/deploy files
+- **Type:** bug / DX
+- **Impact:** infra / internal
+- **Risk:** medium
+- **Summary:** The Phase 2 brand commits update many package scopes and UI strings, but `rg` still finds non-allowed references such as `Dockerfile:1` (`Build Onlook web client`), `docker-compose.yml` service/network names, and root `bun.lock` workspace metadata with `@onlook/repo`. The lockfile/package mismatch is the most concrete risk because install tooling can still see stale workspace metadata.
+- **Suggested approach:** Regenerate/update the lockfile with Bun after package metadata is finalized, then audit remaining infra names and either rename them to Weblab or document why they are intentionally stable internal identifiers.
+- **Status:** open
+
+## CR-035 — Components router accepted arbitrary absolute `projectRoot` paths
+
+- **Area/Scope:** `apps/web/client/src/server/api/routers/components.ts`
+- **Type:** security
+- **Impact:** internal
+- **Risk:** medium
+- **Summary:** The protected `listProjectComponents` endpoint accepted `projectRoot` from the client and only rejected strings containing `..`. Any authenticated user could request another absolute path with a `src` directory and receive discovered component names/file paths from server-local files.
+- **Suggested approach:** Runtime requests should always scan the fixed sandbox root; only tests should be allowed to override the root path.
+- **Status:** auto-fixed
+- **Fix applied:** The router now ignores `projectRoot` outside `NODE_ENV === 'test'` and resolves test-only overrides before scanning.
+
+## CR-036 — Switching from user component click mode to built-in template click left stale insert state
+
+- **Area/Scope:** `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/components-tab/index.tsx`
+- **Type:** bug
+- **Impact:** user-facing
+- **Risk:** low
+- **Summary:** Clicking a built-in component template set `pendingInsertElement`, but did not clear `pendingInsertBlock` or `pendingInsertComponent`. If a prior user-component placement was pending, the stale component state could survive after the element insert and unexpectedly affect the next canvas click.
+- **Suggested approach:** Clear the mutually exclusive pending insert states whenever entering a specific insert mode.
+- **Status:** auto-fixed
+- **Fix applied:** `handleTemplateClick` now clears both `pendingInsertBlock` and `pendingInsertComponent` before switching to design placement mode.
+
+## CR-037 — Component discovery parser does not detect common namespace-wrapped exports
+
+- **Area/Scope:** `apps/web/client/src/server/api/routers/components.utils.ts`
+- **Type:** bug / maintainability
+- **Impact:** user-facing
+- **Risk:** low
+- **Summary:** The HOC regex detects lowercase wrapper calls like `observer(...)` and `withRouter(...)`, but misses common namespace wrappers such as `React.memo(...)` and `React.forwardRef(...)`. Those exported components will not appear in "My Components" even though they are valid user components.
+- **Suggested approach:** Extend extraction tests with `export const Foo = React.memo(...)` and `React.forwardRef(...)`, then replace or broaden `HOC_WRAPPED_RE` to support member expressions without admitting lowercase non-component exports.
+- **Status:** open
+
 ## CR-017 — Local-Ollama detection probes the *server's* localhost, not the user's
 
 - **Area:** [api/models/local/route.ts](apps/web/client/src/app/api/models/local/route.ts), [chat-tab-content/index.tsx](apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-tab-content/index.tsx), [ai-tab.tsx](apps/web/client/src/components/ui/settings-modal/ai-tab.tsx)
@@ -377,4 +429,3 @@ preload script rebuild, .gitignore + backlog maintenance.
 - **Risk:** low
 - **Summary:** Vercel best-practice hook flagged the 90s timeout as "long-running serverless logic, consider Workflow." For a single request/response upstream call this isn't a Workflow fit — Workflow targets durable, pausable, multi-step flows. Vercel's 300s default function timeout already accommodates 90s.
 - **Suggested approach:** No action. Logged here so the team has the trace if/when transcription becomes a multi-step or streaming flow.
-
