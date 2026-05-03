@@ -14,7 +14,7 @@ export const ComponentCard = ({ data, onDragStart, onClick }: ComponentCardProps
         onDragStart={(e) => onDragStart(e, data)}
         onClick={() => onClick(data)}
         title={data.filePath}
-        className="group bg-background-secondary/40 hover:bg-background-onlook border-border-primary/40 hover:border-border-primary flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors"
+        className="group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors"
     >
         <Icons.Component className="text-foreground-primary h-4 w-4 flex-shrink-0" />
         <div className="flex min-w-0 flex-col gap-0.5">

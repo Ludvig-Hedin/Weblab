@@ -400,7 +400,7 @@ const BlockCard = ({ block, onDragStart, onClick }: BlockCardProps) => {
             disabled={disabled}
             title={block.description}
             className={cn(
-                'group bg-background-secondary/40 hover:bg-background-onlook border-border-primary/40 hover:border-border-primary relative flex min-h-24 flex-col items-start justify-between gap-2 rounded-lg border p-2 text-left transition-colors',
+                'group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex min-h-24 flex-col items-start justify-between gap-2 rounded-lg border p-2 text-left transition-colors',
                 disabled &&
                     'hover:bg-background-secondary/40 hover:border-border-primary/40 cursor-not-allowed opacity-40',
             )}

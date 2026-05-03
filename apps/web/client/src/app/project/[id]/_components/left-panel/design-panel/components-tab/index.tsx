@@ -204,7 +204,7 @@ const TemplateCard = ({ template, onDragStart, onClick }: TemplateCardProps) => 
         onDragStart={(e) => onDragStart(e, template.properties)}
         onClick={() => onClick(template)}
         title={template.description}
-        className="group bg-background-secondary/40 hover:bg-background-onlook border-border-primary/40 hover:border-border-primary relative flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors"
+        className="group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors"
     >
         <Icons.Component className="text-foreground-primary h-5 w-5" />
         <span className="text-foreground-primary line-clamp-1 text-[11px]">{template.label}</span>
