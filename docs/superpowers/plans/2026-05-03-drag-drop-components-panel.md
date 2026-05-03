@@ -1338,3 +1338,7 @@ Manual checks:
 - [ ] Drag a user component → `<ComponentName />` inserted in page JSX + correct import added
 - [ ] Click a user component → toast, then click canvas → same insertion
 - [ ] Inserted user components render in the preview iframe
+
+## Progress Notes
+
+- 2026-05-03: Fixed the component discovery forwarding contract so the editor route returns the normalized `componentName` shape used by the Components tab and scanners. User-facing: prevents the Components tab query from failing typecheck/build due to a stale `name` remap.
