@@ -22,6 +22,7 @@ This note tracks the implementation work completed from the UX + QA audit.
 - Kept project live previews visible after successful iframe load instead of timing them out into the fallback state, and wired static template cards to the real template-project flow with an honest unavailable fallback when no matching template exists.
 - Aligned the bottom-bar zoom controls with the canvas zoom ceiling, blocked empty staged-only commits, and upgraded the new PR action from placeholder UI to a real GitHub pull-request flow.
 - Removed the projects empty-state prompt textarea's inner focus border and native resize handle while preserving stable textarea padding and the surrounding prompt-box border.
+- Removed the projects empty-state prompt's minimum character requirement so short non-empty prompts can start project creation.
 
 ## Verification
 

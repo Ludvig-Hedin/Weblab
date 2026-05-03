@@ -30,7 +30,6 @@ export interface CreateSuggestion {
 }
 
 const SAVED_INPUT_KEY = 'create-input';
-const MIN_PROMPT_LENGTH = 10;
 // Drafts saved on auth-modal-open are recovered for up to 24h. After that they
 // almost certainly belong to a different intent and would surprise the user.
 const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -65,9 +64,7 @@ export const Create = observer(
         const [selectedImages, setSelectedImages] = useState<ImageMessageContext[]>([]);
         const [imageTooltipOpen, setImageTooltipOpen] = useState(false);
         const [isHandlingFile, setIsHandlingFile] = useState(false);
-        const trimmedLength = inputValue.trim().length;
-        const isInputInvalid = trimmedLength < MIN_PROMPT_LENGTH;
-        const charactersRemaining = Math.max(0, MIN_PROMPT_LENGTH - trimmedLength);
+        const isInputEmpty = inputValue.trim().length === 0;
         const [isComposing, setIsComposing] = useState(false);
 
         // Restore draft from localStorage if it exists and isn't stale.
@@ -106,8 +103,7 @@ export const Create = observer(
         };
 
         const handleSubmit = async () => {
-            if (isInputInvalid) {
-                console.warn('Input is too short');
+            if (isInputEmpty) {
                 return;
             }
             createProject(inputValue, selectedImages);
@@ -411,16 +407,6 @@ export const Create = observer(
                                     rows={3}
                                 />
                             </div>
-                            <div
-                                className={cn(
-                                    'text-foreground-tertiary px-0.5 pt-1 text-[11px] transition-opacity duration-150',
-                                    inputValue.length > 0 && isInputInvalid
-                                        ? 'opacity-100'
-                                        : 'pointer-events-none h-0 opacity-0',
-                                )}
-                                aria-live="polite"
-                            >    
-                            </div>
                             <div className="flex w-full flex-row items-center justify-between px-0 pt-2 pb-2">
                                 <div className="flex flex-row justify-start gap-1.5">
                                     <Tooltip
@@ -476,11 +462,11 @@ export const Create = observer(
                                                 variant="secondary"
                                                 className={cn(
                                                     'text-smallPlus h-9 w-9 cursor-pointer',
-                                                    isInputInvalid
+                                                    isInputEmpty
                                                         ? 'text-foreground-primary'
                                                         : 'bg-foreground-primary hover:bg-foreground-hover text-white',
                                                 )}
-                                                disabled={isInputInvalid || isCreatingProject}
+                                                disabled={isInputEmpty || isCreatingProject}
                                                 onClick={handleSubmit}
                                             >
                                                 {isCreatingProject ? (
@@ -489,7 +475,7 @@ export const Create = observer(
                                                     <Icons.ArrowRight
                                                         className={cn(
                                                             'h-5 w-5',
-                                                            !isInputInvalid
+                                                            !isInputEmpty
                                                                 ? 'text-background'
                                                                 : 'text-foreground-primary',
                                                         )}
@@ -497,7 +483,7 @@ export const Create = observer(
                                                 )}
                                             </Button>
                                         </TooltipTrigger>
-                                        {!user?.id && !isInputInvalid && (
+                                        {!user?.id && !isInputEmpty && (
                                             <TooltipPortal>
                                                 <TooltipContent side="top" sideOffset={5}>
                                                     Sign in to design →
