@@ -44,7 +44,7 @@ export function Hero() {
                         //         transition={{ duration: 0.6, delay: 1.2, ease: 'easeOut' }}
                         //     >
                         //         <a
-                        //             href="https://www.ycombinator.com/companies/onlook/jobs/e4gHv1n-founding-engineer-fullstack"
+                        //             href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack"
                         //             target="_blank"
                         //             rel="noopener noreferrer"
                         //             className="pointer-events-auto hover:bg-foreground-secondary/20 border-foreground-secondary/20 text-foreground-secondary inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs backdrop-blur-sm transition-all duration-200 hover:scale-102"

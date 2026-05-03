@@ -46,7 +46,7 @@ export class StylePreferencesStore {
                 'StylePreferencesStore: projectId is missing, preferences will not be persisted correctly',
             );
         }
-        this.storageKey = `onlook:style-preferences:${editorEngine.projectId}`;
+        this.storageKey = `weblab:style-preferences:${editorEngine.projectId}`;
         makeAutoObservable(this);
     }
 

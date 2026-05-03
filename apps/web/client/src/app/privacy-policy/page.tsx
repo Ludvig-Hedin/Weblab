@@ -209,7 +209,7 @@ export default function PrivacyPage() {
                             If you have any questions or comments about this Privacy Policy, the ways in which we collect and use your Personal Data or your choices and rights regarding such collection and use, please do not hesitate to contact us at:
                         </p>
                         <ul className="text-foreground-secondary mb-6 list-disc pl-6">
-                            <li>https://onlook.dev/</li>
+                            <li>https://weblab.build/</li>
                             <li>contact@weblab.build</li>
                         </ul>
                     </div>

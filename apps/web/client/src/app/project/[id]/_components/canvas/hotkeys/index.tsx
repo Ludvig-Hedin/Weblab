@@ -104,7 +104,7 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
             editorEngine.state.setLeftPanelTab(LeftPanelTabValue.SEARCH);
             editorEngine.state.setLeftPanelLocked(true);
-            window.dispatchEvent(new Event('onlook:search:focus'));
+            window.dispatchEvent(new Event('weblab:search:focus'));
         },
         { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true },
     );

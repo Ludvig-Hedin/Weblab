@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'onlook:style-panel-v2:open-sections';
+const STORAGE_KEY = 'weblab:style-panel-v2:open-sections';
 
 function read(): Set<string> | null {
     if (typeof window === 'undefined') return null;

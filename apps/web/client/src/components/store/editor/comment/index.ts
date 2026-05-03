@@ -52,7 +52,7 @@ export class CommentManager {
     // ─── Seen / unread tracking ──────────────────────────────────────────────
 
     private storageKey(projectId: string) {
-        return `onlook_seen_comments_${projectId}`;
+        return `weblab_seen_comments_${projectId}`;
     }
 
     private loadSeenIds(projectId: string) {

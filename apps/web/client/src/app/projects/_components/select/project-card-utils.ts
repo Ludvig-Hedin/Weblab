@@ -17,7 +17,7 @@ export interface ProjectFolder {
     updatedAt: string;
 }
 
-const PROJECT_FOLDERS_STORAGE_KEY = 'onlook_project_folders_v1';
+const PROJECT_FOLDERS_STORAGE_KEY = 'weblab_project_folders_v1';
 
 export const getFoldersStorageKey = (userId?: string | null) =>
     `${PROJECT_FOLDERS_STORAGE_KEY}:${userId ?? 'anonymous'}`;

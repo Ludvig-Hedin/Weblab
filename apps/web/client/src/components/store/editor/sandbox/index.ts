@@ -236,7 +236,7 @@ export class SandboxManager {
                 // in case there is no URL provided then the code must be updated
                 // to handle this case
                 downloadUrl: url ?? '',
-                fileName: `${projectName ?? 'onlook-project'}-${Date.now()}.zip`,
+                fileName: `${projectName ?? 'weblab-project'}-${Date.now()}.zip`,
             };
         } catch (error) {
             console.error('Error generating download URL:', error);

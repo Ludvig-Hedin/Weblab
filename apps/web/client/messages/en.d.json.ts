@@ -381,7 +381,7 @@ declare const messages: {
     },
     "help": {
         "menu": {
-            "reloadOnlook": "Reload Weblab",
+            "reloadWeblab": "Reload Weblab",
             "theme": {
                 "title": "Theme",
                 "light": "Light",

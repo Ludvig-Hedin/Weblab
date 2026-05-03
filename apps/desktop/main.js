@@ -22,7 +22,7 @@ const WINDOW_HEIGHT = 900;
 
 let mainWindow;
 
-ipcMain.on('onlook:get-version', (event) => {
+ipcMain.on('weblab:get-version', (event) => {
     event.returnValue = app.getVersion();
 });
 

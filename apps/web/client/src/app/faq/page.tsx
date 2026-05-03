@@ -9,7 +9,7 @@ import { Routes } from '@/utils/constants';
 const faqSections = [
     {
         title: "About Weblab",
-        anchor: "about-onlook",
+        anchor: "about-weblab",
         faqs: [
             {
                 question: "What is Weblab?",

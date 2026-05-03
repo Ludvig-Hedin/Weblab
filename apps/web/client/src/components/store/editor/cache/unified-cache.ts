@@ -23,7 +23,7 @@ export class UnifiedCacheManager<T extends Serializable = Serializable> {
 
         if (config.persistent && typeof window !== 'undefined') {
             this.persistentStore = localforage.createInstance({
-                name: `onlook-cache-${config.name}`,
+                name: `weblab-cache-${config.name}`,
                 storeName: 'cache',
                 description: `Unified cache for ${config.name}`,
             });

@@ -377,7 +377,7 @@
     },
     "help": {
         "menu": {
-            "reloadOnlook": "Recargar Weblab",
+            "reloadWeblab": "Recargar Weblab",
             "theme": {
                 "title": "Tema",
                 "light": "Claro",

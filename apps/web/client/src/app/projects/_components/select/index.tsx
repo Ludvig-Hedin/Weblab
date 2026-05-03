@@ -47,7 +47,7 @@ import {
     sanitizeFolders,
 } from './project-card-utils';
 
-const STARRED_TEMPLATES_KEY = 'onlook_starred_templates';
+const STARRED_TEMPLATES_KEY = 'weblab_starred_templates';
 
 export const PROJECT_SUGGESTIONS: CreateSuggestion[] = [
     {

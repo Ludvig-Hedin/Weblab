@@ -56,7 +56,7 @@ export const sandboxRouter = createTRPCRouter({
                 id: DEFAULT_NEW_PROJECT_TEMPLATE.id,
                 title: input.title || `${APP_NAME} Test Sandbox`,
                 description: `Test sandbox for ${APP_NAME} sync engine`,
-                tags: ['onlook-test'],
+                tags: ['weblab-test'],
                 privacy: SANDBOX_PRIVACY,
             });
 

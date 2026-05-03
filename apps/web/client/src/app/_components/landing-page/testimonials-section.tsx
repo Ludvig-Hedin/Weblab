@@ -59,7 +59,7 @@ export function TestimonialsSection() {
                 {/* Column 1 */}
                 <div className="flex flex-col gap-8 flex-1">
                     <TestimonialCard
-                        text="What is this, something like Figma and v0 fused into a devilish combo? There's something called 'onlook' trending on GitHub, and it's so insanely cool it's scary."
+                        text="What is this, something like Figma and v0 fused into a devilish combo? There's something called 'weblab' trending on GitHub, and it's so insanely cool it's scary."
                         name="Koder@海外Tech速報"
                         label=""
                         profileImage="/assets/testimonials-koder.png"

@@ -97,7 +97,7 @@ const organizationJsonLd = {
         'https://x.com/weblab',
         'https://www.linkedin.com/company/weblab/',
         'https://discord.gg/ZZzadNQtns',
-        'https://onlook.substack.com/',
+        'https://weblab.substack.com/',
     ],
 };
 

@@ -377,7 +377,7 @@
     },
     "help": {
         "menu": {
-            "reloadOnlook": "Weblabを再読み込み",
+            "reloadWeblab": "Weblabを再読み込み",
             "theme": {
                 "title": "テーマ",
                 "light": "ライト",

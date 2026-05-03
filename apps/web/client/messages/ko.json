@@ -377,7 +377,7 @@
     },
     "help": {
         "menu": {
-            "reloadOnlook": "Weblab 새로고침",
+            "reloadWeblab": "Weblab 새로고침",
             "theme": {
                 "title": "테마",
                 "light": "라이트",

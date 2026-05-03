@@ -1,7 +1,7 @@
 import type { PageEditorSettings, PageNode } from '@weblab/models/pages';
 import type { SandboxManager } from '../sandbox';
 
-const PAGE_SETTINGS_PATH = '.onlook/page-settings.json';
+const PAGE_SETTINGS_PATH = '.weblab/page-settings.json';
 
 interface PageSettingsFile {
     version: 1;
