@@ -1,4 +1,4 @@
-project_id = "onlook-web"
+project_id = "weblab-web"
 
 [api]
 enabled = true
@@ -8,7 +8,7 @@ extra_search_path = ["public"]
 max_rows = 100
 
 [auth]
-site_url = "https://onlook.com"
+site_url = "https://weblab.build"
 additional_redirect_urls = [
     "http://localhost:3000",
     "http://localhost:3000/auth/callback",

@@ -1,4 +1,4 @@
-name: onlook
+name: weblab
 
 services:
   web-client:
@@ -13,5 +13,5 @@ services:
     network_mode: host
 
 networks:
-  supabase_network_onlook-web:
+  supabase_network_weblab-web:
     external: true
