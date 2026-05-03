@@ -44,6 +44,7 @@
     "@weblab/db": "*",
     "@weblab/email": "*",
     "@weblab/fonts": "*",
+    "@weblab/figma": "*",
     "@weblab/github": "*",
     "@weblab/growth": "*",
     "@weblab/image-server": "*",

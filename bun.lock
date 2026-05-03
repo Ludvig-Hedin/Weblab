@@ -67,6 +67,7 @@
         "@weblab/constants": "*",
         "@weblab/db": "*",
         "@weblab/email": "*",
+        "@weblab/figma": "*",
         "@weblab/fonts": "*",
         "@weblab/github": "*",
         "@weblab/growth": "*",
@@ -313,6 +314,16 @@
         "@weblab/eslint": "*",
         "@weblab/typescript": "*",
         "eslint": "^9.0.0",
+        "typescript": "^5.5.4",
+      },
+    },
+    "packages/figma": {
+      "name": "@weblab/figma",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/node": "^18.16.3",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
         "typescript": "^5.5.4",
       },
     },
@@ -2199,6 +2210,8 @@
     "@weblab/email": ["@weblab/email@workspace:packages/email"],
 
     "@weblab/eslint": ["@weblab/eslint@workspace:tooling/eslint"],
+
+    "@weblab/figma": ["@weblab/figma@workspace:packages/figma"],
 
     "@weblab/file-system": ["@weblab/file-system@workspace:packages/file-system"],
 
@@ -5662,6 +5675,8 @@
 
     "@weblab/docs/typescript": ["typescript@5.5.4", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q=="],
 
+    "@weblab/figma/@types/node": ["@types/node@18.19.130", "", { "dependencies": { "undici-types": "~5.26.4" } }, "sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg=="],
+
     "@weblab/file-system/@types/react": ["@types/react@18.3.26", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.0.2" } }, "sha512-RFA/bURkcKzx/X9oumPG9Vp3D3JUgus/d0b67KB0t5S/raciymilkOa66olh78MUI92QLbEJevO7rvqU/kjwKA=="],
 
     "@weblab/file-system/react": ["react@18.3.1", "", { "dependencies": { "loose-envify": "^1.1.0" } }, "sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ=="],
@@ -7023,6 +7038,8 @@
     "@weblab/docs/eslint/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
     "@weblab/docs/eslint/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
+
+    "@weblab/figma/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
 
     "@weblab/github/@types/node/undici-types": ["undici-types@5.26.5", "", {}, "sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA=="],
 
