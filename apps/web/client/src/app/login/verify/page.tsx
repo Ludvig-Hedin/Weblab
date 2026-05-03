@@ -118,7 +118,7 @@ export default function VerifyPage() {
                         <h1 className="text-title1 leading-tight">
                             {t(transKeys.welcome.verify.title)}
                         </h1>
-                        <p className="text-foreground-onlook text-regular">
+                        <p className="text-foreground-weblab text-regular">
                             {t(transKeys.welcome.verify.description, { email })}
                         </p>
                     </div>

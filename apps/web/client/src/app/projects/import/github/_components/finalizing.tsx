@@ -38,7 +38,7 @@ export const FinalizingGithubProject = () => {
                     Cancel
                 </Button>
                 {repositoryImport.error && (
-                    <Button onClick={retry} disabled={repositoryImport.isImporting}>
+                    <Button onClick={() => void retry()} disabled={repositoryImport.isImporting}>
                         Retry
                     </Button>
                 )}

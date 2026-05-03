@@ -45,7 +45,7 @@ interface ImportGithubContextType {
         repo: string,
     ) => Promise<{ branch: string; isPrivateRepo: boolean } | null>;
     clearErrors: () => void;
-    retry: () => void;
+    retry: () => Promise<void>;
     cancel: () => void;
 }
 
@@ -90,6 +90,7 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
         if (currentStep === 1) {
             setCurrentStep(2);
             if (selectedRepo) {
+                repositoryImport.clearError();
                 await repositoryImport.importRepository(selectedRepo);
             }
         } else if (currentStep < totalSteps - 1) {
@@ -127,12 +128,20 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
         setBranch('');
     };
 
-    const retry = () => {
-        setCurrentStep(1);
+    const retry = async () => {
+        if (!selectedRepo) {
+            setCurrentStep(1);
+            return;
+        }
+
+        setCurrentStep(2);
+        repositoryImport.clearError();
+        await repositoryImport.importRepository(selectedRepo);
     };
 
     const cancel = () => {
         clearData();
+        clearErrors();
         setCurrentStep(1);
     };
 

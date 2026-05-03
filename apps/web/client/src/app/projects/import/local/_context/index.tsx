@@ -118,12 +118,14 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const finalizeProject = async () => {
         try {
             setIsFinalizing(true);
+            setError(null);
 
             if (!user?.id) {
-                console.error('No user found');
+                setError('Sign in again before importing this project.');
                 return;
             }
-            if (!projectData.files) {
+            if (!projectData.files?.length) {
+                setError('Select a project folder before finishing setup.');
                 return;
             }
 
@@ -171,7 +173,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 userId: user.id,
             });
             if (!project) {
-                console.error('Failed to create project');
+                setError('Project setup finished, but the project could not be created.');
                 return;
             }
             // Open the project
