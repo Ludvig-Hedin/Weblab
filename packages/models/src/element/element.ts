@@ -30,6 +30,7 @@ export interface DropElementProperties {
     styles: Record<string, string>;
     textContent: string | null;
     attributes?: Record<string, string>;
+    children?: DropElementProperties[];
 }
 
 export interface RectDimensions {

@@ -565,7 +565,65 @@ export class InsertManager {
             codeBlock: null,
         };
 
-        this.editorEngine.action.run(action);
+        await this.editorEngine.action.run(action);
+
+        if (properties.children?.length && frame.view) {
+            await this.insertChildElements(frame, domId, properties.children);
+        }
+    }
+
+    private async insertChildElements(
+        frame: FrameData,
+        parentDomId: string,
+        children: DropElementProperties[],
+    ): Promise<void> {
+        for (const child of children) {
+            const childDomId = createDomId();
+            const childOid = createOid();
+
+            const childElement: ActionElement = {
+                domId: childDomId,
+                oid: childOid,
+                branchId: frame.frame.branchId,
+                tagName: child.tagName,
+                styles: child.styles,
+                children: [],
+                attributes: {
+                    [EditorAttributes.DATA_WEBLAB_ID]: childOid,
+                    [EditorAttributes.DATA_WEBLAB_DOM_ID]: childDomId,
+                    [EditorAttributes.DATA_WEBLAB_INSERTED]: 'true',
+                    ...child.attributes,
+                },
+                textContent: child.textContent || null,
+            };
+
+            const insertAction: InsertElementAction = {
+                type: 'insert-element',
+                targets: [
+                    {
+                        frameId: frame.frame.id,
+                        branchId: frame.frame.branchId,
+                        domId: childDomId,
+                        oid: null,
+                    },
+                ],
+                element: childElement,
+                location: {
+                    type: 'append',
+                    targetDomId: parentDomId,
+                    targetOid: null,
+                },
+                editText: null,
+                pasteParams: null,
+                codeBlock: null,
+            };
+
+            await this.editorEngine.action.run(insertAction);
+
+            if (child.children?.length) {
+                await this.insertChildElements(frame, childDomId, child.children);
+            }
+        }
     }
 
     clear() {
