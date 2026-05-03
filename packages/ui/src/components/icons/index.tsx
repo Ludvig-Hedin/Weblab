@@ -1728,6 +1728,22 @@ export const Icons = {
     File: FileIcon,
     Frame: FrameIcon,
 
+    Figma: ({ className, ...props }: IconProps) => (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 38 57"
+            fill="currentColor"
+            className={className}
+            aria-label="Figma"
+            {...props}
+        >
+            <path d="M19 28.5A9.5 9.5 0 1 1 28.5 19 9.51 9.51 0 0 1 19 28.5z" />
+            <path d="M9.5 57A9.5 9.5 0 0 1 9.5 38H19v9.5A9.5 9.5 0 0 1 9.5 57z" />
+            <path d="M9.5 28.5A9.5 9.5 0 0 1 9.5 9.5H19V28.5z" />
+            <path d="M19 9.5A9.5 9.5 0 1 1 28.5 19H19z" />
+            <path d="M28.5 28.5A9.5 9.5 0 1 1 19 38a9.5 9.5 0 0 1 9.5-9.5z" />
+        </svg>
+    ),
     Gear: GearIcon,
     GitHubLogo: GitHubLogoIcon,
     Globe: GlobeIcon,
