@@ -4,6 +4,7 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 import { resolve } from 'path';
 
 export default defineConfig({
+    root: resolve(__dirname, 'src/ui'),
     plugins: [react(), viteSingleFile()],
     build: {
         outDir: resolve(__dirname, 'dist'),
