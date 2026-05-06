@@ -1,27 +1,44 @@
 'use server';
 
-import { env } from '@/env';
-import { Routes } from '@/utils/constants';
-import { trackEvent } from '@/utils/analytics/server';
-import { createAdminClient } from '@/utils/supabase/admin';
-import { createClient } from '@/utils/supabase/server';
-import { SEED_USER, users } from '@weblab/db';
-import { db } from '@weblab/db/src/client';
-import { SignInMethod } from '@weblab/models';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export async function login(provider: SignInMethod.GITHUB | SignInMethod.GOOGLE) {
+import type { SignInMethod } from '@weblab/models';
+import { SEED_USER, users } from '@weblab/db';
+import { db } from '@weblab/db/src/client';
+
+import { env } from '@/env';
+import { trackEvent } from '@/utils/analytics/server';
+import { Routes } from '@/utils/constants';
+import { createAdminClient } from '@/utils/supabase/admin';
+import { createClient } from '@/utils/supabase/server';
+import { sanitizeReturnUrl } from '@/utils/url';
+
+export async function login(
+    provider: SignInMethod.GITHUB | SignInMethod.GOOGLE,
+    returnUrl?: string | null,
+) {
     const supabase = await createClient();
     const origin = (await headers()).get('origin') ?? env.NEXT_PUBLIC_SITE_URL;
-    const redirectTo = `${origin}${Routes.AUTH_CALLBACK}`;
+    const sanitizedReturnUrl = sanitizeReturnUrl(returnUrl ?? null, { origin });
+    // Encode returnUrl in OAuth redirectTo so it survives the provider round-trip
+    // and is available in the auth callback route.
+    const callbackUrl = new URL(`${origin}${Routes.AUTH_CALLBACK}`);
+    if (sanitizedReturnUrl !== Routes.HOME) {
+        callbackUrl.searchParams.set('returnUrl', sanitizedReturnUrl);
+    }
+    const redirectTo = callbackUrl.toString();
 
     // If already session, redirect
     const {
         data: { session },
     } = await supabase.auth.getSession();
     if (session) {
-        redirect(Routes.AUTH_REDIRECT);
+        redirect(
+            sanitizedReturnUrl !== Routes.HOME
+                ? `${Routes.AUTH_REDIRECT}?returnUrl=${encodeURIComponent(sanitizedReturnUrl)}`
+                : Routes.AUTH_REDIRECT,
+        );
     }
 
     // Start OAuth flow
@@ -34,7 +51,15 @@ export async function login(provider: SignInMethod.GITHUB | SignInMethod.GOOGLE)
     });
 
     if (error) {
-        redirect('/error');
+        // Server-side log retained intentionally — debugging OAuth failures requires
+        // visibility into the underlying error, and this runs on the server, not the browser.
+        console.error('signInWithOAuth failed', {
+            provider,
+            code: error.code,
+            message: error.message,
+        });
+        const code = error.code ?? 'unknown';
+        redirect(`${Routes.AUTH_CODE_ERROR}?code=${encodeURIComponent(code)}`);
     }
 
     redirect(data.url);
@@ -49,7 +74,9 @@ export async function devLogin() {
         'Local Supabase backend is unavailable. Start it with `bun backend:start` and wait for ports 54321 and 54322 to be ready.';
 
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
 
     if (session) {
         redirect(Routes.AUTH_REDIRECT);
@@ -86,7 +113,9 @@ export async function devLogin() {
     });
 
     if (error) {
-        console.error('Error signing in with password:', error);
+        if (process.env.NODE_ENV !== 'production') {
+            console.error('Error signing in with password:', error);
+        }
         if (error.message === 'fetch failed') {
             throw new Error(localBackendHint);
         }

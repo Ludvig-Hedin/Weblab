@@ -1,11 +1,14 @@
 'use client';
 
-import { LocalForageKeys } from '@/utils/constants';
-import { SignInMethod } from '@weblab/models/auth';
-import localforage from 'localforage';
-import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import localforage from 'localforage';
+
+import { SignInMethod } from '@weblab/models/auth';
+import { toast } from '@weblab/ui/sonner';
+
+import { LocalForageKeys } from '@/utils/constants';
 import { devLogin, login } from '../login/actions';
 
 const LAST_SIGN_IN_METHOD_KEY = 'lastSignInMethod';
@@ -15,7 +18,10 @@ interface AuthContextType {
     lastSignInMethod: SignInMethod | null;
     isAuthModalOpen: boolean;
     setIsAuthModalOpen: (open: boolean) => void;
-    handleLogin: (method: SignInMethod.GITHUB | SignInMethod.GOOGLE, returnUrl: string | null) => Promise<void>;
+    handleLogin: (
+        method: SignInMethod.GITHUB | SignInMethod.GOOGLE,
+        returnUrl: string | null,
+    ) => Promise<void>;
     handleDevLogin: (returnUrl: string | null) => Promise<void>;
 }
 
@@ -29,22 +35,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         const getLastSignInMethod = async () => {
-            const lastSignInMethod = await localforage.getItem<SignInMethod | null>(LAST_SIGN_IN_METHOD_KEY);
+            const lastSignInMethod = await localforage.getItem<SignInMethod | null>(
+                LAST_SIGN_IN_METHOD_KEY,
+            );
             setLastSignInMethod(lastSignInMethod);
         };
         getLastSignInMethod();
     }, []);
 
-    const handleLogin = async (method: SignInMethod.GITHUB | SignInMethod.GOOGLE, returnUrl: string | null) => {
+    const handleLogin = async (
+        method: SignInMethod.GITHUB | SignInMethod.GOOGLE,
+        returnUrl: string | null,
+    ) => {
         try {
             setSigningInMethod(method);
-            if (returnUrl) {
-                await localforage.setItem(LocalForageKeys.RETURN_URL, returnUrl);
-            }
+            // returnUrl is now propagated through the OAuth redirectTo query
+            // string by the server action. Existing auth-modal CTAs still stage
+            // it in localforage before opening the modal, so drain that value
+            // when the button did not receive an explicit returnUrl prop.
+            const stagedReturnUrl =
+                returnUrl ?? (await localforage.getItem<string>(LocalForageKeys.RETURN_URL));
+            await localforage.removeItem(LocalForageKeys.RETURN_URL);
             await localforage.setItem(LAST_SIGN_IN_METHOD_KEY, method);
-            await login(method);
+            await login(method, stagedReturnUrl);
         } catch (error) {
-            console.error('Error signing in with method:', method, error);
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('Error signing in with method:', method, error);
+            }
             throw error;
         } finally {
             setSigningInMethod(null);
@@ -54,24 +71,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const handleDevLogin = async (returnUrl: string | null) => {
         try {
             setSigningInMethod(SignInMethod.DEV);
-            if (returnUrl) {
-                await localforage.setItem(LocalForageKeys.RETURN_URL, returnUrl);
-            }
+            const stagedReturnUrl =
+                returnUrl ?? (await localforage.getItem<string>(LocalForageKeys.RETURN_URL));
+            await localforage.removeItem(LocalForageKeys.RETURN_URL);
             await localforage.setItem(LAST_SIGN_IN_METHOD_KEY, SignInMethod.DEV);
             const result = await devLogin();
 
             if (result?.redirectTo) {
-                router.replace(result.redirectTo);
+                // Pass returnUrl through the URL query so /auth/redirect can read it.
+                let target: string = result.redirectTo;
+                if (stagedReturnUrl) {
+                    const url = new URL(result.redirectTo, window.location.origin);
+                    url.searchParams.set('returnUrl', stagedReturnUrl);
+                    target = url.toString();
+                }
+                router.replace(target);
             }
         } catch (error) {
-            console.error('Error signing in with password:', error);
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('Error signing in with password:', error);
+            }
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            toast.error('Demo sign-in failed', { description: message });
         } finally {
             setSigningInMethod(null);
         }
     };
 
     return (
-        <AuthContext.Provider value={{ signingInMethod, lastSignInMethod, handleLogin, handleDevLogin, isAuthModalOpen, setIsAuthModalOpen }}>
+        <AuthContext.Provider
+            value={{
+                signingInMethod,
+                lastSignInMethod,
+                handleLogin,
+                handleDevLogin,
+                isAuthModalOpen,
+                setIsAuthModalOpen,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
@@ -83,4 +120,4 @@ export const useAuthContext = () => {
         throw new Error('useAuthContext must be used within a AuthProvider');
     }
     return context;
-}; 
+};

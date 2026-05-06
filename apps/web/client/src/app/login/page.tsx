@@ -1,21 +1,31 @@
 'use client';
 
-import { env } from '@/env';
-import { useGetBackground } from '@/hooks/use-get-background';
-import { transKeys } from '@/i18n/keys';
-import { LocalForageKeys, Routes } from '@/utils/constants';
+import { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+
 import { SignInMethod } from '@weblab/models/auth';
 import { BrandLogo } from '@weblab/ui/brand';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
-import { useTranslations } from 'next-intl';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { sendEmailOtp } from './actions';
+
+import { env } from '@/env';
+import { useGetBackground } from '@/hooks/use-get-background';
+import { transKeys } from '@/i18n/keys';
+import { LocalForageKeys, Routes } from '@/utils/constants';
 import { DevLoginButton, LoginButton } from '../_components/login-button';
+import pkg from '../../../package.json';
+import { sendEmailOtp } from './actions';
+
+const AUTH_PROVIDERS = new Set(
+    (env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '')
+        .split(',')
+        .map((p) => p.trim().toLowerCase())
+        .filter(Boolean),
+);
 
 export default function LoginPage() {
     const t = useTranslations();
@@ -39,6 +49,9 @@ export default function LoginPage() {
             }
             const params = new URLSearchParams({ email });
             if (returnUrl) params.set(LocalForageKeys.RETURN_URL, returnUrl);
+            // Stamp the time the OTP was sent so the verify page can compute
+            // an accurate resend cooldown rather than restarting it on mount.
+            params.set('sentAt', String(Date.now()));
             router.push(`${Routes.LOGIN_VERIFY}?${params.toString()}`);
         } catch {
             setEmailError('An unexpected error occurred. Please try again.');
@@ -49,44 +62,56 @@ export default function LoginPage() {
 
     return (
         <div className="flex h-screen w-screen justify-center">
-            <div className="flex flex-col justify-between w-full h-full max-w-xl p-16 space-y-8 overflow-auto">
+            <div className="flex h-full w-full max-w-xl flex-col justify-between space-y-8 overflow-auto p-16">
                 <div className="flex items-center space-x-2">
-                    <Link href={Routes.HOME} className="hover:opacity-80 transition-opacity">
+                    <Link href={Routes.HOME} className="transition-opacity hover:opacity-80">
                         <BrandLogo className="h-5" />
                     </Link>
                 </div>
                 <div className="space-y-8">
                     <div className="space-y-4">
-                        <h1 className="text-title1 leading-tight">
-                            {t(transKeys.welcome.title)}
-                        </h1>
+                        <h1 className="text-title1 leading-tight">{t(transKeys.welcome.title)}</h1>
                         <p className="text-foreground-weblab text-regular">
                             {t(transKeys.welcome.description)}
                         </p>
                     </div>
-                    <div className="space-y-2 md:space-y-0 md:space-x-2 flex flex-col md:flex-row">
-                        <LoginButton
-                            returnUrl={returnUrl}
-                            method={SignInMethod.GITHUB}
-                            icon={<Icons.GitHubLogo className="w-4 h-4 mr-2" />}
-                            translationKey="github"
-                            providerName="GitHub"
-                        />
-                        <LoginButton
-                            returnUrl={returnUrl}
-                            method={SignInMethod.GOOGLE}
-                            icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="w-4 h-4 mr-2" />}
-                            translationKey="google"
-                            providerName="Google"
-                        />
+                    <div className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2">
+                        {AUTH_PROVIDERS.has('github') && (
+                            <LoginButton
+                                returnUrl={returnUrl}
+                                method={SignInMethod.GITHUB}
+                                icon={<Icons.GitHubLogo className="mr-2 h-4 w-4" />}
+                                translationKey="github"
+                                providerName="GitHub"
+                            />
+                        )}
+                        {AUTH_PROVIDERS.has('google') && (
+                            <LoginButton
+                                returnUrl={returnUrl}
+                                method={SignInMethod.GOOGLE}
+                                icon={
+                                    <Icons.GoogleLogo
+                                        viewBox="0 0 24 24"
+                                        className="mr-2 h-4 w-4"
+                                    />
+                                }
+                                translationKey="google"
+                                providerName="Google"
+                            />
+                        )}
                     </div>
                     {env.NEXT_PUBLIC_SHOW_DEV_LOGIN && <DevLoginButton returnUrl={returnUrl} />}
                     <div className="flex items-center gap-3">
-                        <div className="h-px flex-1 bg-border" />
+                        <div className="bg-border h-px flex-1" />
                         <span className="text-small text-foreground-tertiary">or</span>
-                        <div className="h-px flex-1 bg-border" />
+                        <div className="bg-border h-px flex-1" />
                     </div>
-                    <form onSubmit={handleSendCode} className="space-y-2">
+                    <form
+                        onSubmit={(event) => {
+                            void handleSendCode(event);
+                        }}
+                        className="space-y-2"
+                    >
                         <Input
                             type="email"
                             placeholder={t(transKeys.welcome.login.emailPlaceholder)}
@@ -95,9 +120,7 @@ export default function LoginPage() {
                             disabled={isEmailLoading}
                             required
                         />
-                        {emailError && (
-                            <p className="text-small text-red-500">{emailError}</p>
-                        )}
+                        {emailError && <p className="text-small text-red-500">{emailError}</p>}
                         <Button
                             type="submit"
                             variant="outline"
@@ -106,7 +129,7 @@ export default function LoginPage() {
                         >
                             {isEmailLoading ? (
                                 <>
-                                    <Icons.LoadingSpinner className="w-4 h-4 mr-2 animate-spin" />
+                                    <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                                     {t(transKeys.welcome.login.sending)}
                                 </>
                             ) : (
@@ -122,8 +145,7 @@ export default function LoginPage() {
                             className="text-foreground-secondary hover:text-foreground-primary underline transition-colors duration-200"
                         >
                             {t(transKeys.welcome.terms.privacy)}
-                        </Link>
-                        {' '}
+                        </Link>{' '}
                         {t(transKeys.welcome.terms.and)}{' '}
                         <Link
                             href="https://weblab.build/terms-of-service"
@@ -134,15 +156,15 @@ export default function LoginPage() {
                         </Link>
                     </p>
                 </div>
-                <div className="flex flex-row space-x-1 text-small text-foreground-tertiary">
-                    <p>{t(transKeys.welcome.version, { version: '1.0.0' })}</p>
+                <div className="text-small text-foreground-tertiary flex flex-row space-x-1">
+                    <p>{t(transKeys.welcome.version, { version: pkg.version })}</p>
                 </div>
             </div>
-            <div className="hidden w-full md:block m-6">
+            <div className="m-6 hidden w-full md:block">
                 <Image
-                    className="w-full h-full object-cover rounded-xl"
+                    className="h-full w-full rounded-xl object-cover"
                     src={backgroundUrl}
-                    alt="Weblab dunes dark"
+                    alt=""
                     width={1000}
                     height={1000}
                 />
