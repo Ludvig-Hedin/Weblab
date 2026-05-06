@@ -53,7 +53,11 @@ import {
     ProviderTerminal,
 } from '../../types';
 
-export interface NodeFsProviderOptions {}
+export interface NodeFsProviderOptions {
+    rootPath?: string | null;
+    devCommand?: string | null;
+    port?: number | null;
+}
 
 export class NodeFsProvider extends Provider {
     private readonly options: NodeFsProviderOptions;
@@ -134,7 +138,7 @@ export class NodeFsProvider extends Provider {
 
     async getTask(input: GetTaskInput): Promise<GetTaskOutput> {
         return {
-            task: new NodeFsTask(),
+            task: new NodeFsTask(this.options),
         };
     }
 
@@ -188,6 +192,7 @@ export class NodeFsProvider extends Provider {
     static async createProjectFromGit(input: {
         repoUrl: string;
         branch: string;
+        subpath?: string;
     }): Promise<CreateProjectOutput> {
         throw new Error('createProjectFromGit not implemented for NodeFs provider');
     }
@@ -254,16 +259,20 @@ export class NodeFsTerminal extends ProviderTerminal {
 }
 
 export class NodeFsTask extends ProviderTask {
+    constructor(private readonly options: NodeFsProviderOptions) {
+        super();
+    }
+
     get id(): string {
-        return 'unimplemented';
+        return 'local-dev';
     }
 
     get name(): string {
-        return 'unimplemented';
+        return 'Local dev server';
     }
 
     get command(): string {
-        return 'unimplemented';
+        return this.options.devCommand ?? 'local dev server';
     }
 
     open(): Promise<string> {

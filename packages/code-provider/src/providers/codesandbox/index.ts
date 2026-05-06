@@ -185,10 +185,12 @@ export class CodesandboxProvider extends Provider {
     static async createProjectFromGit(input: {
         repoUrl: string;
         branch: string;
+        subpath?: string;
         privacy?: 'public' | 'unlisted' | 'private';
     }): Promise<CreateProjectOutput> {
         const sdk = new CodeSandbox();
         const TIMEOUT_MS = 30000;
+        const subpath = input.subpath?.trim();
 
         const createPromise = sdk.sandboxes.create({
             source: 'git',
@@ -196,6 +198,33 @@ export class CodesandboxProvider extends Provider {
             branch: input.branch,
             privacy: input.privacy,
             async setup(session) {
+                if (subpath) {
+                    // Explicit `bash -c` because the script uses bash-only features
+                    // (`set -o pipefail`, `shopt`); the sandbox's default `sh` may
+                    // not be bash. The path itself is passed via env to avoid
+                    // shell-injection through interpolation.
+                    await session.commands.run(
+                        `bash -c '
+set -euo pipefail
+SUBPATH="\${WEBLAB_TEMPLATE_SUBPATH:-}"
+case "$SUBPATH" in
+  ""|/*|*..*|*//*) exit 64 ;;
+esac
+test -d "$SUBPATH"
+tmp="$(mktemp -d)"
+shopt -s dotglob nullglob
+cp -a "$SUBPATH"/. "$tmp"/
+find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+cp -a "$tmp"/. .
+rm -rf "$tmp"
+'`,
+                        {
+                            env: {
+                                WEBLAB_TEMPLATE_SUBPATH: subpath,
+                            },
+                        },
+                    );
+                }
                 await session.setup.run();
             },
         });
