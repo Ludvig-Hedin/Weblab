@@ -1,17 +1,19 @@
 'use client';
 
-import { Hotkey } from '@/components/hotkey';
-import { useEditorEngine } from '@/components/store/editor';
-import { transKeys } from '@/i18n/keys';
+import { useCallback, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+
 import { EditorMode } from '@weblab/models';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { AnimatePresence, motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useCallback, useRef, useState } from 'react';
+
+import { Hotkey } from '@/components/hotkey';
+import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
 import { TerminalArea } from './terminal-area';
 
 const MIN_SCALE = 0.1;
@@ -120,7 +122,7 @@ export const BottomBar = observer(() => {
     }, [zoomInputValue, editorEngine.canvas]);
 
     return (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-4">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <AnimatePresence mode="wait">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -128,7 +130,7 @@ export const BottomBar = observer(() => {
                         opacity: shouldShow ? 1 : 0,
                         y: shouldShow ? 0 : 20,
                     }}
-                    className="flex flex-col border-[0.5px] border-border p-1 px-1.5 bg-background rounded-full backdrop-blur drop-shadow-xl"
+                    className="border-border bg-background flex flex-col rounded-full border-[0.5px] p-1 px-1.5 drop-shadow-xl backdrop-blur"
                     transition={{
                         type: 'spring',
                         bounce: 0.1,
@@ -153,7 +155,7 @@ export const BottomBar = observer(() => {
                                             }
                                             aria-label={item.hotkey.description}
                                             className={cn(
-                                                'h-9 w-9 flex items-center justify-center rounded-full border border-transparent transition-all duration-150 ease-in-out',
+                                                'flex h-9 w-9 items-center justify-center rounded-full border border-transparent transition-all duration-150 ease-in-out',
                                                 editorEngine.state.editorMode === item.mode
                                                     ? 'bg-background-tertiary/50 text-foreground-primary'
                                                     : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50',
@@ -169,7 +171,7 @@ export const BottomBar = observer(() => {
                             ))}
                         </div>
 
-                        <div className="w-px h-5 bg-border/60 mx-0.5" />
+                        <div className="bg-border/60 mx-0.5 h-5 w-px" />
 
                         {/* Zoom controls */}
                         <div className="flex items-center gap-0">
@@ -180,7 +182,7 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale / ZOOM_FACTOR,
                                     );
                                 }}
-                                className="h-7 w-6 flex items-center justify-center text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 rounded-full transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-7 w-6 items-center justify-center rounded-full transition-all duration-150"
                                 aria-label="Zoom out"
                             >
                                 <Icons.Minus className="h-3 w-3" />
@@ -210,10 +212,10 @@ export const BottomBar = observer(() => {
                                 onPointerMove={handleZoomPointerMove}
                                 onPointerUp={handleZoomPointerUp}
                                 className={cn(
-                                    'w-10 text-xs text-foreground-secondary text-center bg-transparent border-none outline-none select-none tabular-nums transition-colors',
+                                    'text-foreground-secondary w-10 border-none bg-transparent text-center text-xs tabular-nums transition-colors outline-none select-none',
                                     isEditingZoom
-                                        ? 'cursor-text text-foreground-primary'
-                                        : 'cursor-ew-resize hover:text-foreground-primary',
+                                        ? 'text-foreground-primary cursor-text'
+                                        : 'hover:text-foreground-primary cursor-ew-resize',
                                 )}
                             />
 
@@ -224,7 +226,7 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale * ZOOM_FACTOR,
                                     );
                                 }}
-                                className="h-7 w-6 flex items-center justify-center text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 rounded-full transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-7 w-6 items-center justify-center rounded-full transition-all duration-150"
                                 aria-label="Zoom in"
                             >
                                 <Icons.Plus className="h-3 w-3" />

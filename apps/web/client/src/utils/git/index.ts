@@ -81,7 +81,7 @@ export function prepareCommitMessage(message: string): string {
 export async function withSyncPaused<T>(
     sync: { pause: () => void; unpause: () => Promise<void> } | null | undefined,
     operation: () => Promise<T>,
-    delayMs: number = 1000,
+    delayMs = 1000,
 ): Promise<T> {
     if (!sync) {
         return operation();
@@ -92,7 +92,7 @@ export async function withSyncPaused<T>(
         const result = await operation();
 
         // Wait for filesystem changes to settle before unpausing
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
 
         return result;
     } finally {

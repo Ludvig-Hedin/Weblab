@@ -1,12 +1,13 @@
 'use client';
 
-import { ExternalRoutes } from '@/utils/constants';
+import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+
 import { APP_NAME } from '@weblab/constants';
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+
+import { ExternalRoutes } from '@/utils/constants';
 import { WebsiteLayout } from '../_components/website-layout';
 
 type Platform = 'mac' | 'win' | 'linux' | 'ios' | 'other';
@@ -94,26 +95,19 @@ export default function DownloadPage() {
                         Download {APP_NAME}
                     </h1>
                     <p className="text-foreground-secondary max-w-xl text-base">
-                        The same {APP_NAME}, wrapped natively for your device. Sign in once
-                        and your session syncs with the web app.
+                        The same {APP_NAME}, wrapped natively for your device. Sign in once and your
+                        session syncs with the web app.
                     </p>
                 </motion.div>
 
                 <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
                     {OPTIONS.map((option, index) => {
-                        // Hide the iOS card while the TestFlight invite URL is still a
-                        // placeholder. Once the real invite is published, this short-
-                        // circuits and the card renders.
-                        if (
-                            option.id === 'ios' &&
-                            ExternalRoutes.DOWNLOAD_IOS.includes('PLACEHOLDER')
-                        ) {
-                            return null;
-                        }
                         const Icon = Icons[option.icon] as React.ComponentType<{
                             className?: string;
                         }>;
                         const isRecommended = option.id === detected;
+                        // All native binaries are not yet published. Show a
+                        // "Coming soon" pill instead of linking to dead URLs.
                         return (
                             <motion.div
                                 key={option.id}
@@ -131,7 +125,7 @@ export default function DownloadPage() {
                                 )}
                             >
                                 {isRecommended && (
-                                    <span className="bg-foreground-primary text-background-primary absolute -top-2 right-4 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                                    <span className="bg-foreground-primary text-background-primary absolute -top-2 right-4 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase">
                                         Recommended
                                     </span>
                                 )}
@@ -148,24 +142,9 @@ export default function DownloadPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <Button
-                                    asChild
-                                    className={cn(
-                                        'mt-auto w-full',
-                                        isRecommended &&
-                                            'bg-foreground-primary text-background-primary hover:bg-foreground-hover',
-                                    )}
-                                    variant={isRecommended ? 'default' : 'outline'}
-                                >
-                                    <a
-                                        href={option.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        <Icons.Download className="h-4 w-4" />
-                                        {option.cta}
-                                    </a>
-                                </Button>
+                                <div className="border-foreground-secondary/20 bg-background-tertiary/40 text-foreground-secondary mt-auto inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium">
+                                    Coming soon
+                                </div>
                                 {option.note && (
                                     <p className="text-foreground-tertiary text-xs leading-relaxed">
                                         {option.note}
@@ -182,10 +161,10 @@ export default function DownloadPage() {
                     transition={{ duration: 0.5, delay: 0.4 }}
                     className="text-foreground-tertiary mt-12 max-w-2xl text-center text-xs leading-relaxed"
                 >
-                    Sign-in works the same as the web app — Google, GitHub or email. The
-                    desktop and iOS apps route OAuth through your system browser so providers
-                    accept the login, then drop you back into the app already signed in.
-                    Looking for older versions? Browse the{' '}
+                    Sign-in works the same as the web app — Google, GitHub or email. The desktop and
+                    iOS apps route OAuth through your system browser so providers accept the login,
+                    then drop you back into the app already signed in. Looking for older versions?
+                    Browse the{' '}
                     <a
                         href={ExternalRoutes.DOWNLOAD_PAGE}
                         target="_blank"

@@ -1,12 +1,14 @@
 'use client';
+
+import { motion } from 'motion/react';
+
 import { APP_NAME } from '@weblab/constants';
+import { Icons } from '@weblab/ui/icons';
 
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { Icons } from '@weblab/ui/icons';
-import { motion } from 'motion/react';
 import { AiFrontendHero } from '../../_components/hero/ai-frontend-hero';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQSection } from '../../_components/landing-page/faq-section';
@@ -44,7 +46,7 @@ const aiFrontendFaqs = [
     },
     {
         question: 'Do I need to know how to code?',
-        answer: 'No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don\'t need to touch it unless you want to.',
+        answer: "No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don't need to touch it unless you want to.",
     },
     {
         question: `Who is ${APP_NAME} for?`,
@@ -53,7 +55,7 @@ const aiFrontendFaqs = [
 ];
 
 // Helper function for blur animations
-const getBlurAnimationProps = (delay: number = 0) => ({
+const getBlurAnimationProps = (delay = 0) => ({
     initial: { opacity: 0, filter: 'blur(4px)' },
     whileInView: { opacity: 1, filter: 'blur(0px)' },
     viewport: { once: true, margin: '-100px 0px -100px 0px', amount: 0.3 },
@@ -78,7 +80,9 @@ export default function AiForFrontendPage() {
                 </div>
 
                 {/* AI-Friendly Summary Section - Hidden visually but available for crawlers */}
-                <section className="sr-only" aria-label="Product Summary`>
+                <section
+                    className="sr-only"
+                    aria-label="Product Summary`>
                     <h1>${APP_NAME}: AI for Frontend Development</h1>
                     <p>
                         ${APP_NAME} is an AI-powered visual editor for frontend development that connects to your existing
@@ -105,16 +109,17 @@ export default function AiForFrontendPage() {
                 </section>
 
                 {/* The Problem Section */}
-                <section className=`w-full bg-black py-32">
+                <section className=`w-full bg-black py-32"
+                >
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Problem
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
                             AI generates code. But it doesn't know your design system.
@@ -125,22 +130,26 @@ export default function AiForFrontendPage() {
                                 {
                                     icon: Icons.CrossCircled,
                                     title: 'Generic output',
-                                    description: 'AI tools generate throwaway HTML/CSS that doesn\'t match your components.',
+                                    description:
+                                        "AI tools generate throwaway HTML/CSS that doesn't match your components.",
                                 },
                                 {
                                     icon: Icons.Brand,
                                     title: 'Brand drift',
-                                    description: 'Without constraints, AI outputs drift off-brand with inconsistent styling.',
+                                    description:
+                                        'Without constraints, AI outputs drift off-brand with inconsistent styling.',
                                 },
                                 {
                                     icon: Icons.Code,
                                     title: 'Translation required',
-                                    description: 'Generated code needs to be rebuilt to work with your real components.',
+                                    description:
+                                        'Generated code needs to be rebuilt to work with your real components.',
                                 },
                                 {
                                     icon: Icons.Stop,
                                     title: 'Not mergeable',
-                                    description: 'Prototypes stay prototypes — they can\'t become production code directly.',
+                                    description:
+                                        "Prototypes stay prototypes — they can't become production code directly.",
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -149,8 +158,12 @@ export default function AiForFrontendPage() {
                                     {...getBlurAnimationProps(0.2 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-base text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-base text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -161,13 +174,13 @@ export default function AiForFrontendPage() {
                 <section className="w-full bg-black pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Solution
                         </motion.h2>
                         <motion.p
-                            className="mb-24 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-24 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
                             AI constrained to your design system. No drift. No translation.
@@ -176,7 +189,7 @@ export default function AiForFrontendPage() {
 
                     {/* Editor Mockup */}
                     <motion.div
-                        className="hidden md:block w-screen h-[44rem] items-center justify-center mb-24"
+                        className="mb-24 hidden h-[44rem] w-screen items-center justify-center md:block"
                         {...getBlurAnimationProps(0.2)}
                     >
                         <WeblabInterfaceMockup />
@@ -188,22 +201,26 @@ export default function AiForFrontendPage() {
                                 {
                                     icon: Icons.Component,
                                     title: 'Your real components',
-                                    description: 'AI uses your actual buttons, cards, and layouts — not generic alternatives.',
+                                    description:
+                                        'AI uses your actual buttons, cards, and layouts — not generic alternatives.',
                                 },
                                 {
                                     icon: Icons.Brand,
                                     title: 'Your design tokens',
-                                    description: 'Colors, spacing, typography — AI respects your existing system.',
+                                    description:
+                                        'Colors, spacing, typography — AI respects your existing system.',
                                 },
                                 {
                                     icon: Icons.Check,
                                     title: 'PR-ready output',
-                                    description: 'Changes become real PRs. Engineers review and merge directly.',
+                                    description:
+                                        'Changes become real PRs. Engineers review and merge directly.',
                                 },
                                 {
                                     icon: Icons.Sparkles,
                                     title: 'Visual + AI',
-                                    description: 'Point-and-click interface with AI that understands context.',
+                                    description:
+                                        'Point-and-click interface with AI that understands context.',
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -212,8 +229,12 @@ export default function AiForFrontendPage() {
                                     {...getBlurAnimationProps(0.3 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-sm text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-sm text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -224,31 +245,63 @@ export default function AiForFrontendPage() {
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             Works With Your Stack
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            React, Next.js, Vue, Angular. Tailwind, CSS Modules, styled-components. Your stack, your way.
+                            React, Next.js, Vue, Angular. Tailwind, CSS Modules, styled-components.
+                            Your stack, your way.
                         </motion.p>
 
                         <div className="grid gap-6 md:grid-cols-3">
                             {[
                                 {
                                     title: 'Frameworks',
-                                    items: ['React', 'Next.js', 'Vue', 'Angular', 'Svelte', 'Preact', 'SolidJS', 'Qwik', 'Web Components'],
+                                    items: [
+                                        'React',
+                                        'Next.js',
+                                        'Vue',
+                                        'Angular',
+                                        'Svelte',
+                                        'Preact',
+                                        'SolidJS',
+                                        'Qwik',
+                                        'Web Components',
+                                    ],
                                 },
                                 {
                                     title: 'Styling',
-                                    items: ['Tailwind CSS', 'CSS Modules', 'styled-components', 'Emotion', 'SASS/SCSS', 'Less', 'Vanilla Extract', 'Stitches', 'Plain CSS'],
+                                    items: [
+                                        'Tailwind CSS',
+                                        'CSS Modules',
+                                        'styled-components',
+                                        'Emotion',
+                                        'SASS/SCSS',
+                                        'Less',
+                                        'Vanilla Extract',
+                                        'Stitches',
+                                        'Plain CSS',
+                                    ],
                                 },
                                 {
                                     title: 'Component Libraries',
-                                    items: ['shadcn/ui', 'Material UI', 'Mantine', 'Chakra UI', 'Radix UI', 'Ant Design', 'Headless UI', 'Blueprint', 'Fluent UI', 'PrimeReact'],
+                                    items: [
+                                        'shadcn/ui',
+                                        'Material UI',
+                                        'Mantine',
+                                        'Chakra UI',
+                                        'Radix UI',
+                                        'Ant Design',
+                                        'Headless UI',
+                                        'Blueprint',
+                                        'Fluent UI',
+                                        'PrimeReact',
+                                    ],
                                 },
                             ].map((category, categoryIndex) => (
                                 <motion.div
@@ -256,7 +309,9 @@ export default function AiForFrontendPage() {
                                     className="border-foreground-primary/10 rounded-lg border p-6"
                                     {...getBlurAnimationProps(0.2 + categoryIndex * 0.1)}
                                 >
-                                    <h3 className="text-foreground-secondary mb-4 text-sm font-medium uppercase tracking-wider">{category.title}</h3>
+                                    <h3 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
+                                        {category.title}
+                                    </h3>
                                     <ul className="flex flex-col gap-2">
                                         {category.items.map((item, itemIndex) => (
                                             <motion.li
@@ -267,7 +322,10 @@ export default function AiForFrontendPage() {
                                                 viewport={{ once: true, margin: '-50px' }}
                                                 transition={{
                                                     duration: 0.3,
-                                                    delay: 0.3 + categoryIndex * 0.1 + itemIndex * 0.03,
+                                                    delay:
+                                                        0.3 +
+                                                        categoryIndex * 0.1 +
+                                                        itemIndex * 0.03,
                                                     ease: [0.25, 0.46, 0.45, 0.94],
                                                 }}
                                             >

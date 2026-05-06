@@ -1,10 +1,12 @@
+import { nanoid } from 'nanoid';
+
 import type { Provider } from '@weblab/code-provider';
 import type { FileEntry } from '@weblab/file-system';
 import type { PageMetadata, PageNode, RouterConfig } from '@weblab/models';
-import { RouterType } from '@weblab/models';
 import type { T } from '@weblab/parser';
+import { RouterType } from '@weblab/models';
 import { formatContent, generate, getAstFromContent, t, traverse } from '@weblab/parser';
-import { nanoid } from 'nanoid';
+
 import type { SandboxManager } from '../sandbox';
 
 const DEFAULT_LAYOUT_CONTENT = `export default function Layout({
@@ -265,13 +267,7 @@ const createPageNode = ({
     };
 };
 
-const createFolderNode = ({
-    path,
-    children,
-}: {
-    path: string;
-    children: PageNode[];
-}): PageNode => {
+const createFolderNode = ({ path, children }: { path: string; children: PageNode[] }): PageNode => {
     const normalizedPath = normalizePagePath(path);
     const defaultName = getDefaultNodeName(normalizedPath);
 
@@ -325,10 +321,7 @@ const createObjectPropertyKey = (key: string): T.Identifier | T.StringLiteral =>
     return /^[$A-Z_][0-9A-Z_$]*$/i.test(key) ? t.identifier(key) : t.stringLiteral(key);
 };
 
-const createMetadataValueNode = (
-    value: unknown,
-    key?: string,
-): T.Expression => {
+const createMetadataValueNode = (value: unknown, key?: string): T.Expression => {
     if (value instanceof URL || (key === 'metadataBase' && typeof value === 'string')) {
         return t.newExpression(t.identifier('URL'), [t.stringLiteral(value.toString())]);
     }
@@ -394,11 +387,7 @@ const extractNodeValue = (node: T.Node | null | undefined): unknown => {
         return null;
     }
 
-    if (
-        t.isNewExpression(node) &&
-        t.isIdentifier(node.callee) &&
-        node.callee.name === 'URL'
-    ) {
+    if (t.isNewExpression(node) && t.isIdentifier(node.callee) && node.callee.name === 'URL') {
         const firstArgument = node.arguments[0];
         if (firstArgument && t.isStringLiteral(firstArgument)) {
             return firstArgument.value;
@@ -653,12 +642,8 @@ const scanPagesDirectory = async (
     }
 
     const currentPath = normalizePagePath(parentPath);
-    const indexPage = pageNodes.find(
-        (node) => normalizePagePath(node.path) === currentPath,
-    );
-    const otherPages = pageNodes.filter(
-        (node) => normalizePagePath(node.path) !== currentPath,
-    );
+    const indexPage = pageNodes.find((node) => normalizePagePath(node.path) === currentPath);
+    const otherPages = pageNodes.filter((node) => normalizePagePath(node.path) !== currentPath);
     const siblings = sortPageNodes([...otherPages, ...folderNodes]);
 
     if (!ROOT_PATH_IDENTIFIERS.includes(currentPath) && indexPage && siblings.length > 0) {
@@ -689,12 +674,9 @@ export const scanPagesFromSandbox = async (sandboxManager: SandboxManager): Prom
     }
 };
 
-
 // TODO: We're calling getRouterConfig in a lot of places before the provider is initialized.
 // We should ensure it's initialized earlier during setup.
-export const detectRouterConfig = async (
-    provider: Provider,
-): Promise<RouterConfig | null> => {
+export const detectRouterConfig = async (provider: Provider): Promise<RouterConfig | null> => {
     // Check for App Router
     for (const appPath of APP_ROUTER_PATHS) {
         try {

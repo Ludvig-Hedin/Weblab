@@ -1,6 +1,7 @@
-import { cn } from '@weblab/ui/utils';
 import { Icons } from '@weblab/ui/icons';
-import { EditorView } from '@codemirror/view';
+import { cn } from '@weblab/ui/utils';
+
+import type { EditorView } from '@codemirror/view';
 
 interface FloatingAddToChatButtonProps {
     editor: EditorView;
@@ -18,7 +19,7 @@ export const FloatingAddToChatButton = ({
         try {
             const coords = editor.coordsAtPos(selection.from);
             const endCoords = editor.coordsAtPos(selection.to);
-            
+
             if (!coords || !endCoords) return null;
 
             const editorElement = editor.dom;
@@ -37,7 +38,7 @@ export const FloatingAddToChatButton = ({
     };
 
     const selectionRect = getSelectionRect();
-    
+
     if (!selectionRect) return null;
 
     // Position the button above the selection with some margin
@@ -51,28 +52,21 @@ export const FloatingAddToChatButton = ({
     };
 
     return (
-        <div
-            style={buttonStyle}
-            onClick={(e) => e.stopPropagation()}
-        >
+        <div style={buttonStyle} onClick={(e) => e.stopPropagation()}>
             <div
                 className={cn(
                     'rounded-lg backdrop-blur-lg',
-                    'shadow-xl shadow-background-secondary/50',
+                    'shadow-background-secondary/50 shadow-xl',
                     'bg-background-primary/85 dark:bg-primary/20 border-foreground-secondary/20 hover:border-foreground-secondary/50',
-                    'border flex relative'
+                    'relative flex border',
                 )}
             >
                 <button
                     onClick={onAddToChat}
-                    className="rounded-md hover:text-foreground-primary px-2.5 py-1.5 flex flex-row items-center gap-2 w-full"
+                    className="hover:text-foreground-primary flex w-full flex-row items-center gap-2 rounded-md px-2.5 py-1.5"
                 >
-                    <span className="text-mini !font-medium whitespace-nowrap">
-                        Add to Chat
-                    </span>
-                    <span className="text-mini opacity-60 ml-1">
-                        ⌘L
-                    </span>
+                    <span className="text-mini !font-medium whitespace-nowrap">Add to Chat</span>
+                    <span className="text-mini ml-1 opacity-60">⌘L</span>
                 </button>
             </div>
         </div>

@@ -110,10 +110,10 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
 
     const selectedModel: ChatModel = body.model ?? CHAT_MODEL_OPTIONS[0].model;
     if (!isValidChatModel(selectedModel)) {
-        return new Response(
-            JSON.stringify({ error: 'Invalid model identifier.', code: 400 }),
-            { status: 400, headers: { 'Content-Type': 'application/json' } },
-        );
+        return new Response(JSON.stringify({ error: 'Invalid model identifier.', code: 400 }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
     const isLocalModel = selectedModel.startsWith('ollama/');
 

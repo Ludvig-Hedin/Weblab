@@ -1,4 +1,4 @@
-# Build Onlook web client
+# Build Weblab web client
 FROM oven/bun:1
 
 WORKDIR /app

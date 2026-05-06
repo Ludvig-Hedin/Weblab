@@ -49,7 +49,7 @@
             "clone": "克隆",
             "goToAllProjects": "查看所有项目",
             "newProject": "新建项目",
-            "blankProject": "空白项目",
+            "blankProject": "创建项目",
             "startFromScratch": "从零开始",
             "importProject": "导入项目",
             "subscriptions": "订阅",
@@ -60,7 +60,7 @@
             "downloadError": "下载失败",
             "downloadToFolder": "下载到文件夹…",
             "downloadingToFolder": "正在保存到文件夹…",
-            "openLocalFolder": "打开本地文件夹",
+            "openLocalFolder": "导入文件夹",
             "openingLocalFolder": "正在打开…",
             "importingLocalFolder": "正在上传文件…",
             "localFolderUnsupportedTooltip": "本地文件夹访问需要 Chrome、Edge 或 Arc 浏览器",
@@ -164,12 +164,7 @@
                 "name": "Launch",
                 "price": "$50/月",
                 "description": "适用于初创公司和成长型团队",
-                "features": [
-                    "无限制的每日消息",
-                    "优先支持",
-                    "高级集成",
-                    "团队协作功能"
-                ]
+                "features": ["无限制的每日消息", "优先支持", "高级集成", "团队协作功能"]
             },
             "scale": {
                 "name": "Scale",
@@ -291,7 +286,9 @@
                         },
                         "openInCode": {
                             "button": "在代码中打开"
-                        }
+                        },
+                        "noActiveConversation": "没有活动对话",
+                        "startNewConversation": "开始新对话"
                     },
                     "styles": {
                         "name": "样式",

@@ -1,5 +1,5 @@
-import { IdeType } from '@weblab/models/ide';
 import type { Icons } from '@weblab/ui/icons';
+import { IdeType } from '@weblab/models/ide';
 import { assertNever } from '@weblab/utility';
 
 export class IDE {
@@ -14,7 +14,7 @@ export class IDE {
         public readonly type: IdeType,
         public readonly command: string,
         public readonly icon: keyof typeof Icons,
-    ) { }
+    ) {}
 
     toString() {
         return this.displayName;

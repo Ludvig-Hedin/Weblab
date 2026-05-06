@@ -1,10 +1,10 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { type Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: `Claude Code for Designers: Add a Visual Canvas to Your Workflow | ${APP_NAME}`,
-    description:
-        `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
+    description: `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
     keywords: [
         // Primary keywords
         'claude code for designers',
@@ -33,11 +33,13 @@ export const metadata: Metadata = {
         type: 'website',
         siteName: APP_NAME,
         title: `Claude Code for Designers: Add a Visual Canvas to Your Workflow | ${APP_NAME}`,
-        description:
-            `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
+        description: `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} Claude Code workflow preview`,
             },
         ],
     },
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
             'The visual canvas your Claude Code workflow is missing. Design with your real components, collaborate with your team, ship PRs.',
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/favicon.ico',
             },
         ],
     }, */
@@ -77,8 +79,7 @@ const jsonLd = {
     name: `${APP_NAME} for Claude Code`,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web',
-    description:
-        `${APP_NAME} adds a visual design layer to Claude Code. An infinite canvas for AI-built UIs with your real components, team collaboration, and direct PR output.`,
+    description: `${APP_NAME} adds a visual design layer to Claude Code. An infinite canvas for AI-built UIs with your real components, team collaboration, and direct PR output.`,
     url: `https://${APP_DOMAIN}/workflows/claude-code`,
     featureList: [
         'Infinite canvas for Claude Code projects',

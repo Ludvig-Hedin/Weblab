@@ -1,8 +1,8 @@
-import { type Deployment, type DrizzleDb } from '@weblab/db';
-import {
-    DeploymentStatus
-} from '@weblab/models';
 import { TRPCError } from '@trpc/server';
+
+import { type Deployment, type DrizzleDb } from '@weblab/db';
+import { DeploymentStatus } from '@weblab/models';
+
 import { deployFreestyle } from './deploy';
 import { updateDeployment } from './helpers';
 
@@ -45,4 +45,4 @@ export const unpublish = async (db: DrizzleDb, deployment: Deployment, urls: str
         });
         throw error;
     }
-}
+};

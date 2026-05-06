@@ -55,9 +55,7 @@ export function FeaturesHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={Routes.PROJECTS}>
-                            Get Started
-                        </a>
+                        <a href={Routes.PROJECTS}>Get Started</a>
                     </Button>
                 </motion.div>
                 <motion.div

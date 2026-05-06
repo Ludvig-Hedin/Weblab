@@ -1,5 +1,6 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: `Features | ${APP_NAME} - AI-Powered Visual Editor for React, Vue, Angular`,
@@ -29,13 +30,17 @@ export const metadata: Metadata = {
     ],
     openGraph: {
         title: 'Features | ${APP_NAME}',
-        description: 'AI-powered visual editor with infinite canvas, real-time collaboration, component library integration, and direct PR output.',
+        description:
+            'AI-powered visual editor with infinite canvas, real-time collaboration, component library integration, and direct PR output.',
         type: 'website',
         url: `https://${APP_DOMAIN}/features`,
         siteName: APP_NAME,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} features preview`,
             },
         ],
     },
@@ -43,7 +48,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Features | ${APP_NAME}',
         description: 'AI-powered visual editor with infinite canvas, real-time collaboration, and direct PR output.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/features`,
@@ -136,11 +141,7 @@ const faqJsonLd = {
     ],
 };
 
-export default function FeaturesLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function FeaturesLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script

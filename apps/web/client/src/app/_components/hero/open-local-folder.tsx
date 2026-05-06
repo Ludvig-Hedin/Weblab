@@ -8,10 +8,8 @@ import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { transKeys } from '@/i18n/keys';
 
 /**
- * Hero CTA that picks a local folder and imports it as a new project. Sibling
- * to {@link StartBlank}; safe to render even on Safari/Firefox — the click
- * handler surfaces a toast explaining the browser requirement when the File
- * System Access API is unavailable.
+ * Hero CTA that picks a local folder and imports it into a cloud-backed
+ * project. True local editing is handled by the desktop local provider path.
  */
 export function OpenLocalFolder() {
     const { handleImportLocalProject, isImporting } = useImportLocalProject();

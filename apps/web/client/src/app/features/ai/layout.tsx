@@ -37,7 +37,10 @@ export const metadata: Metadata = {
         siteName: 'Weblab',
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: 'Weblab AI visual editor preview',
             },
         ],
     },
@@ -46,7 +49,7 @@ export const metadata: Metadata = {
         title: 'AI Visual Editor | Weblab',
         description:
             'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: 'https://weblab.build/features/ai',
@@ -109,7 +112,7 @@ const faqJsonLd = {
             name: 'How does Weblab AI differ from other AI code generators?',
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: "Most AI tools generate generic HTML/CSS from scratch. Weblab connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed.",
+                text: 'Most AI tools generate generic HTML/CSS from scratch. Weblab connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed.',
             },
         },
         {

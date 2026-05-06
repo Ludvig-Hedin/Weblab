@@ -2,6 +2,7 @@
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+
 import type { FolderData } from './types';
 
 interface FolderListProps {
@@ -16,9 +17,7 @@ export const FolderList = ({ folders, onFolderClick }: FolderListProps) => {
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="text-xs font-medium text-foreground-secondary">
-                Folders
-            </div>
+            <div className="text-foreground-secondary text-xs font-medium">Folders</div>
             <div className="flex flex-wrap gap-1">
                 {folders.map((folder) => (
                     <Button
@@ -28,7 +27,7 @@ export const FolderList = ({ folders, onFolderClick }: FolderListProps) => {
                         className="h-7 text-xs"
                         onClick={() => onFolderClick(folder)}
                     >
-                        <Icons.File className="w-3 h-3 mr-1" />
+                        <Icons.File className="mr-1 h-3 w-3" />
                         {folder.name}
                     </Button>
                 ))}

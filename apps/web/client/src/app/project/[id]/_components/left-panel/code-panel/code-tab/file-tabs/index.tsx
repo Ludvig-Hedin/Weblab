@@ -1,14 +1,16 @@
-'use client'
+'use client';
+
+import { useEffect, useRef } from 'react';
 
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { pathsEqual } from '@weblab/utility';
-import { useEffect, useRef } from 'react';
+
 import type { EditorFile } from '../shared/types';
 import { FileTab } from './file-tab';
 
@@ -54,8 +56,8 @@ export const FileTabs = ({
     }, [activeFile?.path]);
 
     return (
-        <div className="flex items-center justify-between h-10 pl-0 border-b-[0.5px] flex-shrink-0 relative">
-            <div className="flex items-center h-full overflow-x-auto w-full" ref={ref}>
+        <div className="relative flex h-10 flex-shrink-0 items-center justify-between border-b-[0.5px] pl-0">
+            <div className="flex h-full w-full items-center overflow-x-auto" ref={ref}>
                 {openedFiles.map((file) => (
                     <FileTab
                         key={file.path}
@@ -67,9 +69,9 @@ export const FileTabs = ({
                     />
                 ))}
             </div>
-            <div className="flex items-center h-full border-l-[0.5px] p-1 bg-background w-11">
+            <div className="bg-background flex h-full w-11 items-center border-l-[0.5px] p-1">
                 <DropdownMenu>
-                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-foreground/5 p-1 rounded h-full w-full flex items-center justify-center px-2.5">
+                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex h-full w-full items-center justify-center rounded p-1 px-2.5">
                         <Icons.DotsHorizontal className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="-mt-1">

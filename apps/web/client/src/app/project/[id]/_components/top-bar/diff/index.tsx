@@ -1,11 +1,13 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { useCallback, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
-import { observer } from 'mobx-react-lite';
-import { useCallback, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 import { DiffModal } from './diff-modal';
 
 export const DiffButton = observer(() => {

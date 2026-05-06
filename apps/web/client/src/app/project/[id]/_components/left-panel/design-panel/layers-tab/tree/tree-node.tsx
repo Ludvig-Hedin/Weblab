@@ -58,16 +58,10 @@ const VisibilityButton = memo(
 );
 
 const LayerBadge = memo(
-    ({
-        children,
-        className,
-    }: {
-        children: React.ReactNode;
-        className?: string;
-    }) => (
+    ({ children, className }: { children: React.ReactNode; className?: string }) => (
         <span
             className={cn(
-                'flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] font-semibold leading-none',
+                'flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] leading-none font-semibold',
                 className,
             )}
         >
@@ -321,12 +315,12 @@ export const TreeNode = memo(
                                         iconClass={cn('mr-2 ml-1 h-3 w-3 flex-none', {
                                             'dark:fill-primary fill-white':
                                                 !node.data.instanceId && selected,
-                                            '[&_path]:!fill-[#109BFF] [&_.letter]:!fill-[#109BFF]/50 [&_.level]:!fill-[#109BFF]':
+                                            '[&_.letter]:!fill-[#109BFF]/50 [&_.level]:!fill-[#109BFF] [&_path]:!fill-[#109BFF]':
                                                 node.data.isInteractive &&
                                                 !node.data.instanceId &&
                                                 !selected &&
                                                 !isComponentAncestor(node),
-                                            'dark:[&_path]:!fill-[#6EC8FF] dark:[&_.letter]:!fill-[#6EC8FF]/60 dark:[&_.level]:!fill-[#6EC8FF]':
+                                            'dark:[&_.letter]:!fill-[#6EC8FF]/60 dark:[&_.level]:!fill-[#6EC8FF] dark:[&_path]:!fill-[#6EC8FF]':
                                                 node.data.isInteractive &&
                                                 !node.data.instanceId &&
                                                 !selected &&
@@ -380,7 +374,12 @@ export const TreeNode = memo(
                                     {getNodeName()}
                                 </span>
                                 {showBadges && (
-                                    <div className={cn('ml-auto mr-1 flex items-center gap-1', selected && 'pr-5')}>
+                                    <div
+                                        className={cn(
+                                            'mr-1 ml-auto flex items-center gap-1',
+                                            selected && 'pr-5',
+                                        )}
+                                    >
                                         {node.data.htmlId && (
                                             <LayerBadge
                                                 className={cn(

@@ -52,7 +52,9 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                     className={cn(
                         'fixed inset-0 bg-black/40 backdrop-blur-sm transition-all duration-200 md:hidden',
                         'top-12', // Start below the navbar
-                        isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+                        isOpen
+                            ? 'pointer-events-auto opacity-100'
+                            : 'pointer-events-none opacity-0',
                     )}
                     onClick={() => onOpenChange(false)}
                     style={{ zIndex: 40 }}

@@ -1,7 +1,9 @@
+import { makeAutoObservable } from 'mobx';
+
 import type { JsxElementMetadata } from '@weblab/file-system';
 import type { LayerNode } from '@weblab/models';
 import { getTemplateNodeChild } from '@weblab/parser';
-import { makeAutoObservable } from 'mobx';
+
 import type { BranchData } from '../branch/manager';
 import type { EditorEngine } from '../engine';
 import { LayersManager } from './layers';
@@ -69,13 +71,17 @@ export class AstManager {
 
         const frameData = this.editorEngine.frames.get(frameId);
         if (!frameData) {
-            console.warn(`Failed to processNodeForMap: Frame data not found for frameId: ${frameId}`);
+            console.warn(
+                `Failed to processNodeForMap: Frame data not found for frameId: ${frameId}`,
+            );
             return;
         }
 
         const branchData = this.editorEngine.branches.getBranchDataById(frameData.frame.branchId);
         if (!branchData) {
-            console.warn(`Failed to processNodeForMap: Branch data not found for branchId: ${frameData.frame.branchId}`);
+            console.warn(
+                `Failed to processNodeForMap: Branch data not found for branchId: ${frameData.frame.branchId}`,
+            );
             return;
         }
 
@@ -166,11 +172,7 @@ export class AstManager {
             }
 
             const res: { instanceId: string; component: string } | null =
-                await getTemplateNodeChild(
-                    parentMetadata.code,
-                    metadata,
-                    index,
-                );
+                await getTemplateNodeChild(parentMetadata.code, metadata, index);
 
             if (res) {
                 originalNode.instanceId = res.instanceId;

@@ -1,5 +1,5 @@
-import { env } from '@/env';
-import { api } from '@/trpc/react';
+import { useState } from 'react';
+
 import type { ProjectInvitation } from '@weblab/db';
 import { constructInvitationLink } from '@weblab/email';
 import { Avatar, AvatarFallback } from '@weblab/ui/avatar';
@@ -8,7 +8,9 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { getInitials } from '@weblab/utility';
-import { useState } from 'react';
+
+import { env } from '@/env';
+import { api } from '@/trpc/react';
 
 export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation }) => {
     const apiUtils = api.useUtils();
@@ -22,7 +24,9 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
 
     const copyInvitationLink = async () => {
         try {
-            await navigator.clipboard.writeText(constructInvitationLink(env.NEXT_PUBLIC_SITE_URL, invitation.id, invitation.token));
+            await navigator.clipboard.writeText(
+                constructInvitationLink(env.NEXT_PUBLIC_SITE_URL, invitation.id, invitation.token),
+            );
             setIsCopied(true);
             toast.success('Invitation link copied to clipboard');
             setTimeout(() => {
@@ -36,23 +40,23 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
     };
 
     return (
-        <div className="py-2 px-3 flex gap-2 items-center">
+        <div className="flex items-center gap-2 px-3 py-2">
             <Avatar>
                 <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col justify-center gap-0.5 text-muted-foreground text-sm flex-1">
+            <div className="text-muted-foreground flex flex-1 flex-col justify-center gap-0.5 text-sm">
                 <div>Pending Invitation</div>
                 <div className="truncate text-xs">{invitation.inviteeEmail}</div>
             </div>
-            <div className="flex flex-row items-center justify-center ">
+            <div className="flex flex-row items-center justify-center">
                 <Tooltip>
                     <TooltipTrigger>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={copyInvitationLink}
-                        >
-                            {isCopied ? <Icons.Check className="size-4 text-muted-foreground transition-colors" /> : <Icons.Copy className="size-4 text-muted-foreground transition-colors" />}
+                        <Button variant="ghost" size="icon" onClick={copyInvitationLink}>
+                            {isCopied ? (
+                                <Icons.Check className="text-muted-foreground size-4 transition-colors" />
+                            ) : (
+                                <Icons.Copy className="text-muted-foreground size-4 transition-colors" />
+                            )}
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -68,12 +72,10 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
                                 cancelInvitationMutation.mutate({ id: invitation.id });
                             }}
                         >
-                            <Icons.MailX className="size-4 text-muted-foreground transition-colors" />
+                            <Icons.MailX className="text-muted-foreground size-4 transition-colors" />
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                        Cancel Invitation
-                    </TooltipContent>
+                    <TooltipContent>Cancel Invitation</TooltipContent>
                 </Tooltip>
             </div>
         </div>

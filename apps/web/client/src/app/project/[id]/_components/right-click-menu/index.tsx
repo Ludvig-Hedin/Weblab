@@ -1,9 +1,9 @@
-import { Hotkey } from '@/components/hotkey';
-import { IDE } from '@/components/ide';
-import { useEditorEngine } from '@/components/store/editor';
-import { EditorAttributes } from '@weblab/constants';
-import { DEFAULT_IDE, EditorMode, type DomElement } from '@weblab/models';
 import { useRef } from 'react';
+import { observer } from 'mobx-react-lite';
+
+import type { DomElement } from '@weblab/models';
+import { EditorAttributes } from '@weblab/constants';
+import { DEFAULT_IDE, EditorMode } from '@weblab/models';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -14,7 +14,10 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { Kbd } from '@weblab/ui/kbd';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
+
+import { Hotkey } from '@/components/hotkey';
+import { IDE } from '@/components/ide';
+import { useEditorEngine } from '@/components/store/editor';
 
 interface RightClickMenuProps {
     children: React.ReactNode;
@@ -190,8 +193,10 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
 
     return (
         <ContextMenu>
-            <ContextMenuTrigger onContextMenu={captureRightClickPosition}>{children}</ContextMenuTrigger>
-            <ContextMenuContent className="w-64 bg-background/95 backdrop-blur-lg">
+            <ContextMenuTrigger onContextMenu={captureRightClickPosition}>
+                {children}
+            </ContextMenuTrigger>
+            <ContextMenuContent className="bg-background/95 w-64 backdrop-blur-lg">
                 {menuItems.map((group, groupIndex) => (
                     <div key={groupIndex}>
                         {group.map((item) => (

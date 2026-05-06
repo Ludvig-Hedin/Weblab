@@ -1,4 +1,3 @@
-import { EditorAttributes } from '@weblab/constants';
 import type {
     Action,
     ActionElement,
@@ -11,6 +10,7 @@ import type {
     UpdateStyleAction,
     WriteCodeAction,
 } from '@weblab/models/actions';
+import { EditorAttributes } from '@weblab/constants';
 import { assertNever, createDomId, createOid } from '@weblab/utility';
 
 export function reverse<T>(change: Change<T>): Change<T> {

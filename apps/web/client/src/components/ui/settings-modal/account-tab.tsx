@@ -80,6 +80,12 @@ export const AccountTab = observer(() => {
                             {user?.displayName ?? user?.firstName ?? '—'}
                         </p>
                         <p className="text-muted-foreground text-xs">{user?.email}</p>
+                        {/* Bug fix #29: Avatar upload UI removed for now — keep it read-only
+                            and let it sync from the auth provider until we ship a proper
+                            storage-backed upload flow. */}
+                        <p className="text-muted-foreground mt-1 text-xs">
+                            Avatar will sync from your authentication provider.
+                        </p>
                     </div>
                 </div>
 
@@ -116,16 +122,25 @@ export const AccountTab = observer(() => {
 
                 <div className="space-y-1.5">
                     <Label className="text-xs">Email</Label>
-                    <Input
-                        value={user?.email ?? ''}
-                        readOnly
-                        disabled
-                        className="h-8 text-sm"
-                    />
+                    <Input value={user?.email ?? ''} readOnly disabled className="h-8 text-sm" />
+                    {/* Bug fix #28: Replace the dead-end "Email cannot be changed." line with
+                        a clear escape hatch (mailto support) until we wire up Supabase's
+                        verified-email-change flow. */}
                     <p className="text-muted-foreground text-xs">
-                        {isGoogle
-                            ? 'Email is managed by your Google account.'
-                            : 'Email cannot be changed.'}
+                        {isGoogle ? (
+                            'Email is managed by your Google account.'
+                        ) : (
+                            <>
+                                Email is managed by your authentication provider.{' '}
+                                <a
+                                    href="mailto:support@weblab.build"
+                                    className="hover:text-foreground underline"
+                                >
+                                    Contact support
+                                </a>{' '}
+                                to update your email.
+                            </>
+                        )}
                     </p>
                 </div>
 

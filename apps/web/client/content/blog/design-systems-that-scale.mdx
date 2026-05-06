@@ -1,0 +1,54 @@
+---
+title: "Building a Design System That Actually Scales"
+description: "Most design systems collapse under their own weight by year two. The ones that survive share a common trait: they treat the component as the unit of governance."
+date: "2026-03-20"
+author: "Ludvig Hedin"
+authorImage: "https://github.com/Ludvig-Hedin.png"
+category: "Deep Dive"
+tags: ["design system", "components", "scalability", "governance"]
+coverImage: "/assets/blog/design-tokens.svg"
+---
+
+## Why Design Systems Fail
+
+The pattern is consistent. A team builds a component library, documents it, publishes it. For six months, it works beautifully. Then the product grows, the team grows, and the system starts fraying.
+
+New components get added without following the token convention. Old components accumulate `className` overrides that bypass the design logic. The documentation falls behind. Eventually the system becomes a collection of legacy constraints rather than a living tool.
+
+The failure is always the same: the system was built as a product, not as infrastructure.
+
+## The Infrastructure Model
+
+Infrastructure doesn't need to be perfect to be useful. It needs to be consistent, stable, and enforceable.
+
+The teams that build design systems that scale treat their component library the same way they treat their API layer: with versioning, with contracts, with tests, and with enforcement at the point of consumption.
+
+### Token Contracts
+
+Every design decision that might need to change lives in a token. Color, spacing, typography, radius, shadow — all of it is named and referenced by name, never by value.
+
+When a token changes, everything that references it updates automatically. This is not a new idea. It is consistently underimplemented.
+
+### Component Contracts
+
+Each component has a defined API. The `variant` prop has a fixed set of values. The `size` prop has a fixed range. New values require a decision, not a workaround.
+
+Weblab enforces this at the point of editing. When you select a component on the canvas, you see its API — not raw CSS. You can only set values that the component's contract allows.
+
+## Enforcement at the Point of Work
+
+Documentation is not enforcement. Linting is partial enforcement. The best enforcement is a tool that makes the right thing easy and the wrong thing hard.
+
+Weblab functions as enforcement. You cannot add a hardcoded color to a component through the canvas — you can only use design tokens. You cannot instantiate a component with a prop value outside its defined range.
+
+This doesn't prevent all drift. But it prevents the casual drift that accounts for most design system erosion.
+
+## The Role of Governance
+
+Governance is deciding who can change what, and how.
+
+In a healthy design system, token changes go through a review process because they affect the entire system. Component API changes follow the same process.
+
+When your design system lives in Git, governance is built in. PRs, reviews, approvals — the same infrastructure that governs your code governs your design system.
+
+That's not a coincidence. It's the point.

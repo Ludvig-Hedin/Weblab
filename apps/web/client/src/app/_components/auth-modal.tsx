@@ -1,5 +1,6 @@
-import { env } from '@/env';
-import { transKeys } from '@/i18n/keys';
+import { useTranslations } from 'next-intl';
+
+import { SignInMethod } from '@weblab/models/auth';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -9,11 +10,12 @@ import {
     AlertDialogTitle,
 } from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
-import { useTranslations } from 'next-intl';
+import { Icons } from '@weblab/ui/icons';
+
+import { env } from '@/env';
+import { transKeys } from '@/i18n/keys';
 import { useAuthContext } from '../auth/auth-context';
 import { DevLoginButton, LoginButton } from './login-button';
-import { SignInMethod } from '@weblab/models/auth';
-import { Icons } from '@weblab/ui/icons';
 
 export function AuthModal() {
     const { setIsAuthModalOpen, isAuthModalOpen } = useAuthContext();
@@ -21,7 +23,7 @@ export function AuthModal() {
 
     return (
         <AlertDialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
-            <AlertDialogContent className="!max-w-sm bg-black">
+            <AlertDialogContent className="bg-card !max-w-sm">
                 <AlertDialogHeader>
                     <AlertDialogTitle className="text-center text-xl font-normal">
                         {t(transKeys.welcome.login.loginToEdit)}
@@ -30,26 +32,26 @@ export function AuthModal() {
                         {t(transKeys.welcome.login.shareProjects)}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="space-y-2 flex flex-col">
+                <div className="flex flex-col space-y-2">
                     <LoginButton
-                        className="!bg-black"
+                        className="!bg-card"
                         method={SignInMethod.GITHUB}
-                        icon={<Icons.GitHubLogo className="w-4 h-4 mr-2" />}
+                        icon={<Icons.GitHubLogo className="mr-2 h-4 w-4" />}
                         translationKey="github"
                         providerName="GitHub"
                     />
                     <LoginButton
-                        className="!bg-black"
+                        className="!bg-card"
                         method={SignInMethod.GOOGLE}
-                        icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="w-4 h-4 mr-2" />}
+                        icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="mr-2 h-4 w-4" />}
                         translationKey="google"
                         providerName="Google"
                     />
                     {env.NEXT_PUBLIC_SHOW_DEV_LOGIN && (
-                        <DevLoginButton className="!bg-black" returnUrl={null} />
+                        <DevLoginButton className="!bg-card" returnUrl={null} />
                     )}
                 </div>
-                <AlertDialogFooter className="flex !justify-center w-full">
+                <AlertDialogFooter className="flex w-full !justify-center">
                     <Button variant={'ghost'} onClick={() => setIsAuthModalOpen(false)}>
                         {t(transKeys.projects.actions.close)}
                     </Button>

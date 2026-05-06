@@ -7,6 +7,7 @@ import { Separator } from '@weblab/ui/separator';
 import { cn } from '@weblab/ui/utils';
 import { capitalizeFirstLetter } from '@weblab/utility';
 
+import type { SettingTab } from './helpers';
 import { useStateManager } from '@/components/store/state';
 import { AccountTab } from './account-tab';
 import { AITab } from './ai-tab';
@@ -14,7 +15,7 @@ import { AppearanceTab } from './appearance-tab';
 import { EditorTab } from './editor-tab';
 import { GitTab } from './git-tab';
 import { GitHubTab } from './github-tab';
-import { SettingsTabValue, type SettingTab } from './helpers';
+import { SettingsTabValue } from './helpers';
 import { LanguageTab } from './language-tab';
 import { ShortcutsTab } from './shortcuts-tab';
 import { SubscriptionTab } from './subscription-tab';

@@ -1,6 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from '@weblab/ui/button';
 import { Heart, Plus, Trash2 } from 'lucide-react';
+
+import { Button } from '@weblab/ui/button';
+
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta = {
     title: 'UI/Button',
@@ -64,7 +66,7 @@ export const WithIcon: Story = {
 export const AllVariants: Story = {
     render: () => (
         <div className="flex flex-col gap-4">
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
                 <Button variant="default">Default</Button>
                 <Button variant="destructive">Destructive</Button>
                 <Button variant="outline">Outline</Button>
@@ -72,7 +74,7 @@ export const AllVariants: Story = {
                 <Button variant="ghost">Ghost</Button>
                 <Button variant="link">Link</Button>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
                 <Button size="sm">Small</Button>
                 <Button size="default">Default</Button>
                 <Button size="lg">Large</Button>

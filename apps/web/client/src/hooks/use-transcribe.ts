@@ -260,14 +260,14 @@ export function useTranscribe({
 
     const stop = useCallback(async () => {
         const recorder = recorderRef.current;
-        if (!recorder || recorder.state !== 'recording') return;
+        if (recorder?.state !== 'recording') return;
         cancelledRef.current = false;
         recorder.stop();
     }, []);
 
     const cancel = useCallback(() => {
         const recorder = recorderRef.current;
-        if (recorder && recorder.state === 'recording') {
+        if (recorder?.state === 'recording') {
             cancelledRef.current = true;
             recorder.stop();
         } else {
@@ -284,7 +284,7 @@ export function useTranscribe({
                 errorResetTimerRef.current = null;
             }
             const recorder = recorderRef.current;
-            if (recorder && recorder.state === 'recording') {
+            if (recorder?.state === 'recording') {
                 cancelledRef.current = true;
                 try {
                     recorder.stop();

@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
-import { api } from '@/trpc/react';
 import { useStateManager } from '@/components/store/state';
+import { api } from '@/trpc/react';
 
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
     const { data: userSettings } = api.user.settings.get.useQuery();
@@ -26,9 +26,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         if (!userSettings?.customShortcuts) return;
-        stateManager.hotkeys.loadFromSettings(
-            userSettings.customShortcuts as Record<string, string>,
-        );
+        stateManager.hotkeys.loadFromSettings(userSettings.customShortcuts);
     }, [userSettings?.customShortcuts, stateManager.hotkeys]);
 
     return <>{children}</>;

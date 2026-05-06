@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { toast } from 'sonner';
@@ -35,10 +35,9 @@ const INITIAL_PROGRESS: ImportProgress = { filesUploaded: 0, phase: 'idle' };
  * Access API, forks a blank cloud sandbox, uploads the folder's files into
  * it, then creates the project record and routes to the editor.
  *
- * The cloud sandbox is intentionally retained for live preview. Phase 1 of
- * the local-projects feature does NOT support pure-local mode — every
- * project still has a `sandboxId`. See plan
- * `understand-the-project-creation-proud-waffle.md`.
+ * This is intentionally a cloud import flow. It is not true local project
+ * editing; true local mode uses separate runtime metadata and a desktop local
+ * provider.
  */
 export function useImportLocalProject() {
     const { data: user } = api.user.get.useQuery();
@@ -144,7 +143,7 @@ export function useImportLocalProject() {
                 project: {
                     name: folderName,
                     description: 'Imported from local folder',
-                    tags: ['local-import'],
+                    tags: ['cloud-import'],
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
@@ -174,7 +173,7 @@ export function useImportLocalProject() {
     };
 
     // After a successful sign-in redirect, re-open the folder picker if the user
-    // had clicked "Open local folder" while unauthenticated.
+    // had clicked "Import folder to cloud" while unauthenticated.
     useEffect(() => {
         if (!user?.id) return;
         const resume = async () => {

@@ -2,9 +2,10 @@
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
+
+import type { ImageData } from './types';
 import { useImageDragDrop } from './hooks/use-image-drag-drop';
 import { ImageItem } from './image-item';
-import type { ImageData } from './types';
 
 interface ImageGridProps {
     images: ImageData[];
@@ -17,17 +18,35 @@ interface ImageGridProps {
     onAddToChat: (imagePath: string) => void;
 }
 
-export const ImageGrid = ({ images, projectId, branchId, search, onUpload, onRename, onDelete, onAddToChat }: ImageGridProps) => {
+export const ImageGrid = ({
+    images,
+    projectId,
+    branchId,
+    search,
+    onUpload,
+    onRename,
+    onDelete,
+    onAddToChat,
+}: ImageGridProps) => {
     const {
-        handleDragEnter, handleDragLeave, handleDragOver, handleDrop, isDragging,
-        onImageDragStart, onImageDragEnd, onImageMouseDown, onImageMouseUp
+        handleDragEnter,
+        handleDragLeave,
+        handleDragOver,
+        handleDrop,
+        isDragging,
+        onImageDragStart,
+        onImageDragEnd,
+        onImageMouseDown,
+        onImageMouseUp,
     } = useImageDragDrop(onUpload);
 
     return (
-        <div className={cn(
-            "flex-1 overflow-auto",
-            isDragging && 'cursor-copy bg-blue-500/40', 'h-full')
-        }
+        <div
+            className={cn(
+                'flex-1 overflow-auto',
+                isDragging && 'cursor-copy bg-blue-500/40',
+                'h-full',
+            )}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
@@ -51,10 +70,12 @@ export const ImageGrid = ({ images, projectId, branchId, search, onUpload, onRen
                 ))}
             </div>
             {images.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 text-foreground-secondary">
-                    <Icons.Image className="w-8 h-8 mb-2" />
+                <div className="text-foreground-secondary flex flex-col items-center justify-center py-8">
+                    <Icons.Image className="mb-2 h-8 w-8" />
                     <div className="text-sm">
-                        {search ? 'No images or videos match your search' : 'No images or videos in this folder'}
+                        {search
+                            ? 'No images or videos match your search'
+                            : 'No images or videos in this folder'}
                     </div>
                 </div>
             )}

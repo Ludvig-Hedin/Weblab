@@ -1,5 +1,5 @@
-import { observer } from 'mobx-react-lite';
 import { useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 
 import type { GitCommit } from '@weblab/git';
 import { MessageCheckpointType } from '@weblab/models';

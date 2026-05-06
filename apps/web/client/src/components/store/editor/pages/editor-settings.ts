@@ -1,4 +1,5 @@
 import type { PageEditorSettings, PageNode } from '@weblab/models/pages';
+
 import type { SandboxManager } from '../sandbox';
 
 const PAGE_SETTINGS_PATH = '.weblab/page-settings.json';
@@ -14,7 +15,10 @@ const EMPTY_SETTINGS_FILE: PageSettingsFile = {
 };
 
 export function normalizePageSettingsPath(path: string): string {
-    const normalized = path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+    const normalized = path
+        .replace(/\\/g, '/')
+        .replace(/\/+/g, '/')
+        .replace(/^\/|\/$/g, '');
     return normalized.length === 0 ? '/' : `/${normalized}`;
 }
 
@@ -120,10 +124,7 @@ export async function movePageSettingsByPrefixInSandbox(
             continue;
         }
 
-        const suffix =
-            normalizedOldPrefix === '/'
-                ? path
-                : path.slice(normalizedOldPrefix.length);
+        const suffix = normalizedOldPrefix === '/' ? path : path.slice(normalizedOldPrefix.length);
         const targetPath =
             normalizedNewPrefix === '/'
                 ? normalizePageSettingsPath(suffix)
@@ -154,7 +155,10 @@ export function applyPageSettingsToNodes(
     return nodes.map((node) => {
         const nextNode: PageNode = {
             ...node,
-            settings: node.kind === 'page' ? settingsMap[normalizePageSettingsPath(node.path)] : undefined,
+            settings:
+                node.kind === 'page'
+                    ? settingsMap[normalizePageSettingsPath(node.path)]
+                    : undefined,
         };
 
         if (node.kind === 'page') {

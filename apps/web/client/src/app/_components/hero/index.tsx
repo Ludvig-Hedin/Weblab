@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -17,45 +16,12 @@ import { MobileEmailCapture } from './mobile-email-capture';
 import { UnicornBackground } from './unicorn-background';
 
 export function Hero() {
-    const [isShortScreen, setIsShortScreen] = useState(false);
-
-    useEffect(() => {
-        const checkScreenHeight = () => {
-            setIsShortScreen(window.innerHeight < 700);
-        };
-
-        checkScreenHeight();
-        window.addEventListener('resize', checkScreenHeight);
-
-        return () => window.removeEventListener('resize', checkScreenHeight);
-    }, []);
-
     return (
         <div className="relative flex h-full w-full flex-col items-center text-center text-lg">
             <UnicornBackground />
             {/* pointer-events-none allows mouse events to pass through to the canvas behind */}
             <div className="pointer-events-none mb-42 flex h-full w-full flex-col items-center justify-center gap-10 pt-12">
                 <div className="relative z-20 flex flex-col items-center gap-3 pt-8 pb-2">
-                    {!isShortScreen && (
-                        //     <motion.div
-                        //         className="relative z-20 mb-6 flex flex-col items-center gap-3 pt-4 pb-2"
-                        //         initial={{ opacity: 0, y: -10 }}
-                        //         animate={{ opacity: 1, y: 0 }}
-                        //         transition={{ duration: 0.6, delay: 1.2, ease: 'easeOut' }}
-                        //     >
-                        //         <a
-                        //             href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack"
-                        //             target="_blank"
-                        //             rel="noopener noreferrer"
-                        //             className="pointer-events-auto hover:bg-foreground-secondary/20 border-foreground-secondary/20 text-foreground-secondary inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs backdrop-blur-sm transition-all duration-200 hover:scale-102"
-                        //         >
-                        //             We're hiring engineers
-                        //             <Icons.ArrowRight className="h-4 w-4" />
-                        //         </a>
-                        //     </motion.div>
-                        // The commented block above is preserved for future use
-                        null
-                    )}
                     <motion.h1
                         className="text-center text-6xl !leading-[0.9] leading-tight font-light"
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
@@ -63,12 +29,12 @@ export function Hero() {
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Cursor for
+                        Design visually,
                         <br />
                         <span
                             className={`font-normal italic ${vujahdayScript.className} ml-1 text-[4.6rem] leading-[1.0]`}
                         >
-                            Designers
+                            ship instantly
                         </span>
                     </motion.h1>
                     <motion.p
@@ -78,20 +44,22 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Design with your real components.
-                        <br />
-                        Ship PRs, not prototypes.
+                        An infinite canvas to build websites and apps — what you design is what
+                        ships, no handoff required.
                     </motion.p>
                     <HighDemand />
                     <CreateError />
                 </div>
-                <div className="pointer-events-auto relative z-20 hidden flex-row items-center gap-4 sm:flex">
+                <div className="pointer-events-auto relative z-20 flex flex-row items-center gap-4">
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
                     >
-                        <Button asChild className="bg-foreground-primary text-background-primary hover:bg-foreground-hover">
+                        <Button
+                            asChild
+                            className="bg-foreground-primary text-background-primary hover:bg-foreground-hover"
+                        >
                             <Link href={Routes.PROJECTS}>
                                 Get Started
                                 <Icons.ArrowRight className="h-4 w-4" />
@@ -99,6 +67,7 @@ export function Hero() {
                         </Button>
                     </motion.div>
                     <motion.div
+                        className="sm:block"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.5, ease: 'easeOut' }}
@@ -107,16 +76,14 @@ export function Hero() {
                     </motion.div>
                 </div>
                 <motion.div
-                    className="pointer-events-auto relative z-20 hidden items-center gap-4 text-sm text-foreground-secondary sm:flex"
+                    className="text-foreground-secondary pointer-events-auto relative z-20 hidden items-center gap-4 text-sm sm:flex"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
                 >
                     <Import />
                 </motion.div>
-                <div className="pointer-events-auto w-full flex justify-center">
-                    <MobileEmailCapture />
-                </div>
+                <MobileEmailCapture />
             </div>
         </div>
     );

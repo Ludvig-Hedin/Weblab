@@ -1,11 +1,13 @@
 'use client';
 
+import { motion } from 'motion/react';
+
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
 import { ProgressWithInterval } from '@weblab/ui/progress-with-interval';
-import { motion } from 'motion/react';
-import { StepContent, StepFooter, StepHeader } from '../../steps';
+
 import { useFigmaImport } from '../_context';
+import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaFinalizing = () => {
     const { isFinalizing, finalizeError, retry, cancel } = useFigmaImport();

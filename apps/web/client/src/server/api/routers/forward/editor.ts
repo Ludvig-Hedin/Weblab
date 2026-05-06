@@ -1,7 +1,10 @@
-import { editorServerConfig, type EditorRouter } from '@weblab/rpc';
 import { createTRPCClient, createWSClient, httpBatchLink, splitLink, wsLink } from '@trpc/client';
 import superJSON from 'superjson';
 import { z } from 'zod';
+
+import type { EditorRouter } from '@weblab/rpc';
+import { editorServerConfig } from '@weblab/rpc';
+
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 const { port, prefix } = editorServerConfig;

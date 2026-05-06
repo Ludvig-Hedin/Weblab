@@ -1,7 +1,9 @@
-import { api } from "@/trpc/client";
-import { makeAutoObservable } from "mobx";
-import type { EditorEngine } from "../engine";
-import type { ChatMessage } from "@weblab/models";
+import { makeAutoObservable } from 'mobx';
+
+import type { ChatMessage } from '@weblab/models';
+
+import type { EditorEngine } from '../engine';
+import { api } from '@/trpc/client';
 
 export class ApiManager {
     constructor(private editorEngine: EditorEngine) {
@@ -9,29 +11,29 @@ export class ApiManager {
     }
 
     async webSearch(input: {
-        query: string,
-        allowed_domains: string[] | undefined,
-        blocked_domains: string[] | undefined
+        query: string;
+        allowed_domains: string[] | undefined;
+        blocked_domains: string[] | undefined;
     }) {
         const result = await api.utils.webSearch.mutate(input);
         return result;
     }
 
     async applyDiff(input: {
-        originalCode: string,
-        updateSnippet: string,
-        instruction: string,
+        originalCode: string;
+        updateSnippet: string;
+        instruction: string;
         metadata: {
             projectId: string;
             conversationId: string | undefined;
-        }
+        };
     }) {
         return await api.utils.applyDiff.mutate(input);
     }
 
     async scrapeUrl(input: {
         url: string;
-        formats?: ("json" | "markdown" | "html" | "branding")[] | undefined;
+        formats?: ('json' | 'markdown' | 'html' | 'branding')[] | undefined;
         onlyMainContent?: boolean | undefined;
         includeTags?: string[] | undefined;
         excludeTags?: string[] | undefined;

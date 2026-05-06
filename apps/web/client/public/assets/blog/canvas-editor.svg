@@ -1,0 +1,162 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <pattern id="dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.5" fill="rgba(255,255,255,0.04)"/>
+    </pattern>
+  </defs>
+
+  <!-- Base -->
+  <rect width="1600" height="900" fill="#0a0a0a"/>
+
+  <!-- Top bar -->
+  <rect width="1600" height="44" fill="#111111"/>
+  <line x1="0" y1="44" x2="1600" y2="44" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="20" y="26" fill="#f0f0f0" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="500">Weblab</text>
+  <!-- cursor tool (active) -->
+  <rect x="768" y="10" width="24" height="24" rx="4" fill="rgba(255,255,255,0.08)"/>
+  <path d="M776 14 L776 28 L779.5 25 L782 30 L783.5 29.5 L781 24.5 L786 24.5 Z" fill="#f0f0f0"/>
+  <!-- frame tool -->
+  <rect x="800" y="16" width="14" height="14" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" rx="1"/>
+  <!-- text tool -->
+  <text x="827" y="27" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="14" font-weight="600">T</text>
+  <line x1="848" y1="13" x2="848" y2="31" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <text x="856" y="26" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="11">100%</text>
+  <!-- right side share -->
+  <rect x="1490" y="10" width="84" height="24" rx="5" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="1517" y="26" fill="rgba(255,255,255,0.5)" font-family="system-ui" font-size="11">↑ Share</text>
+
+  <!-- Left sidebar -->
+  <rect x="0" y="44" width="216" height="856" fill="#111111"/>
+  <line x1="216" y1="44" x2="216" y2="900" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="16" y="74" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="10" font-weight="500" letter-spacing="0.08em">LAYERS</text>
+  <!-- tree -->
+  <text x="14" y="98" fill="rgba(255,255,255,0.25)" font-family="ui-monospace,monospace" font-size="11">▾ App</text>
+  <text x="28" y="118" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">▾ Page</text>
+  <text x="42" y="138" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">▸ NavBar</text>
+  <!-- Hero row selected -->
+  <rect x="8" y="146" width="200" height="22" rx="3" fill="rgba(167,139,250,0.1)"/>
+  <text x="42" y="161" fill="#c4b5fd" font-family="ui-monospace,monospace" font-size="11">▾ Hero</text>
+  <!-- hero children -->
+  <text x="56" y="181" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">▸ Heading</text>
+  <text x="56" y="199" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">▸ SubText</text>
+  <text x="56" y="217" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">▸ CTARow</text>
+  <text x="42" y="237" fill="rgba(255,255,255,0.15)" font-family="ui-monospace,monospace" font-size="11">▸ Features</text>
+  <text x="42" y="255" fill="rgba(255,255,255,0.15)" font-family="ui-monospace,monospace" font-size="11">▸ Pricing</text>
+  <text x="42" y="273" fill="rgba(255,255,255,0.15)" font-family="ui-monospace,monospace" font-size="11">▸ Footer</text>
+
+  <!-- Canvas -->
+  <rect x="216" y="44" width="1124" height="856" fill="#0e0e0e"/>
+  <rect x="216" y="44" width="1124" height="856" fill="url(#dots)"/>
+
+  <!-- Viewport frame -->
+  <rect x="356" y="90" width="840" height="720" rx="7" fill="#0a0a0a" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- Browser chrome -->
+  <rect x="356" y="90" width="840" height="34" rx="7" fill="#161616"/>
+  <line x1="356" y1="124" x2="1196" y2="124" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <circle cx="375" cy="107" r="4.5" fill="rgba(255,99,99,0.3)"/>
+  <circle cx="391" cy="107" r="4.5" fill="rgba(255,190,70,0.2)"/>
+  <circle cx="407" cy="107" r="4.5" fill="rgba(70,210,100,0.2)"/>
+  <rect x="445" y="100" width="400" height="14" rx="3" fill="rgba(255,255,255,0.04)"/>
+  <text x="600" y="111" fill="rgba(255,255,255,0.18)" font-family="system-ui" font-size="9">localhost:3000</text>
+
+  <!-- Nav inside viewport -->
+  <rect x="356" y="124" width="840" height="50" fill="#111111"/>
+  <line x1="356" y1="174" x2="1196" y2="174" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <text x="380" y="154" fill="rgba(255,255,255,0.85)" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="600">Weblab</text>
+  <text x="478" y="154" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">Product</text>
+  <text x="548" y="154" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">Pricing</text>
+  <text x="616" y="154" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">Docs</text>
+  <rect x="1108" y="141" width="68" height="22" rx="4" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="1125" y="155" fill="rgba(255,255,255,0.5)" font-family="system-ui" font-size="11">Sign in</text>
+
+  <!-- Hero section (SELECTED) -->
+  <rect x="356" y="174" width="840" height="320" fill="#0a0a0a"/>
+  <!-- Selection dashed outline -->
+  <rect x="353" y="171" width="846" height="326" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <!-- Corner + edge handles -->
+  <rect x="346" y="164" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="1193" y="164" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="346" y="491" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="1193" y="491" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="769" y="164" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="769" y="491" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="346" y="327" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <rect x="1193" y="327" width="12" height="12" rx="2.5" fill="#a78bfa"/>
+  <!-- Element label chip -->
+  <rect x="353" y="142" width="50" height="20" rx="3" fill="#a78bfa"/>
+  <text x="361" y="155" fill="#fff" font-family="system-ui" font-size="10" font-weight="500">Hero</text>
+
+  <!-- Hero content: heading bars -->
+  <rect x="476" y="228" width="400" height="22" rx="3" fill="rgba(255,255,255,0.8)"/>
+  <rect x="536" y="260" width="280" height="14" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <rect x="576" y="282" width="200" height="14" rx="2" fill="rgba(255,255,255,0.2)"/>
+  <!-- CTA buttons -->
+  <rect x="536" y="316" width="120" height="36" rx="6" fill="rgba(255,255,255,0.88)"/>
+  <rect x="668" y="316" width="140" height="36" rx="6" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+  <text x="574" y="338" fill="#0a0a0a" font-family="system-ui" font-size="12" font-weight="500">Download</text>
+  <text x="697" y="338" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Contact Sales</text>
+
+  <!-- Below hero: features placeholder -->
+  <rect x="356" y="494" width="840" height="316" fill="#0a0a0a"/>
+  <text x="560" y="534" fill="rgba(255,255,255,0.12)" font-family="system-ui" font-size="13">Features</text>
+  <rect x="374" y="550" width="252" height="220" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <rect x="640" y="550" width="252" height="220" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <rect x="906" y="550" width="252" height="220" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <!-- Card dots -->
+  <rect x="392" y="570" width="60" height="6" rx="2" fill="rgba(255,255,255,0.25)"/>
+  <rect x="392" y="584" width="180" height="5" rx="2" fill="rgba(255,255,255,0.1)"/>
+  <rect x="658" y="570" width="60" height="6" rx="2" fill="rgba(255,255,255,0.25)"/>
+  <rect x="658" y="584" width="180" height="5" rx="2" fill="rgba(255,255,255,0.1)"/>
+  <rect x="924" y="570" width="60" height="6" rx="2" fill="rgba(255,255,255,0.25)"/>
+  <rect x="924" y="584" width="180" height="5" rx="2" fill="rgba(255,255,255,0.1)"/>
+
+  <!-- Right sidebar (properties) -->
+  <rect x="1340" y="44" width="260" height="856" fill="#111111"/>
+  <line x1="1340" y1="44" x2="1340" y2="900" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <!-- Header chip -->
+  <rect x="1356" y="60" width="80" height="22" rx="4" fill="rgba(167,139,250,0.15)"/>
+  <text x="1368" y="74" fill="#c4b5fd" font-family="ui-monospace,monospace" font-size="11">Hero</text>
+  <!-- Section: Layout -->
+  <text x="1356" y="106" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">LAYOUT</text>
+  <line x1="1356" y1="113" x2="1576" y2="113" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <!-- W H inputs -->
+  <text x="1356" y="133" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">W</text>
+  <rect x="1368" y="122" width="60" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1374" y="135" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">840</text>
+  <text x="1442" y="133" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">H</text>
+  <rect x="1454" y="122" width="60" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1462" y="135" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">320</text>
+  <!-- Padding section -->
+  <text x="1356" y="168" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">SPACING</text>
+  <line x1="1356" y1="175" x2="1576" y2="175" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="1356" y="196" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">Padding</text>
+  <rect x="1424" y="184" width="36" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1432" y="197" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">48</text>
+  <rect x="1466" y="184" width="36" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1474" y="197" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">80</text>
+  <rect x="1508" y="184" width="36" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1516" y="197" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">48</text>
+  <rect x="1550" y="184" width="36" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1558" y="197" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="10">80</text>
+  <!-- Fill section -->
+  <text x="1356" y="232" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">FILL</text>
+  <line x1="1356" y1="239" x2="1576" y2="239" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <rect x="1356" y="248" width="20" height="20" rx="3" fill="#0a0a0a" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+  <text x="1382" y="261" fill="rgba(255,255,255,0.45)" font-family="ui-monospace,monospace" font-size="10">#0a0a0a</text>
+  <text x="1540" y="261" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">100%</text>
+  <!-- Typography section -->
+  <text x="1356" y="298" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">TYPOGRAPHY</text>
+  <line x1="1356" y1="305" x2="1576" y2="305" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <rect x="1356" y="314" width="200" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1364" y="327" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="10">Inter</text>
+  <rect x="1356" y="342" width="50" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1364" y="355" fill="rgba(255,255,255,0.45)" font-family="ui-monospace,monospace" font-size="10">72</text>
+  <rect x="1414" y="342" width="90" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1422" y="355" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="10">Light / 300</text>
+  <rect x="1356" y="370" width="50" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1364" y="383" fill="rgba(255,255,255,0.45)" font-family="ui-monospace,monospace" font-size="10">1.0</text>
+  <text x="1356" y="416" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">BORDER RADIUS</text>
+  <line x1="1356" y1="423" x2="1576" y2="423" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <rect x="1356" y="432" width="50" height="20" rx="3" fill="rgba(255,255,255,0.05)"/>
+  <text x="1364" y="445" fill="rgba(255,255,255,0.45)" font-family="ui-monospace,monospace" font-size="10">0</text>
+</svg>

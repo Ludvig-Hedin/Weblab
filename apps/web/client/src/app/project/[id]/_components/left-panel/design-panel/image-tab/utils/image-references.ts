@@ -1,5 +1,6 @@
-import { getAstFromContent, getContentFromAst, t, traverse } from '@weblab/parser';
 import path from 'path';
+
+import { getAstFromContent, getContentFromAst, t, traverse } from '@weblab/parser';
 
 /**
  * Update all image references in a file from oldPath to newPath
@@ -8,7 +9,7 @@ import path from 'path';
 export async function updateImageReferences(
     content: string,
     oldImagePath: string,
-    newImagePath: string
+    newImagePath: string,
 ): Promise<string> {
     const ast = getAstFromContent(content);
     if (!ast) {
@@ -48,7 +49,13 @@ export async function updateImageReferences(
                     const className = attr.value.value;
                     // Check if contains image filename before processing
                     if (className.includes(oldFileName) || className.includes(oldImagePath)) {
-                        const updated = replaceImageInString(className, oldImagePath, newImagePath, oldFileName, newFileName);
+                        const updated = replaceImageInString(
+                            className,
+                            oldImagePath,
+                            newImagePath,
+                            oldFileName,
+                            newFileName,
+                        );
                         if (updated !== className) {
                             attr.value.value = updated;
                             hasChanges = true;
@@ -118,7 +125,7 @@ function replaceImageInString(
     oldPath: string,
     newPath: string,
     oldFilename: string,
-    newFilename: string
+    newFilename: string,
 ): string {
     let result = str;
 

@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
 import type { PageNode } from '@weblab/models/pages';
+import { RouterType } from '@weblab/models';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -14,9 +15,12 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { RouterType } from '@weblab/models';
+import {
+    getParentPagePath,
+    isFolderNode,
+    isPageNode,
+} from '@/components/store/editor/pages/helper';
 import { useStateManager } from '@/components/store/state';
-import { getParentPagePath, isFolderNode, isPageNode } from '@/components/store/editor/pages/helper';
 import { PageModal } from '../../page-tab/page-modal';
 
 interface PageTreeNodeProps {

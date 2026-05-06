@@ -14,14 +14,10 @@ import { Input } from '@weblab/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
+import type { SearchFilter, SearchResult, SearchScope } from './use-search';
 import { useEditorEngine } from '@/components/store/editor';
 import { SearchResultRow } from './search-result-row';
-import {
-    useSearch,
-    type SearchFilter,
-    type SearchResult,
-    type SearchScope,
-} from './use-search';
+import { useSearch } from './use-search';
 
 const FILTER_OPTIONS: { value: SearchFilter; label: string }[] = [
     { value: 'all', label: 'All' },
@@ -58,7 +54,7 @@ const ResultList = ({ results, activeIndex, onSelect }: ResultListProps) => {
         <div className="flex flex-col gap-2 pb-2">
             {groups.map((group) => (
                 <div key={group.frameId} className="flex flex-col gap-0.5">
-                    <div className="text-foreground-primary/40 px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wide">
+                    <div className="text-foreground-primary/40 px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide uppercase">
                         {group.frameName}
                     </div>
                     {group.items.map((result) => {
@@ -164,15 +160,15 @@ export const SearchTab = observer(() => {
                             aria-label="Filters"
                             className={
                                 filter !== 'all'
-                                    ? 'h-8 w-8 text-foreground'
-                                    : 'h-8 w-8 text-foreground-primary/70 hover:text-foreground'
+                                    ? 'text-foreground h-8 w-8'
+                                    : 'text-foreground-primary/70 hover:text-foreground h-8 w-8'
                             }
                         >
                             <Icons.MixerHorizontal className="h-4 w-4" />
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent align="end" side="bottom" className="w-44 p-2">
-                        <div className="text-foreground-primary/60 mb-1 px-1 text-[10px] uppercase tracking-wide">
+                        <div className="text-foreground-primary/60 mb-1 px-1 text-[10px] tracking-wide uppercase">
                             Filter
                         </div>
                         <ToggleGroup
@@ -215,9 +211,6 @@ export const SearchTab = observer(() => {
                                 <DropdownMenuItem onClick={() => setScope('frame')}>
                                     Selected frame
                                 </DropdownMenuItem>
-                                <DropdownMenuItem disabled>
-                                    Other pages (coming soon)
-                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
@@ -257,11 +250,7 @@ export const SearchTab = observer(() => {
                         No matches
                     </div>
                 ) : (
-                    <ResultList
-                        results={results}
-                        activeIndex={activeIndex}
-                        onSelect={jumpTo}
-                    />
+                    <ResultList results={results} activeIndex={activeIndex} onSelect={jumpTo} />
                 )}
             </div>
         </div>

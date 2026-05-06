@@ -1,10 +1,10 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: 'AI Prototype Generator | Create Functional React Prototypes | ${APP_NAME}',
-    description:
-        `${APP_NAME} generates functional React prototypes with real interactions — not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.`,
+    description: `${APP_NAME} generates functional React prototypes with real interactions — not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.`,
     keywords: [
         // Primary keywords
         'AI prototype generator',
@@ -39,7 +39,10 @@ export const metadata: Metadata = {
         siteName: APP_NAME,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} prototype generator preview`,
             },
         ],
     },
@@ -48,7 +51,7 @@ export const metadata: Metadata = {
         title: 'AI Prototype Generator | ${APP_NAME}',
         description:
             'Create functional React prototypes with real interactions in minutes. Not static mockups — working applications.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/features/prototype`,
@@ -73,8 +76,7 @@ const jsonLd = {
     name: `${APP_NAME} AI Prototype Generator`,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web',
-    description:
-        `${APP_NAME} generates functional React prototypes with real interactions. Perfect for rapid prototyping, product validation, and user testing.`,
+    description: `${APP_NAME} generates functional React prototypes with real interactions. Perfect for rapid prototyping, product validation, and user testing.`,
     url: `https://${APP_DOMAIN}/features/prototype`,
     featureList: [
         'AI-powered prototype generation',

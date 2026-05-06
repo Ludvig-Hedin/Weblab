@@ -1,9 +1,11 @@
+import { makeAutoObservable } from 'mobx';
+
 import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
-import { makeAutoObservable } from 'mobx';
 
 import { type EditorEngine } from '@/components/store/editor/engine';
+import { getOrCreateCodeDiffRequest } from './helpers';
 import {
     getEditTextRequests,
     getGroupRequests,
@@ -17,7 +19,6 @@ import {
     getWriteCodeRequests,
     processGroupedRequests,
 } from './requests';
-import { getOrCreateCodeDiffRequest } from './helpers';
 
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
@@ -42,7 +43,10 @@ export class CodeManager {
             toast.error('Error writing requests', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
-            this.editorEngine.branches.activeError.addCodeApplicationError(error instanceof Error ? error.message : 'Unknown error', action);
+            this.editorEngine.branches.activeError.addCodeApplicationError(
+                error instanceof Error ? error.message : 'Unknown error',
+                action,
+            );
         }
     }
 
@@ -123,7 +127,7 @@ export class CodeManager {
         return requestByFile;
     }
 
-    clear() { }
+    clear() {}
 
     async updateElementMetadata({
         oid,

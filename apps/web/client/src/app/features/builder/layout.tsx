@@ -37,7 +37,7 @@ export const metadata: Metadata = {
         siteName: 'Weblab',
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/favicon.ico',
             },
         ],
     },
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
         title: 'Visual Builder | Weblab',
         description:
             'Design with your real React components on an infinite canvas. Changes become mergeable PRs.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: 'https://weblab.build/features/builder',
@@ -117,7 +117,7 @@ const faqJsonLd = {
             name: 'What is the difference between Weblab and other design tools?',
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: "Weblab is a visual editor for code. Unlike traditional design tools that create static mockups, Weblab works with your real components — what you design IS the code. Changes become PRs, not specs.",
+                text: 'Weblab is a visual editor for code. Unlike traditional design tools that create static mockups, Weblab works with your real components — what you design IS the code. Changes become PRs, not specs.',
             },
         },
         {

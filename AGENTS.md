@@ -22,6 +22,21 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 - Goal: small, correct diffs aligned with the project’s architecture.
 - Non-goals: editing generated artifacts, lockfiles, or `node_modules`.
 
+### Optional Context Pack
+
+Before broad or cross-cutting work, read the relevant files in
+`docs/agent-context/`:
+
+- `README.md` for the suggested read order.
+- `current-progress.md` for active worktree context and recent progress.
+- `repo-map.md` for the monorepo map and runtime flow.
+- `development-setup.md` for commands, env, validation, and migrations.
+- `editor-architecture.md` for canvas, iframe, MobX engine, sandbox, and AI
+  chat behavior.
+- `data-api-architecture.md` for tRPC, Supabase, Drizzle, migrations, auth, and
+  integrations.
+- `design-product-context.md` for brand, product, and UI/design expectations.
+
 ### Repo Map
 
 - Monorepo managed by Bun workspaces (see root `package.json`).
@@ -45,7 +60,22 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 - Do not modify build outputs, generated files, or lockfiles.
 - Use Bun for all scripts; do not introduce npm/yarn.
 - Avoid running the local dev server in automation contexts.
-- Respect type safety and
+- Respect type safety; avoid `any` unless necessary.
+
+### Validation, Migrations, and Config Changes
+
+- Never leave the app in a broken state with known errors. Before ending work,
+  run the relevant validation for the files touched, such as typecheck, lint,
+  tests, build checks, or targeted scripts.
+- If a change requires database migrations, config updates, env changes, setup
+  steps, or generated artifacts, either run the required local migration/config
+  command yourself or clearly tell the project owner exactly what they must run
+  manually.
+- When migration or config commands cannot be run safely in the current
+  environment, document the blocker, the exact command or file change still
+  needed, and the expected impact if it is skipped.
+- Do not mark a task complete until the app has been validated enough to confirm
+  it is not left with avoidable runtime, build, type, lint, or config errors.
 
 ### Next.js App Router
 

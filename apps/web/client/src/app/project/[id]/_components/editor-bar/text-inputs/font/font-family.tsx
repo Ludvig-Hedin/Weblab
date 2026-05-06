@@ -1,7 +1,8 @@
 'use client';
 
-import { Icons } from '@weblab/ui/icons';
 import { memo } from 'react';
+
+import { Icons } from '@weblab/ui/icons';
 
 export const FontFamily = memo(
     ({ name, isActive, onSetFont }: { name: string; isActive: boolean; onSetFont: () => void }) => {
@@ -9,15 +10,14 @@ export const FontFamily = memo(
             <div
                 key={name}
                 onClick={onSetFont}
-                className={`text-muted-foreground data-[highlighted]:bg-background-tertiary/10 border-border/0 data-[highlighted]:border-border flex items-center justify-between rounded-md border px-2 py-1.5 text-sm data-[highlighted]:text-foreground cursor-pointer transition-colors duration-150 hover:bg-background-tertiary/20 hover:text-foreground ${isActive
-                    ? 'bg-background-tertiary/20 border-border border text-foreground'
-                    : ''
-                    }`}
+                className={`text-muted-foreground data-[highlighted]:bg-background-tertiary/10 border-border/0 data-[highlighted]:border-border data-[highlighted]:text-foreground hover:bg-background-tertiary/20 hover:text-foreground flex cursor-pointer items-center justify-between rounded-md border px-2 py-1.5 text-sm transition-colors duration-150 ${
+                    isActive ? 'bg-background-tertiary/20 border-border text-foreground border' : ''
+                }`}
             >
                 <span className="font-medium" style={{ fontFamily: name }}>
                     {name}
                 </span>
-                {isActive && <Icons.Check className="ml-2 h-4 w-4 text-foreground-primary" />}
+                {isActive && <Icons.Check className="text-foreground-primary ml-2 h-4 w-4" />}
             </div>
         );
     },

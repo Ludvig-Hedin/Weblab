@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { BrandLogo } from '@weblab/ui/brand';
+import { cn } from '@weblab/ui/utils';
+
 import { Routes } from '@/utils/constants';
 import { NAVIGATION_CATEGORIES } from '@/utils/constants/navigation';
-import { BrandLogo } from '@weblab/ui/brand';
-import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
 import { GitHubButton } from './github';
 import { DropdownMenu } from './mega-menu';
 import { MobileMenu } from './mobile-menu';
@@ -24,27 +26,35 @@ export const TopBar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
-        <div className="relative w-full max-w-6xl mx-auto flex items-center justify-between p-3 h-12 text-sm text-foreground-secondary select-none">
+        <div className="text-foreground-secondary relative mx-auto flex h-12 w-full max-w-6xl items-center justify-between p-3 text-sm select-none">
             {/* Left side */}
-            <div className="flex items-center gap-4 text-foreground-secondary">
+            <div className="text-foreground-secondary flex items-center gap-4">
                 {LINKS.map((link) => (
-                    <a href={link.href} key={link.href} className={cn(
-                        'hover:opacity-80',
-                        currentPath === link.href && 'text-foreground-primary',
-                        link.href === Routes.HOME && 'py-4 pr-2',
-                    )}>
+                    <Link
+                        href={link.href}
+                        key={link.href}
+                        className={cn(
+                            'hover:opacity-80',
+                            currentPath === link.href && 'text-foreground-primary',
+                            link.href === Routes.HOME && 'py-4 pr-2',
+                        )}
+                    >
                         {link.child}
-                    </a>
+                    </Link>
                 ))}
-                
+
                 <div className="md:hidden">
                     <GitHubButton />
                 </div>
 
                 {/* Desktop dropdowns - hidden on mobile */}
-                <div className="hidden md:flex items-center gap-5 ml-3">
+                <div className="ml-3 hidden items-center gap-5 md:flex">
                     {NAVIGATION_CATEGORIES.map((category) => (
-                        <DropdownMenu key={category.label} label={category.label} links={category.links} />
+                        <DropdownMenu
+                            key={category.label}
+                            label={category.label}
+                            links={category.links}
+                        />
                     ))}
                     <GitHubButton />
                 </div>
@@ -58,10 +68,7 @@ export const TopBar = () => {
                 </div>
 
                 {/* Mobile menu */}
-                <MobileMenu
-                    isOpen={isMobileMenuOpen}
-                    onOpenChange={setIsMobileMenuOpen}
-                />
+                <MobileMenu isOpen={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen} />
             </div>
         </div>
     );

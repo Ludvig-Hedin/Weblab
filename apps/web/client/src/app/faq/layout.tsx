@@ -1,5 +1,6 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: `FAQ | ${APP_NAME} - AI-Powered Visual Editor for Frontend Development`,
@@ -44,10 +45,6 @@ export const metadata: Metadata = {
     },
 };
 
-export default function FAQLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function FAQLayout({ children }: { children: React.ReactNode }) {
     return children;
 }

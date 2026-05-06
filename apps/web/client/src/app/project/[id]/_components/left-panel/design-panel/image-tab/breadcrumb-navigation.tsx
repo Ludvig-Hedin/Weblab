@@ -1,7 +1,14 @@
 'use client';
 
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@weblab/ui/breadcrumb';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbSeparator,
+} from '@weblab/ui/breadcrumb';
 import { Icons } from '@weblab/ui/icons';
+
 import type { BreadcrumbSegment } from './types';
 
 interface BreadcrumbNavigationProps {
@@ -9,13 +16,16 @@ interface BreadcrumbNavigationProps {
     onNavigate: (path: string) => void;
 }
 
-export const BreadcrumbNavigation = ({ breadcrumbSegments, onNavigate }: BreadcrumbNavigationProps) => {
+export const BreadcrumbNavigation = ({
+    breadcrumbSegments,
+    onNavigate,
+}: BreadcrumbNavigationProps) => {
     return (
         <Breadcrumb>
-            <BreadcrumbList className='gap-1 sm:gap-1'>
+            <BreadcrumbList className="gap-1 sm:gap-1">
                 <BreadcrumbItem>
                     <BreadcrumbLink
-                        className="cursor-pointer hover:text-foreground-primary"
+                        className="hover:text-foreground-primary cursor-pointer"
                         onClick={() => onNavigate('/')}
                     >
                         Root
@@ -23,16 +33,20 @@ export const BreadcrumbNavigation = ({ breadcrumbSegments, onNavigate }: Breadcr
                 </BreadcrumbItem>
                 {breadcrumbSegments.map((segment, index) => (
                     <div className="flex items-center gap-1" key={segment.path}>
-                        <BreadcrumbSeparator className="p-0 m-0">
-                            <Icons.ChevronRight className="w-3 h-3 p-0 m-0" />
+                        <BreadcrumbSeparator className="m-0 p-0">
+                            <Icons.ChevronRight className="m-0 h-3 w-3 p-0" />
                         </BreadcrumbSeparator>
                         <BreadcrumbItem key={segment.path}>
                             <BreadcrumbLink
-                                className={index === breadcrumbSegments.length - 1
-                                    ? "text-foreground-primary font-medium"
-                                    : "cursor-pointer hover:text-foreground-primary"
+                                className={
+                                    index === breadcrumbSegments.length - 1
+                                        ? 'text-foreground-primary font-medium'
+                                        : 'hover:text-foreground-primary cursor-pointer'
                                 }
-                                onClick={() => index !== breadcrumbSegments.length - 1 && onNavigate(segment.path)}
+                                onClick={() =>
+                                    index !== breadcrumbSegments.length - 1 &&
+                                    onNavigate(segment.path)
+                                }
                             >
                                 {segment.name}
                             </BreadcrumbLink>

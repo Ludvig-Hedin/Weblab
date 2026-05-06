@@ -1,4 +1,4 @@
-import type { Frame } from "@weblab/models";
+import type { Frame } from '@weblab/models';
 
 export function roundDimensions(frame: Frame): Frame {
     return {
@@ -13,4 +13,3 @@ export function roundDimensions(frame: Frame): Frame {
         },
     };
 }
-

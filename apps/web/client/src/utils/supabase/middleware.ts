@@ -1,6 +1,8 @@
-import { env } from '@/env';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+
+import { env } from '@/env';
 
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
@@ -39,7 +41,7 @@ export async function updateSession(request: NextRequest) {
             ),
         ]);
     } catch (error) {
-        console.error('[middleware] Supabase session refresh failed', {
+        console.warn('[middleware] Supabase session refresh failed', {
             pathname: request.nextUrl.pathname,
             error: error instanceof Error ? error.message : String(error),
         });

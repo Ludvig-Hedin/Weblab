@@ -1,19 +1,21 @@
 import '@/styles/globals.css';
 import '@weblab/ui/globals.css';
 
-import RB2BLoader from '@/components/rb2b-loader';
+import { type Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import Script from 'next/script';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
+
 import { APP_DOMAIN, APP_NAME, APP_TAGLINE } from '@weblab/constants';
+import { Toaster } from '@weblab/ui/sonner';
+
+import RB2BLoader from '@/components/rb2b-loader';
 import { TelemetryProvider } from '@/components/telemetry-provider';
+import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { TRPCReactProvider } from '@/trpc/react';
-import { Toaster } from '@weblab/ui/sonner';
-import { type Metadata } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
-import { getLocale } from 'next-intl/server';
-import { Inter } from 'next/font/google';
-import Script from 'next/script';
-import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { ThemeProvider } from './_components/theme';
 import { AuthProvider } from './auth/auth-context';
 import { faqSchema, organizationSchema } from './seo';
@@ -37,7 +39,10 @@ export const metadata: Metadata = {
         description,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} visual editor preview`,
             },
         ],
     },
@@ -49,7 +54,7 @@ export const metadata: Metadata = {
         description,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/favicon.ico',
             },
         ],
     }, */
@@ -81,7 +86,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body>
                 {isProduction && (
                     <>
-                        <Script src="https://z.weblab.build/cdn-cgi/zaraz/i.js" strategy="lazyOnload" />
+                        <Script
+                            src="https://z.weblab.build/cdn-cgi/zaraz/i.js"
+                            strategy="lazyOnload"
+                        />
                         <RB2BLoader />
                     </>
                 )}

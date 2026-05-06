@@ -1,14 +1,16 @@
+import path from 'path';
+
 import type { Provider } from '@weblab/code-provider';
+import type { RouterConfig } from '@weblab/models';
 import {
     DEPRECATED_PRELOAD_SCRIPT_SRCS,
     NEXT_JS_FILE_EXTENSIONS,
     WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
     WEBLAB_PRELOAD_SCRIPT_SRC,
 } from '@weblab/constants';
-import { RouterType, type RouterConfig } from '@weblab/models';
+import { RouterType } from '@weblab/models';
 import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@weblab/parser';
 import { isRootLayoutFile, normalizePath } from '@weblab/utility';
-import path from 'path';
 
 export async function getPreloadScriptContent(): Promise<string> {
     const candidateSources = Array.from(
@@ -34,7 +36,10 @@ export async function getPreloadScriptContent(): Promise<string> {
     throw new Error(`Failed to load preload script. Attempts: ${failures.join(' | ')}`);
 }
 
-export async function copyPreloadScriptToPublic(provider: Provider, routerConfig: RouterConfig): Promise<void> {
+export async function copyPreloadScriptToPublic(
+    provider: Provider,
+    routerConfig: RouterConfig,
+): Promise<void> {
     try {
         try {
             await provider.createDirectory({ args: { path: 'public' } });
@@ -47,8 +52,8 @@ export async function copyPreloadScriptToPublic(provider: Provider, routerConfig
             args: {
                 path: WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
                 content: scriptContent,
-                overwrite: true
-            }
+                overwrite: true,
+            },
         });
 
         await injectPreloadScriptIntoLayout(provider, routerConfig);
@@ -58,14 +63,21 @@ export async function copyPreloadScriptToPublic(provider: Provider, routerConfig
     }
 }
 
-export async function injectPreloadScriptIntoLayout(provider: Provider, routerConfig: RouterConfig): Promise<void> {
+export async function injectPreloadScriptIntoLayout(
+    provider: Provider,
+    routerConfig: RouterConfig,
+): Promise<void> {
     if (!routerConfig) {
-        throw new Error('Could not detect router type for script injection. This is required for iframe communication.');
+        throw new Error(
+            'Could not detect router type for script injection. This is required for iframe communication.',
+        );
     }
 
     const result = await provider.listFiles({ args: { path: routerConfig.basePath } });
-    const [layoutFile] = result.files.filter(file =>
-        file.type === 'file' && isRootLayoutFile(`${routerConfig.basePath}/${file.name}`, routerConfig.type)
+    const [layoutFile] = result.files.filter(
+        (file) =>
+            file.type === 'file' &&
+            isRootLayoutFile(`${routerConfig.basePath}/${file.name}`, routerConfig.type),
     );
 
     if (!layoutFile) {
@@ -92,12 +104,15 @@ export async function injectPreloadScriptIntoLayout(provider: Provider, routerCo
         args: {
             path: layoutPath,
             content: modifiedContent,
-            overwrite: true
-        }
+            overwrite: true,
+        },
     });
 }
 
-export async function getLayoutPath(routerConfig: RouterConfig, fileExists: (path: string) => Promise<boolean>): Promise<string | null> {
+export async function getLayoutPath(
+    routerConfig: RouterConfig,
+    fileExists: (path: string) => Promise<boolean>,
+): Promise<string | null> {
     if (!routerConfig) {
         console.log('Could not detect Next.js router type');
         return null;

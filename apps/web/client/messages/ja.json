@@ -158,7 +158,9 @@
                         },
                         "openInCode": {
                             "button": "コードで開く"
-                        }
+                        },
+                        "noActiveConversation": "アクティブな会話はありません",
+                        "startNewConversation": "新しい会話を開始"
                     },
                     "styles": {
                         "name": "スタイル",
@@ -309,7 +311,7 @@
             "clone": "クローン",
             "goToAllProjects": "すべてのプロジェクトへ",
             "newProject": "新規プロジェクト",
-            "blankProject": "空白プロジェクト",
+            "blankProject": "プロジェクトを作成",
             "startFromScratch": "新規作成",
             "importProject": "プロジェクトをインポート",
             "subscriptions": "サブスクリプション",
@@ -320,7 +322,7 @@
             "downloadError": "ダウンロードの準備に失敗しました",
             "downloadToFolder": "フォルダに保存…",
             "downloadingToFolder": "フォルダに保存中…",
-            "openLocalFolder": "ローカルフォルダを開く",
+            "openLocalFolder": "フォルダをインポート",
             "openingLocalFolder": "開いています…",
             "importingLocalFolder": "ファイルをアップロード中…",
             "localFolderUnsupportedTooltip": "ローカルフォルダへのアクセスには Chrome、Edge、または Arc が必要です",

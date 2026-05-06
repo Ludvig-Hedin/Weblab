@@ -1,7 +1,9 @@
+import { makeAutoObservable } from 'mobx';
+
 import type { CoreElementType, DomElement, DynamicType } from '@weblab/models';
 import type { RemoveElementAction } from '@weblab/models/actions';
 import { toast } from '@weblab/ui/sonner';
-import { makeAutoObservable } from 'mobx';
+
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
 import { adaptRectToCanvas } from '../overlay/utils';
@@ -136,7 +138,9 @@ export class ElementsManager {
 
             const branchData = this.editorEngine.branches.getBranchDataById(selectedEl.branchId);
             if (!branchData) {
-                this.emitError(`Branch data not found for branchId: ${selectedEl.branchId}. Try refreshing the page.`);
+                this.emitError(
+                    `Branch data not found for branchId: ${selectedEl.branchId}. Try refreshing the page.`,
+                );
                 return;
             }
 

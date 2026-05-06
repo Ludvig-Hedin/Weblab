@@ -3,8 +3,8 @@ import { forwardRef } from 'react';
 import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
-import { Highlight } from './highlight';
 import type { SearchResult } from './use-search';
+import { Highlight } from './highlight';
 
 interface SearchResultRowProps {
     result: SearchResult;

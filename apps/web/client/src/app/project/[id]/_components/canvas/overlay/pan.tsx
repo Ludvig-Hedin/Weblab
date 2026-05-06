@@ -1,7 +1,9 @@
-import { useEditorEngine } from '@/components/store/editor';
+import { observer } from 'mobx-react-lite';
+
 import { EditorMode } from '@weblab/models';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 interface PanOverlayProps {
     clampPosition: (position: { x: number; y: number }) => { x: number; y: number };
@@ -13,7 +15,7 @@ export const PanOverlay = observer(({ clampPosition }: PanOverlayProps) => {
     const startPan = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
-            editorEngine.state.setCanvasPanning(true);
+        editorEngine.state.setCanvasPanning(true);
     };
 
     const pan = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -30,14 +32,14 @@ export const PanOverlay = observer(({ clampPosition }: PanOverlayProps) => {
     };
 
     const endPan = () => {
-            editorEngine.state.setCanvasPanning(false);
+        editorEngine.state.setCanvasPanning(false);
     };
 
     return (
         <div
             className={cn(
-                'absolute w-full h-full cursor-grab',
-                editorEngine.state.editorMode === EditorMode.PAN ? 'visible ' : 'hidden',
+                'absolute h-full w-full cursor-grab',
+                editorEngine.state.editorMode === EditorMode.PAN ? 'visible' : 'hidden',
                 editorEngine.state.canvasPanning ? 'cursor-grabbing' : 'cursor-grab',
             )}
             onMouseDown={startPan}

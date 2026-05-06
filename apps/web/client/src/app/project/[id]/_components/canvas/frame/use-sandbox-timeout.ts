@@ -1,7 +1,9 @@
-import { useEditorEngine } from '@/components/store/editor';
+import { useEffect, useState } from 'react';
+
 import type { Frame } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
-import { useEffect, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 const SANDBOX_TIMEOUT_MS = 30000;
 
@@ -23,7 +25,9 @@ export function useSandboxTimeout(frame: Frame, onTimeout: () => void) {
             const stillConnecting = currentBranchData?.sandbox?.session?.isConnecting ?? false;
 
             if (stillConnecting) {
-                console.log(`[Frame ${frame.id}] Sandbox connection timeout after ${SANDBOX_TIMEOUT_MS}ms`);
+                console.log(
+                    `[Frame ${frame.id}] Sandbox connection timeout after ${SANDBOX_TIMEOUT_MS}ms`,
+                );
                 toast.info('Connection slow, retrying...', {
                     description: `Reconnecting to ${currentBranchData?.branch?.name}...`,
                 });

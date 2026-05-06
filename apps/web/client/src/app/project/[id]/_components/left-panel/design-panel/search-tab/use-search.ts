@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { CoreElementType, type LayerNode } from '@weblab/models/element';
+import type { LayerNode } from '@weblab/models/element';
+import { CoreElementType } from '@weblab/models/element';
 
 import { useEditorEngine } from '@/components/store/editor';
 
@@ -132,9 +133,7 @@ export const useSearch = (query: string, filter: SearchFilter, scope: SearchScop
     // String comparison via Object.is() is value-based, so React correctly
     // detects "no change" when the content is the same.
     const allFrames = editorEngine.frames.getAll();
-    const selectionKey = allFrames
-        .map((f) => `${f.frame.id}:${f.selected ? '1' : '0'}`)
-        .join(',');
+    const selectionKey = allFrames.map((f) => `${f.frame.id}:${f.selected ? '1' : '0'}`).join(',');
     const layerSizesKey = allFrames
         .map((f) => editorEngine.ast.mappings.getMetadata(f.frame.id)?.domIdToLayerNode.size ?? 0)
         .join(',');
@@ -152,9 +151,7 @@ export const useSearch = (query: string, filter: SearchFilter, scope: SearchScop
         // Re-read frames inside the memo to get fresh data now that the stable
         // keys above have changed and forced recomputation.
         const currentFrames = editorEngine.frames.getAll();
-        const selectedIds = new Set(
-            currentFrames.filter((f) => f.selected).map((f) => f.frame.id),
-        );
+        const selectedIds = new Set(currentFrames.filter((f) => f.selected).map((f) => f.frame.id));
         const frames =
             scope === 'frame'
                 ? currentFrames.filter((f) => selectedIds.has(f.frame.id))

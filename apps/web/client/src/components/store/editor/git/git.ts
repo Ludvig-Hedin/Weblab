@@ -5,7 +5,12 @@ import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
 import { type GitCommit } from '@weblab/git';
 
 import type { SandboxManager } from '../sandbox';
-import { escapeShellString, prepareCommitMessage, sanitizeCommitMessage, withSyncPaused } from '@/utils/git';
+import {
+    escapeShellString,
+    prepareCommitMessage,
+    sanitizeCommitMessage,
+    withSyncPaused,
+} from '@/utils/git';
 
 const MAX_DIFF_FILE_BYTES = 500_000;
 
@@ -107,7 +112,9 @@ export class GitManager {
 
             // Set user.name if not configured
             if (!hasName) {
-                const nameConfigResult = await this.runCommand('git config user.name `${APP_NAME}`');
+                const nameConfigResult = await this.runCommand(
+                    'git config user.name `${APP_NAME}`',
+                );
                 if (!nameConfigResult.success) {
                     console.error('Failed to set git user.name:', nameConfigResult.error);
                 }
@@ -269,9 +276,7 @@ export class GitManager {
                 return [];
             }
 
-            const results = await Promise.all(
-                status.files.map((path) => this.buildFileDiff(path)),
-            );
+            const results = await Promise.all(status.files.map((path) => this.buildFileDiff(path)));
             const diffs = results.filter((d): d is FileDiff => d !== null);
             this.diffs = diffs;
             return diffs;
@@ -328,14 +333,14 @@ export class GitManager {
                 !existedInHead && modifiedExists
                     ? 'added'
                     : existedInHead && !modifiedExists
-                        ? 'deleted'
-                        : 'modified';
+                      ? 'deleted'
+                      : 'modified';
 
             const skipped: FileDiffSkipReason | undefined = isBinary
                 ? 'binary'
                 : isTooLarge || isOriginalTooLarge
-                    ? 'too-large'
-                    : undefined;
+                  ? 'too-large'
+                  : undefined;
 
             return {
                 path,

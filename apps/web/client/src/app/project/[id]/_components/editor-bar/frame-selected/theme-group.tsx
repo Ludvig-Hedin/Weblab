@@ -67,7 +67,7 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
             <HoverOnlyTooltip content="Theme" side="bottom" sideOffset={10} disabled={isOpen}>
                 <SelectTrigger
                     size="sm"
-                    className="group border-border/0 text-muted-foreground hover:border-border hover:bg-background-tertiary/20 min-w-[112px] rounded-lg border hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="group border-border/0 text-muted-foreground hover:border-border hover:bg-background-tertiary/20 hover:text-foreground min-w-[112px] rounded-lg border focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
                     <SelectedIcon className="group-hover:text-foreground-primary h-3.5 min-h-3.5 w-3.5 min-w-3.5" />
                     <span className="text-smallPlus">{selectedOption.label}</span>

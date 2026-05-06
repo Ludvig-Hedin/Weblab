@@ -180,7 +180,9 @@ export const GitHubTab = observer(() => {
                         </div>
                     ) : filteredRepos.length === 0 ? (
                         <p className="text-muted-foreground py-4 text-center text-sm">
-                            {repoSearch ? 'No repositories match your search.' : 'No repositories found.'}
+                            {repoSearch
+                                ? 'No repositories match your search.'
+                                : 'No repositories found.'}
                         </p>
                     ) : (
                         <div className="max-h-64 space-y-1 overflow-y-auto pr-1">

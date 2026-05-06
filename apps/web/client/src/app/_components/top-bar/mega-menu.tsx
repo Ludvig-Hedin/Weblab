@@ -1,9 +1,11 @@
 'use client';
 
-import { type NavigationLink } from '@/utils/constants/navigation';
-import { cn } from '@weblab/ui/utils';
 import { useEffect, useRef, useState } from 'react';
+
 import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
+
+import { type NavigationLink } from '@/utils/constants/navigation';
 
 interface DropdownMenuProps {
     label: string;
@@ -54,20 +56,17 @@ export function DropdownMenu({ label, links }: DropdownMenuProps) {
         >
             <button
                 onClick={handleToggle}
-                className="text-sm text-foreground-secondary hover:opacity-80 flex items-center gap-1 py-2 px-1 -mx-1 active:opacity-60"
+                className="text-foreground-secondary -mx-1 flex items-center gap-1 px-1 py-2 text-sm hover:opacity-80 active:opacity-60"
             >
                 {label}
                 <Icons.ChevronDown
-                    className={cn(
-                        'w-4 h-4 transition-transform',
-                        isOpen && 'rotate-180',
-                    )}
+                    className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')}
                 />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
-                    <div className="bg-background-primary border border-foreground-primary/10 rounded-lg shadow-lg p-1 min-w-[200px]">
+                <div className="absolute top-full left-1/2 z-50 -translate-x-1/2 pt-2">
+                    <div className="bg-background-primary border-foreground-primary/10 min-w-[200px] rounded-lg border p-1 shadow-lg">
                         <ul className="space-y-1">
                             {links.map((link) => (
                                 <li key={link.href}>
@@ -75,7 +74,7 @@ export function DropdownMenu({ label, links }: DropdownMenuProps) {
                                         href={link.href}
                                         target={link.external ? '_blank' : undefined}
                                         rel={link.external ? 'noopener noreferrer' : undefined}
-                                        className="block py-2 px-2 rounded-md hover:bg-foreground-primary/5 active:bg-foreground-primary/10 transition-colors"
+                                        className="hover:bg-foreground-primary/5 active:bg-foreground-primary/10 block rounded-md px-2 py-2 transition-colors"
                                         onClick={() => setIsOpen(false)}
                                     >
                                         <div className="text-regular text-foreground-primary">
@@ -94,4 +93,3 @@ export function DropdownMenu({ label, links }: DropdownMenuProps) {
         </div>
     );
 }
-

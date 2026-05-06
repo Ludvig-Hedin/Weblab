@@ -9,11 +9,6 @@
     <a href="https://docs.weblab.build"><strong>Explore the docs »</strong></a>
     <br />
   </p>
-  <p align="center">
-    👨‍💻👩‍💻👨‍💻
-    <a href="https://www.ycombinator.com/companies/weblab/jobs/e4gHv1n-founding-engineer-fullstack">We're hiring engineers in SF!</a>
-    👩‍💻👨‍💻👩‍💻
-  </p>
     <br />
     <a href="https://youtu.be/RSX_3EaO5eU?feature=shared">View Demo</a>
     ·

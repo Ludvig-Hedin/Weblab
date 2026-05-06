@@ -1,7 +1,8 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
 import { observer } from 'mobx-react-lite';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 /**
  * Renders a floating cursor + name label for every remote user who has an
@@ -26,7 +27,7 @@ export const RemoteCursors = observer(() => {
                 return (
                     <div
                         key={user.userId}
-                        className="absolute pointer-events-none select-none z-50"
+                        className="pointer-events-none absolute z-50 select-none"
                         style={{
                             left: screenX,
                             top: screenY,
@@ -51,7 +52,7 @@ export const RemoteCursors = observer(() => {
                         </svg>
                         {/* Name label */}
                         <div
-                            className="text-xs text-white px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5 shadow-sm"
+                            className="mt-0.5 rounded px-1.5 py-0.5 text-xs whitespace-nowrap text-white shadow-sm"
                             style={{ backgroundColor: user.color }}
                         >
                             {user.displayName}

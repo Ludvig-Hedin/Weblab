@@ -1,6 +1,9 @@
-import { EditorMode, type CodeNavigationTarget } from "@weblab/models";
-import { makeAutoObservable } from "mobx";
-import type { EditorEngine } from "../engine";
+import { makeAutoObservable } from 'mobx';
+
+import type { CodeNavigationTarget } from '@weblab/models';
+import { EditorMode } from '@weblab/models';
+
+import type { EditorEngine } from '../engine';
 
 export class IdeManager {
     private _codeNavigationOverride: CodeNavigationTarget | null = null;
@@ -46,8 +49,8 @@ export class IdeManager {
                 filePath: metadata.path,
                 range: {
                     start: { line: startLine, column: startColumn },
-                    end: { line: endLine, column: endColumn }
-                }
+                    end: { line: endLine, column: endColumn },
+                },
             };
 
             // Set the override to trigger navigation

@@ -1,9 +1,11 @@
-import { trackEvent } from '@/utils/analytics/server';
+import type Stripe from 'stripe';
+import { eq } from 'drizzle-orm';
+
 import { subscriptions } from '@weblab/db';
 import { db } from '@weblab/db/src/client';
 import { SubscriptionStatus } from '@weblab/stripe';
-import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
+
+import { trackEvent } from '@/utils/analytics/server';
 import { extractIdsFromEvent } from './helpers';
 
 export const handleSubscriptionDeleted = async (
@@ -36,11 +38,11 @@ const trackSubscriptionCancelled = async (stripeSubscriptionId: string) => {
                 properties: {
                     $set: {
                         subscription_cancelled_at: new Date(),
-                    }
-                }
-            })
+                    },
+                },
+            });
         }
     } catch (error) {
-        console.error('Error tracking user subscription cancelled: ', error)
+        console.error('Error tracking user subscription cancelled: ', error);
     }
-}
+};

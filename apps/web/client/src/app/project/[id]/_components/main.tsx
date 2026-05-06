@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
@@ -18,16 +16,16 @@ import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
-import { MobileLayout } from './mobile-layout';
 import { EditorBar } from './editor-bar';
 import { ElementPalette } from './element-palette';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { LeftPanel } from './left-panel';
+import { MobileLayout } from './mobile-layout';
+import { ProjectLoadError } from './project-load-error';
 import { RightPanel } from './right-panel';
 import { TopBar } from './top-bar';
 
 export const Main = observer(() => {
-    const router = useRouter();
     const editorEngine = useEditorEngine();
     const { isProjectReady, error, readyState } = useStartProject();
     const leftPanelRef = useRef<HTMLDivElement | null>(null);
@@ -70,21 +68,7 @@ export const Main = observer(() => {
     }, []);
 
     if (error) {
-        return (
-            <div className="flex h-screen w-screen flex-col items-center justify-center gap-2">
-                <div className="flex flex-row items-center justify-center gap-2">
-                    <Icons.ExclamationTriangle className="text-foreground-primary h-6 w-6" />
-                    <div className="text-xl">Error starting project: {error}</div>
-                </div>
-                <Button
-                    onClick={() => {
-                        router.push('/');
-                    }}
-                >
-                    Go to home
-                </Button>
-            </div>
-        );
+        return <ProjectLoadError variant="unknown" message={error} />;
     }
 
     if (!isProjectReady) {

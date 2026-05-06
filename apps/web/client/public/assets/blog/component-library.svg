@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#0a0a0a"/>
+
+  <!-- Top bar -->
+  <rect width="1600" height="44" fill="#111111"/>
+  <line x1="0" y1="44" x2="1600" y2="44" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="20" y="26" fill="#f0f0f0" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="500">Weblab</text>
+  <text x="720" y="26" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="11">Component Library — 247 components</text>
+
+  <!-- Left sidebar: categories -->
+  <rect x="0" y="44" width="200" height="856" fill="#111111"/>
+  <line x1="200" y1="44" x2="200" y2="900" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="16" y="74" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">CATEGORIES</text>
+
+  <!-- Category items -->
+  <rect x="8" y="82" width="184" height="26" rx="4" fill="rgba(167,139,250,0.12)"/>
+  <text x="20" y="99" fill="#c4b5fd" font-family="system-ui" font-size="12">All Components</text>
+  <text x="168" y="99" fill="rgba(167,139,250,0.6)" font-family="system-ui" font-size="10">247</text>
+
+  <text x="20" y="126" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Layout</text>
+  <text x="168" y="126" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">32</text>
+  <text x="20" y="150" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Navigation</text>
+  <text x="168" y="150" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">18</text>
+  <text x="20" y="174" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Forms</text>
+  <text x="168" y="174" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">44</text>
+  <text x="20" y="198" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Data Display</text>
+  <text x="168" y="198" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">29</text>
+  <text x="20" y="222" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="12">Feedback</text>
+  <text x="168" y="222" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">16</text>
+  <text x="20" y="246" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="12">Marketing</text>
+  <text x="168" y="246" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">38</text>
+  <text x="20" y="270" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="12">E-commerce</text>
+  <text x="168" y="270" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">22</text>
+  <text x="20" y="294" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="12">Blog &amp; Docs</text>
+  <text x="168" y="294" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="10">15</text>
+
+  <!-- Main grid -->
+  <rect x="200" y="44" width="1400" height="856" fill="#0e0e0e"/>
+
+  <!-- Search + filters -->
+  <rect x="220" y="64" width="320" height="36" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="244" y="85" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="12">Search components...</text>
+  <rect x="556" y="68" width="72" height="28" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <text x="572" y="85" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="11">React</text>
+  <rect x="636" y="68" width="80" height="28" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <text x="652" y="85" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="11">Tailwind</text>
+  <rect x="724" y="68" width="72" height="28" rx="5" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.25)" stroke-width="0.5"/>
+  <text x="736" y="85" fill="#c4b5fd" font-family="system-ui" font-size="11">Dark</text>
+
+  <!-- Component grid: 4 columns, 2 rows visible -->
+  <!-- Row 1 -->
+  <!-- Card 1: Button (selected) -->
+  <rect x="220" y="120" width="320" height="240" rx="8" fill="#111111" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="220" y="120" width="320" height="170" rx="8" fill="#161616"/>
+  <!-- Button preview inside card -->
+  <rect x="300" y="170" width="160" height="40" rx="6" fill="rgba(255,255,255,0.88)"/>
+  <text x="355" y="194" fill="#0a0a0a" font-family="system-ui" font-size="13" font-weight="500">Button</text>
+  <rect x="300" y="222" width="160" height="36" rx="6" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <text x="357" y="244" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Outline</text>
+  <!-- card footer -->
+  <line x1="220" y1="290" x2="540" y2="290" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="236" y="310" fill="rgba(255,255,255,0.65)" font-family="system-ui" font-size="12">Button</text>
+  <text x="236" y="326" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10">3 variants</text>
+  <!-- selected badge -->
+  <rect x="452" y="302" width="60" height="20" rx="4" fill="rgba(167,139,250,0.2)"/>
+  <text x="464" y="315" fill="#c4b5fd" font-family="system-ui" font-size="10">Selected</text>
+
+  <!-- Card 2: Card component -->
+  <rect x="560" y="120" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="560" y="120" width="320" height="170" rx="8" fill="#161616"/>
+  <rect x="596" y="142" width="248" height="128" rx="5" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <rect x="596" y="142" width="248" height="56" rx="5" fill="rgba(255,255,255,0.03)"/>
+  <rect x="612" y="158" width="80" height="7" rx="2" fill="rgba(255,255,255,0.3)"/>
+  <rect x="612" y="172" width="160" height="5" rx="2" fill="rgba(255,255,255,0.12)"/>
+  <rect x="612" y="210" width="100" height="5" rx="2" fill="rgba(255,255,255,0.15)"/>
+  <rect x="612" y="222" width="180" height="5" rx="2" fill="rgba(255,255,255,0.08)"/>
+  <line x1="560" y1="290" x2="880" y2="290" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="576" y="310" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Card</text>
+  <text x="576" y="326" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">5 variants</text>
+
+  <!-- Card 3: Input -->
+  <rect x="900" y="120" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="900" y="120" width="320" height="170" rx="8" fill="#161616"/>
+  <rect x="930" y="180" width="260" height="36" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+  <text x="946" y="202" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="12">Email address</text>
+  <rect x="930" y="226" width="260" height="36" rx="6" fill="rgba(255,255,255,0.05)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="946" y="248" fill="rgba(255,255,255,0.5)" font-family="system-ui" font-size="12">Active state|</text>
+  <line x1="900" y1="290" x2="1220" y2="290" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="916" y="310" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Input</text>
+  <text x="916" y="326" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">4 variants</text>
+
+  <!-- Card 4: Badge -->
+  <rect x="1240" y="120" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="1240" y="120" width="320" height="170" rx="8" fill="#161616"/>
+  <rect x="1272" y="170" width="72" height="22" rx="11" fill="rgba(167,139,250,0.15)" stroke="rgba(167,139,250,0.25)" stroke-width="0.5"/>
+  <text x="1292" y="184" fill="#c4b5fd" font-family="system-ui" font-size="10">Product</text>
+  <rect x="1356" y="170" width="60" height="22" rx="11" fill="rgba(74,222,128,0.12)" stroke="rgba(74,222,128,0.25)" stroke-width="0.5"/>
+  <text x="1371" y="184" fill="#4ade80" font-family="system-ui" font-size="10">New</text>
+  <rect x="1272" y="204" width="56" height="22" rx="11" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="1284" y="218" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="10">Neutral</text>
+  <rect x="1340" y="204" width="64" height="22" rx="11" fill="rgba(248,113,113,0.12)" stroke="rgba(248,113,113,0.2)" stroke-width="0.5"/>
+  <text x="1356" y="218" fill="#f87171" font-family="system-ui" font-size="10">Error</text>
+  <line x1="1240" y1="290" x2="1560" y2="290" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="1256" y="310" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Badge</text>
+  <text x="1256" y="326" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">6 variants</text>
+
+  <!-- Row 2 -->
+  <!-- Card 5: Dialog -->
+  <rect x="220" y="380" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="220" y="380" width="320" height="170" rx="8" fill="#161616"/>
+  <!-- mini dialog -->
+  <rect x="266" y="410" width="228" height="110" rx="5" fill="#1a1a1a" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <rect x="266" y="410" width="228" height="16" rx="5" fill="rgba(255,255,255,0.03)"/>
+  <text x="276" y="422" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="8" font-weight="500">Confirm action</text>
+  <rect x="276" y="434" width="180" height="5" rx="2" fill="rgba(255,255,255,0.1)"/>
+  <rect x="276" y="446" width="140" height="5" rx="2" fill="rgba(255,255,255,0.07)"/>
+  <rect x="340" y="494" width="64" height="20" rx="4" fill="rgba(255,255,255,0.8)"/>
+  <text x="354" y="507" fill="#111" font-family="system-ui" font-size="8" font-weight="500">Confirm</text>
+  <rect x="410" y="494" width="72" height="20" rx="4" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="432" y="507" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="8">Cancel</text>
+  <line x1="220" y1="550" x2="540" y2="550" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="236" y="570" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Dialog</text>
+  <text x="236" y="586" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">2 variants</text>
+
+  <!-- Card 6: Table -->
+  <rect x="560" y="380" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="560" y="380" width="320" height="170" rx="8" fill="#161616"/>
+  <!-- mini table -->
+  <rect x="576" y="400" width="288" height="130" rx="4" fill="rgba(255,255,255,0.02)"/>
+  <rect x="576" y="400" width="288" height="20" fill="rgba(255,255,255,0.04)"/>
+  <text x="584" y="413" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="9">Name</text>
+  <text x="660" y="413" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="9">Status</text>
+  <text x="730" y="413" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="9">Date</text>
+  <line x1="576" y1="420" x2="864" y2="420" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+  <text x="584" y="435" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="9">Hero.tsx</text>
+  <rect x="656" y="428" width="42" height="12" rx="6" fill="rgba(74,222,128,0.15)"/>
+  <text x="665" y="437" fill="#4ade80" font-family="system-ui" font-size="7">Active</text>
+  <text x="728" y="435" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="9">May 6</text>
+  <line x1="576" y1="442" x2="864" y2="442" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <text x="584" y="455" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="9">Navbar.tsx</text>
+  <text x="728" y="455" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="9">Apr 28</text>
+  <line x1="576" y1="460" x2="864" y2="460" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  <text x="584" y="475" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="9">Footer.tsx</text>
+  <text x="728" y="475" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="9">Apr 14</text>
+  <line x1="560" y1="550" x2="880" y2="550" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="576" y="570" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Table</text>
+  <text x="576" y="586" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">3 variants</text>
+
+  <!-- Card 7: Select -->
+  <rect x="900" y="380" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="900" y="380" width="320" height="170" rx="8" fill="#161616"/>
+  <rect x="930" y="430" width="260" height="36" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+  <text x="946" y="452" fill="rgba(255,255,255,0.5)" font-family="system-ui" font-size="12">Select framework</text>
+  <text x="1160" y="452" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="11">▾</text>
+  <!-- dropdown -->
+  <rect x="930" y="474" width="260" height="68" rx="6" fill="#1e1e1e" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <rect x="930" y="474" width="260" height="22" rx="4" fill="rgba(167,139,250,0.12)"/>
+  <text x="946" y="488" fill="#c4b5fd" font-family="system-ui" font-size="11">Next.js</text>
+  <text x="946" y="508" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">Remix</text>
+  <text x="946" y="528" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">Astro</text>
+  <line x1="900" y1="550" x2="1220" y2="550" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="916" y="570" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Select</text>
+  <text x="916" y="586" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">2 variants</text>
+
+  <!-- Card 8: Tabs -->
+  <rect x="1240" y="380" width="320" height="240" rx="8" fill="#111111" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="1240" y="380" width="320" height="170" rx="8" fill="#161616"/>
+  <!-- tab bar -->
+  <rect x="1256" y="410" width="288" height="32" rx="5" fill="rgba(255,255,255,0.04)"/>
+  <rect x="1258" y="412" width="88" height="28" rx="4" fill="rgba(255,255,255,0.08)"/>
+  <text x="1287" y="430" fill="rgba(255,255,255,0.7)" font-family="system-ui" font-size="11">Overview</text>
+  <text x="1356" y="430" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="11">Code</text>
+  <text x="1418" y="430" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="11">Props</text>
+  <!-- tab content -->
+  <rect x="1256" y="452" width="288" height="80" rx="4" fill="rgba(255,255,255,0.02)"/>
+  <rect x="1268" y="468" width="180" height="7" rx="2" fill="rgba(255,255,255,0.1)"/>
+  <rect x="1268" y="484" width="240" height="5" rx="2" fill="rgba(255,255,255,0.06)"/>
+  <rect x="1268" y="496" width="200" height="5" rx="2" fill="rgba(255,255,255,0.04)"/>
+  <line x1="1240" y1="550" x2="1560" y2="550" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="1256" y="570" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Tabs</text>
+  <text x="1256" y="586" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="10">4 variants</text>
+</svg>

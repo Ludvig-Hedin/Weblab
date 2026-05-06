@@ -1,0 +1,56 @@
+---
+title: "The End of Design Handoff"
+description: "Design handoff is a symptom of a broken workflow, not a process to be optimized. The fix isn't better handoff tools — it's eliminating the gap that makes handoff necessary."
+date: "2026-03-12"
+author: "Ludvig Hedin"
+authorImage: "https://github.com/Ludvig-Hedin.png"
+category: "Engineering"
+tags: ["workflow", "collaboration", "handoff", "design-dev"]
+coverImage: "/assets/blog/code-sync.svg"
+---
+
+## What Handoff Actually Is
+
+Design handoff is the moment a designer says "I'm done" and a developer says "I'll take it from here." Between those two statements is a gap — a translation layer where information is lost, context evaporates, and fidelity erodes.
+
+The industry has spent a decade building tools to make this gap more comfortable. Zeplin, Figma Dev Mode, Storybook integrations, design token pipelines. These are all optimizations of a fundamentally broken step.
+
+The correct fix is to eliminate the step.
+
+## Why the Gap Exists
+
+The gap exists because designers and developers work in different tools that produce incompatible artifacts.
+
+Designers work in Figma. They produce frames, components, and prototypes — visual artifacts that describe intent.
+
+Developers work in code editors. They produce React components, CSS classes, and TypeScript files — executable artifacts that implement intent.
+
+The handoff is the translation between these two artifact types. Every translation loses something.
+
+## Closing the Gap
+
+Weblab closes the gap by making code the shared artifact.
+
+When a designer makes a change in Weblab, they're modifying a real source file. When a developer reviews that change, they're reviewing real code. There is no translation step because there are no incompatible artifact types.
+
+The designer and the developer are working in the same repository, producing the same kind of artifacts, subject to the same review process.
+
+### What This Changes
+
+The designer doesn't hand off. They open a PR.
+
+The developer doesn't translate. They review.
+
+The feedback loop that used to span days — design, hand off, implement, review, request changes, re-implement — compresses to hours.
+
+## The Cultural Shift
+
+Eliminating handoff requires more than a tool change. It requires a shared understanding that UI work is collaborative by default, not sequential.
+
+Designers need to be comfortable with Git. Developers need to be comfortable giving visual feedback. Both disciplines need to share ownership of the output.
+
+The tools can enable this. They can't mandate it. That part is organizational.
+
+But the teams that make the shift report something consistent: they ship faster, they ship with more confidence, and the output looks more like what was intended.
+
+That's what closing the gap actually feels like.

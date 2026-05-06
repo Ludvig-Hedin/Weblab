@@ -4,15 +4,9 @@
         "baseUrl": ".",
         "allowArbitraryExtensions": true,
         "paths": {
-            "@/*": [
-                "./src/*"
-            ],
-            "/*": [
-                "./*"
-            ],
-            "~/*": [
-                "./src/*"
-            ]
+            "@/*": ["./src/*"],
+            "/*": ["./*"],
+            "~/*": ["./src/*"]
         }
     },
     "include": [
@@ -22,8 +16,5 @@
         "messages/en.d.json.ts",
         "../../../packages/file-system/src/code-fs.ts"
     ],
-    "exclude": [
-        "node_modules",
-        ".next"
-    ]
+    "exclude": ["node_modules", ".next"]
 }

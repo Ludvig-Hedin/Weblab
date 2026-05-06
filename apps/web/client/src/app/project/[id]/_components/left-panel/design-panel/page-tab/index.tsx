@@ -1,11 +1,11 @@
-import { useEditorEngine } from '@/components/store/editor';
-import {
-    getNestedPagePath,
-    isFolderNode,
-    isPageNode,
-} from '@/components/store/editor/pages/helper';
-import { RouterType } from '@weblab/models';
+import type { NodeApi, RowRendererProps, TreeApi } from 'react-arborist';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { Tree } from 'react-arborist';
+import useResizeObserver from 'use-resize-observer';
+
 import type { PageNode } from '@weblab/models/pages';
+import { RouterType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -17,10 +17,13 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
-import { observer } from 'mobx-react-lite';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { type NodeApi, type RowRendererProps, Tree, type TreeApi } from 'react-arborist';
-import useResizeObserver from 'use-resize-observer';
+
+import { useEditorEngine } from '@/components/store/editor';
+import {
+    getNestedPagePath,
+    isFolderNode,
+    isPageNode,
+} from '@/components/store/editor/pages/helper';
 import { PageTreeNode } from '../layers-tab/tree/page-tree-node';
 import { PageTreeRow } from '../layers-tab/tree/page-tree-row';
 import { PageModal } from './page-modal';
@@ -180,9 +183,8 @@ export const PagesTab = observer(() => {
                     return;
                 }
 
-                const targetParentPath = parentNode?.data && isFolderNode(parentNode.data)
-                    ? parentNode.data.path
-                    : '/';
+                const targetParentPath =
+                    parentNode?.data && isFolderNode(parentNode.data) ? parentNode.data.path : '/';
                 const targetPath = getNestedPagePath(targetParentPath, dragNode.data.slug);
 
                 try {
@@ -224,8 +226,7 @@ export const PagesTab = observer(() => {
 
                 if (
                     dragNode.data.kind === 'folder' &&
-                    parentNode?.data &&
-                    parentNode.data.path.startsWith(`${dragNode.data.path}/`)
+                    parentNode?.data?.path.startsWith(`${dragNode.data.path}/`)
                 ) {
                     return true;
                 }

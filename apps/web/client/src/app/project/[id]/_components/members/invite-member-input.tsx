@@ -1,12 +1,14 @@
 'use client';
 
-import { api } from '@/trpc/react';
+import { useState } from 'react';
+
 import { ProjectRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
-import { useState } from 'react';
+
+import { api } from '@/trpc/react';
 
 export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
     const apiUtils = api.useUtils();
@@ -47,10 +49,10 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
 
     return (
         <form
-            className="flex items-center gap-2 p-3 border-b justify-between"
+            className="flex items-center justify-between gap-2 border-b p-3"
             onSubmit={handleSubmit}
         >
-            <div className="flex flex-1 items-center gap-2 relative">
+            <div className="relative flex flex-1 items-center gap-2">
                 {/* Bug fix #9: pr-24 reserves space so email text never runs under the Select trigger */}
                 <Input
                     type="email"
@@ -63,26 +65,30 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
                     value={selectedRole}
                     onValueChange={(value) => setSelectedRole(value as ProjectRole)}
                 >
-                    <SelectTrigger className="w-24 text-xs border-0 p-2 rounded-tl-none rounded-bl-none focus:ring-0 bg-transparent absolute right-0">
+                    <SelectTrigger className="absolute right-0 w-24 rounded-tl-none rounded-bl-none border-0 bg-transparent p-2 text-xs focus:ring-0">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ProjectRole.ADMIN}>
                             <div className="flex flex-col">
                                 <span>Admin</span>
-                                <span className="text-xs text-muted-foreground">Can edit and manage members</span>
+                                <span className="text-muted-foreground text-xs">
+                                    Can edit and manage members
+                                </span>
                             </div>
                         </SelectItem>
                         <SelectItem value={ProjectRole.EDITOR}>
                             <div className="flex flex-col">
                                 <span>Editor</span>
-                                <span className="text-xs text-muted-foreground">Can edit the project</span>
+                                <span className="text-muted-foreground text-xs">
+                                    Can edit the project
+                                </span>
                             </div>
                         </SelectItem>
                         <SelectItem value={ProjectRole.VIEWER}>
                             <div className="flex flex-col">
                                 <span>Viewer</span>
-                                <span className="text-xs text-muted-foreground">Can view only</span>
+                                <span className="text-muted-foreground text-xs">Can view only</span>
                             </div>
                         </SelectItem>
                     </SelectContent>

@@ -1,6 +1,7 @@
+import type { Font } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
 import { addFontToTailwindTheme, removeFontFromTailwindTheme } from '@weblab/fonts';
-import type { Font } from '@weblab/models';
+
 import type { SandboxManager } from '../sandbox';
 import { normalizePath } from '../sandbox/helpers';
 
@@ -16,7 +17,7 @@ export const removeFontFromTailwindConfig = async (
     try {
         const file = await sandbox.readFile(tailwindConfigPath);
         if (typeof file !== 'string') {
-            console.error("Tailwind config file is not text");
+            console.error('Tailwind config file is not text');
             return false;
         }
 
@@ -44,7 +45,7 @@ export const addFontToTailwindConfig = async (
     try {
         const file = await sandbox.readFile(tailwindConfigPath);
         if (typeof file !== 'string') {
-            console.error("Tailwind config file is not text");
+            console.error('Tailwind config file is not text');
             return false;
         }
 

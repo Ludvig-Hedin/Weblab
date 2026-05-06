@@ -1,8 +1,10 @@
+import type { ToolUIPart } from 'ai';
+import { observer } from 'mobx-react-lite';
+
 import type { ChatMessage } from '@weblab/models';
 import { Reasoning, ReasoningContent, ReasoningTrigger, Response } from '@weblab/ui/ai-elements';
 import { cn } from '@weblab/ui/utils';
-import type { ToolUIPart } from 'ai';
-import { observer } from 'mobx-react-lite';
+
 import { ToolCallDisplay } from './tool-call-display';
 
 const MessageContentComponent = ({
@@ -32,14 +34,9 @@ const MessageContentComponent = ({
 
     const renderedParts = parts.map((part, idx) => {
         if (part?.type === 'text') {
-            return (
-                <Response key={part.text}>
-                    {part.text}
-                </Response>
-
-            );
+            return <Response key={part.text}>{part.text}</Response>;
         } else if (part?.type.startsWith('tool-')) {
-            const toolPart = part as ToolUIPart;// Only show loading animation for the last incomplete tool call
+            const toolPart = part as ToolUIPart; // Only show loading animation for the last incomplete tool call
             const isLoadingThisTool = isStream && idx === lastIncompleteToolIndex;
             return (
                 <ToolCallDisplay
@@ -57,8 +54,9 @@ const MessageContentComponent = ({
                 <Reasoning
                     key={`reasoning-${idx}`}
                     className={cn(
-                        "m-0 mb-2 items-center gap-2 text-foreground-tertiary",
-                        isStreamingThisPart && "bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-transparent animate-shimmer filter drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]"
+                        'text-foreground-tertiary m-0 mb-2 items-center gap-2',
+                        isStreamingThisPart &&
+                            'animate-shimmer bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter',
                     )}
                     isStreaming={isStreamingThisPart}
                     defaultOpen={true}
@@ -68,13 +66,9 @@ const MessageContentComponent = ({
                 </Reasoning>
             );
         }
-    })
+    });
 
-    return (
-        <div className="select-text">
-            {renderedParts}
-        </div>
-    );
+    return <div className="select-text">{renderedParts}</div>;
 };
 
 export const MessageContent = observer(MessageContentComponent);

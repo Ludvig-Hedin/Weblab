@@ -1,6 +1,7 @@
+import type { MessageContext } from '@weblab/models/chat';
 import { getContextClass, getContextLabel } from '@weblab/ai';
 import { DefaultSettings } from '@weblab/constants';
-import { MessageContextType, type MessageContext } from '@weblab/models/chat';
+import { MessageContextType } from '@weblab/models/chat';
 import { NodeIcon } from '@weblab/ui/node-icon';
 import { getTruncatedFileName } from '@weblab/ui/utils';
 
@@ -19,9 +20,7 @@ export function getTruncatedName(context: MessageContext) {
 export function getContextIcon(context: MessageContext) {
     // Special case for highlight context which uses a custom component
     if (context.type === MessageContextType.HIGHLIGHT) {
-        return (
-            <NodeIcon tagName={context.displayName} iconClass="w-3 h-3 ml-1 mr-2 flex-none" />
-        );
+        return <NodeIcon tagName={context.displayName} iconClass="w-3 h-3 ml-1 mr-2 flex-none" />;
     }
 
     const contextClass = getContextClass(context.type);
@@ -34,7 +33,7 @@ export function getContextIcon(context: MessageContext) {
 
 export function validateImageLimit(
     currentImages: MessageContext[],
-    additionalCount: number = 0
+    additionalCount = 0,
 ): {
     success: boolean;
     errorMessage?: string;

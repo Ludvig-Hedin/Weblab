@@ -1,14 +1,13 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { Metadata } from 'next';
 
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
+
 export const metadata: Metadata = {
-    title: `About ${APP_NAME} | The Team Behind the Visual Editor for React`,
-    description:
-        `Meet the team behind ${APP_NAME} — an AI-powered visual editor for frontend development. Founded to obliterate the divide between creativity and implementation. Open source.`,
+    title: `About ${APP_NAME} | The Visual Editor for React`,
+    description: `Meet the founder behind ${APP_NAME} — an AI-powered visual editor for frontend development. Built in Sweden to obliterate the divide between creativity and implementation. Open source.`,
     keywords: [
         // Company
-        `${APP_NAME} team`,
-        `${APP_NAME} founders`,
+        `${APP_NAME} founder`,
         `${APP_NAME} company`,
         `${APP_NAME} about`,
         // Mission
@@ -17,21 +16,23 @@ export const metadata: Metadata = {
         'creative tools startup',
         'developer tools startup',
         // Location
-        'San Francisco startup',
+        'Sweden startup',
         // Open source
         'open source design tool',
         'open source visual editor',
     ],
     openGraph: {
         title: `About ${APP_NAME}`,
-        description:
-            `Meet the team behind ${APP_NAME}. Founded to obliterate the divide between creativity and implementation.`,
+        description: `Meet the founder behind ${APP_NAME}. Built in Sweden to obliterate the divide between creativity and implementation.`,
         type: 'website',
         url: `https://${APP_DOMAIN}/about`,
         siteName: APP_NAME,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `About ${APP_NAME}`,
             },
         ],
     },
@@ -39,8 +40,8 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: `About ${APP_NAME}`,
         description:
-            `Meet the team behind ${APP_NAME}. Founded to obliterate the divide between creativity and implementation.`,
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+            `Meet the founder behind ${APP_NAME}. Built in Sweden to obliterate the divide between creativity and implementation.`,
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/about`,
@@ -65,32 +66,23 @@ const organizationJsonLd = {
     name: APP_NAME,
     url: `https://${APP_DOMAIN}`,
     logo: `https://${APP_DOMAIN}/logo.png`,
-    description:
-        `${APP_NAME} is an AI-powered visual editor for frontend development. Design with your real React, Vue, or Angular components. Changes become mergeable pull requests.`,
+    description: `${APP_NAME} is an AI-powered visual editor for frontend development. Design with your real React, Vue, or Angular components. Changes become mergeable pull requests.`,
     foundingDate: '2024',
     founders: [
         {
             '@type': 'Person',
-            name: 'Daniel Farrell',
-            jobTitle: 'Co-Founder, Design & Growth',
-            url: 'https://www.linkedin.com/in/danielrfarrell/',
-        },
-        {
-            '@type': 'Person',
-            name: 'Kiet Ho',
-            jobTitle: 'Co-Founder, Engineering',
-            url: 'https://www.linkedin.com/in/kiet-ho/',
+            name: 'Ludvig Hedin',
+            jobTitle: 'Founder',
+            url: 'https://www.linkedin.com/in/ludvig-hedin-058bba194/',
         },
     ],
     numberOfEmployees: {
         '@type': 'QuantitativeValue',
-        value: 3,
+        value: 1,
     },
     address: {
         '@type': 'PostalAddress',
-        addressLocality: 'San Francisco',
-        addressRegion: 'CA',
-        addressCountry: 'US',
+        addressCountry: 'SE',
     },
     sameAs: [
         'https://github.com/Ludvig-Hedin/Weblab',
@@ -118,7 +110,7 @@ const faqJsonLd = {
             name: `Who founded ${APP_NAME}?`,
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: `${APP_NAME} was founded by Daniel Farrell (Design & Growth) and Kiet Ho (Engineering). Daniel is a designer with over a decade of experience, former Head of Growth at Bird. Kiet is an ex-Amazon engineer who maintained the design system at ServiceNow.`,
+                text: `${APP_NAME} was founded by Ludvig Hedin.`,
             },
         },
         {
@@ -126,7 +118,7 @@ const faqJsonLd = {
             name: `Where is ${APP_NAME} based?`,
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: `${APP_NAME} is based in San Francisco, California. The team operates from their headquarters (the "Barracks").`,
+                text: `${APP_NAME} is built in Sweden.`,
             },
         },
         {

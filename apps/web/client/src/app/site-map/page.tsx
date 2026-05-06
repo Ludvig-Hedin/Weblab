@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { WebsiteLayout } from '../_components/website-layout';
-import { ExternalRoutes, Routes } from '@/utils/constants';
+
 import { Icons } from '@weblab/ui/icons';
+
+import { ExternalRoutes, Routes } from '@/utils/constants';
+import { WebsiteLayout } from '../_components/website-layout';
 
 interface SitemapLink {
     title: string;
@@ -20,158 +22,149 @@ interface SitemapSection {
 
 const sitemapSections: SitemapSection[] = [
     {
-        title: "Main Pages",
-        anchor: "main",
+        title: 'Main Pages',
+        anchor: 'main',
         links: [
             {
-                title: "Home",
+                title: 'Home',
                 href: Routes.HOME,
-                description: "Weblab homepage — design with your real components and ship PRs, not prototypes. AI-powered visual editor for frontend development."
+                description:
+                    'Weblab homepage — design with your real components and ship PRs, not prototypes. AI-powered visual editor for frontend development.',
             },
             {
-                title: "Pricing",
+                title: 'Pricing',
                 href: Routes.PRICING,
-                description: "Weblab pricing plans and tiers for individuals and teams."
+                description: 'Weblab pricing plans and tiers for individuals and teams.',
             },
             {
-                title: "About",
+                title: 'About',
                 href: Routes.ABOUT,
-                description: "Meet the team behind Weblab. Our mission, values, and story."
+                description: 'Meet the team behind Weblab. Our mission, values, and story.',
             },
             {
-                title: "FAQ",
+                title: 'FAQ',
                 href: Routes.FAQ,
-                description: "Frequently asked questions about Weblab features, compatibility, and workflow."
+                description:
+                    'Frequently asked questions about Weblab features, compatibility, and workflow.',
             },
-        ]
+        ],
     },
     {
-        title: "Features",
-        anchor: "features",
+        title: 'Features',
+        anchor: 'features',
         links: [
             {
-                title: "All Features",
+                title: 'All Features',
                 href: Routes.FEATURES,
-                description: "Overview of all Weblab features — infinite canvas, AI, collaboration, and more."
+                description:
+                    'Overview of all Weblab features — infinite canvas, AI, collaboration, and more.',
             },
             {
-                title: "AI",
+                title: 'AI',
                 href: Routes.FEATURES_AI,
-                description: "AI-powered visual editing constrained to your design system."
+                description: 'AI-powered visual editing constrained to your design system.',
             },
             {
-                title: "AI for Frontend",
+                title: 'AI for Frontend',
                 href: Routes.FEATURES_AI_FRONTEND,
-                description: "Build frontend UIs with AI using your real React, Vue, or Angular components."
+                description:
+                    'Build frontend UIs with AI using your real React, Vue, or Angular components.',
             },
             {
-                title: "Visual Builder",
+                title: 'Visual Builder',
                 href: Routes.FEATURES_BUILDER,
-                description: "Design with your real components on an infinite canvas."
+                description: 'Design with your real components on an infinite canvas.',
             },
             {
-                title: "Prototyping",
+                title: 'Prototyping',
                 href: Routes.FEATURES_PROTOTYPE,
-                description: "Generate functional React prototypes with real interactions."
+                description: 'Generate functional React prototypes with real interactions.',
             },
-        ]
+        ],
     },
     {
-        title: "Workflows",
-        anchor: "workflows",
+        title: 'Workflows',
+        anchor: 'workflows',
         links: [
             {
-                title: "All Workflows",
+                title: 'All Workflows',
                 href: Routes.WORKFLOWS,
-                description: "Connect Weblab to your existing AI coding tools."
+                description: 'Connect Weblab to your existing AI coding tools.',
             },
             {
-                title: "Claude Code",
+                title: 'Claude Code',
                 href: Routes.WORKFLOWS_CLAUDE_CODE,
-                description: "Add a visual canvas to your Claude Code workflow."
+                description: 'Add a visual canvas to your Claude Code workflow.',
             },
             {
-                title: "Vibe Coding",
+                title: 'Vibe Coding',
                 href: Routes.WORKFLOWS_VIBE_CODING,
-                description: "Team collaboration for vibe coding workflows."
+                description: 'Team collaboration for vibe coding workflows.',
             },
-        ]
+        ],
     },
     {
-        title: "Resources",
-        anchor: "resources",
+        title: 'Resources',
+        anchor: 'resources',
         links: [
             {
-                title: "Documentation",
+                title: 'Documentation',
                 href: ExternalRoutes.DOCS,
-                description: "Learn how to use Weblab with guides and API references.",
-                external: true
+                description: 'Learn how to use Weblab with guides and API references.',
+                external: true,
             },
             {
-                title: "Blog",
-                href: ExternalRoutes.BLOG,
-                description: "News, updates, and insights from the Weblab team.",
-                external: true
+                title: 'Blog',
+                href: Routes.BLOG,
+                description: 'News, updates, and insights from the Weblab team.',
             },
             {
-                title: "GitHub",
+                title: 'GitHub',
                 href: ExternalRoutes.GITHUB,
-                description: "Browse the open-source codebase, contribute, or report issues.",
-                external: true
+                description: 'Browse the open-source codebase, contribute, or report issues.',
+                external: true,
             },
-            // {
-            //     title: "Discord",
-            //     href: ExternalRoutes.DISCORD,
-            //     description: "Join the Weblab community for support and discussions.",
-            //     external: true
-            // },
-        ]
+        ],
     },
     {
-        title: "Social",
-        anchor: "social",
+        title: 'Social',
+        anchor: 'social',
         links: [
-            // {
-            //     title: "X (Twitter)",
-            //     href: ExternalRoutes.X,
-            //     description: "Follow @weblab for updates and announcements.",
-            //     external: true
-            // },
             {
-                title: "LinkedIn",
+                title: 'LinkedIn',
                 href: ExternalRoutes.LINKEDIN,
-                description: "Connect with Weblab on LinkedIn.",
-                external: true
+                description: 'Connect with Weblab on LinkedIn.',
+                external: true,
             },
             {
-                title: "YouTube",
+                title: 'YouTube',
                 href: ExternalRoutes.YOUTUBE,
-                description: "Watch tutorials, demos, and product updates.",
-                external: true
+                description: 'Watch tutorials, demos, and product updates.',
+                external: true,
             },
             {
-                title: "Substack",
+                title: 'Substack',
                 href: ExternalRoutes.SUBSTACK,
-                description: "Subscribe to our newsletter for in-depth articles.",
-                external: true
+                description: 'Subscribe to our newsletter for in-depth articles.',
+                external: true,
             },
-        ]
+        ],
     },
     {
-        title: "Legal",
-        anchor: "legal",
+        title: 'Legal',
+        anchor: 'legal',
         links: [
             {
-                title: "Terms of Service",
-                href: "/terms-of-service",
-                description: "Weblab terms of service and usage agreement."
+                title: 'Terms of Service',
+                href: '/terms-of-service',
+                description: 'Weblab terms of service and usage agreement.',
             },
             {
-                title: "Privacy Policy",
-                href: "/privacy-policy",
-                description: "How we collect, use, and protect your data."
+                title: 'Privacy Policy',
+                href: '/privacy-policy',
+                description: 'How we collect, use, and protect your data.',
             },
-        ]
+        ],
     },
 ];
 
@@ -179,9 +172,9 @@ function SitemapLinkItem({ link }: { link: SitemapLink }) {
     return (
         <a
             href={link.href}
-            target={link.external ? "_blank" : undefined}
-            rel={link.external ? "noopener noreferrer" : undefined}
-            className="group block py-4 border-b border-foreground-primary/10 last:border-b-0"
+            target={link.external ? '_blank' : undefined}
+            rel={link.external ? 'noopener noreferrer' : undefined}
+            className="group border-foreground-primary/10 block border-b py-4 last:border-b-0"
         >
             <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -190,14 +183,14 @@ function SitemapLinkItem({ link }: { link: SitemapLink }) {
                             {link.title}
                         </span>
                         {link.external && (
-                            <Icons.ExternalLink className="w-4 h-4 text-foreground-tertiary" />
+                            <Icons.ExternalLink className="text-foreground-tertiary h-4 w-4" />
                         )}
                     </div>
                     <p className="text-foreground-secondary text-regular mt-1">
                         {link.description}
                     </p>
                 </div>
-                <Icons.ArrowRight className="w-5 h-5 text-foreground-tertiary group-hover:text-foreground-primary transition-colors" />
+                <Icons.ArrowRight className="text-foreground-tertiary group-hover:text-foreground-primary h-5 w-5 transition-colors" />
             </div>
         </a>
     );
@@ -221,7 +214,10 @@ export default function SitemapPage() {
                     }
                 }
             }
-            if (sitemapSections[activeIdx]?.anchor && sitemapSections[activeIdx]?.anchor !== currentSection) {
+            if (
+                sitemapSections[activeIdx]?.anchor &&
+                sitemapSections[activeIdx]?.anchor !== currentSection
+            ) {
                 setCurrentSection(sitemapSections[activeIdx]?.anchor || '');
             }
         };
@@ -243,8 +239,9 @@ export default function SitemapPage() {
             <section className="sr-only" aria-label="Sitemap Summary">
                 <h1>Weblab Sitemap</h1>
                 <p>
-                    Complete sitemap for Weblab.com — the AI-powered visual editor for frontend development.
-                    Browse all pages including features, workflows, resources, and documentation.
+                    Complete sitemap for Weblab.com — the AI-powered visual editor for frontend
+                    development. Browse all pages including features, workflows, resources, and
+                    documentation.
                 </p>
                 <h2>Main Pages</h2>
                 <ul>
@@ -267,19 +264,21 @@ export default function SitemapPage() {
                 </ul>
             </section>
 
-            <div className="w-full max-w-6xl mx-auto py-32 px-4 md:px-8">
-                <h1 className="text-foreground-primary text-5xl md:text-6xl leading-[1.1] font-light mb-8 max-w-3xl text-balance">
+            <div className="mx-auto w-full max-w-6xl px-4 py-32 md:px-8">
+                <h1 className="text-foreground-primary mb-8 max-w-3xl text-5xl leading-[1.1] font-light text-balance md:text-6xl">
                     Sitemap
                 </h1>
-                <p className="text-foreground-secondary text-lg mb-16 max-w-2xl">
+                <p className="text-foreground-secondary mb-16 max-w-2xl text-lg">
                     Browse all pages on Weblab.com — features, workflows, resources, and more.
                 </p>
 
-                <div className="flex flex-col lg:flex-row gap-12" ref={containerRef}>
+                <div className="flex flex-col gap-12 lg:flex-row" ref={containerRef}>
                     {/* Sidebar Navigation */}
-                    <nav className="hidden lg:block w-48 flex-shrink-0 self-start sticky top-32">
+                    <nav className="sticky top-32 hidden w-48 flex-shrink-0 self-start lg:block">
                         <div>
-                            <h2 className="text-foreground-tertiary text-sm font-medium uppercase tracking-wider mb-4">Sections</h2>
+                            <h2 className="text-foreground-tertiary mb-4 text-sm font-medium tracking-wider uppercase">
+                                Sections
+                            </h2>
                             <ul className="flex flex-col gap-2">
                                 {sitemapSections.map((section) => (
                                     <li key={section.anchor}>
@@ -300,15 +299,19 @@ export default function SitemapPage() {
                     </nav>
 
                     {/* Sitemap Content */}
-                    <section className="flex-1 max-w-[800px]">
+                    <section className="max-w-[800px] flex-1">
                         {sitemapSections.map((section, i) => (
                             <div
                                 key={section.anchor}
                                 id={section.anchor}
                                 className="mb-16 scroll-mt-24"
-                                ref={el => { sectionRefs.current[i] = el; }}
+                                ref={(el) => {
+                                    sectionRefs.current[i] = el;
+                                }}
                             >
-                                <h2 className="text-foreground-primary text-2xl font-medium mb-6">{section.title}</h2>
+                                <h2 className="text-foreground-primary mb-6 text-2xl font-medium">
+                                    {section.title}
+                                </h2>
                                 <div className="flex flex-col">
                                     {section.links.map((link) => (
                                         <SitemapLinkItem key={link.href} link={link} />

@@ -1,8 +1,9 @@
+import type { PostHog } from 'posthog-js/react';
 import { makeAutoObservable } from 'mobx';
 
 import type { CodeFileSystem } from '@weblab/file-system';
 import { type Branch } from '@weblab/models';
-import type { PostHog } from 'posthog-js/react';
+
 import { ActionManager } from './action';
 import { ApiManager } from './api';
 import { AstManager } from './ast';
@@ -10,20 +11,20 @@ import { BranchManager } from './branch';
 import { CanvasManager } from './canvas';
 import { ChatManager } from './chat';
 import { CodeManager } from './code';
+import { CommentManager } from './comment';
 import { CopyManager } from './copy';
 import { ElementsManager } from './element';
 import { FontManager } from './font';
 import { FrameEventManager } from './frame-events';
 import { FramesManager } from './frames';
 import { GroupManager } from './group';
-import { CommentManager } from './comment';
 import { IdeManager } from './ide';
-import { PresenceManager } from './presence';
 import { ImageManager } from './image';
 import { InsertManager } from './insert';
 import { MoveManager } from './move';
 import { OverlayManager } from './overlay';
 import { PagesManager } from './pages';
+import { PresenceManager } from './presence';
 import { type SandboxManager } from './sandbox';
 import { ScreenshotManager } from './screenshot';
 import { SnapManager } from './snap';
@@ -99,6 +100,12 @@ export class EditorEngine {
         await this.branches.initBranches(branches);
         await this.branches.init();
     }
+
+    // CR-050: collaborator-driven canvas/frames updates are picked up by
+    // 30s polling on `userCanvas.getWithFrames` in `useStartProject`, with
+    // an idempotent `applyFrames` that preserves local view bindings and
+    // prunes server-deleted frames. Real-time push (tRPC subscriptions on
+    // the existing Fastify+ws server) is a future improvement.
 
     clear() {
         this.elements.clear();

@@ -29,7 +29,9 @@ export const GitTab = observer(() => {
     // Snapshot of the cache *before* the first optimistic patch in the current
     // debounce window, so onError can roll back to true previous state — not
     // to the already-mutated cache.
-    const preMutationSnapshot = useRef<ReturnType<typeof apiUtils.user.settings.get.getData> | undefined>(undefined);
+    const preMutationSnapshot = useRef<
+        ReturnType<typeof apiUtils.user.settings.get.getData> | undefined
+    >(undefined);
 
     const debouncedSave = useMemo(
         () =>

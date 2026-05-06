@@ -1,0 +1,75 @@
+---
+title: "Why Every Design Change Should Be a Git Commit"
+description: "Proprietary design formats are a hidden source of technical debt. When your design lives in Git, you get history, review, rollback, and attribution — for free."
+date: "2026-04-15"
+author: "Ludvig Hedin"
+authorImage: "https://github.com/Ludvig-Hedin.png"
+category: "Engineering"
+tags: ["git", "workflow", "design", "collaboration"]
+coverImage: "/assets/blog/git-native.svg"
+---
+
+## The Problem with Design Files
+
+Design files are opaque. A Figma file has no diff, no blame, no rollback. You cannot `git log` to see who changed the hero padding three weeks ago. You cannot revert a color system change that broke six screens without manually undoing each one.
+
+This isn't a criticism of Figma — it's a fundamental limitation of proprietary binary formats. They were not built for the workflows that software engineering spent decades optimizing.
+
+### What Git Gives You
+
+Git is infrastructure. It is version control, history, attribution, branching, merging, and code review — all in one system that every engineer already uses.
+
+When a design change is a file change, it inherits all of this for free.
+
+## How Weblab Makes Design Git-Native
+
+Every visual edit in Weblab produces a file change. Not a Figma snapshot. Not a proprietary diff. A real change to a real `.tsx` or `.css` file in your repository.
+
+### The Mechanics
+
+When a designer adjusts a button's padding in Weblab, the tool:
+
+1. Locates the exact AST node in the source file that corresponds to the `className` prop
+2. Applies the minimal change — modifying just the padding value, nothing else
+3. Writes the updated file to disk
+
+The result is a file change indistinguishable from one a developer would write by hand. Your Git history stays clean. Your diffs stay legible.
+
+### A Real Example
+
+A designer changes a hero section's vertical padding from `py-24` to `py-32`. The resulting diff:
+
+```diff
+- className="flex flex-col items-center py-24 px-8"
++ className="flex flex-col items-center py-32 px-8"
+```
+
+One line. Clear intent. Attributable. Reversible. Ready for review.
+
+Compare that to the equivalent in a design tool: a pixel change in a prototype that has to be manually translated back into code by a developer who may or may not know which component the frame corresponds to.
+
+## The Review Workflow
+
+Git-native design means the PR review process applies to design changes.
+
+A developer reviewing a visual change sees exactly what changed — the Tailwind classes, the component structure, the token usage. They can comment inline, request changes, or approve. The designer gets the same feedback loop as a developer.
+
+### Branch Isolation
+
+Design exploration lives on a branch. A designer can try a completely different hero layout on `feat/hero-v2` without touching `main`. They can open a PR, get feedback, and merge — or discard — just like any other change.
+
+This is not a metaphor. It is literal Git branching applied to design work.
+
+## The Institutional Memory Problem
+
+Design decisions have reasons. Why is the nav 64px tall instead of 56px? Why does the card have a `border-opacity-10` rather than `border-opacity-15`?
+
+In a proprietary design tool, that context is lost. In Git, it's in the commit message. It's in the PR discussion. It's in the code comments.
+
+Teams that use Weblab accumulate a design history that is searchable, auditable, and understandable — because it lives where all the other history lives.
+
+## Start Simple
+
+You don't need to change your entire workflow to benefit from this. Start with a single feature branch where a designer makes changes in Weblab. Open a PR. See what the diff looks like. Notice that the review works exactly like a code review.
+
+That's the whole thing. The rest follows naturally.

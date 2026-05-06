@@ -1,3 +1,8 @@
+import * as pathModule from 'path';
+import { camelCase } from 'lodash';
+
+import type { FontConfig, FontUploadFile } from '@weblab/models';
+import type { T } from '@weblab/parser';
 import { DefaultSettings } from '@weblab/constants';
 import {
     createFontSrcObjects,
@@ -6,18 +11,16 @@ import {
     hasLocalFontImport,
     mergeLocalFontSources,
 } from '@weblab/fonts';
-import type { FontConfig, FontUploadFile } from '@weblab/models';
-import type { T } from '@weblab/parser';
 import { t } from '@weblab/parser';
 import { getFontFileName, sanitizeFilename } from '@weblab/utility';
-import { camelCase } from 'lodash';
-import * as pathModule from 'path';
+
 import type { EditorEngine } from '../engine';
 
 /**
  * Uploads font files to the project
  */
-export const uploadFonts = async (editorEngine: EditorEngine,
+export const uploadFonts = async (
+    editorEngine: EditorEngine,
     fontFiles: FontUploadFile[],
     basePath: string,
     fontConfigAst: T.File,
@@ -60,7 +63,7 @@ export const uploadFonts = async (editorEngine: EditorEngine,
             fontConfigAst,
         };
     }
-}
+};
 
 /**
  * Processes font files and saves them to the project
@@ -76,10 +79,10 @@ export const processFontFiles = async (
             const weight = fontFile.weight;
             const style = fontFile.style.toLowerCase();
             const fileName = getFontFileName(baseFontName, weight, style);
-            
+
             const sanitizedOriginalName = sanitizeFilename(fontFile.file.name);
             const fileExtension = sanitizedOriginalName.split('.').pop();
-            
+
             const filePath = pathModule.join(
                 basePath,
                 DefaultSettings.FONT_FOLDER,
@@ -96,7 +99,7 @@ export const processFontFiles = async (
             };
         }),
     );
-}
+};
 
 /**
  * Updates AST with font configuration
@@ -122,4 +125,4 @@ export const updateAstWithFontConfig = async (
             ast.program.body.unshift(importDeclaration);
         }
     }
-}
+};

@@ -1,8 +1,8 @@
 'use client';
-import { APP_NAME } from '@weblab/constants';
 
 import { motion } from 'motion/react';
 
+import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
@@ -10,7 +10,6 @@ import { Routes } from '@/utils/constants';
 import { UnicornBackground } from './unicorn-background';
 
 export function ClaudeCodeHero() {
-
     return (
         <div className="relative flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
             <UnicornBackground />
@@ -40,7 +39,8 @@ export function ClaudeCodeHero() {
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    The visual canvas your AI workflow is missing. Claude Code builds it. {APP_NAME} lets you design it.
+                    The visual canvas your AI workflow is missing. Claude Code builds it. {APP_NAME}{' '}
+                    lets you design it.
                 </motion.h2>
                 <motion.div
                     className="mt-8 flex flex-row gap-4"

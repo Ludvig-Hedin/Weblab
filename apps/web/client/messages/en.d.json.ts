@@ -52,7 +52,7 @@ declare const messages: {
             "clone": "Clone",
             "goToAllProjects": "Go to all Projects",
             "newProject": "New Project",
-            "blankProject": "Blank Project",
+            "blankProject": "Create project",
             "startFromScratch": "Start from scratch",
             "importProject": "Import a project",
             "subscriptions": "Subscriptions",
@@ -63,7 +63,7 @@ declare const messages: {
             "downloadError": "Failed to prepare download",
             "downloadToFolder": "Download to folder…",
             "downloadingToFolder": "Saving to folder…",
-            "openLocalFolder": "Open Local Folder",
+            "openLocalFolder": "Import folder",
             "openingLocalFolder": "Opening…",
             "importingLocalFolder": "Uploading files…",
             "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
@@ -294,7 +294,9 @@ declare const messages: {
                         },
                         "openInCode": {
                             "button": "Open in Code"
-                        }
+                        },
+                        "noActiveConversation": "No active conversation",
+                        "startNewConversation": "Start a new conversation"
                     },
                     "styles": {
                         "name": "Styles",

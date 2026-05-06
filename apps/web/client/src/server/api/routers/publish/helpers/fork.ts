@@ -1,4 +1,9 @@
-import { CodeProvider, createCodeProviderClient, getStaticCodeProvider, type Provider } from '@weblab/code-provider';
+import type { Provider } from '@weblab/code-provider';
+import {
+    CodeProvider,
+    createCodeProviderClient,
+    getStaticCodeProvider,
+} from '@weblab/code-provider';
 
 export async function forkBuildSandbox(
     sandboxId: string,

@@ -7,19 +7,21 @@ interface UnsavedChangesDialogProps {
     fileCount?: number;
 }
 
-export function UnsavedChangesDialog({ onSave, onDiscard, onCancel, fileCount = 1 }: UnsavedChangesDialogProps) {
+export function UnsavedChangesDialog({
+    onSave,
+    onDiscard,
+    onCancel,
+    fileCount = 1,
+}: UnsavedChangesDialogProps) {
     const isMultiple = fileCount > 1;
     return (
-        <div className="absolute top-4 left-1/2 z-50 -translate-x-1/2 bg-card border border-border shadow-lg rounded-lg p-4 w-[320px]">
-            <div className="text-sm text-foreground mb-4">
-                You have unsaved changes. Are you sure you want to close {isMultiple ? `${fileCount} files` : 'this file'}?
+        <div className="bg-card border-border absolute top-4 left-1/2 z-50 w-[320px] -translate-x-1/2 rounded-lg border p-4 shadow-lg">
+            <div className="text-foreground mb-4 text-sm">
+                You have unsaved changes. Are you sure you want to close{' '}
+                {isMultiple ? `${fileCount} files` : 'this file'}?
             </div>
             <div className="flex justify-end gap-1">
-                <Button
-                    onClick={onDiscard}
-                    variant="ghost"
-                    className="text-red hover:text-red"
-                >
+                <Button onClick={onDiscard} variant="ghost" className="text-red hover:text-red">
                     Discard
                 </Button>
                 <Button
@@ -29,10 +31,7 @@ export function UnsavedChangesDialog({ onSave, onDiscard, onCancel, fileCount = 
                 >
                     Save
                 </Button>
-                <Button
-                    variant="ghost"
-                    onClick={onCancel}
-                >
+                <Button variant="ghost" onClick={onCancel}>
                     Cancel
                 </Button>
             </div>

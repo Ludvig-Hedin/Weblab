@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#0a0a0a"/>
+
+  <!-- Top bar -->
+  <rect width="1600" height="44" fill="#111111"/>
+  <line x1="0" y1="44" x2="1600" y2="44" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="20" y="26" fill="#f0f0f0" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="500">Weblab</text>
+
+  <!-- Canvas background (blurred/inactive) -->
+  <rect x="0" y="44" width="1040" height="856" fill="#0d0d0d"/>
+  <!-- Faint grid -->
+  <line x1="0" y1="44" x2="0" y2="900" stroke="rgba(255,255,255,0.02)" stroke-width="20"/>
+
+  <!-- Dim website preview in background -->
+  <rect x="100" y="120" width="800" height="600" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+  <rect x="100" y="120" width="800" height="40" fill="rgba(255,255,255,0.03)"/>
+  <rect x="180" y="200" width="500" height="20" rx="3" fill="rgba(255,255,255,0.06)"/>
+  <rect x="240" y="232" width="380" height="12" rx="2" fill="rgba(255,255,255,0.04)"/>
+  <rect x="280" y="252" width="300" height="12" rx="2" fill="rgba(255,255,255,0.03)"/>
+  <rect x="280" y="296" width="140" height="40" rx="6" fill="rgba(255,255,255,0.04)"/>
+  <rect x="436" y="296" width="120" height="40" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+
+  <!-- === AI CHAT PANEL === -->
+  <rect x="1040" y="44" width="560" height="856" fill="#111111"/>
+  <line x1="1040" y1="44" x2="1040" y2="900" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+  <!-- Panel header -->
+  <rect x="1040" y="44" width="560" height="52" fill="#161616"/>
+  <line x1="1040" y1="96" x2="1600" y2="96" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="1060" y="74" fill="rgba(255,255,255,0.7)" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="500">AI Assistant</text>
+  <!-- sparkle icon -->
+  <text x="1182" y="74" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="14">✦</text>
+  <!-- New chat button -->
+  <rect x="1520" y="60" width="64" height="24" rx="5" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <text x="1534" y="75" fill="rgba(255,255,255,0.4)" font-family="system-ui" font-size="11">+ New</text>
+
+  <!-- Chat messages -->
+  <!-- User message 1 -->
+  <rect x="1100" y="116" width="480" height="54" rx="8" fill="rgba(255,255,255,0.05)"/>
+  <text x="1120" y="138" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Design a hero section for a developer tool</text>
+  <text x="1120" y="158" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="12">landing page — dark theme</text>
+
+  <!-- AI message 1 -->
+  <text x="1060" y="200" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="11">Weblab AI</text>
+  <text x="1060" y="222" fill="rgba(255,255,255,0.6)" font-family="system-ui" font-size="12">I'll create a centered hero with a large</text>
+  <text x="1060" y="240" fill="rgba(255,255,255,0.6)" font-family="system-ui" font-size="12">heading, subtext, and CTA buttons using</text>
+  <text x="1060" y="258" fill="rgba(255,255,255,0.6)" font-family="system-ui" font-size="12">your component library.</text>
+
+  <!-- Tool call card -->
+  <rect x="1060" y="276" width="480" height="52" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <rect x="1074" y="290" width="16" height="16" rx="3" fill="rgba(96,165,250,0.2)"/>
+  <text x="1076" y="301" fill="#60a5fa" font-family="system-ui" font-size="10">↻</text>
+  <text x="1098" y="302" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="11">Hero.tsx</text>
+  <text x="1530" y="302" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="11">✓</text>
+
+  <!-- User message 2 -->
+  <rect x="1100" y="348" width="480" height="36" rx="8" fill="rgba(255,255,255,0.05)"/>
+  <text x="1120" y="370" fill="rgba(255,255,255,0.55)" font-family="system-ui" font-size="12">Make the heading larger and add more spacing</text>
+
+  <!-- AI message 2 -->
+  <text x="1060" y="410" fill="rgba(255,255,255,0.2)" font-family="system-ui" font-size="11">Weblab AI</text>
+  <text x="1060" y="432" fill="rgba(255,255,255,0.6)" font-family="system-ui" font-size="12">Updated heading to text-7xl and increased</text>
+  <text x="1060" y="450" fill="rgba(255,255,255,0.6)" font-family="system-ui" font-size="12">vertical padding to py-40.</text>
+  <!-- Diff preview -->
+  <rect x="1060" y="468" width="480" height="88" rx="6" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+  <rect x="1060" y="468" width="480" height="20" fill="rgba(255,99,99,0.12)" rx="3"/>
+  <text x="1070" y="481" fill="#f87171" font-family="ui-monospace,monospace" font-size="11">- className="text-5xl font-light py-32"</text>
+  <rect x="1060" y="492" width="480" height="20" fill="rgba(74,222,128,0.1)"/>
+  <text x="1070" y="505" fill="#4ade80" font-family="ui-monospace,monospace" font-size="11">+ className="text-7xl font-light py-40"</text>
+  <text x="1070" y="530" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">  tracking-tight text-pretty</text>
+  <!-- accept/reject buttons -->
+  <rect x="1060" y="564" width="80" height="28" rx="5" fill="rgba(74,222,128,0.15)" stroke="rgba(74,222,128,0.3)" stroke-width="0.5"/>
+  <text x="1082" y="581" fill="#4ade80" font-family="system-ui" font-size="11">Accept</text>
+  <rect x="1152" y="564" width="72" height="28" rx="5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+  <text x="1172" y="581" fill="rgba(255,255,255,0.35)" font-family="system-ui" font-size="11">Reject</text>
+
+  <!-- Chat input at bottom -->
+  <rect x="1040" y="812" width="560" height="88" fill="#161616"/>
+  <line x1="1040" y1="812" x2="1600" y2="812" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <rect x="1060" y="828" width="480" height="48" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+  <text x="1080" y="855" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="12">Ask Weblab anything...</text>
+  <rect x="1500" y="834" width="32" height="32" rx="6" fill="rgba(167,139,250,0.3)"/>
+  <text x="1511" y="854" fill="#c4b5fd" font-family="system-ui" font-size="14">↑</text>
+</svg>

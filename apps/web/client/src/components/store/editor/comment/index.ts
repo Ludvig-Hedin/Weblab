@@ -1,6 +1,7 @@
-import { api } from '@/trpc/client';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
+
 import type { EditorEngine } from '../engine';
+import { api } from '@/trpc/client';
 
 export interface ProjectComment {
     id: string;
@@ -111,7 +112,9 @@ export class CommentManager {
     // ─── Polling ─────────────────────────────────────────────────────────────
 
     async loadComments(projectId: string) {
-        runInAction(() => { this.isLoading = true; });
+        runInAction(() => {
+            this.isLoading = true;
+        });
         try {
             const result = await api.comment.comment.list.query({ projectId });
             runInAction(() => {
@@ -120,7 +123,9 @@ export class CommentManager {
             });
         } catch (error) {
             console.error('Failed to load comments:', error);
-            runInAction(() => { this.isLoading = false; });
+            runInAction(() => {
+                this.isLoading = false;
+            });
         }
     }
 
@@ -205,7 +210,9 @@ export class CommentManager {
         try {
             await api.comment.comment.delete.mutate({ commentId });
             if (this.activeCommentId === commentId) {
-                runInAction(() => { this.activeCommentId = null; });
+                runInAction(() => {
+                    this.activeCommentId = null;
+                });
             }
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);

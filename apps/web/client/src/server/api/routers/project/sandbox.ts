@@ -193,6 +193,7 @@ export const sandboxRouter = createTRPCRouter({
             z.object({
                 repoUrl: z.string(),
                 branch: z.string(),
+                subpath: z.string().optional(),
             }),
         )
         .mutation(async ({ input }) => {
@@ -208,6 +209,7 @@ export const sandboxRouter = createTRPCRouter({
                     const sandbox = await CodesandboxProvider.createProjectFromGit({
                         repoUrl: input.repoUrl,
                         branch: input.branch,
+                        subpath: input.subpath,
                         privacy: SANDBOX_PRIVACY,
                     });
 

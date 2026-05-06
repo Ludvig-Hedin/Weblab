@@ -1,16 +1,21 @@
-import type { EditorEngine } from '@/components/store/editor/engine';
-import { type ChatMessage, type GitMessageCheckpoint, type MessageContext, MessageCheckpointType } from "@weblab/models";
 import { v4 as uuidv4 } from 'uuid';
+
+import type { ChatMessage, GitMessageCheckpoint, MessageContext } from '@weblab/models';
+import { MessageCheckpointType } from '@weblab/models';
+
+import type { EditorEngine } from '@/components/store/editor/engine';
 
 export const prepareMessagesForSuggestions = (messages: ChatMessage[]) => {
     return messages.slice(-5).map((message) => ({
         role: message.role,
-        content: message.parts.map((p) => {
-            if (p.type === 'text') {
-                return p.text;
-            }
-            return '';
-        }).join(''),
+        content: message.parts
+            .map((p) => {
+                if (p.type === 'text') {
+                    return p.text;
+                }
+                return '';
+            })
+            .join(''),
     }));
 };
 
@@ -30,8 +35,8 @@ export const getUserChatMessageFromString = (
             createdAt: new Date(),
             conversationId,
         },
-    }
-}
+    };
+};
 
 export async function createCheckpointsForAllBranches(
     editorEngine: EditorEngine,

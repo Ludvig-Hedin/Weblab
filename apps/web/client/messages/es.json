@@ -49,7 +49,7 @@
             "clone": "Clonar",
             "goToAllProjects": "Ir a todos los Proyectos",
             "newProject": "Nuevo Proyecto",
-            "blankProject": "Proyecto en Blanco",
+            "blankProject": "Crear proyecto",
             "startFromScratch": "Empezar desde cero",
             "importProject": "Importar un proyecto",
             "subscriptions": "Suscripciones",
@@ -60,7 +60,7 @@
             "downloadError": "Error al preparar la descarga",
             "downloadToFolder": "Descargar a una carpeta…",
             "downloadingToFolder": "Guardando en la carpeta…",
-            "openLocalFolder": "Abrir carpeta local",
+            "openLocalFolder": "Importar carpeta",
             "openingLocalFolder": "Abriendo…",
             "importingLocalFolder": "Subiendo archivos…",
             "localFolderUnsupportedTooltip": "El acceso a carpetas locales requiere Chrome, Edge o Arc",
@@ -291,7 +291,9 @@
                         },
                         "openInCode": {
                             "button": "Abrir en Code"
-                        }
+                        },
+                        "noActiveConversation": "No hay conversación activa",
+                        "startNewConversation": "Iniciar una nueva conversación"
                     },
                     "styles": {
                         "name": "Estilos",

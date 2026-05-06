@@ -49,7 +49,7 @@
             "clone": "복제",
             "goToAllProjects": "모든 프로젝트로 이동",
             "newProject": "새 프로젝트",
-            "blankProject": "빈 프로젝트",
+            "blankProject": "프로젝트 만들기",
             "startFromScratch": "처음부터 시작하기",
             "importProject": "프로젝트 가져오기",
             "subscriptions": "구독하기",
@@ -60,7 +60,7 @@
             "downloadError": "다운로드 준비에 실패했습니다.",
             "downloadToFolder": "폴더에 다운로드…",
             "downloadingToFolder": "폴더에 저장 중…",
-            "openLocalFolder": "로컬 폴더 열기",
+            "openLocalFolder": "폴더 가져오기",
             "openingLocalFolder": "여는 중…",
             "importingLocalFolder": "파일 업로드 중…",
             "localFolderUnsupportedTooltip": "로컬 폴더 접근은 Chrome, Edge 또는 Arc 브라우저가 필요합니다",
@@ -164,12 +164,7 @@
                 "name": "Launch",
                 "price": "$50/월",
                 "description": "스타트업과 성장 중인 팀에 적합",
-                "features": [
-                    "무제한 일일 메시지",
-                    "우선 지원",
-                    "고급 통합",
-                    "팀 협업 기능"
-                ]
+                "features": ["무제한 일일 메시지", "우선 지원", "고급 통합", "팀 협업 기능"]
             },
             "scale": {
                 "name": "Scale",
@@ -291,7 +286,9 @@
                         },
                         "openInCode": {
                             "button": "코드에서 열기"
-                        }
+                        },
+                        "noActiveConversation": "활성 대화가 없습니다",
+                        "startNewConversation": "새 대화 시작"
                     },
                     "styles": {
                         "name": "스타일",

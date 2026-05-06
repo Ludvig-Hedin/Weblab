@@ -1,6 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+
 import { commentReplies, projectComments } from '@weblab/db';
+
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { verifyProjectAccess } from '../project/helper';
 import { sanitiseAuthorName } from './helpers';
@@ -30,8 +32,8 @@ export const replyRouter = createTRPCRouter({
                     authorId: ctx.user.id,
                     authorName: sanitiseAuthorName(
                         ctx.user.user_metadata?.name ??
-                        ctx.user.user_metadata?.full_name ??
-                        ctx.user.email,
+                            ctx.user.user_metadata?.full_name ??
+                            ctx.user.email,
                     ),
                 })
                 .returning();

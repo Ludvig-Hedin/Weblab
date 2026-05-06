@@ -1,12 +1,14 @@
-import { useEditorEngine } from '@/components/store/editor';
+import React, { useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { Separator } from '@weblab/ui/separator';
 import { toast } from '@weblab/ui/sonner';
-import { observer } from 'mobx-react-lite';
-import React, { useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 import { NoVersions } from './empty-state/version';
 import { VersionRow, VersionRowType } from './version-row';
 
@@ -87,16 +89,19 @@ export const Versions = observer(() => {
 
     return (
         <div className="flex flex-col text-sm">
-            <div className="flex flex-row justify-center items-center gap-3 px-6 py-6">
+            <div className="flex flex-row items-center justify-center gap-3 px-6 py-6">
                 <h2 className="text-lg">Backup Versions</h2>
 
-                {isLoadingCommits && (
-                    <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                )}
+                {isLoadingCommits && <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />}
 
                 {/* Branch selector */}
-                <Select value={selectedBranchId} onValueChange={(value) => { editorEngine.branches.switchToBranch(value); }}>
-                    <SelectTrigger className="min-w-38 ml-auto">
+                <Select
+                    value={selectedBranchId}
+                    onValueChange={(value) => {
+                        editorEngine.branches.switchToBranch(value);
+                    }}
+                >
+                    <SelectTrigger className="ml-auto min-w-38">
                         <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
@@ -110,12 +115,12 @@ export const Versions = observer(() => {
                 {gitManager && (
                     <Button
                         variant="outline"
-                        className="bg-background-secondary rounded text-sm font-normal "
+                        className="bg-background-secondary rounded text-sm font-normal"
                         onClick={handleNewBackup}
                         disabled={isLoadingCommits || isCreatingBackup}
                     >
                         {isCreatingBackup ? (
-                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin mr-2" />
+                            <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                             <Icons.Plus className="mr-2 h-4 w-4" />
                         )}

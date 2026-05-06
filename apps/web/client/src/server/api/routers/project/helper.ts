@@ -1,5 +1,7 @@
-import { eq } from "drizzle-orm";
-import { type Frame, projects, userProjects, type DrizzleDb } from "@weblab/db";
+import { eq } from 'drizzle-orm';
+
+import type { DrizzleDb, Frame } from '@weblab/db';
+import { projects, userProjects } from '@weblab/db';
 
 /** Type representing a db instance or transaction that has query capabilities */
 type DbOrTx = Pick<DrizzleDb, 'query'>;
@@ -10,8 +12,8 @@ export function extractCsbPort(frames: Frame[]): number | null {
     for (const frame of frames) {
         if (frame.url) {
             // Match CSB preview URL pattern: https://sandboxId-port.csb.app
-            const match = frame.url.match(/https:\/\/[^-]+-(\d+)\.csb\.app/);
-            if (match && match[1]) {
+            const match = /https:\/\/[^-]+-(\d+)\.csb\.app/.exec(frame.url);
+            if (match?.[1]) {
                 const port = parseInt(match[1], 10);
                 if (!isNaN(port)) {
                     return port;

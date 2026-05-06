@@ -69,9 +69,7 @@ function PrototypeFeaturesHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={Routes.PROJECTS}>
-                            Get Started
-                        </a>
+                        <a href={Routes.PROJECTS}>Get Started</a>
                     </Button>
                 </motion.div>
                 <motion.div
@@ -303,16 +301,22 @@ export default function PrototypeFeaturesPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="AI Prototype Generator Summary">
-                    <h1>Weblab AI Prototype Generator: From Idea to Interactive Prototype in Minutes</h1>
+                    <h1>
+                        Weblab AI Prototype Generator: From Idea to Interactive Prototype in Minutes
+                    </h1>
                     <p>
-                        Weblab generates functional React prototypes with real interactions, databases, and working
-                        features — not static mockups. Perfect for product managers and designers who need rapid
-                        prototyping tools that generate production-ready code.
+                        Weblab generates functional React prototypes with real interactions,
+                        databases, and working features — not static mockups. Perfect for product
+                        managers and designers who need rapid prototyping tools that generate
+                        production-ready code.
                     </p>
                     <h2>Key Prototyping Features</h2>
                     <ul>
                         <li>AI-powered prototype generation from natural language</li>
-                        <li>Functional React prototypes with real interactions — not clickable mockups</li>
+                        <li>
+                            Functional React prototypes with real interactions — not clickable
+                            mockups
+                        </li>
                         <li>Working forms, navigation, data visualization</li>
                         <li>Figma to React conversion</li>
                         <li>One-click deployment for user testing</li>

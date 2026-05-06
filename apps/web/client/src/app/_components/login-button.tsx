@@ -1,10 +1,12 @@
-import { transKeys } from '@/i18n/keys';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+
 import { SignInMethod } from '@weblab/models/auth';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
+
+import { transKeys } from '@/i18n/keys';
 import { useAuthContext } from '../auth/auth-context';
 
 interface LoginButtonProps {
@@ -33,7 +35,9 @@ export const LoginButton = ({
         try {
             await handleLogin(method, returnUrl ?? null);
         } catch (error) {
-            console.error(`Error signing in with ${providerName}:`, error);
+            if (process.env.NODE_ENV !== 'production') {
+                console.error(`Error signing in with ${providerName}:`, error);
+            }
             toast.error(`Error signing in with ${providerName}`, {
                 description: error instanceof Error ? error.message : 'Please try again.',
             });
@@ -41,32 +45,37 @@ export const LoginButton = ({
     };
 
     return (
-        <div className={cn('flex flex-col items-center w-full', className)}>
+        <div className={cn('flex w-full flex-col items-center', className)}>
             <Button
                 variant="outline"
                 className={cn(
-                    'w-full items-center justify-center text-active text-small',
+                    'text-active text-small w-full items-center justify-center',
                     isLastSignInMethod
-                        ? 'bg-blue-100 dark:bg-blue-950 border-blue-300 dark:border-blue-700 text-blue-900 dark:text-blue-100 text-small hover:bg-blue-200/50 dark:hover:bg-blue-800 hover:border-blue-500/70 dark:hover:border-blue-500'
+                        ? 'text-small border-blue-300 bg-blue-100 text-blue-900 hover:border-blue-500/70 hover:bg-blue-200/50 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-100 dark:hover:border-blue-500 dark:hover:bg-blue-800'
                         : 'bg-background-weblab',
                 )}
                 onClick={handleLoginClick}
                 disabled={!!signingInMethod}
             >
                 {isSigningIn ? (
-                    <Icons.LoadingSpinner className="w-4 h-4 mr-2 animate-spin" />
+                    <Icons.LoadingSpinner
+                        className="mr-2 h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                    />
                 ) : (
                     icon
                 )}
-{t(transKeys.welcome.login[translationKey])}
+                {isSigningIn && <span className="sr-only">Signing in...</span>}
+                {t(transKeys.welcome.login[translationKey])}
             </Button>
             {isLastSignInMethod && (
-                <p className="text-blue-500 text-small mt-1">{t(transKeys.welcome.login.lastUsed)}</p>
+                <p className="text-small mt-1 text-blue-500">
+                    {t(transKeys.welcome.login.lastUsed)}
+                </p>
             )}
         </div>
     );
 };
-
 
 export const DevLoginButton = ({
     className,
@@ -81,15 +90,26 @@ export const DevLoginButton = ({
     return (
         <Button
             variant="outline"
-            className={cn('w-full text-active text-small', className)}
+            className={cn('text-active text-small w-full', className)}
             onClick={() => {
                 void handleDevLogin(returnUrl);
             }}
             disabled={!!signingInMethod}
         >
             {isSigningIn ? (
-                <Icons.LoadingSpinner className="w-4 h-4 mr-2 animate-spin" />
-            ) : 'DEV MODE: Sign in as demo user'}
+                <>
+                    <Icons.LoadingSpinner
+                        className="mr-2 h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                    />
+                    <span className="sr-only">Signing in...</span>
+                </>
+            ) : (
+                <>
+                    {'[DEV] Sign in as demo user'}
+                    <span className="sr-only"> (developer mode)</span>
+                </>
+            )}
         </Button>
     );
 };

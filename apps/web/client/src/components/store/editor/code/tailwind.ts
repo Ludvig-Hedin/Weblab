@@ -1,14 +1,16 @@
-import type { CodeDiffRequest } from '@weblab/models/code';
-import { StyleChangeType, type StyleChange } from '@weblab/models/style';
-import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 import { twMerge } from 'tailwind-merge';
+
+import type { CodeDiffRequest } from '@weblab/models/code';
+import type { StyleChange } from '@weblab/models/style';
+import { StyleChangeType } from '@weblab/models/style';
+import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 
 export function addTailwindToRequest(
     request: CodeDiffRequest,
     styles: Record<string, StyleChange>,
 ): void {
     const newClasses = getTailwindClasses(request.oid, styles);
-    request.attributes['className'] = twMerge(request.attributes['className'] || '', newClasses);
+    request.attributes.className = twMerge(request.attributes.className || '', newClasses);
 }
 
 export function getTailwindClasses(oid: string, styles: Record<string, StyleChange>): string[] {
@@ -57,4 +59,3 @@ export function createCSSRuleString(oid: string, styles: Record<string, StyleCha
         .join(' ');
     return `${oid} { ${cssString} }`;
 }
-

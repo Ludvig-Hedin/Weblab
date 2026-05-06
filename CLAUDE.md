@@ -46,6 +46,25 @@ bun db:reset         # Reset schema + reseed
 > Refrain from running the dev server in automation contexts.
 > Use Bun for all installs and scripts; do not use npm, yarn, or pnpm.
 
+## Optional Context Pack
+
+For broad or cross-cutting work, read the relevant files in `docs/agent-context/`:
+
+- `README.md` - suggested read order.
+- `current-progress.md` - active worktree context and recent progress.
+- `repo-map.md` - monorepo map and runtime flow.
+- `development-setup.md` - commands, env, validation, and migrations.
+- `editor-architecture.md` - canvas, iframe, MobX engine, sandbox, and AI chat behavior.
+- `data-api-architecture.md` - tRPC, Supabase, Drizzle, migrations, auth, and integrations.
+- `design-product-context.md` - brand, product, and UI/design expectations.
+
+## Validation, Migrations, and Config Changes
+
+- Never leave the app in a broken state with known errors. Before ending work, run the relevant validation for the files touched, such as typecheck, lint, tests, build checks, or targeted scripts.
+- If a change requires database migrations, config updates, env changes, setup steps, or generated artifacts, either run the required local migration/config command yourself or clearly tell the project owner exactly what they must run manually.
+- When migration or config commands cannot be run safely in the current environment, document the blocker, the exact command or file change still needed, and the expected impact if it is skipped.
+- Do not mark a task complete until the app has been validated enough to confirm it is not left with avoidable runtime, build, type, lint, or config errors.
+
 ## Monorepo Structure
 
 Bun workspaces monorepo with four workspace directories:

@@ -56,6 +56,11 @@ If you encounter issues such as "Column not found" error, your database may be o
 1. Run `bun db:push` to push the schema to the database. If there are conflicts, you can try step 2.
 2. Run `bun db:reset` to fully reset the database and re-run the migrations. WARNING: This will delete all data in the database.
 
+Recent local databases may also need the latest Supabase migrations from
+`apps/backend/supabase/migrations`, including runtime-mode metadata and
+`user_settings` preference columns. If you change Drizzle schema or selected
+columns, validate the local database with `bun db:push` before handoff.
+
 ### Testing the Preload Script
 
 If you want to update the preload script and test it with Weblab, follow these steps:

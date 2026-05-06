@@ -5,7 +5,7 @@ import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
 import type { LocalModelOption } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, DEFAULT_CHAT_MODEL, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
@@ -103,9 +103,11 @@ export const AITab = observer(() => {
     // Auto-detect on mount and when saved URL changes
     useEffect(() => {
         const controller = new AbortController();
-        detectLocalModels(userSettings?.chat?.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL, controller.signal);
+        detectLocalModels(
+            userSettings?.chat?.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL,
+            controller.signal,
+        );
         return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userSettings?.chat?.ollamaBaseUrl]);
 
     const handleOllamaUrlBlur = () => {
@@ -153,7 +155,7 @@ export const AITab = observer(() => {
                 <div className="space-y-1.5">
                     <Label className="text-xs">Model</Label>
                     <Select
-                        value={ai?.defaultModel ?? CHAT_MODEL_OPTIONS[0]?.model ?? ''}
+                        value={ai?.defaultModel ?? DEFAULT_CHAT_MODEL}
                         onValueChange={(v) => patch({ defaultModel: v })}
                     >
                         <SelectTrigger className="w-72">
@@ -220,6 +222,11 @@ export const AITab = observer(() => {
                             : localModels.length > 0
                               ? `${localModels.length} model${localModels.length === 1 ? '' : 's'} detected: ${localModels.map((m) => m.label).join(', ')}`
                               : 'No local models detected. Make sure Ollama is running.'}
+                    </p>
+                    <p className="text-muted-foreground/80 text-[11px] leading-snug">
+                        Detection probes Ollama from the Weblab server, not your browser. On hosted
+                        deployments only models reachable from the server are visible — when running
+                        self-hosted or in dev, the server probes your own machine&apos;s localhost.
                     </p>
                 </div>
             </section>

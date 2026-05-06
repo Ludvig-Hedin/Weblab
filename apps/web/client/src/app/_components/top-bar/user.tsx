@@ -1,15 +1,17 @@
 'use client';
 
+import Link from 'next/link';
+
+import { Button } from '@weblab/ui/button';
+
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
-import { Button } from '@weblab/ui/button';
-import Link from 'next/link';
 
 export const AuthButton = () => {
     const { data: user } = api.user.get.useQuery();
     return (
-        <div className="flex items-center gap-3 mt-0">
+        <div className="mt-0 flex items-center gap-3">
             {user ? (
                 <>
                     <Button variant="secondary" size="sm" asChild className="cursor-pointer">

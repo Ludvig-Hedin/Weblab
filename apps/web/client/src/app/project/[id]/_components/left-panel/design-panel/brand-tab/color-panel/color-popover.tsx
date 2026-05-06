@@ -1,10 +1,13 @@
 'use client';
 
-import { DEFAULT_COLOR_NAME } from '@weblab/constants';
-import type { TailwindColor } from '@weblab/models';
-import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
-import { toNormalCase, type Color } from '@weblab/utility';
 import { useEffect, useState } from 'react';
+
+import type { TailwindColor } from '@weblab/models';
+import type { Color } from '@weblab/utility';
+import { DEFAULT_COLOR_NAME } from '@weblab/constants';
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { toNormalCase } from '@weblab/utility';
+
 import { ColorPickerContent } from '../../../../editor-bar/inputs/color-picker';
 import { ColorNameInput } from './color-name-input';
 
@@ -50,14 +53,14 @@ export const ColorPopover = ({
         <Popover onOpenChange={(open) => !open && handleNameChange(editedName)} open={true}>
             <PopoverTrigger asChild>
                 <div
-                    className="w-full aspect-square rounded-lg cursor-pointer hover:ring-2 hover:ring-border-primary border border-foreground/10"
+                    className="hover:ring-border-primary border-foreground/10 aspect-square w-full cursor-pointer rounded-lg border hover:ring-2"
                     style={{ backgroundColor: editedColor.toHex() }}
                 />
             </PopoverTrigger>
-            <PopoverContent className="p-0 w-56" side="right" align="start">
+            <PopoverContent className="w-56 p-0" side="right" align="start">
                 <div className="flex flex-col gap-0 p-0">
                     <div className="flex flex-col gap-1 p-2 pb-1">
-                        <label className="text-xs text-muted-foreground">Color Name</label>
+                        <label className="text-muted-foreground text-xs">Color Name</label>
                         <ColorNameInput
                             initialName={editedName}
                             onSubmit={handleNameChange}

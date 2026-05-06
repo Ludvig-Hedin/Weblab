@@ -1,12 +1,14 @@
-import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
-import type { Provider } from '@weblab/code-provider';
-import { EXCLUDED_SYNC_PATHS } from '@weblab/constants';
-import type { CodeFileSystem } from '@weblab/file-system';
-import { type FileEntry } from '@weblab/file-system';
-import type { Branch, RouterConfig } from '@weblab/models';
 import { makeAutoObservable, reaction } from 'mobx';
+
+import type { Provider } from '@weblab/code-provider';
+import type { CodeFileSystem } from '@weblab/file-system';
+import type { Branch, RouterConfig } from '@weblab/models';
+import { EXCLUDED_SYNC_PATHS } from '@weblab/constants';
+import { type FileEntry } from '@weblab/file-system';
+
 import type { EditorEngine } from '../engine';
 import type { ErrorManager } from '../error';
+import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
 import { GitManager } from '../git';
 import { detectRouterConfig } from '../pages/helper';
 import { copyPreloadScriptToPublic, getLayoutPath as detectLayoutPath } from './preload-script';
@@ -15,7 +17,7 @@ import { SessionManager } from './session';
 export enum PreloadScriptState {
     NOT_INJECTED = 'not-injected',
     LOADING = 'loading',
-    INJECTED = 'injected'
+    INJECTED = 'injected',
 }
 
 const PRELOAD_RETRY_DELAY_MS = 2000;
@@ -28,7 +30,7 @@ export class SandboxManager {
     private sync: CodeProviderSync | null = null;
     private preloadRetryTimeout: ReturnType<typeof setTimeout> | null = null;
     private preloadRetryCount = 0;
-    preloadScriptState: PreloadScriptState = PreloadScriptState.NOT_INJECTED
+    preloadScriptState: PreloadScriptState = PreloadScriptState.NOT_INJECTED;
     routerConfig: RouterConfig | null = null;
 
     constructor(
@@ -45,7 +47,7 @@ export class SandboxManager {
     async init() {
         // Start connection asynchronously (don't wait)
         if (!this.session.provider) {
-            this.session.start(this.branch.sandbox.id).catch(err => {
+            this.session.start(this.branch.sandbox.id).catch((err) => {
                 console.error('[SandboxManager] Initial connection failed:', err);
                 // Don't throw - let reaction handle retries/reconnects
             });
@@ -56,7 +58,11 @@ export class SandboxManager {
             () => this.session.provider,
             async (provider) => {
                 if (provider) {
-                    await this.initializeSyncEngine(provider);
+                    if (this.branch.runtime.type === 'local') {
+                        await this.fs.rebuildIndex();
+                    } else {
+                        await this.initializeSyncEngine(provider);
+                    }
                     await this.gitManager.init();
                 } else if (this.sync) {
                     // If the provider is null, release the sync engine reference
@@ -69,7 +75,7 @@ export class SandboxManager {
     }
 
     async getRouterConfig(): Promise<RouterConfig | null> {
-        if (!!this.routerConfig) {
+        if (this.routerConfig) {
             return this.routerConfig;
         }
         if (!this.session.provider) {
@@ -100,7 +106,7 @@ export class SandboxManager {
                 return;
             }
 
-            this.preloadScriptState = PreloadScriptState.LOADING
+            this.preloadScriptState = PreloadScriptState.LOADING;
 
             if (!this.session.provider) {
                 throw new Error('No provider available for preload script injection');
@@ -112,7 +118,7 @@ export class SandboxManager {
             }
 
             await copyPreloadScriptToPublic(this.session.provider, routerConfig);
-            this.preloadScriptState = PreloadScriptState.INJECTED
+            this.preloadScriptState = PreloadScriptState.INJECTED;
             this.preloadRetryCount = 0;
             if (this.preloadRetryTimeout) {
                 clearTimeout(this.preloadRetryTimeout);
@@ -254,7 +260,7 @@ export class SandboxManager {
             this.preloadRetryTimeout = null;
         }
         this.preloadRetryCount = 0;
-        this.preloadScriptState = PreloadScriptState.NOT_INJECTED
+        this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
         this.session.clear();
     }
 }

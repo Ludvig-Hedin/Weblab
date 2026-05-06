@@ -7,12 +7,12 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | ID | Status |
 |----|--------|
 | CR-001 | auto-fixed |
-| CR-002 | open |
+| CR-002 | resolved (2026-05-06) — focus rings removed per product direction |
 | CR-003 | fixed (2026-05-04) |
 | CR-004 | fixed (2026-05-04) |
 | CR-005 | fixed (2026-05-04) |
 | CR-006 | fixed (2026-05-03) |
-| CR-007 | partial (2026-05-04) |
+| CR-007 | resolved (2026-05-06) — duplicate WRAP_IN_DIV static + comments removed |
 | CR-008 | done (fixed in feature/settings-overhaul working tree) |
 | CR-009 | fixed (2026-05-04) |
 | CR-010 | fixed (2026-05-04) |
@@ -22,7 +22,7 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-014 | fixed (2026-05-03) |
 | CR-015 | auto-fixed (2026-05-03 review) |
 | CR-016 | fixed (2026-05-03) |
-| CR-017 | open (2026-05-03 review) |
+| CR-017 | resolved (2026-05-06) — added helper text clarifying server-side detection scope |
 | CR-018 | fixed (2026-05-03) |
 | CR-019 | fixed (2026-05-03) |
 | CR-020 | fixed (2026-05-03) |
@@ -30,25 +30,32 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-022 | fixed (2026-05-04) |
 | CR-023 | open (2026-05-03 review) |
 | CR-024 | discussion-only (2026-05-03 review) |
-| CR-025 | open (2026-05-04 review) |
-| CR-026 | open (2026-05-04 review) |
+| CR-025 | resolved (2026-05-06) — DEFAULT_CHAT_MODEL extracted to @weblab/models |
+| CR-026 | resolved (2026-05-06) — AIBehaviorSettings extracted; JSDoc clarifies canonical paths |
 | CR-027 | open (2026-05-04 review) |
-| CR-028 | open (2026-05-04 review) |
-| CR-029 | open (2026-05-03 review) |
+| CR-028 | n/a — orphan table entry, no body in backlog |
+| CR-029 | resolved — page shows "Coming soon" for all platforms; no live link |
 | CR-030 | auto-fixed (2026-05-03 review) |
 | CR-031 | auto-fixed (2026-05-03 review) |
-| CR-032 | open (2026-05-03 review) |
+| CR-032 | auto-fixed (2026-05-06 review) |
 | CR-033 | auto-fixed (2026-05-03 review) |
-| CR-034 | open (2026-05-03 review) |
+| CR-034 | resolved (2026-05-06) — verified clean across infra files |
 | CR-035 | auto-fixed (2026-05-03 review) |
 | CR-036 | auto-fixed (2026-05-03 review) |
-| CR-037 | open (2026-05-03 review) |
+| CR-037 | auto-fixed (2026-05-06 review) |
 | CR-038 | auto-fixed (2026-05-03 review) |
 | CR-039 | auto-fixed (2026-05-03 review) |
 | CR-040 | auto-fixed (2026-05-03 review) |
 | CR-041 | auto-fixed (2026-05-03 review) |
 | CR-042 | auto-fixed (2026-05-03 review) |
 | CR-043 | auto-fixed (2026-05-03 review) |
+| CR-044 | code-fixed (2026-05-06) — awaiting manual billing sign-off before shipping |
+| CR-045 | resolved (2026-05-06 review) — PII removed from fallback logs |
+| CR-046 | fixed (2026-05-06 review) |
+| CR-047 | fixed (2026-05-06 review) |
+| CR-048 | fixed (2026-05-06 review) |
+| CR-049 | resolved (2026-05-06) — searchTerm threaded; scrollToFirstMatch fires on view mount |
+| CR-050 | resolved (2026-05-06) — 30s polling on canvas+frames; idempotent applyFrames |
 
 ---
 
@@ -234,15 +241,15 @@ Scope: 18 modified files + 4 unpushed commits + a large set of new untracked fil
 
 Scope: nested worktree `.claude/worktrees/happy-ellis-e087a2` local changes on `claude/happy-ellis-e087a2`, plus the top-level latest three local commits at `47852f42`, `0aff6afe`, and `f82c64c4`.
 
-## CR-034 — Brand rename still has non-allowed `Onlook`/`onlook` references in infra and lock metadata
+## CR-034 — Brand rename still has non-allowed `Onlook`/`onlook` references in infra and lock metadata  *(resolved)*
 
 - **Area/Scope:** `Dockerfile`, `docker-compose.yml`, `bun.lock`, docs/deploy files
 - **Type:** bug / DX
 - **Impact:** infra / internal
 - **Risk:** medium
-- **Summary:** The Phase 2 brand commits update many package scopes and UI strings, but `rg` still finds non-allowed references such as `Dockerfile:1` (`Build Onlook web client`), `docker-compose.yml` service/network names, and root `bun.lock` workspace metadata with `@onlook/repo`. The lockfile/package mismatch is the most concrete risk because install tooling can still see stale workspace metadata.
-- **Suggested approach:** Regenerate/update the lockfile with Bun after package metadata is finalized, then audit remaining infra names and either rename them to Weblab or document why they are intentionally stable internal identifiers.
-- **Status:** open
+- **Summary:** The Phase 2 brand commits originally left `Onlook` references in infra files (`Dockerfile:1` first-line comment, `docker-compose.yml` service/network names, root `bun.lock` workspace metadata).
+- **Resolution (2026-05-06):** Re-audited with `grep -ni "onlook"` against `Dockerfile`, `docker-compose.yml`, and `bun.lock` — all three are now clean. The Dockerfile header is `# Build Weblab web client`, the compose project name is `weblab`, and the network is `supabase_network_weblab-web`. Closing.
+- **Status:** resolved
 
 ## CR-035 — Components router accepted arbitrary absolute `projectRoot` paths
 
@@ -501,3 +508,160 @@ preload script rebuild, .gitignore + backlog maintenance.
 - **Risk:** low–medium
 - **Summary:** Two near-identical implementations of "scan a project and extract React components" now coexist: one in `apps/web/server` (used by the new forward path), one in `apps/web/client` (the now-orphan `componentsRouter`). The patterns differ (CR-039), the field names differ (`name` vs. `componentName`, hence the `forward/editor.ts` remap), and the directory walker is duplicated.
 - **Fix applied:** Consolidated to a single canonical scanner on the editor server (`apps/web/server/src/router/routes/components.ts`). (1) Renamed `DiscoveredComponent.name` → `componentName` in the editor server so its wire-shape matches `ComponentInsertData` from `@weblab/models/element`. (2) Dropped the `.map(({ name, ...rest }) => ({ ...rest, componentName: name }))` remap in `apps/web/client/src/server/api/routers/forward/editor.ts` — the forward route now `return`s the editor-server response directly. (3) Deleted the orphan client-side scanner (CR-040). The only remaining gap to a fully shared package (e.g. `@weblab/parser`) is that the regex set still lives in `apps/web/server`; pulling it into a workspace package is now a pure refactor with no behavior implications and can land separately.
+
+---
+
+## 2026-05-04 review — local changes on `main`
+
+Review window: full local working tree (111 modified files, 8 untracked paths) plus the three latest commits (`5e52b8d8 feat: rewrite hero copy`, `68a5115b chore: comment out Discord/X social refs`, `18a53026 fix: GitHub repo URLs`). Net assessment: SAFE to ship modulo CR-044 (real billing bug) and CR-045 (PII logging regression). No quick-win fixes were applied — every candidate touched payments, error semantics, exported APIs, or design intent and falls outside the 99%-safe auto-fix bar.
+
+---
+
+## CR-044 — Stripe `paused` / `resumed` webhook handlers unreachable  *(open)*
+
+- **Area:** [pause.ts](apps/web/client/src/app/webhook/stripe/subscription/pause.ts) (new file, both `handleSubscriptionPaused` + `handleSubscriptionResumed`); [subscription/index.ts](apps/web/client/src/app/webhook/stripe/subscription/index.ts) (barrel); [route.ts:36-41](apps/web/client/src/app/webhook/stripe/route.ts)
+- **Type:** bug (silent payments regression)
+- **Impact:** user-facing (paid users)
+- **Risk:** **high**
+- **Summary:** A new `pause.ts` was added that mutates the `subscriptions` table on `customer.subscription.paused` (sets `CANCELED`) and `.resumed` (restores `ACTIVE`). But (a) the `subscription/index.ts` barrel only re-exports `./create`, `./delete`, `./update` — it does **not** re-export `./pause`, so the handlers are never imported, and (b) the parent webhook `route.ts:37-38` still falls through both event types to `default → 200`. Result: paused subscribers continue to enjoy pro entitlements, and resumed subscribers don't get reactivated. The bug is fully invisible because the webhook still ACKs 200, so Stripe never retries.
+- **Suggested approach:** (1) Add `export * from './pause';` to [subscription/index.ts](apps/web/client/src/app/webhook/stripe/subscription/index.ts). (2) In [route.ts](apps/web/client/src/app/webhook/stripe/route.ts), replace the fall-through cases with `case 'customer.subscription.paused': return handleSubscriptionPaused(event);` and `case 'customer.subscription.resumed': return handleSubscriptionResumed(event);`, importing both alongside the existing handlers on line 4. (3) Add a test covering each event type (mock Stripe event → assert `subscriptions.status` is mutated). (4) Once landed, replay any paused/resumed events from the Stripe dashboard for the launch window so DB state matches reality. Not auto-fixed because enabling new payments behavior exceeds the 99%-safe auto-fix bar — a human should sign off on the entitlement-flip semantics in `pause.ts` first (especially the `SubscriptionStatus.CANCELED` mapping, which is harsher than Stripe's own `paused` semantics).
+- **Status:** open — needs manual testing and human sign-off on billing semantics before changing entitlement behavior. The status table intentionally reflects this as open.
+
+---
+
+## CR-045 — Email-capture endpoint logs raw PII when the n8n integration is missing  *(resolved)*
+
+- **Area:** [api/email-capture/route.ts:43-58](apps/web/client/src/app/api/email-capture/route.ts) (the "fix #48" branch)
+- **Type:** bug (privacy / logging regression)
+- **Impact:** user-facing (privacy of marketing-form submitters)
+- **Risk:** medium
+- **Summary:** When `N8N_LANDING_FORM_URL` is unset, the route used to 500. The new soft-success branch returns 200 — good — but it also calls `console.info('[email-capture] ...', { email, name, utm_source, utm_medium, utm_campaign })`, writing the raw email and full name into Vercel/cloud server logs that are routinely ingested into observability tools (Datadog, Logflare, etc.). Marketing landing-page consent covers receiving emails, not log persistence; this is a regression vs. the prior code which logged no user data.
+- **Suggested approach:** Either (a) drop the `email`/`name` fields from the log line entirely, keeping only the UTM metadata for analytics intent, or (b) hash the email (`sha256`) before logging if a unique-but-non-reversible identifier is needed for deduplication. Audit any other `console.*` lines in this route or its callers for the same pattern. Consider also removing the `console.warn` of `validatedData` from any sibling debug paths if present.
+- **Fix applied:** PII removed from the missing-n8n fallback log in [api/email-capture/route.ts](apps/web/client/src/app/api/email-capture/route.ts); the log now keeps only UTM fields and no longer records raw email or name. The fallback response was also aligned to `{ success: true, stored: false }`.
+- **Status:** resolved.
+
+---
+
+## CR-046 — Blog `getAllPosts` ships every `.mdx` with no draft / publish gate *(fixed)*
+
+- **Area:** [lib/blog.ts:65-82](apps/web/client/src/lib/blog.ts) (`getAllPosts`); content lives in `apps/web/client/content/blog/*.mdx` (untracked)
+- **Type:** bug / DX
+- **Impact:** user-facing (potential premature publish)
+- **Risk:** low (today — only 3 hand-curated posts in `content/`)
+- **Summary:** The MDX loader treats every `.mdx` file in `content/blog/` as published. There is no convention for hiding work-in-progress posts via a frontmatter `draft: true` or a `published: false` flag. The moment a contributor stages an unfinished post in the same directory, it ships to production at `/blog/<slug>` and gets enumerated in `generateStaticParams()`.
+- **Suggested approach:** In `getAllPosts` and `getPostBySlug`, treat `data.draft === true` as a 404 in production (gate on `process.env.NODE_ENV === 'production'`) so writers can preview drafts in dev. Add a one-line type field for the flag in `BlogPostFrontmatter`. Ideally also add a build-time check that fails CI if any post is missing the required fields (`title`, `description`, `date`, `coverImage`).
+- **Fix applied:** Added optional `draft?: boolean` frontmatter support and filtered draft posts out of `getAllPosts` / `getPostBySlug` in production.
+
+---
+
+## CR-047 — Blog `slugify` strips non-ASCII; multiple non-ASCII headings collapse to empty TOC IDs *(fixed)*
+
+- **Area:** [lib/blog.ts:40-47, 49-59](apps/web/client/src/lib/blog.ts) (`slugify` and `extractToc`)
+- **Type:** bug
+- **Impact:** user-facing (broken anchor links + broken TOC scroll-into-view for non-Latin headings)
+- **Risk:** low
+- **Summary:** `slugify` does `.replace(/[^\w\s-]/g, '')`. JS `\w` is `[A-Za-z0-9_]`, so any heading written in CJK, Cyrillic, Arabic, Greek, or with emoji collapses to `''` after the first replace. With two such headings, both TOC entries get `id: ''` — the in-document `rehypeSlug` plugin will only emit one `id=""` element, so `[TableOfContents](apps/web/client/src/app/blog/_components/table-of-contents.tsx)`'s `document.getElementById(item.id)` returns `null` (or the wrong element) and clicks scroll nowhere. Also breaks `IntersectionObserver` highlighting.
+- **Suggested approach:** Adopt [`github-slugger`](https://github.com/Flet/github-slugger) (already a transitive dep through `rehype-slug`) so server-side TOC slugs match the IDs `rehypeSlug` injects into the DOM. As a side effect this also handles uniqueness via internal counter (`heading-2`, `heading-3` ...), so identical heading text doesn't collide.
+- **Fix applied:** Added `github-slugger` as a direct web-client dependency and now derives TOC IDs with the same slugger used by `rehype-slug`, including Unicode and duplicate heading handling.
+
+---
+
+## CR-048 — Blog `[slug]` route lacks defensive slug validation *(fixed)*
+
+- **Area:** [app/blog/[slug]/page.tsx](apps/web/client/src/app/blog/[slug]/page.tsx) and [lib/blog.ts:84-96](apps/web/client/src/lib/blog.ts) (`getPostBySlug`)
+- **Type:** refactor (defense-in-depth)
+- **Impact:** internal
+- **Risk:** low (no current arbitrary-read since the `.mdx` suffix is forced and `fs.existsSync` gates it)
+- **Summary:** `getPostBySlug` does `path.join(CONTENT_DIR, '${slug}.mdx')` with `slug` coming from the Next.js dynamic route segment. URL-decoded segments can include `/` (`%2F`), `..`, NUL bytes, and other surprises. `path.join` resolves the traversal to a path that is no longer inside `CONTENT_DIR`; the only thing standing between an attacker and reading any `*.mdx` on disk is that the suffix is forced to `.mdx`. There aren't (today) any sensitive `.mdx` files outside `content/blog/`, but this is brittle and Next.js could change segment-decoding semantics in a future major.
+- **Suggested approach:** Reject any slug that doesn't match `/^[a-z0-9-]+$/` and return `notFound()`. Alternatively, set `export const dynamicParams = false;` on the page so anything outside the `generateStaticParams()` set 404s before reaching the loader. Either change is one line and zero behaviour drift for the 3 current posts.
+- **Fix applied:** Added `isValidBlogSlug()` (`/^[a-z0-9-]+$/`) to the blog loader and `dynamicParams = false` to the `[slug]` route.
+
+---
+
+## CR-049 — `code-tab.handleFileTreeSelect` no longer threads `searchTerm`; FileTree still passes it
+
+- **Area:** [code-panel/code-tab/index.tsx:199-204](apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx) (signature changed); [code-panel/code-tab/sidebar/file-tree.tsx:13,164,173](apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/sidebar/file-tree.tsx) and [file-tree-node.tsx:31,53-54](apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/sidebar/file-tree-node.tsx) (still call with `(filePath, searchTerm?)`)
+- **Type:** bug (UX regression)
+- **Impact:** user-facing (Code panel search-result clicks no longer scroll to / highlight the match)
+- **Risk:** low
+- **Summary:** This commit deliberately dropped the `searchTerm` second arg from `handleFileTreeSelect` and added a TODO comment: *"FileTree.onFileSelect can be threaded through to the editor view."* The `FileTree`/`FileTreeNode` API still calls `onFileSelect(filePath, hasSearchTerm ? searchQuery : undefined)`, but JS silently discards the extra arg, so opening a file from a search hit no longer focuses the matching line. The TODO and the existing `// Reimplement search-term scroll` comment in the file's body confirm this is known but the work was deferred.
+- **Suggested approach:** Pipe the `searchTerm` through `editorEngine.ide.openFile(filePath, { highlight: searchTerm })` (or whatever the IDE store exposes for go-to-line / decoration). If the IDE store doesn't expose that yet, add it as a prerequisite. Lower priority than CR-044/CR-045 but visible to anyone using search.
+
+---
+
+## CR-050 — Editor canvas store not invalidated on collaborator mutations
+
+- **Area:** [components/store/editor/engine.ts:103-110](apps/web/client/src/components/store/editor/engine.ts) (TODO added in this commit)
+- **Type:** bug / collaboration debt
+- **Impact:** user-facing (collaborators see stale canvas state)
+- **Risk:** medium (severity scales with collaboration usage)
+- **Summary:** A TODO was committed acknowledging that `applyCanvas(...)` is run once at engine init and never re-run. Any tRPC mutation that updates the canvas row from another client is invisible to the local engine until full reload. With the new project-collaboration code paths (members router, invitation flow), this is more likely to bite users now than before. Tracking here so the TODO doesn't get lost in `git blame`.
+- **Suggested approach:** Add a tRPC subscription (or polling fallback) on `canvas.byProjectId` that invokes `editorEngine.canvas.applyCanvas(...)` when the row changes. As a stop-gap, surface a manual "Refresh canvas" affordance in the canvas top-bar so users can recover without a hard reload.
+
+---
+
+## 2026-05-06 review — local changes on `main`
+
+Review window: full local working tree (114 tracked changed files plus untracked blog/auth/Stripe/image assets) and latest local commit `5e52b8d8 feat: rewrite hero copy to appeal to designers`. One quick-win compile fix was applied in the Stripe webhook helper. Larger issues were logged below rather than behavior-changed during review.
+
+---
+
+## CR-051 — Stripe paused/resumed handlers called helper with excluded event types *(auto-fixed)*
+
+- **Area:** [helpers.ts](apps/web/client/src/app/webhook/stripe/subscription/helpers.ts), [pause.ts](apps/web/client/src/app/webhook/stripe/subscription/pause.ts)
+- **Type:** bug
+- **Impact:** infra / user-facing billing
+- **Risk:** low
+- **Summary:** `handleSubscriptionPaused` and `handleSubscriptionResumed` call `extractIdsFromEvent(receivedEvent)`, but the helper type union only accepted created/updated/deleted Stripe subscription events. That leaves the new handlers vulnerable to TypeScript failures even though all five event variants expose the same `event.data.object` subscription shape.
+- **Fix applied:** Extended the helper event union to include `Stripe.CustomerSubscriptionPausedEvent` and `Stripe.CustomerSubscriptionResumedEvent`. Also switched customer ID extraction away from `.toString()` so expanded Stripe customer objects resolve via `.id` instead of risking `[object Object]`.
+- **Status:** auto-fixed
+
+---
+
+## CR-052 — Blog route imports undeclared runtime dependencies *(fixed)*
+
+- **Area:** [lib/blog.ts](apps/web/client/src/lib/blog.ts), [blog/[slug]/page.tsx](apps/web/client/src/app/blog/[slug]/page.tsx), [apps/web/client/package.json](apps/web/client/package.json)
+- **Type:** bug / DX
+- **Impact:** infra / user-facing
+- **Risk:** medium
+- **Summary:** The new blog implementation imports `gray-matter`, `next-mdx-remote/rsc`, `rehype-slug`, and `rehype-autolink-headings`, but those packages are not declared in `apps/web/client/package.json` and are not present in `bun.lock` under those package names. A clean install/build can fail module resolution before `/blog` ever renders.
+- **Suggested approach:** Add the missing dependencies with Bun and commit the resulting lockfile change in a dedicated dependency commit, or switch to the repo's existing MDX/content tooling if one is preferred. Do not rely on transitive packages for direct imports.
+- **Fix applied:** Verified the current worktree now declares all four direct dependencies in `apps/web/client/package.json` and `bun.lock`.
+- **Status:** fixed
+
+---
+
+## CR-053 — Import cancellation uses `AbortController` locally but does not abort network work  *(deferred — needs server endpoint)*
+
+- **Area:** [projects/import/local/_context/index.tsx](apps/web/client/src/app/projects/import/local/_context/index.tsx), [projects/import/figma/_context/index.tsx](apps/web/client/src/app/projects/import/figma/_context/index.tsx), [projects/import/github/_context/index.tsx](apps/web/client/src/app/projects/import/github/_context/index.tsx), [projects/import/github/_hooks/use-repo-import.ts](apps/web/client/src/app/projects/import/github/_hooks/use-repo-import.ts)
+- **Type:** bug / reliability
+- **Impact:** user-facing
+- **Risk:** medium
+- **Summary:** The new cancel paths create/abort local `AbortController` instances and check `signal.aborted` between awaited steps, but the signal is not passed into tRPC mutations, sandbox upload/setup calls, or the GitHub repository import hook. Cancelling during a long `forkSandbox`, `uploadToSandbox`, `provider.setup`, or `createProject` call still allows that request to finish server-side, so orphan sandbox/project cleanup remains best-effort and timing-dependent.
+- **Decision (2026-05-06):** The right fix is a server-side cancel endpoint that atomically tears down the sandbox + draft project for the abandoned import job. Threading abort signals into the existing tRPC mutations alone leaves the server-side state orphaned even when the browser disconnects mid-flight. Deferring until that endpoint is designed; the current best-effort cleanup is acceptable for the small number of users hitting this. When picking this up: scope the endpoint as `import.cancel(jobId)` with idempotent cleanup of `sandboxes` + `projects` rows; expose a `jobId` from the `import.start*` mutations; have the cancel button call it without waiting on the local stack.
+- **Status:** open — explicitly deferred pending server cleanup endpoint
+
+---
+
+## CR-054 — New public env toggles bypass the validated env schema *(fixed)*
+
+- **Area:** [login/page.tsx](apps/web/client/src/app/login/page.tsx), [settings-modal/with-project.tsx](apps/web/client/src/components/ui/settings-modal/with-project.tsx), [env.ts](apps/web/client/src/env.ts)
+- **Type:** DX / maintainability
+- **Impact:** internal
+- **Risk:** low
+- **Summary:** `NEXT_PUBLIC_AUTH_PROVIDERS` and `NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED` are read directly from `process.env` in client components and are not declared in `env.ts`. Project rules say browser vars should be exposed with `NEXT_PUBLIC_*` and declared in the client schema; bypassing that removes validation/defaults and makes deployments harder to audit.
+- **Suggested approach:** Add both vars to `env.ts` with explicit defaults and import `env` in the client components, or consolidate these flags into an existing feature-flag config.
+- **Fix applied:** Added the new public feature flags to `env.ts` (`NEXT_PUBLIC_AUTH_PROVIDERS`, `NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED`, and the neighboring `NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED`) and switched the client components to read through the validated `env` export.
+- **Status:** fixed
+
+---
+
+## CR-055 — New Figma OAuth callback referenced a nonexistent tRPC mutation *(auto-fixed)*
+
+- **Area:** [callback/figma/page.tsx](apps/web/client/src/app/callback/figma/page.tsx), [routers/figma.ts](apps/web/client/src/server/api/routers/figma.ts)
+- **Type:** bug
+- **Impact:** user-facing / build
+- **Risk:** low
+- **Summary:** The new callback page called `api.figma.handleOAuthCallback.useMutation()`, but the figma router only exposes `fetchFile`. Typecheck failed immediately and the page could never complete OAuth at runtime.
+- **Fix applied:** Removed the nonexistent mutation call and made the callback page show a clear error directing users back to the existing personal-access-token import flow. This preserves a route-level fallback without pretending OAuth is implemented.
+- **Status:** auto-fixed

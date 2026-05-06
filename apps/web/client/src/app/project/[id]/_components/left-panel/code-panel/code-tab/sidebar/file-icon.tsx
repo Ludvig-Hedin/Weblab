@@ -1,9 +1,8 @@
-import { Icons } from "@weblab/ui/icons";
+import { Icons } from '@weblab/ui/icons';
 
-export const FileIcon = ({ path, isDirectory }: { path: string, isDirectory: boolean }) => {
-
+export const FileIcon = ({ path, isDirectory }: { path: string; isDirectory: boolean }) => {
     if (isDirectory) {
-        return <Icons.Directory className="w-4 h-4 mr-2" />;
+        return <Icons.Directory className="mr-2 h-4 w-4" />;
     }
 
     const fileName = path.split('/').pop() || path;
@@ -15,25 +14,25 @@ export const FileIcon = ({ path, isDirectory }: { path: string, isDirectory: boo
         case 'jsx':
         case 'ts':
         case 'tsx':
-            return <Icons.Code className="w-4 h-4 mr-2" />;
+            return <Icons.Code className="mr-2 h-4 w-4" />;
         case 'css':
         case 'scss':
         case 'sass':
-            return <Icons.Box className="w-4 h-4 mr-2" />;
+            return <Icons.Box className="mr-2 h-4 w-4" />;
         case 'html':
-            return <Icons.Frame className="w-4 h-4 mr-2" />;
+            return <Icons.Frame className="mr-2 h-4 w-4" />;
         case 'json':
-            return <Icons.Code className="w-4 h-4 mr-2" />;
+            return <Icons.Code className="mr-2 h-4 w-4" />;
         case 'md':
         case 'mdx':
-            return <Icons.Text className="w-4 h-4 mr-2" />;
+            return <Icons.Text className="mr-2 h-4 w-4" />;
         case 'jpg':
         case 'jpeg':
         case 'png':
         case 'gif':
         case 'svg':
-            return <Icons.Image className="w-4 h-4 mr-2" />;
+            return <Icons.Image className="mr-2 h-4 w-4" />;
         default:
-            return <Icons.File className="w-4 h-4 mr-2" />;
+            return <Icons.File className="mr-2 h-4 w-4" />;
     }
 };

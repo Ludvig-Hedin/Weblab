@@ -1,12 +1,14 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { useEffect, useMemo, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { cn } from '@weblab/ui/utils';
 import { stringToParsedValue } from '@weblab/utility';
-import { observer } from 'mobx-react-lite';
-import { useEffect, useMemo, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 const POSITION_OPTIONS = ['static', 'relative', 'absolute', 'fixed', 'sticky'] as const;
 const POSITION_FIELDS = [
@@ -101,11 +103,11 @@ export const PositionSection = observer(() => {
         <div className="space-y-3">
             <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.2em] text-foreground-tertiary">
+                    <span className="text-foreground-tertiary text-xs tracking-[0.2em] uppercase">
                         Type
                     </span>
                     <Select value={positionValue} onValueChange={handlePositionTypeChange}>
-                        <SelectTrigger className="h-8 w-[148px] border-border/60 bg-background-secondary text-sm">
+                        <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-[148px] text-sm">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -122,7 +124,7 @@ export const PositionSection = observer(() => {
             <div className="grid grid-cols-2 gap-2">
                 {POSITION_FIELDS.map(({ key, label }) => (
                     <label key={key} className="space-y-1.5">
-                        <span className="text-[11px] uppercase tracking-[0.18em] text-foreground-tertiary">
+                        <span className="text-foreground-tertiary text-[11px] tracking-[0.18em] uppercase">
                             {label}
                         </span>
                         <Input
@@ -137,7 +139,7 @@ export const PositionSection = observer(() => {
                             disabled={key !== 'zIndex' && !canEditOffsets}
                             placeholder={key === 'zIndex' ? 'auto' : '0px'}
                             className={cn(
-                                'h-8 border-border/60 bg-background-secondary text-sm',
+                                'border-border/60 bg-background-secondary h-8 text-sm',
                                 key !== 'zIndex' && !canEditOffsets && 'opacity-60',
                             )}
                         />
@@ -146,7 +148,7 @@ export const PositionSection = observer(() => {
             </div>
 
             {!canEditOffsets && (
-                <p className="text-xs text-foreground-tertiary">
+                <p className="text-foreground-tertiary text-xs">
                     Offset fields activate for `absolute` and `fixed` positioned elements.
                 </p>
             )}

@@ -1,8 +1,10 @@
-import { APP_NAME } from '@weblab/constants';
-import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/server';
 import { type Metadata } from 'next';
 import { redirect } from 'next/navigation';
+
+import { APP_NAME } from '@weblab/constants';
+
+import { Routes } from '@/utils/constants';
+import { createClient } from '@/utils/supabase/server';
 import { ImportGithubProjectProvider } from './_context';
 
 export const metadata: Metadata = {
@@ -18,7 +20,5 @@ export default async function Layout({ children }: Readonly<{ children: React.Re
     if (!session) {
         redirect(Routes.LOGIN);
     }
-    return (
-        <ImportGithubProjectProvider totalSteps={3}>{children}</ImportGithubProjectProvider>
-    );
+    return <ImportGithubProjectProvider totalSteps={3}>{children}</ImportGithubProjectProvider>;
 }

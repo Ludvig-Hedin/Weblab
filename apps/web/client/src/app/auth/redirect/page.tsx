@@ -1,32 +1,25 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { LocalForageKeys, Routes } from '@/utils/constants';
+import { Routes } from '@/utils/constants';
 import { sanitizeReturnUrl } from '@/utils/url';
-import localforage from 'localforage';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { ClientFallback } from './client-fallback';
 
-export default function AuthRedirect() {
-    const router = useRouter();
+interface AuthRedirectProps {
+    searchParams: Promise<{ returnUrl?: string }>;
+}
 
-    useEffect(() => {
-        const handleRedirect = async () => {
-            const returnUrl = await localforage.getItem<string>(LocalForageKeys.RETURN_URL);
-            await localforage.removeItem(LocalForageKeys.RETURN_URL);
+export default async function AuthRedirect({ searchParams }: AuthRedirectProps) {
+    const { returnUrl } = await searchParams;
 
-            // Redirect to the intended destination, defaulting to the projects page.
-            const sanitizedUrl = sanitizeReturnUrl(returnUrl);
-            router.replace(sanitizedUrl === Routes.HOME ? Routes.PROJECTS : sanitizedUrl);
-        };
-        handleRedirect();
-    }, [router]);
+    if (returnUrl) {
+        // returnUrl is now propagated via URL query (see #30 unification).
+        // Sanitize and redirect on the server — no JS required.
+        const sanitized = sanitizeReturnUrl(returnUrl);
+        redirect(sanitized === Routes.HOME ? Routes.PROJECTS : sanitized);
+    }
 
-    return (
-        <div className="flex h-screen w-screen items-center justify-center">
-            <div className="text-center">
-                <h1 className="text-2xl font-semibold mb-4">Redirecting...</h1>
-                <p className="text-foreground-secondary">Please wait while we redirect you back.</p>
-            </div>
-        </div>
-    );
-} 
+    // Fallback: no returnUrl in query. Render a client component that drains
+    // legacy localforage values, provides a manual "Continue" button after a
+    // short delay, and includes a <noscript> meta-refresh fallback.
+    return <ClientFallback />;
+}

@@ -1,8 +1,10 @@
-import { getExtensions } from '@/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-mirror-config';
-import { SystemTheme } from '@weblab/models';
-import { cn } from '@weblab/ui/utils';
 import { basicSetup } from '@uiw/codemirror-extensions-basic-setup';
 import CodeMirror from '@uiw/react-codemirror';
+
+import { SystemTheme } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
+
+import { getExtensions } from '@/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-mirror-config';
 
 export const CodeBlock = ({
     className,
@@ -23,12 +25,12 @@ export const CodeBlock = ({
     ];
 
     return (
-        <div className="flex flex-col w-full h-full">
+        <div className="flex h-full w-full flex-col">
             <CodeMirror
                 value={code}
                 readOnly={true}
                 className={cn(
-                    'flex-1 w-full h-full min-h-full max-h-full overflow-auto',
+                    'h-full max-h-full min-h-full w-full flex-1 overflow-auto',
                     className,
                 )}
                 theme={SystemTheme.DARK}

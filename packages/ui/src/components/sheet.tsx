@@ -67,7 +67,7 @@ function SheetContent({
             >
                 {children}
                 <SheetPrimitive.Close
-                    className="data-[state=open]:bg-secondary focus-visible:ring-ring focus-visible:ring-offset-background absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none"
+                    className="data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-hidden disabled:pointer-events-none"
                     data-oid="41cfa43de1"
                 >
                     <XIcon className="size-4" data-oid="1458238d36" />

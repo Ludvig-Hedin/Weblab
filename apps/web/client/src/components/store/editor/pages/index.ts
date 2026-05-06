@@ -1,5 +1,7 @@
-import type { PageEditorSettings, PageMetadata, PageNode } from '@weblab/models/pages';
 import { makeAutoObservable } from 'mobx';
+
+import type { PageEditorSettings, PageMetadata, PageNode } from '@weblab/models/pages';
+
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
 import {
@@ -26,8 +28,8 @@ import {
     isPageNode,
     moveFolderInSandbox,
     movePageInSandbox,
-    normalizeRoute,
     normalizePagePath,
+    normalizeRoute,
     renameFolderInSandbox,
     renamePageInSandbox,
     scanPagesFromSandbox,
@@ -46,7 +48,7 @@ export class PagesManager {
         makeAutoObservable(this);
     }
 
-    init() { }
+    init() {}
 
     async scanPages() {
         try {
@@ -65,7 +67,6 @@ export class PagesManager {
             this._isScanning = false;
         }
     }
-
 
     get isScanning() {
         return this._isScanning;
@@ -425,7 +426,11 @@ export class PagesManager {
             throw new Error('Page not found');
         }
 
-        await updatePageSettingsInSandbox(this.editorEngine.activeSandbox, normalizedPath, settings);
+        await updatePageSettingsInSandbox(
+            this.editorEngine.activeSandbox,
+            normalizedPath,
+            settings,
+        );
         await this.scanPages();
     }
 
@@ -562,7 +567,8 @@ export class PagesManager {
         }
 
         const hasIndexPage = folder.children.some(
-            (child) => isPageNode(child) && normalizePagePath(child.path) === normalizePagePath(path),
+            (child) =>
+                isPageNode(child) && normalizePagePath(child.path) === normalizePagePath(path),
         );
         const hasNestedRouteChildren = folder.children.some(
             (child) => normalizePagePath(child.path) !== normalizePagePath(path),
@@ -579,7 +585,10 @@ export class PagesManager {
             if (normalizedValue === normalizedOldPrefix) {
                 return normalizedNewPrefix;
             }
-            if (normalizedOldPrefix !== '/' && normalizedValue.startsWith(`${normalizedOldPrefix}/`)) {
+            if (
+                normalizedOldPrefix !== '/' &&
+                normalizedValue.startsWith(`${normalizedOldPrefix}/`)
+            ) {
                 return normalizePagePath(
                     `${normalizedNewPrefix}${normalizedValue.slice(normalizedOldPrefix.length)}`,
                 );

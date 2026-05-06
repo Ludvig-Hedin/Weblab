@@ -28,7 +28,7 @@ const featuresFaqs = [
     },
     {
         question: 'Do I need to know how to code?',
-        answer: 'No. Designers use a visual canvas with familiar tools. Real code runs underneath — you don\'t need to touch it unless you want to.',
+        answer: "No. Designers use a visual canvas with familiar tools. Real code runs underneath — you don't need to touch it unless you want to.",
     },
     {
         question: 'Can my team collaborate?',
@@ -49,24 +49,35 @@ export default function FeaturesPage() {
                     <h1>Weblab Features: Design with Your Real Components</h1>
                     <p>
                         Weblab is a visual design canvas that connects to your existing codebase.
-                        Design with your real components on an infinite canvas. AI is constrained to your design system —
-                        no brand drift, no throwaway code. Changes become mergeable pull requests.
+                        Design with your real components on an infinite canvas. AI is constrained to
+                        your design system — no brand drift, no throwaway code. Changes become
+                        mergeable pull requests.
                     </p>
                     <h2>Key Features</h2>
                     <ul>
-                        <li>Your Real Components — design with the buttons, cards, and layouts your engineers built</li>
-                        <li>AI constrained to your design system — uses your colors, fonts, and tokens</li>
+                        <li>
+                            Your Real Components — design with the buttons, cards, and layouts your
+                            engineers built
+                        </li>
+                        <li>
+                            AI constrained to your design system — uses your colors, fonts, and
+                            tokens
+                        </li>
                         <li>Built for Teams — real-time collaboration with spatial comments</li>
                         <li>Ship PRs, Not Prototypes — changes become mergeable pull requests</li>
                         <li>Canvas manipulation — drag, resize, arrange elements visually</li>
                         <li>Layer management — navigate your React component tree visually</li>
                         <li>Version history — roll back to any previous version</li>
-                        <li>Works with your codebase — connect existing React or Next.js projects</li>
-                        <li>Direct GitHub integration — push changes directly to your repository</li>
+                        <li>
+                            Works with your codebase — connect existing React or Next.js projects
+                        </li>
+                        <li>
+                            Direct GitHub integration — push changes directly to your repository
+                        </li>
                     </ul>
                 </section>
 
-                <div className="w-screen h-screen flex items-center justify-center" id="hero">
+                <div className="flex h-screen w-screen items-center justify-center" id="hero">
                     <FeaturesHero />
                 </div>
                 <ResponsiveMockupSection />

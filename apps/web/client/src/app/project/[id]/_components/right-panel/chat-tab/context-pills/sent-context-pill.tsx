@@ -1,17 +1,31 @@
-import { type ImageMessageContext, type MessageContext, MessageContextType } from '@weblab/models/chat';
+import type { ImageMessageContext, MessageContext } from '@weblab/models/chat';
+import { MessageContextType } from '@weblab/models/chat';
 import { isVideoFile } from '@weblab/utility';
+
 import { getContextIcon, getTruncatedName } from './helpers';
 
 export function SentContextPill({ context }: { context: MessageContext }) {
     if (context.type === MessageContextType.IMAGE) {
-        const img = context as ImageMessageContext;
+        const img = context;
         return (
-            <span className="flex flex-row gap-1 text-xs items-center select-none" key={img.displayName}>
-                <span className="w-5 h-5 flex-none overflow-hidden rounded">
+            <span
+                className="flex flex-row items-center gap-1 text-xs select-none"
+                key={img.displayName}
+            >
+                <span className="h-5 w-5 flex-none overflow-hidden rounded">
                     {isVideoFile(img.mimeType) ? (
-                        <video src={img.content} className="w-full h-full object-cover" muted playsInline />
+                        <video
+                            src={img.content}
+                            className="h-full w-full object-cover"
+                            muted
+                            playsInline
+                        />
                     ) : (
-                        <img src={img.content} alt={img.displayName} className="w-full h-full object-cover" />
+                        <img
+                            src={img.content}
+                            alt={img.displayName}
+                            className="h-full w-full object-cover"
+                        />
                     )}
                 </span>
                 <span className="truncate">{getTruncatedName(context)}</span>
@@ -21,7 +35,7 @@ export function SentContextPill({ context }: { context: MessageContext }) {
 
     return (
         <span
-            className="flex flex-row gap-0.5 text-xs items-center select-none"
+            className="flex flex-row items-center gap-0.5 text-xs select-none"
             key={context.displayName}
         >
             {getContextIcon(context)}

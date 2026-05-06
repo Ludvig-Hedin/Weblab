@@ -1,44 +1,73 @@
-# Create T3 App
+# Weblab Web Client
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with
-`create-t3-app`.
+This is the primary Weblab web application. It uses Next.js App Router, React,
+TypeScript, TailwindCSS, tRPC, Supabase, Drizzle, MobX editor stores, and shared
+`@weblab/*` workspace packages.
 
-## What's next? How do I make an app with this?
+Most contributors should run commands from the repository root so workspace
+dependencies and scripts resolve consistently.
 
-We try to keep this project as simple as possible, so you can start with just
-the scaffolding we set up for you, and add additional things later when they
-become necessary.
+## Local Development
 
-If you are not familiar with the different technologies used in this project,
-please refer to the respective docs. If you still are in the wind, please join
-our [Discord](https://t3.gg/discord) and ask for help.
+From the repo root:
 
-- [Next.js](https://nextjs.org)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+```bash
+bun install
+bun backend:start
+bun run setup:env
+bun db:push
+bun db:seed
+bun dev
+```
+
+Useful validation commands:
+
+```bash
+bun --filter @weblab/web-client typecheck
+bun --filter @weblab/web-client lint
+bun --filter @weblab/web-client build
+```
+
+Do not run `bun db:gen`; migration generation is reserved for the maintainer.
+
+## Important Paths
+
+- `src/app` - App Router routes, layouts, route handlers, webhooks, marketing
+  pages, project editor, and import flows.
+- `src/server/api` - tRPC setup and routers. Add new routers to
+  `src/server/api/root.ts`.
+- `src/components/store/editor` - MobX `EditorEngine` and editor managers for
+  canvas, frames, sandbox, code, AST, chat, comments, images, and more.
+- `src/components/ui` - app-local UI and feature modals.
+- `src/trpc` - tRPC client/server helpers and React Query integration.
+- `src/utils/supabase` - server, browser, admin, middleware, and request-server
+  Supabase clients.
+- `src/env.ts` - typed environment schema. Update this whenever env changes.
+- `messages/*` and `src/i18n` - next-intl messages and i18n helpers.
+
+For deeper agent context, see `../../../docs/agent-context/`.
 
 ## Auth Notes
 
 - The development-only "Sign in as demo user" button uses the seeded Supabase demo account and then routes through `/auth/redirect` so the browser session is established before protected queries run.
 - When pointing the app at a hosted Supabase project, you must set `NEXT_PUBLIC_SUPABASE_URL`, either `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, plus `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_DATABASE_URL`, then run the database schema and seed steps against that hosted database before the demo account can use the app end-to-end.
 
-## Learn More
+## Architecture Notes
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the
-following resources:
+- Default to Server Components. Use `use client` only for events, state/effects,
+  browser APIs, MobX observers, or client-only libraries.
+- Keep server-only clients out of client components.
+- Use `@weblab/ui` and existing local UI patterns before adding new primitives.
+- Import `APP_NAME` from `@weblab/constants`; do not hardcode the product brand
+  in JSX or metadata.
+- Editor store instances must stay stable across renders. Preserve the
+  `useState(() => new Store())` and async cleanup patterns used by the editor.
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available)
-  — Check out these awesome tutorials
+## Current Progress Notes
 
-You can check out the
-[create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) —
-your feedback and contributions are welcome!
+Recent durable context is documented in:
 
-## How do I deploy this?
-
-Follow our deployment guides for
-[Vercel](https://create.t3.gg/en/deployment/vercel),
-[Netlify](https://create.t3.gg/en/deployment/netlify) and
-[Docker](https://create.t3.gg/en/deployment/docker) for more information.
+- `../../../docs/project-runtime-modes.md`
+- `../../../docs/user-settings-migration-2026-05-06.md`
+- `../../../docs/ai-chat-input-unification-2026-05-06.md`
+- `../../../docs/editor-project-flow-fixes-2026-05-06.md`

@@ -1,10 +1,12 @@
 'use client';
 
+import { useCallback, useState } from 'react';
+
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { Color } from '@weblab/utility';
-import { useCallback, useState } from 'react';
-import { ColorPickerContent } from './color-picker';
+
 import { useColorUpdate } from '../hooks/use-color-update';
+import { ColorPickerContent } from './color-picker';
 
 interface InputColorProps {
     color: string;
@@ -45,7 +47,7 @@ export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColor
                                 type="text"
                                 value={tempColor.toHex6()}
                                 onChange={handleInputChange}
-                                className="h-full w-full bg-transparent text-sm text-foreground focus:outline-none"
+                                className="text-foreground h-full w-full bg-transparent text-sm focus:outline-none"
                             />
                         </div>
                     </PopoverTrigger>
@@ -63,7 +65,7 @@ export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColor
                     </PopoverContent>
                 </Popover>
             </div>
-            <div className="text-xs text-foreground bg-background-tertiary/50 flex h-full items-center rounded-r-md px-3 py-1.5">
+            <div className="text-foreground bg-background-tertiary/50 flex h-full items-center rounded-r-md px-3 py-1.5 text-xs">
                 {Math.round(tempColor.rgb.a * 100).toString()}%
             </div>
         </div>

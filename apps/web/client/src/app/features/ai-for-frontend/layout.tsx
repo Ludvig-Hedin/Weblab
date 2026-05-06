@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
     title: 'AI for Frontend Development | Visual AI Editor for React, Vue, Angular | Weblab',
-    description: 'Weblab is an AI-powered visual editor that builds frontend UIs using your real React, Vue, or Angular components. Unlike generic AI code generators, Weblab constrains AI to your design system — your buttons, cards, and layouts. Changes become mergeable PRs, not throwaway prototypes. Works with Tailwind, shadcn/ui, Material UI, and more.',
+    description:
+        'Weblab is an AI-powered visual editor that builds frontend UIs using your real React, Vue, or Angular components. Unlike generic AI code generators, Weblab constrains AI to your design system — your buttons, cards, and layouts. Changes become mergeable PRs, not throwaway prototypes. Works with Tailwind, shadcn/ui, Material UI, and more.',
     keywords: [
         // Primary keywords
         'AI for frontend',
@@ -39,13 +40,17 @@ export const metadata: Metadata = {
     ],
     openGraph: {
         title: 'AI for Frontend Development | Weblab',
-        description: 'Build frontend UIs with AI constrained to your design system. Your real React, Vue, or Angular components. Mergeable PRs, not throwaway code.',
+        description:
+            'Build frontend UIs with AI constrained to your design system. Your real React, Vue, or Angular components. Mergeable PRs, not throwaway code.',
         type: 'website',
         url: 'https://weblab.build/features/ai-for-frontend',
         siteName: 'Weblab',
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: 'Weblab AI for frontend development preview',
             },
         ],
     },
@@ -53,7 +58,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'AI for Frontend Development | Weblab',
         description: 'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: 'https://weblab.build/features/ai-for-frontend',
@@ -78,7 +83,8 @@ const jsonLd = {
     name: 'Weblab',
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web',
-    description: 'Weblab is an AI-powered visual editor for frontend development. It connects to your existing React, Vue, or Angular codebase and constrains AI to your real components and design system. Changes become pull requests engineers can merge directly.',
+    description:
+        'Weblab is an AI-powered visual editor for frontend development. It connects to your existing React, Vue, or Angular codebase and constrains AI to your real components and design system. Changes become pull requests engineers can merge directly.',
     url: 'https://weblab.build/features/ai-for-frontend',
     offers: {
         '@type': 'Offer',
@@ -154,7 +160,7 @@ const faqJsonLd = {
             name: 'Can AI drift from my design system in Weblab?',
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'No. Unlike raw AI code generation, Weblab constrains AI to your existing components, colors, and tokens. AI can only use what\'s in your design system — no drift, no off-brand results.',
+                text: "No. Unlike raw AI code generation, Weblab constrains AI to your existing components, colors, and tokens. AI can only use what's in your design system — no drift, no off-brand results.",
             },
         },
         {
@@ -162,7 +168,7 @@ const faqJsonLd = {
             name: 'How do I get AI-generated changes into production?',
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'Changes you make in Weblab become real code changes. When you\'re ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation.',
+                text: "Changes you make in Weblab become real code changes. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation.",
             },
         },
         {
@@ -170,7 +176,7 @@ const faqJsonLd = {
             name: 'Do I need to know how to code to use Weblab?',
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: 'No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don\'t need to touch it unless you want to.',
+                text: "No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don't need to touch it unless you want to.",
             },
         },
         {
@@ -184,11 +190,7 @@ const faqJsonLd = {
     ],
 };
 
-export default function AiForFrontendLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function AiForFrontendLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script

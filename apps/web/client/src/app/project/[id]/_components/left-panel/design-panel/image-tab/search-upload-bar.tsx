@@ -12,7 +12,12 @@ interface SearchUploadBarProps {
     onUpload: (files: FileList) => Promise<void>;
 }
 
-export const SearchUploadBar = ({ search, setSearch, isUploading, onUpload }: SearchUploadBarProps) => {
+export const SearchUploadBar = ({
+    search,
+    setSearch,
+    isUploading,
+    onUpload,
+}: SearchUploadBarProps) => {
     const handleUploadClick = () => {
         try {
             const input = document.createElement('input');
@@ -36,14 +41,14 @@ export const SearchUploadBar = ({ search, setSearch, isUploading, onUpload }: Se
                     placeholder="Search images and videos..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="h-8 text-xs pr-8"
+                    className="h-8 pr-8 text-xs"
                 />
                 {search && (
                     <button
                         onClick={() => setSearch('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-secondary hover:text-foreground-primary"
+                        className="text-foreground-secondary hover:text-foreground-primary absolute top-1/2 right-2 -translate-y-1/2"
                     >
-                        <Icons.CrossS className="w-3 h-3" />
+                        <Icons.CrossS className="h-3 w-3" />
                     </button>
                 )}
             </div>
@@ -52,14 +57,14 @@ export const SearchUploadBar = ({ search, setSearch, isUploading, onUpload }: Se
                     <Button
                         variant="default"
                         size="icon"
-                        className="h-8 w-8 text-foreground-primary border-border-primary hover:border-border-weblab bg-background-secondary hover:bg-background-weblab border"
+                        className="text-foreground-primary border-border-primary hover:border-border-weblab bg-background-secondary hover:bg-background-weblab h-8 w-8 border"
                         onClick={handleUploadClick}
                         disabled={isUploading}
                     >
                         {isUploading ? (
-                            <Icons.Reload className="w-4 h-4 animate-spin" />
+                            <Icons.Reload className="h-4 w-4 animate-spin" />
                         ) : (
-                            <Icons.Plus className="w-4 h-4" />
+                            <Icons.Plus className="h-4 w-4" />
                         )}
                     </Button>
                 </TooltipTrigger>

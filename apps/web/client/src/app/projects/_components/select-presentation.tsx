@@ -1,19 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Carousel } from './carousel';
 import { AnimatePresence, motion } from 'motion/react';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
-import { Templates } from './templates';
-import { TemplateModalPresentation } from './templates/template-modal-presentation';
+import { Carousel } from './carousel';
 import { HighlightText } from './select/highlight-text';
 import { MasonryLayout } from './select/masonry-layout';
 import { ProjectCardPresentation } from './select/project-card-presentation';
 import { SquareProjectCardPresentation } from './select/square-project-card-presentation';
+import { Templates } from './templates';
+import { TemplateModalPresentation } from './templates/template-modal-presentation';
 
 interface SelectProjectPresentationProps {
     /** All projects including templates */
@@ -223,18 +223,17 @@ export const SelectProjectPresentation = ({
     }
 
     if (projects.length === 0 && !debouncedSearchQuery) {
+        // First-run empty state — distinct from "no search results" (issue #42).
         return (
             <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-                <div className="text-foreground-secondary text-xl">No projects found</div>
+                <div className="text-foreground-secondary text-xl">
+                    Welcome to Weblab — let&apos;s create your first project
+                </div>
                 <div className="text-md text-foreground-tertiary">
-                    Create a new project to get started
+                    Start with a blank canvas to create a new project.
                 </div>
                 <div className="flex justify-center">
-                    <Button
-                        onClick={onCreateBlank}
-                        disabled={isCreatingProject}
-                        variant="default"
-                    >
+                    <Button onClick={onCreateBlank} disabled={isCreatingProject} variant="default">
                         {isCreatingProject ? (
                             <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                         ) : (
@@ -275,7 +274,9 @@ export const SelectProjectPresentation = ({
                                 >
                                     <div className="text-center">
                                         <div className="text-foreground-secondary text-base">
-                                            No projects found
+                                            {debouncedSearchQuery
+                                                ? `No projects match "${debouncedSearchQuery}"`
+                                                : 'No projects found'}
                                         </div>
                                         <div className="text-foreground-tertiary text-sm">
                                             Try adjusting your search terms
@@ -308,7 +309,7 @@ export const SelectProjectPresentation = ({
                                         <button
                                             onClick={onCreateBlank}
                                             disabled={isCreatingProject}
-                                            className="border-border bg-secondary/40 hover:bg-secondary relative flex aspect-[4/2.8] w-full items-center justify-center rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="border-border bg-secondary/40 hover:bg-secondary relative flex aspect-[4/2.8] w-full items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <div className="text-foreground-tertiary flex flex-col items-center justify-center">
                                                 {isCreatingProject ? (
@@ -352,7 +353,7 @@ export const SelectProjectPresentation = ({
                                                 onClick={onProjectClick}
                                             />
                                         </motion.div>
-                                    ))
+                                    )),
                                 ]
                             )}
                         </AnimatePresence>
@@ -518,12 +519,16 @@ export const SelectProjectPresentation = ({
                     }
                     image={getImageUrl(selectedTemplate)}
                     isNew={false}
-                    isStarred={selectedTemplate ? starredTemplateIds.has(selectedTemplate.id) : false}
+                    isStarred={
+                        selectedTemplate ? starredTemplateIds.has(selectedTemplate.id) : false
+                    }
                     onToggleStar={() => selectedTemplate && handleToggleStar(selectedTemplate.id)}
                     templateProject={selectedTemplate}
                     onUnmarkTemplate={handleUnmarkTemplate}
                     onUseTemplate={() => selectedTemplate && onUseTemplate?.(selectedTemplate.id)}
-                    onPreviewTemplate={() => selectedTemplate && onPreviewTemplate?.(selectedTemplate.id)}
+                    onPreviewTemplate={() =>
+                        selectedTemplate && onPreviewTemplate?.(selectedTemplate.id)
+                    }
                     onEditTemplate={() => selectedTemplate && onEditTemplate?.(selectedTemplate.id)}
                 />
             )}

@@ -1,11 +1,9 @@
-import {
-    projectSettings,
-    projectSettingsInsertSchema,
-    fromDbProjectSettings
-} from '@weblab/db';
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+
+import { fromDbProjectSettings, projectSettings, projectSettingsInsertSchema } from '@weblab/db';
+
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 export const settingsRouter = createTRPCRouter({

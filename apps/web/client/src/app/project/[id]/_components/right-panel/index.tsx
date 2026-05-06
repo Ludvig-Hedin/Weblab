@@ -13,14 +13,14 @@ import { cn } from '@weblab/ui/utils';
 import { useEditorEngine } from '@/components/store/editor';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
+import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
 import { ChatTab } from './chat-tab';
 import { ChatControls } from './chat-tab/controls';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
-import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
+import { CommentsTab } from './comments-tab';
 import { StyleTab } from './style-tab';
 import { StyleTabV2 } from './style-tab-v2';
-import { CommentsTab } from './comments-tab';
 
 type RightPanelTab = 'style' | 'chat' | 'comments';
 
@@ -34,8 +34,11 @@ export const RightPanel = observer(() => {
     const currentConversation = editorEngine.chat.conversation.current;
     const hasElementSelection = editorEngine.elements.selected.length > 0;
 
+    // Auto-switch to the style tab whenever a new element is selected. We
+    // switch unconditionally — selecting an element is a strong intent signal,
+    // so always surface the style controls (even if the user was on comments).
     useEffect(() => {
-        if (hasElementSelection && activeTab !== 'comments') {
+        if (hasElementSelection) {
             setActiveTab('style');
         }
     }, [hasElementSelection]);
@@ -76,7 +79,7 @@ export const RightPanel = observer(() => {
                             className="flex h-full flex-col gap-0"
                         >
                             <div className="border-border flex h-10 w-full flex-row items-center border-b p-1">
-                                <TabsList className="h-8 rounded-lg bg-background-secondary">
+                                <TabsList className="bg-background-secondary h-8 rounded-lg">
                                     <TabsTrigger value="style" className="gap-1.5">
                                         <Icons.Layout className="h-4 w-4" />
                                         {t(transKeys.editor.panels.edit.tabs.styles.name)}
@@ -131,16 +134,40 @@ export const RightPanel = observer(() => {
 
                             <TabsContent value="chat" className="min-h-0 flex-1 overflow-hidden">
                                 <div className="flex h-full flex-col overflow-y-auto">
-                                    {currentConversation && (
+                                    {currentConversation ? (
                                         <ChatTab
                                             conversationId={currentConversation.id}
                                             projectId={editorEngine.projectId}
                                         />
+                                    ) : (
+                                        <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                                            <p className="text-foreground-secondary text-sm">
+                                                {t(
+                                                    transKeys.editor.panels.edit.tabs.chat
+                                                        .noActiveConversation,
+                                                )}
+                                            </p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    void editorEngine.chat.conversation.startNewConversation();
+                                                }}
+                                            >
+                                                {t(
+                                                    transKeys.editor.panels.edit.tabs.chat
+                                                        .startNewConversation,
+                                                )}
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             </TabsContent>
 
-                            <TabsContent value="comments" className="min-h-0 flex-1 overflow-hidden">
+                            <TabsContent
+                                value="comments"
+                                className="min-h-0 flex-1 overflow-hidden"
+                            >
                                 <CommentsTab />
                             </TabsContent>
                         </Tabs>

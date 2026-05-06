@@ -7,6 +7,10 @@ description: Overview of Weblab's architecture
 
 Weblab is structured as a monorepo with several interconnected apps and packages, primarily built using Next.js, Supabase, TailwindCSS, and Drizzle.
 
+For coding agents and contributors doing broad changes, the optional
+`docs/agent-context/` pack contains a current repo map, development setup notes,
+editor deep dive, data/API deep dive, and product/design context.
+
 <div className="relative h-[500px] overflow-hidden">
   <iframe
     className="absolute top-0 left-0 h-full w-full"
@@ -36,7 +40,7 @@ onlook/
 │   ├── models/                    # Shared data models and types
 │   ├── ui/                        # Reusable UI components and theming (ShadCN + TailwindCSS)
 │   ├── ai/                        # AI integration utilities (AI SDK)
-│   └── schema/                    # Shared schema for the application (Drizzle ORM)
+│   └── db/                        # Drizzle schema, mappers, defaults, seed, and DB client
 │   
 └── docs/                          # Documentation (Fumadocs + Nextjs)
 ```

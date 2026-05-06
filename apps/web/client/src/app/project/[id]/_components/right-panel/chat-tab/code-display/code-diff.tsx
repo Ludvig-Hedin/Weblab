@@ -1,7 +1,10 @@
-import { SystemTheme } from '@weblab/models';
 import { useTheme } from 'next-themes';
 import CodeMirrorMerge from 'react-codemirror-merge';
+
+import { SystemTheme } from '@weblab/models';
+
 import { getExtensions } from '../../../left-panel/code-panel/code-tab/file-content/code-mirror-config';
+
 interface CodeDiffProps {
     originalCode: string;
     modifiedCode: string;

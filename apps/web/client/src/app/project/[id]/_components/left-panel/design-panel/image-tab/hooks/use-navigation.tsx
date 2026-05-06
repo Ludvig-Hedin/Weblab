@@ -1,5 +1,6 @@
-import { DEFAULT_IMAGE_DIRECTORY } from '@weblab/constants';
 import { useMemo, useState } from 'react';
+
+import { DEFAULT_IMAGE_DIRECTORY } from '@weblab/constants';
 
 export const useNavigation = (initialFolder = DEFAULT_IMAGE_DIRECTORY) => {
     const [activeFolder, setActiveFolder] = useState(initialFolder);
@@ -27,9 +28,7 @@ export const useNavigation = (initialFolder = DEFAULT_IMAGE_DIRECTORY) => {
     // Filter images based on search
     const filterImages = <T extends { name: string }>(images: T[]) => {
         if (!search) return images;
-        return images.filter(image =>
-            image.name.toLowerCase().includes(search.toLowerCase())
-        );
+        return images.filter((image) => image.name.toLowerCase().includes(search.toLowerCase()));
     };
 
     return {

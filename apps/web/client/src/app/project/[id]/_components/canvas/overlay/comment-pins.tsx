@@ -1,9 +1,11 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { observer } from 'mobx-react-lite';
+
 import { EditorMode } from '@weblab/models';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 function getInitials(name: string): string {
     return name
@@ -40,7 +42,7 @@ export const CommentPins = observer(() => {
                 return (
                     <div
                         key={comment.id}
-                        className="absolute pointer-events-auto"
+                        className="pointer-events-auto absolute"
                         style={{ left, top, zIndex: isActive ? 50 : 40 }}
                     >
                         <button
@@ -54,7 +56,7 @@ export const CommentPins = observer(() => {
                             className={cn(
                                 'flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 text-[11px] font-semibold text-white shadow-lg transition-all duration-150 hover:scale-110',
                                 // Active state: white border ring
-                                isActive && 'border-white scale-110',
+                                isActive && 'scale-110 border-white',
                                 // Unread + not active: accent blue pulsing ring
                                 isUnread && !isActive && 'border-blue-400',
                                 // Read + not active: no border
@@ -63,9 +65,10 @@ export const CommentPins = observer(() => {
                             style={{
                                 backgroundColor: isResolved ? '#22c55e' : '#3b82f6',
                                 // Unread glow
-                                boxShadow: isUnread && !isActive
-                                    ? '0 0 0 3px rgba(96, 165, 250, 0.45), 0 2px 8px rgba(0,0,0,0.3)'
-                                    : '0 2px 8px rgba(0,0,0,0.25)',
+                                boxShadow:
+                                    isUnread && !isActive
+                                        ? '0 0 0 3px rgba(96, 165, 250, 0.45), 0 2px 8px rgba(0,0,0,0.3)'
+                                        : '0 2px 8px rgba(0,0,0,0.25)',
                             }}
                         >
                             {getInitials(comment.authorName)}
@@ -74,7 +77,7 @@ export const CommentPins = observer(() => {
                         {/* Unread dot indicator */}
                         {isUnread && !isActive && (
                             <span
-                                className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-blue-400 border-2 border-background"
+                                className="border-background absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 bg-blue-400"
                                 style={{ transform: 'translate(25%, -25%)' }}
                             />
                         )}
@@ -85,7 +88,7 @@ export const CommentPins = observer(() => {
             {/* Ghost pin for pending placement */}
             {pendingPlacement && (
                 <div
-                    className="absolute pointer-events-auto"
+                    className="pointer-events-auto absolute"
                     style={{
                         left: pendingPlacement.x * scale + position.x,
                         top: pendingPlacement.y * scale + position.y,
@@ -93,7 +96,7 @@ export const CommentPins = observer(() => {
                     }}
                 >
                     <div className="flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 border-dashed border-blue-400 bg-blue-400/30 shadow-lg">
-                        <span className="text-blue-400 text-lg font-bold leading-none">+</span>
+                        <span className="text-lg leading-none font-bold text-blue-400">+</span>
                     </div>
                 </div>
             )}

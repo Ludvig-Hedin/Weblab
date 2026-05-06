@@ -3,15 +3,18 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
-export const QueuedMessageItem = ({ message, removeFromQueue }: {
+export const QueuedMessageItem = ({
+    message,
+    removeFromQueue,
+}: {
     message: QueuedMessage;
     index: number;
     removeFromQueue: (id: string) => void;
 }) => {
     return (
-        <div className="flex flex-row w-full py-1.5 items-center rounded-md hover:bg-background-weblab cursor-default select-none group relative transition-none overflow-hidden">
-            <Icons.ChatBubble className="flex-none mr-2 ml-3 text-muted-foreground group-hover:text-foreground" />
-            <span className="text-small truncate w-full text-left text-muted-foreground group-hover:text-foreground mr-2">
+        <div className="hover:bg-background-weblab group relative flex w-full cursor-default flex-row items-center overflow-hidden rounded-md py-1.5 transition-none select-none">
+            <Icons.ChatBubble className="text-muted-foreground group-hover:text-foreground mr-2 ml-3 flex-none" />
+            <span className="text-small text-muted-foreground group-hover:text-foreground mr-2 w-full truncate text-left">
                 {message.content}
             </span>
             <Tooltip>
@@ -19,19 +22,17 @@ export const QueuedMessageItem = ({ message, removeFromQueue }: {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="text-muted-foreground hover:text-foreground absolute right-0 px-2.5 py-2 top-1/2 -translate-y-1/2 w-fit h-fit opacity-0 group-hover:opacity-100 !bg-background-weblab hover:!bg-background-weblab z-10 transition-none cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground !bg-background-weblab hover:!bg-background-weblab absolute top-1/2 right-0 z-10 h-fit w-fit -translate-y-1/2 cursor-pointer px-2.5 py-2 opacity-0 transition-none group-hover:opacity-100"
                         onClick={(e) => {
                             e.stopPropagation();
                             removeFromQueue(message.id);
                         }}
                     >
-                        <Icons.Trash className="w-4 h-4" />
+                        <Icons.Trash className="h-4 w-4" />
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top" hideArrow>
-                    <p className="font-normal">
-                        Remove from queue
-                    </p>
+                    <p className="font-normal">Remove from queue</p>
                 </TooltipContent>
             </Tooltip>
         </div>

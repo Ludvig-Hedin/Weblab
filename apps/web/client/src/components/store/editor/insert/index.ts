@@ -1,5 +1,6 @@
-import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { DefaultSettings, EditorAttributes, type ShadcnBlockManifestItem } from '@weblab/constants';
+import type React from 'react';
+
+import type { ShadcnBlockManifestItem } from '@weblab/constants';
 import type {
     ComponentInsertData,
     DomElement,
@@ -8,6 +9,7 @@ import type {
     ImageContentData,
     RectDimensions,
 } from '@weblab/models';
+import { DefaultSettings, EditorAttributes } from '@weblab/constants';
 import { EditorMode, InsertMode } from '@weblab/models';
 import {
     type ActionElement,
@@ -20,16 +22,17 @@ import {
 import { StyleChangeType } from '@weblab/models/style';
 import { colors } from '@weblab/ui/tokens';
 import { canHaveBackgroundImage, createDomId, createOid, urlToRelativePath } from '@weblab/utility';
-import type React from 'react';
+
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
+import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import { getRelativeMousePositionToFrameView } from '../overlay/utils';
 
 export class InsertManager {
     isDrawing = false;
     private drawOrigin: ElementPosition | undefined;
 
-    constructor(private editorEngine: EditorEngine) { }
+    constructor(private editorEngine: EditorEngine) {}
 
     getDefaultProperties(mode: InsertMode): DropElementProperties {
         switch (mode) {
@@ -295,7 +298,7 @@ export class InsertManager {
         frame: FrameData,
         dropPosition: { x: number; y: number },
         imageData: ImageContentData,
-        altKey: boolean = false,
+        altKey = false,
     ) {
         if (!frame.view) {
             console.error('No frame view found');

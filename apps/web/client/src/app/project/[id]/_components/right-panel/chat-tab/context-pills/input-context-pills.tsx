@@ -1,10 +1,12 @@
-import { useEditorEngine } from '@/components/store/editor';
+import { useMemo } from 'react';
+import { observer } from 'mobx-react-lite';
+import { AnimatePresence } from 'motion/react';
+
 import type { ImageMessageContext, MessageContext } from '@weblab/models/chat';
 import { MessageContextType } from '@weblab/models/chat';
 import { assertNever } from '@weblab/utility';
-import { observer } from 'mobx-react-lite';
-import { AnimatePresence } from 'motion/react';
-import { useMemo } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 import { DraftContextPill } from './draft-context-pill';
 import { ImagePill } from './image-pill';
 
@@ -47,10 +49,9 @@ export const InputContextPills = observer(() => {
     };
 
     const sortedContexts = useMemo(() => {
-        return [...editorEngine.chat.context.context]
-            .sort((a, b) => {
-                return typeOrder[a.type] - typeOrder[b.type];
-            });
+        return [...editorEngine.chat.context.context].sort((a, b) => {
+            return typeOrder[a.type] - typeOrder[b.type];
+        });
     }, [editorEngine.chat.context.context]);
 
     return (
@@ -63,7 +64,7 @@ export const InputContextPills = observer(() => {
                         return (
                             <ImagePill
                                 key={key}
-                                context={context as ImageMessageContext}
+                                context={context}
                                 onRemove={() => handleRemoveContext(context)}
                             />
                         );

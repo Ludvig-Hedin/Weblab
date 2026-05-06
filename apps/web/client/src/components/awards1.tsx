@@ -1,82 +1,79 @@
-import React from "react";
+import React from 'react';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 interface Awards1Props {
-  className?: string;
+    className?: string;
 }
 
 const Awards1 = ({ className }: Awards1Props) => {
-  const awards = [
-    {
-      name: "CSS Design Awards Winner",
-      description: "Recognized for excellence in web design and functionality.",
-      year: "2024",
-      url: "#",
-    },
-    {
-      name: "Awwwards Site of the Day",
-      description:
-        "Featured for outstanding creativity and innovation in web development.",
-      year: "2023",
-      url: "#",
-    },
-    {
-      name: "Shadcnblocks UI Blocks",
-      description:
-        "Awarded for exceptional user experience and interface design.",
-      year: "2023",
-      url: "https://www.shadcnblocks.com",
-    },
-    {
-      name: "Web Design Excellence",
-      description:
-        "Honored for superior design quality and technical implementation.",
-      year: "2022",
-      url: "#",
-    },
-  ];
+    const awards = [
+        {
+            name: 'CSS Design Awards Winner',
+            description: 'Recognized for excellence in web design and functionality.',
+            year: '2024',
+            url: '#',
+        },
+        {
+            name: 'Awwwards Site of the Day',
+            description: 'Featured for outstanding creativity and innovation in web development.',
+            year: '2023',
+            url: '#',
+        },
+        {
+            name: 'Shadcnblocks UI Blocks',
+            description: 'Awarded for exceptional user experience and interface design.',
+            year: '2023',
+            url: 'https://www.shadcnblocks.com',
+        },
+        {
+            name: 'Web Design Excellence',
+            description: 'Honored for superior design quality and technical implementation.',
+            year: '2022',
+            url: '#',
+        },
+    ];
 
-  return (
-    <section className={cn("py-32", className)}>
-      <div className="container space-y-10 lg:space-y-12">
-        <h1 className="max-w-md text-5xl tracking-tighter lg:text-7xl">
-          Awards
-        </h1>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="h-12 border-b text-left text-sm text-slate-950/80 dark:text-slate-50/80">
-              <th className="font-semibold">Award</th>
-              <th className="font-semibold">Description</th>
-              <th className="text-right font-semibold">Year</th>
-            </tr>
-          </thead>
-          <tbody>
-            {awards.map((award, index) => (
-              <tr
-                key={index}
-                className="h-20 border-b text-left text-sm text-slate-950/40 dark:text-slate-50/40"
-              >
-                <td className="text-lg font-light tracking-tight text-slate-950 lg:text-xl dark:text-slate-50">
-                  <a
-                    href={award.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline"
-                    title={award.name}
-                  >
-                    {award.name}
-                  </a>
-                </td>
-                <td>{award.description}</td>
-                <td className="text-right text-slate-950 dark:text-slate-50">{award.year}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
+    return (
+        <section className={cn('py-32', className)}>
+            <div className="container space-y-10 lg:space-y-12">
+                <h1 className="max-w-md text-5xl tracking-tighter lg:text-7xl">Awards</h1>
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="h-12 border-b text-left text-sm text-slate-950/80 dark:text-slate-50/80">
+                            <th className="font-semibold">Award</th>
+                            <th className="font-semibold">Description</th>
+                            <th className="text-right font-semibold">Year</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {awards.map((award, index) => (
+                            <tr
+                                key={index}
+                                className="h-20 border-b text-left text-sm text-slate-950/40 dark:text-slate-50/40"
+                            >
+                                <td className="text-lg font-light tracking-tight text-slate-950 lg:text-xl dark:text-slate-50">
+                                    <a
+                                        href={award.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:underline"
+                                        title={award.name}
+                                    >
+                                        {award.name}
+                                    </a>
+                                </td>
+                                <td>{award.description}</td>
+                                <td className="text-right text-slate-950 dark:text-slate-50">
+                                    {award.year}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
 };
 
 export { Awards1 };

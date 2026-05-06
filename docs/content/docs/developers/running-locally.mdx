@@ -82,6 +82,11 @@ Note: If prompted for interaction such as choosing an option, cd into `packages/
    bun db:push
    ```
 
+Do not run `bun db:gen`; migration generation is reserved for the maintainer.
+If a code change requires migrations, config, env values, or setup commands,
+the agent or contributor making the change must either run the required local
+command or clearly document the exact manual step that remains.
+
 ### 6. Seed the database with test data
 
 Seed the database with test data. This will create test users and projects.
@@ -98,6 +103,20 @@ If you are only trying to get into the app quickly in development, the `DEV MODE
    ```
 
 Go to [http://localhost:3000](http://localhost:3000) to see the app running. You're all set for development!
+
+## Validation Before Handoff
+
+Before handing off changes, run the narrowest validation that proves the touched
+area still works:
+
+- `bun typecheck` for web-client TypeScript changes
+- `bun lint` or targeted ESLint for lint-sensitive code
+- `bun test` or targeted package tests for tested logic
+- `bun db:push` when schema or selected DB columns changed
+- `git diff --check` for documentation-only changes
+
+Do not leave the app with known avoidable runtime, build, type, lint,
+migration, or config errors.
 
 ## What's Next?
 

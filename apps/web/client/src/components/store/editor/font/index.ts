@@ -1,14 +1,30 @@
 'use client';
 
-import { type CodeDiff, type FontUploadFile } from '@weblab/models';
-import type { Font } from '@weblab/models/assets';
-import { generate } from '@weblab/parser';
 import { makeAutoObservable } from 'mobx';
+
+import type { Font } from '@weblab/models/assets';
+import { type CodeDiff, type FontUploadFile } from '@weblab/models';
+import { generate } from '@weblab/parser';
+
 import type { EditorEngine } from '../engine';
-import { addFontToConfig, ensureFontConfigFileExists, getFontConfigPath, readFontConfigFile, removeFontFromConfig, scanExistingFonts, scanFontConfig } from './font-config';
+import {
+    addFontToConfig,
+    ensureFontConfigFileExists,
+    getFontConfigPath,
+    readFontConfigFile,
+    removeFontFromConfig,
+    scanExistingFonts,
+    scanFontConfig,
+} from './font-config';
 import { FontSearchManager } from './font-search-manager';
 import { uploadFonts } from './font-upload-manager';
-import { addFontVariableToRootLayout, clearDefaultFontFromRootLayout, getCurrentDefaultFont, removeFontVariableFromRootLayout, updateDefaultFontInRootLayout, } from './layout-manager';
+import {
+    addFontVariableToRootLayout,
+    clearDefaultFontFromRootLayout,
+    getCurrentDefaultFont,
+    removeFontVariableFromRootLayout,
+    updateDefaultFontInRootLayout,
+} from './layout-manager';
 import {
     addFontToTailwindConfig,
     ensureTailwindConfigExists,
@@ -189,7 +205,10 @@ export class FontManager {
             }
 
             const currentDefaultFontId = this._defaultFont;
-            const success = await clearDefaultFontFromRootLayout(currentDefaultFontId, this.editorEngine);
+            const success = await clearDefaultFontFromRootLayout(
+                currentDefaultFontId,
+                this.editorEngine,
+            );
 
             if (success) {
                 this._defaultFont = null;
@@ -243,10 +262,7 @@ export class FontManager {
                 if (!fontConfigPath) {
                     return false;
                 }
-                await this.editorEngine.fileSystem.writeFile(
-                    fontConfigPath,
-                    code,
-                );
+                await this.editorEngine.fileSystem.writeFile(fontConfigPath, code);
             }
 
             return result.success;
@@ -401,5 +417,4 @@ export class FontManager {
         this.fontSearchManager.clear();
         this.fontSearchManager.updateFontsList([]);
     }
-
 }

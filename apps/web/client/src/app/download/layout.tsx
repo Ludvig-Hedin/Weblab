@@ -1,5 +1,6 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: `Download ${APP_NAME} | Mac, Windows, Linux & iOS`,

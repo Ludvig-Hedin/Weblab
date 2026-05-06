@@ -46,9 +46,6 @@ export class Hotkey {
     static readonly UNDO = new Hotkey('mod+z', 'Undo');
     static readonly REDO = new Hotkey('mod+shift+z', 'Redo');
     static readonly GROUP = new Hotkey('mod+g', 'Group');
-    // Aliased to GROUP — same handler. Labelled distinctly so the modal does
-    // not imply a different action.
-    static readonly WRAP_IN_DIV = new Hotkey('mod+alt+g', 'Group (alt)');
     static readonly UNGROUP = new Hotkey('mod+shift+g', 'Unwrap parent');
     static readonly OPEN_DEV_TOOL = new Hotkey('mod+shift+i', 'Open Devtool');
     static readonly ADD_AI_CHAT = new Hotkey('mod+shift+l', 'Add to AI chat');

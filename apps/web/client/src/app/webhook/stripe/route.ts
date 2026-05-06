@@ -1,25 +1,33 @@
-import { env } from '@/env';
+import type Stripe from 'stripe';
+
 import { createStripeClient } from '@weblab/stripe';
-import Stripe from 'stripe';
-import { handleSubscriptionCreated, handleSubscriptionDeleted, handleSubscriptionUpdated } from './subscription';
+
+import { env } from '@/env';
+import {
+    handleSubscriptionCreated,
+    handleSubscriptionDeleted,
+    handleSubscriptionPaused,
+    handleSubscriptionResumed,
+    handleSubscriptionUpdated,
+} from './subscription';
 
 export async function POST(request: Request) {
-    const stripe = createStripeClient(env.STRIPE_SECRET_KEY)
-    const endpointSecret = env.STRIPE_WEBHOOK_SECRET
+    const stripe = createStripeClient(env.STRIPE_SECRET_KEY);
+    const endpointSecret = env.STRIPE_WEBHOOK_SECRET;
 
-    const buf = Buffer.from(await request.arrayBuffer())
-    let event: Stripe.Event
+    const buf = Buffer.from(await request.arrayBuffer());
+    let event: Stripe.Event;
 
     if (!endpointSecret) {
-        return new Response('STRIPE_WEBHOOK_SECRET is not set', { status: 400 })
+        return new Response('STRIPE_WEBHOOK_SECRET is not set', { status: 400 });
     }
 
-    const signature = request.headers.get('stripe-signature') as string
+    const signature = request.headers.get('stripe-signature')!;
     try {
-        event = stripe.webhooks.constructEvent(buf, signature, endpointSecret)
+        event = stripe.webhooks.constructEvent(buf, signature, endpointSecret);
     } catch (err: any) {
-        console.log(`⚠️  Webhook signature verification failed.`, err.message)
-        return new Response('Webhook signature verification failed', { status: 400 })
+        console.log(`⚠️  Webhook signature verification failed.`, err.message);
+        return new Response('Webhook signature verification failed', { status: 400 });
     }
 
     switch (event.type) {
@@ -33,12 +41,14 @@ export async function POST(request: Request) {
         case 'customer.subscription.deleted': {
             return handleSubscriptionDeleted(event);
         }
-        // list of events that could be handled in the future
-        case 'customer.subscription.paused':
-        case 'customer.subscription.resumed':
+        case 'customer.subscription.paused': {
+            return handleSubscriptionPaused(event);
+        }
+        case 'customer.subscription.resumed': {
+            return handleSubscriptionResumed(event);
+        }
         default: {
             return new Response(null, { status: 200 });
         }
     }
-
 }

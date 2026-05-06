@@ -1,3 +1,5 @@
+import { cloneDeep, debounce } from 'lodash';
+
 import type { DomElement, LayerNode } from '@weblab/models';
 import { EditorMode } from '@weblab/models';
 import {
@@ -14,12 +16,12 @@ import {
 } from '@weblab/models/actions';
 import { StyleChangeType } from '@weblab/models/style';
 import { assertNever } from '@weblab/utility';
-import { cloneDeep, debounce } from 'lodash';
+
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
 
 export class ActionManager {
-    constructor(private editorEngine: EditorEngine) { }
+    constructor(private editorEngine: EditorEngine) {}
 
     async run(action: Action) {
         await this.editorEngine.history.push(action);
@@ -214,11 +216,7 @@ export class ActionManager {
             return;
         }
 
-        const result = await frameData.view.groupElements(
-            parent,
-            container,
-            children,
-        );
+        const result = await frameData.view.groupElements(parent, container, children);
 
         if (!result) {
             console.error('Failed to group elements');
@@ -285,5 +283,5 @@ export class ActionManager {
         }
     }
 
-    clear() { }
+    clear() {}
 }

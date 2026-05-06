@@ -44,12 +44,8 @@ const ShortcutRow = observer(
         // NOTE: do NOT early-return here — the hooks below must run on every
         // render to satisfy React's rules of hooks. We return null at the end
         // when defaultHotkey is missing instead.
-        const effectiveCommand = defaultHotkey
-            ? stateManager.hotkeys.getBinding(hotkeyKey)
-            : '';
-        const isCustomized = defaultHotkey
-            ? stateManager.hotkeys.isCustomized(hotkeyKey)
-            : false;
+        const effectiveCommand = defaultHotkey ? stateManager.hotkeys.getBinding(hotkeyKey) : '';
+        const isCustomized = defaultHotkey ? stateManager.hotkeys.isCustomized(hotkeyKey) : false;
 
         const saveBinding = useCallback(
             (key: string, value: string) => {
@@ -109,8 +105,7 @@ const ShortcutRow = observer(
                 }
 
                 const hasNonModifierKey =
-                    parts.length > 0 &&
-                    !['mod', 'shift', 'alt'].includes(parts[parts.length - 1]!);
+                    parts.length > 0 && !['mod', 'shift', 'alt'].includes(parts[parts.length - 1]!);
 
                 if (hasNonModifierKey) {
                     const conflict = stateManager.hotkeys.getConflict(hotkeyKey, parts.join('+'));
@@ -128,7 +123,14 @@ const ShortcutRow = observer(
 
             window.addEventListener('keydown', handleKeyDown, true);
             return () => window.removeEventListener('keydown', handleKeyDown, true);
-        }, [isCapturing, hotkeyKey, onCancelCapture, saveBinding, stateManager.hotkeys, defaultHotkey]);
+        }, [
+            isCapturing,
+            hotkeyKey,
+            onCancelCapture,
+            saveBinding,
+            stateManager.hotkeys,
+            defaultHotkey,
+        ]);
 
         if (!defaultHotkey) return null;
 

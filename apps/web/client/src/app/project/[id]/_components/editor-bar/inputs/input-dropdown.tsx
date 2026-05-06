@@ -9,6 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
+
 import { useInputControl } from '../hooks/use-input-control';
 
 const OPTION_OVERRIDES: Record<string, string | undefined> = {
@@ -39,7 +40,7 @@ export const InputDropdown = ({
 
     return (
         <div className="flex items-center">
-            <div className="flex flex-1 items-center bg-background-tertiary/50 justify-between rounded-l-md px-2.5 h-[36px] min-w-[72px]">
+            <div className="bg-background-tertiary/50 flex h-[36px] min-w-[72px] flex-1 items-center justify-between rounded-l-md px-2.5">
                 <input
                     type="text"
                     inputMode="decimal"
@@ -47,19 +48,19 @@ export const InputDropdown = ({
                     value={localValue}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-[40px] bg-transparent text-sm text-foreground focus:outline-none text-left"
+                    className="text-foreground w-[40px] bg-transparent text-left text-sm focus:outline-none"
                     aria-label="Value input"
                 />
                 <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger className="text-sm text-muted-foreground focus:outline-none cursor-pointer hover:text-foreground transition-colors">
+                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground cursor-pointer text-sm transition-colors focus:outline-none">
                         {unit}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="min-w-0 w-[64px]">
+                    <DropdownMenuContent align="start" className="w-[64px] min-w-0">
                         {UNITS.map((unitOption: string) => (
                             <DropdownMenuItem
                                 key={unitOption}
                                 onClick={() => onUnitChange?.(unitOption)}
-                                className="text-sm w-full h-9 flex justify-center items-center text-center px-2 hover:bg-background-tertiary/70 hover:text-foreground transition-colors"
+                                className="hover:bg-background-tertiary/70 hover:text-foreground flex h-9 w-full items-center justify-center px-2 text-center text-sm transition-colors"
                             >
                                 {unitOption.toUpperCase()}
                             </DropdownMenuItem>
@@ -71,25 +72,25 @@ export const InputDropdown = ({
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"
-                        className="h-[36px] bg-background-tertiary/50 hover:bg-background-tertiary/70 hover:text-foreground rounded-l-none rounded-r-md ml-[1px] px-2.5 flex items-center justify-between w-[84px] cursor-pointer transition-colors"
+                        className="bg-background-tertiary/50 hover:bg-background-tertiary/70 hover:text-foreground ml-[1px] flex h-[36px] w-[84px] cursor-pointer items-center justify-between rounded-l-none rounded-r-md px-2.5 transition-colors"
                     >
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                            <span className="text-muted-foreground group-hover:text-foreground text-sm transition-colors">
                                 {OPTION_OVERRIDES[dropdownValue] ?? dropdownValue}
                             </span>
                         </div>
-                        <Icons.ChevronDown className="h-4 w-4 min-h-4 min-w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <Icons.ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 min-h-4 w-4 min-w-4 transition-colors" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                     align="start"
-                    className="min-w-[100px] -mt-[1px] p-1 rounded-lg"
+                    className="-mt-[1px] min-w-[100px] rounded-lg p-1"
                 >
                     {dropdownOptions.map((option) => (
                         <DropdownMenuItem
                             key={option}
                             onClick={() => onDropdownChange?.(option)}
-                            className="flex items-center px-2 py-1.5 rounded-md cursor-pointer text-muted-foreground text-sm hover:bg-background-tertiary/70 hover:text-foreground transition-colors border border-border/0 data-[highlighted]:border-border"
+                            className="text-muted-foreground hover:bg-background-tertiary/70 hover:text-foreground border-border/0 data-[highlighted]:border-border flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-sm transition-colors"
                         >
                             {OPTION_OVERRIDES[option] ?? option}
                         </DropdownMenuItem>

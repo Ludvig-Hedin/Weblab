@@ -1,5 +1,6 @@
-import { APP_DOMAIN } from '@weblab/constants';
 import type { MetadataRoute } from 'next';
+
+import { APP_DOMAIN } from '@weblab/constants';
 
 export const dynamic = 'force-dynamic';
 

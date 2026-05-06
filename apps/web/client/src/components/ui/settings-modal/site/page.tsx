@@ -1,3 +1,15 @@
+import { useEffect, useMemo, useState } from 'react';
+
+import type { PageEditorIcon, PageMetadata } from '@weblab/models';
+import { DefaultSettings } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { toast } from '@weblab/ui/sonner';
+import { Switch } from '@weblab/ui/switch';
+import { createSecureUrl } from '@weblab/utility';
+
 import { useEditorEngine } from '@/components/store/editor';
 import {
     getNestedPagePath,
@@ -6,16 +18,6 @@ import {
 } from '@/components/store/editor/pages/helper';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
-import { DefaultSettings } from '@weblab/constants';
-import type { PageEditorIcon, PageMetadata } from '@weblab/models';
-import { Button } from '@weblab/ui/button';
-import { Icons } from '@weblab/ui/icons';
-import { Input } from '@weblab/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
-import { Switch } from '@weblab/ui/switch';
-import { toast } from '@weblab/ui/sonner';
-import { createSecureUrl } from '@weblab/utility';
-import { useEffect, useMemo, useState } from 'react';
 import { MetadataForm } from './metadata-form';
 import { useMetadataForm } from './use-metadata-form';
 
@@ -75,7 +77,9 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
 
     const initialDisplayName = page?.settings?.displayName ?? '';
     const initialEditorIcon = page?.settings?.editorIcon ?? 'file';
-    const initialSlug = isRoot ? '' : normalizePagePath(path).split('/').filter(Boolean).pop() ?? '';
+    const initialSlug = isRoot
+        ? ''
+        : (normalizePagePath(path).split('/').filter(Boolean).pop() ?? '');
     const initialFolder = isRoot ? '/' : getParentPagePath(path);
     const initialIndexed = metadata?.robots?.index !== false;
     const initialDraft = page?.settings?.draft ?? false;
@@ -155,7 +159,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
             const siteTitle =
                 typeof finalTitle === 'string'
                     ? finalTitle
-                    : finalTitle.absolute ?? finalTitle.default ?? '';
+                    : (finalTitle.absolute ?? finalTitle.default ?? '');
 
             const updatedMetadata: PageMetadata = {
                 ...metadata,
@@ -226,10 +230,10 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
     };
 
     const detailsSection = (
-        <div className="flex flex-col gap-4 text-foreground-weblab">
+        <div className="text-foreground-weblab flex flex-col gap-4">
             <h2 className="text-title3">Editor Details</h2>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Name</p>
                     <p className="text-small">Shown inside the editor and settings lists.</p>
                 </div>
@@ -241,9 +245,11 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Editor Icon</p>
-                    <p className="text-small">Visual only. This does not change the site favicon.</p>
+                    <p className="text-small">
+                        Visual only. This does not change the site favicon.
+                    </p>
                 </div>
                 <Select
                     value={editorIcon}
@@ -266,7 +272,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Slug</p>
                     <p className="text-small">Controls the last route segment for this page.</p>
                 </div>
@@ -278,7 +284,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 />
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Folder</p>
                     <p className="text-small">Moves the page into a route folder prefix.</p>
                 </div>
@@ -300,41 +306,53 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Preview Path</p>
-                    <p className="text-small">The route that will be saved when you apply changes.</p>
+                    <p className="text-small">
+                        The route that will be saved when you apply changes.
+                    </p>
                 </div>
-                <div className="flex h-10 items-center rounded-md border border-border bg-background-secondary/40 px-3 text-miniPlus">
+                <div className="border-border bg-background-secondary/40 text-miniPlus flex h-10 items-center rounded-md border px-3">
                     {nextPath}
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Search Engine Indexing</p>
                     <p className="text-small">Controls `metadata.robots.index` for this page.</p>
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-border bg-background-secondary/40 px-3 py-2">
+                <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="text-miniPlus">{isIndexed ? 'Indexable' : 'Noindex'}</span>
-                    <Switch checked={isIndexed} onCheckedChange={(checked) => setIsIndexed(Boolean(checked))} />
+                    <Switch
+                        checked={isIndexed}
+                        onCheckedChange={(checked) => setIsIndexed(Boolean(checked))}
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Draft</p>
                     <p className="text-small">Editor-only status for work that is not ready.</p>
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-border bg-background-secondary/40 px-3 py-2">
+                <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
                     <span className="text-miniPlus">{isDraft ? 'Draft' : 'Ready'}</span>
-                    <Switch checked={isDraft} onCheckedChange={(checked) => setIsDraft(Boolean(checked))} />
+                    <Switch
+                        checked={isDraft}
+                        onCheckedChange={(checked) => setIsDraft(Boolean(checked))}
+                    />
                 </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col max-w-52">
+                <div className="flex max-w-52 flex-col">
                     <p className="text-regular font-medium">Published</p>
-                    <p className="text-small">Editor-only published state shown in the page settings.</p>
+                    <p className="text-small">
+                        Editor-only published state shown in the page settings.
+                    </p>
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-border bg-background-secondary/40 px-3 py-2">
-                    <span className="text-miniPlus">{isPublished ? 'Published' : 'Unpublished'}</span>
+                <div className="border-border bg-background-secondary/40 flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="text-miniPlus">
+                        {isPublished ? 'Published' : 'Unpublished'}
+                    </span>
                     <Switch
                         checked={isPublished}
                         onCheckedChange={(checked) => setIsPublished(Boolean(checked))}
@@ -342,7 +360,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 </div>
             </div>
             {isRoot && (
-                <div className="rounded-md border border-border bg-background-secondary/40 px-3 py-2 text-small text-foreground-secondary">
+                <div className="border-border bg-background-secondary/40 text-small text-foreground-secondary rounded-md border px-3 py-2">
                     Home is locked to `/` and always uses the Home icon in the editor.
                 </div>
             )}
@@ -368,8 +386,8 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
             </div>
             <div className="relative">
                 {editorEngine.pages.isScanning ? (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-                        <div className="flex items-center gap-3 text-foreground-secondary">
+                    <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+                        <div className="text-foreground-secondary flex items-center gap-3">
                             <Icons.LoadingSpinner className="h-5 w-5 animate-spin" />
                             <span className="text-sm">Fetching metadata...</span>
                         </div>

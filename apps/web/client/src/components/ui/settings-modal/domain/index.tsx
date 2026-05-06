@@ -1,5 +1,7 @@
-import { Separator } from '@weblab/ui/separator';
 import { observer } from 'mobx-react-lite';
+
+import { Separator } from '@weblab/ui/separator';
+
 import { CustomDomain } from './custom';
 import { DangerZone } from './danger-zone';
 import { PreviewDomain } from './preview';

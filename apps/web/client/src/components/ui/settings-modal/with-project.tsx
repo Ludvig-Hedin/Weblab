@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
-import type { PageNode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Separator } from '@weblab/ui/separator';
@@ -13,6 +12,7 @@ import { capitalizeFirstLetter } from '@weblab/utility';
 import type { SettingTab } from './helpers';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
+import { env } from '@/env';
 import { AccountTab } from './account-tab';
 import { AITab } from './ai-tab';
 import { AppearanceTab } from './appearance-tab';
@@ -45,12 +45,12 @@ function TruncatedLabelWithTooltip({ label }: { label: string }) {
                     {label}
                 </span>
             </TooltipTrigger>
-            <TooltipContent side='right'>
-                {label}
-            </TooltipContent>
+            <TooltipContent side="right">{label}</TooltipContent>
         </Tooltip>
     ) : (
-        <span ref={spanRef} className="truncate">{label}</span>
+        <span ref={spanRef} className="truncate">
+            {label}
+        </span>
     );
 }
 
@@ -134,28 +134,37 @@ export const SettingsModalWithProjects = observer(() => {
         },
     ];
 
-    const pagesTabs: SettingTab[] = flattenPages
-        .map((page) => ({
-            label: page.path,
-            icon: page.isRoot ? (
-                <svg viewBox="0 0 16 16" className="mr-2 h-4 min-w-4" fill="currentColor">
-                    <path d="M8 1.5 1.5 6.7v7.8h4.2V10h4.6v4.5h4.2V6.7z" />
-                </svg>
-            ) : (
-                <Icons.File className="mr-2 h-4 min-w-4" />
-            ),
-            component: <PageTab metadata={page.metadata} path={page.path} />,
-        }));
+    // Bug fix #59: The page-scan flow has a known TODO ("use file system like code tab")
+    // and ships incomplete UI in environments where flattenPages is wrong/empty. Gate the
+    // entire feature behind NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED so production users
+    // don't see half-built page settings until we re-implement on top of the file system.
+    const pagesFilesystemEnabled = env.NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED;
+
+    const pagesTabs: SettingTab[] = pagesFilesystemEnabled
+        ? flattenPages.map((page) => ({
+              label: page.path,
+              icon: page.isRoot ? (
+                  <svg viewBox="0 0 16 16" className="mr-2 h-4 min-w-4" fill="currentColor">
+                      <path d="M8 1.5 1.5 6.7v7.8h4.2V10h4.6v4.5h4.2V6.7z" />
+                  </svg>
+              ) : (
+                  <Icons.File className="mr-2 h-4 min-w-4" />
+              ),
+              component: <PageTab metadata={page.metadata} path={page.path} />,
+          }))
+        : [];
 
     const tabs = [...globalTabs, ...pagesTabs, ...projectTabs];
 
-    // TODO: use file system like code tab
     useEffect(() => {
         if (!stateManager.isSettingsModalOpen) {
             return;
         }
+        if (!pagesFilesystemEnabled) {
+            return;
+        }
         void editorEngine.pages.scanPages();
-    }, [editorEngine.pages, stateManager.isSettingsModalOpen]);
+    }, [editorEngine.pages, stateManager.isSettingsModalOpen, pagesFilesystemEnabled]);
 
     return (
         <AnimatePresence>
@@ -166,7 +175,7 @@ export const SettingsModalWithProjects = observer(() => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
+                        className="bg-background/80 fixed inset-0 z-50 backdrop-blur-sm"
                         onClick={() => (stateManager.isSettingsModalOpen = false)}
                     />
 
@@ -176,12 +185,12 @@ export const SettingsModalWithProjects = observer(() => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
                     >
-                        <div className="bg-background border rounded-lg shadow-lg max-w-4xl max-h-screen h-[700px] w-[900px] p-0 pointer-events-auto">
-                            <div className="flex flex-col h-full overflow-hidden">
+                        <div className="bg-background pointer-events-auto h-[700px] max-h-screen w-[900px] max-w-4xl rounded-lg border p-0 shadow-lg">
+                            <div className="flex h-full flex-col overflow-hidden">
                                 {/* Top bar - fixed height */}
-                                <div className="shrink-0 flex items-center p-5 pb-4 ml-1 select-none">
+                                <div className="ml-1 flex shrink-0 items-center p-5 pb-4 select-none">
                                     <h1 className="text-title3">Settings</h1>
                                     <Button
                                         variant="ghost"
@@ -195,16 +204,16 @@ export const SettingsModalWithProjects = observer(() => {
                                 <Separator orientation="horizontal" className="shrink-0" />
 
                                 {/* Main content */}
-                                <div className="flex flex-1 min-h-0 overflow-hidden">
+                                <div className="flex min-h-0 flex-1 overflow-hidden">
                                     {/* Left navigation - fixed width */}
                                     <div className="flex flex-col overflow-y-scroll select-none">
-                                        <div className="shrink-0 w-48 space-y-1 p-5 text-regularPlus">
-                                            <p className="text-muted-foreground text-smallPlus ml-2.5 mt-2 mb-0.5">
+                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
+                                            <p className="text-muted-foreground text-smallPlus mt-2 mb-0.5 ml-2.5">
                                                 Project
                                             </p>
-                                            <div className="flex items-center gap-1.5 ml-2.5 mb-3 text-muted-foreground/80">
+                                            <div className="text-muted-foreground/80 mb-3 ml-2.5 flex items-center gap-1.5">
                                                 <Icons.Branch className="min-h-3 min-w-3" />
-                                                <span className="text-small truncate max-w-30">
+                                                <span className="text-small max-w-30 truncate">
                                                     {editorEngine.branches.activeBranch.name}
                                                 </span>
                                             </div>
@@ -230,8 +239,8 @@ export const SettingsModalWithProjects = observer(() => {
                                         <Separator />
                                         {pagesTabs.length > 0 && (
                                             <>
-                                                <div className="shrink-0 w-48 space-y-1 p-5 text-regularPlus">
-                                                    <p className="text-muted-foreground text-smallPlus ml-2.5 mt-2 mb-2">
+                                                <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
+                                                    <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
                                                         Pages Settings
                                                     </p>
                                                     {pagesTabs.map((tab) => (
@@ -247,8 +256,8 @@ export const SettingsModalWithProjects = observer(() => {
                                                                     : 'text-muted-foreground',
                                                             )}
                                                             onClick={() =>
-                                                            (stateManager.settingsTab =
-                                                                tab.label)
+                                                                (stateManager.settingsTab =
+                                                                    tab.label)
                                                             }
                                                         >
                                                             {tab.icon}
@@ -257,7 +266,10 @@ export const SettingsModalWithProjects = observer(() => {
                                                                     flattenPages.find(
                                                                         (page) =>
                                                                             page.path === tab.label,
-                                                                    )?.name ?? capitalizeFirstLetter(tab.label.toLowerCase())
+                                                                    )?.name ??
+                                                                    capitalizeFirstLetter(
+                                                                        tab.label.toLowerCase(),
+                                                                    )
                                                                 }
                                                             />
                                                         </Button>
@@ -266,8 +278,8 @@ export const SettingsModalWithProjects = observer(() => {
                                                 <Separator />
                                             </>
                                         )}
-                                        <div className="shrink-0 w-48 space-y-1 p-5 text-regularPlus">
-                                            <p className="text-muted-foreground text-smallPlus ml-2.5 mt-2 mb-2">
+                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
+                                            <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
                                                 Global Settings
                                             </p>
                                             {globalTabs.map((tab) => (

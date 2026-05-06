@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
@@ -10,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
-import { useRouter } from 'next/navigation';
+
 import { CloneProject } from './clone-project';
 import { CreateTemplate } from './create-template';
 import { DeleteProject } from './delete-project';
@@ -25,7 +27,7 @@ export function SettingsDropdown({ project, refetch }: { project: Project; refet
                 <Button
                     size="default"
                     variant="ghost"
-                    className="w-8 h-8 p-0 flex items-center justify-center hover:bg-background-weblab cursor-pointer backdrop-blur-lg"
+                    className="hover:bg-background-weblab flex h-8 w-8 cursor-pointer items-center justify-center p-0 backdrop-blur-lg"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <Icons.DotsHorizontal />
@@ -42,7 +44,7 @@ export function SettingsDropdown({ project, refetch }: { project: Project; refet
                     onSelect={() => router.push(`/project/${project.id}`)}
                     className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                 >
-                    <Icons.Gear className="w-4 h-4" />
+                    <Icons.Gear className="h-4 w-4" />
                     Site settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

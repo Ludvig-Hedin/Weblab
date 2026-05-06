@@ -1,5 +1,7 @@
 import React from 'react';
+
 import { Icons } from '@weblab/ui/icons';
+
 import { type FrameData } from '@/components/store/editor/frames';
 import { HoverOnlyTooltip } from '../hover-tooltip';
 import { ToolbarButton } from '../toolbar-button';
@@ -19,4 +21,4 @@ export function RotateGroup({ frameData }: { frameData: FrameData }) {
             </ToolbarButton>
         </HoverOnlyTooltip>
     );
-} 
+}

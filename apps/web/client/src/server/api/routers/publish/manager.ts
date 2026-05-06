@@ -1,12 +1,16 @@
+import type { z } from 'zod';
+import { type FreestyleFile } from 'freestyle-sandboxes';
+
 import type { Provider } from '@weblab/code-provider';
+import type { Deployment, deploymentUpdateSchema } from '@weblab/db';
+import type { FileOperations } from '@weblab/utility';
 import {
     CUSTOM_OUTPUT_DIR,
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
+    SUPPORTED_LOCK_FILES,
     WEBLAB_PRELOAD_SCRIPT_FILE,
-    SUPPORTED_LOCK_FILES
 } from '@weblab/constants';
-import type { Deployment, deploymentUpdateSchema } from '@weblab/db';
 import { addBuiltWithScript, injectBuiltWithScript } from '@weblab/growth';
 import { DeploymentStatus } from '@weblab/models';
 import { addNextBuildConfig } from '@weblab/parser';
@@ -17,13 +21,10 @@ import {
     isNullOrUndefined,
     LogTimer,
     updateGitignore,
-    type FileOperations,
 } from '@weblab/utility';
-import { type FreestyleFile } from 'freestyle-sandboxes';
-import type { z } from 'zod';
 
 export class PublishManager {
-    constructor(private readonly provider: Provider) { }
+    constructor(private readonly provider: Provider) {}
 
     private get fileOps(): FileOperations {
         return {

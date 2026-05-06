@@ -1,96 +1,98 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 const projects5prop = [
-  {
-    title: "Modern Concrete Pavilion",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/Modern Architectural Elegance at Twilight.png",
-    year: "2025",
-    type: "Architecture",
-    url: "#",
-  },
-  {
-    title: "Colorful Urban Living",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/Modernist Architecture in Lush Forest.png",
-    year: "2025",
-    type: "Urban Design",
-    url: "#",
-  },
-  {
-    title: "Minimalist Home Retreat",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw12.jpeg",
-    year: "2025",
-    type: "Interior",
-    url: "#",
-  },
-  {
-    title: "Urban Concrete House",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/photos/tiny-home/erik-mclean-g3U7sqtdJ1w-unsplash.jpg",
-    year: "2025",
-    type: "Product Design",
-    url: "#",
-  },
-  {
-    title: "Luxury Concrete Box",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw14.jpeg",
-    year: "2025",
-    type: "Residential",
-    url: "#",
-  },
-  {
-    title: "Glasshouse in Nature",
-    img: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw16.jpeg",
-    year: "2025",
-    type: "Sustainable Design",
-    url: "#",
-  },
+    {
+        title: 'Modern Concrete Pavilion',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/Modern Architectural Elegance at Twilight.png',
+        year: '2025',
+        type: 'Architecture',
+        url: '#',
+    },
+    {
+        title: 'Colorful Urban Living',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/Modernist Architecture in Lush Forest.png',
+        year: '2025',
+        type: 'Urban Design',
+        url: '#',
+    },
+    {
+        title: 'Minimalist Home Retreat',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw12.jpeg',
+        year: '2025',
+        type: 'Interior',
+        url: '#',
+    },
+    {
+        title: 'Urban Concrete House',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/photos/tiny-home/erik-mclean-g3U7sqtdJ1w-unsplash.jpg',
+        year: '2025',
+        type: 'Product Design',
+        url: '#',
+    },
+    {
+        title: 'Luxury Concrete Box',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw14.jpeg',
+        year: '2025',
+        type: 'Residential',
+        url: '#',
+    },
+    {
+        title: 'Glasshouse in Nature',
+        img: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/lummi/bw16.jpeg',
+        year: '2025',
+        type: 'Sustainable Design',
+        url: '#',
+    },
 ];
 
 interface Projects5Props {
-  className?: string;
+    className?: string;
 }
 
 const Projects5 = ({ className }: Projects5Props) => {
-  return (
-    <section className={cn("py-32", className)}>
-      <div className="container">
-        <h1 className="text-7xl leading-tight uppercase">Projects</h1>
+    return (
+        <section className={cn('py-32', className)}>
+            <div className="container">
+                <h1 className="text-7xl leading-tight uppercase">Projects</h1>
 
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {projects5prop.map((project, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="group overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
-            >
-              <a href={project.url} className="block overflow-hidden">
-                <img
-                  src={project.img}
-                  alt={project.title}
-                  className="h-96 w-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
-                />
-              </a>
-              <div className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <h2 className="text-lg font-semibold">{project.title}</h2>
-                  <p className="text-slate-500 dark:text-slate-400">{project.type}</p>
+                <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+                    {projects5prop.map((project, index) => (
+                        <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 50 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                            viewport={{ once: true }}
+                            className="group overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950"
+                        >
+                            <a href={project.url} className="block overflow-hidden">
+                                <img
+                                    src={project.img}
+                                    alt={project.title}
+                                    className="h-96 w-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
+                                />
+                            </a>
+                            <div className="flex items-center justify-between px-5 py-4">
+                                <div>
+                                    <h2 className="text-lg font-semibold">{project.title}</h2>
+                                    <p className="text-slate-500 dark:text-slate-400">
+                                        {project.type}
+                                    </p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold dark:border-slate-800">
+                                    {project.year}
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
-                <div className="rounded-2xl border border-slate-200 px-5 py-2 text-sm font-semibold dark:border-slate-800">
-                  {project.year}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+            </div>
+        </section>
+    );
 };
 
 export { Projects5 };

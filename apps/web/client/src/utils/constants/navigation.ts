@@ -1,4 +1,5 @@
 import { APP_NAME } from '@weblab/constants';
+
 import { ExternalRoutes, Routes } from './index';
 
 export interface NavigationLink {
@@ -55,9 +56,8 @@ export const RESOURCES_LINKS: NavigationLink[] = [
     },
     {
         title: 'Blog',
-        href: ExternalRoutes.BLOG,
+        href: Routes.BLOG,
         description: 'News and updates',
-        external: true,
     },
     {
         title: 'GitHub',

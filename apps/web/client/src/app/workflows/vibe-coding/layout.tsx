@@ -1,10 +1,10 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { type Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: 'Vibe Coding for Teams: Add Collaboration to Your AI Workflow | ${APP_NAME}',
-    description:
-        `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.`,
+    description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.`,
     keywords: [
         // Primary keywords
         'vibe coding',
@@ -34,11 +34,10 @@ export const metadata: Metadata = {
         type: 'website',
         siteName: APP_NAME,
         title: 'Vibe Coding for Teams | ${APP_NAME}',
-        description:
-            `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components, collaborate in real-time, ship PRs.`,
+        description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components, collaborate in real-time, ship PRs.`,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/favicon.ico',
             },
         ],
     },
@@ -51,7 +50,7 @@ export const metadata: Metadata = {
             `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Real components, real-time collaboration, real PRs.`,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/favicon.ico',
             },
         ],
     }, */
@@ -78,8 +77,7 @@ const jsonLd = {
     name: `${APP_NAME} for Vibe Coding Teams`,
     applicationCategory: 'DeveloperApplication',
     operatingSystem: 'Web',
-    description:
-        `${APP_NAME} adds collaboration to vibe coding. Design with your real components on an infinite canvas, work together in real-time, and ship changes as mergeable pull requests.`,
+    description: `${APP_NAME} adds collaboration to vibe coding. Design with your real components on an infinite canvas, work together in real-time, and ship changes as mergeable pull requests.`,
     url: `https://${APP_DOMAIN}/workflows/vibe-coding`,
     featureList: [
         'Team collaboration for vibe coding',

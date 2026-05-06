@@ -1,15 +1,17 @@
-import { APP_NAME } from '@weblab/constants';
+import type React from 'react';
+import { useRef } from 'react';
+
 import type { OGImage, PageMetadata, TitleMetadata } from '@weblab/models';
+import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { Separator } from '@weblab/ui/separator';
 import { Textarea } from '@weblab/ui/textarea';
-import { useRef } from 'react';
-import type React from 'react';
+
 import type { FaviconRef } from './favicon';
-import { Favicon } from './favicon';
 import type { ImagePickerRef } from './image';
+import { Favicon } from './favicon';
 import ImagePicker from './image';
 
 const getImageUrl = (images: OGImage | OGImage[] | undefined): string | undefined => {
@@ -88,14 +90,14 @@ export const MetadataForm = ({
     const renderTitle = () => {
         if (isSimpleTitle) {
             return (
-                <div className="grid grid-cols-2 text-foreground-weblab">
+                <div className="text-foreground-weblab grid grid-cols-2">
                     <div className="flex items-center">
                         <h2 className="text-regular font-medium">Title</h2>
                     </div>
                     <Input
                         placeholder="Title"
                         value={title}
-                        className="col-span-1 text-miniPlus break-words transition-all duration-150 ease-in-out backdrop-blur-lg bg-background-secondary/75 text-foreground-primary border-background-secondary/75"
+                        className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                         onChange={onTitleChange}
                         disabled={disabled}
                     />
@@ -106,21 +108,21 @@ export const MetadataForm = ({
                 <div className="flex flex-col gap-4">
                     <h2 className="text-title3 text-foreground-weblab">Title Settings</h2>
 
-                    <div className="grid grid-cols-2 text-foreground-weblab">
+                    <div className="text-foreground-weblab grid grid-cols-2">
                         <div className="flex items-center">
                             <h3 className="text-regular font-medium">Default Title</h3>
                         </div>
                         <Input
                             placeholder="Default title"
                             value={titleObject.default || ''}
-                            className="col-span-1 text-miniPlus break-words transition-all duration-150 ease-in-out backdrop-blur-lg bg-background-secondary/75 text-foreground-primary border-background-secondary/75"
+                            className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                             onChange={onTitleChange}
                             disabled={disabled}
                         />
                     </div>
                     {!isRoot ? (
-                        <div className="grid grid-cols-2 text-foreground-weblab">
-                            <div className="flex flex-col max-w-52">
+                        <div className="text-foreground-weblab grid grid-cols-2">
+                            <div className="flex max-w-52 flex-col">
                                 <h3 className="text-regular font-medium">Absolute Title</h3>
                                 <p className="text-small">
                                     Ignores template from parents layout when set.
@@ -129,14 +131,14 @@ export const MetadataForm = ({
                             <Input
                                 placeholder="Absolute title"
                                 value={titleObject.absolute || ''}
-                                className="col-span-1 text-miniPlus break-words transition-all duration-150 ease-in-out backdrop-blur-lg bg-background-secondary/75 text-foreground-primary border-background-secondary/75"
+                                className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                                 onChange={onTitleAbsoluteChange}
                                 disabled={disabled}
                             />
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 text-foreground-weblab">
-                            <div className="flex flex-col max-w-52">
+                        <div className="text-foreground-weblab grid grid-cols-2">
+                            <div className="flex max-w-52 flex-col">
                                 <h3 className="text-regular font-medium">Title Template</h3>
                                 <p className="text-small">
                                     Use %s as placeholder for child page titles (e.g., "%s | My
@@ -146,7 +148,7 @@ export const MetadataForm = ({
                             <Input
                                 placeholder="%s | My Site"
                                 value={titleObject.template || ''}
-                                className="col-span-1 text-miniPlus break-words transition-all duration-150 ease-in-out backdrop-blur-lg bg-background-secondary/75 text-foreground-primary border-background-secondary/75"
+                                className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                                 onChange={onTitleTemplateChange}
                                 disabled={disabled}
                             />
@@ -158,8 +160,8 @@ export const MetadataForm = ({
     };
 
     return (
-        <div className="text-sm flex flex-col h-full">
-            <div className="flex flex-col gap-6 p-6 pb-24 overflow-y-auto flex-1">
+        <div className="flex h-full flex-col text-sm">
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 pb-24">
                 {renderTitle()}
 
                 <Separator />
@@ -171,8 +173,8 @@ export const MetadataForm = ({
                     </>
                 )}
 
-                <div className="grid grid-cols-2 h-44">
-                    <div className="flex flex-col text-foreground-weblab col-span-1 max-w-52">
+                <div className="grid h-44 grid-cols-2">
+                    <div className="text-foreground-weblab col-span-1 flex max-w-52 flex-col">
                         <h2 className="text-regular font-medium">Page Description</h2>
                         <p className="text-small">
                             This is the information that will show up on search engines below your
@@ -183,7 +185,7 @@ export const MetadataForm = ({
                     <Textarea
                         placeholder={DEFAULT_DESCRIPTION}
                         value={description}
-                        className="col-span-1 text-miniPlus break-words transition-all duration-150 ease-in-out backdrop-blur-lg bg-background-secondary/75 text-foreground-primary border-background-secondary/75"
+                        className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
                         onChange={onDescriptionChange}
                         disabled={disabled}
                         style={{
@@ -199,20 +201,21 @@ export const MetadataForm = ({
 
                 <div className="flex flex-col gap-2">
                     <h2 className="text-regular text-foreground-weblab">Search Engine Preview</h2>
-                    <div className="bg-background/50 p-4 rounded-md border gap-1.5 flex flex-col">
+                    <div className="bg-background/50 flex flex-col gap-1.5 rounded-md border p-4">
                         <p className="text-miniPlus text-blue-500">{projectUrl}</p>
                         <h3 className="text-regular">{title || DEFAULT_TITLE}</h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
+                        <p className="text-muted-foreground line-clamp-2 text-sm">
                             {description || DEFAULT_DESCRIPTION}
                         </p>
                     </div>
                 </div>
                 <Separator />
-                {/* TODO: Implement */}
+                {/* Bug fix #59: Removed stale "TODO: Implement" comment — ImagePicker and
+                    Favicon below are wired through onImageSelect / onFaviconSelect props. */}
                 <div className="flex flex-col gap-4">
                     <h2 className="text-title3">Imagery</h2>
-                    <div className="grid grid-cols-2 text-foreground-weblab">
-                        <div className="flex flex-col max-w-52">
+                    <div className="text-foreground-weblab grid grid-cols-2">
+                        <div className="flex max-w-52 flex-col">
                             <p className="text-regular font-medium">Social Preview</p>
                             <p className="text-small">Cropped to 1200 × 630 pixels</p>
                         </div>
@@ -242,13 +245,16 @@ export const MetadataForm = ({
                     )}
                 </div>
             </div>
-            
+
             {/* Pinned buttons at the bottom */}
-            <div className="sticky bottom-0 bg-background border-t border-border/50 p-6" style={{ borderTopWidth: '0.5px' }}>
+            <div
+                className="bg-background border-border/50 sticky bottom-0 border-t p-6"
+                style={{ borderTopWidth: '0.5px' }}
+            >
                 <div className="flex justify-end gap-4">
                     <Button
                         variant="outline"
-                        className="flex items-center gap-2 px-4 py-2 bg-background border border-border/50"
+                        className="bg-background border-border/50 flex items-center gap-2 border px-4 py-2"
                         type="button"
                         onClick={handleDiscard}
                         disabled={!isDirty || disabled}

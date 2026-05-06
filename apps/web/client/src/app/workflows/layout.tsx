@@ -1,10 +1,10 @@
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { type Metadata } from 'next';
+
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
     title: `Workflows | Integrate ${APP_NAME} with Claude Code, Cursor & AI Coding Tools | ${APP_NAME}`,
-    description:
-        `Connect ${APP_NAME} to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.`,
+    description: `Connect ${APP_NAME} to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.`,
     keywords: [
         // Primary keywords
         'claude code visual editor',
@@ -31,11 +31,13 @@ export const metadata: Metadata = {
         type: 'website',
         siteName: APP_NAME,
         title: 'Workflows | ${APP_NAME}',
-        description:
-            `Connect ${APP_NAME} to your AI coding workflow. Visual design layer for Claude Code, Cursor, and more.`,
+        description: `Connect ${APP_NAME} to your AI coding workflow. Visual design layer for Claude Code, Cursor, and more.`,
         images: [
             {
-                url: 'https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png',
+                url: '/og-image.png',
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} workflows preview`,
             },
         ],
     },
@@ -43,7 +45,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         title: 'Workflows | ${APP_NAME}',
         description: 'Visual design layer for Claude Code, Cursor, and AI coding tools.',
-        images: ['https://framerusercontent.com/images/ScnnNT7JpmUya7afqGAets8.png'],
+        images: ['/favicon.ico'],
     }, */
     alternates: {
         canonical: `https://${APP_DOMAIN}/workflows`,
@@ -64,16 +66,14 @@ const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${APP_NAME} Workflows`,
-    description:
-        `Connect ${APP_NAME} to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools.`,
+    description: `Connect ${APP_NAME} to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools.`,
     url: `https://${APP_DOMAIN}/workflows`,
     mainEntity: {
         '@type': 'SoftwareApplication',
         name: APP_NAME,
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Web',
-        description:
-            `${APP_NAME} is an AI-powered visual editor that integrates with your AI coding workflow. Design with your real components, collaborate with your team, ship PRs.`,
+        description: `${APP_NAME} is an AI-powered visual editor that integrates with your AI coding workflow. Design with your real components, collaborate with your team, ship PRs.`,
         featureList: [
             'Visual canvas for AI-generated UIs',
             'Integration with Claude Code',

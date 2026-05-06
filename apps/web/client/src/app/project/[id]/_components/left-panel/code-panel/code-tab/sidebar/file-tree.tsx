@@ -1,10 +1,13 @@
 'use client';
 
+import type { NodeApi, RowRendererProps, TreeApi } from 'react-arborist';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Tree } from 'react-arborist';
+import useResizeObserver from 'use-resize-observer';
+
 import { type FileEntry } from '@weblab/file-system/hooks';
 import { pathsEqual } from '@weblab/utility';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { NodeApi, Tree, type RowRendererProps, type TreeApi } from 'react-arborist';
-import useResizeObserver from 'use-resize-observer';
+
 import { FileTreeNode } from './file-tree-node';
 import { FileTreeRow } from './file-tree-row';
 import { FileTreeSearch } from './file-tree-search';
@@ -28,7 +31,7 @@ export const FileTree = ({
     fileEntries,
     isLoading,
     selectedFilePath,
-    onAddToChat
+    onAddToChat,
 }: FileTreeProps) => {
     const treeRef = useRef<TreeApi<FileEntry>>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -183,7 +186,7 @@ export const FileTree = ({
     );
 
     return (
-        <div className="w-56 border-r-[0.5px] flex flex-col h-full">
+        <div className="flex h-full w-56 flex-col border-r-[0.5px]">
             <FileTreeSearch
                 ref={inputRef}
                 searchQuery={searchQuery}
@@ -192,14 +195,14 @@ export const FileTree = ({
                 onRefresh={onRefresh}
                 onKeyDown={handleKeyDown}
             />
-            <div ref={resizeObserverRef} className="w-full text-xs px-2 flex-1 min-h-0">
+            <div ref={resizeObserverRef} className="min-h-0 w-full flex-1 px-2 text-xs">
                 {isLoading ? (
-                    <div className="flex flex-col justify-start items-center h-full text-sm text-foreground/50 pt-4">
-                        <div className="animate-spin h-6 w-6 border-2 border-foreground-hover rounded-full border-t-transparent mb-2"></div>
+                    <div className="text-foreground/50 flex h-full flex-col items-center justify-start pt-4 text-sm">
+                        <div className="border-foreground-hover mb-2 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
                         <span>Loading files...</span>
                     </div>
                 ) : filteredFiles.length === 0 ? (
-                    <div className="flex flex-col justify-start items-center h-full text-sm text-foreground/50 pt-4">
+                    <div className="text-foreground/50 flex h-full flex-col items-center justify-start pt-4 text-sm">
                         {fileEntries.length === 0 ? 'No files found' : 'No files match your search'}
                     </div>
                 ) : (
@@ -209,9 +212,7 @@ export const FileTree = ({
                         className="h-full overflow-hidden"
                         idAccessor={(entry: FileEntry) => entry.path}
                         childrenAccessor={(entry: FileEntry) =>
-                            entry.children && entry.children.length > 0
-                                ? entry.children
-                                : null
+                            entry.children && entry.children.length > 0 ? entry.children : null
                         }
                         onSelect={handleFileTreeSelect}
                         height={filesTreeDimensions.height}
@@ -225,12 +226,20 @@ export const FileTree = ({
                                 isHighlighted={
                                     highlightedIndex !== null &&
                                     treeRef.current?.visibleNodes[highlightedIndex]?.id ===
-                                    props.node.id
+                                        props.node.id
                                 }
                             />
                         )}
                     >
-                        {(props) => <FileTreeNode {...props} onFileSelect={onFileSelect} onRenameFile={onRenameFile} onDeleteFile={onDeleteFile} onAddToChat={onAddToChat} />}
+                        {(props) => (
+                            <FileTreeNode
+                                {...props}
+                                onFileSelect={onFileSelect}
+                                onRenameFile={onRenameFile}
+                                onDeleteFile={onDeleteFile}
+                                onAddToChat={onAddToChat}
+                            />
+                        )}
                     </Tree>
                 )}
             </div>

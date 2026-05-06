@@ -7,14 +7,16 @@
  * need to use are documented accordingly near the end.
  */
 
-import { createAdminClient } from '@/utils/supabase/admin';
-import { createClient } from '@/utils/supabase/server';
-import { db } from '@weblab/db/src/client';
-import type { User } from '@supabase/supabase-js';
+import type { SetRequiredDeep } from 'type-fest';
 import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
-import type { SetRequiredDeep } from 'type-fest';
 import { ZodError } from 'zod';
+
+import { db } from '@weblab/db/src/client';
+
+import type { User } from '@supabase/supabase-js';
+import { createAdminClient } from '@/utils/supabase/admin';
+import { createClient } from '@/utils/supabase/server';
 
 /**
  * 1. CONTEXT

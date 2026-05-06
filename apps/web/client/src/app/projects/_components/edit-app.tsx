@@ -1,16 +1,18 @@
-import { transKeys } from '@/i18n/keys';
-import { Routes } from '@/utils/constants';
+import type { ComponentProps } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { observer } from 'mobx-react-lite';
+import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+import { usePostHog } from 'posthog-js/react';
+
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
-import { usePostHog } from 'posthog-js/react';
-import type { ComponentProps } from 'react';
-import { useState } from 'react';
+
+import { transKeys } from '@/i18n/keys';
+import { Routes } from '@/utils/constants';
 
 const ButtonMotion = motion.create(Button);
 
@@ -44,19 +46,19 @@ export const EditAppButton = observer(({ project, onClick, ...props }: EditAppBu
     return (
         <ButtonMotion
             size="default"
-            className={cn('gap-2 border border-border w-auto cursor-pointer',
+            className={cn(
+                'border-border w-auto cursor-pointer gap-2 border',
                 isLoading
                     ? 'bg-background-secondary text-foreground-secondary'
-                    : 'bg-background text-foreground hover:bg-background-secondary'
+                    : 'bg-background text-foreground hover:bg-background-secondary',
             )}
             {...props}
-
             // Prevent consumer from overriding these props
             onClick={handleClick}
             disabled={isLoading}
         >
             {isLoading ? (
-                <Icons.LoadingSpinner className="w-4 h-4 animate-spin" />
+                <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
             ) : (
                 <Icons.PencilPaper />
             )}

@@ -1,0 +1,42 @@
+---
+title: "Prototyping at the Speed of Thought"
+description: "The fastest prototype is the one you can build and test in the same session you conceive it. Here's how Weblab collapses the idea-to-feedback loop."
+date: "2026-03-28"
+author: "Ludvig Hedin"
+authorImage: "https://github.com/Ludvig-Hedin.png"
+category: "Product"
+tags: ["prototyping", "workflow", "speed", "feedback"]
+coverImage: "/assets/blog/canvas-editor.svg"
+---
+
+## The Prototype Tax
+
+Every prototyping tool extracts a tax. You pay it in fidelity loss, in translation effort, or in the delay between idea and feedback.
+
+Figma prototypes look right but aren't real. They can't run your actual logic, can't connect to your API, can't reflect your component behavior. When you hand a Figma link to a stakeholder, you're asking them to mentally subtract the parts that are fake.
+
+CodeSandbox and similar tools flip this: the code is real, but building UI from scratch is slow. You spend more time wiring up components than testing the idea.
+
+Weblab eliminates the tax by making your actual codebase the prototyping surface.
+
+## Building on Real Ground
+
+When you prototype in Weblab, you're working inside your real project. The components are real. The styles are real. The data can be real.
+
+### The Workflow
+
+You open a new branch, drag a few components onto the canvas, wire up some props, and you have something testable. You share the preview URL. You get feedback. You iterate.
+
+None of that required writing a single line of code from scratch. The prototype *is* the implementation — or at least close enough that turning it into one is a matter of hours, not days.
+
+### From Prototype to PR
+
+Because Weblab writes real code, the prototype doesn't get thrown away. It becomes the PR. The components you placed on the canvas are real component calls in real files. The layout you arranged is a real layout in your codebase.
+
+## The Feedback Loop
+
+The value of prototyping is feedback. The faster you get feedback, the faster you improve.
+
+Weblab compresses the feedback loop by removing the "build prototype → present prototype → translate to code" cycle. You present the thing that becomes the code.
+
+That's not a small efficiency improvement. It's a structural change in how fast ideas can move from conception to production.

@@ -1,10 +1,12 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 
 export function extractIdsFromEvent(
     event:
         | Stripe.CustomerSubscriptionCreatedEvent
         | Stripe.CustomerSubscriptionUpdatedEvent
-        | Stripe.CustomerSubscriptionDeletedEvent,
+        | Stripe.CustomerSubscriptionDeletedEvent
+        | Stripe.CustomerSubscriptionPausedEvent
+        | Stripe.CustomerSubscriptionResumedEvent,
 ) {
     const stripeSubscription = event.data.object;
     const stripeSubscriptionId = stripeSubscription.id;
@@ -14,7 +16,10 @@ export function extractIdsFromEvent(
             ? stripeSubscription.schedule
             : stripeSubscription.schedule?.id;
     const stripePriceId = stripeSubscription.items.data[0]?.price?.id;
-    const stripeCustomerId = stripeSubscription.customer?.toString();
+    const stripeCustomer =
+        typeof stripeSubscription.customer === 'string'
+            ? stripeSubscription.customer
+            : stripeSubscription.customer?.id;
     const currentPeriodStart = stripeSubscription.items.data[0]?.current_period_start;
     const currentPeriodEnd = stripeSubscription.items.data[0]?.current_period_end;
 
@@ -34,7 +39,7 @@ export function extractIdsFromEvent(
     if (!currentPeriodEnd) {
         throw new Error('No current period end found');
     }
-    if (!stripeCustomerId) {
+    if (!stripeCustomer) {
         throw new Error('No customer ID found');
     }
 
@@ -44,7 +49,7 @@ export function extractIdsFromEvent(
         stripeSubscriptionItemId,
         stripeSubscriptionScheduleId,
         stripePriceId,
-        stripeCustomerId,
+        stripeCustomerId: stripeCustomer,
         currentPeriodStart: new Date(currentPeriodStart * 1000),
         currentPeriodEnd: new Date(currentPeriodEnd * 1000),
     };

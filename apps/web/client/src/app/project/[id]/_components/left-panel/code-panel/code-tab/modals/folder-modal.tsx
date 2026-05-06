@@ -1,3 +1,6 @@
+import path from 'path';
+import { useEffect, useMemo, useState } from 'react';
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -10,8 +13,6 @@ import {
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
-import path from 'path';
-import { useEffect, useMemo, useState } from 'react';
 
 interface FolderModalProps {
     basePath: string;
@@ -28,7 +29,6 @@ export const FolderModal = ({
     onSuccess,
     onCreateFolder,
 }: FolderModalProps) => {
-
     const [name, setName] = useState('');
     const [currentPath, setCurrentPath] = useState(basePath);
     const [warning, setWarning] = useState('');
@@ -74,16 +74,12 @@ export const FolderModal = ({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Create New Folder</DialogTitle>
-                    <DialogDescription>
-                        Create a new folder
-                    </DialogDescription>
+                    <DialogDescription>Create a new folder</DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="path">
-                            Directory Path
-                        </Label>
+                        <Label htmlFor="path">Directory Path</Label>
                         <Input
                             id="path"
                             value={currentPath}
@@ -92,14 +88,12 @@ export const FolderModal = ({
                             disabled={isLoading}
                             className="text-sm"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Path where the folder will be created
                         </p>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="name">
-                            Folder Name
-                        </Label>
+                        <Label htmlFor="name">Folder Name</Label>
                         <Input
                             id="name"
                             value={name}
@@ -118,24 +112,23 @@ export const FolderModal = ({
                             onCompositionEnd={() => setIsComposing(false)}
                         />
                         {warning && (
-                            <p className="text-sm text-yellow-300 flex items-center gap-2">
+                            <p className="flex items-center gap-2 text-sm text-yellow-300">
                                 {warning}
                             </p>
                         )}
                         {fullPath && !warning && (
-                            <p className="text-sm text-muted-foreground">
-                                Full path: <code className="bg-background-secondary px-1 py-0.5 rounded text-xs">{fullPath}</code>
+                            <p className="text-muted-foreground text-sm">
+                                Full path:{' '}
+                                <code className="bg-background-secondary rounded px-1 py-0.5 text-xs">
+                                    {fullPath}
+                                </code>
                             </p>
                         )}
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button
-                        variant="ghost"
-                        onClick={() => setShow(false)}
-                        disabled={isLoading}
-                    >
+                    <Button variant="ghost" onClick={() => setShow(false)} disabled={isLoading}>
                         Cancel
                     </Button>
                     <Button
@@ -149,4 +142,4 @@ export const FolderModal = ({
             </DialogContent>
         </Dialog>
     );
-}; 
+};

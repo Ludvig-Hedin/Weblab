@@ -1,5 +1,5 @@
-import { Icons } from '@weblab/ui/icons';
 import type { ComponentInsertData } from '@weblab/models/element';
+import { Icons } from '@weblab/ui/icons';
 
 interface ComponentCardProps {
     data: ComponentInsertData;

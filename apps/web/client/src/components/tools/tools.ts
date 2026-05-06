@@ -1,16 +1,21 @@
-import type { EditorEngine } from '@/components/store/editor/engine';
-import type { ToolCall } from '@ai-sdk/provider-utils';
 import { getToolClassesFromType } from '@weblab/ai';
 import { toast } from '@weblab/ui/sonner';
 
-export async function handleToolCall(toolCall: ToolCall<string, unknown>, editorEngine: EditorEngine, addToolResult: (toolResult: { tool: string, toolCallId: string, output: any }) => Promise<void>) {
+import type { EditorEngine } from '@/components/store/editor/engine';
+import type { ToolCall } from '@ai-sdk/provider-utils';
+
+export async function handleToolCall(
+    toolCall: ToolCall<string, unknown>,
+    editorEngine: EditorEngine,
+    addToolResult: (toolResult: { tool: string; toolCallId: string; output: any }) => Promise<void>,
+) {
     const toolName = toolCall.toolName;
     const currentChatMode = editorEngine.state.chatMode;
     const availableTools = getToolClassesFromType(currentChatMode);
     let output: unknown = null;
 
     try {
-        const tool = availableTools.find(tool => tool.toolName === toolName);
+        const tool = availableTools.find((tool) => tool.toolName === toolName);
         if (!tool) {
             toast.error(`Tool "${toolName}" not available in ask mode`, {
                 description: `Switch to build mode to use this tool.`,
@@ -33,5 +38,4 @@ export async function handleToolCall(toolCall: ToolCall<string, unknown>, editor
             output: output,
         });
     }
-
 }

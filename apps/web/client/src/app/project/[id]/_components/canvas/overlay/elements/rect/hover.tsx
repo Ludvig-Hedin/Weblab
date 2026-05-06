@@ -1,5 +1,7 @@
-import type { RectDimensions } from '@weblab/models';
 import React from 'react';
+
+import type { RectDimensions } from '@weblab/models';
+
 import { BaseRect } from './base';
 
 interface HoverRectProps {

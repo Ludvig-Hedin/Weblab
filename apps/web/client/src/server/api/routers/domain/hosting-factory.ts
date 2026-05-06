@@ -1,4 +1,6 @@
-import { HostingProvider, type HostingProviderAdapter } from '@weblab/models';
+import type { HostingProviderAdapter } from '@weblab/models';
+import { HostingProvider } from '@weblab/models';
+
 import { FreestyleAdapter } from './adapters/freestyle';
 
 export class HostingProviderFactory {
@@ -10,4 +12,4 @@ export class HostingProviderFactory {
                 throw new Error(`Unsupported hosting provider: ${provider}`);
         }
     }
-} 
+}

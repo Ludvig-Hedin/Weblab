@@ -14,7 +14,19 @@ export interface ExternalTemplate {
     category: ExternalTemplateCategory;
     tags: string[];
     sourceUrl: string;
+    /**
+     * Bare clone URL — must be `https://github.com/<owner>/<repo>`, never a
+     * `/tree/<branch>/<path>` URL (issue #47). The previous shape passed the
+     * tree URL through to the sandbox provisioner and broke imports for
+     * subpath-based examples.
+     */
     repoUrl: string;
+    /**
+     * Optional path inside the repo, when the template lives in a
+     * monorepo/examples folder rather than at the repo root. Consumers
+     * (`startPublicGitHubTemplate`) should use this to scope the import.
+     */
+    subpath?: string;
     previewUrl: string;
     branch: string;
     highlights: string[];
@@ -33,7 +45,8 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         category: 'boilerplate',
         tags: ['Next.js', 'Vercel', 'Boilerplate'],
         sourceUrl: 'https://github.com/vercel/vercel/tree/main/examples/nextjs',
-        repoUrl: 'https://github.com/vercel/vercel/tree/main/examples/nextjs',
+        repoUrl: 'https://github.com/vercel/vercel',
+        subpath: 'examples/nextjs',
         previewUrl: 'https://vercel.com/templates/next.js/nextjs-boilerplate',
         branch: 'main',
         highlights: [
@@ -75,7 +88,8 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         category: 'portfolio',
         tags: ['Portfolio', 'Blog', 'Content'],
         sourceUrl: 'https://vercel.com/templates/next.js/portfolio-starter-kit',
-        repoUrl: 'https://github.com/vercel/examples/tree/main/solutions/blog',
+        repoUrl: 'https://github.com/vercel/examples',
+        subpath: 'solutions/blog',
         previewUrl: 'https://portfolio-blog-starter.vercel.app/',
         branch: 'main',
         highlights: [
@@ -97,8 +111,8 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         tags: ['Marketing', 'Landing Page', 'Content'],
         sourceUrl:
             'https://github.com/chapter-three/next-drupal/tree/main/examples/example-marketing',
-        repoUrl:
-            'https://github.com/chapter-three/next-drupal/tree/main/examples/example-marketing',
+        repoUrl: 'https://github.com/chapter-three/next-drupal',
+        subpath: 'examples/example-marketing',
         previewUrl: 'https://next-example-marketing.vercel.app/',
         branch: 'main',
         highlights: [
@@ -140,7 +154,8 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         category: 'blog',
         tags: ['Blog', 'Publishing', 'Next.js'],
         sourceUrl: 'https://github.com/vercel/next.js/tree/canary/examples/blog-starter',
-        repoUrl: 'https://github.com/vercel/next.js/tree/canary/examples/blog-starter',
+        repoUrl: 'https://github.com/vercel/next.js',
+        subpath: 'examples/blog-starter',
         previewUrl: 'https://next-blog-starter.vercel.app/',
         branch: 'canary',
         highlights: [

@@ -37,7 +37,9 @@ export function AiFrontendHero() {
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    Stop generating throwaway code. Weblab's AI is constrained to your design system — your buttons, your cards, your layouts. What you create is a PR your engineers can merge.
+                    Stop generating throwaway code. Weblab's AI is constrained to your design system
+                    — your buttons, your cards, your layouts. What you create is a PR your engineers
+                    can merge.
                 </motion.p>
                 <motion.div
                     className="mt-8"

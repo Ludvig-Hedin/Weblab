@@ -1,8 +1,9 @@
 'use client';
 
-import { Routes } from '@/utils/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+
+import { Routes } from '@/utils/constants';
 
 /**
  * Hero download button.

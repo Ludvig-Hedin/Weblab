@@ -87,13 +87,9 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
             preventDefault: true,
         },
     );
-    useHotkeys(
-        Hotkey.SIDEBAR_SEARCH.command,
-        () => toggleLeftPanelTab(LeftPanelTabValue.SEARCH),
-        {
-            preventDefault: true,
-        },
-    );
+    useHotkeys(Hotkey.SIDEBAR_SEARCH.command, () => toggleLeftPanelTab(LeftPanelTabValue.SEARCH), {
+        preventDefault: true,
+    });
     useHotkeys(
         Hotkey.SIDEBAR_COMPONENTS.command,
         () => toggleLeftPanelTab(LeftPanelTabValue.COMPONENTS),
@@ -149,11 +145,7 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
         { preventDefault: true },
     );
     useHotkeys(
-        [
-            Hotkey.INSERT_DIV.command,
-            Hotkey.INSERT_DIV_F.command,
-            Hotkey.INSERT_DIV_D.command,
-        ],
+        [Hotkey.INSERT_DIV.command, Hotkey.INSERT_DIV_F.command, Hotkey.INSERT_DIV_D.command],
         () => editorEngine.state.setInsertMode(InsertMode.INSERT_DIV),
     );
     useHotkeys(Hotkey.INSERT_FLEX_DIV.command, () =>
@@ -192,14 +184,9 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
         { preventDefault: true },
     );
 
-    // Group / Wrap in Div / Unwrap parent
+    // Group / Unwrap parent
     // GROUP (cmd+g) — groups selected elements (may produce a flex/grid container)
     useHotkeys(Hotkey.GROUP.command, () => editorEngine.group.groupSelectedElements(), {
-        preventDefault: true,
-    });
-    // WRAP_IN_DIV (cmd+alt+g) — wraps selection in a plain <div>
-    // TODO: once editorEngine.group.wrapInDiv() is implemented, point to it instead
-    useHotkeys(Hotkey.WRAP_IN_DIV.command, () => editorEngine.group.groupSelectedElements(), {
         preventDefault: true,
     });
     useHotkeys(Hotkey.UNGROUP.command, () => editorEngine.group.ungroupSelectedElement(), {
@@ -294,8 +281,7 @@ export const HotkeysArea = ({ children }: { children: ReactNode }) => {
     // Element palette (cmd+k) — Webflow-style searchable insert menu
     useHotkeys(
         Hotkey.OPEN_ELEMENT_PALETTE.command,
-        () =>
-            editorEngine.state.setElementPaletteOpen(!editorEngine.state.elementPaletteOpen),
+        () => editorEngine.state.setElementPaletteOpen(!editorEngine.state.elementPaletteOpen),
         { preventDefault: true },
     );
 

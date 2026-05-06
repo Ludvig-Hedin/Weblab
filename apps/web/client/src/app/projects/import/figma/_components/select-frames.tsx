@@ -1,11 +1,13 @@
 'use client';
 
+import { motion } from 'motion/react';
+
 import { Button } from '@weblab/ui/button';
 import { CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
-import { motion } from 'motion/react';
-import { StepContent, StepFooter, StepHeader } from '../../steps';
+
 import { useFigmaImport } from '../_context';
+import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaSelectFrames = () => {
     const {
@@ -41,7 +43,7 @@ export const FigmaSelectFrames = () => {
                 >
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-foreground-secondary">
+                            <p className="text-foreground-secondary text-sm">
                                 {selectedFrameIds.size} of {frames.length} selected
                             </p>
                             <Button
@@ -53,11 +55,11 @@ export const FigmaSelectFrames = () => {
                             </Button>
                         </div>
                         {frames.length === 0 ? (
-                            <p className="text-sm text-foreground-secondary text-center py-6">
+                            <p className="text-foreground-secondary py-6 text-center text-sm">
                                 No frames found in this file&apos;s first page.
                             </p>
                         ) : (
-                            <CardContent className="p-0 max-h-52 overflow-y-auto border rounded-md">
+                            <CardContent className="max-h-52 overflow-y-auto rounded-md border p-0">
                                 {frames.map((frame) => {
                                     const isSelected = selectedFrameIds.has(frame.id);
                                     return (
@@ -68,21 +70,23 @@ export const FigmaSelectFrames = () => {
                                             aria-checked={isSelected}
                                             aria-label={`${frame.name}, ${frame.width}×${frame.height}`}
                                             onClick={() => toggleFrame(frame.id)}
-                                            className={`w-full text-left p-3 border-b last:border-b-0 hover:bg-secondary transition-colors ${isSelected ? 'bg-secondary/50' : ''}`}
+                                            className={`hover:bg-secondary w-full border-b p-3 text-left transition-colors last:border-b-0 ${isSelected ? 'bg-secondary/50' : ''}`}
                                         >
                                             <div className="flex items-center gap-2">
                                                 <div
-                                                    className="w-4 h-4 rounded border shrink-0"
-                                                    style={{ backgroundColor: frame.backgroundColor }}
+                                                    className="h-4 w-4 shrink-0 rounded border"
+                                                    style={{
+                                                        backgroundColor: frame.backgroundColor,
+                                                    }}
                                                 />
-                                                <span className="text-sm font-medium flex-1 truncate">
+                                                <span className="flex-1 truncate text-sm font-medium">
                                                     {frame.name}
                                                 </span>
-                                                <span className="text-xs text-foreground-secondary shrink-0">
+                                                <span className="text-foreground-secondary shrink-0 text-xs">
                                                     {frame.width}×{frame.height}
                                                 </span>
                                                 {isSelected && (
-                                                    <Icons.Check className="w-4 h-4 text-green-500 shrink-0" />
+                                                    <Icons.Check className="h-4 w-4 shrink-0 text-green-500" />
                                                 )}
                                             </div>
                                         </button>

@@ -576,13 +576,14 @@
     body {
         @apply bg-background text-foreground;
     }
-    button:focus-visible,
-    [role='button']:focus-visible,
-    a[href]:focus-visible,
-    input:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible,
-    summary:focus-visible {
-        @apply outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background;
-    }
+    /*
+     * No focus rings policy (CR-002): the previous global rule applied a
+     * ring-2 outline to every focusable element. Per product direction, we
+     * suppress focus rings entirely. NOTE: this removes the WCAG 2.4.7
+     * (Focus Visible) indicator for keyboard users — relying on hover/active
+     * background changes for affordance.
+     *
+     * Per-component `focus-visible:ring-*` and `focus-visible:border-ring`
+     * classes were removed in matching commits to globally enforce the policy.
+     */
 }

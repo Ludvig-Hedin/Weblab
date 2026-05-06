@@ -1,5 +1,5 @@
-import { debounce } from 'lodash';
 import { useEffect, useRef, useState } from 'react';
+import { debounce } from 'lodash';
 
 // Reload timing constants
 const RELOAD_BASE_DELAY_MS = 2000;
@@ -23,25 +23,30 @@ export function useFrameReload() {
 
     const immediateReload = () => {
         clearScheduledReload();
-        setReloadKey(prev => prev + 1);
+        setReloadKey((prev) => prev + 1);
     };
 
     const scheduleReload = () => {
         clearScheduledReload();
 
         reloadCountRef.current += 1;
-        const reloadDelay = RELOAD_BASE_DELAY_MS + (RELOAD_INCREMENT_MS * (reloadCountRef.current - 1));
+        const reloadDelay =
+            RELOAD_BASE_DELAY_MS + RELOAD_INCREMENT_MS * (reloadCountRef.current - 1);
 
         reloadTimeoutRef.current = setTimeout(() => {
-            setReloadKey(prev => prev + 1);
+            setReloadKey((prev) => prev + 1);
             reloadTimeoutRef.current = null;
         }, reloadDelay);
     };
 
-    const handleConnectionFailed = debounce(() => {
-        setIsPenpalConnected(false);
-        scheduleReload();
-    }, 1000, { leading: true });
+    const handleConnectionFailed = debounce(
+        () => {
+            setIsPenpalConnected(false);
+            scheduleReload();
+        },
+        1000,
+        { leading: true },
+    );
 
     const handleConnectionSuccess = () => {
         handleConnectionFailed.cancel();
@@ -51,8 +56,8 @@ export function useFrameReload() {
 
     const getPenpalTimeout = () => {
         return Math.min(
-            PENPAL_BASE_TIMEOUT_MS + (reloadCountRef.current * PENPAL_TIMEOUT_INCREMENT_MS),
-            PENPAL_MAX_TIMEOUT_MS
+            PENPAL_BASE_TIMEOUT_MS + reloadCountRef.current * PENPAL_TIMEOUT_INCREMENT_MS,
+            PENPAL_MAX_TIMEOUT_MS,
         );
     };
 

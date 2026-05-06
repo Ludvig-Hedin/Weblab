@@ -1,7 +1,8 @@
 'use client';
 
-import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
+import { useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { ScheduledSubscriptionAction } from '@weblab/stripe';
 import { Button } from '@weblab/ui/button';
 import {
@@ -13,15 +14,14 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { Separator } from '@weblab/ui/separator';
 import { toast } from '@weblab/ui/sonner';
-import { observer } from 'mobx-react-lite';
-import { useState } from 'react';
+
+import { useStateManager } from '@/components/store/state';
+import { api } from '@/trpc/react';
 import { useSubscription } from '../pricing-modal/use-subscription';
-import { SubscriptionCancelModal } from './subscription-cancel-modal';
 
 export const SubscriptionTab = observer(() => {
     const stateManager = useStateManager();
     const { subscription, isPro } = useSubscription();
-    const [showCancelModal, setShowCancelModal] = useState(false);
     const [isManageDropdownOpen, setIsManageDropdownOpen] = useState(false);
     const [isLoadingPortal, setIsLoadingPortal] = useState(false);
 
@@ -37,7 +37,7 @@ export const SubscriptionTab = observer(() => {
         },
         onSettled: () => {
             setIsLoadingPortal(false);
-        }
+        },
     });
 
     const handleUpgradePlan = () => {
@@ -46,14 +46,12 @@ export const SubscriptionTab = observer(() => {
         setIsManageDropdownOpen(false);
     };
 
-    const handleCancelSubscription = () => {
-        setShowCancelModal(true);
+    // Bug fix #11: The previous custom "Are you sure?" modal was misleading — it didn't
+    // actually cancel anything, it just opened the Stripe portal afterwards. Skip the
+    // fake confirm and send the user straight to the Stripe billing portal where the
+    // real cancel flow lives.
+    const handleCancelSubscription = async () => {
         setIsManageDropdownOpen(false);
-    };
-
-    const handleConfirmCancel = async () => {
-        // Cancellation logic will be implemented later
-        setShowCancelModal(false);
         setIsLoadingPortal(true);
         await manageSubscriptionMutation.mutateAsync();
     };
@@ -82,17 +80,30 @@ export const SubscriptionTab = observer(() => {
                             <p className="text-regularPlus font-medium">Current Plan</p>
                             <p className="text-small text-muted-foreground">
                                 {isPro ? (
-                                    subscription?.scheduledChange?.scheduledAction === ScheduledSubscriptionAction.CANCELLATION ? (
-                                        <>Pro plan (cancelling on {subscription.scheduledChange.scheduledChangeAt.toLocaleDateString()})</>
+                                    subscription?.scheduledChange?.scheduledAction ===
+                                    ScheduledSubscriptionAction.CANCELLATION ? (
+                                        <>
+                                            Pro plan (cancelling on{' '}
+                                            {subscription.scheduledChange.scheduledChangeAt.toLocaleDateString()}
+                                            )
+                                        </>
                                     ) : (
-                                        <>Pro plan - {subscription?.price?.monthlyMessageLimit || 'Unlimited'} messages per month</>
+                                        <>
+                                            Pro plan -{' '}
+                                            {subscription?.price?.monthlyMessageLimit ||
+                                                'Unlimited'}{' '}
+                                            messages per month
+                                        </>
                                     )
                                 ) : (
                                     'You are currently on the Free plan'
                                 )}
                             </p>
                         </div>
-                        <DropdownMenu open={isManageDropdownOpen} onOpenChange={setIsManageDropdownOpen}>
+                        <DropdownMenu
+                            open={isManageDropdownOpen}
+                            onOpenChange={setIsManageDropdownOpen}
+                        >
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline" size="sm">
                                     Manage
@@ -109,25 +120,33 @@ export const SubscriptionTab = observer(() => {
                                         Upgrade plan
                                     </DropdownMenuItem>
                                 )}
-                                {isPro && subscription?.scheduledChange?.scheduledAction !== ScheduledSubscriptionAction.CANCELLATION && (
-                                    <DropdownMenuItem
-                                        onClick={handleUpgradePlan}
-                                        className="cursor-pointer"
-                                    >
-                                        <Icons.Sparkles className="mr-2 h-4 w-4" />
-                                        Change plan
-                                    </DropdownMenuItem>
-                                )}
+                                {isPro &&
+                                    subscription?.scheduledChange?.scheduledAction !==
+                                        ScheduledSubscriptionAction.CANCELLATION && (
+                                        <DropdownMenuItem
+                                            onClick={handleUpgradePlan}
+                                            className="cursor-pointer"
+                                        >
+                                            <Icons.Sparkles className="mr-2 h-4 w-4" />
+                                            Change plan
+                                        </DropdownMenuItem>
+                                    )}
                                 {isPro && (
                                     <DropdownMenuItem
                                         onClick={() => {
-                                            subscription?.scheduledChange?.scheduledAction === ScheduledSubscriptionAction.CANCELLATION ? handleManageBilling() : handleCancelSubscription();
+                                            subscription?.scheduledChange?.scheduledAction ===
+                                            ScheduledSubscriptionAction.CANCELLATION
+                                                ? handleManageBilling()
+                                                : handleCancelSubscription();
                                         }}
                                         disabled={isLoadingPortal}
-                                        className="cursor-pointer text-red-200 hover:text-red-100 group"
+                                        className="group cursor-pointer text-red-200 hover:text-red-100"
                                     >
                                         <Icons.CrossS className="mr-2 h-4 w-4 text-red-200 group-hover:text-red-100" />
-                                        {subscription?.scheduledChange?.scheduledAction === ScheduledSubscriptionAction.CANCELLATION ? 'Reactivate subscription' : 'Cancel subscription'}
+                                        {subscription?.scheduledChange?.scheduledAction ===
+                                        ScheduledSubscriptionAction.CANCELLATION
+                                            ? 'Reactivate subscription'
+                                            : 'Cancel subscription'}
                                     </DropdownMenuItem>
                                 )}
                             </DropdownMenuContent>
@@ -153,13 +172,16 @@ export const SubscriptionTab = observer(() => {
                             {isLoadingPortal ? 'Opening...' : 'Manage'}
                         </Button>
                     </div>
+
+                    {/* Bug fix #11: Make it clear cancellation happens in Stripe's portal. */}
+                    {isPro && (
+                        <p className="text-mini text-muted-foreground">
+                            Manage your subscription, including cancellation, in the Stripe billing
+                            portal.
+                        </p>
+                    )}
                 </div>
             </div>
-            <SubscriptionCancelModal
-                open={showCancelModal}
-                onOpenChange={setShowCancelModal}
-                onConfirmCancel={handleConfirmCancel}
-            />
         </div>
     );
 });

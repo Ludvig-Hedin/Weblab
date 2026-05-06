@@ -1,3 +1,5 @@
+import { DEFAULT_CHAT_MODEL } from '@weblab/models/llm';
+
 import { Orientation, Theme } from './frame';
 
 export const APP_NAME = 'Weblab';
@@ -68,7 +70,7 @@ export const DefaultSettings = {
         buildFlags: '--no-lint',
     },
     AI_SETTINGS: {
-        defaultModel: 'moonshotai/kimi-k2',
+        defaultModel: DEFAULT_CHAT_MODEL,
         showSuggestions: true,
         showMiniChat: false,
         autoApplyCode: true,

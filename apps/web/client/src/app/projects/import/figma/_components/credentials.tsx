@@ -1,13 +1,15 @@
 'use client';
 
+import { motion } from 'motion/react';
+
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
-import { motion } from 'motion/react';
-import { StepContent, StepFooter, StepHeader } from '../../steps';
+
 import { useFigmaImport } from '../_context';
+import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaCredentials = () => {
     const {
@@ -27,8 +29,8 @@ export const FigmaCredentials = () => {
         <>
             <StepHeader>
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-background-tertiary rounded-lg">
-                        <Icons.Figma className="w-6 h-6" />
+                    <div className="bg-background-tertiary rounded-lg p-3">
+                        <Icons.Figma className="h-6 w-6" />
                     </div>
                 </div>
                 <CardTitle className="text-xl font-normal">Import from Figma</CardTitle>
@@ -74,8 +76,8 @@ export const FigmaCredentials = () => {
                             />
                         </div>
                         {fetchError && (
-                            <div className="p-3 bg-red-900/50 border border-red-800 rounded-md">
-                                <p className="text-red-200 text-sm">{fetchError}</p>
+                            <div className="rounded-md border border-red-800 bg-red-900/50 p-3">
+                                <p className="text-sm text-red-200">{fetchError}</p>
                             </div>
                         )}
                     </div>
@@ -88,7 +90,7 @@ export const FigmaCredentials = () => {
                 <Button onClick={() => void fetchFile()} disabled={!canFetch || isFetching}>
                     {isFetching ? (
                         <>
-                            <Icons.Shadow className="w-4 h-4 mr-2 animate-spin" />
+                            <Icons.Shadow className="mr-2 h-4 w-4 animate-spin" />
                             Fetching...
                         </>
                     ) : (

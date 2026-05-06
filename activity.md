@@ -1,5 +1,9 @@
 # Activity Log
 
+## 2026-05-06
+
+- Fixed review-blocking build issues by declaring the blog MDX parser/rendering dependencies and ensuring Stripe subscription pause/resume events are accepted by the shared webhook helper. Architectural reliability fix; no intended user-facing behavior change.
+
 ## 2026-05-03
 
 - Fixed OAuth callback redirects to stay on the request origin after Supabase exchanges the session code, preserving auth cookies on preview, staging, and custom hosts. User-facing auth reliability fix.

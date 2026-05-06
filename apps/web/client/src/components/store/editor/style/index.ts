@@ -1,13 +1,16 @@
+import type { CSSProperties } from 'react';
+import { makeAutoObservable, reaction } from 'mobx';
+
 import type { DomElement, DomElementStyles, Font } from '@weblab/models';
+import type { StyleChange } from '@weblab/models/style';
 import {
     type Change,
     type StyleActionTarget,
     type UpdateStyleAction,
 } from '@weblab/models/actions';
-import { StyleChangeType, type StyleChange } from '@weblab/models/style';
+import { StyleChangeType } from '@weblab/models/style';
 import { convertFontString } from '@weblab/utility';
-import { makeAutoObservable, reaction } from 'mobx';
-import type { CSSProperties } from 'react';
+
 import type { EditorEngine } from '../engine';
 
 export interface SelectedStyle {
@@ -105,16 +108,18 @@ export class StyleManager {
 
         const targets: Array<StyleActionTarget> = filteredSelected.map((selectedEl) => {
             const change: Change<Record<string, StyleChange>> = {
-                updated:
-                    Object.fromEntries(
-                        Object.keys(styles).map((style) => [
-                            style,
-                            {
-                                value: styles[style as keyof CSSProperties]?.toString() ?? '',
-                                type: type === StyleChangeType.Custom ? StyleChangeType.Custom : StyleChangeType.Value,
-                            },
-                        ]),
-                    ),
+                updated: Object.fromEntries(
+                    Object.keys(styles).map((style) => [
+                        style,
+                        {
+                            value: styles[style as keyof CSSProperties]?.toString() ?? '',
+                            type:
+                                type === StyleChangeType.Custom
+                                    ? StyleChangeType.Custom
+                                    : StyleChangeType.Value,
+                        },
+                    ]),
+                ),
                 original: Object.fromEntries(
                     Object.keys(styles).map((style) => [
                         style,

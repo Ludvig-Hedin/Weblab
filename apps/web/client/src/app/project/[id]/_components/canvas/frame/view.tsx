@@ -103,7 +103,9 @@ export const FrameComponent = observer(
                     }
 
                     if (!frame.url) {
-                        console.error(`${PENPAL_PARENT_CHANNEL} (${frame.id}) - No frame URL provided`);
+                        console.error(
+                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - No frame URL provided`,
+                        );
                         onConnectionFailed();
                         return;
                     }
@@ -112,11 +114,12 @@ export const FrameComponent = observer(
                         ? iframeRef.current.contentDocument
                         : null;
                     if (
-                        iframeDoc &&
-                        iframeDoc.readyState === 'complete' &&
+                        iframeDoc?.readyState === 'complete' &&
                         iframeDoc.body?.innerText?.includes('404')
                     ) {
-                        console.error(`${PENPAL_PARENT_CHANNEL} (${frame.id}) - Frame URL returned 404`);
+                        console.error(
+                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Frame URL returned 404`,
+                        );
                         onConnectionFailed();
                         return;
                     }
@@ -301,8 +304,8 @@ export const FrameComponent = observer(
                         isPenpalReady: () => false,
                         // Custom sync methods with safe no-op implementations
                         supportsOpenDevTools: () => false,
-                        setZoomLevel: () => { },
-                        reload: () => { },
+                        setZoomLevel: () => {},
+                        reload: () => {},
                         isLoading: () => false,
                         // Reuse the safe fallback methods from remoteMethods
                         ...remoteMethods,
@@ -370,6 +373,23 @@ export const FrameComponent = observer(
                         allow="geolocation; microphone; camera; midi; encrypted-media"
                         style={{ width: frame.dimension.width, height: frame.dimension.height }}
                         onLoad={setupPenpalConnection}
+                        onError={() => {
+                            // Notify the restart-sandbox button so it can
+                            // surface the warning state and let the user trigger
+                            // a sandbox restart. Iframe `error` events cover
+                            // network-level load failures (DNS, refused
+                            // connection, etc.); HTTP error responses such as
+                            // 502 usually still emit `load`.
+                            try {
+                                window.dispatchEvent(
+                                    new CustomEvent('weblab:sandbox-iframe-error', {
+                                        detail: { frameId: frame.id },
+                                    }),
+                                );
+                            } catch (err) {
+                                console.error('Failed to dispatch iframe error event', err);
+                            }
+                        }}
                         {...props}
                     />
                 </WebPreview>

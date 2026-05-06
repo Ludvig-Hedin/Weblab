@@ -1,11 +1,13 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { EditorAttributes } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 type CommentFilter = 'open' | 'resolved';
 
@@ -57,7 +59,7 @@ export const CommentsTab = observer(() => {
     return (
         <div className="flex h-full flex-col overflow-hidden">
             {/* Filter */}
-            <div className="flex gap-1 border-b border-border px-3 py-2">
+            <div className="border-border flex gap-1 border-b px-3 py-2">
                 <button
                     onClick={() => setFilter('open')}
                     className={cn(
@@ -85,20 +87,22 @@ export const CommentsTab = observer(() => {
             {/* List */}
             <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
                 {editorEngine.comment.isLoading && filtered.length === 0 ? (
-                    <div className="flex flex-1 items-center justify-center text-xs text-foreground-tertiary">
+                    <div className="text-foreground-tertiary flex flex-1 items-center justify-center text-xs">
                         Loading...
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="flex flex-1 items-center justify-center text-xs text-foreground-tertiary">
+                    <div className="text-foreground-tertiary flex flex-1 items-center justify-center text-xs">
                         {filter === 'open' ? 'No open comments' : 'No resolved comments'}
                     </div>
                 ) : (
                     filtered.map((comment) => (
                         <button
                             key={comment.id}
-                            onClick={() => flyToComment(comment.id, comment.canvasX, comment.canvasY)}
+                            onClick={() =>
+                                flyToComment(comment.id, comment.canvasX, comment.canvasY)
+                            }
                             className={cn(
-                                'flex w-full flex-col gap-1.5 rounded-lg border border-transparent p-3 text-left transition-colors hover:border-border hover:bg-background-secondary',
+                                'hover:border-border hover:bg-background-secondary flex w-full flex-col gap-1.5 rounded-lg border border-transparent p-3 text-left transition-colors',
                                 editorEngine.comment.activeCommentId === comment.id &&
                                     'border-border bg-background-secondary',
                             )}
@@ -107,18 +111,18 @@ export const CommentsTab = observer(() => {
                                 <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
                                     {getInitials(comment.authorName)}
                                 </div>
-                                <span className="flex-1 truncate text-xs font-medium text-foreground-primary">
+                                <span className="text-foreground-primary flex-1 truncate text-xs font-medium">
                                     {comment.authorName}
                                 </span>
-                                <span className="text-[10px] text-foreground-tertiary">
+                                <span className="text-foreground-tertiary text-[10px]">
                                     {formatRelativeTime(comment.createdAt)}
                                 </span>
                             </div>
-                            <p className="line-clamp-2 text-xs text-foreground-secondary">
+                            <p className="text-foreground-secondary line-clamp-2 text-xs">
                                 {comment.content}
                             </p>
                             {comment.replies.length > 0 && (
-                                <div className="flex items-center gap-1 text-[10px] text-foreground-tertiary">
+                                <div className="text-foreground-tertiary flex items-center gap-1 text-[10px]">
                                     <Icons.ChatBubble className="h-3 w-3" />
                                     <span>
                                         {comment.replies.length}{' '}

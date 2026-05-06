@@ -41,13 +41,13 @@ export const ActionButtons = ({
                         <Button
                             variant={'ghost'}
                             size={'icon'}
-                            className="h-7 w-7 text-foreground-tertiary group hover:bg-transparent cursor-pointer"
+                            className="text-foreground-tertiary group h-7 w-7 cursor-pointer hover:bg-transparent"
                             disabled={disabled}
                             onMouseDown={(e) => e.currentTarget.blur()}
                         >
                             <Icons.Image
                                 className={cn(
-                                    'w-4 h-4',
+                                    'h-4 w-4',
                                     disabled
                                         ? 'text-foreground-tertiary'
                                         : 'group-hover:text-foreground',

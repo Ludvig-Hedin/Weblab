@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#0a0a0a"/>
+
+  <!-- Top bar -->
+  <rect width="1600" height="44" fill="#111111"/>
+  <line x1="0" y1="44" x2="1600" y2="44" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="20" y="26" fill="#f0f0f0" font-family="-apple-system,system-ui,sans-serif" font-size="13" font-weight="500">Weblab</text>
+  <text x="720" y="26" fill="rgba(255,255,255,0.45)" font-family="system-ui" font-size="11">feat/hero-redesign → main</text>
+
+  <!-- Left: file tree -->
+  <rect x="0" y="44" width="240" height="856" fill="#111111"/>
+  <line x1="240" y1="44" x2="240" y2="900" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+  <text x="16" y="74" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">CHANGES</text>
+  <!-- Modified files -->
+  <rect x="8" y="82" width="224" height="22" rx="3" fill="rgba(167,139,250,0.1)"/>
+  <rect x="12" y="87" width="10" height="12" rx="2" fill="rgba(255,190,70,0.5)"/>
+  <text x="28" y="97" fill="rgba(255,255,255,0.55)" font-family="ui-monospace,monospace" font-size="11">Hero.tsx</text>
+  <text x="220" y="97" fill="rgba(255,190,70,0.7)" font-family="ui-monospace,monospace" font-size="10">M</text>
+
+  <rect x="12" y="111" width="10" height="12" rx="2" fill="rgba(74,222,128,0.4)"/>
+  <text x="28" y="121" fill="rgba(255,255,255,0.35)" font-family="ui-monospace,monospace" font-size="11">CTASection.tsx</text>
+  <text x="220" y="121" fill="rgba(74,222,128,0.7)" font-family="ui-monospace,monospace" font-size="10">A</text>
+
+  <rect x="12" y="135" width="10" height="12" rx="2" fill="rgba(255,99,99,0.4)"/>
+  <text x="28" y="145" fill="rgba(255,255,255,0.35)" font-family="ui-monospace,monospace" font-size="11">OldBanner.tsx</text>
+  <text x="220" y="145" fill="rgba(255,99,99,0.7)" font-family="ui-monospace,monospace" font-size="10">D</text>
+
+  <rect x="12" y="159" width="10" height="12" rx="2" fill="rgba(255,190,70,0.5)"/>
+  <text x="28" y="169" fill="rgba(255,255,255,0.35)" font-family="ui-monospace,monospace" font-size="11">globals.css</text>
+  <text x="220" y="169" fill="rgba(255,190,70,0.7)" font-family="ui-monospace,monospace" font-size="10">M</text>
+
+  <!-- Commit section -->
+  <text x="16" y="210" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">COMMIT</text>
+  <rect x="12" y="218" width="216" height="52" rx="5" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+  <text x="20" y="236" fill="rgba(255,255,255,0.25)" font-family="system-ui" font-size="11">Message...</text>
+  <rect x="12" y="278" width="216" height="28" rx="5" fill="rgba(255,255,255,0.07)"/>
+  <text x="72" y="296" fill="rgba(255,255,255,0.5)" font-family="system-ui" font-size="11">Commit changes</text>
+
+  <!-- Recent commits -->
+  <text x="16" y="330" fill="rgba(255,255,255,0.3)" font-family="system-ui" font-size="10" letter-spacing="0.08em">HISTORY</text>
+  <!-- commit items -->
+  <circle cx="22" cy="352" r="4" fill="#4ade80"/>
+  <text x="32" y="356" fill="rgba(255,255,255,0.4)" font-family="ui-monospace,monospace" font-size="10">Visual: update hero spacing</text>
+  <circle cx="22" cy="372" r="4" fill="rgba(255,255,255,0.15)"/>
+  <text x="32" y="376" fill="rgba(255,255,255,0.25)" font-family="ui-monospace,monospace" font-size="10">Visual: add CTA section</text>
+  <circle cx="22" cy="392" r="4" fill="rgba(255,255,255,0.15)"/>
+  <text x="32" y="396" fill="rgba(255,255,255,0.25)" font-family="ui-monospace,monospace" font-size="10">feat: new pricing layout</text>
+  <circle cx="22" cy="412" r="4" fill="rgba(255,255,255,0.15)"/>
+  <text x="32" y="416" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="10">chore: update deps</text>
+  <!-- connecting line -->
+  <line x1="22" y1="356" x2="22" y2="428" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2 2"/>
+
+  <!-- Right: Diff view -->
+  <rect x="240" y="44" width="1360" height="856" fill="#0d0d0d"/>
+
+  <!-- Diff header -->
+  <rect x="240" y="44" width="1360" height="48" fill="#161616"/>
+  <line x1="240" y1="92" x2="1600" y2="92" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="260" y="72" fill="rgba(255,255,255,0.6)" font-family="ui-monospace,monospace" font-size="11">Hero.tsx</text>
+  <!-- stats badge -->
+  <rect x="344" y="60" width="80" height="20" rx="4" fill="rgba(74,222,128,0.1)" stroke="rgba(74,222,128,0.2)" stroke-width="0.5"/>
+  <text x="358" y="73" fill="#4ade80" font-family="ui-monospace,monospace" font-size="10">+14 / -6</text>
+
+  <!-- Diff content -->
+  <!-- Context lines -->
+  <text x="260" y="120" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="11">@@ -12,8 +12,22 @@ export function Hero() {</text>
+
+  <!-- Unchanged lines -->
+  <text x="268" y="142" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">     return (</text>
+  <text x="268" y="161" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">       &lt;</text>
+  <text x="286" y="161" fill="rgba(74,222,128,0.5)" font-family="ui-monospace,monospace" font-size="12">section</text>
+
+  <!-- Removed lines (red) -->
+  <rect x="240" y="170" width="1360" height="19" fill="rgba(248,113,113,0.06)"/>
+  <text x="248" y="183" fill="#f87171" font-family="ui-monospace,monospace" font-size="12">-</text>
+  <text x="268" y="183" fill="rgba(248,113,113,0.8)" font-family="ui-monospace,monospace" font-size="12">         className="flex flex-col items-center py-24 px-8"</text>
+
+  <rect x="240" y="189" width="1360" height="19" fill="rgba(248,113,113,0.06)"/>
+  <text x="248" y="202" fill="#f87171" font-family="ui-monospace,monospace" font-size="12">-</text>
+  <text x="268" y="202" fill="rgba(248,113,113,0.8)" font-family="ui-monospace,monospace" font-size="12">       &gt;</text>
+
+  <!-- Added lines (green) -->
+  <rect x="240" y="208" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="221" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="221" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">         className="flex flex-col items-center py-32 px-8 gap-8"</text>
+
+  <rect x="240" y="227" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="240" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="240" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">       &gt;</text>
+
+  <!-- Context -->
+  <text x="268" y="262" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">         &lt;</text>
+  <text x="300" y="262" fill="rgba(255,255,255,0.3)" font-family="ui-monospace,monospace" font-size="12">h1</text>
+  <text x="320" y="262" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">className=</text>
+
+  <!-- Removed heading class -->
+  <rect x="240" y="270" width="1360" height="19" fill="rgba(248,113,113,0.06)"/>
+  <text x="248" y="283" fill="#f87171" font-family="ui-monospace,monospace" font-size="12">-</text>
+  <text x="268" y="283" fill="rgba(248,113,113,0.8)" font-family="ui-monospace,monospace" font-size="12">           "text-5xl font-light tracking-tight text-pretty"</text>
+
+  <!-- Added heading class -->
+  <rect x="240" y="289" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="302" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="302" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">           "text-7xl font-light tracking-tight text-pretty"</text>
+
+  <!-- More context and additions for CTA -->
+  <text x="268" y="324" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">         &gt;</text>
+  <text x="268" y="343" fill="rgba(255,255,255,0.15)" font-family="ui-monospace,monospace" font-size="12">           Build websites visually.</text>
+  <text x="268" y="362" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">         &lt;/</text>
+  <text x="296" y="362" fill="rgba(255,255,255,0.25)" font-family="ui-monospace,monospace" font-size="12">h1</text>
+  <text x="316" y="362" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">&gt;</text>
+
+  <!-- New component addition -->
+  <text x="268" y="395" fill="rgba(255,255,255,0.12)" font-family="ui-monospace,monospace" font-size="12">@@ -28,4 +34,12 @@</text>
+
+  <rect x="240" y="408" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="421" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="421" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">         &lt;</text>
+  <text x="284" y="421" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">CTASection</text>
+
+  <rect x="240" y="427" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="440" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="440" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">           primaryLabel="Download"</text>
+
+  <rect x="240" y="446" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="459" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="459" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">           secondaryLabel="Contact Sales"</text>
+
+  <rect x="240" y="465" width="1360" height="19" fill="rgba(74,222,128,0.07)"/>
+  <text x="248" y="478" fill="#4ade80" font-family="ui-monospace,monospace" font-size="12">+</text>
+  <text x="268" y="478" fill="rgba(74,222,128,0.85)" font-family="ui-monospace,monospace" font-size="12">         /&gt;</text>
+
+  <text x="268" y="500" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">       &lt;/</text>
+  <text x="296" y="500" fill="rgba(74,222,128,0.4)" font-family="ui-monospace,monospace" font-size="12">section</text>
+  <text x="356" y="500" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">&gt;</text>
+  <text x="268" y="519" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">     )</text>
+  <text x="268" y="538" fill="rgba(255,255,255,0.2)" font-family="ui-monospace,monospace" font-size="12">   }</text>
+</svg>

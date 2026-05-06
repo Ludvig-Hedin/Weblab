@@ -1,7 +1,9 @@
+import type React from 'react';
+import { makeAutoObservable } from 'mobx';
+
 import type { DomElement, ElementPosition } from '@weblab/models';
 import type { MoveElementAction } from '@weblab/models/actions';
-import { makeAutoObservable } from 'mobx';
-import type React from 'react';
+
 import type { EditorEngine } from '../engine';
 import type { FrameData } from '../frames';
 

@@ -33,9 +33,11 @@ const NAMED_FUNCTION_RE = /export\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 //   export const Foo: FC = (props) => ...
 const NAMED_ARROW_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)(?:\s*:\s*[^=]+?)?\s*=\s*(?:\([^)]*\)|[A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=]+?)?\s*=>/gm;
 // Detects observer()/HOC-wrapped exports: `export const Foo = observer(...)`,
-// `export const Connected = withRouter(Inner)`, `export const Memoized = memo(...)`, etc.
-// Matches when the right-hand side is a lower-case identifier followed by `(`.
-const HOC_WRAPPED_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*[a-z][A-Za-z0-9_]*\s*\(/gm;
+// `export const Connected = withRouter(Inner)`, `export const Memoized = memo(...)`.
+// Also matches namespace-qualified wrappers such as `React.memo(...)` and
+// `React.forwardRef(...)` where the callee is `<UpperIdent>.<lowerIdent>(`.
+const HOC_WRAPPED_RE =
+    /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)\s*=\s*(?:[a-z][A-Za-z0-9_]*|[A-Z][A-Za-z0-9_]*\.[a-z][A-Za-z0-9_]*)\s*\(/gm;
 const DEFAULT_FUNCTION_RE = /export\s+default\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 // Matches: export default ComponentName (re-exported identifier, declared elsewhere)
 const DEFAULT_IDENTIFIER_RE = /^\s*export\s+default\s+([A-Z][A-Za-z0-9_]*)\s*;?\s*$/gm;

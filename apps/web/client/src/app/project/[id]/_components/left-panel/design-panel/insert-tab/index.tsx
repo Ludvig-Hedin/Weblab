@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import {
-    SHADCN_BLOCKS,
-    SHADCN_CORE_COMPONENTS,
-    type ShadcnBlockCategory,
-    type ShadcnBlockManifestItem,
-} from '@weblab/constants';
+import type { ShadcnBlockCategory, ShadcnBlockManifestItem } from '@weblab/constants';
 import type { DropElementProperties } from '@weblab/models/element';
+import { SHADCN_BLOCKS, SHADCN_CORE_COMPONENTS } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';

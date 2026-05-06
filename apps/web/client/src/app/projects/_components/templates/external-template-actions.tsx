@@ -47,6 +47,7 @@ export function ExternalTemplateActions({
                 description: template.shortDescription,
                 repoUrl: template.repoUrl,
                 branch: template.branch,
+                subpath: template.subpath,
             });
 
             if (!project) {

@@ -1,8 +1,10 @@
-import { useEditorEngine } from '@/components/store/editor';
-import { DEFAULT_COLOR_NAME } from '@weblab/constants';
-import type { TailwindColor } from '@weblab/models/style';
-import { Color } from '@weblab/utility';
 import { useCallback, useEffect, useState } from 'react';
+
+import type { TailwindColor } from '@weblab/models/style';
+import { DEFAULT_COLOR_NAME } from '@weblab/constants';
+import { Color } from '@weblab/utility';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 interface ColorUpdateOptions {
     elementStyleKey: string;

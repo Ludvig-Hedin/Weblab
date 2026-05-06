@@ -1,4 +1,5 @@
 'use client';
+
 import { useCallback, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
@@ -9,10 +10,10 @@ import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import type { ComponentTemplate } from './templates';
 import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
 import { ComponentCard } from './component-card';
-import type { ComponentTemplate } from './templates';
 import { COMPONENT_TEMPLATES, TEMPLATE_CATEGORIES } from './templates';
 
 export const ComponentsTab = observer(() => {

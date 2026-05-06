@@ -1,4 +1,5 @@
 'use client';
+
 import { APP_NAME } from '@weblab/constants';
 
 import { CreateManagerProvider } from '@/components/store/create';
@@ -7,10 +8,10 @@ import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-proj
 import { Routes } from '@/utils/constants';
 import { BuilderFeaturesHero } from '../../_components/hero/builder-features-hero';
 import { BuilderBenefitsSection } from '../../_components/landing-page/builder-benefits-section';
-import { CTASection } from '../../_components/landing-page/cta-section';
-import { FAQSection } from '../../_components/landing-page/faq-section';
 import { BuilderFeaturesGridSection } from '../../_components/landing-page/builder-features-grid-section';
 import { BuilderFeaturesIntroSection } from '../../_components/landing-page/builder-features-intro-section';
+import { CTASection } from '../../_components/landing-page/cta-section';
+import { FAQSection } from '../../_components/landing-page/faq-section';
 import { ResponsiveMockupSection } from '../../_components/landing-page/responsive-mockup-section';
 import { WebsiteLayout } from '../../_components/website-layout';
 
@@ -49,9 +50,10 @@ export default function BuilderFeaturesPage() {
                 <section className="sr-only" aria-label="Visual Builder Summary">
                     <h1>{APP_NAME} Visual Builder: Design with Your Real React Components</h1>
                     <p>
-                        {APP_NAME} is a visual builder that works with your existing codebase. Design with your real React,
-                        Vue, or Angular components on an infinite canvas. What you design IS the code — changes become
-                        mergeable pull requests, not static mockups.
+                        {APP_NAME} is a visual builder that works with your existing codebase.
+                        Design with your real React, Vue, or Angular components on an infinite
+                        canvas. What you design IS the code — changes become mergeable pull
+                        requests, not static mockups.
                     </p>
                     <h2>Key Builder Features</h2>
                     <ul>
@@ -68,7 +70,7 @@ export default function BuilderFeaturesPage() {
                     </ul>
                 </section>
 
-                <div className="w-screen h-screen flex items-center justify-center" id="hero">
+                <div className="flex h-screen w-screen items-center justify-center" id="hero">
                     <BuilderFeaturesHero />
                 </div>
                 <ResponsiveMockupSection />

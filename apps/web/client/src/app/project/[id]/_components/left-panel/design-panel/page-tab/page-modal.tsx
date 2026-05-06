@@ -1,11 +1,5 @@
-import { useEditorEngine } from '@/components/store/editor';
-import {
-    doesRouteExist,
-    getNestedPagePath,
-    getParentPagePath,
-    normalizePagePath,
-    validateNextJsRoute,
-} from '@/components/store/editor/pages/helper';
+import { useEffect, useMemo, useState } from 'react';
+
 import { RouterType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
@@ -19,7 +13,15 @@ import {
 import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
-import { useEffect, useMemo, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
+import {
+    doesRouteExist,
+    getNestedPagePath,
+    getParentPagePath,
+    normalizePagePath,
+    validateNextJsRoute,
+} from '@/components/store/editor/pages/helper';
 
 interface PageModalProps {
     open: boolean;
@@ -87,7 +89,10 @@ export function PageModal({
         const currentPath = mode === 'rename' ? normalizePagePath(baseRoute) : null;
         const normalizedTargetPath = normalizePagePath(fullPath);
 
-        if (currentPath !== normalizedTargetPath && doesRouteExist(editorEngine.pages.tree, fullPath, itemType)) {
+        if (
+            currentPath !== normalizedTargetPath &&
+            doesRouteExist(editorEngine.pages.tree, fullPath, itemType)
+        ) {
             setWarning(`This ${itemType} already exists`);
             return;
         }
@@ -96,6 +101,10 @@ export function PageModal({
     }, [pageName, fullPath, editorEngine.pages.tree, mode, baseRoute, itemType, canManageFolders]);
 
     const handleSubmit = async () => {
+        if (isLoading || warning || !pageName) {
+            return;
+        }
+
         if (itemType === 'folder' && !canManageFolders) {
             setWarning('Folders are only supported for App Router projects');
             return;
@@ -162,14 +171,14 @@ export function PageModal({
                             disabled={isLoading}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !isComposing) {
-                                    handleSubmit();
+                                    void handleSubmit();
                                 }
                             }}
                             onCompositionStart={() => setIsComposing(true)}
                             onCompositionEnd={() => setIsComposing(false)}
                         />
                         {warning && (
-                            <p className="text-sm text-yellow-300 flex items-center gap-2">
+                            <p className="flex items-center gap-2 text-sm text-yellow-300">
                                 {warning}
                             </p>
                         )}
@@ -186,7 +195,7 @@ export function PageModal({
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={handleSubmit}
+                        onClick={() => void handleSubmit()}
                         disabled={isLoading || !!warning || !pageName}
                     >
                         {isLoading ? <>{loadingText}</> : buttonText}

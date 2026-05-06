@@ -1,7 +1,9 @@
+import { TRPCError } from '@trpc/server';
+
 import { DefaultSettings } from '@weblab/constants';
 import { type Deployment, type DrizzleDb } from '@weblab/db';
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
-import { TRPCError } from '@trpc/server';
+
 import { PublishManager } from '../manager';
 import { deployFreestyle } from './deploy';
 import { extractEnvVarsFromSandbox } from './env';
@@ -11,11 +13,11 @@ import { getProjectUrls, updateDeployment } from './helpers';
 export async function publish({
     db,
     deployment,
-    sandboxId
+    sandboxId,
 }: {
     db: DrizzleDb;
     deployment: Deployment;
-    sandboxId: string
+    sandboxId: string;
 }) {
     const {
         id: deploymentId,

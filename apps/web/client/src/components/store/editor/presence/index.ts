@@ -1,7 +1,8 @@
-import { createClient } from '@/utils/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
+
 import type { EditorEngine } from '../engine';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/client';
 
 export interface RemoteUser {
     userId: string;
@@ -118,7 +119,10 @@ export class PresenceManager {
                     // Bug fix #11: log channel errors instead of silently ignoring them.
                     console.warn('[PresenceManager] Realtime channel error for project', projectId);
                 } else if (status === 'TIMED_OUT') {
-                    console.warn('[PresenceManager] Realtime channel timed out for project', projectId);
+                    console.warn(
+                        '[PresenceManager] Realtime channel timed out for project',
+                        projectId,
+                    );
                 }
             });
     }

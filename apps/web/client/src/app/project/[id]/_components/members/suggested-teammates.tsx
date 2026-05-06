@@ -1,8 +1,9 @@
-import { api } from '@/trpc/react';
 import { ProjectRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Separator } from '@weblab/ui/separator';
+
+import { api } from '@/trpc/react';
 
 interface SuggestedTeammateProps {
     projectId: string;
@@ -27,21 +28,23 @@ export const SuggestedTeammates = ({ projectId }: SuggestedTeammateProps) => {
             <Separator />
             <div className="space-y-0.5">
                 <div className="text-sm">Suggested Teammates</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-muted-foreground text-xs">
                     Invite relevant people to collaborate
                 </div>
             </div>
             <div className="flex gap-0.5">
                 {suggestedUsers?.map((email) => (
                     <Button
+                        key={email}
                         variant="secondary"
                         size="sm"
                         className="rounded-xl font-normal"
                         onClick={() => {
+                            // Bug fix #7: Default to EDITOR — see invite-member-input.tsx:14-15.
                             createInvitationMutation.mutate({
                                 projectId,
                                 inviteeEmail: email,
-                                role: ProjectRole.ADMIN,
+                                role: ProjectRole.EDITOR,
                             });
                         }}
                     >

@@ -1,7 +1,8 @@
 'use client';
 
-import { Icons } from '@weblab/ui/icons';
 import { useEffect, useState } from 'react';
+
+import { Icons } from '@weblab/ui/icons';
 
 const DEFAULT_STAR_COUNT = 22000;
 const DEFAULT_CONTRIBUTORS_COUNT = 90;
@@ -22,23 +23,31 @@ export function useGitHubStats() {
         const fetchStats = async () => {
             try {
                 // Stars
-                const repoResponse = await fetch('https://api.github.com/repos/Ludvig-Hedin/Weblab');
+                const repoResponse = await fetch(
+                    'https://api.github.com/repos/Ludvig-Hedin/Weblab',
+                );
                 const repoData = await repoResponse.json();
                 setRaw(repoData.stargazers_count);
                 setFormatted(formatStarCount(repoData.stargazers_count));
 
                 // Contributors (use the Link header for pagination)
-                const contribResponse = await fetch('https://api.github.com/repos/Ludvig-Hedin/Weblab/contributors?per_page=1&anon=true');
+                const contribResponse = await fetch(
+                    'https://api.github.com/repos/Ludvig-Hedin/Weblab/contributors?per_page=1&anon=true',
+                );
                 const linkHeader = contribResponse.headers.get('Link');
                 if (linkHeader) {
-                    const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
+                    const match = /&page=(\d+)>; rel="last"/.exec(linkHeader);
                     if (match) {
                         setContributors(Number(match[1]));
                     }
                 } else {
                     // fallback: count the single returned contributor
                     const contribData = await contribResponse.json();
-                    setContributors(Array.isArray(contribData) ? contribData.length : DEFAULT_CONTRIBUTORS_COUNT);
+                    setContributors(
+                        Array.isArray(contribData)
+                            ? contribData.length
+                            : DEFAULT_CONTRIBUTORS_COUNT,
+                    );
                 }
             } catch (error) {
                 console.error('Failed to fetch GitHub stats:', error);
@@ -58,7 +67,7 @@ export function GitHubButton() {
     return (
         <a
             href="https://github.com/Ludvig-Hedin/Weblab"
-            className="flex items-center gap-1.5 text-small hover:opacity-80"
+            className="text-small flex items-center gap-1.5 hover:opacity-80"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="View Weblab on GitHub"

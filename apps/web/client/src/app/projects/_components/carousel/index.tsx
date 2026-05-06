@@ -1,9 +1,11 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface CarouselProps {
     children: ReactNode;
@@ -93,7 +95,7 @@ export function Carousel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background to-transparent pointer-events-none z-10"
+                        className="from-background pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-16 bg-gradient-to-r to-transparent"
                     />
                 )}
             </AnimatePresence>
@@ -105,7 +107,7 @@ export function Carousel({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background to-transparent pointer-events-none z-10"
+                        className="from-background pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-16 bg-gradient-to-l to-transparent"
                     />
                 )}
             </AnimatePresence>
@@ -118,10 +120,10 @@ export function Carousel({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         onClick={scrollLeft}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-lg hover:bg-secondary transition-colors flex items-center justify-center text-foreground-secondary hover:text-foreground"
+                        className="bg-background/80 border-border hover:bg-secondary text-foreground-secondary hover:text-foreground absolute top-1/2 left-0 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-sm transition-colors"
                         aria-label="Scroll left"
                     >
-                        <Icons.ChevronRight className="w-5 h-5 rotate-180" />
+                        <Icons.ChevronRight className="h-5 w-5 rotate-180" />
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -134,10 +136,10 @@ export function Carousel({
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         onClick={scrollRight}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-lg hover:bg-secondary transition-colors flex items-center justify-center text-foreground-secondary hover:text-foreground"
+                        className="bg-background/80 border-border hover:bg-secondary text-foreground-secondary hover:text-foreground absolute top-1/2 right-0 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg backdrop-blur-sm transition-colors"
                         aria-label="Scroll right"
                     >
-                        <Icons.ChevronRight className="w-5 h-5" />
+                        <Icons.ChevronRight className="h-5 w-5" />
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -146,9 +148,9 @@ export function Carousel({
             <div
                 ref={scrollRef}
                 className={cn(
-                    'flex overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none]',
+                    'flex overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none]',
                     gap,
-                    className
+                    className,
                 )}
             >
                 {children}

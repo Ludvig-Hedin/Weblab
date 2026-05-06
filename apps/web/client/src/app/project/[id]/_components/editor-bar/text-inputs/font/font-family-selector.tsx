@@ -1,13 +1,15 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { useEffect } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { toNormalCase } from '@weblab/utility';
-import { observer } from 'mobx-react-lite';
-import { useEffect } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 import { useDropdownControl } from '../../hooks/use-dropdown-manager';
 import { useTextControl } from '../../hooks/use-text-control';
 import { HoverOnlyTooltip } from '../../hover-tooltip';
@@ -38,10 +40,14 @@ export const FontFamilySelector = observer(() => {
     };
 
     return (
-        <DropdownMenu open={isOpen} modal={false} onOpenChange={(v) => {
-            onOpenChange(v);
-            if (!v) editorEngine.state.setBrandTab(null);
-        }}>
+        <DropdownMenu
+            open={isOpen}
+            modal={false}
+            onOpenChange={(v) => {
+                onOpenChange(v);
+                if (!v) editorEngine.state.setBrandTab(null);
+            }}
+        >
             <HoverOnlyTooltip
                 content="Font Family"
                 side="bottom"
@@ -64,13 +70,15 @@ export const FontFamilySelector = observer(() => {
             <DropdownMenuContent
                 side="bottom"
                 align="center"
-                className="mt-1 min-w-[240px] max-h-[400px] overflow-y-auto rounded-xl p-0 bg-background shadow-lg border border-border flex flex-col"
+                className="bg-background border-border mt-1 flex max-h-[400px] min-w-[240px] flex-col overflow-y-auto rounded-xl border p-0 shadow-lg"
             >
-                <div className="flex-1 overflow-y-auto px-2 pb-2 pt-2 divide-y divide-border">
+                <div className="divide-border flex-1 divide-y overflow-y-auto px-2 pt-2 pb-2">
                     {editorEngine.font.fonts.length === 0 ? (
-                        <div className="flex justify-center items-center flex-col h-20 text-center">
-                            <Icons.Brand className="h-5 w-5 text-muted-foreground mb-1" />
-                            <span className="text-sm text-muted-foreground">No fonts found <br /> Add fonts from the Brand Tab</span>
+                        <div className="flex h-20 flex-col items-center justify-center text-center">
+                            <Icons.Brand className="text-muted-foreground mb-1 h-5 w-5" />
+                            <span className="text-muted-foreground text-sm">
+                                No fonts found <br /> Add fonts from the Brand Tab
+                            </span>
                         </div>
                     ) : (
                         editorEngine.font.fonts.map((font) => (
@@ -78,13 +86,15 @@ export const FontFamilySelector = observer(() => {
                                 <FontFamily
                                     name={font.family}
                                     onSetFont={() => handleFontFamilyChange(font)}
-                                    isActive={textState.fontFamily.toLowerCase() === font.id.toLowerCase()}
+                                    isActive={
+                                        textState.fontFamily.toLowerCase() === font.id.toLowerCase()
+                                    }
                                 />
                             </div>
                         ))
                     )}
                 </div>
-                <div className="p-4 border-t border-border bg-background sticky bottom-0">
+                <div className="border-border bg-background sticky bottom-0 border-t p-4">
                     <Button
                         variant="secondary"
                         size="lg"

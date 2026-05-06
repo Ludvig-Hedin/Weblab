@@ -1,5 +1,5 @@
-import { hashContent } from '@/services/sync-engine/sync-engine';
 import type { EditorFile, TextEditorFile } from './types';
+import { hashContent } from '@/services/sync-engine/sync-engine';
 
 // Check if file content differs from original
 export async function isDirty(file: EditorFile): Promise<boolean> {

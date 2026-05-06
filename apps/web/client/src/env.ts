@@ -46,6 +46,11 @@ export const env = createEnv({
         N8N_LANDING_FORM_HEADER_NAME: z.string().optional(),
         N8N_LANDING_FORM_HEADER_VALUE: z.string().optional(),
 
+        // Email
+        // When 'true', sendInvitationEmail runs in dryRun mode (no actual email sent).
+        // Default: emails always send unless explicitly disabled.
+        EMAIL_DRY_RUN: z.enum(['true', 'false']).optional(),
+
         // Firecrawl
         FIRECRAWL_API_KEY: z.string().optional(),
 
@@ -85,6 +90,10 @@ export const env = createEnv({
         NEXT_PUBLIC_GLEAP_API_KEY: z.string().optional(),
         NEXT_PUBLIC_FEATURE_COLLABORATION: z.coerce.boolean().default(false),
         NEXT_PUBLIC_STYLE_PANEL_V2: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_CUSTOM_FONTS_ENABLED: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_AUTH_PROVIDERS: z.string().default('github,google'),
+        NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(false),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
@@ -101,6 +110,10 @@ export const env = createEnv({
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         NEXT_PUBLIC_FEATURE_COLLABORATION: process.env.NEXT_PUBLIC_FEATURE_COLLABORATION,
         NEXT_PUBLIC_STYLE_PANEL_V2: process.env.NEXT_PUBLIC_STYLE_PANEL_V2,
+        NEXT_PUBLIC_CUSTOM_FONTS_ENABLED: process.env.NEXT_PUBLIC_CUSTOM_FONTS_ENABLED,
+        NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
+        NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: process.env.NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED,
+        NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: process.env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED,
 
         // Supabase
         SUPABASE_URL:
@@ -172,6 +185,9 @@ export const env = createEnv({
         N8N_LANDING_FORM_URL: process.env.N8N_LANDING_FORM_URL,
         N8N_LANDING_FORM_HEADER_NAME: process.env.N8N_LANDING_FORM_HEADER_NAME,
         N8N_LANDING_FORM_HEADER_VALUE: process.env.N8N_LANDING_FORM_HEADER_VALUE,
+
+        // Email
+        EMAIL_DRY_RUN: process.env.EMAIL_DRY_RUN,
 
         // Firecrawl
         FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,

@@ -1,5 +1,7 @@
 'use client';
+
 import { createContext, useContext, useState } from 'react';
+
 import { CreateManager } from './manager';
 
 const CreateContext = createContext<CreateManager | null>(null);
@@ -10,14 +12,8 @@ export const useCreateManager = () => {
     return ctx;
 };
 
-export const CreateManagerProvider = ({ children }: {
-    children: React.ReactNode,
-}) => {
+export const CreateManagerProvider = ({ children }: { children: React.ReactNode }) => {
     const [createManager] = useState(() => new CreateManager());
 
-    return (
-        <CreateContext.Provider value={createManager} >
-            {children}
-        </CreateContext.Provider>
-    );
+    return <CreateContext.Provider value={createManager}>{children}</CreateContext.Provider>;
 };

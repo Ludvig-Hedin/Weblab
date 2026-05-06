@@ -1,8 +1,10 @@
-import { useEditorEngine } from '@/components/store/editor';
+import { observer } from 'mobx-react-lite';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
-import { observer } from 'mobx-react-lite';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 export const ChatControls = observer(() => {
     const editorEngine = useEditorEngine();
@@ -23,7 +25,7 @@ export const ChatControls = observer(() => {
                         <Button
                             variant={'ghost'}
                             size={'icon'}
-                            className="py-1 px-2 w-fit h-fit bg-transparent hover:!bg-transparent cursor-pointer group text-foreground-secondary hover:text-foreground-primary"
+                            className="group text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
                             onClick={handleNewChat}
                             disabled={isDisabled}
                         >

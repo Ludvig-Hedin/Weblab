@@ -43,11 +43,16 @@ The documentation is organized into the following sections:
 - **Tutorials**: Step-by-step guides for common tasks
 - **Developer Documentation**: Technical documentation for contributors
 - **Editor Updates**: Notes for shipped editor changes such as the [Left Panel Refresh](./left-panel-refresh.md)
+- **Agent Context**: Optional context files for coding agents in [`agent-context/`](./agent-context/README.md)
+  covering current progress, repo structure, setup, architecture, data/API, and
+  product/design expectations.
 
 ### Recent Engineering Notes
 
 - Comment collaboration endpoints now require project membership, and comment replies are returned in creation order to keep threads stable after refreshes.
 - Repository metadata and package manifests now point to the renamed `Weblab` GitHub repo.
+- Current agent-facing progress and setup notes live in [`agent-context/current-progress.md`](./agent-context/current-progress.md)
+  and [`agent-context/development-setup.md`](./agent-context/development-setup.md).
 
 ## Learn More
 

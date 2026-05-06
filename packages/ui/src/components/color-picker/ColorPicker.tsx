@@ -13,7 +13,7 @@ import EyeDropperButton from './EyeDropperButton';
 import { SVPicker } from './SVPicker';
 
 const Input = tw(DraftableInput)`
-  outline-none w-full h-6 bg-background-weblab/70 rounded text-foreground-primary placeholder:text-foreground-disabled text-center focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-foreground-active focus-visible:ring-offset-0
+  outline-none w-full h-6 bg-background-weblab/70 rounded text-foreground-primary placeholder:text-foreground-disabled text-center
 `;
 
 type SliderMode = 'hsl' | 'hsv' | 'rgb' | 'hex';

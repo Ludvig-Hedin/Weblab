@@ -1,13 +1,15 @@
-import { useEditorEngine } from '@/components/store/editor';
-import { EditorMode, InsertMode, type ImageContentData } from '@weblab/models';
-import { usePostHog } from 'posthog-js/react';
 import { useCallback, useState } from 'react';
+import { usePostHog } from 'posthog-js/react';
+
+import type { ImageContentData } from '@weblab/models';
+import { EditorMode, InsertMode } from '@weblab/models';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) => {
     const editorEngine = useEditorEngine();
     const posthog = usePostHog();
     const [isDragging, setIsDragging] = useState(false);
-
 
     const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -88,16 +90,19 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
         editorEngine.state.setEditorMode(EditorMode.DESIGN);
     }, []);
 
-    const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-        e.currentTarget.removeAttribute('data-dragging-image');
+    const handleDrop = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            setIsDragging(false);
+            e.currentTarget.removeAttribute('data-dragging-image');
 
-        const files = e.dataTransfer.files;
-        if (files.length > 0 && onUpload) {
-            void onUpload(files);
-        }
-    }, [onUpload]);
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && onUpload) {
+                void onUpload(files);
+            }
+        },
+        [onUpload],
+    );
 
     return {
         isDragging,
@@ -110,4 +115,4 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
         onImageMouseUp,
         onImageDragEnd,
     };
-}; 
+};

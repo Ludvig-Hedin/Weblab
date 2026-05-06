@@ -22,6 +22,12 @@ import { validateImageLimit } from '@/app/project/[id]/_components/right-panel/c
 import { ImagePill } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/image-pill';
 import { useCreateManager } from '@/components/store/create';
 import { MicButton } from '@/components/transcribe/mic-button';
+import {
+    AI_CHAT_INPUT_DRAG_CLASS,
+    AI_CHAT_INPUT_SURFACE_CLASS,
+    AI_CHAT_TEXTAREA_CLASS,
+    AI_CHAT_TEXTAREA_STYLE,
+} from '@/components/ui/ai-chat-input-styles';
 import { Routes } from '@/utils/constants';
 
 export interface CreateSuggestion {
@@ -315,8 +321,9 @@ export const Create = observer(
                 <div
                     data-create-container
                     className={cn(
-                        'bg-background-primary w-[600px] max-w-full cursor-text flex-col rounded-xl border transition-colors duration-200',
-                        '[&[data-dragging-image=true]]:bg-blue-500/40',
+                        AI_CHAT_INPUT_SURFACE_CLASS,
+                        AI_CHAT_INPUT_DRAG_CLASS,
+                        'w-[600px] max-w-full',
                         isDragging && 'cursor-copy bg-blue-500/40',
                     )}
                     onClick={handleContainerClick}
@@ -324,192 +331,182 @@ export const Create = observer(
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                        {!user?.id && (
-                            <button
-                                type="button"
-                                onClick={() => setIsAuthModalOpen(true)}
-                                className="border-foreground-primary/15 bg-background/40 text-foreground-secondary hover:bg-background/60 hover:text-foreground-primary mx-2 mt-2 mb-1 flex cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors"
-                            >
-                                <span>Sign in to start designing — your prompt will be saved.</span>
-                                <Icons.ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
-                            </button>
-                        )}
-                        <div
-                            className={`flex w-full flex-col ${selectedImages.length > 0 ? 'p-4' : 'px-2 pt-1'}`}
+                    {!user?.id && (
+                        <button
+                            type="button"
+                            onClick={() => setIsAuthModalOpen(true)}
+                            className="border-foreground-primary/15 bg-background/40 text-foreground-secondary hover:bg-background/60 hover:text-foreground-primary mx-2 mt-2 mb-1 flex cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors"
                         >
-                            <div
-                                className={cn(
-                                    'text-micro text-foreground-secondary flex w-full flex-row flex-wrap gap-1.5',
-                                    selectedImages.length > 0 ? 'min-h-6' : 'h-0',
-                                )}
-                            >
-                                <AnimatePresence mode="popLayout">
-                                    {selectedImages.map((imageContext) => (
-                                        <ImagePill
-                                            key={imageContext.content}
-                                            context={imageContext}
-                                            onRemove={() => handleRemoveImage(imageContext)}
-                                        />
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                            <div className="relative mt-1 flex w-full items-center">
-                                <Textarea
-                                    ref={textareaRef}
-                                    className={cn(
-                                        'text-small min-h-[60px] resize-none overflow-auto rounded-none !border-0 px-3 py-2 caret-[#109BFF] !shadow-none',
-                                        'text-foreground-primary selection:bg-[#109BFF]/30 selection:text-[#109BFF]',
-                                        'placeholder:text-foreground-primary/50 cursor-text',
-                                        'bg-transparent transition-[height] duration-300 ease-in-out outline-none dark:bg-transparent',
-                                        'focus:border-transparent focus:outline-none focus:ring-0 focus-visible:border-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
-                                    )}
-                                    placeholder="Describe what you want to build"
-                                    style={{
-                                        borderWidth: 0,
-                                        outline: 'none',
-                                        resize: 'none',
-                                    }}
-                                    value={inputValue}
-                                    onChange={(e) => {
-                                        setInputValue(e.target.value);
-                                        adjustTextareaHeight();
-                                    }}
-                                    onCompositionStart={() => setIsComposing(true)}
-                                    onCompositionEnd={(e) => {
-                                        setIsComposing(false);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
-                                            e.preventDefault();
-                                            handleSubmit();
-                                        }
-                                    }}
-                                    onDragEnter={(e) => {
+                            <span>Sign in to start designing — your prompt will be saved.</span>
+                            <Icons.ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
+                        </button>
+                    )}
+                    <div
+                        className={`flex w-full flex-col ${selectedImages.length > 0 ? 'p-4' : 'px-2 pt-1'}`}
+                    >
+                        <div
+                            className={cn(
+                                'text-micro text-foreground-secondary flex w-full flex-row flex-wrap gap-1.5',
+                                selectedImages.length > 0 ? 'min-h-6' : 'h-0',
+                            )}
+                        >
+                            <AnimatePresence mode="popLayout">
+                                {selectedImages.map((imageContext) => (
+                                    <ImagePill
+                                        key={imageContext.content}
+                                        context={imageContext}
+                                        onRemove={() => handleRemoveImage(imageContext)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                        <div className="relative mt-1 flex w-full items-center">
+                            <Textarea
+                                ref={textareaRef}
+                                className={AI_CHAT_TEXTAREA_CLASS}
+                                placeholder="Describe what you want to build"
+                                style={AI_CHAT_TEXTAREA_STYLE}
+                                value={inputValue}
+                                onChange={(e) => {
+                                    setInputValue(e.target.value);
+                                    adjustTextareaHeight();
+                                }}
+                                onCompositionStart={() => setIsComposing(true)}
+                                onCompositionEnd={() => {
+                                    setIsComposing(false);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                                         e.preventDefault();
-                                        e.stopPropagation();
-                                        handleDragStateChange(true, e);
-                                    }}
-                                    onDragOver={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        handleDragStateChange(true, e);
-                                    }}
-                                    onDragLeave={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                            handleDragStateChange(false, e);
-                                        }
-                                    }}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
+                                        void handleSubmit();
+                                    }
+                                }}
+                                onDragEnter={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDragStateChange(true, e);
+                                }}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDragStateChange(true, e);
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                                         handleDragStateChange(false, e);
-                                        handleDrop(e);
-                                    }}
-                                    rows={3}
+                                    }
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDragStateChange(false, e);
+                                    void handleDrop(e);
+                                }}
+                                rows={3}
+                            />
+                        </div>
+                        <div
+                            className={cn(
+                                'text-foreground-tertiary px-0.5 pt-1 text-[11px] transition-opacity duration-150',
+                                inputValue.length > 0 && isInputInvalid
+                                    ? 'opacity-100'
+                                    : 'pointer-events-none h-0 opacity-0',
+                            )}
+                            aria-live="polite"
+                        >
+                            {charactersRemaining > 0
+                                ? `${charactersRemaining} more character${charactersRemaining === 1 ? '' : 's'} to start designing`
+                                : ''}
+                        </div>
+                        <div className="flex w-full flex-row items-center justify-between px-0 pt-2 pb-2">
+                            <div className="flex flex-row justify-start gap-1.5">
+                                <Tooltip
+                                    open={imageTooltipOpen && !isHandlingFile}
+                                    onOpenChange={(open) =>
+                                        !isHandlingFile && setImageTooltipOpen(open)
+                                    }
+                                >
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-foreground-tertiary group h-9 w-9 cursor-pointer hover:bg-transparent"
+                                            onClick={() =>
+                                                document.getElementById('image-input')?.click()
+                                            }
+                                        >
+                                            <input
+                                                id="image-input"
+                                                type="file"
+                                                ref={imageRef}
+                                                accept="image/*"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleFileSelect}
+                                            />
+                                            <Icons.Image
+                                                className={cn(
+                                                    'h-5 w-5',
+                                                    'group-hover:text-foreground',
+                                                )}
+                                            />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipPortal>
+                                        <TooltipContent side="top" sideOffset={5}>
+                                            Upload image
+                                        </TooltipContent>
+                                    </TooltipPortal>
+                                </Tooltip>
+                            </div>
+                            <div className="flex flex-row items-center gap-1.5">
+                                <MicButton
+                                    onTranscript={handleTranscript}
+                                    disabled={isCreatingProject}
+                                    className="h-9 w-9"
+                                    iconClassName="h-5 w-5"
                                 />
-                            </div>
-                            <div
-                                className={cn(
-                                    'text-foreground-tertiary px-0.5 pt-1 text-[11px] transition-opacity duration-150',
-                                    inputValue.length > 0 && isInputInvalid
-                                        ? 'opacity-100'
-                                        : 'pointer-events-none h-0 opacity-0',
-                                )}
-                                aria-live="polite"
-                            >
-                                {charactersRemaining > 0
-                                    ? `${charactersRemaining} more character${charactersRemaining === 1 ? '' : 's'} to start designing`
-                                    : ''}
-                            </div>
-                            <div className="flex w-full flex-row items-center justify-between px-0 pt-2 pb-2">
-                                <div className="flex flex-row justify-start gap-1.5">
-                                    <Tooltip
-                                        open={imageTooltipOpen && !isHandlingFile}
-                                        onOpenChange={(open) =>
-                                            !isHandlingFile && setImageTooltipOpen(open)
-                                        }
-                                    >
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-foreground-tertiary group h-9 w-9 cursor-pointer hover:bg-transparent"
-                                                onClick={() =>
-                                                    document.getElementById('image-input')?.click()
-                                                }
-                                            >
-                                                <input
-                                                    id="image-input"
-                                                    type="file"
-                                                    ref={imageRef}
-                                                    accept="image/*"
-                                                    multiple
-                                                    className="hidden"
-                                                    onChange={handleFileSelect}
-                                                />
-                                                <Icons.Image
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size="icon"
+                                            variant="secondary"
+                                            className={cn(
+                                                'text-smallPlus h-9 w-9 cursor-pointer',
+                                                isInputInvalid
+                                                    ? 'text-foreground-primary'
+                                                    : 'bg-foreground-primary hover:bg-foreground-hover text-white',
+                                            )}
+                                            disabled={isInputInvalid || isCreatingProject}
+                                            onClick={handleSubmit}
+                                        >
+                                            {isCreatingProject ? (
+                                                <Icons.LoadingSpinner className="text-background h-5 w-5 animate-pulse" />
+                                            ) : (
+                                                <Icons.ArrowRight
                                                     className={cn(
                                                         'h-5 w-5',
-                                                        'group-hover:text-foreground',
+                                                        !isInputInvalid
+                                                            ? 'text-background'
+                                                            : 'text-foreground-primary',
                                                     )}
                                                 />
-                                            </Button>
-                                        </TooltipTrigger>
+                                            )}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    {!user?.id && !isInputInvalid && (
                                         <TooltipPortal>
                                             <TooltipContent side="top" sideOffset={5}>
-                                                Upload image
+                                                Sign in to design →
                                             </TooltipContent>
                                         </TooltipPortal>
-                                    </Tooltip>
-                                </div>
-                                <div className="flex flex-row items-center gap-1.5">
-                                    <MicButton
-                                        onTranscript={handleTranscript}
-                                        disabled={isCreatingProject}
-                                        className="h-9 w-9"
-                                        iconClassName="h-5 w-5"
-                                    />
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                size="icon"
-                                                variant="secondary"
-                                                className={cn(
-                                                    'text-smallPlus h-9 w-9 cursor-pointer',
-                                                    isInputInvalid
-                                                        ? 'text-foreground-primary'
-                                                        : 'bg-foreground-primary hover:bg-foreground-hover text-white',
-                                                )}
-                                                disabled={isInputInvalid || isCreatingProject}
-                                                onClick={handleSubmit}
-                                            >
-                                                {isCreatingProject ? (
-                                                    <Icons.LoadingSpinner className="text-background h-5 w-5 animate-pulse" />
-                                                ) : (
-                                                    <Icons.ArrowRight
-                                                        className={cn(
-                                                            'h-5 w-5',
-                                                            !isInputInvalid
-                                                                ? 'text-background'
-                                                                : 'text-foreground-primary',
-                                                        )}
-                                                    />
-                                                )}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        {!user?.id && !isInputInvalid && (
-                                            <TooltipPortal>
-                                                <TooltipContent side="top" sideOffset={5}>
-                                                    Sign in to design →
-                                                </TooltipContent>
-                                            </TooltipPortal>
-                                        )}
-                                    </Tooltip>
-                                </div>
+                                    )}
+                                </Tooltip>
                             </div>
                         </div>
+                    </div>
                 </div>
                 {suggestions && suggestions.length > 0 && (
                     <div className="flex flex-wrap justify-center gap-2">

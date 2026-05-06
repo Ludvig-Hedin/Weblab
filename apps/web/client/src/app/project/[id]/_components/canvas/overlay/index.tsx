@@ -1,10 +1,14 @@
-import { useEditorEngine } from '@/components/store/editor';
-import type { ClickRectState } from '@/components/store/editor/overlay/state';
+import { useMemo } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useMemo } from 'react';
+
+import type { ClickRectState } from '@/components/store/editor/overlay/state';
+import { useEditorEngine } from '@/components/store/editor';
+import { CommentPins } from './comment-pins';
+import { CommentPopover } from './comment-popover';
 import { OverlayButtons } from './elements/buttons';
 import { MeasurementOverlay } from './elements/measurement';
 import { ClickRect } from './elements/rect/click';
@@ -12,8 +16,6 @@ import { HoverRect } from './elements/rect/hover';
 import { InsertRect } from './elements/rect/insert';
 import { SnapGuidelines } from './elements/snap-guidelines';
 import { TextEditor } from './elements/text';
-import { CommentPins } from './comment-pins';
-import { CommentPopover } from './comment-popover';
 import { RemoteCursors } from './remote-cursors';
 
 export const Overlay = observer(() => {
@@ -43,8 +45,10 @@ export const Overlay = observer(() => {
         <div
             id={EditorAttributes.OVERLAY_CONTAINER_ID}
             className={cn(
-                'absolute top-0 left-0 h-0 w-0 pointer-events-none',
-                editorEngine.state.shouldHideOverlay ? 'opacity-0' : 'opacity-100 transition-opacity duration-150',
+                'pointer-events-none absolute top-0 left-0 h-0 w-0',
+                editorEngine.state.shouldHideOverlay
+                    ? 'opacity-0'
+                    : 'opacity-100 transition-opacity duration-150',
                 editorEngine.state.editorMode === EditorMode.PREVIEW && 'hidden',
             )}
         >
@@ -54,22 +58,16 @@ export const Overlay = observer(() => {
                     isComponent={overlayState.hoverRect.isComponent}
                 />
             )}
-            {overlayState.insertRect && (
-                <InsertRect rect={overlayState.insertRect} />
-            )}
+            {overlayState.insertRect && <InsertRect rect={overlayState.insertRect} />}
             {!isTextEditing && clickRectsElements}
-            {isTextEditing && overlayState.textEditor && (
-                <TextEditor />
-            )}
+            {isTextEditing && overlayState.textEditor && <TextEditor />}
             {overlayState.measurement && (
                 <MeasurementOverlay
                     fromRect={overlayState.measurement.fromRect}
                     toRect={overlayState.measurement.toRect}
                 />
             )}
-            {overlayState.clickRects.length > 0 && (
-                <OverlayButtons />
-            )}
+            {overlayState.clickRects.length > 0 && <OverlayButtons />}
             <SnapGuidelines />
             <CommentPins />
             <CommentPopover />

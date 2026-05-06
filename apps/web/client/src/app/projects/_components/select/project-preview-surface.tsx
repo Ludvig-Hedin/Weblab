@@ -38,6 +38,20 @@ const FallbackPreview = () => {
     );
 };
 
+/**
+ * Some hosts inject a consent/warning dialog when embedded in an iframe
+ * (e.g. CodeSandbox preview domains). Skip the iframe for these and fall
+ * back to the skeleton — the user can still open the full page by clicking.
+ */
+function isNonEmbeddable(url: string): boolean {
+    try {
+        const { hostname } = new URL(url);
+        return hostname.endsWith('.csb.app') || hostname.endsWith('.codesandbox.io');
+    } catch {
+        return false;
+    }
+}
+
 export const ProjectPreviewSurface = ({
     projectName,
     imageUrl,
@@ -58,7 +72,9 @@ export const ProjectPreviewSurface = ({
         setFaviconFailed(false);
     }, [imageUrl, siteUrl]);
 
-    // Give the iframe 6 s before giving up and showing the gray fallback
+    // Give the iframe 6 s before giving up and showing the skeleton fallback.
+    // Without this, cards with unresponsive or iframe-blocking preview URLs
+    // would display a blank white frame indefinitely.
     useEffect(() => {
         if (!siteUrl || imageUrl || iframeLoaded) return;
         const t = window.setTimeout(() => setIframeTimedOut(true), 6000);
@@ -67,7 +83,10 @@ export const ProjectPreviewSurface = ({
 
     const shouldRenderImage = Boolean(imageUrl && !imageFailed);
     const shouldRenderIframe = Boolean(
-        !shouldRenderImage && siteUrl && (iframeLoaded || !iframeTimedOut),
+        !shouldRenderImage &&
+            siteUrl &&
+            !isNonEmbeddable(siteUrl) &&
+            (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
@@ -88,15 +107,19 @@ export const ProjectPreviewSurface = ({
                 />
             )}
 
-            {/* Live preview — site rendered at ~1200 px then scaled to fit the card */}
+            {/* Live preview — site rendered at ~1200 px then scaled to fit the card.
+                The wrapper must carry rounded-[inherit] so the browser clips the
+                scaled iframe at the same radius as the outer container. bg-white is
+                intentionally absent — it caused white-corner bleed-through on the
+                non-hover state due to the CSS transform + overflow:hidden quirk. */}
             {shouldRenderIframe && (
-                <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
                     <iframe
                         src={siteUrl!}
                         title={`${projectName} preview`}
                         loading="lazy"
                         referrerPolicy="no-referrer"
-                        className="pointer-events-none absolute top-0 left-0 border-0 bg-white"
+                        className="pointer-events-none absolute top-0 left-0 border-0"
                         onLoad={() => setIframeLoaded(true)}
                         style={{
                             width: '300%',

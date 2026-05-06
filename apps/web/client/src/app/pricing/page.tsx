@@ -1,14 +1,17 @@
 'use client';
-import { APP_NAME } from '@weblab/constants';
 
+import Link from 'next/link';
+
+import type { IconProps } from '@weblab/ui/icons';
+import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
-import { Icons, type IconProps } from '@weblab/ui/icons';
+import { Icons } from '@weblab/ui/icons';
+
+import { Routes } from '@/utils/constants';
 import { AuthModal } from '../_components/auth-modal';
 import { CTASection } from '../_components/landing-page/cta-section';
-import { WebsiteLayout } from '../_components/website-layout';
 import { FAQSection } from '../_components/landing-page/faq-section';
-import { Routes } from '@/utils/constants';
-import Link from 'next/link';
+import { WebsiteLayout } from '../_components/website-layout';
 
 const HIGHLIGHTED_FEATURES = [
     {
@@ -44,7 +47,7 @@ const HIGHLIGHTED_FEATURES = [
     {
         icon: 'GitHubLogo',
         title: 'Open Source',
-        description: 'Built with the community. Customize and extend for your team\'s needs',
+        description: "Built with the community. Customize and extend for your team's needs",
     },
     {
         icon: 'Globe',
@@ -72,35 +75,41 @@ const ENTERPRISE_FEATURES = [
 export default function PricingPage() {
     const handleContactUs = () => {
         const subject = encodeURIComponent(`[Team Inquiry]: Getting Started with ${APP_NAME}`);
-        const body = encodeURIComponent(`Hi Daniel,
+        const body = encodeURIComponent(`Hi,
 
-I'm interested in setting up {APP_NAME} for our team.
+I'm interested in setting up ${APP_NAME} for our team.
 
 Looking forward to hearing from you.
 
 Best regards,
 [Your name]`);
 
-        window.location.href = `mailto:daniel@weblab.build?subject=${subject}&body=${body}`;
+        window.location.href = `mailto:support@weblab.build?subject=${subject}&body=${body}`;
     };
 
     return (
         <WebsiteLayout showFooter={true}>
-            <div className="w-full max-w-6xl mx-auto flex flex-col items-center px-8">
-                <div className="text-left mb-12 mt-24 w-full">
-                    <h1 className="text-foreground text-5xl font-light mb-4">Pricing</h1>
-                    <p className="text-muted-foreground text-regular">Equip your product team with the power of AI</p>
+            <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-8">
+                <div className="mt-24 mb-12 w-full text-left">
+                    <h1 className="text-foreground mb-4 text-5xl font-light">Pricing</h1>
+                    <p className="text-muted-foreground text-regular">
+                        Equip your product team with the power of AI
+                    </p>
                 </div>
 
                 {/* Enterprise Section */}
-                <div className="w-full max-w-6xl mx-auto">
-                    <div className="border border-border-primary rounded-lg p-8 sm:p-12">
-                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                <div className="mx-auto w-full max-w-6xl">
+                    <div className="border-border-primary rounded-lg border p-8 sm:p-12">
+                        <div className="mb-8 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
                             <div className="text-left">
-                                <h2 className="text-3xl sm:text-4xl font-light text-foreground mb-3">For Teams</h2>
-                                <p className="text-regular text-foreground-secondary">Custom pricing tailored to your team's needs</p>
+                                <h2 className="text-foreground mb-3 text-3xl font-light sm:text-4xl">
+                                    For Teams
+                                </h2>
+                                <p className="text-regular text-foreground-secondary">
+                                    Custom pricing tailored to your team's needs
+                                </p>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-4 lg:flex-shrink-0 w-full sm:w-auto">
+                            <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row lg:flex-shrink-0">
                                 <Button
                                     className="w-full sm:w-auto sm:min-w-[180px]"
                                     onClick={handleContactUs}
@@ -114,32 +123,32 @@ Best regards,
                                     size="lg"
                                     asChild
                                 >
-                                    <a href="/projects">
-                                        Get Started
-                                    </a>
+                                    <a href="/projects">Get Started</a>
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="border-t border-border-primary my-8" />
+                        <div className="border-border-primary my-8 border-t" />
 
                         {/* Highlighted Features */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-8">
+                        <div className="mb-8 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
                             {HIGHLIGHTED_FEATURES.map((feature) => {
-                                const IconComponent = Icons[feature.icon as keyof typeof Icons] as React.FC<IconProps>;
+                                const IconComponent = Icons[
+                                    feature.icon as keyof typeof Icons
+                                ] as React.FC<IconProps>;
                                 return (
                                     <div
                                         key={feature.title}
-                                        className="flex items-start gap-4 p-0 rounded-lg"
+                                        className="flex items-start gap-4 rounded-lg p-0"
                                     >
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-foreground-weblab/10 flex items-center justify-center">
-                                            <IconComponent className="w-5 h-5 text-foreground-weblab" />
+                                        <div className="bg-foreground-weblab/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
+                                            <IconComponent className="text-foreground-weblab h-5 w-5" />
                                         </div>
                                         <div className="flex flex-col gap-1">
-                                            <h3 className="text-base font-medium text-foreground">
+                                            <h3 className="text-foreground text-base font-medium">
                                                 {feature.title}
                                             </h3>
-                                            <p className="text-sm text-foreground-secondary text-balance">
+                                            <p className="text-foreground-secondary text-sm text-balance">
                                                 {feature.description}
                                             </p>
                                         </div>
@@ -148,33 +157,43 @@ Best regards,
                             })}
                         </div>
 
-                        <div className="border-t border-border-primary my-8" />
+                        <div className="border-border-primary my-8 border-t" />
 
                         {/* Standard Features */}
-                        <h3 className="text-title3 font-light text-foreground mb-4">And more...</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
+                        <h3 className="text-title3 text-foreground mb-4 font-light">And more...</h3>
+                        <div className="mx-auto mb-8 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
                             {ENTERPRISE_FEATURES.map((feature) => (
                                 <div
                                     key={feature}
-                                    className="flex items-center gap-3 text-base text-foreground-secondary"
+                                    className="text-foreground-secondary flex items-center gap-3 text-base"
                                 >
-                                    <Icons.CheckCircled className="w-5 h-5 text-foreground-weblab flex-shrink-0" />
+                                    <Icons.CheckCircled className="text-foreground-weblab h-5 w-5 flex-shrink-0" />
                                     <span>{feature}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="border-t border-border-primary my-8" />
+                        <div className="border-border-primary my-8 border-t" />
                         <p className="text-small text-muted-foreground/50 max-w-2xl text-balance">
-                            Existing paid plan users can continue using {APP_NAME}. New users – Please contact us or book a demo to get your team set up. If you're looking to self-host {APP_NAME}, please check out the <Link href="https://github.com/Ludvig-Hedin/Weblab" target="_blank" className="underline">GitHub repository</Link> or reach out to us to schedule a call.
+                            Existing paid plan users can continue using {APP_NAME}. New users –
+                            Please contact us to get your team set up. If you're looking to
+                            self-host {APP_NAME}, please check out the{' '}
+                            <Link
+                                href="https://github.com/Ludvig-Hedin/Weblab"
+                                target="_blank"
+                                className="underline"
+                            >
+                                GitHub repository
+                            </Link>{' '}
+                            or reach out to us to schedule a call.
                         </p>
                     </div>
                 </div>
             </div>
-            <div className="w-full mx-auto flex flex-col items-center mt-16 sm:mt-20 lg:mt-28">
+            <div className="mx-auto mt-16 flex w-full flex-col items-center sm:mt-20 lg:mt-28">
                 <FAQSection />
             </div>
-            <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
+            <div className="mx-auto flex w-full max-w-6xl flex-col items-center">
                 <div className="mt-16 w-full">
                     <CTASection href={Routes.PROJECTS} />
                 </div>

@@ -1,11 +1,9 @@
 'use client';
 
-import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/client';
-import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
-import { getReturnUrlQueryParam } from '@/utils/url';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
 import {
     DropdownMenu,
@@ -16,28 +14,38 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { getInitials } from '@weblab/utility';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { UsageSection } from './plans';
+
+import { useStateManager } from '@/components/store/state';
+import { transKeys } from '@/i18n/keys';
+import { api } from '@/trpc/react';
+import { Routes } from '@/utils/constants';
+import { createClient } from '@/utils/supabase/client';
+import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { SettingsTabValue } from '../settings-modal/helpers';
+import { UsageSection } from './plans';
 
 export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const stateManager = useStateManager();
     const supabase = createClient();
     const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
+    const t = useTranslations();
 
     const { data: user } = api.user.get.useQuery();
     const initials = getInitials(user?.displayName ?? user?.firstName ?? '');
     const [open, setOpen] = useState(false);
 
     const handleSignOut = async () => {
+        // Reset MobX modal flags so settings/subscription dialogs from the
+        // previous account don't leak across the sign-out boundary.
+        stateManager.isSettingsModalOpen = false;
+        stateManager.isSubscriptionModalOpen = false;
         // Clear analytics/feedback identities before signing out
         void resetTelemetry();
         await supabase.auth.signOut();
-        const returnUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-        router.push(`${Routes.LOGIN}?${getReturnUrlQueryParam(returnUrl)}`);
+        // Always land on /projects after sign-out — never carry the previous
+        // session's pathname forward, otherwise the next sign-in could route
+        // a different account into a project they don't own.
+        router.push(Routes.PROJECTS);
     };
 
     const handleOpenSubscription = () => {
@@ -52,19 +60,21 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         setOpen(false);
     };
 
+    // i18n: signOut, subscriptions, settings keys exist under projects.actions.
+    // No "Send Feedback" key in en.json yet — leave hardcoded for now.
     const BUTTONS = [
         {
-            label: 'Subscription',
+            label: t(transKeys.projects.actions.subscriptions),
             icon: Icons.CreditCard,
             onClick: handleOpenSubscription,
         },
         {
-            label: 'Settings',
+            label: t(transKeys.projects.actions.settings),
             icon: Icons.Gear,
             onClick: handleOpenSettings,
         },
         {
-            label: 'Send Feedback',
+            label: 'Send Feedback', // TODO: add transKeys.projects.actions.sendFeedback
             icon: Icons.MessageSquare,
             onClick: () => {
                 void openFeedbackWidget();
@@ -72,7 +82,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
             },
         },
         {
-            label: 'Sign Out',
+            label: t(transKeys.projects.actions.signOut),
             icon: Icons.Exit,
             onClick: handleSignOut,
         },
@@ -91,7 +101,9 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
             <DropdownMenuContent className="w-72 p-0">
                 <div className="flex items-center gap-2 p-3 select-none">
                     <div className="flex flex-col">
-                        <span className="text-smallPlus">{user?.firstName ?? user?.displayName}</span>
+                        <span className="text-smallPlus">
+                            {user?.firstName ?? user?.displayName}
+                        </span>
                         <span className="text-mini text-foreground-secondary">{user?.email}</span>
                     </div>
                 </div>
@@ -107,7 +119,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
                                 className="cursor-pointer"
                                 onClick={button.onClick}
                             >
-                                <div className="flex flex-row center items-center group">
+                                <div className="center group flex flex-row items-center">
                                     <IconComponent className="mr-2" />
                                     {button.label}
                                 </div>

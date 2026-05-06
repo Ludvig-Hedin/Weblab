@@ -1,4 +1,3 @@
-
 // System reserved names (Windows compatibility)
 export const RESERVED_NAMES: string[] = [
     'CON',
@@ -23,7 +22,7 @@ export const RESERVED_NAMES: string[] = [
     'LPT7',
     'LPT8',
     'LPT9',
-]
+];
 
 // Invalid characters for file/folder names across platforms
 export const INVALID_CHARS_REGEX = /[<>:"|?*\\/]/;
@@ -33,7 +32,7 @@ export const FILE_CONSTRAINTS = {
     MIN_NAME_LENGTH: 1,
     INVALID_CHARS: ['<', '>', ':', '"', '|', '?', '*', '\\', '/'],
     RESERVED_NAMES,
-}
+};
 
 export const validateFileName = (fileName: string): { valid: boolean; error?: string } => {
     if (!fileName) {
@@ -46,11 +45,7 @@ export const validateFileName = (fileName: string): { valid: boolean; error?: st
     }
 
     // Check for reserved names
-    if (
-        FILE_CONSTRAINTS.RESERVED_NAMES.includes(
-            fileName.toUpperCase(),
-        )
-    ) {
+    if (FILE_CONSTRAINTS.RESERVED_NAMES.includes(fileName.toUpperCase())) {
         return { valid: false, error: 'File name is reserved' };
     }
 

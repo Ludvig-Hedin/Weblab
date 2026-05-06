@@ -1,9 +1,12 @@
 'use client';
 
-import { Routes } from '@/utils/constants';
-import type { GitHubOrganization, GitHubRepository } from '@weblab/github';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+import type { GitHubOrganization, GitHubRepository } from '@weblab/github';
+
+import { Routes } from '@/utils/constants';
 import {
     useGitHubAppInstallation,
     useGitHubData,
@@ -70,6 +73,13 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
     const repositoryImport = useRepositoryImport();
     const repositoryValidation = useRepositoryValidation();
 
+    /**
+     * AbortController for the in-flight repository import. cancel() aborts it
+     * before clearing local state so we don't leak the in-flight mutation
+     * (issue #9).
+     */
+    const abortController = useRef<AbortController | null>(null);
+
     useEffect(() => {
         installation.refetch();
     }, []);
@@ -90,8 +100,12 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
         if (currentStep === 1) {
             setCurrentStep(2);
             if (selectedRepo) {
+                abortController.current = new AbortController();
                 repositoryImport.clearError();
-                await repositoryImport.importRepository(selectedRepo);
+                await repositoryImport.importRepository(
+                    selectedRepo,
+                    abortController.current.signal,
+                );
             }
         } else if (currentStep < totalSteps - 1) {
             setCurrentStep((prev) => prev + 1);
@@ -135,14 +149,32 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
         }
 
         setCurrentStep(2);
+        abortController.current = new AbortController();
         repositoryImport.clearError();
-        await repositoryImport.importRepository(selectedRepo);
+        await repositoryImport.importRepository(selectedRepo, abortController.current.signal);
     };
 
+    /**
+     * Cancel an in-flight GitHub import. Aborts the active mutation chain,
+     * clears local state, and routes home. The sandbox/project IDs aren't
+     * exposed at this layer (`use-repo-import` owns the mutation), so when an
+     * import was in flight we surface a toast hinting at server cleanup.
+     */
     const cancel = () => {
+        const wasImporting = repositoryImport.isImporting;
+        abortController.current?.abort();
+        abortController.current = null;
+
+        if (wasImporting) {
+            // TODO: server-side cleanup of orphan sandbox
+            toast.message('GitHub import cancelled', {
+                description: 'If a sandbox was created, it may take a moment to clean up.',
+            });
+        }
+
         clearData();
         clearErrors();
-        setCurrentStep(1);
+        router.push(Routes.HOME);
     };
 
     const contextValue: ImportGithubContextType = {

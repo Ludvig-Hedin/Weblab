@@ -1,7 +1,16 @@
-import { type ActionTarget, type ImageContentData } from '@weblab/models';
-import { convertToBase64DataUrl, getBaseName, getMimeType, isImageFile, sanitizeFilename, stripImageFolderPrefix } from '@weblab/utility';
-import { makeAutoObservable } from 'mobx';
 import path from 'path';
+import { makeAutoObservable } from 'mobx';
+
+import { type ActionTarget, type ImageContentData } from '@weblab/models';
+import {
+    convertToBase64DataUrl,
+    getBaseName,
+    getMimeType,
+    isImageFile,
+    sanitizeFilename,
+    stripImageFolderPrefix,
+} from '@weblab/utility';
+
 import type { EditorEngine } from '../engine';
 
 export class ImageManager {
@@ -14,7 +23,7 @@ export class ImageManager {
         makeAutoObservable(this);
     }
 
-    init() { }
+    init() {}
 
     get imagePaths() {
         return this._imagePaths;
@@ -120,7 +129,6 @@ export class ImageManager {
         return this.imagePaths.find((img) => name.includes(img));
     }
 
-
     getTargets() {
         const selected = this.editorEngine.elements.selected;
 
@@ -209,5 +217,4 @@ export class ImageManager {
         this._previewImage = null;
         this._isSelectingImage = false;
     }
-
 }

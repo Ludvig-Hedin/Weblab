@@ -14,8 +14,6 @@ export enum SettingsTabValue {
     DOMAIN = 'domain',
     PROJECT = 'project',
     VERSIONS = 'versions',
-    // Legacy alias
-    PREFERENCES = 'account',
 }
 
 export interface SettingTab {
@@ -24,6 +22,4 @@ export interface SettingTab {
     component: React.ReactNode;
 }
 
-export const ComingSoonTab = () => {
-    return <div>Coming soon...</div>;
-};
+// Bug fix #58: Removed unused ComingSoonTab export — no callers in the codebase.

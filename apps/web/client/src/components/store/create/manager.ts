@@ -119,10 +119,11 @@ export class CreateManager {
         }
     }
 
-    async createSandboxFromGithub(repoUrl: string, branch: string) {
+    async createSandboxFromGithub(repoUrl: string, branch: string, subpath?: string) {
         return await api.sandbox.createFromGitHub.mutate({
             repoUrl,
             branch,
+            subpath,
         });
     }
 
@@ -132,6 +133,7 @@ export class CreateManager {
         description: string;
         repoUrl: string;
         branch: string;
+        subpath?: string;
     }) {
         this.error = null;
         try {
@@ -143,6 +145,7 @@ export class CreateManager {
             const { sandboxId, previewUrl } = await this.createSandboxFromGithub(
                 input.repoUrl,
                 input.branch,
+                input.subpath,
             );
             const project = createDefaultProject({
                 overrides: {

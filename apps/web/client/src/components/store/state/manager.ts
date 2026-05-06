@@ -1,5 +1,6 @@
-import { SettingsTabValue } from '@weblab/models';
 import { makeAutoObservable } from 'mobx';
+
+import { SettingsTabValue } from '@weblab/models';
 
 import { HotkeyStore } from '@/components/store/hotkeys';
 

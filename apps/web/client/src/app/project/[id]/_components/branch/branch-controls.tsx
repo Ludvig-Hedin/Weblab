@@ -1,10 +1,11 @@
-import { useEditorEngine } from "@/components/store/editor";
-import { BranchTabValue, LeftPanelTabValue, type Branch } from "@weblab/models";
-import {
-    DropdownMenuItem
-} from "@weblab/ui/dropdown-menu";
-import { Icons } from "@weblab/ui/icons";
-import { useState } from "react";
+import { useState } from 'react';
+
+import type { Branch } from '@weblab/models';
+import { BranchTabValue, LeftPanelTabValue } from '@weblab/models';
+import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 interface BranchControlsProps {
     branch: Branch;
@@ -19,7 +20,7 @@ export function BranchControls({
     onClose,
     onForkBranch,
     onCreateBlankSandbox,
-    onManageBranches
+    onManageBranches,
 }: BranchControlsProps) {
     const editorEngine = useEditorEngine();
     const [isForking, setIsForking] = useState(false);
@@ -34,7 +35,7 @@ export function BranchControls({
             onForkBranch?.();
             onClose?.();
         } catch (error) {
-            console.error("Failed to fork branch:", error);
+            console.error('Failed to fork branch:', error);
         } finally {
             setIsForking(false);
         }
@@ -49,7 +50,7 @@ export function BranchControls({
             onCreateBlankSandbox?.();
             onClose?.();
         } catch (error) {
-            console.error("Failed to create blank sandbox:", error);
+            console.error('Failed to create blank sandbox:', error);
         } finally {
             setIsCreatingBlank(false);
         }
@@ -77,7 +78,19 @@ export function BranchControls({
                 ) : (
                     <Icons.Branch className="h-4 w-4" />
                 )}
-                <span>{isForking ? "Forking..." : "Fork into a new Branch"}</span>
+                <span>{isForking ? 'Forking...' : 'Fork into a new Branch'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+                className="flex items-center gap-2 p-2"
+                onSelect={handleCreateBlankSandbox}
+                disabled={isCreatingBlank}
+            >
+                {isCreatingBlank ? (
+                    <Icons.LoadingSpinner className="h-4 w-4" />
+                ) : (
+                    <Icons.Plus className="h-4 w-4" />
+                )}
+                <span>{isCreatingBlank ? 'Creating...' : 'Create blank sandbox'}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
                 className="flex items-center gap-2 p-2"

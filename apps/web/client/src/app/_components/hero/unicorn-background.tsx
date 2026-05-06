@@ -1,7 +1,7 @@
 'use client';
 
-import { motion } from 'motion/react';
 import { useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import UnicornScene from 'unicornstudio-react/next';
 
 export function UnicornBackground() {

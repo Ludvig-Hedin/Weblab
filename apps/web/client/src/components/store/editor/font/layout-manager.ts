@@ -1,5 +1,7 @@
 import { camelCase } from 'lodash';
 
+import type { CodeDiff, Font } from '@weblab/models';
+import type { T } from '@weblab/parser';
 import {
     addFontImportToFile,
     createStringLiteralWithFont,
@@ -10,8 +12,6 @@ import {
     updateClassNameWithFontVar,
     updateTemplateLiteralWithFontClass,
 } from '@weblab/fonts';
-import type { CodeDiff, Font } from '@weblab/models';
-import type { T } from '@weblab/parser';
 import { generate, getAstFromContent, t, traverse } from '@weblab/parser';
 
 import type { EditorEngine } from '../engine';
@@ -60,7 +60,7 @@ export const addFontVariableToRootLayout = async (
         console.error(`Error adding font variable to layout:`, error);
         return false;
     }
-}
+};
 
 /**
  * Removes a font variable from the layout file
@@ -114,7 +114,7 @@ export const removeFontVariableFromRootLayout = async (
         console.error(`Error removing font variable`, error);
         return false;
     }
-}
+};
 
 /**
  * Updates the default font in a layout file by modifying className attributes
@@ -171,14 +171,12 @@ export const updateDefaultFontInRootLayout = async (
     }
 
     return null;
-}
+};
 
 /**
  * Gets the current default font from the project
  */
-export const getCurrentDefaultFont = async (
-    editorEngine: EditorEngine,
-): Promise<string | null> => {
+export const getCurrentDefaultFont = async (editorEngine: EditorEngine): Promise<string | null> => {
     try {
         const context = await getLayoutContext(editorEngine);
         if (!context) return null;
@@ -211,7 +209,7 @@ export const getCurrentDefaultFont = async (
         console.error('Error getting current font:', error);
         return null;
     }
-}
+};
 
 export const traverseClassName = async (
     filePath: string,
@@ -283,13 +281,11 @@ export const traverseClassName = async (
         console.error(`Error traversing className in ${filePath}:`, error);
         return null;
     }
-}
+};
 
 export const getLayoutContext = async (
     editorEngine: EditorEngine,
-): Promise<
-    { layoutPath: string; targetElements: string[]; layoutContent: string } | undefined
-> => {
+): Promise<{ layoutPath: string; targetElements: string[]; layoutContent: string } | undefined> => {
     const layoutPath = await editorEngine.activeSandbox.getLayoutPath();
     const routerConfig = await editorEngine.activeSandbox.getRouterConfig();
 
@@ -308,8 +304,7 @@ export const getLayoutContext = async (
     const layoutContent = file;
 
     return { layoutPath, targetElements, layoutContent };
-}
-
+};
 
 /**
  * Clears the default font from the layout file by removing font className from body
@@ -367,4 +362,4 @@ export const clearDefaultFontFromRootLayout = async (
         console.error('Error clearing default font from layout:', error);
         return false;
     }
-}
+};
