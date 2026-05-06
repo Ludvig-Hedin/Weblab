@@ -233,6 +233,7 @@ export abstract class Provider {
     static createProjectFromGit(input: {
         repoUrl: string;
         branch: string;
+        subpath?: string;
         privacy?: 'public' | 'unlisted' | 'private';
     }): Promise<CreateProjectOutput> {
         throw new Error('createProjectFromGit must be implemented by subclass');

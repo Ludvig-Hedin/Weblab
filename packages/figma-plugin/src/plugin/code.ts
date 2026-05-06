@@ -67,7 +67,9 @@ function serialize(node: SceneNode): SerializedNode {
     // Strokes → border
     if ('strokes' in node) {
         const strokes = (node as GeometryMixin).strokes as Paint[];
-        const solid = strokes.find((s): s is SolidPaint => s.type === 'SOLID');
+        const solid = strokes.find(
+                (s): s is SolidPaint => s.type === 'SOLID' && s.visible !== false,
+            );
         if (solid) {
             base.strokeColor = colorToHex(solid.color);
             const sw = (node as GeometryMixin).strokeWeight;
@@ -89,7 +91,9 @@ function serialize(node: SceneNode): SerializedNode {
         }
         base.textAlignHorizontal =
             node.textAlignHorizontal as SerializedNode['textAlignHorizontal'];
-        base.textColor = getSolidFill(node.fills as Paint[]);
+        if (Array.isArray(node.fills)) {
+            base.textColor = getSolidFill(node.fills as Paint[]);
+        }
         const lh = node.getRangeLineHeight(0, node.characters.length);
         if (lh !== figma.mixed && lh.unit === 'PIXELS') base.lineHeight = Math.round(lh.value);
         const ls = node.getRangeLetterSpacing(0, node.characters.length);

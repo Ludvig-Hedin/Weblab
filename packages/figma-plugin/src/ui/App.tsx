@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SerializedNode, Framework, StyleMode, CodegenOptions } from '../codegen/types';
 import type { PluginToUIMessage, UIToPluginMessage } from '../shared/messages';
 import { generateReact } from '../codegen/react';
@@ -10,25 +10,37 @@ export function App() {
     const [framework, setFramework] = useState<Framework>('react');
     const [styleMode, setStyleMode] = useState<StyleMode>('tailwind');
     const [copied, setCopied] = useState(false);
+    const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const ready: UIToPluginMessage = { type: 'READY' };
         parent.postMessage({ pluginMessage: ready }, '*');
 
-        window.onmessage = (event: MessageEvent) => {
+        const handleMessage = (event: MessageEvent) => {
             const data = event.data?.pluginMessage as PluginToUIMessage | undefined;
             if (data?.type === 'SELECTION') {
                 setNodes(data.nodes);
                 setCopied(false);
             }
         };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
     }, []);
 
-    const options: CodegenOptions = { framework, styleMode };
-    const code =
-        framework === 'react'
+    useEffect(() => {
+        return () => {
+            if (copiedTimeoutRef.current !== null) {
+                clearTimeout(copiedTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const code = useMemo(() => {
+        const options: CodegenOptions = { framework, styleMode };
+        return framework === 'react'
             ? generateReact(nodes, options)
             : generateHTML(nodes, options);
+    }, [nodes, framework, styleMode]);
 
     const hasSelection = nodes.length > 0;
 
@@ -44,7 +56,13 @@ export function App() {
             document.body.removeChild(ta);
         }
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        if (copiedTimeoutRef.current !== null) {
+            clearTimeout(copiedTimeoutRef.current);
+        }
+        copiedTimeoutRef.current = setTimeout(() => {
+            setCopied(false);
+            copiedTimeoutRef.current = null;
+        }, 2000);
     };
 
     return (

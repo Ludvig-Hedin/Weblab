@@ -82,7 +82,7 @@ export function buildInlineStyles(node: SerializedNode): Record<string, string |
 /** Formats a style object as a React inline style JSX expression: {{ key: value }} */
 export function styleToReactInline(styles: Record<string, string | number>): string {
     const entries = Object.entries(styles)
-        .map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v}'` : v}`)
+        .map(([k, v]) => `${k}: ${typeof v === 'string' ? `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'` : v}`)
         .join(', ');
     return `{{ ${entries} }}`;
 }

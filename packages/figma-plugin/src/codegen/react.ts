@@ -37,7 +37,9 @@ function renderNode(node: SerializedNode, options: CodegenOptions, depth: number
     }
 
     if (node.type === 'TEXT') {
-        const text = (node.characters ?? '').replace(/\n/g, `\n${i1}`);
+        const text = (node.characters ?? '')
+            .replace(/\n/g, `\n${i1}`)
+            .replace(/[{}<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '{': '&#123;', '}': '&#125;', '&': '&amp;' }[c] ?? c));
         return `${i}<${tag}${attrs}>${text}</${tag}>`;
     }
 

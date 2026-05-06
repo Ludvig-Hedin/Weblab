@@ -1,6 +1,14 @@
 import type { SerializedNode, CodegenOptions } from './types';
 import { buildInlineStyles } from './inline';
 
+function escapeHtml(text: string): string {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 // These CSS properties take unitless numbers — do NOT append "px"
 const PX_EXEMPT = new Set([
     'opacity',
@@ -43,10 +51,10 @@ function renderNode(node: SerializedNode, depth: number): string {
 
     const styles = buildInlineStyles(node);
     const styleAttr =
-        Object.keys(styles).length > 0 ? ` style="${styleToCSS(styles)}"` : '';
+        Object.keys(styles).length > 0 ? ` style="${escapeHtml(styleToCSS(styles))}"` : '';
 
     if (node.type === 'TEXT') {
-        return `${i}<${tag}${styleAttr}>${node.characters ?? ''}</${tag}>`;
+        return `${i}<${tag}${styleAttr}>${escapeHtml(node.characters ?? '')}</${tag}>`;
     }
 
     if (!node.children || node.children.length === 0) {

@@ -32,7 +32,9 @@ describe('createSecureUrl', () => {
     });
 
     it('should handle domains with paths and queries', () => {
-        expect(createSecureUrl('weblab.build/path?query=1')).toBe('https://weblab.build/path?query=1');
+        expect(createSecureUrl('weblab.build/path?query=1')).toBe(
+            'https://weblab.build/path?query=1',
+        );
     });
 
     it('should handle www subdomains', () => {

@@ -2,13 +2,13 @@ import type { LanguageModel } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOllama } from 'ollama-ai-provider-v2';
 
-import type { InitialModelPayload, ModelConfig, OllamaModelId } from '@weblab/models';
-import {
-    getMaxTokens,
-    LLMProvider,
-    OLLAMA_DEFAULT_BASE_URL,
+import type {
+    InitialModelPayload,
+    ModelConfig,
+    OllamaModelId,
     OPENROUTER_MODELS,
 } from '@weblab/models';
+import { getMaxTokens, LLMProvider, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 import { assertNever } from '@weblab/utility';
 
 export function initModel(payload: InitialModelPayload): ModelConfig {
@@ -22,10 +22,7 @@ export function initModel(payload: InitialModelPayload): ModelConfig {
             providerOptions = {
                 openrouter: { transforms: ['middle-out'] },
             };
-            const isAnthropic =
-                payload.model === OPENROUTER_MODELS.CLAUDE_4_5_SONNET ||
-                payload.model === OPENROUTER_MODELS.CLAUDE_3_5_HAIKU ||
-                payload.model === OPENROUTER_MODELS.CLAUDE_OPUS_4_7;
+            const isAnthropic = payload.model.startsWith('anthropic/');
             if (isAnthropic) {
                 providerOptions = {
                     ...providerOptions,

@@ -124,9 +124,10 @@ export const repairToolCall = async ({
         `Invalid parameter for tool ${toolCall.toolName} with args ${JSON.stringify(toolCall.input)}, attempting to fix`,
     );
 
+    // Use a cheaper, fast model for structured repair; GPT-5.5 is overkill here.
     const { model } = initModel({
         provider: LLMProvider.OPENROUTER,
-        model: OPENROUTER_MODELS.OPEN_AI_GPT_5_NANO,
+        model: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU,
     });
 
     const { object: repairedArgs } = await generateObject({
