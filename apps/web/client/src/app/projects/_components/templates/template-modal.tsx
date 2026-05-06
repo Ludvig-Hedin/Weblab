@@ -1,8 +1,11 @@
-"use client";
+'use client';
 
-import { useAuthContext } from '@/app/auth/auth-context';
-import { api } from '@/trpc/react';
-import { LocalForageKeys, Routes } from '@/utils/constants';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import localforage from 'localforage';
+import { AnimatePresence, motion } from 'motion/react';
+import { toast } from 'sonner';
+
 import type { Project, User } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
@@ -10,16 +13,15 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
-import localforage from 'localforage';
-import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { LazyImage } from "./lazy-image";
+
+import { useAuthContext } from '@/app/auth/auth-context';
+import { api } from '@/trpc/react';
+import { LocalForageKeys, Routes } from '@/utils/constants';
+import { LazyImage } from './lazy-image';
 
 interface TemplateModalProps {
     isOpen: boolean;
@@ -49,7 +51,10 @@ export function TemplateModal({
     user,
 }: TemplateModalProps) {
     const { mutateAsync: forkTemplate } = api.project.fork.useMutation();
-    const { data: branches } = api.branch.getByProjectId.useQuery({ projectId: templateProject.id, onlyDefault: true });
+    const { data: branches } = api.branch.getByProjectId.useQuery({
+        projectId: templateProject.id,
+        onlyDefault: true,
+    });
     const { setIsAuthModalOpen } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
     const router = useRouter();
@@ -83,7 +88,8 @@ export function TemplateModal({
 
             if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
                 toast.error('Sandbox service temporarily unavailable', {
-                    description: 'Please try again in a few moments. Our servers may be experiencing high load.',
+                    description:
+                        'Please try again in a few moments. Our servers may be experiencing high load.',
                 });
             } else {
                 toast.error('Failed to create project from template', {
@@ -107,7 +113,7 @@ export function TemplateModal({
             return;
         }
         window.open(sandboxUrl, '_blank');
-    }
+    };
 
     const handleEditTemplate = () => {
         router.push(`${Routes.PROJECT}/${templateProject.id}`);
@@ -117,14 +123,14 @@ export function TemplateModal({
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onClose}
                 >
                     <motion.div
-                        className="bg-background border border-border rounded-2xl max-w-4xl w-full max-h-[80vh] flex relative shadow-2xl"
+                        className="bg-background border-border relative flex max-h-[80vh] w-full max-w-4xl rounded-2xl border shadow-2xl"
                         initial={{ scale: 0.95 }}
                         animate={{ scale: 1 }}
                         exit={{ scale: 0.95 }}
@@ -135,31 +141,29 @@ export function TemplateModal({
                             onClick={onClose}
                             variant="ghost"
                             size="sm"
-                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-background/20 hover:bg-secondary transition-colors"
+                            className="bg-background/20 hover:bg-secondary absolute top-4 right-4 z-10 rounded-full p-2 transition-colors"
                         >
-                            <Icons.CrossS className="w-4 h-4" />
+                            <Icons.CrossS className="h-4 w-4" />
                         </Button>
 
-                        <div className="w-1/2 bg-secondary relative rounded-l-2xl overflow-hidden">
+                        <div className="bg-secondary relative w-1/2 overflow-hidden rounded-l-2xl">
                             <LazyImage
                                 src={image}
                                 alt={`${title} template preview`}
-                                className="w-full h-full object-cover"
+                                className="h-full w-full object-cover"
                             />
 
                             {isNew && (
-                                <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                                <div className="absolute top-4 left-4 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white">
                                     New
                                 </div>
                             )}
                         </div>
 
-                        <div className="w-1/2 p-8 flex flex-col overflow-visible min-h-80">
-                            <h2 className="text-2xl font-semibold text-foreground mb-4">
-                                {title}
-                            </h2>
+                        <div className="flex min-h-80 w-1/2 flex-col overflow-visible p-8">
+                            <h2 className="text-foreground mb-4 text-2xl font-semibold">{title}</h2>
 
-                            <p className="text-foreground-secondary text-base leading-relaxed mb-8 flex-1">
+                            <p className="text-foreground-secondary mb-8 flex-1 text-base leading-relaxed">
                                 {description}
                             </p>
 
@@ -172,7 +176,7 @@ export function TemplateModal({
                                 >
                                     {isCreatingProject ? (
                                         <div className="flex items-center gap-2">
-                                            <Icons.LoadingSpinner className="w-4 h-4 animate-spin" />
+                                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                                             Creating...
                                         </div>
                                     ) : (
@@ -187,16 +191,16 @@ export function TemplateModal({
                                                 variant="outline"
                                                 size="lg"
                                                 onClick={onToggleStar}
-                                                aria-label={isStarred ? "Remove from favorites" : "Add to favorites"}
+                                                aria-label={
+                                                    isStarred
+                                                        ? 'Remove from favorites'
+                                                        : 'Add to favorites'
+                                                }
                                             >
                                                 {isStarred ? (
-                                                    <Icons.BookmarkFilled
-                                                        className="w-5 h-5 text-white"
-                                                    />
+                                                    <Icons.BookmarkFilled className="h-5 w-5 text-white" />
                                                 ) : (
-                                                    <Icons.Bookmark
-                                                        className="w-5 h-5 text-foreground-tertiary"
-                                                    />
+                                                    <Icons.Bookmark className="text-foreground-tertiary h-5 w-5" />
                                                 )}
                                             </Button>
                                         </TooltipTrigger>
@@ -213,12 +217,12 @@ export function TemplateModal({
                                             size="lg"
                                             aria-label="Template options"
                                         >
-                                            <Icons.DotsHorizontal className="w-5 h-5" />
+                                            <Icons.DotsHorizontal className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
                                         <DropdownMenuItem onClick={handlePreviewTemplate}>
-                                            <Icons.EyeOpen className="w-4 h-4 mr-3" />
+                                            <Icons.EyeOpen className="mr-3 h-4 w-4" />
                                             Preview
                                         </DropdownMenuItem>
                                         {/* <DropdownMenuItem>
@@ -230,7 +234,7 @@ export function TemplateModal({
                                             Download Code
                                         </DropdownMenuItem> */}
                                         <DropdownMenuItem onClick={handleEditTemplate}>
-                                            <Icons.Edit className="w-4 h-4 mr-3" />
+                                            <Icons.Edit className="mr-3 h-4 w-4" />
                                             Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
@@ -239,7 +243,7 @@ export function TemplateModal({
                                                 onClick={onUnmarkTemplate}
                                                 className="text-foreground-secondary focus:text-foreground"
                                             >
-                                                <Icons.CrossL className="w-4 h-4 mr-3" />
+                                                <Icons.CrossL className="mr-3 h-4 w-4" />
                                                 Remove Template
                                             </DropdownMenuItem>
                                         )}
@@ -255,14 +259,10 @@ export function TemplateModal({
     );
 }
 
+// Bug fix #59: Stats UI removed entirely — we don't have real numbers to show
+// and rendering "0" / "N/A" placeholders is worse than nothing. The component
+// is preserved as a no-op so existing callers still type-check; reintroduce
+// real content once stats are actually plumbed through.
 export function TemplateStats() {
-    // TODO: Add stats
     return null;
-    return (
-        <div className="mt-6 pt-6 border-t border-border hidden">
-            <div className="text-sm text-foreground-tertiary">
-                Used 24 times • Created 24 days ago
-            </div>
-        </div>
-    );
 }

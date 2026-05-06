@@ -29,13 +29,15 @@ import { Icons } from '@weblab/ui/icons';
 
 import type { StaticTemplate } from '../templates/static-templates';
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';
-import { Create, type CreateSuggestion } from '@/app/_components/hero/create';
+import type { CreateSuggestion } from '@/app/_components/hero/create';
+import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { api } from '@/trpc/react';
-import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { Routes } from '@/utils/constants';
+import { getFileUrlFromStorage } from '@/utils/supabase/client';
+import { ProjectModeDialog } from '../project-mode-dialog';
 import { Templates } from '../templates';
 import { StaticTemplates } from '../templates/static-templates';
 import { TemplateModal } from '../templates/template-modal';
@@ -54,28 +56,23 @@ const STARRED_TEMPLATES_KEY = 'weblab_starred_templates';
 export const PROJECT_SUGGESTIONS: CreateSuggestion[] = [
     {
         label: 'Personal Site',
-        prompt:
-            'Create a polished personal website for Alex Morgan, a product designer and creative developer. Include a strong hero with name, role, short intro, featured work, a short about section, testimonials, and a contact section with placeholder links. Use clean editorial styling, thoughtful typography, and placeholder copy that is easy to replace.',
+        prompt: 'Create a polished personal website for Alex Morgan, a product designer and creative developer. Include a strong hero with name, role, short intro, featured work, a short about section, testimonials, and a contact section with placeholder links. Use clean editorial styling, thoughtful typography, and placeholder copy that is easy to replace.',
     },
     {
         label: 'SaaS Landing',
-        prompt:
-            'Create a modern SaaS landing page for FlowPilot, an AI workflow tool for small teams. Include a hero with headline and CTA, product screenshot area, 3 feature sections, social proof logos, pricing cards, FAQ, and a final CTA. Use realistic placeholder copy, polished visuals, and a layout that feels launch-ready with minimal edits.',
+        prompt: 'Create a modern SaaS landing page for FlowPilot, an AI workflow tool for small teams. Include a hero with headline and CTA, product screenshot area, 3 feature sections, social proof logos, pricing cards, FAQ, and a final CTA. Use realistic placeholder copy, polished visuals, and a layout that feels launch-ready with minimal edits.',
     },
     {
         label: 'Portfolio',
-        prompt:
-            'Create a portfolio site for Nina Patel, a freelance brand designer. Include a hero, selected projects grid with placeholder case studies, services, client logos, short bio, testimonials, and a contact CTA. Make it feel premium and visual, with believable placeholder project names and short descriptions the user can quickly swap out.',
+        prompt: 'Create a portfolio site for Nina Patel, a freelance brand designer. Include a hero, selected projects grid with placeholder case studies, services, client logos, short bio, testimonials, and a contact CTA. Make it feel premium and visual, with believable placeholder project names and short descriptions the user can quickly swap out.',
     },
     {
         label: 'Dashboard',
-        prompt:
-            'Create a clean analytics dashboard for PulseOps, a customer support platform. Include top KPI cards, charts for tickets and response time, a recent activity feed, team performance table, and filters in the header. Use realistic sample data, clear information hierarchy, and a polished product UI style.',
+        prompt: 'Create a clean analytics dashboard for PulseOps, a customer support platform. Include top KPI cards, charts for tickets and response time, a recent activity feed, team performance table, and filters in the header. Use realistic sample data, clear information hierarchy, and a polished product UI style.',
     },
     {
         label: 'E-commerce',
-        prompt:
-            'Create a stylish e-commerce homepage for Northline Studio, a modern home office brand. Include a hero banner, featured products, category cards, a best sellers section, customer reviews, and a newsletter signup. Use realistic placeholder product names, prices, and images/copy so the page feels immediately usable.',
+        prompt: 'Create a stylish e-commerce homepage for Northline Studio, a modern home office brand. Include a hero banner, featured products, category cards, a best sellers section, customer reviews, and a newsletter signup. Use realistic placeholder product names, prices, and images/copy so the page feels immediately usable.',
     },
 ];
 
@@ -198,6 +195,7 @@ export const SelectProject = ({
     const [starredTemplates, setStarredTemplates] = useState<Set<string>>(new Set());
     const [folders, setFolders] = useState<ProjectFolder[]>([]);
     const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+    const [projectModeIntent, setProjectModeIntent] = useState<'create' | 'import' | null>(null);
     const [openFolderId, setOpenFolderId] = useState<string | null>(null);
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
@@ -554,6 +552,16 @@ export const SelectProject = ({
         }
     };
 
+    const handleCloudModeSelect = () => {
+        const intent = projectModeIntent;
+        setProjectModeIntent(null);
+        if (intent === 'create') {
+            void handleStartBlankProject();
+        } else if (intent === 'import') {
+            void handleImportLocalProject();
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center">
@@ -586,15 +594,15 @@ export const SelectProject = ({
                             suggestions={PROJECT_SUGGESTIONS}
                         />
                         <div className="flex w-[600px] max-w-full items-center gap-3">
-                            <div className="h-px flex-1 bg-foreground/10" />
-                            <span className="text-foreground-tertiary text-xs uppercase tracking-[0.2em]">
+                            <div className="bg-foreground/10 h-px flex-1" />
+                            <span className="text-foreground-tertiary text-xs tracking-[0.2em] uppercase">
                                 or
                             </span>
-                            <div className="h-px flex-1 bg-foreground/10" />
+                            <div className="bg-foreground/10 h-px flex-1" />
                         </div>
                         <div className="flex flex-wrap justify-center gap-2">
                             <Button
-                                onClick={() => void handleStartBlankProject()}
+                                onClick={() => setProjectModeIntent('create')}
                                 disabled={isCreatingProject || isImporting || isAiCreating}
                                 variant="outline"
                                 className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
@@ -604,10 +612,10 @@ export const SelectProject = ({
                                 ) : (
                                     <Icons.Plus className="h-4 w-4" />
                                 )}
-                                Create blank project
+                                Create project
                             </Button>
                             <Button
-                                onClick={() => void handleImportLocalProject()}
+                                onClick={() => setProjectModeIntent('import')}
                                 disabled={isCreatingProject || isImporting || isAiCreating}
                                 variant="outline"
                                 className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
@@ -617,7 +625,7 @@ export const SelectProject = ({
                                 ) : (
                                     <Icons.Directory className="h-4 w-4" />
                                 )}
-                                Open local folder
+                                Import folder
                             </Button>
                             <Button
                                 onClick={() => router.push(Routes.IMPORT_GITHUB)}
@@ -652,6 +660,17 @@ export const SelectProject = ({
                             />
                         </div>
                     )}
+                    <ProjectModeDialog
+                        open={projectModeIntent !== null}
+                        intent={projectModeIntent ?? 'create'}
+                        isBusy={isCreatingProject || isImporting}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setProjectModeIntent(null);
+                            }
+                        }}
+                        onCloudSelect={handleCloudModeSelect}
+                    />
                 </div>
             </CreateManagerProvider>
         );
@@ -690,7 +709,7 @@ export const SelectProject = ({
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className={`border ${selectionMode ? 'text-foreground border-foreground/14 bg-foreground/10' : 'text-foreground-tertiary hover:text-foreground border-transparent hover:border-foreground/10 hover:bg-foreground/6'}`}
+                                className={`border ${selectionMode ? 'text-foreground border-foreground/14 bg-foreground/10' : 'text-foreground-tertiary hover:text-foreground hover:border-foreground/10 hover:bg-foreground/6 border-transparent'}`}
                                 onClick={() => {
                                     if (selectionMode) {
                                         resetSelection();
@@ -703,7 +722,7 @@ export const SelectProject = ({
                                 {selectionMode ? 'Done selecting' : 'Select'}
                             </Button>
 
-                            <div className="flex items-center gap-1 rounded-full border border-foreground/8 bg-foreground/4 p-1">
+                            <div className="border-foreground/8 bg-foreground/4 flex items-center gap-1 rounded-full border p-1">
                                 {sortOptions.map((option) => (
                                     <button
                                         key={option.value}
@@ -722,9 +741,9 @@ export const SelectProject = ({
                     </div>
 
                     {selectionMode && (
-                        <div className="flex flex-col gap-3 rounded-[22px] border border-foreground/8 bg-foreground/4 p-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
+                        <div className="border-foreground/8 bg-foreground/4 flex flex-col gap-3 rounded-[22px] border p-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
                             <div className="text-foreground-secondary flex items-center gap-2 text-sm">
-                                <span className="text-foreground rounded-full border border-foreground/8 bg-foreground/8 px-2.5 py-1 text-xs">
+                                <span className="text-foreground border-foreground/8 bg-foreground/8 rounded-full border px-2.5 py-1 text-xs">
                                     {selectedCount}
                                 </span>
                                 {selectedCount === 1 ? 'project selected' : 'projects selected'}
@@ -817,7 +836,7 @@ export const SelectProject = ({
                         </motion.div>
 
                         {openFolder && (
-                            <div className="mt-6 rounded-[28px] border border-foreground/8 bg-foreground/3 p-5 backdrop-blur-xl">
+                            <div className="border-foreground/8 bg-foreground/3 mt-6 rounded-[28px] border p-5 backdrop-blur-xl">
                                 <div className="mb-4 flex items-center justify-between">
                                     <div>
                                         <h4 className="text-foreground text-base font-medium">
@@ -853,7 +872,7 @@ export const SelectProject = ({
                                         </AnimatePresence>
                                     </motion.div>
                                 ) : (
-                                    <div className="text-foreground-tertiary flex flex-col items-start gap-3 rounded-[22px] border border-dashed border-foreground/10 bg-foreground/5 p-6 text-sm">
+                                    <div className="text-foreground-tertiary border-foreground/10 bg-foreground/5 flex flex-col items-start gap-3 rounded-[22px] border border-dashed p-6 text-sm">
                                         <span>
                                             No projects in this folder match your search yet.
                                         </span>
@@ -888,7 +907,7 @@ export const SelectProject = ({
                     // </div> */}
 
                     {looseProjects.length === 0 ? (
-                        <div className="flex w-full items-center justify-center rounded-[26px] border border-dashed border-foreground/8 bg-foreground/3 py-16">
+                        <div className="border-foreground/8 bg-foreground/3 flex w-full items-center justify-center rounded-[26px] border border-dashed py-16">
                             <div className="flex flex-col items-center gap-3 text-center">
                                 <div className="text-foreground-secondary text-base">
                                     No loose projects found
@@ -961,6 +980,18 @@ export const SelectProject = ({
                 onOpenChange={setShowCreateFolderDialog}
                 onCreateFolder={handleCreateFolder}
                 existingNames={folders.map((folder) => folder.name)}
+            />
+
+            <ProjectModeDialog
+                open={projectModeIntent !== null}
+                intent={projectModeIntent ?? 'create'}
+                isBusy={isCreatingProject || isImporting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setProjectModeIntent(null);
+                    }
+                }}
+                onCloudSelect={handleCloudModeSelect}
             />
 
             <AlertDialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>

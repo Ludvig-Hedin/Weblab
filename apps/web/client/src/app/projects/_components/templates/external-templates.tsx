@@ -1,13 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import localforage from 'localforage';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 
-import { Badge } from '@weblab/ui/badge';
+import type { User } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 import type { ExternalTemplate } from './template-data';
-import { Routes } from '@/utils/constants';
-import { ExternalTemplateActions } from './external-template-actions';
+import { useAuthContext } from '@/app/auth/auth-context';
+import { useCreateManager } from '@/components/store/create';
+import { api } from '@/trpc/react';
+import { LocalForageKeys, Routes } from '@/utils/constants';
+import { ProjectPreviewSurface } from '../select/project-preview-surface';
 
 interface ExternalTemplatesProps {
     templates: ExternalTemplate[];
@@ -18,75 +27,157 @@ interface ExternalTemplatesProps {
 export function ExternalTemplates({
     templates,
     title = 'Starter templates',
-    description = 'Start from proven Next.js templates, preview them first, or open the details page for source and related options.',
+    description = 'Start from a proven Next.js template — preview live, or open the details for source and related options.',
 }: ExternalTemplatesProps) {
+    // Fetched once here so each card doesn't instantiate its own hook subscription.
+    const { data: user } = api.user.get.useQuery();
+
     if (templates.length === 0) {
         return null;
     }
 
     return (
         <section className="w-full">
-            <div className="mb-5 flex flex-col gap-2">
-                <h2 className="text-foreground text-2xl font-normal">{title}</h2>
-                <p className="text-foreground-tertiary max-w-2xl text-sm">{description}</p>
+            <div className="mb-6 flex flex-col gap-1">
+                <h2 className="text-foreground text-lg font-medium tracking-tight">{title}</h2>
+                <p className="text-foreground-tertiary max-w-xl text-xs leading-relaxed">
+                    {description}
+                </p>
             </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
                 {templates.map((template, index) => (
-                    <motion.article
+                    <ExternalTemplateCard
                         key={template.id}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                            transition: { delay: index * 0.04, duration: 0.28 },
-                        }}
-                        className="group border-foreground/8 bg-background/70 hover:border-foreground/16 overflow-hidden rounded-[24px] border shadow-sm backdrop-blur-xl transition-colors"
-                    >
-                        <Link
-                            href={`${Routes.PROJECT_TEMPLATES}/${template.id}`}
-                            className={`block h-32 bg-gradient-to-br ${template.gradientClassName}`}
-                        >
-                            <div className="flex h-full flex-col justify-between p-5">
-                                <div className="flex flex-wrap gap-1.5">
-                                    {template.tags.slice(0, 2).map((tag) => (
-                                        <span
-                                            key={tag}
-                                            className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/80"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                                <div>
-                                    <p
-                                        className={`text-sm font-medium ${template.accentClassName}`}
-                                    >
-                                        {template.category}
-                                    </p>
-                                    <h3 className="text-xl font-semibold text-white">
-                                        {template.name}
-                                    </h3>
-                                </div>
-                            </div>
-                        </Link>
-                        <div className="flex min-h-52 flex-col gap-4 p-5">
-                            <div className="flex flex-wrap gap-1.5">
-                                {template.tags.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="text-[11px]">
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-foreground-secondary text-sm leading-6">
-                                    {template.shortDescription}
-                                </p>
-                            </div>
-                            <ExternalTemplateActions template={template} />
-                        </div>
-                    </motion.article>
+                        template={template}
+                        index={index}
+                        user={user ?? null}
+                    />
                 ))}
             </div>
         </section>
+    );
+}
+
+interface ExternalTemplateCardProps {
+    template: ExternalTemplate;
+    index: number;
+    user: User | null;
+}
+
+function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardProps) {
+    const { setIsAuthModalOpen } = useAuthContext();
+    const createManager = useCreateManager();
+    const router = useRouter();
+    const [isCreating, setIsCreating] = useState(false);
+
+    const detailsHref = `${Routes.PROJECT_TEMPLATES}/${template.id}`;
+
+    const handleUseTemplate = async () => {
+        if (!user?.id) {
+            await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
+            setIsAuthModalOpen(true);
+            return;
+        }
+        setIsCreating(true);
+        try {
+            const project = await createManager.startPublicGitHubTemplate({
+                userId: user.id,
+                name: template.name,
+                description: template.shortDescription,
+                repoUrl: template.repoUrl,
+                branch: template.branch,
+                subpath: template.subpath,
+            });
+            if (!project) {
+                throw new Error(createManager.error ?? 'No project was returned');
+            }
+            toast.success(`Created project from ${template.name}`);
+            router.push(`${Routes.PROJECT}/${project.id}`);
+        } catch (error) {
+            console.error('Error creating project from external template:', error);
+            toast.error('Failed to create project from template', {
+                description: error instanceof Error ? error.message : String(error),
+            });
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    return (
+        <motion.article
+            initial={{ opacity: 0, y: 8 }}
+            animate={{
+                opacity: 1,
+                y: 0,
+                transition: { delay: index * 0.04, duration: 0.28, ease: 'easeOut' },
+            }}
+            className="group/card w-full"
+        >
+            <div className="relative">
+                <Link
+                    href={detailsHref}
+                    aria-label={`Open ${template.name} template`}
+                    className="block overflow-hidden rounded-xl"
+                >
+                    <ProjectPreviewSurface
+                        projectName={template.name}
+                        imageUrl={null}
+                        siteUrl={template.previewUrl}
+                        className="aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
+                    />
+                </Link>
+
+                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center gap-2 bg-black/20 opacity-0 backdrop-blur-[1px] transition-opacity duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+                    <Button
+                        size="default"
+                        onClick={() => void handleUseTemplate()}
+                        disabled={isCreating}
+                        className="bg-background text-foreground hover:bg-background-secondary border-border gap-2 border"
+                    >
+                        {isCreating ? (
+                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Icons.FilePlus className="h-4 w-4" />
+                        )}
+                        Use template
+                    </Button>
+                    {template.previewUrl && (
+                        <Button
+                            asChild
+                            size="default"
+                            variant="ghost"
+                            className="text-foreground bg-background/40 hover:bg-background/70 gap-2 backdrop-blur-md"
+                        >
+                            <a
+                                href={template.previewUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Icons.EyeOpen className="h-4 w-4" />
+                                Preview
+                            </a>
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            <div className="mt-3 flex items-start justify-between gap-3 px-1">
+                <div className="min-w-0">
+                    <Link
+                        href={detailsHref}
+                        className="text-foreground block truncate text-sm font-medium underline decoration-transparent underline-offset-3 transition-colors duration-200 group-hover/card:decoration-current"
+                    >
+                        {template.name}
+                    </Link>
+                    <p className="text-foreground-tertiary mt-1 line-clamp-1 text-xs leading-relaxed">
+                        {template.shortDescription}
+                    </p>
+                </div>
+                <span className="text-foreground-tertiary mt-0.5 flex-shrink-0 text-[11px] tracking-wide capitalize">
+                    {template.category}
+                </span>
+            </div>
+        </motion.article>
     );
 }

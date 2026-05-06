@@ -1,11 +1,13 @@
 'use client';
 
-import { getFileUrlFromStorage } from '@/utils/supabase/client';
-import { STORAGE_BUCKETS } from '@weblab/constants';
-import type { Project } from '@weblab/models';
-import { Icons } from '@weblab/ui/icons';
-import { AnimatePresence, motion } from 'motion/react';
 import { useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+
+import type { Project } from '@weblab/models';
+import { STORAGE_BUCKETS } from '@weblab/constants';
+import { Icons } from '@weblab/ui/icons';
+
+import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { Carousel } from '../carousel';
 import { TemplateCard } from './template-card';
 
@@ -17,12 +19,19 @@ interface TemplatesProps {
     templateProjects: Project[];
 }
 
-export function Templates({ templateProjects, searchQuery, onTemplateClick, onToggleStar, starredTemplates = new Set() }: TemplatesProps) {
+export function Templates({
+    templateProjects,
+    searchQuery,
+    onTemplateClick,
+    onToggleStar,
+    starredTemplates = new Set(),
+}: TemplatesProps) {
     const filteredTemplatesData = useMemo(() => {
         const filtered = templateProjects.filter(
             (project) =>
                 project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (project.metadata.description && project.metadata.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                (project.metadata.description &&
+                    project.metadata.description.toLowerCase().includes(searchQuery.toLowerCase())),
         );
 
         const sorted = filtered.sort((a, b) => {
@@ -38,9 +47,7 @@ export function Templates({ templateProjects, searchQuery, onTemplateClick, onTo
 
     return (
         <div className="mb-12">
-            <h2 className="text-2xl text-foreground font-normal mb-[12px]">
-                Templates
-            </h2>
+            <h2 className="text-foreground mb-[12px] text-2xl font-normal">Templates</h2>
 
             <Carousel gap="gap-6">
                 <AnimatePresence mode="popLayout">
@@ -49,11 +56,11 @@ export function Templates({ templateProjects, searchQuery, onTemplateClick, onTo
                             <motion.div
                                 key={project.id}
                                 className="flex-shrink-0"
-                                initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+                                initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
                                 animate={{
                                     opacity: 1,
                                     y: 0,
-                                    filter: "blur(0px)",
+                                    filter: 'blur(0px)',
                                     transition: {
                                         duration: 0.4,
                                         delay: index * 0.1,
@@ -63,21 +70,24 @@ export function Templates({ templateProjects, searchQuery, onTemplateClick, onTo
                                 exit={{
                                     opacity: 0,
                                     y: -20,
-                                    filter: "blur(10px)",
+                                    filter: 'blur(10px)',
                                     transition: { duration: 0.2 },
                                 }}
                                 layout
                             >
                                 <TemplateCard
                                     title={project.name}
-                                    description={project.metadata.description || 'No description available'}
+                                    description={
+                                        project.metadata.description || 'No description available'
+                                    }
                                     image={
                                         project.metadata.previewImg?.url ||
                                         (project.metadata.previewImg?.storagePath
                                             ? getFileUrlFromStorage(
-                                                project.metadata.previewImg.storagePath.bucket || STORAGE_BUCKETS.PREVIEW_IMAGES,
-                                                project.metadata.previewImg.storagePath.path
-                                            ) || undefined
+                                                  project.metadata.previewImg.storagePath.bucket ||
+                                                      STORAGE_BUCKETS.PREVIEW_IMAGES,
+                                                  project.metadata.previewImg.storagePath.path,
+                                              ) || undefined
                                             : undefined)
                                     }
                                     isNew={false}
@@ -89,7 +99,7 @@ export function Templates({ templateProjects, searchQuery, onTemplateClick, onTo
                         ))
                     ) : searchQuery ? (
                         <motion.div
-                            className="flex flex-col items-center justify-center w-full py-12 text-center"
+                            className="flex w-full flex-col items-center justify-center py-12 text-center"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}

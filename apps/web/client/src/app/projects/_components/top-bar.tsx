@@ -3,13 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import localforage from 'localforage';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 
 import { BrandLogo } from '@weblab/ui/brand';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -21,15 +18,13 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { cn } from '@weblab/ui/utils';
 
-import { useAuthContext } from '@/app/auth/auth-context';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
+import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import { LocalForageKeys, Routes } from '@/utils/constants';
-
-const RECENT_SEARCHES_KEY = 'weblab_recent_searches';
-const RECENT_COLORS_KEY = 'weblab_recent_colors';
+import { Routes } from '@/utils/constants';
+import { ProjectModeDialog } from './project-mode-dialog';
 
 interface TopBarProps {
     searchQuery?: string;
@@ -40,17 +35,13 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
     const t = useTranslations();
     const router = useRouter();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [recentSearches, setRecentSearches] = useState<string[]>([]);
-    const [recentColors, setRecentColors] = useState<string[]>([]);
-    const [isCreatingProject, setIsCreatingProject] = useState(false);
+    const [projectModeIntent, setProjectModeIntent] = useState<'create' | 'import' | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchContainerRef = useRef<HTMLDivElement>(null);
 
     // API hooks
     const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
-    const { setIsAuthModalOpen } = useAuthContext();
+    const { handleStartBlankProject, isCreatingProject } = useCreateBlankProject();
     const { handleImportLocalProject, isImporting } = useImportLocalProject();
     const isBusy = isCreatingProject || isImporting;
 
@@ -67,40 +58,9 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Load suggestions from localforage
-    useEffect(() => {
-        const loadRecentSearches = async () => {
-            try {
-                const rs = (await localforage.getItem<string[]>(RECENT_SEARCHES_KEY)) ?? [];
-                if (Array.isArray(rs)) setRecentSearches(rs.slice(0, 6));
-            } catch {}
-        };
-        loadRecentSearches();
-        const loadRecentColors = async () => {
-            try {
-                const rc = (await localforage.getItem<string[]>(RECENT_COLORS_KEY)) ?? [];
-                if (Array.isArray(rc)) setRecentColors(rc.slice(0, 10));
-            } catch {}
-        };
-        loadRecentColors();
-    }, []);
-
-    // Persist non-empty search queries to recent
-    useEffect(() => {
-        const q = (searchQuery ?? '').trim();
-        if (!q) return;
-        const timer = setTimeout(async () => {
-            try {
-                const recentSearches =
-                    (await localforage.getItem<string[]>(RECENT_SEARCHES_KEY)) ?? [];
-                const rs = new Set<string>([q, ...recentSearches]);
-                const arr = Array.from(rs).slice(0, 8);
-                localforage.setItem(RECENT_SEARCHES_KEY, arr);
-                setRecentSearches(arr);
-            } catch {}
-        }, 600);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    // Recent-searches persistence was removed (issue #56) — the data was
+    // collected into localforage but never surfaced to users, so we deleted
+    // the writes/reads rather than building UI for dead state.
 
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -117,54 +77,13 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
         };
     }, [onSearchChange]);
 
-    const handleStartBlankProject = async () => {
-        if (!user?.id) {
-            // Store the return URL and open auth modal
-            await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
-            setIsAuthModalOpen(true);
-            return;
-        }
-
-        setIsCreatingProject(true);
-        try {
-            const { sandboxId, previewUrl } = await forkSandbox({
-                sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
-                config: {
-                    title: `Blank project - ${user.id}`,
-                    tags: ['blank', user.id],
-                },
-            });
-
-            const newProject = await createProject({
-                project: {
-                    name: 'New Project',
-                    description: 'Your new blank project',
-                    tags: ['blank'],
-                },
-                sandboxId,
-                sandboxUrl: previewUrl,
-                userId: user.id,
-            });
-
-            if (newProject) {
-                router.push(`${Routes.PROJECT}/${newProject.id}`);
-            }
-        } catch (error) {
-            console.error('Error creating blank project:', error);
-            const errorMessage = error instanceof Error ? error.message : String(error);
-
-            if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
-                toast.error('Sandbox service temporarily unavailable', {
-                    description:
-                        'Please try again in a few moments. Our servers may be experiencing high load.',
-                });
-            } else {
-                toast.error('Failed to create project', {
-                    description: errorMessage,
-                });
-            }
-        } finally {
-            setIsCreatingProject(false);
+    const handleCloudModeSelect = () => {
+        const intent = projectModeIntent;
+        setProjectModeIntent(null);
+        if (intent === 'create') {
+            void handleStartBlankProject();
+        } else if (intent === 'import') {
+            void handleImportLocalProject();
         }
     };
 
@@ -259,7 +178,7 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                                 'dark:hover:bg-blue-900 dark:hover:text-blue-100',
                                 'group cursor-pointer select-none',
                             )}
-                            onSelect={handleStartBlankProject}
+                            onSelect={() => setProjectModeIntent('create')}
                             disabled={isCreatingProject}
                         >
                             {isCreatingProject ? (
@@ -277,7 +196,7 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                                 'dark:hover:bg-blue-900 dark:hover:text-blue-100',
                                 'group cursor-pointer select-none',
                             )}
-                            onSelect={() => void handleImportLocalProject()}
+                            onSelect={() => setProjectModeIntent('import')}
                             disabled={isBusy}
                         >
                             {isImporting ? (
@@ -327,6 +246,17 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                 </DropdownMenu>
                 <CurrentUserAvatar className="h-8 w-8" />
             </div>
+            <ProjectModeDialog
+                open={projectModeIntent !== null}
+                intent={projectModeIntent ?? 'create'}
+                isBusy={isBusy}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setProjectModeIntent(null);
+                    }
+                }}
+                onCloudSelect={handleCloudModeSelect}
+            />
         </div>
     );
 };

@@ -1,5 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
+import { motion } from 'motion/react';
+
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
@@ -10,8 +13,6 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { timeAgo } from '@weblab/utility';
-import { motion } from 'motion/react';
-import { useMemo } from 'react';
 
 interface ProjectCardPresentationProps {
     project: Project;
@@ -41,8 +42,8 @@ interface ProjectCardPresentationProps {
 export function ProjectCardPresentation({
     project,
     imageUrl,
-    aspectRatio = "aspect-[4/2.6]",
-    searchQuery = "",
+    aspectRatio = 'aspect-[4/2.6]',
+    searchQuery = '',
     HighlightText,
     onEdit,
     onRename,
@@ -52,7 +53,19 @@ export function ProjectCardPresentation({
     isTemplate = false,
 }: ProjectCardPresentationProps) {
     const SHOW_DESCRIPTION = false;
-    const lastUpdated = useMemo(() => timeAgo(project.metadata.updatedAt), [project.metadata.updatedAt]);
+    const lastUpdated = useMemo(
+        () => timeAgo(project.metadata.updatedAt),
+        [project.metadata.updatedAt],
+    );
+    const storageMode = project.metadata.storageMode ?? 'cloud';
+    const storageLabel =
+        storageMode === 'hybrid' ? 'Synced' : storageMode === 'local' ? 'Local' : 'Cloud';
+    const storageBadgeClass =
+        storageMode === 'hybrid'
+            ? 'border-emerald-300/25 bg-emerald-500/20 text-emerald-50'
+            : storageMode === 'local'
+              ? 'border-sky-300/25 bg-sky-500/20 text-sky-50'
+              : 'border-white/15 bg-black/35 text-white/85';
 
     const handleEdit = () => {
         onEdit?.(project);
@@ -64,30 +77,51 @@ export function ProjectCardPresentation({
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -4 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-            className="w-full break-inside-avoid cursor-pointer"
+            className="w-full cursor-pointer break-inside-avoid"
             onClick={handleEdit}
         >
-            <div className={`relative ${aspectRatio} rounded-lg overflow-hidden shadow-sm hover:shadow-xl hover:shadow-black/20 transition-all duration-300 group`}>
+            <div
+                className={`relative ${aspectRatio} group overflow-hidden rounded-lg shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/20`}
+            >
                 {imageUrl ? (
-                    <img src={imageUrl} alt={project.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                    <img
+                        src={imageUrl}
+                        alt={project.name}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                    />
                 ) : (
                     <>
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-t from-gray-800/40 via-gray-500/40 to-gray-400/40" />
-                        <div className="absolute inset-0 rounded-lg border-[0.5px] border-gray-500/70" style={{ maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }} />
+                        <div className="absolute inset-0 h-full w-full bg-gradient-to-t from-gray-800/40 via-gray-500/40 to-gray-400/40" />
+                        <div
+                            className="absolute inset-0 rounded-lg border-[0.5px] border-gray-500/70"
+                            style={{
+                                maskImage:
+                                    'linear-gradient(to bottom, black 60%, transparent 100%)',
+                            }}
+                        />
                     </>
                 )}
 
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
 
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-30">
+                <div className="absolute top-3 left-3 z-30">
+                    <span
+                        className={`rounded-full border px-2 py-1 text-[10px] font-medium tracking-[0.12em] uppercase backdrop-blur-md ${storageBadgeClass}`}
+                    >
+                        {storageLabel}
+                    </span>
+                </div>
+
+                <div className="absolute top-3 right-3 z-30 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 size="default"
                                 variant="ghost"
-                                className="w-8 h-8 p-0 flex items-center justify-center hover:bg-background-weblab cursor-pointer backdrop-blur-lg"
+                                className="hover:bg-background-weblab flex h-8 w-8 cursor-pointer items-center justify-center p-0 backdrop-blur-lg"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <Icons.DotsHorizontal />
@@ -108,7 +142,7 @@ export function ProjectCardPresentation({
                                     }}
                                     className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                                 >
-                                    <Icons.Pencil className="w-4 h-4" />
+                                    <Icons.Pencil className="h-4 w-4" />
                                     Rename Project
                                 </DropdownMenuItem>
                             )}
@@ -120,7 +154,7 @@ export function ProjectCardPresentation({
                                     }}
                                     className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
                                 >
-                                    <Icons.Copy className="w-4 h-4" />
+                                    <Icons.Copy className="h-4 w-4" />
                                     Clone Project
                                 </DropdownMenuItem>
                             )}
@@ -134,12 +168,12 @@ export function ProjectCardPresentation({
                                 >
                                     {isTemplate ? (
                                         <>
-                                            <Icons.CrossL className="w-4 h-4 text-purple-600" />
+                                            <Icons.CrossL className="h-4 w-4 text-purple-600" />
                                             Unmark as template
                                         </>
                                     ) : (
                                         <>
-                                            <Icons.FilePlus className="w-4 h-4" />
+                                            <Icons.FilePlus className="h-4 w-4" />
                                             Convert to template
                                         </>
                                     )}
@@ -153,7 +187,7 @@ export function ProjectCardPresentation({
                                     }}
                                     className="gap-2 text-red-400 hover:!bg-red-200/80 hover:!text-red-700 dark:text-red-200 dark:hover:!bg-red-800 dark:hover:!text-red-100"
                                 >
-                                    <Icons.Trash className="w-4 h-4" />
+                                    <Icons.Trash className="h-4 w-4" />
                                     Delete Project
                                 </DropdownMenuItem>
                             )}
@@ -162,11 +196,11 @@ export function ProjectCardPresentation({
                 </div>
 
                 {onEdit && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto z-20">
+                    <div className="bg-background/30 pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                         <Button
                             size="default"
-                            onClick={handleEdit}
-                            className="gap-2 border border-border w-auto cursor-pointer bg-background text-foreground hover:bg-background-secondary"
+                            onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+                            className="border-border bg-background text-foreground hover:bg-background-secondary w-auto cursor-pointer gap-2 border"
                         >
                             <Icons.PencilPaper />
                             <p>Edit App</p>
@@ -175,25 +209,28 @@ export function ProjectCardPresentation({
                 )}
 
                 <div
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/20 to-transparent p-4 h-32 transition-all duration-300 group-hover:from-background group-hover:via-background/40"
-                    style={{ bottom: "-1px", left: "-1px", right: "-1px" }}
+                    className="from-background via-background/20 group-hover:from-background group-hover:via-background/40 absolute right-0 bottom-0 left-0 h-32 bg-gradient-to-t to-transparent p-4 transition-all duration-300"
+                    style={{ bottom: '-1px', left: '-1px', right: '-1px' }}
                 >
-                    <div className="flex justify-between items-end h-full">
+                    <div className="flex h-full items-end justify-between">
                         <div>
-                            <div className="text-white font-medium text-base mb-1 truncate drop-shadow-lg">
+                            <div className="mb-1 truncate text-base font-medium text-white drop-shadow-lg">
                                 {HighlightText ? (
                                     <HighlightText text={project.name} searchQuery={searchQuery} />
                                 ) : (
                                     project.name
                                 )}
                             </div>
-                            <div className="text-white/70 text-xs mb-1 drop-shadow-lg flex items-center">
+                            <div className="mb-1 flex items-center text-xs text-white/70 drop-shadow-lg">
                                 <span>{lastUpdated} ago</span>
                             </div>
                             {SHOW_DESCRIPTION && project.metadata?.description && (
-                                <div className="text-white/60 text-xs line-clamp-1 drop-shadow-lg">
+                                <div className="line-clamp-1 text-xs text-white/60 drop-shadow-lg">
                                     {HighlightText ? (
-                                        <HighlightText text={project.metadata.description} searchQuery={searchQuery} />
+                                        <HighlightText
+                                            text={project.metadata.description}
+                                            searchQuery={searchQuery}
+                                        />
                                     ) : (
                                         project.metadata.description
                                     )}

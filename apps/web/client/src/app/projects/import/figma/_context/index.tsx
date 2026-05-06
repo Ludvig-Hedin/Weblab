@@ -1,17 +1,21 @@
 'use client';
 
-import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
+import type { ReactNode } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { TRPCClientError } from '@trpc/client';
+import { toast } from 'sonner';
+
+import type { FigmaTopLevelFrame } from '@weblab/figma';
+import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+import { SandboxTemplates, Templates } from '@weblab/constants';
+import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@weblab/figma';
+
 import type { ProcessedFile } from '@/app/projects/types';
 import { ProcessedFileType } from '@/app/projects/types';
+import { api } from '@/trpc/react';
+import { Routes } from '@/utils/constants';
 import { uploadToSandbox } from '../../local/_context';
-import { SandboxTemplates, Templates } from '@weblab/constants';
-import type { FigmaTopLevelFrame } from '@weblab/figma';
-import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@weblab/figma';
-import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
-import { useRouter } from 'next/navigation';
-import { createContext, useContext, useState } from 'react';
-import type { ReactNode } from 'react';
 
 export type FigmaImportStep = 0 | 1 | 2; // credentials | selectFrames | finalizing
 
@@ -61,7 +65,16 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
+    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const { mutateAsync: fetchFileMutation } = api.figma.fetchFile.useMutation();
+
+    /**
+     * Tracks the in-flight finalize so cancel() can abort and clean up any
+     * sandbox/project that's already been created (issue #9).
+     */
+    const abortController = useRef<AbortController | null>(null);
+    const inFlightSandboxId = useRef<string | null>(null);
+    const inFlightProjectId = useRef<string | null>(null);
 
     const fetchFile = async () => {
         if (!fileUrl.trim()) return;
@@ -100,6 +113,17 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         const selectedFrames = frames.filter((f) => selectedFrameIds.has(f.id));
         if (selectedFrames.length === 0) return;
 
+        const controller = new AbortController();
+        abortController.current = controller;
+        inFlightSandboxId.current = null;
+        inFlightProjectId.current = null;
+
+        const checkAborted = () => {
+            if (controller.signal.aborted) {
+                throw new DOMException('Import cancelled', 'AbortError');
+            }
+        };
+
         setIsFinalizing(true);
         setFinalizeError(null);
         try {
@@ -111,6 +135,8 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                     tags: ['figma', 'imported', user.id],
                 },
             });
+            inFlightSandboxId.current = forkedSandbox.sandboxId;
+            checkAborted();
 
             const usedNames = new Set<string>();
             const dedupedFrames = selectedFrames.map((frame) => {
@@ -152,10 +178,12 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
 
             try {
                 await uploadToSandbox(files, provider);
+                checkAborted();
                 await provider.setup({});
             } finally {
                 await provider.destroy();
             }
+            checkAborted();
 
             const project = await createProject({
                 project: {
@@ -168,11 +196,28 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             });
 
             if (!project) throw new Error('Failed to create project');
+            inFlightProjectId.current = project.id;
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (err) {
-            setFinalizeError(err instanceof Error ? err.message : 'Failed to create project');
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                return;
+            }
+            // Surface the actual tRPC error rather than a generic fallback so
+            // users see why the import failed (issue #40).
+            const fallback =
+                'Failed to create project. If this keeps happening, check your Figma credentials or try again.';
+            const message =
+                err instanceof TRPCClientError
+                    ? err.message
+                    : err instanceof Error
+                      ? err.message
+                      : fallback;
+            setFinalizeError(message);
         } finally {
             setIsFinalizing(false);
+            if (abortController.current === controller) {
+                abortController.current = null;
+            }
         }
     };
 
@@ -198,7 +243,36 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         void doCreateProject();
     };
 
-    const cancel = () => router.push(Routes.IMPORT_PROJECT);
+    /**
+     * Cancel an in-flight Figma import. Aborts the active mutation chain,
+     * deletes any orphan project row that was already inserted, and routes
+     * the user home (issue #9).
+     */
+    const cancel = () => {
+        const hadAbort = abortController.current !== null;
+        abortController.current?.abort();
+
+        const projectIdToClean = inFlightProjectId.current;
+        const sandboxCreated = inFlightSandboxId.current !== null;
+
+        if (projectIdToClean) {
+            void deleteProject({ id: projectIdToClean }).catch((err) => {
+                console.error('Failed to clean up orphan project on cancel:', err);
+            });
+        } else if (sandboxCreated) {
+            // TODO: server-side cleanup of orphan sandbox
+            toast.message('Import cancelled', {
+                description: 'If a sandbox was created, it may take a moment to clean up.',
+            });
+        } else if (hadAbort) {
+            toast.message('Import cancelled');
+        }
+
+        inFlightSandboxId.current = null;
+        inFlightProjectId.current = null;
+
+        router.push(Routes.HOME);
+    };
 
     return (
         <FigmaImportContext.Provider

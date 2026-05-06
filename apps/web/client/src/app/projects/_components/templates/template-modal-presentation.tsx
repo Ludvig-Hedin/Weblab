@@ -1,4 +1,6 @@
-"use client";
+'use client';
+
+import { AnimatePresence, motion } from 'motion/react';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -7,11 +9,10 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
-import { AnimatePresence, motion } from "motion/react";
 
 interface TemplateModalPresentationProps {
     isOpen: boolean;
@@ -53,14 +54,14 @@ export function TemplateModalPresentation({
         <AnimatePresence>
             {isOpen && (
                 <motion.div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onClose}
                 >
                     <motion.div
-                        className="bg-background border border-border rounded-2xl max-w-4xl w-full max-h-[80vh] flex relative shadow-2xl"
+                        className="bg-background border-border relative flex max-h-[80vh] w-full max-w-4xl rounded-2xl border shadow-2xl"
                         initial={{ scale: 0.95 }}
                         animate={{ scale: 1 }}
                         exit={{ scale: 0.95 }}
@@ -71,35 +72,33 @@ export function TemplateModalPresentation({
                             onClick={onClose}
                             variant="ghost"
                             size="sm"
-                            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-background/20 hover:bg-secondary transition-colors"
+                            className="bg-background/20 hover:bg-secondary absolute top-4 right-4 z-10 rounded-full p-2 transition-colors"
                         >
-                            <Icons.CrossS className="w-4 h-4" />
+                            <Icons.CrossS className="h-4 w-4" />
                         </Button>
 
-                        <div className="w-1/2 bg-secondary relative rounded-l-2xl overflow-hidden">
+                        <div className="bg-secondary relative w-1/2 overflow-hidden rounded-l-2xl">
                             {image ? (
                                 <img
                                     src={image}
                                     alt={`${title} template preview`}
-                                    className="w-full h-full object-cover"
+                                    className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <div className="w-full h-full bg-gradient-to-t from-gray-800/40 via-gray-500/40 to-gray-400/40" />
+                                <div className="h-full w-full bg-gradient-to-t from-gray-800/40 via-gray-500/40 to-gray-400/40" />
                             )}
 
                             {isNew && (
-                                <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                                <div className="absolute top-4 left-4 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white">
                                     New
                                 </div>
                             )}
                         </div>
 
-                        <div className="w-1/2 p-8 flex flex-col overflow-visible min-h-80">
-                            <h2 className="text-2xl font-semibold text-foreground mb-4">
-                                {title}
-                            </h2>
+                        <div className="flex min-h-80 w-1/2 flex-col overflow-visible p-8">
+                            <h2 className="text-foreground mb-4 text-2xl font-semibold">{title}</h2>
 
-                            <p className="text-foreground-secondary text-base leading-relaxed mb-8 flex-1">
+                            <p className="text-foreground-secondary mb-8 flex-1 text-base leading-relaxed">
                                 {description}
                             </p>
 
@@ -112,7 +111,7 @@ export function TemplateModalPresentation({
                                 >
                                     {isCreatingProject ? (
                                         <div className="flex items-center gap-2">
-                                            <Icons.LoadingSpinner className="w-4 h-4 animate-spin" />
+                                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                                             Creating...
                                         </div>
                                     ) : (
@@ -127,16 +126,16 @@ export function TemplateModalPresentation({
                                                 variant="outline"
                                                 size="lg"
                                                 onClick={onToggleStar}
-                                                aria-label={isStarred ? "Remove from favorites" : "Add to favorites"}
+                                                aria-label={
+                                                    isStarred
+                                                        ? 'Remove from favorites'
+                                                        : 'Add to favorites'
+                                                }
                                             >
                                                 {isStarred ? (
-                                                    <Icons.BookmarkFilled
-                                                        className="w-5 h-5 text-white"
-                                                    />
+                                                    <Icons.BookmarkFilled className="h-5 w-5 text-white" />
                                                 ) : (
-                                                    <Icons.Bookmark
-                                                        className="w-5 h-5 text-foreground-tertiary"
-                                                    />
+                                                    <Icons.Bookmark className="text-foreground-tertiary h-5 w-5" />
                                                 )}
                                             </Button>
                                         </TooltipTrigger>
@@ -153,19 +152,19 @@ export function TemplateModalPresentation({
                                             size="lg"
                                             aria-label="Template options"
                                         >
-                                            <Icons.DotsHorizontal className="w-5 h-5" />
+                                            <Icons.DotsHorizontal className="h-5 w-5" />
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48">
                                         {onPreviewTemplate && (
                                             <DropdownMenuItem onClick={onPreviewTemplate}>
-                                                <Icons.EyeOpen className="w-4 h-4 mr-3" />
+                                                <Icons.EyeOpen className="mr-3 h-4 w-4" />
                                                 Preview
                                             </DropdownMenuItem>
                                         )}
                                         {onEditTemplate && (
                                             <DropdownMenuItem onClick={onEditTemplate}>
-                                                <Icons.Edit className="w-4 h-4 mr-3" />
+                                                <Icons.Edit className="mr-3 h-4 w-4" />
                                                 Edit
                                             </DropdownMenuItem>
                                         )}
@@ -176,7 +175,7 @@ export function TemplateModalPresentation({
                                                     onClick={onUnmarkTemplate}
                                                     className="text-foreground-secondary focus:text-foreground"
                                                 >
-                                                    <Icons.CrossL className="w-4 h-4 mr-3" />
+                                                    <Icons.CrossL className="mr-3 h-4 w-4" />
                                                     Remove Template
                                                 </DropdownMenuItem>
                                             </>

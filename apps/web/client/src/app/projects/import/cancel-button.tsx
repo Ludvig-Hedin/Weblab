@@ -1,13 +1,53 @@
-import { Routes } from '@/utils/constants';
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import Link from 'next/link';
 
-export const CancelButton = () => {
+import { Routes } from '@/utils/constants';
+
+interface CancelButtonProps {
+    /**
+     * Optional callback invoked before navigating to the home route.
+     * Use this to abort in-flight imports and clean up orphan sandbox/project state.
+     */
+    onCancel?: () => void | Promise<void>;
+}
+
+export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
+    const router = useRouter();
+
+    if (onCancel) {
+        return (
+            <Button
+                type="button"
+                variant="outline"
+                className="cursor-pointer rounded-lg border-[0.5px] !border-gray-200 px-3 py-2"
+                onClick={async () => {
+                    try {
+                        await onCancel();
+                    } catch (error) {
+                        console.error('Cancel cleanup failed:', error);
+                    } finally {
+                        router.push(Routes.HOME);
+                    }
+                }}
+            >
+                <Icons.CrossL className="h-4 w-4" /> Cancel
+            </Button>
+        );
+    }
+
     return (
-        <Button variant="outline" asChild className="rounded-lg cursor-pointer px-3 py-2 !border-gray-200 border-[0.5px]">
+        <Button
+            variant="outline"
+            asChild
+            className="cursor-pointer rounded-lg border-[0.5px] !border-gray-200 px-3 py-2"
+        >
             <Link href={Routes.HOME}>
-                <Icons.CrossL className="w-4 h-4" /> Cancel
+                <Icons.CrossL className="h-4 w-4" /> Cancel
             </Link>
         </Button>
     );

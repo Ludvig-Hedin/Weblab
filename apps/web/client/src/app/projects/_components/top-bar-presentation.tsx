@@ -1,8 +1,13 @@
 'use client';
 
-import { transKeys } from '@/i18n/keys';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+
 import type { User } from '@weblab/models';
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
+import { BrandLogo } from '@weblab/ui/brand';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -10,15 +15,12 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
-import { BrandLogo } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { cn } from '@weblab/ui/utils';
 import { getInitials } from '@weblab/utility';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+
+import { transKeys } from '@/i18n/keys';
 
 interface TopBarPresentationProps {
     /** Current user data */
@@ -87,36 +89,37 @@ export const TopBarPresentation = ({
     }, [onSearchChange]);
 
     return (
-        <div className="w-full max-w-6xl mx-auto flex items-center justify-between p-4 text-small text-foreground-secondary gap-6">
-            <Link href={homeRoute} className="flex items-center justify-start mt-0 py-3">
+        <div className="text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center justify-between gap-6 p-4">
+            <Link href={homeRoute} className="mt-0 flex items-center justify-start py-3">
                 <BrandLogo className="h-4" />
             </Link>
 
             {typeof onSearchChange === 'function' ? (
-                <div className="flex-1 flex justify-center min-w-0">
+                <div className="flex min-w-0 flex-1 justify-center">
                     <motion.div
                         ref={searchContainerRef}
-                        className="relative w-full hidden sm:block"
+                        className="relative hidden w-full sm:block"
                         initial={false}
-                        animate={isSearchFocused ?
-                            { width: '100%', maxWidth: '360px' } :
-                            { width: '100%', maxWidth: '260px' }
+                        animate={
+                            isSearchFocused
+                                ? { width: '100%', maxWidth: '360px' }
+                                : { width: '100%', maxWidth: '260px' }
                         }
                         transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
                     >
-                        <Icons.MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground-tertiary z-10" />
+                        <Icons.MagnifyingGlass className="text-foreground-tertiary absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2" />
                         <Input
                             ref={searchInputRef}
                             value={searchQuery ?? ''}
                             onChange={(e) => onSearchChange?.(e.currentTarget.value)}
                             onFocus={() => setIsSearchFocused(true)}
                             placeholder="Search projects"
-                            className="pl-9 pr-7 focus-visible:border-transparent focus-visible:ring-0 w-full"
+                            className="w-full pr-7 pl-9 focus-visible:border-transparent focus-visible:ring-0"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => onSearchChange?.('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground-tertiary hover:text-foreground"
+                                className="text-foreground-tertiary hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
                                 aria-label="Clear search"
                             >
                                 <Icons.CrossS className="h-4 w-4" />
@@ -128,11 +131,11 @@ export const TopBarPresentation = ({
                 <div className="flex-1" />
             )}
 
-            <div className="flex justify-end gap-3 mt-0 items-center">
+            <div className="mt-0 flex items-center justify-end gap-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            className="text-sm focus:outline-none cursor-pointer py-[0.4rem] h-8"
+                            className="h-8 cursor-pointer py-[0.4rem] text-sm focus:outline-none"
                             variant="default"
                             disabled={isCreatingProject}
                         >
@@ -154,15 +157,15 @@ export const TopBarPresentation = ({
                                 'hover:bg-blue-100 hover:text-blue-900',
                                 'dark:focus:bg-blue-900 dark:focus:text-blue-100',
                                 'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'cursor-pointer select-none group',
+                                'group cursor-pointer select-none',
                             )}
                             onSelect={onCreateBlank}
                             disabled={isCreatingProject}
                         >
                             {isCreatingProject ? (
-                                <Icons.LoadingSpinner className="w-4 h-4 mr-1 animate-spin text-foreground-secondary group-hover:text-blue-100" />
+                                <Icons.LoadingSpinner className="text-foreground-secondary mr-1 h-4 w-4 animate-spin group-hover:text-blue-900 dark:group-hover:text-blue-100" />
                             ) : (
-                                <Icons.FilePlus className="w-4 h-4 mr-1 text-foreground-secondary group-hover:text-blue-100" />
+                                <Icons.FilePlus className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-900 dark:group-hover:text-blue-100" />
                             )}
                             {t(transKeys.projects.actions.blankProject)}
                         </DropdownMenuItem>
@@ -172,19 +175,26 @@ export const TopBarPresentation = ({
                                 'hover:bg-blue-100 hover:text-blue-900',
                                 'dark:focus:bg-blue-900 dark:focus:text-blue-100',
                                 'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'cursor-pointer select-none group',
+                                'group cursor-pointer select-none',
                             )}
                             onSelect={onImport}
                         >
-                            <Icons.Upload className="w-4 h-4 mr-1 text-foreground-secondary group-hover:text-blue-100" />
+                            <Icons.Upload className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-900 dark:group-hover:text-blue-100" />
                             <p className="text-microPlus">{t(transKeys.projects.actions.import)}</p>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 {/* Simple avatar for presentational component - no dropdown */}
-                <Avatar className="w-8 h-8">
-                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={getInitials(user?.displayName ?? user?.firstName ?? '')} />}
-                    <AvatarFallback>{getInitials(user?.displayName ?? user?.firstName ?? '')}</AvatarFallback>
+                <Avatar className="h-8 w-8">
+                    {user?.avatarUrl && (
+                        <AvatarImage
+                            src={user.avatarUrl}
+                            alt={getInitials(user?.displayName ?? user?.firstName ?? '')}
+                        />
+                    )}
+                    <AvatarFallback>
+                        {getInitials(user?.displayName ?? user?.firstName ?? '')}
+                    </AvatarFallback>
                 </Avatar>
             </div>
         </div>

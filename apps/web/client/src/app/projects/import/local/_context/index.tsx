@@ -1,18 +1,20 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import type { Provider } from '@weblab/code-provider';
+import type { FrameworkId } from '@weblab/framework';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { NEXT_JS_FILE_EXTENSIONS, SandboxTemplates, Templates } from '@weblab/constants';
 import { RouterType } from '@weblab/models';
 import { isTargetFile } from '@weblab/utility';
-import type { FrameworkId } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
 import { ProcessedFileType } from '@/app/projects/types';
+import { env } from '@/env';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
@@ -105,17 +107,37 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const [direction, setDirection] = useState(0);
     const [isFinalizing, setIsFinalizing] = useState(false);
     const [framework, setFramework] = useState<FrameworkId>('nextjs');
-    const isMultiFrameworkEnabled = process.env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED === 'true';
+    const isMultiFrameworkEnabled = env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED;
     const { data: user } = api.user.get.useQuery();
     const { mutateAsync: createProject } = api.project.create.useMutation();
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
+    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
+
+    /**
+     * Tracks the in-flight finalize so cancel() can abort the chain and clean
+     * up any orphan sandbox/project that's already been provisioned (issue #9).
+     */
+    const abortController = useRef<AbortController | null>(null);
+    const inFlightSandboxId = useRef<string | null>(null);
+    const inFlightProjectId = useRef<string | null>(null);
 
     const setProjectData = (newData: Partial<Project>) => {
         setProjectDataState((prevData) => ({ ...prevData, ...newData }));
     };
 
     const finalizeProject = async () => {
+        const controller = new AbortController();
+        abortController.current = controller;
+        inFlightSandboxId.current = null;
+        inFlightProjectId.current = null;
+
+        const checkAborted = () => {
+            if (controller.signal.aborted) {
+                throw new DOMException('Import cancelled', 'AbortError');
+            }
+        };
+
         try {
             setIsFinalizing(true);
             setError(null);
@@ -133,6 +155,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 (f) => f.path.endsWith('package.json') && f.type === ProcessedFileType.TEXT,
             );
 
+            checkAborted();
             const template = SandboxTemplates[Templates.BLANK];
             const forkedSandbox = await forkSandbox({
                 sandbox: {
@@ -144,6 +167,8 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                     tags: ['imported', 'local', user.id],
                 },
             });
+            inFlightSandboxId.current = forkedSandbox.sandboxId;
+            checkAborted();
 
             const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
                 providerOptions: {
@@ -160,8 +185,10 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             });
 
             await uploadToSandbox(projectData.files, provider);
+            checkAborted();
             await provider.setup({});
             await provider.destroy();
+            checkAborted();
 
             const project = await createProject({
                 project: {
@@ -176,14 +203,24 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 setError('Project setup finished, but the project could not be created.');
                 return;
             }
+            inFlightProjectId.current = project.id;
             // Open the project
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                // cancel() will already have surfaced its own toast.
+                return;
+            }
             console.error('Error creating project:', error);
             setError('Failed to create project');
+            inFlightSandboxId.current = null;
+            inFlightProjectId.current = null;
             return;
         } finally {
             setIsFinalizing(false);
+            if (abortController.current === controller) {
+                abortController.current = null;
+            }
         }
     };
 
@@ -246,7 +283,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             }
 
             return { isValid: true, routerType };
-        } catch (error) {
+        } catch {
             return { isValid: false, error: 'Invalid package.json format' };
         }
     };
@@ -287,8 +324,37 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         void finalizeProject();
     };
 
+    /**
+     * Cancel the in-flight import. Aborts the active mutation chain via the
+     * AbortController, deletes any orphan project row that was already
+     * inserted, and routes the user home. If a sandbox was created but the
+     * project row wasn't, surfaces a toast (no client-side sandbox delete RPC).
+     */
     const cancel = () => {
+        const hadAbort = abortController.current !== null;
+        abortController.current?.abort();
+
+        const projectIdToClean = inFlightProjectId.current;
+        const sandboxCreated = inFlightSandboxId.current !== null;
+
+        if (projectIdToClean) {
+            void deleteProject({ id: projectIdToClean }).catch((err) => {
+                console.error('Failed to clean up orphan project on cancel:', err);
+            });
+        } else if (sandboxCreated) {
+            // TODO: server-side cleanup of orphan sandbox
+            toast.message('Import cancelled', {
+                description: 'If a sandbox was created, it may take a moment to clean up.',
+            });
+        } else if (hadAbort) {
+            toast.message('Import cancelled');
+        }
+
+        inFlightSandboxId.current = null;
+        inFlightProjectId.current = null;
+
         resetProjectData();
+        router.push(Routes.HOME);
     };
 
     const value: ProjectCreationContextValue = {

@@ -1,17 +1,32 @@
-import {
-    ProcessedFileType,
-    type NextJsProjectValidation,
-    type ProcessedFile,
-} from '@/app/projects/types';
+'use client';
+
+import { useCallback, useRef, useState } from 'react';
+import { motion } from 'motion/react';
+import { toast } from 'sonner';
+
 import { APP_NAME, IGNORED_UPLOAD_DIRECTORIES, IGNORED_UPLOAD_FILES } from '@weblab/constants';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
 import { isBinaryFile } from '@weblab/utility';
-import { motion } from 'motion/react';
-import { useCallback, useRef, useState } from 'react';
-import { StepContent, StepFooter, StepHeader } from '../../steps';
+
+import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
+import { ProcessedFileType } from '@/app/projects/types';
 import { useProjectCreation } from '../_context';
+import { StepContent, StepFooter, StepHeader } from '../../steps';
+
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 declare module 'react' {
     interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
@@ -24,15 +39,16 @@ export const NewSelectFolder = () => {
     const {
         projectData,
         setProjectData,
-        prevStep,
         nextStep,
         resetProjectData,
+        cancel,
         validateNextJsProject,
     } = useProjectCreation();
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
     const [validation, setValidation] = useState<NextJsProjectValidation | null>(null);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const extractProjectName = (files: ProcessedFile[]): string | null => {
@@ -58,10 +74,12 @@ export const NewSelectFolder = () => {
 
     const filterAndProcessFiles = async (files: File[]): Promise<ProcessedFile[]> => {
         const processedFiles: ProcessedFile[] = [];
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        // Track files skipped because they exceed MAX_FILE_SIZE_BYTES so we can
+        // surface a toast at the end (issue #39).
+        const skippedLargeFiles: string[] = [];
 
         // Find the common root path from all files
-        const allPaths = files.map((file) => (file).webkitRelativePath || file.name);
+        const allPaths = files.map((file) => file.webkitRelativePath || file.name);
 
         if (!allPaths[0]) {
             return processedFiles;
@@ -73,7 +91,7 @@ export const NewSelectFolder = () => {
         for (const file of files) {
             // Get relative path from webkitRelativePath or name
             // Remove the root path from the relative path
-            let relativePath = (file).webkitRelativePath || file.name;
+            let relativePath = file.webkitRelativePath || file.name;
             if (!rootPath) {
                 continue;
             }
@@ -95,9 +113,11 @@ export const NewSelectFolder = () => {
 
             let processedFile: ProcessedFile;
 
-            // Skip if file is too large
-            if (file.size > MAX_FILE_SIZE) {
+            // Skip if file is too large — record it so the user gets a toast
+            // instead of a silent drop (issue #39).
+            if (file.size > MAX_FILE_SIZE_BYTES) {
                 console.warn(`Skipping large file: ${file.name} (${file.size} bytes)`);
+                skippedLargeFiles.push(file.name);
                 continue;
             }
 
@@ -125,6 +145,24 @@ export const NewSelectFolder = () => {
                 console.warn(`Error reading file ${file.name}:`, error);
             }
         }
+
+        // Surface skipped large files so users aren't surprised by missing
+        // pieces of their project (issue #39). package.json being too large is
+        // fatal for the import — flag it as an error so the user understands.
+        if (skippedLargeFiles.length > 0) {
+            const previewNames = skippedLargeFiles.slice(0, 3).join(', ');
+            const overflow = skippedLargeFiles.length > 3 ? ', …' : '';
+            const message = `${skippedLargeFiles.length} file(s) skipped (over ${MAX_FILE_SIZE_MB}MB): ${previewNames}${overflow}`;
+
+            if (skippedLargeFiles.includes('package.json')) {
+                toast.error(
+                    "package.json is too large to upload — Weblab can't import this project.",
+                );
+            } else {
+                toast.warning(message);
+            }
+        }
+
         return processedFiles;
     };
 
@@ -198,7 +236,7 @@ export const NewSelectFolder = () => {
                         if (entry.isFile) {
                             const fileEntry = entry;
                             try {
-                                let file = await new Promise<File>((resolve, reject) => {
+                                const file = await new Promise<File>((resolve, reject) => {
                                     fileEntry.file(resolve, reject);
                                 });
 
@@ -243,7 +281,7 @@ export const NewSelectFolder = () => {
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
 
-            if (item && item.kind === 'file') {
+            if (item?.kind === 'file') {
                 const entry = item.webkitGetAsEntry();
 
                 if (entry) {
@@ -300,6 +338,25 @@ export const NewSelectFolder = () => {
         setIsDragging(false);
     };
 
+    /**
+     * Inner-card Cancel handler (issue #38). Previously this routed through
+     * `prevStep` which silently invoked `resetProjectData()`; now we route to
+     * the explicit `cancel()` (navigates home) and warn first if the user has
+     * uploaded files so we don't discard work without confirmation.
+     */
+    const handleCancelClick = () => {
+        if ((projectData.files?.length ?? 0) > 0) {
+            setShowCancelConfirm(true);
+            return;
+        }
+        cancel();
+    };
+
+    const confirmCancel = () => {
+        setShowCancelConfirm(false);
+        cancel();
+    };
+
     const renderHeader = () => {
         const headerConfig = {
             initial: {
@@ -350,16 +407,11 @@ export const NewSelectFolder = () => {
                     className="w-full space-y-4"
                 >
                     <div
-                        className={`
-                            w-full h-20 rounded-lg border m-0
-                            flex flex-col items-center justify-center gap-4
-                            duration-200 cursor-pointer
-                            ${isDragging
+                        className={`m-0 flex h-20 w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-lg border duration-200 ${
+                            isDragging
                                 ? 'border-foreground-brand bg-background-positive'
                                 : 'border-border bg-background-secondary hover:bg-background-tertiary'
-                            }
-                            ${isUploading ? 'pointer-events-none opacity-50' : ''}
-                        `}
+                        } ${isUploading ? 'pointer-events-none opacity-50' : ''} `}
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -368,16 +420,16 @@ export const NewSelectFolder = () => {
                         {isUploading ? (
                             <div className="text-center">
                                 <div className="flex items-center justify-center gap-2">
-                                    <Icons.LoadingSpinner className="w-4 h-4 text-foreground-secondary animate-spin" />
-                                    <p className="text-sm font-medium text-foreground-secondary">
+                                    <Icons.LoadingSpinner className="text-foreground-secondary h-4 w-4 animate-spin" />
+                                    <p className="text-foreground-secondary text-sm font-medium">
                                         Uploading...
                                     </p>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex gap-3">
-                                <Icons.DirectoryOpen className="w-5 h-5 text-foreground-secondary" />
-                                <p className="text-sm font-medium text-foreground-secondary">
+                                <Icons.DirectoryOpen className="text-foreground-secondary h-5 w-5" />
+                                <p className="text-foreground-secondary text-sm font-medium">
                                     Click to select your folder
                                 </p>
                             </div>
@@ -411,7 +463,7 @@ export const NewSelectFolder = () => {
                 textColor: 'text-purple-100',
                 subTextColor: 'text-purple-200',
                 icon: (
-                    <Icons.CheckCircled className="w-5 h-5 text-purple-200 group-hover:opacity-0 transition-opacity duration-200" />
+                    <Icons.CheckCircled className="h-5 w-5 text-purple-200 transition-opacity duration-200 group-hover:opacity-0" />
                 ),
                 showError: false,
             },
@@ -421,7 +473,7 @@ export const NewSelectFolder = () => {
                 iconBgColor: 'bg-amber-500',
                 textColor: 'text-amber-100',
                 subTextColor: 'text-amber-200',
-                icon: <Icons.ExclamationTriangle className="w-5 h-5 text-amber-200" />,
+                icon: <Icons.ExclamationTriangle className="h-5 w-5 text-amber-200" />,
                 showError: true,
             },
         };
@@ -435,17 +487,19 @@ export const NewSelectFolder = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className={`w-full flex flex-row items-center border p-4 rounded-lg ${config.bgColor} ${config.borderColor} gap-2 group relative`}
+                    className={`flex w-full flex-row items-center rounded-lg border p-4 ${config.bgColor} ${config.borderColor} group relative gap-2`}
                 >
                     <div
-                        className={`flex flex-col gap-2 w-full ${config.showError ? '' : 'flex-row items-center justify-between'}`}
+                        className={`flex w-full flex-col gap-2 ${config.showError ? '' : 'flex-row items-center justify-between'}`}
                     >
-                        <div className="flex flex-row items-center justify-between w-full gap-3">
+                        <div className="flex w-full flex-row items-center justify-between gap-3">
                             <div className={`p-3 ${config.iconBgColor} rounded-lg`}>
-                                <Icons.Directory className="w-5 h-5" />
+                                <Icons.Directory className="h-5 w-5" />
                             </div>
-                            <div className="flex flex-col gap-1 break-all w-full">
-                                <p className={`text-regular ${config.textColor}`}>{projectData.name}</p>
+                            <div className="flex w-full flex-col gap-1 break-all">
+                                <p className={`text-regular ${config.textColor}`}>
+                                    {projectData.name}
+                                </p>
                                 <p className={`text-mini ${config.subTextColor}`}>
                                     {projectData.folderPath}
                                 </p>
@@ -454,17 +508,20 @@ export const NewSelectFolder = () => {
                         </div>
                         {config.showError && (
                             <p className={`${config.textColor} text-sm`}>
-                                {validation?.error ?? 'This project does not match the supported stack'}
+                                {validation?.error ??
+                                    'This project does not match the supported stack'}
                             </p>
                         )}
                     </div>
                     <Button
-                        className={`absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 hover:bg-transparent p-0 size-10 transition-opacity duration-200 ${config.bgColor}`}
+                        className={`absolute top-1/2 right-4 size-10 -translate-y-1/2 p-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:bg-transparent ${config.bgColor}`}
                         variant="ghost"
                         size="icon"
                         onClick={reset}
                     >
-                        <Icons.MinusCircled className={`w-5 h-5 ${validation?.isValid ? 'text-purple-200' : 'text-amber-200'}`} />
+                        <Icons.MinusCircled
+                            className={`h-5 w-5 ${validation?.isValid ? 'text-purple-200' : 'text-amber-200'}`}
+                        />
                     </Button>
                 </motion.div>
                 {error && (
@@ -481,7 +538,12 @@ export const NewSelectFolder = () => {
             <StepHeader>{renderHeader()}</StepHeader>
             <StepContent>{renderProjectInfo()}</StepContent>
             <StepFooter>
-                <Button type="button" onClick={prevStep} variant="outline" className="px-3 py-2">
+                <Button
+                    type="button"
+                    onClick={handleCancelClick}
+                    variant="outline"
+                    className="px-3 py-2"
+                >
                     Cancel
                 </Button>
                 {projectData.folderPath ? (
@@ -504,6 +566,21 @@ export const NewSelectFolder = () => {
                     </Button>
                 )}
             </StepFooter>
+            <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Discard upload?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You&apos;ve already selected a folder. Cancelling now will discard the
+                            uploaded files.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep editing</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmCancel}>Discard</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 };
