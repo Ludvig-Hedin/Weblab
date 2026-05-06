@@ -56,6 +56,15 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-048 | fixed (2026-05-06 review) |
 | CR-049 | resolved (2026-05-06) — searchTerm threaded; scrollToFirstMatch fires on view mount |
 | CR-050 | resolved (2026-05-06) — 30s polling on canvas+frames; idempotent applyFrames |
+| CR-056 | auto-fixed (2026-05-07 review) — duplicate imports removed |
+| CR-057 | auto-fixed (2026-05-07 review) — figma plugin UI hygiene (listener/timeout/useMemo) |
+| CR-058 | partially fixed (2026-05-07) — journal entries added; snapshots are placeholder copies, maintainer should regenerate via `bun db:gen` |
+| CR-059 | fixed (2026-05-07) — schema columns added, mappers prefer authoritative columns with legacy fallback |
+| CR-060 | fixed (2026-05-07) — userId scoping added to update + releaseSubscriptionSchedule |
+| CR-061 | fixed (2026-05-07) — verifyProjectAccess added to chat/message, chat/conversation, domain/verify |
+| CR-062 | fixed (2026-05-07) — script wrapped in `bash -c` |
+| CR-063 | fixed (2026-05-07) — invitation row rolled back on email failure |
+| CR-064 | deferred (2026-05-07) — Anthropic models can't run generateObject; needs a non-Anthropic small-tier model added to OPENROUTER_MODELS first |
 
 ---
 
@@ -665,3 +674,116 @@ Review window: full local working tree (114 tracked changed files plus untracked
 - **Summary:** The new callback page called `api.figma.handleOAuthCallback.useMutation()`, but the figma router only exposes `fetchFile`. Typecheck failed immediately and the page could never complete OAuth at runtime.
 - **Fix applied:** Removed the nonexistent mutation call and made the callback page show a clear error directing users back to the existing personal-access-token import flow. This preserves a route-level fallback without pretending OAuth is implemented.
 - **Status:** auto-fixed
+
+## CR-056 — Duplicate identifiers in `editor/state/index.ts` import block *(auto-fixed)*
+
+- **Area:** [editor/state/index.ts](apps/web/client/src/components/store/editor/state/index.ts)
+- **Type:** bug / build break
+- **Impact:** internal — `bun typecheck` fails
+- **Risk:** low
+- **Summary:** A formatting/import-organizer pass introduced duplicate identifiers (`InsertMode` listed twice in the type-only block; `ChatType` and `EditorMode` listed twice in the value block). TypeScript rejects with TS2300 "Duplicate identifier" — branch will not compile.
+- **Fix applied:** Deduplicated each identifier. `InsertMode` is only used as a type annotation in this file, so leaving it in the type-only import block is correct.
+- **Status:** auto-fixed
+
+---
+
+## CR-057 — Figma plugin UI hygiene: listener leak, stale timeout, no memoization *(auto-fixed)*
+
+- **Area:** [packages/figma-plugin/src/ui/App.tsx](packages/figma-plugin/src/ui/App.tsx)
+- **Type:** bug / DX
+- **Impact:** user-facing (HMR leaks during plugin dev) + perf (codegen ran every render)
+- **Risk:** low
+- **Summary:** New plugin UI used `window.onmessage = ...` (overrides any other handler, never cleans up across HMR/StrictMode), let `setTimeout` for the "Copied\!" reset escape unmount/re-render, and recomputed the generated code string on every render even when inputs were unchanged.
+- **Fix applied:** Switched to `addEventListener('message', ...)` with a cleanup function; tracked the copied-state timeout in a ref and cleared it on unmount and on re-trigger; wrapped `generateReact` / `generateHTML` in `useMemo([nodes, framework, styleMode])`.
+- **Status:** auto-fixed
+
+---
+
+## CR-058 — Migrations 0022 and 0023 are not registered in the Drizzle journal
+
+- **Area:** [supabase/migrations/0022_user_settings_preferences.sql](apps/backend/supabase/migrations/0022_user_settings_preferences.sql), [supabase/migrations/0023_project_runtime_modes.sql](apps/backend/supabase/migrations/0023_project_runtime_modes.sql), [supabase/migrations/meta/_journal.json](apps/backend/supabase/migrations/meta/_journal.json)
+- **Type:** bug / data-correctness
+- **Impact:** user-facing (broken DB schema in any env that runs `bun db:migrate` via Drizzle)
+- **Risk:** high
+- **Summary:** `_journal.json` contains entries through `0021_large_sunset_bain` only. The repository contains physical migration files `0022_user_settings_preferences.sql` and `0023_project_runtime_modes.sql`, plus a `0021_snapshot.json`, but no `0022_snapshot.json` / `0023_snapshot.json` and no journal entries for them. Drizzle's migrator reads `_journal.json` to determine which files to apply — these two will be silently skipped. The Drizzle schema in `packages/db/src/schema/user/settings.ts` already references columns 0022 introduces, so any environment that runs migrations via Drizzle (rather than `supabase migration up`) will still expose those Drizzle types but the underlying columns won't exist → runtime errors on read/write.
+- **Fix applied:** Appended `idx: 22` and `idx: 23` entries to `_journal.json` so the Drizzle migrator now picks them up. Created `0022_snapshot.json` and `0023_snapshot.json` as placeholders by copying `0021_snapshot.json` and re-chaining the `id`/`prevId` UUIDs — this unblocks `bun db:migrate` immediately.
+- **Remaining work for maintainer:** The two new snapshots do not yet reflect the schema columns added by 0022/0023, so the next `bun db:gen` will produce a large diff. Run `bun db:gen` (maintainer-only per repo rules) to regenerate clean canonical snapshots before the next schema change ships.
+- **Status:** partially fixed — Drizzle migrator unblocked; snapshots need maintainer regeneration
+
+---
+
+## CR-059 — Runtime mode columns added in 0023 are not in Drizzle schema or mappers
+
+- **Area:** [packages/db/src/schema/project/project.ts](packages/db/src/schema/project/project.ts), [packages/db/src/schema/project/branch.ts](packages/db/src/schema/project/branch.ts), [packages/db/src/mappers/project/project.ts](packages/db/src/mappers/project/project.ts), [packages/db/src/mappers/project/branch.ts](packages/db/src/mappers/project/branch.ts), [packages/db/src/defaults/project.ts](packages/db/src/defaults/project.ts), [packages/db/src/defaults/branch.ts](packages/db/src/defaults/branch.ts)
+- **Type:** refactor / data-model drift
+- **Impact:** internal — silent feature half-implementation
+- **Risk:** medium
+- **Summary:** Migration 0023 adds `projects.storage_mode`, `projects.runtime_metadata`, `branches.runtime_type`, `branches.runtime_metadata`. None of these are declared in the Drizzle table definitions, so `$inferSelect`/`$inferInsert` will not include them. Mappers infer `storageMode` from `tags.includes('local')` and `runtime` from `sandboxId.startsWith('local:')` — heuristics that will silently disagree with the new authoritative columns once anything writes them.
+- **Fix applied:** Added `storageMode` (varchar, default `'cloud'`) and `runtimeMetadata` (jsonb, default `{}`) to `projects`. Added `runtimeType` (varchar, default `'cloud'`) and `runtimeMetadata` (jsonb, default `{}`) to `branches`. Refined `projectInsertSchema` / `branchInsertSchema` (and `Update` variants) to use `z.enum([...])` for the storage/runtime type fields so the inserted rows narrow correctly. Updated `fromDbProject` / `fromDbBranch` mappers to prefer the authoritative columns and fall back to the legacy tag/sandbox-prefix inference only when those columns are empty (so no behavior change for existing rows). Updated `toDbProject` / `toDbBranch` and the `createDefaultProject` / `createDefaultBranch` defaults to write the new columns. Patched the two hand-rolled `newBranch` literals in `routers/project/branch.ts` (`fork`, `createBlank`) so they include the new fields. `bun typecheck` passes.
+- **Status:** fixed
+
+---
+
+## CR-060 — `subscription.update` and `releaseSubscriptionSchedule` accept Stripe IDs without ownership scoping
+
+- **Area:** [routers/subscription/subscription.ts](apps/web/client/src/server/api/routers/subscription/subscription.ts)
+- **Type:** bug / security
+- **Impact:** user-facing — privilege escalation against Stripe
+- **Risk:** high
+- **Summary:** `update` accepts `stripeSubscriptionId` from the client and calls `stripe.subscriptions.update` directly without first checking that `subscriptions.userId === ctx.user.id` for that ID. Any authenticated user who guesses or learns another user's `sub_…` ID can mutate that subscription (downgrade, change price, attach schedule). `releaseSubscriptionSchedule` has the same shape (`stripeSubscriptionScheduleId`, no ownership check). Existing patterns in the same file (`getCurrentBaseSubscription`, `cancel`) lookup by `userId` first — these mutations diverge.
+- **Fix applied:** Added `eq(subscriptions.userId, ctx.user.id)` to the lookup `WHERE` in both procedures, and replaced the `Error` throws with `TRPCError({code:'NOT_FOUND'})` so callers can't infer ID existence by error type. `releaseSubscriptionSchedule` now performs an ownership lookup before any Stripe call.
+- **Recommended follow-up:** Add a regression test that a second user cannot mutate the first user's sub (currently no such test in `apps/web/client/test/`).
+- **Status:** fixed
+
+---
+
+## CR-061 — `chat/message` and `domain/verify` mutations missing project-access checks
+
+- **Area:** [routers/chat/message.ts](apps/web/client/src/server/api/routers/chat/message.ts), [routers/chat/conversation.ts](apps/web/client/src/server/api/routers/chat/conversation.ts), [routers/domain/verify/index.ts](apps/web/client/src/server/api/routers/domain/verify/index.ts)
+- **Type:** bug / security
+- **Impact:** user-facing — IDOR
+- **Risk:** medium
+- **Summary:** Several mutations (message `update`/`delete`/`upsert`, `replaceConversationMessages`; domain `getActive`/`create`/`verify`/`verifyOwnedDomain`) operate on rows scoped by an input ID but never verify the caller is a member of the parent project. Any authed user with a valid ID can mutate.
+- **Fix applied:** Reused the existing `verifyProjectAccess(db, userId, projectId)` helper from `routers/project/helper.ts`:
+  - `chat/conversation`: `getAll`, `get`, `upsert`, `update`, `delete`, `generateTitle` now resolve `projectId` (via `loadConversationProjectId` for the cases where only `conversationId` is in scope) and call `verifyProjectAccess` before any read/mutation. `Error` throws were upgraded to `TRPCError`.
+  - `chat/message`: every procedure (`getAll`, `upsert`, `upsertMany`, `update`, `updateCheckpoints`, `delete`, `replaceConversationMessages`) resolves `projectId` from the message → conversation chain and verifies access. `delete` and `upsertMany` deduplicate distinct projects so we only call the helper once per project, not once per row.
+  - `domain/verify`: `getActive`, `create`, `verify`, `verifyOwnedDomain`, and `remove` now check project access; `remove` previously wasn't even loading the row by id, so it now does a lookup first.
+- **Status:** fixed
+
+---
+
+## CR-062 — Codesandbox `createProjectFromGit` subpath setup uses bash-only features
+
+- **Area:** [packages/code-provider/src/providers/codesandbox/index.ts](packages/code-provider/src/providers/codesandbox/index.ts)
+- **Type:** bug / portability
+- **Impact:** user-facing — git-import-from-subpath fails on sandboxes whose default shell is `dash`/`sh`
+- **Risk:** medium
+- **Summary:** New `setup(session)` block runs a script that uses `set -euo pipefail` and `shopt -s dotglob nullglob`. `pipefail` and `shopt` are bash-only; running under POSIX `sh` will fail the entire setup. Codesandbox's default shell is not guaranteed to be bash. The whitelist `case` for the path is also overly aggressive (`*..*` rejects any filename containing `..` like `lib..min.js`), which is acceptable defense-in-depth but worth documenting.
+- **Fix applied:** Wrapped the entire body in `bash -c '…'` so the script always runs under bash regardless of the sandbox's default shell. The single-quoted form keeps JS-side template-literal interpolation off, and `WEBLAB_TEMPLATE_SUBPATH` continues to flow through `env` (no shell-interpolated user input).
+- **Status:** fixed
+
+---
+
+## CR-063 — `invitation.create` can leave orphan rows when email send fails
+
+- **Area:** [routers/project/invitation.ts](apps/web/client/src/server/api/routers/project/invitation.ts)
+- **Type:** bug / reliability
+- **Impact:** user-facing — orphan invite, recipient never notified
+- **Risk:** low
+- **Summary:** The new code surfaces email send failures as `INTERNAL_SERVER_ERROR` (good) but the throw happens after the invitation row is committed. The user sees an error and assumes nothing happened, but the DB row persists. Re-trying creates duplicates.
+- **Fix applied:** Wrapped the email send in a `try`/`catch` and treat both thrown exceptions and `result.error` as failure. On failure, delete the just-inserted invitation row before throwing the `INTERNAL_SERVER_ERROR`, so retries don't accumulate orphan invites. Also rolls back the row when `RESEND_API_KEY` is missing (we previously inserted then immediately threw without cleaning up).
+- **Recommended follow-up:** A persistent "email_failed" status with a manual resend UX would still be more user-friendly than blind delete-and-retry, but that requires a schema change and was out of scope for this fix.
+- **Status:** fixed
+
+---
+
+## CR-064 — `repairToolCall` now uses GPT-5.5 instead of the prior "nano" tier
+
+- **Area:** [packages/ai/src/agents/root.ts](packages/ai/src/agents/root.ts)
+- **Type:** perf / cost
+- **Impact:** internal — repair tool calls run on the heavy default chat model
+- **Risk:** low
+- **Summary:** `repairToolCall` switched from `OPEN_AI_GPT_5_NANO` (which was removed from `OPENROUTER_MODELS` in the same diff) to `OPEN_AI_GPT_5_5`. Repair is a cheap structured-output operation; using the most expensive chat model burns tokens and wall-clock latency on every malformed tool call. There's no visible follow-up to introduce a cheaper repair-tier model.
+- **Why deferred (2026-05-07):** Routing to `CLAUDE_3_5_HAIKU` is the obvious cheap option, but the comment in `packages/models/src/llm/index.ts:11` is explicit that `generateObject` does not work with Anthropic models on OpenRouter — so Haiku won't actually fix the problem. Picking a real cheap, non-Anthropic, structured-output-capable model ID requires checking the live OpenRouter catalog and is a product decision (cost / quality trade-off) rather than something to fabricate from training data. Leaving the runtime on `OPEN_AI_GPT_5_5` for now since that's what shipped; the cost concern is tracked here.
+- **Suggested approach when picked up:** Verify a current cheap structured-output OpenRouter model (e.g. an `openai/gpt-5.5-mini` if it exists, GLM-5.1, Kimi K2.6 mini), add it to `OPENROUTER_MODELS`, route `repairToolCall` to it, and update `MODEL_MAX_TOKENS`.
+- **Status:** deferred — needs product/model decision

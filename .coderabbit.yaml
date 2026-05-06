@@ -1,0 +1,4 @@
+# .coderabbit.yaml
+reviews:
+  path_filters:
+    - "!apps/web/client/src/app/**"  # exclude that entire dir from all reviews

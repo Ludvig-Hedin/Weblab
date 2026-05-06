@@ -1,6 +1,6 @@
 {
     "name": "@weblab/repo",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "description": "Weblab Monorepo",
     "homepage": "https://weblab.build",
     "license": "Apache-2.0",
