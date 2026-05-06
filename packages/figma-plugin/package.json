@@ -1,0 +1,29 @@
+{
+    "name": "@weblab/figma-plugin",
+    "version": "0.0.0",
+    "private": true,
+    "license": "Apache-2.0",
+    "scripts": {
+        "build": "bun run build:plugin && bun run build:ui",
+        "build:plugin": "esbuild src/plugin/code.ts --bundle --outfile=dist/code.js --target=es2020 --format=iife",
+        "build:ui": "vite build",
+        "dev": "concurrently \"esbuild src/plugin/code.ts --bundle --outfile=dist/code.js --watch --target=es2020 --format=iife\" \"vite build --watch\"",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+    },
+    "devDependencies": {
+        "@figma/plugin-typings": "^1.89.0",
+        "@types/react": "^18.3.1",
+        "@types/react-dom": "^18.3.1",
+        "@vitejs/plugin-react": "^4.3.1",
+        "concurrently": "^9.0.0",
+        "esbuild": "^0.24.0",
+        "typescript": "^5.5.4",
+        "vite": "^5.4.6",
+        "vite-plugin-singlefile": "^2.0.0"
+    }
+}
