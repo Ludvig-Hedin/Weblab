@@ -44,11 +44,15 @@ const findWeblabParent = (): Window => {
  */
 const getTrustedParentOrigins = (remoteWindow: Window): string[] => {
     // ancestorOrigins is available in Chromium and Safari (not Firefox)
-    if (typeof window.location.ancestorOrigins !== 'undefined' && window.location.ancestorOrigins.length > 0) {
+    if (
+        typeof window.location.ancestorOrigins !== 'undefined' &&
+        window.location.ancestorOrigins.length > 0
+    ) {
         const ancestorOrigins = Array.from(window.location.ancestorOrigins);
-        const remoteOrigin = remoteWindow === window.top
-            ? ancestorOrigins[ancestorOrigins.length - 1]
-            : ancestorOrigins[0];
+        const remoteOrigin =
+            remoteWindow === window.top
+                ? ancestorOrigins[ancestorOrigins.length - 1]
+                : ancestorOrigins[0];
         if (remoteOrigin) {
             return [remoteOrigin];
         }
@@ -61,7 +65,9 @@ const getTrustedParentOrigins = (remoteWindow: Window): string[] => {
             // malformed referrer — fall through
         }
     }
-    console.warn(`${PENPAL_CHILD_CHANNEL} - Could not determine parent origin; falling back to '*'`);
+    console.warn(
+        `${PENPAL_CHILD_CHANNEL} - Could not determine parent origin; falling back to '*'`,
+    );
     return ['*'];
 };
 

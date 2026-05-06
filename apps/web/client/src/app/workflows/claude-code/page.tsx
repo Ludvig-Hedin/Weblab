@@ -1,12 +1,14 @@
 'use client';
 
+import { motion } from 'motion/react';
+
 import { APP_NAME } from '@weblab/constants';
+import { Icons } from '@weblab/ui/icons';
+
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { Icons } from '@weblab/ui/icons';
-import { motion } from 'motion/react';
 import { ClaudeCodeHero } from '../../_components/hero/claude-code-hero';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQSection } from '../../_components/landing-page/faq-section';
@@ -41,7 +43,7 @@ const claudeCodeFaqs = [
 ];
 
 // Helper function for blur animations
-const getBlurAnimationProps = (delay: number = 0) => ({
+const getBlurAnimationProps = (delay = 0) => ({
     initial: { opacity: 0, filter: 'blur(4px)' },
     whileInView: { opacity: 1, filter: 'blur(0px)' },
     viewport: { once: true, margin: '-100px 0px -100px 0px', amount: 0.3 },
@@ -62,11 +64,15 @@ export default function ClaudeCodeWorkflowPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Claude Code Workflow Summary">
-                    <h1>Claude Code for Designers: Add a Visual Canvas to Your AI Coding Workflow</h1>
+                    <h1>
+                        Claude Code for Designers: Add a Visual Canvas to Your AI Coding Workflow
+                    </h1>
                     <p>
-                        Claude Code is amazing for building — but designers need to see, arrange, and refine visually.
-                        {APP_NAME} adds the visual layer. Design with Claude Code, refine on an infinite canvas, ship PRs.
-                        Together, they give you a complete design-to-code workflow.
+                        Claude Code is amazing for building — but designers need to see, arrange,
+                        and refine visually.
+                        {APP_NAME} adds the visual layer. Design with Claude Code, refine on an
+                        infinite canvas, ship PRs. Together, they give you a complete design-to-code
+                        workflow.
                     </p>
                     <h2>The Challenge with Claude Code Alone</h2>
                     <ul>
@@ -77,16 +83,25 @@ export default function ClaudeCodeWorkflowPage() {
                     </ul>
                     <h2>{APP_NAME} Solves This</h2>
                     <ul>
-                        <li>Infinite canvas — visual environment with real code running underneath</li>
-                        <li>Your real components — design with buttons, cards, layouts engineers already built</li>
-                        <li>Team collaboration — share canvas, leave spatial comments, work in real-time</li>
+                        <li>
+                            Infinite canvas — visual environment with real code running underneath
+                        </li>
+                        <li>
+                            Your real components — design with buttons, cards, layouts engineers
+                            already built
+                        </li>
+                        <li>
+                            Team collaboration — share canvas, leave spatial comments, work in
+                            real-time
+                        </li>
                         <li>PR output — changes become real pull requests engineers can review</li>
                         <li>AI constrained — outputs match your design system, no drift</li>
                     </ul>
                     <h2>Coming Soon: {APP_NAME} MCP for Claude Code</h2>
                     <p>
-                        Use /weblab directly in Claude Code to open your UI in a visual canvas, iterate with your
-                        design system, and push changes back — all without leaving the terminal.
+                        Use /weblab directly in Claude Code to open your UI in a visual canvas,
+                        iterate with your design system, and push changes back — all without leaving
+                        the terminal.
                     </p>
                 </section>
 
@@ -99,16 +114,17 @@ export default function ClaudeCodeWorkflowPage() {
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Challenge
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            Claude Code is amazing for building. But designers need to see, arrange, and refine. Together.
+                            Claude Code is amazing for building. But designers need to see, arrange,
+                            and refine. Together.
                         </motion.p>
 
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -116,22 +132,26 @@ export default function ClaudeCodeWorkflowPage() {
                                 {
                                     icon: Icons.Terminal,
                                     title: 'Terminal-based',
-                                    description: 'Claude Code works in the terminal — not a visual environment designers are used to.',
+                                    description:
+                                        'Claude Code works in the terminal — not a visual environment designers are used to.',
                                 },
                                 {
                                     icon: Icons.Person,
                                     title: 'Solo workflow',
-                                    description: 'Hard to share work-in-progress with teammates or stakeholders.',
+                                    description:
+                                        'Hard to share work-in-progress with teammates or stakeholders.',
                                 },
                                 {
                                     icon: Icons.Component,
                                     title: 'AI drift',
-                                    description: 'Raw AI generation doesn\'t know your design system — outputs drift off-brand.',
+                                    description:
+                                        "Raw AI generation doesn't know your design system — outputs drift off-brand.",
                                 },
                                 {
                                     icon: Icons.Layers,
                                     title: 'No canvas',
-                                    description: 'Can\'t spatially arrange ideas or see the full picture at once.',
+                                    description:
+                                        "Can't spatially arrange ideas or see the full picture at once.",
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -140,8 +160,12 @@ export default function ClaudeCodeWorkflowPage() {
                                     {...getBlurAnimationProps(0.2 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-base text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-base text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -152,22 +176,23 @@ export default function ClaudeCodeWorkflowPage() {
                 <section className="w-full bg-black pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Solution
                         </motion.h2>
                         <motion.p
-                            className="mb-24 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-24 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            {APP_NAME} adds the visual layer. Design with Claude Code, refine on the canvas, ship PRs.
+                            {APP_NAME} adds the visual layer. Design with Claude Code, refine on the
+                            canvas, ship PRs.
                         </motion.p>
                     </div>
 
                     {/* Editor Mockup - Desktop */}
                     <motion.div
-                        className="hidden md:block w-screen h-[44rem] items-center justify-center mb-24"
+                        className="mb-24 hidden h-[44rem] w-screen items-center justify-center md:block"
                         {...getBlurAnimationProps(0.2)}
                     >
                         <WeblabInterfaceMockup />
@@ -175,10 +200,10 @@ export default function ClaudeCodeWorkflowPage() {
 
                     {/* Editor Mockup - Mobile */}
                     <motion.div
-                        className="md:hidden w-screen relative overflow-hidden h-[880px]"
+                        className="relative h-[880px] w-screen overflow-hidden md:hidden"
                         {...getBlurAnimationProps(0.2)}
                     >
-                        <div className="absolute top-1/2 right-10 transform -translate-y-1/2 h-[800px] w-[1000px]">
+                        <div className="absolute top-1/2 right-10 h-[800px] w-[1000px] -translate-y-1/2 transform">
                             <WeblabInterfaceMockup />
                         </div>
                     </motion.div>
@@ -189,22 +214,26 @@ export default function ClaudeCodeWorkflowPage() {
                                 {
                                     icon: Icons.Layers,
                                     title: 'Infinite canvas',
-                                    description: 'A visual environment that feels intuitive, with real code running underneath.',
+                                    description:
+                                        'A visual environment that feels intuitive, with real code running underneath.',
                                 },
                                 {
                                     icon: Icons.Component,
                                     title: 'Your real components',
-                                    description: 'Design with the buttons, cards, and layouts your engineers already built.',
+                                    description:
+                                        'Design with the buttons, cards, and layouts your engineers already built.',
                                 },
                                 {
                                     icon: Icons.Person,
                                     title: 'Team collaboration',
-                                    description: 'Share your canvas, leave spatial comments, work together in real-time.',
+                                    description:
+                                        'Share your canvas, leave spatial comments, work together in real-time.',
                                 },
                                 {
                                     icon: Icons.Branch,
                                     title: 'PR output',
-                                    description: 'Changes become a real pull request. Engineers review and merge.',
+                                    description:
+                                        'Changes become a real pull request. Engineers review and merge.',
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -213,8 +242,12 @@ export default function ClaudeCodeWorkflowPage() {
                                     {...getBlurAnimationProps(0.3 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-sm text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-sm text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -229,19 +262,36 @@ export default function ClaudeCodeWorkflowPage() {
                                 className="flex flex-col items-center text-center"
                                 {...getBlurAnimationProps()}
                             >
-                                <span className="mb-6 rounded-full px-3 py-1 text-[10px] font-medium uppercase tracking-wider" style={{ color: '#f97316', borderColor: 'rgba(249, 115, 22, 0.5)', backgroundColor: 'rgba(249, 115, 22, 0.1)', borderWidth: '1px', borderStyle: 'solid' }}>
+                                <span
+                                    className="mb-6 rounded-full px-3 py-1 text-[10px] font-medium tracking-wider uppercase"
+                                    style={{
+                                        color: '#f97316',
+                                        borderColor: 'rgba(249, 115, 22, 0.5)',
+                                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                                        borderWidth: '1px',
+                                        borderStyle: 'solid',
+                                    }}
+                                >
                                     Coming Soon
                                 </span>
-                                <h2 className="mb-6 max-w-2xl text-3xl font-light leading-tight text-balance md:text-5xl">
+                                <h2 className="mb-6 max-w-2xl text-3xl leading-tight font-light text-balance md:text-5xl">
                                     {APP_NAME} MCP for Claude Code
                                 </h2>
                                 <p className="text-foreground-secondary mb-8 max-w-xl text-lg text-balance">
-                                    Use <code className="bg-foreground-primary/10 rounded px-2 py-0.5 font-mono text-base">/weblab</code> directly in Claude Code to open your UI in a visual canvas, iterate with your design system, and push changes back — all without leaving the terminal.
+                                    Use{' '}
+                                    <code className="bg-foreground-primary/10 rounded px-2 py-0.5 font-mono text-base">
+                                        /weblab
+                                    </code>{' '}
+                                    directly in Claude Code to open your UI in a visual canvas,
+                                    iterate with your design system, and push changes back — all
+                                    without leaving the terminal.
                                 </p>
-                                <div className="bg-background-secondary/50 rounded-lg border border-foreground-primary/20 p-6 font-mono text-sm">
+                                <div className="bg-background-secondary/50 border-foreground-primary/20 rounded-lg border p-6 font-mono text-sm">
                                     <span className="text-foreground-tertiary">$</span>{' '}
                                     <span className="text-foreground-secondary">claude</span>{' '}
-                                    <span className="text-foreground-primary">/weblab open ./src/components/Hero.tsx</span>
+                                    <span className="text-foreground-primary">
+                                        /weblab open ./src/components/Hero.tsx
+                                    </span>
                                 </div>
                             </motion.div>
                         </div>

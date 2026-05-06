@@ -103,5 +103,3 @@ function createContainerElement(target: GroupContainer): HTMLElement {
     containerEl.setAttribute(EditorAttributes.DATA_WEBLAB_ID, target.oid);
     return containerEl;
 }
-
-

@@ -1,13 +1,15 @@
 'use client';
 
+import { motion } from 'motion/react';
+
 import { APP_NAME } from '@weblab/constants';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { Button } from '@weblab/ui/button';
-import { Icons } from '@weblab/ui/icons';
-import { motion } from 'motion/react';
 import { UnicornBackground } from '../../_components/hero/unicorn-background';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQSection } from '../../_components/landing-page/faq-section';
@@ -17,7 +19,7 @@ import { WebsiteLayout } from '../../_components/website-layout';
 const vibeCodingFaqs = [
     {
         question: 'What is vibe coding?',
-        answer: "Vibe coding is a workflow where you describe what you want in natural language and AI generates the code. Most vibe coding tools are designed for solo use, not teams.",
+        answer: 'Vibe coding is a workflow where you describe what you want in natural language and AI generates the code. Most vibe coding tools are designed for solo use, not teams.',
     },
     {
         question: 'What is the problem with vibe coding today?',
@@ -42,7 +44,7 @@ const vibeCodingFaqs = [
 ];
 
 // Helper function for blur animations
-const getBlurAnimationProps = (delay: number = 0) => ({
+const getBlurAnimationProps = (delay = 0) => ({
     initial: { opacity: 0, filter: 'blur(4px)' },
     whileInView: { opacity: 1, filter: 'blur(0px)' },
     viewport: { once: true, margin: '-100px 0px -100px 0px', amount: 0.3 },
@@ -58,7 +60,6 @@ const getBlurAnimationProps = (delay: number = 0) => ({
 });
 
 function VibeCodingHero() {
-
     return (
         <div className="relative flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
             <UnicornBackground />
@@ -88,8 +89,9 @@ function VibeCodingHero() {
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    Most AI coding tools are solo workflows. {APP_NAME} adds the missing layer —
-                    a visual canvas where teams collaborate on AI-generated UIs with their real components.
+                    Most AI coding tools are solo workflows. {APP_NAME} adds the missing layer — a
+                    visual canvas where teams collaborate on AI-generated UIs with their real
+                    components.
                 </motion.p>
                 <motion.div
                     className="mt-8"
@@ -104,9 +106,7 @@ function VibeCodingHero() {
                         size="lg"
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={Routes.PROJECTS}>
-                            Get Started
-                        </a>
+                        <a href={Routes.PROJECTS}>Get Started</a>
                     </Button>
                 </motion.div>
                 <motion.div
@@ -133,10 +133,11 @@ export default function VibeCodingWorkflowPage() {
                 <section className="sr-only" aria-label="Vibe Coding Workflow Summary">
                     <h1>Vibe Coding for Teams: Add Collaboration to Your AI Coding Workflow</h1>
                     <p>
-                        Vibe coding — describing what you want and letting AI generate the code — is powerful but has
-                        a collaboration problem. Most AI coding tools are solo workflows. You can't
-                        easily share work-in-progress, collaborate in real-time, or ensure outputs match your design
-                        system. {APP_NAME} solves this.
+                        Vibe coding — describing what you want and letting AI generate the code — is
+                        powerful but has a collaboration problem. Most AI coding tools are solo
+                        workflows. You can't easily share work-in-progress, collaborate in
+                        real-time, or ensure outputs match your design system. {APP_NAME} solves
+                        this.
                     </p>
                     <h2>The Problem with Solo Vibe Coding</h2>
                     <ul>
@@ -164,16 +165,17 @@ export default function VibeCodingWorkflowPage() {
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Problem
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            Solo vibe coding doesn't scale. Teams need to share, iterate, and ship together.
+                            Solo vibe coding doesn't scale. Teams need to share, iterate, and ship
+                            together.
                         </motion.p>
 
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -181,22 +183,26 @@ export default function VibeCodingWorkflowPage() {
                                 {
                                     icon: Icons.Person,
                                     title: 'Solo workflow',
-                                    description: 'Most AI coding tools are designed for individual use. Sharing means screenshots or screen shares.',
+                                    description:
+                                        'Most AI coding tools are designed for individual use. Sharing means screenshots or screen shares.',
                                 },
                                 {
                                     icon: Icons.Trash,
                                     title: 'Throwaway code',
-                                    description: "AI generates generic HTML/CSS. You'll rebuild it anyway to use your real components.",
+                                    description:
+                                        "AI generates generic HTML/CSS. You'll rebuild it anyway to use your real components.",
                                 },
                                 {
                                     icon: Icons.Brand,
                                     title: 'Brand drift',
-                                    description: "Every vibe-coded UI looks different. AI doesn't know your design system.",
+                                    description:
+                                        "Every vibe-coded UI looks different. AI doesn't know your design system.",
                                 },
                                 {
                                     icon: Icons.QuestionMarkCircled,
                                     title: '"Now what?"',
-                                    description: 'You built something cool. Now how do you share it, get feedback, or hand it off?',
+                                    description:
+                                        'You built something cool. Now how do you share it, get feedback, or hand it off?',
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -205,8 +211,12 @@ export default function VibeCodingWorkflowPage() {
                                     {...getBlurAnimationProps(0.2 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-base text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-base text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -217,22 +227,23 @@ export default function VibeCodingWorkflowPage() {
                 <section className="w-full bg-black pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             The Solution
                         </motion.h2>
                         <motion.p
-                            className="mb-24 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-24 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            {APP_NAME} adds the visual layer. Vibe code with your team, on your components, to real PRs.
+                            {APP_NAME} adds the visual layer. Vibe code with your team, on your
+                            components, to real PRs.
                         </motion.p>
                     </div>
 
                     {/* Editor Mockup - Desktop */}
                     <motion.div
-                        className="hidden md:block w-screen h-[44rem] items-center justify-center mb-24"
+                        className="mb-24 hidden h-[44rem] w-screen items-center justify-center md:block"
                         {...getBlurAnimationProps(0.2)}
                     >
                         <WeblabInterfaceMockup />
@@ -240,10 +251,10 @@ export default function VibeCodingWorkflowPage() {
 
                     {/* Editor Mockup - Mobile */}
                     <motion.div
-                        className="md:hidden w-screen relative overflow-hidden h-[880px]"
+                        className="relative h-[880px] w-screen overflow-hidden md:hidden"
                         {...getBlurAnimationProps(0.2)}
                     >
-                        <div className="absolute top-1/2 right-10 transform -translate-y-1/2 h-[800px] w-[1000px]">
+                        <div className="absolute top-1/2 right-10 h-[800px] w-[1000px] -translate-y-1/2 transform">
                             <WeblabInterfaceMockup />
                         </div>
                     </motion.div>
@@ -254,22 +265,26 @@ export default function VibeCodingWorkflowPage() {
                                 {
                                     icon: Icons.Layers,
                                     title: 'Visual canvas',
-                                    description: 'See and arrange AI-generated UIs spatially. Not just terminal output.',
+                                    description:
+                                        'See and arrange AI-generated UIs spatially. Not just terminal output.',
                                 },
                                 {
                                     icon: Icons.Component,
                                     title: 'Your real components',
-                                    description: 'AI uses your buttons, cards, layouts. Not generic HTML.',
+                                    description:
+                                        'AI uses your buttons, cards, layouts. Not generic HTML.',
                                 },
                                 {
                                     icon: Icons.Person,
                                     title: 'Team collaboration',
-                                    description: 'Share canvas, leave spatial comments, work together in real-time.',
+                                    description:
+                                        'Share canvas, leave spatial comments, work together in real-time.',
                                 },
                                 {
                                     icon: Icons.Branch,
                                     title: 'Ship PRs',
-                                    description: 'Changes become pull requests. Engineers review and merge.',
+                                    description:
+                                        'Changes become pull requests. Engineers review and merge.',
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -278,8 +293,12 @@ export default function VibeCodingWorkflowPage() {
                                     {...getBlurAnimationProps(0.3 + index * 0.1)}
                                 >
                                     <item.icon className="text-foreground-secondary h-5 w-5" />
-                                    <h3 className="text-base font-medium text-balance">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-sm text-balance">{item.description}</p>
+                                    <h3 className="text-base font-medium text-balance">
+                                        {item.title}
+                                    </h3>
+                                    <p className="text-foreground-secondary text-sm text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -290,13 +309,13 @@ export default function VibeCodingWorkflowPage() {
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             How It Works
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
                             Vibe code anywhere. Collaborate in {APP_NAME}. Ship together.
@@ -317,7 +336,8 @@ export default function VibeCodingWorkflowPage() {
                                 {
                                     step: '03',
                                     title: 'Collaborate and ship',
-                                    description: 'Share your canvas with teammates. Leave spatial comments. When ready, submit as a PR for engineers to review and merge.',
+                                    description:
+                                        'Share your canvas with teammates. Leave spatial comments. When ready, submit as a PR for engineers to review and merge.',
                                 },
                             ].map((item, index) => (
                                 <motion.div
@@ -325,9 +345,13 @@ export default function VibeCodingWorkflowPage() {
                                     className="flex flex-col gap-4"
                                     {...getBlurAnimationProps(0.2 + index * 0.1)}
                                 >
-                                    <span className="text-foreground-tertiary text-sm font-medium">{item.step}</span>
+                                    <span className="text-foreground-tertiary text-sm font-medium">
+                                        {item.step}
+                                    </span>
                                     <h3 className="text-xl font-medium">{item.title}</h3>
-                                    <p className="text-foreground-secondary text-base text-balance">{item.description}</p>
+                                    <p className="text-foreground-secondary text-base text-balance">
+                                        {item.description}
+                                    </p>
                                 </motion.div>
                             ))}
                         </div>
@@ -338,13 +362,13 @@ export default function VibeCodingWorkflowPage() {
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider"
+                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
                             {...getBlurAnimationProps()}
                         >
                             Vibe Coding: Solo vs. Team
                         </motion.h2>
                         <motion.p
-                            className="mb-16 max-w-3xl text-4xl font-light leading-tight text-balance md:text-5xl"
+                            className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
                             The difference between prototyping alone and shipping with your team.
@@ -356,7 +380,7 @@ export default function VibeCodingWorkflowPage() {
                         >
                             {/* Solo Column */}
                             <div className="border-foreground-primary/10 rounded-lg border p-8">
-                                <h3 className="text-foreground-tertiary mb-6 text-sm font-medium uppercase tracking-wider">
+                                <h3 className="text-foreground-tertiary mb-6 text-sm font-medium tracking-wider uppercase">
                                     Solo Vibe Coding
                                 </h3>
                                 <ul className="space-y-4">
@@ -367,7 +391,10 @@ export default function VibeCodingWorkflowPage() {
                                         'Manual handoff process',
                                         'Code needs translation',
                                     ].map((item) => (
-                                        <li key={item} className="text-foreground-secondary flex items-start gap-3">
+                                        <li
+                                            key={item}
+                                            className="text-foreground-secondary flex items-start gap-3"
+                                        >
                                             <Icons.CrossCircled className="text-foreground-tertiary mt-0.5 h-5 w-5 flex-shrink-0" />
                                             <span>{item}</span>
                                         </li>
@@ -377,7 +404,7 @@ export default function VibeCodingWorkflowPage() {
 
                             {/* Team Column */}
                             <div className="border-foreground-primary/30 rounded-lg border bg-gradient-to-b from-white/5 to-transparent p-8">
-                                <h3 className="text-foreground-secondary mb-6 text-sm font-medium uppercase tracking-wider">
+                                <h3 className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase">
                                     Team Vibe Coding with {APP_NAME}
                                 </h3>
                                 <ul className="space-y-4">
@@ -388,8 +415,11 @@ export default function VibeCodingWorkflowPage() {
                                         'Collaborate with spatial comments',
                                         'Ship PRs engineers can merge',
                                     ].map((item) => (
-                                        <li key={item} className="text-foreground-primary flex items-start gap-3">
-                                            <Icons.CheckCircled className="text-blue-500 mt-0.5 h-5 w-5 flex-shrink-0" />
+                                        <li
+                                            key={item}
+                                            className="text-foreground-primary flex items-start gap-3"
+                                        >
+                                            <Icons.CheckCircled className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
                                             <span>{item}</span>
                                         </li>
                                     ))}

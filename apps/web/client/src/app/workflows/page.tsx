@@ -1,19 +1,21 @@
 'use client';
 
+import Link from 'next/link';
+import { motion } from 'motion/react';
+
 import { APP_NAME } from '@weblab/constants';
+import { Icons } from '@weblab/ui/icons';
+
 import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { Icons } from '@weblab/ui/icons';
-import { motion } from 'motion/react';
-import Link from 'next/link';
+import { UnicornBackground } from '../_components/hero/unicorn-background';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { WebsiteLayout } from '../_components/website-layout';
-import { UnicornBackground } from '../_components/hero/unicorn-background';
 
 // Helper function for blur animations
-const getBlurAnimationProps = (delay: number = 0) => ({
+const getBlurAnimationProps = (delay = 0) => ({
     initial: { opacity: 0, filter: 'blur(4px)' },
     whileInView: { opacity: 1, filter: 'blur(0px)' },
     viewport: { once: true, margin: '-100px 0px -100px 0px', amount: 0.3 },
@@ -58,23 +60,38 @@ export default function WorkflowsPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Workflows Summary">
-                    <h1>{APP_NAME} Workflows: Integrate with Claude Code, Cursor, and AI Coding Tools</h1>
+                    <h1>
+                        {APP_NAME} Workflows: Integrate with Claude Code, Cursor, and AI Coding
+                        Tools
+                    </h1>
                     <p>
-                        {APP_NAME} adds a visual design layer to your AI coding workflow. Connect {APP_NAME} to the tools
-                        you already use — Claude Code, Cursor, and more. Design visually with your real components,
-                        collaborate with your team in real-time, and ship changes as mergeable pull requests.
+                        {APP_NAME} adds a visual design layer to your AI coding workflow. Connect{' '}
+                        {APP_NAME} to the tools you already use — Claude Code, Cursor, and more.
+                        Design visually with your real components, collaborate with your team in
+                        real-time, and ship changes as mergeable pull requests.
                     </p>
                     <h2>Available Integrations</h2>
                     <ul>
-                        <li>Claude Code — The visual canvas your AI workflow is missing. Claude Code builds it, {APP_NAME} lets you design it.</li>
-                        <li>Vibe Coding — Vibe coding has a collaboration problem. {APP_NAME} solves it with a team canvas, real components, and PR output.</li>
+                        <li>
+                            Claude Code — The visual canvas your AI workflow is missing. Claude Code
+                            builds it, {APP_NAME} lets you design it.
+                        </li>
+                        <li>
+                            Vibe Coding — Vibe coding has a collaboration problem. {APP_NAME} solves
+                            it with a team canvas, real components, and PR output.
+                        </li>
                         <li>Cursor — Visual design layer for Cursor users (coming soon)</li>
                         <li>Codex — Visual design layer for OpenAI Codex users (coming soon)</li>
                     </ul>
                     <h2>Key Benefits</h2>
                     <ul>
-                        <li>Visual canvas for AI-generated UIs — see and arrange your code spatially</li>
-                        <li>Design with your real components — buttons, cards, layouts your engineers already built</li>
+                        <li>
+                            Visual canvas for AI-generated UIs — see and arrange your code spatially
+                        </li>
+                        <li>
+                            Design with your real components — buttons, cards, layouts your
+                            engineers already built
+                        </li>
                         <li>Real-time team collaboration — share canvas, leave spatial comments</li>
                         <li>Direct PR output — changes become mergeable pull requests</li>
                         <li>AI constrained to your design system — no brand drift</li>
@@ -82,7 +99,10 @@ export default function WorkflowsPage() {
                 </section>
 
                 {/* Hero Section */}
-                <div className="relative flex min-h-[70vh] w-full flex-col items-center justify-center p-8 text-center" id="hero">
+                <div
+                    className="relative flex min-h-[70vh] w-full flex-col items-center justify-center p-8 text-center"
+                    id="hero"
+                >
                     <UnicornBackground />
                     <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
                         <motion.h1
@@ -110,7 +130,8 @@ export default function WorkflowsPage() {
                             transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                             style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                         >
-                            Connect {APP_NAME} to the tools you already use. Design visually, ship real code.
+                            Connect {APP_NAME} to the tools you already use. Design visually, ship
+                            real code.
                         </motion.h2>
                     </div>
                 </div>
@@ -118,7 +139,7 @@ export default function WorkflowsPage() {
                 {/* Workflows Grid */}
                 <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
-                        <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+                        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
                             {workflows.map((workflow, index) => (
                                 <motion.div
                                     key={workflow.title}
@@ -130,26 +151,44 @@ export default function WorkflowsPage() {
                                             className="group border-foreground-primary/10 hover:border-foreground-primary/30 flex h-full flex-col gap-4 rounded-lg border bg-black p-8 transition-all duration-300"
                                         >
                                             {workflow.logo ? (
-                                                <img src={workflow.logo} alt={workflow.title} className="h-10 w-10" />
+                                                <img
+                                                    src={workflow.logo}
+                                                    alt={workflow.title}
+                                                    className="h-10 w-10"
+                                                />
                                             ) : workflow.icon ? (
                                                 <workflow.icon className="text-foreground-secondary group-hover:text-foreground-primary h-10 w-10 transition-colors" />
                                             ) : null}
-                                            <h3 className="text-lg font-medium">{workflow.title}</h3>
-                                            <p className="text-foreground-secondary text-balance">{workflow.description}</p>
+                                            <h3 className="text-lg font-medium">
+                                                {workflow.title}
+                                            </h3>
+                                            <p className="text-foreground-secondary text-balance">
+                                                {workflow.description}
+                                            </p>
                                             <div className="mt-auto flex items-center gap-2 pt-4 text-sm">
-                                                <span className="text-foreground-primary">Learn more</span>
+                                                <span className="text-foreground-primary">
+                                                    Learn more
+                                                </span>
                                                 <Icons.ArrowRight className="h-4 w-4" />
                                             </div>
                                         </Link>
                                     ) : (
                                         <div className="border-foreground-primary/10 flex h-full flex-col gap-4 rounded-lg border bg-black p-8">
                                             {workflow.logo ? (
-                                                <img src={workflow.logo} alt={workflow.title} className="h-10 w-10 opacity-50" />
+                                                <img
+                                                    src={workflow.logo}
+                                                    alt={workflow.title}
+                                                    className="h-10 w-10 opacity-50"
+                                                />
                                             ) : workflow.icon ? (
                                                 <workflow.icon className="text-foreground-tertiary h-10 w-10 opacity-50" />
                                             ) : null}
-                                            <h3 className="text-xl font-medium opacity-50">{workflow.title}</h3>
-                                            <p className="text-foreground-secondary text-balance opacity-50">{workflow.description}</p>
+                                            <h3 className="text-lg font-medium opacity-50">
+                                                {workflow.title}
+                                            </h3>
+                                            <p className="text-foreground-secondary text-balance opacity-50">
+                                                {workflow.description}
+                                            </p>
                                             <div className="mt-auto pt-4">
                                                 <span className="text-foreground-tertiary rounded-full border border-current px-3 py-1 text-xs">
                                                     Coming Soon

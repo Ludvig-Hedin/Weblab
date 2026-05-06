@@ -102,12 +102,12 @@ export default function BlogPage() {
                 ) : (
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                         {featured && (
-                            <div className="w-full lg:w-[70.8%] lg:shrink-0">
+                            <div className="w-full lg:w-[calc(70.8%-0.375rem)] lg:shrink-0">
                                 <PostCard post={featured} featured />
                             </div>
                         )}
                         {rest.length > 0 && (
-                            <div className="flex w-full flex-col gap-3 lg:w-[29.2%]">
+                            <div className="flex w-full flex-col gap-3 lg:w-[calc(29.2%-0.375rem)]">
                                 {rest.map((post) => (
                                     <PostCard key={post.slug} post={post} />
                                 ))}
