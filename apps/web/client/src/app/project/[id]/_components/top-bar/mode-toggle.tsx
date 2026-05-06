@@ -1,32 +1,34 @@
-import { Hotkey } from '@/components/hotkey';
-import { useEditorEngine } from '@/components/store/editor';
-import { transKeys } from '@/i18n/keys';
+import { observer } from 'mobx-react-lite';
+import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
+
 import { EditorMode } from '@weblab/models';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+
+import { Hotkey } from '@/components/hotkey';
+import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
 
 const MODE_TOGGLE_ITEMS: {
     mode: EditorMode;
     hotkey: Hotkey;
 }[] = [
-        {
-            mode: EditorMode.DESIGN,
-            hotkey: Hotkey.SELECT,
-        },
-        {
-            mode: EditorMode.CODE,
-            hotkey: Hotkey.CODE,
-        },
-        {
-            mode: EditorMode.PREVIEW,
-            hotkey: Hotkey.PREVIEW,
-        },
-    ];
+    {
+        mode: EditorMode.DESIGN,
+        hotkey: Hotkey.SELECT,
+    },
+    {
+        mode: EditorMode.CODE,
+        hotkey: Hotkey.CODE,
+    },
+    {
+        mode: EditorMode.PREVIEW,
+        hotkey: Hotkey.PREVIEW,
+    },
+];
 
 export const ModeToggle = observer(() => {
     const t = useTranslations();
@@ -39,14 +41,14 @@ export const ModeToggle = observer(() => {
         }
         if (mode === EditorMode.CODE) {
             return '100%';
-        };
+        }
         return '0%';
     };
 
     return (
         <div className="relative">
             <ToggleGroup
-                className="font-normal h-7 mt-1"
+                className="mt-1 h-7 font-normal"
                 type="single"
                 value={mode}
                 onValueChange={(value) => {
@@ -62,13 +64,17 @@ export const ModeToggle = observer(() => {
                                 value={item.mode}
                                 aria-label={item.hotkey.description}
                                 className={cn(
-                                    'transition-all duration-150 ease-in-out px-4 py-2 whitespace-nowrap bg-transparent cursor-pointer text-sm',
+                                    'cursor-pointer bg-transparent px-4 py-2 text-sm whitespace-nowrap transition-all duration-150 ease-in-out',
                                     mode === item.mode
-                                        ? 'text-active text-sm hover:text-active hover:bg-transparent'
-                                        : 'text-foreground-secondary text-sm hover:text-foreground-hover hover:bg-transparent',
+                                        ? 'text-active hover:text-active text-sm hover:bg-transparent'
+                                        : 'text-foreground-secondary hover:text-foreground-hover text-sm hover:bg-transparent',
                                 )}
                             >
-                                {t(transKeys.editor.modes[item.mode.toLowerCase() as keyof typeof transKeys.editor.modes].name)}
+                                {t(
+                                    transKeys.editor.modes[
+                                        item.mode.toLowerCase() as keyof typeof transKeys.editor.modes
+                                    ].name,
+                                )}
                             </ToggleGroupItem>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="mt-0" hideArrow>
@@ -78,7 +84,7 @@ export const ModeToggle = observer(() => {
                 ))}
             </ToggleGroup>
             <motion.div
-                className="absolute -top-1 h-0.5 bg-foreground"
+                className="bg-foreground absolute -top-1 h-0.5"
                 initial={false}
                 animate={{
                     width: '33.333%',

@@ -1,10 +1,19 @@
-import { EditorView, keymap, ViewUpdate } from '@codemirror/view';
+import type { RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { EditorView, keymap } from '@codemirror/view';
+import CodeMirror from '@uiw/react-codemirror';
+
 import type { CodeNavigationTarget } from '@weblab/models';
 import { convertToBase64DataUrl, getMimeType, isVideoFile } from '@weblab/utility';
-import CodeMirror from '@uiw/react-codemirror';
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+
 import type { BinaryEditorFile, EditorFile } from '../shared/types';
-import { getBasicSetup, getExtensions, highlightElementRange, scrollToLineColumn } from './code-mirror-config';
+import type { ViewUpdate } from '@codemirror/view';
+import {
+    getBasicSetup,
+    getExtensions,
+    highlightElementRange,
+    scrollToLineColumn,
+} from './code-mirror-config';
 import { FloatingAddToChatButton } from './floating-add-to-chat-button';
 
 interface CodeEditorProps {
@@ -30,7 +39,11 @@ export const CodeEditor = ({
     onAddSelectionToChat,
     onFocusChatInput,
 }: CodeEditorProps) => {
-    const [currentSelection, setCurrentSelection] = useState<{ from: number; to: number; text: string } | null>(null);
+    const [currentSelection, setCurrentSelection] = useState<{
+        from: number;
+        to: number;
+        text: string;
+    } | null>(null);
     const [selectionAddedToChat, setSelectionAddedToChat] = useState(false);
     const [showButton, setShowButton] = useState(false);
     const lastNavigationTargetRef = useRef<CodeNavigationTarget | null>(null);
@@ -51,7 +64,7 @@ export const CodeEditor = ({
                         const selectionData = {
                             from: selection.from,
                             to: selection.to,
-                            text: selectedText
+                            text: selectedText,
                         };
                         setCurrentSelection(selectionData);
                         setSelectionAddedToChat(false); // Reset the flag for new selection
@@ -77,7 +90,7 @@ export const CodeEditor = ({
                         setShowButton(true);
                     }, 0);
                     return false;
-                }
+                },
             }),
             // Add CMD+L keyboard shortcut
             keymap.of([
@@ -90,7 +103,7 @@ export const CodeEditor = ({
                             const selectionData = {
                                 from: selection.from,
                                 to: selection.to,
-                                text: selectedText
+                                text: selectedText,
                             };
                             onAddSelectionToChat?.(selectionData);
                             setSelectionAddedToChat(true); // Mark as added to chat
@@ -98,9 +111,9 @@ export const CodeEditor = ({
                             return true;
                         }
                         return false;
-                    }
-                }
-            ])
+                    },
+                },
+            ]),
         ];
     }, [onSelectionChange, onAddSelectionToChat, onFocusChatInput]);
 
@@ -113,7 +126,7 @@ export const CodeEditor = ({
                 handleNavigation(editor, navigationTarget);
             }, 100);
         }
-    }
+    };
 
     useEffect(() => {
         // Reset last navigation when target is cleared or file changes
@@ -128,10 +141,13 @@ export const CodeEditor = ({
         if (!editor) return;
 
         // Only navigate if this is a new navigation target (not just a file save)
-        const isSameTarget = lastNavigationTargetRef.current &&
+        const isSameTarget =
+            lastNavigationTargetRef.current &&
             lastNavigationTargetRef.current.filePath === navigationTarget.filePath &&
-            lastNavigationTargetRef.current.range.start.line === navigationTarget.range.start.line &&
-            lastNavigationTargetRef.current.range.start.column === navigationTarget.range.start.column;
+            lastNavigationTargetRef.current.range.start.line ===
+                navigationTarget.range.start.line &&
+            lastNavigationTargetRef.current.range.start.column ===
+                navigationTarget.range.start.column;
 
         if (!isSameTarget) {
             lastNavigationTargetRef.current = navigationTarget;
@@ -148,8 +164,8 @@ export const CodeEditor = ({
                     range.start.line,
                     range.start.column,
                     range.end.line,
-                    range.end.column
-                )
+                    range.end.column,
+                ),
             });
         } catch (error) {
             console.error('[CodeEditor] Navigation error:', error);
@@ -164,7 +180,7 @@ export const CodeEditor = ({
 
     return (
         <div
-            className="h-full relative"
+            className="relative h-full"
             style={{
                 display: isActive ? 'block' : 'none',
             }}
@@ -175,7 +191,7 @@ export const CodeEditor = ({
                         <video
                             src={getFileUrl(file as BinaryEditorFile)}
                             controls
-                            className="w-full h-full object-contain p-5"
+                            className="h-full w-full object-contain p-5"
                         >
                             Your browser does not support the video tag.
                         </video>
@@ -183,7 +199,7 @@ export const CodeEditor = ({
                         <img
                             src={getFileUrl(file as BinaryEditorFile)}
                             alt={file.path}
-                            className="w-full h-full object-contain p-5"
+                            className="h-full w-full object-contain p-5"
                         />
                     )}
                 </>
@@ -206,13 +222,17 @@ export const CodeEditor = ({
                         className="h-full overflow-hidden"
                         onCreateEditor={onCreateEditor}
                     />
-                    {currentSelection && showButton && onAddSelectionToChat && editorViewsRef.current?.get(file.path) && !selectionAddedToChat && (
-                        <FloatingAddToChatButton
-                            editor={editorViewsRef.current.get(file.path)!}
-                            selection={currentSelection}
-                            onAddToChat={() => handleAddToChat(currentSelection)}
-                        />
-                    )}
+                    {currentSelection &&
+                        showButton &&
+                        onAddSelectionToChat &&
+                        editorViewsRef.current?.get(file.path) &&
+                        !selectionAddedToChat && (
+                            <FloatingAddToChatButton
+                                editor={editorViewsRef.current.get(file.path)!}
+                                selection={currentSelection}
+                                onAddToChat={() => handleAddToChat(currentSelection)}
+                            />
+                        )}
                 </>
             )}
         </div>

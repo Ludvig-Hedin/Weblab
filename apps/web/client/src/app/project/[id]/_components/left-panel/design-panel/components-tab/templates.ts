@@ -26,9 +26,13 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'section',
             styles: {
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', padding: '5rem 2rem',
-                textAlign: 'center', gap: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '5rem 2rem',
+                textAlign: 'center',
+                gap: '1.5rem',
             },
             textContent: null,
             children: [
@@ -45,9 +49,14 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                 {
                     tagName: 'button',
                     styles: {
-                        padding: '0.75rem 2rem', backgroundColor: '#000', color: '#fff',
-                        borderRadius: '0.5rem', fontSize: '1rem', fontWeight: '500',
-                        cursor: 'pointer', border: 'none',
+                        padding: '0.75rem 2rem',
+                        backgroundColor: '#000',
+                        color: '#fff',
+                        borderRadius: '0.5rem',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        border: 'none',
                     },
                     textContent: 'Get started',
                     attributes: { type: 'button' },
@@ -63,9 +72,13 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'section',
             styles: {
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: '2rem', padding: '4rem 2rem',
-                backgroundColor: '#f9fafb', textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2rem',
+                padding: '4rem 2rem',
+                backgroundColor: '#f9fafb',
+                textAlign: 'center',
             },
             textContent: null,
             children: [
@@ -81,14 +94,24 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                 },
                 {
                     tagName: 'div',
-                    styles: { display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' },
+                    styles: {
+                        display: 'flex',
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                    },
                     textContent: null,
                     children: [
                         {
                             tagName: 'button',
                             styles: {
-                                padding: '0.75rem 1.75rem', backgroundColor: '#000', color: '#fff',
-                                borderRadius: '0.5rem', fontWeight: '500', border: 'none', cursor: 'pointer',
+                                padding: '0.75rem 1.75rem',
+                                backgroundColor: '#000',
+                                color: '#fff',
+                                borderRadius: '0.5rem',
+                                fontWeight: '500',
+                                border: 'none',
+                                cursor: 'pointer',
                             },
                             textContent: 'Start for free',
                             attributes: { type: 'button' },
@@ -96,8 +119,13 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                         {
                             tagName: 'button',
                             styles: {
-                                padding: '0.75rem 1.75rem', backgroundColor: 'transparent', color: '#000',
-                                borderRadius: '0.5rem', fontWeight: '500', border: '1px solid #000', cursor: 'pointer',
+                                padding: '0.75rem 1.75rem',
+                                backgroundColor: 'transparent',
+                                color: '#000',
+                                borderRadius: '0.5rem',
+                                fontWeight: '500',
+                                border: '1px solid #000',
+                                cursor: 'pointer',
                             },
                             textContent: 'Learn more',
                             attributes: { type: 'button' },
@@ -115,17 +143,23 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'div',
             styles: {
-                display: 'flex', flexDirection: 'column', gap: '0.75rem',
-                padding: '1.5rem', borderRadius: '0.75rem',
-                border: '1px solid #e5e7eb', backgroundColor: '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                padding: '1.5rem',
+                borderRadius: '0.75rem',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
             },
             textContent: null,
             children: [
                 {
                     tagName: 'div',
                     styles: {
-                        width: '2.5rem', height: '2.5rem',
-                        borderRadius: '0.5rem', backgroundColor: '#f3f4f6',
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        borderRadius: '0.5rem',
+                        backgroundColor: '#f3f4f6',
                     },
                     textContent: null,
                 },
@@ -150,16 +184,26 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'div',
             styles: {
-                display: 'flex', flexDirection: 'column', gap: '1rem',
-                padding: '1.5rem', borderRadius: '0.75rem',
-                border: '1px solid #e5e7eb', backgroundColor: '#fff',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                padding: '1.5rem',
+                borderRadius: '0.75rem',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
             },
             textContent: null,
             children: [
                 {
                     tagName: 'p',
-                    styles: { fontSize: '0.875rem', color: '#374151', lineHeight: '1.6', fontStyle: 'italic' },
-                    textContent: '"This product completely changed how our team works. Highly recommend."',
+                    styles: {
+                        fontSize: '0.875rem',
+                        color: '#374151',
+                        lineHeight: '1.6',
+                        fontStyle: 'italic',
+                    },
+                    textContent:
+                        '"This product completely changed how our team works. Highly recommend."',
                 },
                 {
                     tagName: 'div',
@@ -168,7 +212,12 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                     children: [
                         {
                             tagName: 'div',
-                            styles: { width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e5e7eb' },
+                            styles: {
+                                width: '2.5rem',
+                                height: '2.5rem',
+                                borderRadius: '50%',
+                                backgroundColor: '#e5e7eb',
+                            },
                             textContent: null,
                         },
                         {
@@ -176,8 +225,16 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                             styles: { display: 'flex', flexDirection: 'column', gap: '0.125rem' },
                             textContent: null,
                             children: [
-                                { tagName: 'span', styles: { fontSize: '0.875rem', fontWeight: '600' }, textContent: 'Jane Smith' },
-                                { tagName: 'span', styles: { fontSize: '0.75rem', color: '#9ca3af' }, textContent: 'CEO at Acme' },
+                                {
+                                    tagName: 'span',
+                                    styles: { fontSize: '0.875rem', fontWeight: '600' },
+                                    textContent: 'Jane Smith',
+                                },
+                                {
+                                    tagName: 'span',
+                                    styles: { fontSize: '0.75rem', color: '#9ca3af' },
+                                    textContent: 'CEO at Acme',
+                                },
                             ],
                         },
                     ],
@@ -193,38 +250,78 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'div',
             styles: {
-                display: 'flex', flexDirection: 'column', gap: '1.25rem',
-                padding: '2rem', borderRadius: '0.75rem',
-                border: '1px solid #e5e7eb', backgroundColor: '#fff', maxWidth: '22rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem',
+                padding: '2rem',
+                borderRadius: '0.75rem',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
+                maxWidth: '22rem',
             },
             textContent: null,
             children: [
-                { tagName: 'h3', styles: { fontSize: '1.125rem', fontWeight: '600' }, textContent: 'Pro' },
+                {
+                    tagName: 'h3',
+                    styles: { fontSize: '1.125rem', fontWeight: '600' },
+                    textContent: 'Pro',
+                },
                 {
                     tagName: 'div',
                     styles: { display: 'flex', alignItems: 'baseline', gap: '0.25rem' },
                     textContent: null,
                     children: [
-                        { tagName: 'span', styles: { fontSize: '2.5rem', fontWeight: '700' }, textContent: '$29' },
-                        { tagName: 'span', styles: { fontSize: '0.875rem', color: '#6b7280' }, textContent: '/month' },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '2.5rem', fontWeight: '700' },
+                            textContent: '$29',
+                        },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '0.875rem', color: '#6b7280' },
+                            textContent: '/month',
+                        },
                     ],
                 },
                 {
                     tagName: 'ul',
-                    styles: { display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingLeft: '0', listStyle: 'none' },
+                    styles: {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.625rem',
+                        paddingLeft: '0',
+                        listStyle: 'none',
+                    },
                     textContent: null,
                     children: [
-                        { tagName: 'li', styles: { fontSize: '0.875rem' }, textContent: '✓ Unlimited projects' },
-                        { tagName: 'li', styles: { fontSize: '0.875rem' }, textContent: '✓ Priority support' },
-                        { tagName: 'li', styles: { fontSize: '0.875rem' }, textContent: '✓ Custom domain' },
+                        {
+                            tagName: 'li',
+                            styles: { fontSize: '0.875rem' },
+                            textContent: '✓ Unlimited projects',
+                        },
+                        {
+                            tagName: 'li',
+                            styles: { fontSize: '0.875rem' },
+                            textContent: '✓ Priority support',
+                        },
+                        {
+                            tagName: 'li',
+                            styles: { fontSize: '0.875rem' },
+                            textContent: '✓ Custom domain',
+                        },
                     ],
                 },
                 {
                     tagName: 'button',
                     styles: {
-                        padding: '0.75rem', backgroundColor: '#000', color: '#fff',
-                        borderRadius: '0.5rem', fontWeight: '500', border: 'none',
-                        cursor: 'pointer', width: '100%',
+                        padding: '0.75rem',
+                        backgroundColor: '#000',
+                        color: '#fff',
+                        borderRadius: '0.5rem',
+                        fontWeight: '500',
+                        border: 'none',
+                        cursor: 'pointer',
+                        width: '100%',
                     },
                     textContent: 'Get started',
                     attributes: { type: 'button' },
@@ -240,8 +337,11 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'div',
             styles: {
-                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '2rem', padding: '3rem 2rem', textAlign: 'center',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '2rem',
+                padding: '3rem 2rem',
+                textAlign: 'center',
             },
             textContent: null,
             children: [
@@ -250,8 +350,16 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                     styles: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
                     textContent: null,
                     children: [
-                        { tagName: 'span', styles: { fontSize: '2.25rem', fontWeight: '700' }, textContent: '10k+' },
-                        { tagName: 'span', styles: { fontSize: '0.875rem', color: '#6b7280' }, textContent: 'Users' },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '2.25rem', fontWeight: '700' },
+                            textContent: '10k+',
+                        },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '0.875rem', color: '#6b7280' },
+                            textContent: 'Users',
+                        },
                     ],
                 },
                 {
@@ -259,8 +367,16 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                     styles: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
                     textContent: null,
                     children: [
-                        { tagName: 'span', styles: { fontSize: '2.25rem', fontWeight: '700' }, textContent: '99%' },
-                        { tagName: 'span', styles: { fontSize: '0.875rem', color: '#6b7280' }, textContent: 'Uptime' },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '2.25rem', fontWeight: '700' },
+                            textContent: '99%',
+                        },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '0.875rem', color: '#6b7280' },
+                            textContent: 'Uptime',
+                        },
                     ],
                 },
                 {
@@ -268,8 +384,16 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                     styles: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
                     textContent: null,
                     children: [
-                        { tagName: 'span', styles: { fontSize: '2.25rem', fontWeight: '700' }, textContent: '24/7' },
-                        { tagName: 'span', styles: { fontSize: '0.875rem', color: '#6b7280' }, textContent: 'Support' },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '2.25rem', fontWeight: '700' },
+                            textContent: '24/7',
+                        },
+                        {
+                            tagName: 'span',
+                            styles: { fontSize: '0.875rem', color: '#6b7280' },
+                            textContent: 'Support',
+                        },
                     ],
                 },
             ],
@@ -283,8 +407,12 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
         properties: {
             tagName: 'nav',
             styles: {
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '1rem 2rem', borderBottom: '1px solid #e5e7eb', backgroundColor: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '1rem 2rem',
+                borderBottom: '1px solid #e5e7eb',
+                backgroundColor: '#fff',
             },
             textContent: null,
             children: [
@@ -298,15 +426,47 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                     styles: { display: 'flex', gap: '2rem', alignItems: 'center' },
                     textContent: null,
                     children: [
-                        { tagName: 'a', styles: { fontSize: '0.875rem', color: '#374151', textDecoration: 'none' }, textContent: 'Features', attributes: { href: '#' } },
-                        { tagName: 'a', styles: { fontSize: '0.875rem', color: '#374151', textDecoration: 'none' }, textContent: 'Pricing', attributes: { href: '#' } },
-                        { tagName: 'a', styles: { fontSize: '0.875rem', color: '#374151', textDecoration: 'none' }, textContent: 'Docs', attributes: { href: '#' } },
+                        {
+                            tagName: 'a',
+                            styles: {
+                                fontSize: '0.875rem',
+                                color: '#374151',
+                                textDecoration: 'none',
+                            },
+                            textContent: 'Features',
+                            attributes: { href: '#' },
+                        },
+                        {
+                            tagName: 'a',
+                            styles: {
+                                fontSize: '0.875rem',
+                                color: '#374151',
+                                textDecoration: 'none',
+                            },
+                            textContent: 'Pricing',
+                            attributes: { href: '#' },
+                        },
+                        {
+                            tagName: 'a',
+                            styles: {
+                                fontSize: '0.875rem',
+                                color: '#374151',
+                                textDecoration: 'none',
+                            },
+                            textContent: 'Docs',
+                            attributes: { href: '#' },
+                        },
                         {
                             tagName: 'button',
                             styles: {
-                                padding: '0.5rem 1.25rem', backgroundColor: '#000', color: '#fff',
-                                borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: '500',
-                                border: 'none', cursor: 'pointer',
+                                padding: '0.5rem 1.25rem',
+                                backgroundColor: '#000',
+                                color: '#fff',
+                                borderRadius: '0.375rem',
+                                fontSize: '0.875rem',
+                                fontWeight: '500',
+                                border: 'none',
+                                cursor: 'pointer',
                             },
                             textContent: 'Sign up',
                             attributes: { type: 'button' },

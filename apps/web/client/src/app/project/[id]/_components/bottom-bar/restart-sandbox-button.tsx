@@ -1,18 +1,16 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useCallback, useEffect, useRef, useState } from 'react';
 
-export const RestartSandboxButton = observer(({
-    className,
-}: {
-    className?: string;
-}) => {
+import { useEditorEngine } from '@/components/store/editor';
+
+export const RestartSandboxButton = observer(({ className }: { className?: string }) => {
     const editorEngine = useEditorEngine();
     const branches = editorEngine.branches;
     const [restarting, setRestarting] = useState(false);
@@ -50,7 +48,21 @@ export const RestartSandboxButton = observer(({
         return true; // Continue checking
     }, [branches]);
 
-    // TODO: iFrame should also detect 502 errors and set hasSandboxError to true
+    // Listen for iframe load failures dispatched from the canvas frame view —
+    // a 502 from the sandbox or a network error in the iframe both fire the
+    // 'weblab:sandbox-iframe-error' custom event, which trips the same error
+    // state we'd otherwise discover via the polling loop below.
+    useEffect(() => {
+        const handler = () => {
+            const timeSinceMount = Date.now() - mountTimeRef.current;
+            if (timeSinceMount >= 5000) {
+                setHasSandboxError(true);
+            }
+        };
+        window.addEventListener('weblab:sandbox-iframe-error', handler);
+        return () => window.removeEventListener('weblab:sandbox-iframe-error', handler);
+    }, []);
+
     useEffect(() => {
         // Clear any existing timer first
         if (timeoutIdRef.current) {
@@ -101,12 +113,16 @@ export const RestartSandboxButton = observer(({
                 return;
             }
 
+            if (!sandbox.session.provider) {
+                await sandbox.session.start(activeBranch.sandbox.id);
+            }
+
             const success = await sandbox.session.restartDevServer();
             if (success) {
                 // Wait 5 seconds before refreshing webviews to avoid 502 errors
                 setTimeout(() => {
                     const frames = editorEngine.frames.getByBranchId(activeBranch.id);
-                    frames.forEach(frame => {
+                    frames.forEach((frame) => {
                         try {
                             editorEngine.frames.reloadView(frame.frame.id);
                         } catch (frameError) {
@@ -120,6 +136,7 @@ export const RestartSandboxButton = observer(({
                 }, 5000);
             } else {
                 toast.error('Failed to restart sandbox');
+                setRestarting(false);
             }
         } catch (error) {
             console.error('Error restarting sandbox:', error);
@@ -134,31 +151,32 @@ export const RestartSandboxButton = observer(({
         <Tooltip>
             <TooltipTrigger asChild>
                 <button
-                    onClick={handleRestartSandbox}
+                    onClick={() => void handleRestartSandbox()}
                     disabled={disabled}
                     className={cn(
-                        "h-9 w-9 flex items-center justify-center rounded-md border border-transparent transition-colors",
+                        'flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-colors',
                         hasSandboxError
-                            ? "bg-amber-900 text-amber-200 hover:bg-amber-800 hover:text-amber-100"
+                            ? 'bg-amber-900 text-amber-200 hover:bg-amber-800 hover:text-amber-100'
                             : restarting
-                                ? "text-foreground-tertiary bg-accent/30"
-                                : !disabled
-                                    ? "hover:text-foreground-hover text-foreground-tertiary hover:bg-accent/50"
-                                    : "text-foreground-disabled cursor-not-allowed opacity-50",
-                        className
+                              ? 'text-foreground-tertiary bg-accent/30'
+                              : !disabled
+                                ? 'hover:text-foreground-hover text-foreground-tertiary hover:bg-accent/50'
+                                : 'text-foreground-disabled cursor-not-allowed opacity-50',
+                        className,
                     )}
                 >
                     {restarting ? (
                         <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                     ) : (
-                        <Icons.RestartSandbox className={cn(
-                            "h-4 w-4",
-                            hasSandboxError && "text-amber-200"
-                        )} />
+                        <Icons.RestartSandbox
+                            className={cn('h-4 w-4', hasSandboxError && 'text-amber-200')}
+                        />
                     )}
                 </button>
             </TooltipTrigger>
-            <TooltipContent sideOffset={5} hideArrow>Restart Sandbox</TooltipContent>
+            <TooltipContent sideOffset={5} hideArrow>
+                Restart Sandbox
+            </TooltipContent>
         </Tooltip>
     );
 });

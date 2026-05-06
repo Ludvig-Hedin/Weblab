@@ -1,12 +1,14 @@
-import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-import { api } from '@/trpc/client';
-import { toDbFrame, toDbPartialFrame } from '@weblab/db';
-import { type Frame } from '@weblab/models';
-import { calculateNonOverlappingPosition } from '@weblab/utility';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import { v4 as uuid } from 'uuid';
+
+import { toDbFrame, toDbPartialFrame } from '@weblab/db';
+import { type Frame } from '@weblab/models';
+import { calculateNonOverlappingPosition } from '@weblab/utility';
+
 import type { EditorEngine } from '../engine';
+import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
+import { api } from '@/trpc/client';
 import { roundDimensions } from './dimension';
 import { FrameNavigationManager } from './navigation';
 
@@ -33,13 +35,35 @@ export class FramesManager {
         }
     }
 
+    /**
+     * Apply a server snapshot of frames to the local store.
+     *
+     * Idempotent across re-applies (CR-050 collaboration polling):
+     *   - existing entries keep their attached `view` and `selected` flag so
+     *     polling doesn't clobber the user's iframe binding or selection
+     *   - frames that no longer exist server-side AND have no local view are
+     *     pruned (collaborator-deleted). Frames with a live view are kept to
+     *     avoid killing an in-flight create.
+     *   - on the very first apply (no prior entries) the first frame is
+     *     selected as the default landing target.
+     */
     applyFrames(frames: Frame[]) {
+        const isInitialApply = this._frameIdToData.size === 0;
+        const incomingIds = new Set(frames.map((f) => f.id));
+
+        // Prune frames removed server-side (skip those still bound to a view).
+        for (const [id, data] of this._frameIdToData) {
+            if (!incomingIds.has(id) && data.view === null) {
+                this._frameIdToData.delete(id);
+            }
+        }
+
         frames.forEach((frame, index) => {
+            const existing = this._frameIdToData.get(frame.id);
             this._frameIdToData.set(frame.id, {
                 frame,
-                view: null,
-                // Select the first frame
-                selected: index === 0
+                view: existing?.view ?? null,
+                selected: existing?.selected ?? (isInitialApply && index === 0),
             });
         });
     }
@@ -57,7 +81,9 @@ export class FramesManager {
     }
 
     getByBranchId(branchId: string): FrameData[] {
-        return Array.from(this._frameIdToData.values()).filter((w) => w.frame.branchId === branchId);
+        return Array.from(this._frameIdToData.values()).filter(
+            (w) => w.frame.branchId === branchId,
+        );
     }
 
     get(id: string): FrameData | null {
@@ -208,9 +234,7 @@ export class FramesManager {
     }
 
     async create(frame: Frame) {
-        const success = await api.frame.create.mutate(
-            toDbFrame(roundDimensions(frame)),
-        );
+        const success = await api.frame.create.mutate(toDbFrame(roundDimensions(frame)));
 
         if (success) {
             this._frameIdToData.set(frame.id, { frame, view: null, selected: false });
@@ -227,7 +251,7 @@ export class FramesManager {
         }
 
         const frame = frameData.frame;
-        const allFrames = this.getAll().map(frameData => frameData.frame);
+        const allFrames = this.getAll().map((frameData) => frameData.frame);
 
         const proposedFrame: Frame = {
             ...frame,
@@ -285,7 +309,9 @@ export class FramesManager {
             // Check if any selected frame is the last frame in its branch
             for (const selectedFrame of selectedFrames) {
                 const branchId = selectedFrame.frame.branchId;
-                const framesInBranch = this.getAll().filter(frameData => frameData.frame.branchId === branchId);
+                const framesInBranch = this.getAll().filter(
+                    (frameData) => frameData.frame.branchId === branchId,
+                );
                 if (framesInBranch.length <= 1) {
                     return false; // Cannot delete if this is the last frame in the branch
                 }
@@ -302,7 +328,7 @@ export class FramesManager {
     }
 
     calculateNonOverlappingPosition(proposedFrame: Frame): { x: number; y: number } {
-        const allFrames = this.getAll().map(frameData => frameData.frame);
+        const allFrames = this.getAll().map((frameData) => frameData.frame);
         return calculateNonOverlappingPosition(proposedFrame, allFrames);
     }
 

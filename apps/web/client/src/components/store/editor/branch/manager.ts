@@ -1,10 +1,12 @@
-import { api } from '@/trpc/client';
-import { CodeFileSystem } from '@weblab/file-system';
-import type { Branch, RouterType } from '@weblab/models';
-import { toast } from '@weblab/ui/sonner';
-import type { ParsedError } from '@weblab/utility';
 import { makeAutoObservable, reaction } from 'mobx';
+
+import type { Branch, RouterType } from '@weblab/models';
+import type { ParsedError } from '@weblab/utility';
+import { CodeFileSystem } from '@weblab/file-system';
+import { toast } from '@weblab/ui/sonner';
+
 import type { EditorEngine } from '../engine';
+import { api } from '@/trpc/client';
 import { ErrorManager } from '../error';
 import { HistoryManager } from '../history';
 import { SandboxManager } from '../sandbox';
@@ -46,10 +48,7 @@ export class BranchManager {
         if (prev && this.branchMap.has(prev)) {
             this.currentBranchId = prev;
         } else {
-            this.currentBranchId =
-                branches.find(b => b.isDefault)?.id
-                ?? branches[0]?.id
-                ?? null;
+            this.currentBranchId = branches.find((b) => b.isDefault)?.id ?? branches[0]?.id ?? null;
         }
     }
 
@@ -66,24 +65,35 @@ export class BranchManager {
         this.reactionDisposer = reaction(
             () => {
                 const selectedFrames = this.editorEngine.frames.selected;
-                const activeFrame = selectedFrames.length > 0 ? selectedFrames[0] : this.editorEngine.frames.getAll()[0];
+                const activeFrame =
+                    selectedFrames.length > 0
+                        ? selectedFrames[0]
+                        : this.editorEngine.frames.getAll()[0];
                 return activeFrame?.frame?.branchId || null;
             },
             (activeBranchId) => {
-                if (activeBranchId && activeBranchId !== this.currentBranchId && this.branchMap.has(activeBranchId)) {
+                if (
+                    activeBranchId &&
+                    activeBranchId !== this.currentBranchId &&
+                    this.branchMap.has(activeBranchId)
+                ) {
                     this.currentBranchId = activeBranchId;
                 }
-            }
+            },
         );
     }
 
     get activeBranchData(): BranchData {
         if (!this.currentBranchId) {
-            throw new Error('No branch selected. This should not happen after proper initialization.');
+            throw new Error(
+                'No branch selected. This should not happen after proper initialization.',
+            );
         }
         const branchData = this.branchMap.get(this.currentBranchId);
         if (!branchData) {
-            throw new Error(`Branch not found for branch ${this.currentBranchId}. This should not happen after proper initialization.`);
+            throw new Error(
+                `Branch not found for branch ${this.currentBranchId}. This should not happen after proper initialization.`,
+            );
         }
         return branchData;
     }
@@ -128,9 +138,16 @@ export class BranchManager {
     }
 
     private createBranchData(branch: Branch, routerType?: RouterType): BranchData {
-        const codeEditorApi = new CodeFileSystem(this.editorEngine.projectId, branch.id, { routerType });
+        const codeEditorApi = new CodeFileSystem(this.editorEngine.projectId, branch.id, {
+            routerType,
+        });
         const errorManager = new ErrorManager(branch);
-        const sandboxManager = new SandboxManager(branch, this.editorEngine, errorManager, codeEditorApi);
+        const sandboxManager = new SandboxManager(
+            branch,
+            this.editorEngine,
+            errorManager,
+            codeEditorApi,
+        );
         const historyManager = new HistoryManager(this.editorEngine);
 
         const branchData: BranchData = {
@@ -195,7 +212,8 @@ export class BranchManager {
             toast.loading('Creating blank sandbox...');
             // Get current active frame for positioning
             const activeFrames = this.editorEngine.frames.selected;
-            const activeFrame = activeFrames.length > 0 ? activeFrames[0] : this.editorEngine.frames.getAll()[0];
+            const activeFrame =
+                activeFrames.length > 0 ? activeFrames[0] : this.editorEngine.frames.getAll()[0];
 
             let framePosition;
             if (activeFrame) {
@@ -273,9 +291,9 @@ export class BranchManager {
         const branchData = this.branchMap.get(branchId);
         if (branchData) {
             // Remove all frames associated with this branch
-            const framesToRemove = this.editorEngine.frames.getAll().filter(
-                frameState => frameState.frame.branchId === branchId
-            );
+            const framesToRemove = this.editorEngine.frames
+                .getAll()
+                .filter((frameState) => frameState.frame.branchId === branchId);
 
             for (const frameState of framesToRemove) {
                 this.editorEngine.frames.delete(frameState.frame.id);
@@ -293,11 +311,13 @@ export class BranchManager {
 
             // If this was the current branch, switch to default or first available
             if (this.currentBranchId === branchId) {
-                const remainingBranches = Array.from(this.branchMap.values()).map(({ branch }) => branch);
+                const remainingBranches = Array.from(this.branchMap.values()).map(
+                    ({ branch }) => branch,
+                );
                 this.currentBranchId =
-                    remainingBranches.find(b => b.isDefault)?.id
-                    ?? remainingBranches[0]?.id
-                    ?? null;
+                    remainingBranches.find((b) => b.isDefault)?.id ??
+                    remainingBranches[0]?.id ??
+                    null;
             }
         }
     }
@@ -319,7 +339,7 @@ export class BranchManager {
     getAllErrors(): ParsedError[] {
         const allErrors: ParsedError[] = [];
         for (const branchData of this.branchMap.values()) {
-            const branchErrors = branchData.error.errors.map(error => ({
+            const branchErrors = branchData.error.errors.map((error) => ({
                 ...error,
                 branchId: branchData.branch.id,
                 branchName: branchData.branch.name,
@@ -332,7 +352,7 @@ export class BranchManager {
     getTotalErrorCount(): number {
         return Array.from(this.branchMap.values()).reduce(
             (total, branchData) => total + branchData.error.errors.length,
-            0
+            0,
         );
     }
 

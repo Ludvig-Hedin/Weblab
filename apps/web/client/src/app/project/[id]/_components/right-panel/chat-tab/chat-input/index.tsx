@@ -6,7 +6,14 @@ import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import type { ChatMessage, ImageMessageContext, LocalModelOption, QueuedMessage } from '@weblab/models';
+import type {
+    ChatMessage,
+    ChatModel,
+    ChatSuggestion,
+    ImageMessageContext,
+    LocalModelOption,
+    QueuedMessage,
+} from '@weblab/models';
 import { ChatType } from '@weblab/models';
 import { MessageContextType } from '@weblab/models/chat';
 import { Button } from '@weblab/ui/button';
@@ -17,19 +24,26 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility';
 
+import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
+import {
+    AI_CHAT_INPUT_DRAG_CLASS,
+    AI_CHAT_INPUT_SURFACE_CLASS,
+    AI_CHAT_TEXTAREA_CLASS,
+    AI_CHAT_TEXTAREA_STYLE,
+} from '@/components/ui/ai-chat-input-styles';
 import { transKeys } from '@/i18n/keys';
+import { api } from '@/trpc/react';
 import { validateImageLimit } from '../context-pills/helpers';
 import { InputContextPills } from '../context-pills/input-context-pills';
-import { type SuggestionsRef } from '../suggestions';
+import { Suggestions } from '../suggestions';
 import { ActionButtons } from './action-buttons';
 import { ChatContextWindow } from './chat-context';
 import { ChatModeToggle } from './chat-mode-toggle';
 import { ModelSelector } from './model-selector';
 import { QueueItems } from './queue-items';
-import { type ChatModel } from '@weblab/models';
 
 interface ChatInputProps {
     messages: ChatMessage[];
@@ -71,11 +85,22 @@ export const ChatInput = observer(
         const [actionTooltipOpen, setActionTooltipOpen] = useState(false);
         const [isDragging, setIsDragging] = useState(false);
         const chatMode = editorEngine.state.chatMode;
+        const currentConversation = editorEngine.chat.conversation.current;
         const [inputValue, setInputValue] = useState('');
+        const [suggestions, setSuggestions] = useState<ChatSuggestion[]>(
+            () => currentConversation?.suggestions ?? [],
+        );
+        const lastSuggestionSignatureRef = useRef<string | null>(null);
         const lastUsageMessage = useMemo(
             () => messages.findLast((msg) => msg.metadata?.usage),
             [messages],
         );
+        const { mutate: generateSuggestions, isPending: isGeneratingSuggestions } =
+            api.chat.suggestions.generate.useMutation({
+                onSuccess: (nextSuggestions) => {
+                    setSuggestions(nextSuggestions);
+                },
+            });
 
         const focusInput = () => {
             requestAnimationFrame(() => {
@@ -98,7 +123,63 @@ export const ChatInput = observer(
 
             window.addEventListener(FOCUS_CHAT_INPUT_EVENT, focusHandler);
             return () => window.removeEventListener(FOCUS_CHAT_INPUT_EVENT, focusHandler);
-        }, []);
+        }, [isStreaming]);
+
+        useEffect(() => {
+            setSuggestions(currentConversation?.suggestions ?? []);
+        }, [currentConversation]);
+
+        useEffect(() => {
+            if (isStreaming || messages.length < 2 || isGeneratingSuggestions) {
+                return;
+            }
+
+            if (!currentConversation) {
+                return;
+            }
+
+            const messageInputs = messages
+                .map((message) => ({
+                    role: message.role,
+                    content: message.parts
+                        .map((part) => (part.type === 'text' ? part.text : ''))
+                        .join('')
+                        .trim(),
+                }))
+                .filter(
+                    (
+                        message,
+                    ): message is {
+                        role: 'user' | 'assistant' | 'system';
+                        content: string;
+                    } =>
+                        (message.role === 'user' ||
+                            message.role === 'assistant' ||
+                            message.role === 'system') &&
+                        message.content.length > 0,
+                );
+
+            if (messageInputs.length < 2) {
+                return;
+            }
+
+            const signature = `${currentConversation.id}:${messageInputs.length}:${messageInputs.at(-1)?.content}`;
+            if (lastSuggestionSignatureRef.current === signature) {
+                return;
+            }
+
+            lastSuggestionSignatureRef.current = signature;
+            generateSuggestions({
+                conversationId: currentConversation.id,
+                messages: messageInputs,
+            });
+        }, [
+            currentConversation,
+            generateSuggestions,
+            isGeneratingSuggestions,
+            isStreaming,
+            messages,
+        ]);
 
         useEffect(() => {
             const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -201,7 +282,7 @@ export const ChatInput = observer(
             const jsonData = e.dataTransfer.getData('application/json');
             if (jsonData) {
                 try {
-                    const parsedData = JSON.parse(jsonData);
+                    const parsedData: unknown = JSON.parse(jsonData);
                     const result = imageDragDataSchema.safeParse(parsedData);
 
                     if (result.success) {
@@ -367,7 +448,9 @@ export const ChatInput = observer(
                 editorEngine.chat.context.addContexts([contextImage]);
                 toast.success('Screenshot added to chat');
             } catch (error) {
-                toast.error('Failed to capture screenshot. Error: ' + error);
+                toast.error(
+                    `Failed to capture screenshot. Error: ${error instanceof Error ? error.message : String(error)}`,
+                );
             }
         };
 
@@ -399,11 +482,12 @@ export const ChatInput = observer(
         return (
             <div
                 className={cn(
-                    'text-foreground-tertiary text-small flex w-full flex-col p-2 transition-colors duration-200 [&[data-dragging-image=true]]:bg-blue-500/40',
-                    isDragging && 'cursor-copy',
+                    'text-foreground-tertiary text-small flex w-full flex-col p-2 transition-colors duration-200',
+                    AI_CHAT_INPUT_DRAG_CLASS,
+                    isDragging && 'cursor-copy bg-blue-500/40',
                 )}
                 onDrop={(e) => {
-                    handleDrop(e);
+                    void handleDrop(e);
                     setIsDragging(false);
                 }}
                 onDragOver={handleDragOver}
@@ -417,84 +501,106 @@ export const ChatInput = observer(
                     }
                 }}
             >
-                <div className="@container bg-background-primary flex w-full flex-col rounded-xl border focus-within:border-0">
-                <div className="flex w-full flex-col px-2 pt-2">
-                    <QueueItems queuedMessages={queuedMessages} removeFromQueue={removeFromQueue} />
-                    <InputContextPills />
-                    <Textarea
-                        ref={textareaRef}
-                        placeholder={getPlaceholderText()}
-                        className={cn(
-                            'text-small mt-1 max-h-32 resize-none overflow-auto rounded-none border-0 bg-transparent p-2 caret-[#109BFF] shadow-none focus-visible:ring-0 dark:bg-transparent',
-                            'text-foreground-primary placeholder:text-foreground-primary/50 cursor-text selection:bg-[#109BFF]/30 selection:text-[#109BFF]',
-                        )}
-                        rows={3}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onInput={handleInput}
-                        onKeyDown={handleKeyDown}
-                        onPaste={handlePaste}
-                        onCompositionStart={() => setIsComposing(true)}
-                        onCompositionEnd={(e) => {
-                            setIsComposing(false);
-                        }}
-                    />
-                </div>
-                <div className="flex w-full flex-row justify-between px-2 pt-1 pb-1.5">
-                    <div className="flex flex-row items-center gap-1">
-                        <ChatModeToggle
-                            chatMode={chatMode}
-                            onChatModeChange={handleChatModeChange}
+                <div
+                    className={cn(
+                        AI_CHAT_INPUT_SURFACE_CLASS,
+                        'focus-within:border-border @container',
+                    )}
+                >
+                    <div className="flex w-full flex-col px-2 pt-2">
+                        <QueueItems
+                            queuedMessages={queuedMessages}
+                            removeFromQueue={removeFromQueue}
                         />
-                        <ModelSelector value={model} onChange={onModelChange} localModels={localModels} localModelsLoading={localModelsLoading} />
-                        {lastUsageMessage?.metadata?.usage && (
-                            <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
-                        )}
-                    </div>
-                    <div className="flex flex-row items-center gap-1">
-                        <ActionButtons
-                            handleImageEvent={handleImageEvent}
-                            handleScreenshot={handleScreenshot}
+                        <InputContextPills />
+                        <Suggestions
+                            ref={suggestionRef}
+                            suggestions={suggestions}
+                            isStreaming={isStreaming}
+                            disabled={isGeneratingSuggestions}
+                            inputValue={inputValue}
+                            setInput={setInputValue}
                         />
-                        {isStreaming && inputEmpty ? (
-                            <Tooltip open={actionTooltipOpen} onOpenChange={setActionTooltipOpen}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        size={'icon'}
-                                        variant={'secondary'}
-                                        className="text-smallPlus text-primary bg-background-primary h-7 w-7 rounded-full"
-                                        onClick={() => {
-                                            setActionTooltipOpen(false);
-                                            void onStop();
-                                        }}
-                                    >
-                                        <Icons.Stop className="h-3.5 w-3.5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" sideOffset={6} hideArrow>
-                                    {'Stop response'}
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : (
-                            <Button
-                                size={'icon'}
-                                variant={'secondary'}
-                                className={cn(
-                                    'h-7 w-7 rounded-full',
-                                    inputEmpty
-                                        ? 'text-primary'
-                                        : chatMode === ChatType.ASK
-                                          ? 'text-background bg-blue-300 hover:bg-blue-600'
-                                          : 'bg-foreground-primary text-background hover:bg-foreground-primary/80',
-                                )}
-                                disabled={inputEmpty}
-                                onClick={() => void sendMessage()}
-                            >
-                                <Icons.ArrowRight className="h-3.5 w-3.5" />
-                            </Button>
-                        )}
+                        <Textarea
+                            ref={textareaRef}
+                            placeholder={getPlaceholderText()}
+                            className={cn(AI_CHAT_TEXTAREA_CLASS, 'mt-1 max-h-32')}
+                            style={AI_CHAT_TEXTAREA_STYLE}
+                            rows={3}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onInput={handleInput}
+                            onKeyDown={handleKeyDown}
+                            onPaste={handlePaste}
+                            onCompositionStart={() => setIsComposing(true)}
+                            onCompositionEnd={() => {
+                                setIsComposing(false);
+                            }}
+                        />
                     </div>
-                </div>
+                    <div className="flex w-full flex-row justify-between px-2 pt-1 pb-1.5">
+                        <div className="flex flex-row items-center gap-1">
+                            <ChatModeToggle
+                                chatMode={chatMode}
+                                onChatModeChange={handleChatModeChange}
+                            />
+                            <ModelSelector
+                                value={model}
+                                onChange={onModelChange}
+                                localModels={localModels}
+                                localModelsLoading={localModelsLoading}
+                            />
+                            {lastUsageMessage?.metadata?.usage && (
+                                <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
+                            )}
+                        </div>
+                        <div className="flex flex-row items-center gap-1">
+                            <ActionButtons
+                                handleImageEvent={handleImageEvent}
+                                handleScreenshot={handleScreenshot}
+                            />
+                            {isStreaming && inputEmpty ? (
+                                <Tooltip
+                                    open={actionTooltipOpen}
+                                    onOpenChange={setActionTooltipOpen}
+                                >
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size={'icon'}
+                                            variant={'secondary'}
+                                            className="text-smallPlus text-primary bg-background-primary h-7 w-7 rounded-full"
+                                            onClick={() => {
+                                                setActionTooltipOpen(false);
+                                                void onStop();
+                                            }}
+                                        >
+                                            <Icons.Stop className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={6} hideArrow>
+                                        {'Stop response'}
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <Button
+                                    size={'icon'}
+                                    variant={'secondary'}
+                                    className={cn(
+                                        'h-7 w-7 rounded-full',
+                                        inputEmpty
+                                            ? 'text-primary'
+                                            : chatMode === ChatType.ASK
+                                              ? 'text-background bg-blue-300 hover:bg-blue-600'
+                                              : 'bg-foreground-primary text-background hover:bg-foreground-primary/80',
+                                    )}
+                                    disabled={inputEmpty}
+                                    onClick={() => void sendMessage()}
+                                >
+                                    <Icons.ArrowRight className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         );

@@ -1,11 +1,14 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { EditorAttributes } from '@weblab/constants';
-import { EditorMode } from '@weblab/models';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { throttle } from 'lodash';
 import { observer } from 'mobx-react-lite';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { EditorAttributes } from '@weblab/constants';
+import { EditorMode } from '@weblab/models';
+import { cn } from '@weblab/ui/utils';
+
+import { useEditorEngine } from '@/components/store/editor';
 import { Frames } from './frames';
 import { HotkeysArea } from './hotkeys';
 import { Overlay } from './overlay';
@@ -13,7 +16,6 @@ import { DragSelectOverlay } from './overlay/drag-select';
 import { PanOverlay } from './overlay/pan';
 import { RecenterCanvasButton } from './recenter-canvas-button';
 import { getFramesInSelection, getSelectedFrameData } from './selection-utils';
-import { cn } from '@weblab/ui/utils';
 
 const ZOOM_SENSITIVITY = 0.006;
 const PAN_SENSITIVITY = 0.52;
@@ -82,23 +84,25 @@ export const Canvas = observer(() => {
                 editorEngine.clearUI();
                 editorEngine.frames.deselectAll();
             }
-
         } else {
             // Only clear UI for left clicks that don't start drag selection
             editorEngine.clearUI();
         }
     };
 
-    const updateFramesInSelection = useCallback((start: { x: number; y: number }, end: { x: number; y: number }) => {
-        const intersectingFrameIds = getFramesInSelection(
-            editorEngine,
-            start,
-            end,
-            position,
-            scale
-        );
-        setFramesInSelection(new Set(intersectingFrameIds));
-    }, [position, scale, editorEngine]);
+    const updateFramesInSelection = useCallback(
+        (start: { x: number; y: number }, end: { x: number; y: number }) => {
+            const intersectingFrameIds = getFramesInSelection(
+                editorEngine,
+                start,
+                end,
+                position,
+                scale,
+            );
+            setFramesInSelection(new Set(intersectingFrameIds));
+        },
+        [position, scale, editorEngine],
+    );
 
     const handleCanvasMouseMove = useCallback(
         throttle((event: React.MouseEvent<HTMLDivElement>) => {
@@ -125,7 +129,7 @@ export const Canvas = observer(() => {
             // Update frames in selection for visual feedback
             updateFramesInSelection(dragSelectStart, { x, y });
         }, 16), // ~60fps
-        [isDragSelecting, dragSelectStart, updateFramesInSelection, editorEngine]
+        [isDragSelecting, dragSelectStart, updateFramesInSelection, editorEngine],
     );
 
     const handleCanvasMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -272,14 +276,14 @@ export const Canvas = observer(() => {
                         dragSelectStart,
                         dragSelectEnd,
                         position,
-                        scale
+                        scale,
                     );
 
                     // Select the frames if any were found in the selection
                     if (selectedFrames.length > 0) {
                         editorEngine.frames.select(
-                            selectedFrames.map(fd => fd.frame),
-                            event.shiftKey // multiselect if shift is held
+                            selectedFrames.map((fd) => fd.frame),
+                            event.shiftKey, // multiselect if shift is held
                         );
                     }
                 } catch (error) {
@@ -302,7 +306,7 @@ export const Canvas = observer(() => {
             <div
                 ref={containerRef}
                 className={cn(
-                    'overflow-hidden bg-background-weblab flex flex-grow relative',
+                    'bg-background-weblab relative flex flex-grow overflow-hidden',
                     editorEngine.state.editorMode === EditorMode.COMMENT && 'cursor-crosshair',
                 )}
                 onMouseDown={handleCanvasMouseDown}

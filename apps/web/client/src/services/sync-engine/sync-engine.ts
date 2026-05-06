@@ -4,10 +4,10 @@
  * On initial start, it pulls all files from the provider and stores them in the local file system.
  * After this, it watches for changes either in the local file system or the provider and syncs the changes back and forth.
  */
+import type { CodeFileSystem } from '@weblab/file-system';
 import { type Provider, type ProviderFileWatcher } from '@weblab/code-provider';
 
 import { normalizePath } from '@/components/store/editor/sandbox/helpers';
-import type { CodeFileSystem } from '@weblab/file-system';
 
 export interface SyncConfig {
     include?: string[];
@@ -78,7 +78,9 @@ export class CodeProviderSync {
                 );
             }
             existing.refCount++;
-            console.log(`[Sync] Reusing existing sync instance for ${key} (refCount: ${existing.refCount})`);
+            console.log(
+                `[Sync] Reusing existing sync instance for ${key} (refCount: ${existing.refCount})`,
+            );
             return existing.sync;
         }
 
@@ -113,7 +115,9 @@ export class CodeProviderSync {
         }
 
         instance.refCount--;
-        console.log(`[Sync] Released reference to ${this.instanceKey} (refCount: ${instance.refCount})`);
+        console.log(
+            `[Sync] Released reference to ${this.instanceKey} (refCount: ${instance.refCount})`,
+        );
 
         if (instance.refCount <= 0) {
             console.log(`[Sync] Stopping and removing sync instance ${this.instanceKey}`);
@@ -306,7 +310,7 @@ export class CodeProviderSync {
         try {
             // Get all local JSX/TSX files that might have been modified with OIDs
             const localFiles = await this.fs.listFiles('/');
-            const jsxFiles = localFiles.filter(path => /\.(jsx?|tsx?)$/i.test(path));
+            const jsxFiles = localFiles.filter((path) => /\.(jsx?|tsx?)$/i.test(path));
 
             // TODO: Use available batch write API
             await Promise.all(
@@ -317,17 +321,19 @@ export class CodeProviderSync {
                             // Push to sandbox
                             await this.provider.writeFile({
                                 args: {
-                                    path: filePath.startsWith('/') ? filePath.substring(1) : filePath,
+                                    path: filePath.startsWith('/')
+                                        ? filePath.substring(1)
+                                        : filePath,
                                     content,
-                                    overwrite: true
-                                }
+                                    overwrite: true,
+                                },
                             });
                             console.log(`[Sync] Pushed ${filePath} to sandbox`);
                         }
                     } catch (error) {
                         console.warn(`[Sync] Failed to push ${filePath} to sandbox:`, error);
                     }
-                })
+                }),
             );
         } catch (error) {
             console.error('[Sync] Error pushing files to sandbox:', error);
@@ -385,7 +391,6 @@ export class CodeProviderSync {
                             const oldPath = normalizePath(event.paths[0]);
                             const newPath = normalizePath(event.paths[1]);
 
-
                             if (this.shouldSync(oldPath) && this.shouldSync(newPath)) {
                                 try {
                                     // Check if the old file exists locally
@@ -430,7 +435,6 @@ export class CodeProviderSync {
                         } else {
                             // Normal processing for non-rename events
                             for (const path of event.paths) {
-
                                 // Normalize the path to remove any duplicate prefixes
                                 const normalizedPath = normalizePath(path);
 
@@ -455,54 +459,95 @@ export class CodeProviderSync {
                                             // This is needed because sandbox watcher might only report parent directory creation
 
                                             // Recursive function to sync directory contents
-                                            const syncDirectoryContents = async (sandboxPath: string, localDirPath: string) => {
+                                            const syncDirectoryContents = async (
+                                                sandboxPath: string,
+                                                localDirPath: string,
+                                            ) => {
                                                 try {
-                                                    const dirContents = await this.provider.listFiles({
-                                                        args: { path: sandboxPath },
-                                                    });
+                                                    const dirContents =
+                                                        await this.provider.listFiles({
+                                                            args: { path: sandboxPath },
+                                                        });
 
-                                                    if (dirContents.files && dirContents.files.length > 0) {
-
+                                                    if (
+                                                        dirContents.files &&
+                                                        dirContents.files.length > 0
+                                                    ) {
                                                         for (const item of dirContents.files) {
                                                             const itemSandboxPath = `${sandboxPath}/${item.name}`;
                                                             const itemLocalPath = `${localDirPath}/${item.name}`;
 
                                                             if (item.type === 'directory') {
                                                                 // Create subdirectory
-                                                                await this.fs.createDirectory(itemLocalPath);
+                                                                await this.fs.createDirectory(
+                                                                    itemLocalPath,
+                                                                );
 
                                                                 // Recursively sync its contents
-                                                                await syncDirectoryContents(itemSandboxPath, itemLocalPath);
+                                                                await syncDirectoryContents(
+                                                                    itemSandboxPath,
+                                                                    itemLocalPath,
+                                                                );
                                                             } else if (item.type === 'file') {
                                                                 // Sync all files including .gitkeep
                                                                 try {
-                                                                    const fileResult = await this.provider.readFile({
-                                                                        args: { path: itemSandboxPath },
-                                                                    });
-                                                                    if (fileResult.file.content !== undefined) {
+                                                                    const fileResult =
+                                                                        await this.provider.readFile(
+                                                                            {
+                                                                                args: {
+                                                                                    path: itemSandboxPath,
+                                                                                },
+                                                                            },
+                                                                        );
+                                                                    if (
+                                                                        fileResult.file.content !==
+                                                                        undefined
+                                                                    ) {
                                                                         // Write file even if content is empty (like .gitkeep)
-                                                                        await this.fs.writeFile(itemLocalPath, fileResult.file.content || '');
+                                                                        await this.fs.writeFile(
+                                                                            itemLocalPath,
+                                                                            fileResult.file
+                                                                                .content || '',
+                                                                        );
                                                                         // Update hash tracking
-                                                                        const hash = await hashContent(fileResult.file.content || '');
-                                                                        this.fileHashes.set(itemLocalPath, hash);
+                                                                        const hash =
+                                                                            await hashContent(
+                                                                                fileResult.file
+                                                                                    .content || '',
+                                                                            );
+                                                                        this.fileHashes.set(
+                                                                            itemLocalPath,
+                                                                            hash,
+                                                                        );
                                                                     } else {
-                                                                        console.log(`[Sync] File ${itemSandboxPath} has undefined content, skipping`);
+                                                                        console.log(
+                                                                            `[Sync] File ${itemSandboxPath} has undefined content, skipping`,
+                                                                        );
                                                                     }
                                                                 } catch (fileError) {
-                                                                    console.error(`[Sync] Error syncing file ${itemSandboxPath}:`, fileError);
+                                                                    console.error(
+                                                                        `[Sync] Error syncing file ${itemSandboxPath}:`,
+                                                                        fileError,
+                                                                    );
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 } catch (listError) {
-                                                    console.error(`[Sync] Error listing contents of ${sandboxPath}:`, listError);
+                                                    console.error(
+                                                        `[Sync] Error listing contents of ${sandboxPath}:`,
+                                                        listError,
+                                                    );
                                                 }
                                             };
 
                                             // Start recursive sync
                                             await syncDirectoryContents(normalizedPath, localPath);
                                         } catch (dirError) {
-                                            console.error(`[Sync] Error creating directory ${localPath}:`, dirError);
+                                            console.error(
+                                                `[Sync] Error creating directory ${localPath}:`,
+                                                dirError,
+                                            );
                                             // Directory creation might fail if parent doesn't exist
                                             // The createDirectory method should handle this with recursive: true
                                         }
@@ -534,7 +579,10 @@ export class CodeProviderSync {
                                         }
                                     }
                                 } catch (error) {
-                                    console.error(`[Sync] Error processing ${normalizedPath}:`, error);
+                                    console.error(
+                                        `[Sync] Error processing ${normalizedPath}:`,
+                                        error,
+                                    );
                                 }
                             }
                         }

@@ -1,8 +1,11 @@
-import { EditorView } from '@codemirror/view';
-import { pathsEqual } from '@weblab/utility';
-import { type RefObject, useEffect, useState } from 'react';
+import type { RefObject } from 'react';
+import { useEffect, useState } from 'react';
+
 import type { CodeNavigationTarget } from '@weblab/models';
+import { pathsEqual } from '@weblab/utility';
+
 import type { EditorFile } from '../shared/types';
+import type { EditorView } from '@codemirror/view';
 import { isDirty } from '../shared/utils';
 import { CodeEditor } from './code-editor';
 import { UnsavedChangesDialog } from './unsaved-changes-dialog';
@@ -43,7 +46,7 @@ export const CodeEditorArea = ({
     const [activeFileIsDirty, setActiveFileIsDirty] = useState(false);
 
     useEffect(() => {
-        // Guard setActiveFileIsDirty being called after 
+        // Guard setActiveFileIsDirty being called after
         // the component is unmounted because isDirty is async
         let isMounted = true;
 
@@ -66,11 +69,11 @@ export const CodeEditorArea = ({
     }, [activeFile]);
 
     return (
-        <div className="flex-1 relative overflow-hidden">
+        <div className="relative flex-1 overflow-hidden">
             <div className="h-full">
                 {openedFiles.length === 0 || !activeFile ? (
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="text-center text-muted-foreground text-base">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="text-muted-foreground text-center text-base">
                             Open a file or select an element on the page.
                         </div>
                     </div>
@@ -82,13 +85,29 @@ export const CodeEditorArea = ({
                             key={file.path}
                             file={file}
                             isActive={pathsEqual(activeFile?.path, file.path)}
-                            navigationTarget={pathsEqual(navigationTarget?.filePath, file.path) ? navigationTarget : null}
+                            navigationTarget={
+                                pathsEqual(navigationTarget?.filePath, file.path)
+                                    ? navigationTarget
+                                    : null
+                            }
                             editorViewsRef={editorViewsRef}
                             onSaveFile={onSaveFile}
                             onUpdateFileContent={onUpdateFileContent}
-                            onSelectionChange={pathsEqual(activeFile?.path, file.path) ? onSelectionChange : undefined}
-                            onAddSelectionToChat={pathsEqual(activeFile?.path, file.path) ? onAddSelectionToChat : undefined}
-                            onFocusChatInput={pathsEqual(activeFile?.path, file.path) ? onFocusChatInput : undefined}
+                            onSelectionChange={
+                                pathsEqual(activeFile?.path, file.path)
+                                    ? onSelectionChange
+                                    : undefined
+                            }
+                            onAddSelectionToChat={
+                                pathsEqual(activeFile?.path, file.path)
+                                    ? onAddSelectionToChat
+                                    : undefined
+                            }
+                            onFocusChatInput={
+                                pathsEqual(activeFile?.path, file.path)
+                                    ? onFocusChatInput
+                                    : undefined
+                            }
                         />
                     ))
                 )}
@@ -97,7 +116,9 @@ export const CodeEditorArea = ({
                 <UnsavedChangesDialog
                     onSave={onSaveAndCloseFiles}
                     onDiscard={onDiscardChanges}
-                    onCancel={() => { onCancelUnsaved(); }}
+                    onCancel={() => {
+                        onCancelUnsaved();
+                    }}
                     fileCount={fileCountToClose}
                 />
             )}

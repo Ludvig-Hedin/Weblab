@@ -1,16 +1,16 @@
-import type { ShadcnBlockManifestItem } from '@weblab/constants';
-import {
-    type BranchTabValue,
-    type BrandTabValue,
-    ChatType,
-    type ComponentInsertData,
-    type DropElementProperties,
-    EditorMode,
-    InsertMode,
-    type LeftPanelTabValue,
-} from '@weblab/models';
 import { debounce } from 'lodash';
 import { makeAutoObservable, runInAction } from 'mobx';
+
+import type { ShadcnBlockManifestItem } from '@weblab/constants';
+import type {
+    BranchTabValue,
+    BrandTabValue,
+    ComponentInsertData,
+    DropElementProperties,
+    InsertMode,
+    LeftPanelTabValue,
+} from '@weblab/models';
+import { ChatType, EditorMode } from '@weblab/models';
 
 export class StateManager {
     private _canvasScrolling = false;

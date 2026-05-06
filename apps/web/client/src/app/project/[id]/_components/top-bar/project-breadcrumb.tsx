@@ -1,9 +1,9 @@
-import { useEditorEngine } from '@/components/store/editor';
-import { useStateManager } from '@/components/store/state';
-import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-folder';
-import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
+import { usePostHog } from 'posthog-js/react';
+
 import { ProductType } from '@weblab/stripe';
 import { Badge } from '@weblab/ui/badge';
 import { Button } from '@weblab/ui/button';
@@ -17,11 +17,13 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
-import { usePostHog } from 'posthog-js/react';
-import { useRef, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
+import { useStateManager } from '@/components/store/state';
+import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-folder';
+import { transKeys } from '@/i18n/keys';
+import { api } from '@/trpc/react';
+import { Routes } from '@/utils/constants';
 import { CloneProjectDialog } from '../clone-project-dialog';
 import { NewProjectMenu } from './new-project-menu';
 import { RecentProjectsMenu } from './recent-projects';
@@ -40,10 +42,8 @@ export const ProjectBreadcrumb = observer(() => {
     const [isClosingProject, setIsClosingProject] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [showCloneDialog, setShowCloneDialog] = useState(false);
-    const {
-        handleDownloadToFolder,
-        isDownloading: isDownloadingToFolder,
-    } = useDownloadProjectToFolder();
+    const { handleDownloadToFolder, isDownloading: isDownloadingToFolder } =
+        useDownloadProjectToFolder();
 
     async function handleNavigateToProjects(_route?: 'create' | 'import') {
         try {
@@ -104,20 +104,20 @@ export const ProjectBreadcrumb = observer(() => {
     }
 
     return (
-        <div className="mr-0 flex flex-row items-center text-small gap-2">
+        <div className="text-small mr-0 flex flex-row items-center gap-2">
             <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        variant='ghost'
-                        className="ml-1 px-0 gap-2 text-foreground-weblab text-small hover:text-foreground-active hover:!bg-transparent cursor-pointer group"
+                        variant="ghost"
+                        className="text-foreground-weblab text-small hover:text-foreground-active group ml-1 cursor-pointer gap-2 px-0 hover:!bg-transparent"
                     >
                         <Icons.WeblabLogo
                             className={cn(
-                                'w-9 h-9 hidden md:block',
+                                'hidden h-9 w-9 md:block',
                                 isClosingProject && 'animate-pulse',
                             )}
                         />
-                        <span className="mx-0 max-w-[60px] md:max-w-[100px] lg:max-w-[200px] px-0 text-foreground-weblab text-small truncate cursor-pointer group-hover:text-foreground-active">
+                        <span className="text-foreground-weblab text-small group-hover:text-foreground-active mx-0 max-w-[60px] cursor-pointer truncate px-0 md:max-w-[100px] lg:max-w-[200px]">
                             {isClosingProject ? 'Stopping project...' : project?.name}
                         </span>
                     </Button>
@@ -142,7 +142,7 @@ export const ProjectBreadcrumb = observer(() => {
                         }}
                         className="cursor-pointer"
                     >
-                        <div className="flex flex-row center items-center group">
+                        <div className="center group flex flex-row items-center">
                             <Icons.Tokens className="mr-2" />
                             {t(transKeys.projects.actions.goToAllProjects)}
                         </div>
@@ -158,14 +158,19 @@ export const ProjectBreadcrumb = observer(() => {
                         disabled={isDownloading || !isPro}
                         className="cursor-pointer"
                     >
-                        <div className="flex flex-row center items-center justify-between group w-full">
-                            <div className="flex flex-row center items-center">
+                        <div className="center group flex w-full flex-row items-center justify-between">
+                            <div className="center flex flex-row items-center">
                                 <Icons.Download className="mr-2" />
                                 {isDownloading
                                     ? t(transKeys.projects.actions.downloadingCode)
                                     : t(transKeys.projects.actions.downloadCode)}
                             </div>
-                            <Badge variant="secondary" className="ml-2 text-xs bg-blue-400 text-white rounded-full p-0.5 px-1.5">PRO</Badge>
+                            <Badge
+                                variant="secondary"
+                                className="ml-2 rounded-full bg-blue-400 p-0.5 px-1.5 text-xs text-white"
+                            >
+                                PRO
+                            </Badge>
                         </div>
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -175,7 +180,7 @@ export const ProjectBreadcrumb = observer(() => {
                         disabled={isDownloadingToFolder}
                         className="cursor-pointer"
                     >
-                        <div className="flex flex-row center items-center group">
+                        <div className="center group flex flex-row items-center">
                             {isDownloadingToFolder ? (
                                 <Icons.LoadingSpinner className="mr-2 animate-spin" />
                             ) : (
@@ -191,8 +196,8 @@ export const ProjectBreadcrumb = observer(() => {
                         className="cursor-pointer"
                         onClick={() => (stateManager.isSettingsModalOpen = true)}
                     >
-                        <div className="flex flex-row center items-center group">
-                            <Icons.Gear className="mr-2 group-hover:rotate-12 transition-transform" />
+                        <div className="center group flex flex-row items-center">
+                            <Icons.Gear className="mr-2 transition-transform group-hover:rotate-12" />
                             {t(transKeys.help.menu.openSettings)}
                         </div>
                     </DropdownMenuItem>

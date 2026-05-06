@@ -1,13 +1,15 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { createClient } from '@/utils/supabase/client';
+import { useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { toast } from 'sonner';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+
+import { useEditorEngine } from '@/components/store/editor';
+import { createClient } from '@/utils/supabase/client';
 
 function formatRelativeTime(date: Date | string): string {
     const d = new Date(date);
@@ -44,10 +46,7 @@ function clampToViewport(left: number, top: number): { left: number; top: number
     const margin = 8;
     return {
         left: Math.min(Math.max(left, margin), window.innerWidth - POPOVER_WIDTH - margin),
-        top: Math.min(
-            Math.max(top, margin),
-            window.innerHeight - POPOVER_MAX_HEIGHT - margin,
-        ),
+        top: Math.min(Math.max(top, margin), window.innerHeight - POPOVER_MAX_HEIGHT - margin),
     };
 }
 
@@ -82,7 +81,9 @@ export const CommentPopover = observer(() => {
                     console.error('Failed to fetch current user:', error);
                 }
             });
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -118,7 +119,7 @@ export const CommentPopover = observer(() => {
     }
 
     const activeComment = activeCommentId
-        ? comments.find((c) => c.id === activeCommentId) ?? null
+        ? (comments.find((c) => c.id === activeCommentId) ?? null)
         : null;
 
     // Compute screen position
@@ -182,14 +183,14 @@ export const CommentPopover = observer(() => {
     return (
         <div
             ref={popoverRef}
-            className="absolute pointer-events-auto z-50"
+            className="pointer-events-auto absolute z-50"
             style={{ left, top, width: POPOVER_WIDTH }}
         >
-            <div className="rounded-xl border border-border bg-background/95 shadow-xl backdrop-blur-xl overflow-hidden">
+            <div className="border-border bg-background/95 overflow-hidden rounded-xl border shadow-xl backdrop-blur-xl">
                 {/* New comment form — inline submit button */}
                 {pendingPlacement && !activeComment && (
                     <div className="p-2">
-                        <div className="flex items-end gap-1.5 rounded-lg border border-border bg-background-secondary focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+                        <div className="border-border bg-background-secondary flex items-end gap-1.5 rounded-lg border transition-all focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
                             <textarea
                                 ref={newCommentInputRef}
                                 value={newCommentText}
@@ -206,12 +207,12 @@ export const CommentPopover = observer(() => {
                                 }}
                                 placeholder="Add a comment..."
                                 rows={2}
-                                className="flex-1 min-w-0 resize-none bg-transparent px-2.5 pt-2 pb-1.5 text-sm text-foreground-primary placeholder:text-foreground-tertiary focus:outline-none"
+                                className="text-foreground-primary placeholder:text-foreground-tertiary min-w-0 flex-1 resize-none bg-transparent px-2.5 pt-2 pb-1.5 text-sm focus:outline-none"
                             />
                             <button
                                 onClick={handleSubmitNew}
                                 disabled={!newCommentText.trim() || isSubmitting}
-                                className="mb-1.5 mr-1.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-all hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="mr-1.5 mb-1.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                                 aria-label="Post comment"
                             >
                                 <Icons.ArrowRight className="h-3.5 w-3.5" />
@@ -222,19 +223,19 @@ export const CommentPopover = observer(() => {
 
                 {/* Existing comment view */}
                 {activeComment && (
-                    <div className="flex flex-col max-h-96 overflow-y-auto">
+                    <div className="flex max-h-96 flex-col overflow-y-auto">
                         {/* Main comment */}
-                        <div className="p-3 border-b border-border/50">
+                        <div className="border-border/50 border-b p-3">
                             <div className="flex items-start gap-2">
                                 <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
                                     {getInitials(activeComment.authorName)}
                                 </div>
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <div className="flex items-baseline justify-between gap-1">
-                                        <span className="text-xs font-semibold text-foreground-primary truncate">
+                                        <span className="text-foreground-primary truncate text-xs font-semibold">
                                             {activeComment.authorName}
                                         </span>
-                                        <span className="text-[10px] text-foreground-tertiary flex-shrink-0">
+                                        <span className="text-foreground-tertiary flex-shrink-0 text-[10px]">
                                             {formatRelativeTime(activeComment.createdAt)}
                                         </span>
                                     </div>
@@ -244,10 +245,10 @@ export const CommentPopover = observer(() => {
                                                 value={editingText}
                                                 onChange={(e) => setEditingText(e.target.value)}
                                                 rows={3}
-                                                className="w-full resize-none rounded-lg bg-background-secondary border border-border px-2 py-1.5 text-xs text-foreground-primary focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                className="bg-background-secondary border-border text-foreground-primary w-full resize-none rounded-lg border px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                                 autoFocus
                                             />
-                                            <div className="flex gap-1 justify-end">
+                                            <div className="flex justify-end gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -261,7 +262,7 @@ export const CommentPopover = observer(() => {
                                                 </Button>
                                                 <Button
                                                     size="sm"
-                                                    className="h-6 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                                    className="h-6 bg-blue-600 text-xs text-white hover:bg-blue-700"
                                                     onClick={handleSaveEdit}
                                                     disabled={isSubmitting}
                                                 >
@@ -270,7 +271,7 @@ export const CommentPopover = observer(() => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="mt-0.5 text-xs text-foreground-secondary">
+                                        <p className="text-foreground-secondary mt-0.5 text-xs">
                                             {activeComment.content}
                                         </p>
                                     )}
@@ -303,7 +304,7 @@ export const CommentPopover = observer(() => {
                                                     setEditingCommentId(activeComment.id);
                                                     setEditingText(activeComment.content);
                                                 }}
-                                                className="rounded-md px-2 py-0.5 text-[10px] text-foreground-tertiary hover:text-foreground-hover bg-background-secondary transition-colors"
+                                                className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-[10px] transition-colors"
                                             >
                                                 Edit
                                             </button>
@@ -331,21 +332,23 @@ export const CommentPopover = observer(() => {
                                                             }
                                                         }}
                                                         disabled={isDeleting}
-                                                        className="rounded-md px-2 py-0.5 text-[10px] text-red-400 hover:text-red-300 bg-red-500/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                                                        className="rounded-md bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400 transition-colors hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         {isDeleting ? 'Deleting...' : 'Confirm'}
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmDeleteId(null)}
-                                                        className="rounded-md px-2 py-0.5 text-[10px] text-foreground-tertiary hover:text-foreground-hover bg-background-secondary transition-colors"
+                                                        className="text-foreground-tertiary hover:text-foreground-hover bg-background-secondary rounded-md px-2 py-0.5 text-[10px] transition-colors"
                                                     >
                                                         Cancel
                                                     </button>
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => setConfirmDeleteId(activeComment.id)}
-                                                    className="rounded-md px-2 py-0.5 text-[10px] text-red-400 hover:text-red-300 bg-background-secondary transition-colors"
+                                                    onClick={() =>
+                                                        setConfirmDeleteId(activeComment.id)
+                                                    }
+                                                    className="bg-background-secondary rounded-md px-2 py-0.5 text-[10px] text-red-400 transition-colors hover:text-red-300"
                                                 >
                                                     Delete
                                                 </button>
@@ -357,20 +360,20 @@ export const CommentPopover = observer(() => {
 
                         {/* Replies */}
                         {activeComment.replies.length > 0 && (
-                            <div className="flex flex-col divide-y divide-border/30">
+                            <div className="divide-border/30 flex flex-col divide-y">
                                 {activeComment.replies.map((reply) => (
                                     <div key={reply.id} className="px-3 py-2.5">
                                         <div className="flex items-start gap-2">
                                             <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600/70 text-[9px] font-semibold text-white">
                                                 {getInitials(reply.authorName)}
                                             </div>
-                                            <div className="flex-1 min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <div className="flex items-baseline justify-between gap-1">
-                                                    <span className="text-[10px] font-semibold text-foreground-primary truncate">
+                                                    <span className="text-foreground-primary truncate text-[10px] font-semibold">
                                                         {reply.authorName}
                                                     </span>
-                                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                                        <span className="text-[10px] text-foreground-tertiary">
+                                                    <div className="flex flex-shrink-0 items-center gap-1">
+                                                        <span className="text-foreground-tertiary text-[10px]">
                                                             {formatRelativeTime(reply.createdAt)}
                                                         </span>
                                                         {currentUserId === reply.authorId && (
@@ -380,14 +383,14 @@ export const CommentPopover = observer(() => {
                                                                         reply.id,
                                                                     )
                                                                 }
-                                                                className="text-[10px] text-foreground-tertiary hover:text-red-400 transition-colors"
+                                                                className="text-foreground-tertiary text-[10px] transition-colors hover:text-red-400"
                                                             >
                                                                 <Icons.Trash className="h-3 w-3" />
                                                             </button>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <p className="mt-0.5 text-[11px] text-foreground-secondary">
+                                                <p className="text-foreground-secondary mt-0.5 text-[11px]">
                                                     {reply.content}
                                                 </p>
                                             </div>
@@ -398,7 +401,7 @@ export const CommentPopover = observer(() => {
                         )}
 
                         {/* Reply input */}
-                        <div className="p-3 border-t border-border/50">
+                        <div className="border-border/50 border-t p-3">
                             <div className="flex gap-2">
                                 <textarea
                                     value={replyText}
@@ -411,12 +414,12 @@ export const CommentPopover = observer(() => {
                                     }}
                                     placeholder="Add a reply..."
                                     rows={2}
-                                    className="flex-1 resize-none rounded-lg bg-background-secondary border border-border px-2.5 py-1.5 text-xs text-foreground-primary placeholder:text-foreground-tertiary focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                 />
                                 <Button
                                     size="sm"
                                     aria-label="Send reply"
-                                    className="self-end h-7 w-7 p-0 bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="h-7 w-7 self-end bg-blue-600 p-0 text-white hover:bg-blue-700"
                                     onClick={handleSubmitReply}
                                     disabled={!replyText.trim() || isSubmitting}
                                 >

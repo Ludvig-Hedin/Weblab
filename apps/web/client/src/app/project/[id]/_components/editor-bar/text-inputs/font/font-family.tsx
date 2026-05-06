@@ -9,7 +9,10 @@ export const FontFamily = memo(
         return (
             <div
                 key={name}
+                role="button"
+                tabIndex={0}
                 onClick={onSetFont}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSetFont(); } }}
                 className={`text-muted-foreground data-[highlighted]:bg-background-tertiary/10 border-border/0 data-[highlighted]:border-border data-[highlighted]:text-foreground hover:bg-background-tertiary/20 hover:text-foreground flex cursor-pointer items-center justify-between rounded-md border px-2 py-1.5 text-sm transition-colors duration-150 ${
                     isActive ? 'bg-background-tertiary/20 border-border text-foreground border' : ''
                 }`}

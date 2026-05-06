@@ -1,6 +1,5 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { nanoid } from 'nanoid';
 
 import type { ChatMessage, GitMessageCheckpoint } from '@weblab/models';
 import { ChatType, MessageCheckpointType } from '@weblab/models';
@@ -227,8 +226,8 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                     <div className="relative h-6">
                         <div className="absolute top-1 right-0 left-0 flex w-full flex-row items-center justify-start overflow-auto pr-16">
                             <div className="text-micro text-foreground-secondary flex flex-row gap-3">
-                                {message.metadata?.context?.map((context) => (
-                                    <SentContextPill key={nanoid()} context={context} />
+                                {message.metadata?.context?.map((context, index) => (
+                                    <SentContextPill key={`${context.type}-${index}`} context={context} />
                                 ))}
                             </div>
                         </div>

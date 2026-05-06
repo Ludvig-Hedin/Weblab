@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -12,6 +13,7 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
+import { ProjectModeDialog } from '@/app/projects/_components/project-mode-dialog';
 import { useEditorEngine } from '@/components/store/editor';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
@@ -28,6 +30,7 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
     const { handleImportLocalProject, isImporting } = useImportLocalProject();
     const t = useTranslations();
     const router = useRouter();
+    const [projectModeIntent, setProjectModeIntent] = useState<'create' | 'import' | null>(null);
 
     const handleStartBlankWithScreenshot = async () => {
         // Capture screenshot of current project before cleanup
@@ -50,59 +53,82 @@ export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuPro
         await handleImportLocalProject();
     };
 
+    const handleCloudModeSelect = () => {
+        const intent = projectModeIntent;
+        setProjectModeIntent(null);
+        if (intent === 'create') {
+            void handleStartBlankWithScreenshot();
+        } else if (intent === 'import') {
+            void handleImportWithScreenshot();
+        }
+    };
+
     return (
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-                <div className="center flex flex-row items-center">
-                    <Icons.Plus className="mr-2" />
-                    {t(transKeys.projects.actions.newProject)}
-                </div>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="ml-2 w-48">
-                <DropdownMenuItem
-                    onClick={handleStartBlankWithScreenshot}
-                    disabled={isCreatingProject}
-                    className="cursor-pointer"
-                >
-                    <div className="center group flex flex-row items-center">
-                        {isCreatingProject ? (
-                            <Icons.LoadingSpinner className="mr-2 animate-spin" />
-                        ) : (
-                            <Icons.FilePlus className="mr-2" />
-                        )}
-                        {t(transKeys.projects.actions.blankProject)}
+        <>
+            <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                    <div className="center flex flex-row items-center">
+                        <Icons.Plus className="mr-2" />
+                        {t(transKeys.projects.actions.newProject)}
                     </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    onClick={() => void handleImportWithScreenshot()}
-                    disabled={isImporting || isCreatingProject}
-                    className="cursor-pointer"
-                >
-                    <div className="center group flex flex-row items-center">
-                        {isImporting ? (
-                            <Icons.LoadingSpinner className="mr-2 animate-spin" />
-                        ) : (
-                            <Icons.Directory className="mr-2" />
-                        )}
-                        {t(transKeys.projects.actions.openLocalFolder)}
-                    </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(Routes.IMPORT_PROJECT)}>
-                    <div className="center group flex flex-row items-center">
-                        <Icons.Upload className="mr-2" />
-                        {t(transKeys.projects.actions.import)}
-                    </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    onClick={() => onShowCloneDialog(true)}
-                    className="cursor-pointer"
-                >
-                    <div className="center group flex flex-row items-center">
-                        <Icons.Copy className="mr-2" />
-                        {t(transKeys.projects.actions.cloneProject)}
-                    </div>
-                </DropdownMenuItem>
-            </DropdownMenuSubContent>
-        </DropdownMenuSub>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="ml-2 w-48">
+                    <DropdownMenuItem
+                        onClick={() => setProjectModeIntent('create')}
+                        disabled={isCreatingProject}
+                        className="cursor-pointer"
+                    >
+                        <div className="center group flex flex-row items-center">
+                            {isCreatingProject ? (
+                                <Icons.LoadingSpinner className="mr-2 animate-spin" />
+                            ) : (
+                                <Icons.FilePlus className="mr-2" />
+                            )}
+                            {t(transKeys.projects.actions.blankProject)}
+                        </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={() => setProjectModeIntent('import')}
+                        disabled={isImporting || isCreatingProject}
+                        className="cursor-pointer"
+                    >
+                        <div className="center group flex flex-row items-center">
+                            {isImporting ? (
+                                <Icons.LoadingSpinner className="mr-2 animate-spin" />
+                            ) : (
+                                <Icons.Directory className="mr-2" />
+                            )}
+                            {t(transKeys.projects.actions.openLocalFolder)}
+                        </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(Routes.IMPORT_PROJECT)}>
+                        <div className="center group flex flex-row items-center">
+                            <Icons.Upload className="mr-2" />
+                            {t(transKeys.projects.actions.import)}
+                        </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={() => onShowCloneDialog(true)}
+                        className="cursor-pointer"
+                    >
+                        <div className="center group flex flex-row items-center">
+                            <Icons.Copy className="mr-2" />
+                            {t(transKeys.projects.actions.cloneProject)}
+                        </div>
+                    </DropdownMenuItem>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <ProjectModeDialog
+                open={projectModeIntent !== null}
+                intent={projectModeIntent ?? 'create'}
+                isBusy={isCreatingProject || isImporting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setProjectModeIntent(null);
+                    }
+                }}
+                onCloudSelect={handleCloudModeSelect}
+            />
+        </>
     );
 });

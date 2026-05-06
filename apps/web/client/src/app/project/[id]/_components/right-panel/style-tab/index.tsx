@@ -1,9 +1,11 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { transKeys } from '@/i18n/keys';
-import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
+import { useEffect, useMemo, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
+
 import type { ActionElement } from '@weblab/models/actions';
+import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { ScrollArea } from '@weblab/ui/scroll-area';
@@ -18,10 +20,11 @@ import {
     LayoutProperty,
     parseModeAndValue,
 } from '@weblab/utility';
-import { observer } from 'mobx-react-lite';
-import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState } from 'react';
-import { useTextControl, type TextAlign } from '../../editor-bar/hooks/use-text-control';
+
+import type { TextAlign } from '../../editor-bar/hooks/use-text-control';
+import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
+import { useTextControl } from '../../editor-bar/hooks/use-text-control';
 import { InputColor } from '../../editor-bar/inputs/input-color';
 import { PositionSection } from './position-section';
 
@@ -57,7 +60,15 @@ const TEXT_TAGS = new Set([
 
 const DISPLAY_OPTIONS = ['block', 'flex', 'grid', 'none'];
 const FLEX_DIRECTION_OPTIONS = ['row', 'column', 'row-reverse', 'column-reverse'];
-const ALIGN_OPTIONS = ['flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'stretch'];
+const ALIGN_OPTIONS = [
+    'flex-start',
+    'center',
+    'flex-end',
+    'space-between',
+    'space-around',
+    'space-evenly',
+    'stretch',
+];
 const ALIGN_ITEMS_OPTIONS = ['flex-start', 'center', 'flex-end', 'stretch', 'baseline'];
 const OVERFLOW_OPTIONS = ['visible', 'hidden', 'scroll', 'auto'];
 const BORDER_STYLE_OPTIONS = ['none', 'solid', 'dashed', 'dotted', 'double'];
@@ -90,19 +101,17 @@ const Section = ({
     description?: string;
     children: React.ReactNode;
 }) => (
-    <section className="border-b border-border/50 pb-4 last:border-b-0 last:pb-0">
+    <section className="border-border/50 border-b pb-4 last:border-b-0 last:pb-0">
         <div className="mb-3">
-            <h3 className="text-sm font-medium text-foreground">{title}</h3>
-            {description && (
-                <p className="mt-1 text-xs text-foreground-tertiary">{description}</p>
-            )}
+            <h3 className="text-foreground text-sm font-medium">{title}</h3>
+            {description && <p className="text-foreground-tertiary mt-1 text-xs">{description}</p>}
         </div>
         <div className="space-y-3">{children}</div>
     </section>
 );
 
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-    <span className="text-[11px] uppercase tracking-[0.18em] text-foreground-tertiary">
+    <span className="text-foreground-tertiary text-[11px] tracking-[0.18em] uppercase">
         {children}
     </span>
 );
@@ -172,7 +181,7 @@ const DraftInput = ({
     return (
         <div
             className={cn(
-                'flex h-8 items-center rounded-md border border-border/60 bg-background-secondary px-2',
+                'border-border/60 bg-background-secondary flex h-8 items-center rounded-md border px-2',
                 disabled && 'opacity-60',
             )}
         >
@@ -189,7 +198,7 @@ const DraftInput = ({
                 placeholder={placeholder}
                 className="h-full border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            {suffix && <span className="ml-2 text-xs text-foreground-tertiary">{suffix}</span>}
+            {suffix && <span className="text-foreground-tertiary ml-2 text-xs">{suffix}</span>}
         </div>
     );
 };
@@ -222,7 +231,7 @@ const DraftTextarea = ({
                 }
             }}
             placeholder={placeholder}
-            className="min-h-16 resize-none border-border/60 bg-background-secondary px-2.5 py-2 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-border/60 bg-background-secondary min-h-16 resize-none px-2.5 py-2 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         />
     );
 };
@@ -239,7 +248,7 @@ const SelectField = ({
     placeholder?: string;
 }) => (
     <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="h-8 w-full border-border/60 bg-background-secondary text-sm">
+        <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-full text-sm">
             <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -259,7 +268,7 @@ const AlignButtons = ({
     value: string;
     onChange: (value: TextAlign) => void;
 }) => (
-    <div className="grid grid-cols-4 gap-1 rounded-lg border border-border/60 bg-background-secondary p-1">
+    <div className="border-border/60 bg-background-secondary grid grid-cols-4 gap-1 rounded-lg border p-1">
         {TEXT_ALIGN_OPTIONS.map((option) => (
             <button
                 key={option}
@@ -297,8 +306,18 @@ export const StyleTab = observer(() => {
     const [actionElement, setActionElement] = useState<ActionElement | null>(null);
     const definedStyles = selectedStyle?.styles.defined;
     const computedStyles = selectedStyle?.styles.computed;
-    const { textState, handleFontFamilyChange, handleFontSizeChange, handleFontWeightChange, handleTextAlignChange, handleTextColorChange, handleLetterSpacingChange, handleCapitalizationChange, handleTextDecorationChange, handleLineHeightChange } =
-        useTextControl();
+    const {
+        textState,
+        handleFontFamilyChange,
+        handleFontSizeChange,
+        handleFontWeightChange,
+        handleTextAlignChange,
+        handleTextColorChange,
+        handleLetterSpacingChange,
+        handleCapitalizationChange,
+        handleTextDecorationChange,
+        handleLineHeightChange,
+    } = useTextControl();
 
     useEffect(() => {
         if (!editorEngine.activeSandbox.session.provider) {
@@ -322,9 +341,7 @@ export const StyleTab = observer(() => {
                 return;
             }
 
-            const nextActionElement = (await frameData.view.getActionElement(
-                selectedElement.domId,
-            )) as ActionElement | null;
+            const nextActionElement = await frameData.view.getActionElement(selectedElement.domId);
 
             if (!cancelled) {
                 setActionElement(nextActionElement);
@@ -349,10 +366,10 @@ export const StyleTab = observer(() => {
         return (
             <div className="flex h-full items-center justify-center px-6 text-center">
                 <div className="space-y-2">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-foreground text-sm font-medium">
                         {t(transKeys.editor.panels.edit.tabs.styles.emptyState)}
                     </p>
-                    <p className="text-xs text-foreground-tertiary">
+                    <p className="text-foreground-tertiary text-xs">
                         {t(transKeys.editor.panels.edit.tabs.styles.emptyStateHint)}
                     </p>
                 </div>
@@ -412,12 +429,12 @@ export const StyleTab = observer(() => {
         setActionElement((current) =>
             current
                 ? {
-                    ...current,
-                    attributes: {
-                        ...current.attributes,
-                        className,
-                    },
-                }
+                      ...current,
+                      attributes: {
+                          ...current.attributes,
+                          className,
+                      },
+                  }
                 : current,
         );
     };
@@ -448,7 +465,7 @@ export const StyleTab = observer(() => {
     return (
         <ScrollArea className="h-full">
             <div className="flex flex-col gap-4 p-3">
-                <section className="border-b border-border/50 pb-4">
+                <section className="border-border/50 border-b pb-4">
                     <div className="space-y-1.5">
                         <FieldLabel>Classes</FieldLabel>
                         <DraftTextarea
@@ -465,7 +482,7 @@ export const StyleTab = observer(() => {
                             onCommit={(value) => void commitTagName(value)}
                         />
                     </div>
-                    <div className="mt-3 truncate text-xs text-foreground-tertiary">
+                    <div className="text-foreground-tertiary mt-3 truncate text-xs">
                         {selectedElement.domId}
                     </div>
                 </section>
@@ -520,7 +537,9 @@ export const StyleTab = observer(() => {
                                 <DraftInput
                                     value={getDisplayedValue(readStyle('gridTemplateColumns'))}
                                     placeholder="repeat(3, 1fr)"
-                                    onCommit={(value) => commitRawStyle('gridTemplateColumns', value)}
+                                    onCommit={(value) =>
+                                        commitRawStyle('gridTemplateColumns', value)
+                                    }
                                 />
                             </FieldRow>
                             <FieldRow label="Rows">
@@ -577,18 +596,18 @@ export const StyleTab = observer(() => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
-                        {DIMENSION_FIELD_GROUPS.filter(({ key }) => key.startsWith('min') || key.startsWith('max')).map(
-                            ({ key, label }) => (
-                                <div key={key} className="space-y-1.5">
-                                    <FieldLabel>{label}</FieldLabel>
-                                    <DraftInput
-                                        value={getDisplayedValue(readStyle(key))}
-                                        placeholder="none"
-                                        onCommit={(value) => commitLengthStyle(key, value)}
-                                    />
-                                </div>
-                            ),
-                        )}
+                        {DIMENSION_FIELD_GROUPS.filter(
+                            ({ key }) => key.startsWith('min') || key.startsWith('max'),
+                        ).map(({ key, label }) => (
+                            <div key={key} className="space-y-1.5">
+                                <FieldLabel>{label}</FieldLabel>
+                                <DraftInput
+                                    value={getDisplayedValue(readStyle(key))}
+                                    placeholder="none"
+                                    onCommit={(value) => commitLengthStyle(key, value)}
+                                />
+                            </div>
+                        ))}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -597,7 +616,9 @@ export const StyleTab = observer(() => {
                             <SelectField
                                 value={overflowXValue}
                                 options={OVERFLOW_OPTIONS}
-                                onValueChange={(value) => editorEngine.style.update('overflowX', value)}
+                                onValueChange={(value) =>
+                                    editorEngine.style.update('overflowX', value)
+                                }
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -605,7 +626,9 @@ export const StyleTab = observer(() => {
                             <SelectField
                                 value={overflowYValue}
                                 options={OVERFLOW_OPTIONS}
-                                onValueChange={(value) => editorEngine.style.update('overflowY', value)}
+                                onValueChange={(value) =>
+                                    editorEngine.style.update('overflowY', value)
+                                }
                             />
                         </div>
                     </div>
@@ -617,7 +640,7 @@ export const StyleTab = observer(() => {
                 >
                     {(['padding', 'margin'] as const).map((group) => (
                         <div key={group} className="space-y-2">
-                            <div className="text-xs font-medium capitalize text-foreground-secondary">
+                            <div className="text-foreground-secondary text-xs font-medium capitalize">
                                 {group}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -626,7 +649,9 @@ export const StyleTab = observer(() => {
                                     <DraftInput
                                         value={getDisplayedValue(readStyle(group))}
                                         placeholder="0px"
-                                        onCommit={(value) => commitLengthStyle(group, value, group === 'margin')}
+                                        onCommit={(value) =>
+                                            commitLengthStyle(group, value, group === 'margin')
+                                        }
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
@@ -639,7 +664,11 @@ export const StyleTab = observer(() => {
                                                     value={getDisplayedValue(readStyle(property))}
                                                     placeholder="0px"
                                                     onCommit={(value) =>
-                                                        commitLengthStyle(property, value, group === 'margin')
+                                                        commitLengthStyle(
+                                                            property,
+                                                            value,
+                                                            group === 'margin',
+                                                        )
                                                     }
                                                 />
                                             </div>
@@ -693,7 +722,9 @@ export const StyleTab = observer(() => {
                             <SelectField
                                 value={readStyle('borderStyle', 'solid')}
                                 options={BORDER_STYLE_OPTIONS}
-                                onValueChange={(value) => editorEngine.style.update('borderStyle', value)}
+                                onValueChange={(value) =>
+                                    editorEngine.style.update('borderStyle', value)
+                                }
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -709,7 +740,9 @@ export const StyleTab = observer(() => {
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <FieldLabel>Opacity</FieldLabel>
-                            <span className="text-xs text-foreground-secondary">{opacityPercent}%</span>
+                            <span className="text-foreground-secondary text-xs">
+                                {opacityPercent}%
+                            </span>
                         </div>
                         <Slider
                             value={[opacityPercent]}
@@ -742,14 +775,18 @@ export const StyleTab = observer(() => {
                                 <Select
                                     value={matchedFont?.id}
                                     onValueChange={(value) => {
-                                        const font = editorEngine.font.fonts.find((item) => item.id === value);
+                                        const font = editorEngine.font.fonts.find(
+                                            (item) => item.id === value,
+                                        );
                                         if (font) {
                                             handleFontFamilyChange(font);
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="h-8 w-full border-border/60 bg-background-secondary text-sm">
-                                        <SelectValue placeholder={textState.fontFamily || 'Choose font'} />
+                                    <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-full text-sm">
+                                        <SelectValue
+                                            placeholder={textState.fontFamily || 'Choose font'}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {editorEngine.font.fonts.map((font) => (

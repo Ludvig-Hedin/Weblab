@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { updateImageReferences } from './image-references';
 
 describe('updateImageReferences', () => {
@@ -11,7 +12,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/old-image.jpg',
-            '/images/new-image.jpg'
+            '/images/new-image.jpg',
         );
         expect(result).toContain('src="/images/new-image.jpg"');
         expect(result).not.toContain('old-image.jpg');
@@ -26,7 +27,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/assets/hero.jpg',
-            '/assets/new-hero.jpg'
+            '/assets/new-hero.jpg',
         );
         expect(result).toContain("url('/assets/new-hero.jpg')");
         expect(result).not.toContain("'/assets/hero.jpg'");
@@ -46,7 +47,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/logo.png',
-            '/images/new-logo.png'
+            '/images/new-logo.png',
         );
         expect(result).toContain('src="/images/new-logo.png"');
         expect(result).not.toContain('"/images/logo.png"');
@@ -61,7 +62,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/old-image.jpg',
-            '/images/new-image.jpg'
+            '/images/new-image.jpg',
         );
         expect(result).toBe(content);
     });
@@ -77,7 +78,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/photos/sunset.jpg',
-            '/photos/sunrise.jpg'
+            '/photos/sunrise.jpg',
         );
         expect(result).toContain('src="/photos/sunrise.jpg"');
         expect(result).not.toContain('sunset.jpg');
@@ -89,11 +90,7 @@ export function Component() {
     return <img src="photo.jpg" alt="test" />;
 }
 `;
-        const result = await updateImageReferences(
-            content,
-            'photo.jpg',
-            'new-photo.jpg'
-        );
+        const result = await updateImageReferences(content, 'photo.jpg', 'new-photo.jpg');
         expect(result).toContain('src="new-photo.jpg"');
         expect(result).not.toContain('"photo.jpg"');
     });
@@ -104,11 +101,7 @@ export function Component() {
     return <div className="some-class /images/bg.png other-class" />;
 }
 `;
-        const result = await updateImageReferences(
-            content,
-            '/images/bg.png',
-            '/images/new-bg.png'
-        );
+        const result = await updateImageReferences(content, '/images/bg.png', '/images/new-bg.png');
         expect(result).toContain('/images/new-bg.png');
         expect(result).not.toContain('/images/bg.png');
     });
@@ -123,7 +116,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/hero.jpg',
-            '/images/new-hero.jpg'
+            '/images/new-hero.jpg',
         );
         // Note: Variable declarations aren't updated, only JSX attributes
         expect(result).toContain("imagePath = '/images/hero.jpg'");
@@ -138,7 +131,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             './assets/logo.svg',
-            './assets/new-logo.svg'
+            './assets/new-logo.svg',
         );
         expect(result).toContain('src="./assets/new-logo.svg"');
         expect(result).not.toContain('src="./assets/logo.svg"');
@@ -158,7 +151,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/public/images/photo.webp',
-            '/public/images/updated-photo.webp'
+            '/public/images/updated-photo.webp',
         );
         expect(result).toContain('src="/public/images/updated-photo.webp"');
         expect(result).not.toContain('src="/public/images/photo.webp"');
@@ -173,7 +166,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/my-photo (1).jpg',
-            '/images/my-photo (2).jpg'
+            '/images/my-photo (2).jpg',
         );
         expect(result).toContain('src="/images/my-photo (2).jpg"');
         expect(result).not.toContain('my-photo (1).jpg');
@@ -193,7 +186,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/logo.png',
-            '/images/new-logo.png'
+            '/images/new-logo.png',
         );
         expect(result).toContain('src="/images/new-logo.png"');
         expect(result).toContain('src="/images/banner.jpg"');
@@ -217,7 +210,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/icons/star.png',
-            '/icons/new-star.png'
+            '/icons/new-star.png',
         );
         expect(result).toContain('src="/icons/new-star.png"');
         expect(result).toContain("url('/bg/pattern.svg')");
@@ -240,7 +233,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/photo.jpg',
-            '/images/new-photo.jpg'
+            '/images/new-photo.jpg',
         );
         expect(result).toContain('src="/images/new-photo.jpg"');
         expect(result).toContain('alt="Photo"');
@@ -264,7 +257,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/hero.png',
-            '/images/new-hero.png'
+            '/images/new-hero.png',
         );
         expect(result).toContain("url('/images/new-hero.png')");
         expect(result).toContain('backgroundSize');
@@ -280,7 +273,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/my%20photo.jpg',
-            '/images/new%20photo.jpg'
+            '/images/new%20photo.jpg',
         );
         expect(result).toContain('src="/images/new%20photo.jpg"');
         expect(result).not.toContain('my%20photo.jpg');
@@ -301,7 +294,7 @@ export function Gallery() {
         const result = await updateImageReferences(
             content,
             '/gallery/img1.jpg',
-            '/gallery/new-img1.jpg'
+            '/gallery/new-img1.jpg',
         );
         // JSX src attribute should be updated
         expect(result).toContain('src="/gallery/new-img1.jpg"');
@@ -323,7 +316,7 @@ export function Component({ isActive }) {
         const result = await updateImageReferences(
             content,
             '/icons/active.svg',
-            '/icons/new-active.svg'
+            '/icons/new-active.svg',
         );
         // Note: Ternary expressions aren't currently updated, only direct string literals
         // This is a known limitation - ternary values would need separate handling
@@ -344,7 +337,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/logo.png',
-            '/images/new-logo.png'
+            '/images/new-logo.png',
         );
         expect(result).toContain('src="/images/new-logo.png"');
         expect(result).toContain('src="/images/logo-dark.png"');
@@ -365,7 +358,7 @@ export function Component() {
         const result = await updateImageReferences(
             content,
             '/images/photo1.jpg',
-            '/images/new-photo1.jpg'
+            '/images/new-photo1.jpg',
         );
         expect(result).toContain('src="/images/new-photo1.jpg"');
         expect(result).toContain("src='/images/photo2.jpg'");

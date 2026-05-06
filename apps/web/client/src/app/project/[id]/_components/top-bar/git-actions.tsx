@@ -1,7 +1,9 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/client';
+import { useEffect, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { toast } from 'sonner';
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -23,9 +25,9 @@ import { Icons } from '@weblab/ui/icons';
 import { Switch } from '@weblab/ui/switch';
 import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+
+import { useEditorEngine } from '@/components/store/editor';
+import { api } from '@/trpc/client';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
@@ -183,8 +185,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                           description: prUrl,
                           action: {
                               label: 'Open PR',
-                              onClick: () =>
-                                  window.open(prUrl, '_blank', 'noopener,noreferrer'),
+                              onClick: () => window.open(prUrl, '_blank', 'noopener,noreferrer'),
                           },
                       }
                     : undefined;
@@ -208,19 +209,19 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
     const stagedOnlyDisabled =
         !includeUnstaged && stagedFileCount !== null && stagedFileCount === 0;
-    const noWorkingTreeChanges =
-        includeUnstaged && fileCount !== null && fileCount === 0;
+    const noWorkingTreeChanges = includeUnstaged && fileCount !== null && fileCount === 0;
     const continueDisabled = isLoading || stagedOnlyDisabled || noWorkingTreeChanges;
 
-    const branchName = editorEngine.branches.activeBranch?.git?.branch
-        ?? editorEngine.branches.activeBranch?.name
-        ?? 'main';
+    const branchName =
+        editorEngine.branches.activeBranch?.git?.branch ??
+        editorEngine.branches.activeBranch?.name ??
+        'main';
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[480px]">
                 <DialogHeader>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="mb-1 flex items-center gap-2">
                         <Icons.Commit className="h-5 w-5" />
                         <DialogTitle className="text-xl font-semibold">
                             Commit your changes
@@ -235,7 +236,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     {/* Branch */}
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-foreground-secondary">Branch</span>
-                        <div className="flex items-center gap-1.5 text-foreground-primary">
+                        <div className="text-foreground-primary flex items-center gap-1.5">
                             <Icons.Branch className="h-3.5 w-3.5" />
                             <span>{branchName}</span>
                         </div>
@@ -246,7 +247,9 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         <span className="text-foreground-secondary">Changes</span>
                         <div className="flex items-center gap-2">
                             {fileCount !== null && (
-                                <span>{fileCount} {fileCount === 1 ? 'file' : 'files'}</span>
+                                <span>
+                                    {fileCount} {fileCount === 1 ? 'file' : 'files'}
+                                </span>
                             )}
                             {diffStat && (
                                 <>
@@ -260,14 +263,14 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         </div>
                     </div>
                     {gitInfoError && (
-                        <p className="text-xs text-foreground-secondary">{gitInfoError}</p>
+                        <p className="text-foreground-secondary text-xs">{gitInfoError}</p>
                     )}
 
                     {/* Include unstaged */}
                     <div className="flex items-center justify-between">
                         <label
                             htmlFor="include-unstaged"
-                            className="text-sm cursor-pointer select-none"
+                            className="cursor-pointer text-sm select-none"
                         >
                             Include unstaged
                         </label>
@@ -279,7 +282,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         />
                     </div>
                     {!includeUnstaged && stagedFileCount !== null && (
-                        <p className="text-xs text-foreground-secondary">
+                        <p className="text-foreground-secondary text-xs">
                             {stagedFileCount === 0
                                 ? 'Stage at least one file before committing staged changes only.'
                                 : `${stagedFileCount} staged ${stagedFileCount === 1 ? 'file' : 'files'} ready to commit.`}
@@ -304,7 +307,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     {/* Next steps */}
                     <div className="space-y-1">
                         <p className="text-sm font-medium">Next steps</p>
-                        <div className="border border-border rounded-md overflow-hidden divide-y divide-border">
+                        <div className="border-border divide-border divide-y overflow-hidden rounded-md border">
                             {(['commit', 'commit-push', 'commit-pr'] as CommitAction[]).map((a) => (
                                 <button
                                     key={a}
@@ -312,7 +315,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                                     onClick={() => setAction(a)}
                                     disabled={isLoading}
                                     className={cn(
-                                        'w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors text-left',
+                                        'flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors',
                                         action === a
                                             ? 'text-foreground-primary'
                                             : 'text-foreground-secondary hover:text-foreground-primary hover:bg-background-secondary/40',
@@ -321,7 +324,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                                     {ACTION_ICONS[a]}
                                     <span className="flex-1">{ACTION_LABELS[a]}</span>
                                     {action === a && (
-                                        <Icons.Check className="h-4 w-4 text-foreground-primary shrink-0" />
+                                        <Icons.Check className="text-foreground-primary h-4 w-4 shrink-0" />
                                     )}
                                 </button>
                             ))}
@@ -330,7 +333,11 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                 </div>
 
                 <DialogFooter className="mt-2">
-                    <Button onClick={handleContinue} disabled={continueDisabled} className="min-w-[100px]">
+                    <Button
+                        onClick={handleContinue}
+                        disabled={continueDisabled}
+                        className="min-w-[100px]"
+                    >
                         {isLoading ? (
                             <>
                                 <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
@@ -374,11 +381,11 @@ export const GitActionsButton = observer(() => {
 
     return (
         <>
-            <div className="flex items-center border border-input rounded-md overflow-hidden h-8">
+            <div className="border-input flex h-8 items-center overflow-hidden rounded-md border">
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="flex items-center gap-1.5 px-2.5 h-full rounded-none text-xs border-r border-input hover:rounded-none"
+                    className="border-input flex h-full items-center gap-1.5 rounded-none border-r px-2.5 text-xs hover:rounded-none"
                     onClick={() => openModal('commit')}
                 >
                     <Icons.Cube className="h-3.5 w-3.5" />
@@ -430,11 +437,7 @@ export const GitActionsButton = observer(() => {
                 </DropdownMenu>
             </div>
 
-            <CommitModal
-                open={modalOpen}
-                onOpenChange={setModalOpen}
-                initialAction={modalAction}
-            />
+            <CommitModal open={modalOpen} onOpenChange={setModalOpen} initialAction={modalAction} />
         </>
     );
 });

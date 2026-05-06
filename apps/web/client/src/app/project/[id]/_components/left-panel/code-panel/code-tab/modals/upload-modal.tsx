@@ -1,3 +1,12 @@
+import { useCallback, useEffect, useState } from 'react';
+
+const joinPath = (...parts: string[]): string => {
+    return parts
+        .join('/')
+        .replace(/\/+/g, '/')
+        .replace(/\/$/, '') || '/';
+};
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -12,8 +21,6 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { isBinaryFile } from '@weblab/utility';
-import path from 'path';
-import { useCallback, useEffect, useState } from 'react';
 
 interface UploadModalProps {
     basePath: string;
@@ -30,7 +37,6 @@ export const UploadModal = ({
     onSuccess,
     onCreateFile,
 }: UploadModalProps) => {
-
     const [currentPath, setCurrentPath] = useState(basePath);
     const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +81,7 @@ export const UploadModal = ({
                 if (!file) continue;
 
                 const fileName = file.name;
-                const fullPath = path.join(currentPath, fileName).replace(/\\/g, '/');
+                const fullPath = joinPath(currentPath, fileName);
                 const isBinary = isBinaryFile(fileName);
 
                 const content = await new Promise<string | Uint8Array>((resolve, reject) => {
@@ -111,7 +117,9 @@ export const UploadModal = ({
             onSuccess?.();
         } catch (error) {
             console.error('Failed to upload files:', error);
-            toast.error(`Failed to upload files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(
+                `Failed to upload files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
         } finally {
             setIsLoading(false);
         }
@@ -127,25 +135,24 @@ export const UploadModal = ({
     };
 
     return (
-        <Dialog open={show} onOpenChange={(isOpen) => {
-            setShow(isOpen);
-            if (!isOpen) {
-                clearSelection();
-            }
-        }}>
+        <Dialog
+            open={show}
+            onOpenChange={(isOpen) => {
+                setShow(isOpen);
+                if (!isOpen) {
+                    clearSelection();
+                }
+            }}
+        >
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Upload Files</DialogTitle>
-                    <DialogDescription>
-                        Upload files to your project
-                    </DialogDescription>
+                    <DialogDescription>Upload files to your project</DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="path">
-                            Directory Path
-                        </Label>
+                        <Label htmlFor="path">Directory Path</Label>
                         <Input
                             id="path"
                             value={currentPath}
@@ -154,20 +161,20 @@ export const UploadModal = ({
                             disabled={isLoading}
                             className="text-sm"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                             Path where files will be uploaded
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="file-upload">
-                            Select Files
-                        </Label>
+                        <Label htmlFor="file-upload">Select Files</Label>
                         <div
                             className={cn(
-                                "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer hover:border-primary/50",
-                                isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
-                                selectedFiles && selectedFiles.length > 0 ? "border-green-500" : ""
+                                'hover:border-primary/50 cursor-pointer rounded-lg border-2 border-dashed p-6 transition-colors',
+                                isDragging
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-muted-foreground/25',
+                                selectedFiles && selectedFiles.length > 0 ? 'border-green-500' : '',
                             )}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
@@ -187,9 +194,10 @@ export const UploadModal = ({
                                 {selectedFiles && selectedFiles.length > 0 ? (
                                     <div className="space-y-2">
                                         <p className="text-sm font-medium text-green-500">
-                                            {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected
+                                            {selectedFiles.length} file
+                                            {selectedFiles.length > 1 ? 's' : ''} selected
                                         </p>
-                                        <div className="text-xs text-muted-foreground space-y-1">
+                                        <div className="text-muted-foreground space-y-1 text-xs">
                                             {Array.from(selectedFiles).map((file, index) => (
                                                 <div key={index}>
                                                     {file.name} ({(file.size / 1024).toFixed(1)} KB)
@@ -213,7 +221,7 @@ export const UploadModal = ({
                                         <p className="text-sm">
                                             Drag and drop files here, or click to select
                                         </p>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-muted-foreground text-xs">
                                             Multiple files can be selected
                                         </p>
                                     </div>
@@ -224,11 +232,7 @@ export const UploadModal = ({
                 </div>
 
                 <DialogFooter>
-                    <Button
-                        variant="ghost"
-                        onClick={() => setShow(false)}
-                        disabled={isLoading}
-                    >
+                    <Button variant="ghost" onClick={() => setShow(false)} disabled={isLoading}>
                         Cancel
                     </Button>
                     <Button
@@ -236,7 +240,9 @@ export const UploadModal = ({
                         onClick={handleSubmit}
                         disabled={isLoading || !selectedFiles || selectedFiles.length === 0}
                     >
-                        {isLoading ? 'Uploading...' : `Upload ${selectedFiles?.length || 0} file${selectedFiles && selectedFiles.length > 1 ? 's' : ''}`}
+                        {isLoading
+                            ? 'Uploading...'
+                            : `Upload ${selectedFiles?.length ?? 0} file${!selectedFiles || selectedFiles.length !== 1 ? 's' : ''}`}
                     </Button>
                 </DialogFooter>
             </DialogContent>

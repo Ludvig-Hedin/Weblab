@@ -38,37 +38,34 @@ export const ChatMessages = observer(
 
         const renderMessage = useCallback(
             (message: ChatMessage) => {
-                let messageNode;
                 switch (message.role) {
                     case 'assistant':
-                        messageNode = (
-                            <AssistantMessage
-                                key={message.id}
-                                message={message}
-                                isStreaming={isStreaming && message.id === latestAssistantMessageId}
-                            />
+                        return (
+                            <div key={message.id} className="my-2">
+                                <AssistantMessage
+                                    key={message.id}
+                                    message={message}
+                                    isStreaming={
+                                        isStreaming && message.id === latestAssistantMessageId
+                                    }
+                                />
+                            </div>
                         );
-                        break;
                     case 'user':
-                        messageNode = (
-                            <UserMessage
-                                key={message.id}
-                                onEditMessage={onEditMessage}
-                                message={message}
-                            />
+                        return (
+                            <div key={message.id} className="my-2">
+                                <UserMessage
+                                    key={message.id}
+                                    onEditMessage={onEditMessage}
+                                    message={message}
+                                />
+                            </div>
                         );
-                        break;
                     case 'system':
-                        messageNode = null;
-                        break;
+                        return null;
                     default:
                         assertNever(message.role);
                 }
-                return (
-                    <div key={message.id} className="my-2">
-                        {messageNode}
-                    </div>
-                );
             },
             [latestAssistantMessageId, onEditMessage, isStreaming],
         );

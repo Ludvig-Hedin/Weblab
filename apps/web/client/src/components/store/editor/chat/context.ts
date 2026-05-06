@@ -1,15 +1,19 @@
-import { ChatType, type DomElement } from '@weblab/models';
-import {
-    MessageContextType,
-    type AgentRuleMessageContext,
-    type BranchMessageContext,
-    type ErrorMessageContext,
-    type FileMessageContext,
-    type HighlightMessageContext,
-    type MessageContext
-} from '@weblab/models/chat';
-import { assertNever, type ParsedError } from '@weblab/utility';
 import { makeAutoObservable, reaction } from 'mobx';
+
+import type { DomElement } from '@weblab/models';
+import type {
+    AgentRuleMessageContext,
+    BranchMessageContext,
+    ErrorMessageContext,
+    FileMessageContext,
+    HighlightMessageContext,
+    MessageContext,
+} from '@weblab/models/chat';
+import type { ParsedError } from '@weblab/utility';
+import { ChatType } from '@weblab/models';
+import { MessageContextType } from '@weblab/models/chat';
+import { assertNever } from '@weblab/utility';
+
 import { type EditorEngine } from '../engine';
 import { type FrameData } from '../frames';
 
@@ -27,15 +31,17 @@ export class ChatContext {
                 elements: this.editorEngine.elements.selected,
                 frames: this.editorEngine.frames.selected,
             }),
-            (
-                { elements, frames },
-            ) => {
+            ({ elements, frames }) => {
                 this.generateContextFromReaction({ elements, frames }).then((context) => {
                     // Preserve some context when edited element changes
-                    const allHighlights = this._context.filter(c => c.type === MessageContextType.HIGHLIGHT);
-                    const manualCodeEditorHighlights = allHighlights.filter(c => c.oid === undefined);
+                    const allHighlights = this._context.filter(
+                        (c) => c.type === MessageContextType.HIGHLIGHT,
+                    );
+                    const manualCodeEditorHighlights = allHighlights.filter(
+                        (c) => c.oid === undefined,
+                    );
                     const existingImages = this._context.filter(
-                        (c) => c.type === MessageContextType.IMAGE
+                        (c) => c.type === MessageContextType.IMAGE,
                     );
                     this.context = [...context, ...manualCodeEditorHighlights, ...existingImages];
                 });
@@ -74,10 +80,21 @@ export class ChatContext {
             }
         }
 
-        this._context = [...Array.from(fileMap.values()), ...Array.from(highlightMap.values()), ...otherContexts];
+        this._context = [
+            ...Array.from(fileMap.values()),
+            ...Array.from(highlightMap.values()),
+            ...otherContexts,
+        ];
     }
 
-    addHighlightContext(path: string, content: string, start: number, end: number, branchId: string, displayName: string) {
+    addHighlightContext(
+        path: string,
+        content: string,
+        start: number,
+        end: number,
+        branchId: string,
+        displayName: string,
+    ) {
         const highlightContext: HighlightMessageContext = {
             type: MessageContextType.HIGHLIGHT,
             path,
@@ -105,12 +122,18 @@ export class ChatContext {
 
     async getChatEditContext(): Promise<MessageContext[]> {
         return [
-            ...await this.getRefreshedContext(this.context),
-            ...await this.getAgentRuleContext()
+            ...(await this.getRefreshedContext(this.context)),
+            ...(await this.getAgentRuleContext()),
         ];
     }
 
-    private async generateContextFromReaction({ elements, frames }: { elements: DomElement[], frames: FrameData[] }): Promise<MessageContext[]> {
+    private async generateContextFromReaction({
+        elements,
+        frames,
+    }: {
+        elements: DomElement[];
+        frames: FrameData[];
+    }): Promise<MessageContext[]> {
         let highlightedContext: HighlightMessageContext[] = [];
         if (elements.length) {
             highlightedContext = await this.getHighlightedContext(elements);
@@ -141,7 +164,12 @@ export class ChatContext {
                         return c;
                     }
                     return { ...c, content: fileContent } satisfies FileMessageContext;
-                } else if (c.type === MessageContextType.HIGHLIGHT && c.oid && 'branchId' in c && c.branchId) {
+                } else if (
+                    c.type === MessageContextType.HIGHLIGHT &&
+                    c.oid &&
+                    'branchId' in c &&
+                    c.branchId
+                ) {
                     const branchData = this.editorEngine.branches.getBranchDataById(c.branchId);
                     if (!branchData) {
                         console.warn(`No branch data found for branchId: ${c.branchId}`);
@@ -160,12 +188,14 @@ export class ChatContext {
         )) satisfies MessageContext[];
     }
 
-    private async getFileContext(highlightedContext: HighlightMessageContext[]): Promise<FileMessageContext[]> {
+    private async getFileContext(
+        highlightedContext: HighlightMessageContext[],
+    ): Promise<FileMessageContext[]> {
         const fileContext: FileMessageContext[] = [];
 
         // Create a map of file path to branch ID from highlighted context
         const filePathToBranch = new Map<string, string>();
-        highlightedContext.forEach(highlight => {
+        highlightedContext.forEach((highlight) => {
             filePathToBranch.set(highlight.path, highlight.branchId);
         });
 
@@ -197,15 +227,15 @@ export class ChatContext {
         frames: FrameData[],
     ): BranchMessageContext[] {
         // Get unique branch IDs from selected elements and frames context
-        const uniqueBranchIds = new Set<string>(frames.map(frame => frame.frame.branchId));
+        const uniqueBranchIds = new Set<string>(frames.map((frame) => frame.frame.branchId));
 
-        highlightedContext.forEach(highlight => {
+        highlightedContext.forEach((highlight) => {
             uniqueBranchIds.add(highlight.branchId);
         });
 
         // Get branch objects for each unique branch ID
         const branchContext: BranchMessageContext[] = [];
-        uniqueBranchIds.forEach(branchId => {
+        uniqueBranchIds.forEach((branchId) => {
             const branch = this.editorEngine.branches.getBranchById(branchId);
             if (branch) {
                 branchContext.push({
@@ -229,12 +259,22 @@ export class ChatContext {
             const instanceId = node.instanceId;
 
             if (oid) {
-                const context = await this.getHighlightContextById(oid, node.tagName, false, node.branchId);
+                const context = await this.getHighlightContextById(
+                    oid,
+                    node.tagName,
+                    false,
+                    node.branchId,
+                );
                 if (context) highlightedContext.push(context);
             }
 
             if (instanceId) {
-                const context = await this.getHighlightContextById(instanceId, node.tagName, true, node.branchId);
+                const context = await this.getHighlightContextById(
+                    instanceId,
+                    node.tagName,
+                    true,
+                    node.branchId,
+                );
                 if (context) highlightedContext.push(context);
             }
 
@@ -287,33 +327,37 @@ export class ChatContext {
                 console.warn('No active sandbox found for agent rule context');
                 return [];
             }
-            const agentRuleContexts: AgentRuleMessageContext[] = (await Promise.all(
-                agentRuleFileNames.map(async (fileName) => {
-                    try {
-                        const filePath = `./${fileName}`;
-                        const exists = await Promise.resolve(sandbox.fileExists(filePath)).catch(() => false);
-                        if (!exists) {
+            const agentRuleContexts: AgentRuleMessageContext[] = (
+                await Promise.all(
+                    agentRuleFileNames.map(async (fileName) => {
+                        try {
+                            const filePath = `./${fileName}`;
+                            const exists = await Promise.resolve(
+                                sandbox.fileExists(filePath),
+                            ).catch(() => false);
+                            if (!exists) {
+                                return null;
+                            }
+                            const fileContent = await sandbox.readFile(filePath).catch(() => null);
+                            if (fileContent === null || fileContent instanceof Uint8Array) {
+                                return null;
+                            }
+                            if (fileContent.trim().length === 0) {
+                                return null;
+                            }
+                            return {
+                                type: MessageContextType.AGENT_RULE,
+                                content: fileContent,
+                                displayName: fileName,
+                                path: filePath,
+                            } satisfies AgentRuleMessageContext;
+                        } catch (error) {
+                            console.warn(`Error reading agent rule file ${fileName}:`, error);
                             return null;
                         }
-                        const fileContent = await sandbox.readFile(filePath).catch(() => null);
-                        if (fileContent === null || fileContent instanceof Uint8Array) {
-                            return null;
-                        }
-                        if (fileContent.trim().length === 0) {
-                            return null;
-                        }
-                        return {
-                            type: MessageContextType.AGENT_RULE,
-                            content: fileContent,
-                            displayName: fileName,
-                            path: filePath,
-                        } satisfies AgentRuleMessageContext;
-                    } catch (error) {
-                        console.warn(`Error reading agent rule file ${fileName}:`, error);
-                        return null;
-                    }
-                })
-            )).filter((context) => context !== null);
+                    }),
+                )
+            ).filter((context) => context !== null);
             return agentRuleContexts;
         } catch (error) {
             console.error('Error getting agent rule context', error);
@@ -438,9 +482,7 @@ export class ChatContext {
     }
 
     clearImagesFromContext() {
-        this.context = this.context.filter(
-            (c) => c.type !== MessageContextType.IMAGE
-        );
+        this.context = this.context.filter((c) => c.type !== MessageContextType.IMAGE);
     }
 
     clear() {

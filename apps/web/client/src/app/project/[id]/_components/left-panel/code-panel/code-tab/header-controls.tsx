@@ -1,14 +1,16 @@
+import { useState } from 'react';
+
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
-import { useState } from 'react';
+
 import { FileModal } from './modals/file-modal';
 import { FolderModal } from './modals/folder-modal';
 import { UploadModal } from './modals/upload-modal';
@@ -24,7 +26,16 @@ interface CodeControlsProps {
     setIsSidebarOpen: (isSidebarOpen: boolean) => void;
 }
 
-export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreateFile, onCreateFolder, isSidebarOpen, setIsSidebarOpen }: CodeControlsProps) => {
+export const CodeControls = ({
+    isDirty,
+    currentPath,
+    onSave,
+    onRefresh,
+    onCreateFile,
+    onCreateFolder,
+    isSidebarOpen,
+    setIsSidebarOpen,
+}: CodeControlsProps) => {
     const [showFileModal, setShowFileModal] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showFolderModal, setShowFolderModal] = useState(false);
@@ -48,20 +59,21 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
     };
 
     return (
-        <div className="flex flex-row items-center justify-between p-1 border-b border-border w-full h-10">
+        <div className="border-border flex h-10 w-full flex-row items-center justify-between border-b p-1">
             <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="text-foreground-secondary hover:text-foreground-primary py-1 px-2 w-fit h-fit bg-transparent hover:!bg-transparent cursor-pointer"
+                className="text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
             >
-                {isSidebarOpen ? <Icons.SidebarLeftCollapse className="h-4 w-4" /> : <Icons.MoveToFolder className="h-4 w-4" />}
-                <span className="text-small ml-0.5">
-                    {isSidebarOpen ? '' : 'View Files'}
-                </span>
+                {isSidebarOpen ? (
+                    <Icons.SidebarLeftCollapse className="h-4 w-4" />
+                ) : (
+                    <Icons.MoveToFolder className="h-4 w-4" />
+                )}
+                <span className="text-small ml-0.5">{isSidebarOpen ? '' : 'View Files'}</span>
             </Button>
-            <div className="flex flex-row items-center transition-opacity duration-200 ml-auto">
-
+            <div className="ml-auto flex flex-row items-center transition-opacity duration-200">
                 <Tooltip>
                     <DropdownMenu>
                         <TooltipTrigger asChild>
@@ -69,7 +81,7 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="py-1 px-2 w-fit h-fit bg-transparent hover:!bg-transparent cursor-pointer text-foreground-secondary hover:text-foreground-primary"
+                                    className="text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
                                 >
                                     <Icons.FilePlus className="h-4 w-4" />
                                 </Button>
@@ -80,14 +92,14 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                                 className="cursor-pointer"
                                 onClick={() => setShowFileModal(true)}
                             >
-                                <Icons.FilePlus className="h-4 w-4 mr-2" />
+                                <Icons.FilePlus className="mr-2 h-4 w-4" />
                                 Create new file
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="cursor-pointer"
                                 onClick={() => setShowUploadModal(true)}
                             >
-                                <Icons.Upload className="h-4 w-4 mr-2" />
+                                <Icons.Upload className="mr-2 h-4 w-4" />
                                 Upload file
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -102,7 +114,7 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                             variant="ghost"
                             size="icon"
                             onClick={() => setShowFolderModal(true)}
-                            className="py-1 px-2 w-fit h-fit bg-transparent hover:!bg-transparent cursor-pointer text-foreground-secondary hover:text-foreground-primary"
+                            className="text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
                         >
                             <Icons.DirectoryPlus className="h-4 w-4" />
                         </Button>
@@ -119,19 +131,21 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                             onClick={handleSave}
                             disabled={!isDirty || isSaving}
                             className={cn(
-                                "group px-2 py-1 w-fit h-fit cursor-pointer mr-0.5 ml-1",
+                                'group mr-0.5 ml-1 h-fit w-fit cursor-pointer px-2 py-1',
                                 isDirty
-                                    ? "text-background-primary hover:text-blue-100 hover:bg-blue-500 bg-foreground-primary"
-                                    : "hover:bg-background-weblab hover:text-blue-200"
+                                    ? 'text-background-primary bg-foreground-primary hover:bg-blue-500 hover:text-blue-100'
+                                    : 'hover:bg-background-weblab hover:text-blue-200',
                             )}
                         >
                             {isSaving ? (
                                 <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                             ) : (
-                                <Icons.Save className={cn(
-                                    "h-4 w-4",
-                                    isDirty && "text-blue-200 group-hover:text-blue-100"
-                                )} />
+                                <Icons.Save
+                                    className={cn(
+                                        'h-4 w-4',
+                                        isDirty && 'text-blue-200 group-hover:text-blue-100',
+                                    )}
+                                />
                             )}
                             <span className="text-small">{isSaving ? 'Saving...' : 'Save'}</span>
                         </Button>
@@ -162,6 +176,6 @@ export const CodeControls = ({ isDirty, currentPath, onSave, onRefresh, onCreate
                 onSuccess={handleModalSuccess}
                 onCreateFile={onCreateFile}
             />
-        </div >
+        </div>
     );
 };

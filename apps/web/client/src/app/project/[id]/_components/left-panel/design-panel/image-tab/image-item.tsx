@@ -1,7 +1,10 @@
 'use client';
 
-import { useFile } from '@weblab/file-system/hooks';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
 import type { ImageContentData } from '@weblab/models';
+import { useFile } from '@weblab/file-system/hooks';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -10,20 +13,18 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle
+    AlertDialogTitle,
 } from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { getMimeType, isVideoFile } from '@weblab/utility';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 interface ImageItemProps {
     image: {
@@ -42,10 +43,20 @@ interface ImageItemProps {
     onAddToChat: (imagePath: string) => void;
 }
 
-export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImageDragEnd, onImageMouseDown, onImageMouseUp, onRename, onDelete, onAddToChat }: ImageItemProps) => {
+export const ImageItem = ({
+    image,
+    projectId,
+    branchId,
+    onImageDragStart,
+    onImageDragEnd,
+    onImageMouseDown,
+    onImageMouseUp,
+    onRename,
+    onDelete,
+    onAddToChat,
+}: ImageItemProps) => {
     const { content, loading } = useFile(projectId, branchId, image.path);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [isDisabled, setIsDisabled] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(image.name);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -95,26 +106,21 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
 
     if (loading) {
         return (
-            <div className="aspect-square bg-background-secondary rounded-md border border-border-primary flex items-center justify-center">
-                <Icons.Reload className="w-4 h-4 animate-spin text-foreground-secondary" />
+            <div className="bg-background-secondary border-border-primary flex aspect-square items-center justify-center rounded-md border">
+                <Icons.Reload className="text-foreground-secondary h-4 w-4 animate-spin" />
             </div>
         );
     }
 
     if (!imageUrl) {
         return (
-            <div className="aspect-square bg-background-secondary rounded-md border border-border-primary flex items-center justify-center">
-                <Icons.Image className="w-4 h-4 text-foreground-secondary" />
+            <div className="bg-background-secondary border-border-primary flex aspect-square items-center justify-center rounded-md border">
+                <Icons.Image className="text-foreground-secondary h-4 w-4" />
             </div>
         );
     }
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-        if (isDisabled) {
-            e.preventDefault();
-            return;
-        }
-
         const imageContentData: ImageContentData = {
             fileName: image.name,
             content: content as string,
@@ -170,12 +176,14 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
     return (
         <div className="group">
             <div
-                className="aspect-square bg-background-secondary rounded-md border border-border-primary overflow-hidden cursor-pointer hover:border-border-weblab transition-colors relative"
+                className="bg-background-secondary border-border-primary hover:border-border-weblab relative aspect-square cursor-pointer overflow-hidden rounded-md border transition-colors"
                 onDragStart={handleDragStart}
                 onDragEnd={onImageDragEnd}
                 onDragOver={(e) => {
                     // Allow external file drops by preventing default but not stopping propagation
-                    const isExternalDrag = e.dataTransfer.types.includes('Files') && !e.dataTransfer.types.includes('application/json');
+                    const isExternalDrag =
+                        e.dataTransfer.types.includes('Files') &&
+                        !e.dataTransfer.types.includes('application/json');
                     if (isExternalDrag) {
                         e.preventDefault();
                     }
@@ -186,7 +194,7 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
                 {isVideo ? (
                     <video
                         src={imageUrl}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                         muted
                         loop
                         playsInline
@@ -201,20 +209,20 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
                     <img
                         src={imageUrl}
                         alt={image.name}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
                         loading="lazy"
                     />
                 )}
 
                 {/* Action menu */}
                 {!isRenaming && (
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
                         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     size="icon"
                                     variant="secondary"
-                                    className="h-6 w-6 bg-background-secondary/90 hover:bg-background-weblab"
+                                    className="bg-background-secondary/90 hover:bg-background-weblab h-6 w-6"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -271,12 +279,12 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
                         onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={handleKeyDown}
                         onBlur={() => void handleRename()}
-                        className="h-6 text-xs p-1 border-0 bg-transparent focus-visible:ring-1 focus-visible:ring-ring"
+                        className="focus-visible:ring-ring h-6 border-0 bg-transparent p-1 text-xs focus-visible:ring-1"
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
                     />
                 ) : (
-                    <div className="text-xs text-foreground-primary truncate" title={image.name}>
+                    <div className="text-foreground-primary truncate text-xs" title={image.name}>
                         {image.name}
                     </div>
                 )}
@@ -288,14 +296,15 @@ export const ImageItem = ({ image, projectId, branchId, onImageDragStart, onImag
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete {isVideo ? 'Video' : 'Image'}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete {image.name}? This action cannot be undone.
+                            Are you sure you want to delete {image.name}? This action cannot be
+                            undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => void handleDelete()}
-                            className="bg-destructive text-white hover:bg-destructive/90"
+                            className="bg-destructive hover:bg-destructive/90 text-white"
                         >
                             Delete
                         </AlertDialogAction>

@@ -1,12 +1,11 @@
-import type { Branch } from "@weblab/models";
-import {
-    DropdownMenuItem,
-    DropdownMenuLabel,
-} from "@weblab/ui/dropdown-menu";
-import { Icons } from "@weblab/ui/icons";
-import { ScrollArea } from "@weblab/ui/scroll-area";
-import { timeAgo } from "@weblab/utility";
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
+
+import type { Branch } from '@weblab/models';
+import { DropdownMenuItem, DropdownMenuLabel } from '@weblab/ui/dropdown-menu';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+import { ScrollArea } from '@weblab/ui/scroll-area';
+import { timeAgo } from '@weblab/utility';
 
 interface BranchListProps {
     branches: Branch[];
@@ -19,54 +18,59 @@ export function BranchList({
     branches,
     activeBranch,
     onBranchSwitch,
-    showSearch = true
+    showSearch = true,
 }: BranchListProps) {
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState('');
 
     const filteredBranches = useMemo(() => {
         if (!showSearch || !searchQuery) {
             return branches;
         }
-        return branches.filter(branch =>
-            branch.name.toLowerCase().includes(searchQuery.toLowerCase())
+        return branches.filter((branch) =>
+            branch.name.toLowerCase().includes(searchQuery.toLowerCase()),
         );
     }, [branches, searchQuery, showSearch]);
 
     return (
         <>
-            <div className="p-1.5 border-b select-none text-small">
+            <div className="text-small border-b p-1.5 select-none">
                 <DropdownMenuLabel>Branches</DropdownMenuLabel>
             </div>
+            {showSearch && (
+                <div className="border-b px-2 py-1.5">
+                    <Input
+                        type="text"
+                        placeholder="Search branches..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-8"
+                    />
+                </div>
+            )}
             <ScrollArea className="max-h-[300px]">
                 <div className="p-1">
                     {filteredBranches.map((branch) => (
                         <DropdownMenuItem
                             key={branch.id}
-                            className="flex items-center justify-between cursor-pointer"
+                            className="flex cursor-pointer items-center justify-between"
                             onSelect={() => onBranchSwitch(branch.id)}
                         >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-1 items-center gap-2">
                                 {activeBranch.id === branch.id ? (
                                     <Icons.Check className="h-4 w-4 text-green-600" />
                                 ) : (
-                                    <Icons.Branch className="h-4 w-4 text-muted-foreground" />
+                                    <Icons.Branch className="text-muted-foreground h-4 w-4" />
                                 )}
                                 <span className="truncate font-medium">{branch.name}</span>
                             </div>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                                {timeAgo(branch.updatedAt)}{showSearch ? '' : ' ago'}
+                            <span className="text-muted-foreground ml-2 text-xs whitespace-nowrap">
+                                {timeAgo(branch.updatedAt)} ago
                             </span>
                         </DropdownMenuItem>
                     ))}
 
-                    {filteredBranches.length === 0 && searchQuery && showSearch && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                            No branches found
-                        </div>
-                    )}
-
-                    {filteredBranches.length === 0 && !showSearch && branches.length === 0 && (
-                        <div className="text-sm text-muted-foreground text-center py-4">
+                    {filteredBranches.length === 0 && (
+                        <div className="text-muted-foreground py-4 text-center text-sm">
                             No branches found
                         </div>
                     )}

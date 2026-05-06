@@ -1,6 +1,7 @@
+import { forwardRef } from 'react';
+
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
-import { forwardRef } from 'react';
 
 interface FileTreeSearchProps {
     searchQuery: string;
@@ -10,46 +11,36 @@ interface FileTreeSearchProps {
     onKeyDown: (e: React.KeyboardEvent) => void;
 }
 
-export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(({
-    searchQuery,
-    isLoading,
-    onSearchChange,
-    onRefresh,
-    onKeyDown
-}, ref) => {
+export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
+    ({ searchQuery, isLoading, onSearchChange, onKeyDown }, ref) => {
+        const clearSearch = () => {
+            onSearchChange('');
+            if (ref && typeof ref === 'object' && ref.current) {
+                ref.current.focus();
+            }
+        };
 
-    const handleRefresh = () => {
-        if (onRefresh) {
-            onRefresh();
-        }
-    };
-
-    const clearSearch = () => {
-        onSearchChange('');
-        if (ref && typeof ref === 'object' && ref.current) {
-            ref.current.focus();
-        }
-    };
-
-    return (
-        <div className="h-11 flex flex-row relative flex-shrink-0 justify-between items-center border-border-primary border-b-[0.5px] mb-2">
-            <Input
-                ref={ref}
-                className="m-2 h-8 text-small pr-8 focus-visible:ring-1 focus-visible:ring-border-secondary/50 focus-visible:ring-offset-0"
-                placeholder="Search files"
-                value={searchQuery}
-                disabled={isLoading}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyDown={onKeyDown}
-            />
-            {searchQuery && (
-                <button
-                    className="absolute right-[1px] top-[1px] bottom-[1px] aspect-square hover:bg-background-weblab active:bg-transparent flex items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] group"
-                    onClick={clearSearch}
-                >
-                    <Icons.CrossS className="h-3 w-3 text-foreground-primary/50 group-hover:text-foreground-primary" />
-                </button>
-            )}
-        </div>
-    );
-});
+        return (
+            <div className="border-border-primary relative mb-2 flex h-11 flex-shrink-0 flex-row items-center justify-between border-b-[0.5px]">
+                <Input
+                    ref={ref}
+                    className="text-small focus-visible:ring-border-secondary/50 m-2 h-8 pr-8 focus-visible:ring-1 focus-visible:ring-offset-0"
+                    placeholder="Search files"
+                    value={searchQuery}
+                    disabled={isLoading}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    onKeyDown={onKeyDown}
+                />
+                {searchQuery && (
+                    <button
+                        className="hover:bg-background-weblab group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] active:bg-transparent"
+                        onClick={clearSearch}
+                        aria-label="Clear search"
+                    >
+                        <Icons.CrossS className="text-foreground-primary/50 group-hover:text-foreground-primary h-3 w-3" />
+                    </button>
+                )}
+            </div>
+        );
+    },
+);

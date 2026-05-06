@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
-import { useEffect, useState } from 'react';
+
 import type { EditorFile } from '../shared/types';
 import { isDirty } from '../shared/utils';
 
@@ -14,13 +16,7 @@ export interface FileTabProps {
     dataActive: boolean;
 }
 
-export const FileTab = ({
-    file,
-    isActive,
-    onClick,
-    onClose,
-    dataActive,
-}: FileTabProps) => {
+export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTabProps) => {
     const [isFileDirty, setIsFileDirty] = useState(false);
     const filename = file.path.split('/').pop() || '';
 
@@ -29,46 +25,53 @@ export const FileTab = ({
     }, [file.path, file.content, file.type, file.type === 'text' ? file.originalHash : null]);
 
     return (
-        <div className="h-full pl-3 pr-3 relative group min-w-28 overflow-hidden" data-active={dataActive}>
-            <div className="absolute right-0 h-[50%] w-[0.5px] bg-foreground/10 top-1/2 -translate-y-1/2"></div>
-            <div className="flex items-center h-full relative overflow-hidden">
+        <div
+            className="group relative h-full min-w-28 overflow-hidden pr-3 pl-3"
+            data-active={dataActive}
+        >
+            <div className="bg-foreground/10 absolute top-1/2 right-0 h-[50%] w-[0.5px] -translate-y-1/2"></div>
+            <div className="relative flex h-full items-center overflow-hidden">
                 <button
                     className={cn(
-                        'text-sm h-full flex items-center focus:outline-none min-w-0 flex-1',
+                        'flex h-full min-w-0 flex-1 items-center text-sm focus:outline-none',
                         isActive
                             ? isFileDirty
                                 ? 'text-blue-300'
                                 : 'text-foreground'
                             : isFileDirty
-                                ? 'text-blue-500'
-                                : 'text-foreground-secondary/50',
+                              ? 'text-blue-500'
+                              : 'text-foreground-secondary/50',
                     )}
                     onClick={onClick}
                 >
-                    <span className="truncate min-w-0">{filename}</span>
+                    <span className="min-w-0 truncate">{filename}</span>
                     {isFileDirty && (
-                        <span className={cn(
-                            "ml-1 flex-shrink-0",
-                            isActive ? "text-blue-300" : "text-blue-500"
-                        )}>
+                        <span
+                            className={cn(
+                                'ml-1 flex-shrink-0',
+                                isActive ? 'text-blue-300' : 'text-blue-500',
+                            )}
+                        >
                             ●
                         </span>
                     )}
                     {isActive && (
-                        <div className={cn(
-                            "absolute bottom-0 left-0 w-full h-[2px]",
-                            isFileDirty ? "bg-blue-300" : "bg-foreground-hover"
-                        )}></div>
+                        <div
+                            className={cn(
+                                'absolute bottom-0 left-0 h-[2px] w-full',
+                                isFileDirty ? 'bg-blue-300' : 'bg-foreground-hover',
+                            )}
+                        ></div>
                     )}
                     {!isActive && (
-                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-foreground-tertiary/50 opacity-0 group-hover:opacity-100"></div>
+                        <div className="bg-foreground-tertiary/50 absolute bottom-0 left-0 h-[2px] w-full opacity-0 group-hover:opacity-100"></div>
                     )}
                 </button>
-                <div className="absolute right-[-3px] top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity group-hover:bg-background-primary rounded-md">
+                <div className="group-hover:bg-background-primary absolute top-1/2 right-[-3px] z-10 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                         className={cn(
-                            "cursor-pointer p-1.5 flex-shrink-0 hover:text-foreground-hover hover:bg-secondary hover:rounded-md",
-                            isActive ? "text-foreground-secondary" : "text-foreground-primary"
+                            'hover:text-foreground-hover hover:bg-secondary flex-shrink-0 cursor-pointer p-1.5 hover:rounded-md',
+                            isActive ? 'text-foreground-secondary' : 'text-foreground-primary',
                         )}
                         onClick={(e) => {
                             e.stopPropagation();

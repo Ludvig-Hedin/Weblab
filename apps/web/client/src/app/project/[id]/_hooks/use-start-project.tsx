@@ -31,9 +31,22 @@ export const useStartProject = () => {
     const { tabState } = useTabActive();
     const apiUtils = api.useUtils();
     const { data: user, error: userError } = api.user.get.useQuery();
-    const { data: canvasWithFrames, error: canvasError } = api.userCanvas.getWithFrames.useQuery({
-        projectId: editorEngine.projectId,
-    });
+    // CR-050: poll the canvas + frames row so collaborator mutations show up
+    // without a full reload. The userCanvas row is per-user (scale/position),
+    // so re-applying it on every poll would clobber the local pan/zoom — we
+    // gate that with `initialCanvasAppliedRef` below. Frames are shared and
+    // re-apply safely thanks to the new idempotent `applyFrames`.
+    const { data: canvasWithFrames, error: canvasError } = api.userCanvas.getWithFrames.useQuery(
+        { projectId: editorEngine.projectId },
+        {
+            refetchInterval: 30_000,
+            refetchOnWindowFocus: true,
+            // Keep stale data on the screen during the refetch — avoids a flash
+            // of the loading state when polling.
+            refetchIntervalInBackground: false,
+        },
+    );
+    const initialCanvasAppliedRef = useRef(false);
     const { data: conversations, error: conversationsError } =
         api.chat.conversation.getAll.useQuery({ projectId: editorEngine.projectId });
     const { data: creationRequest, error: creationRequestError } =
@@ -58,23 +71,37 @@ export const useStartProject = () => {
     };
 
     useEffect(() => {
-        if (!sandbox.session.isConnecting) {
+        if (sandbox.session.provider) {
             updateProjectReadyState({ sandbox: true });
+            return;
         }
-    }, [sandbox.session.isConnecting]);
+
+        if (sandbox.session.connectionError) {
+            updateProjectReadyState({ sandbox: false });
+            setError(sandbox.session.connectionError);
+        }
+    }, [sandbox.session.provider, sandbox.session.connectionError]);
 
     useEffect(() => {
-        if (tabState === 'reactivated') {
-            sandbox.session.reconnect(editorEngine.projectId, user?.id);
+        if (tabState === 'reactivated' && editorEngine.projectId && user?.id) {
+            void sandbox.session.reconnect(editorEngine.projectId, user.id);
         }
-    }, [tabState, sandbox.session]);
+    }, [tabState, sandbox.session, editorEngine.projectId, user?.id]);
 
     useEffect(() => {
-        if (canvasWithFrames) {
+        if (!canvasWithFrames) return;
+        // Apply per-user canvas (scale/position) only on first load. Re-applying
+        // on every poll would clobber the user's local pan/zoom that hasn't yet
+        // been saved (canvas store debounces saves by 5s).
+        if (!initialCanvasAppliedRef.current) {
             editorEngine.canvas.applyCanvas(canvasWithFrames.userCanvas);
-            editorEngine.frames.applyFrames(canvasWithFrames.frames);
-            updateProjectReadyState({ canvas: true });
+            initialCanvasAppliedRef.current = true;
         }
+        // Re-apply frames on every refetch. `applyFrames` is now idempotent —
+        // preserves attached views and selection; prunes server-deleted frames
+        // that don't have a live view binding.
+        editorEngine.frames.applyFrames(canvasWithFrames.frames);
+        updateProjectReadyState({ canvas: true });
     }, [canvasWithFrames]);
 
     useEffect(() => {
@@ -164,9 +191,16 @@ export const useStartProject = () => {
                 canvasError?.message ??
                 conversationsError?.message ??
                 creationRequestError?.message ??
+                sandbox.session.connectionError ??
                 null,
         );
-    }, [userError, canvasError, conversationsError, creationRequestError]);
+    }, [
+        userError,
+        canvasError,
+        conversationsError,
+        creationRequestError,
+        sandbox.session.connectionError,
+    ]);
 
     return {
         isProjectReady: Object.values(projectReadyState).every((value) => value),

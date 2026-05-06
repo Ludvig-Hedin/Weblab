@@ -1,21 +1,28 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
+import { useEffect, useRef, useState } from 'react';
+import { reaction } from 'mobx';
+
 import type { CodeNavigationTarget } from '@weblab/models';
 import { pathsEqual } from '@weblab/utility';
-import { reaction } from 'mobx';
-import { useEffect, useRef, useState } from 'react';
 
-const isNavigationTargetEqual = (navigationTarget1: CodeNavigationTarget | null, navigationTarget2: CodeNavigationTarget | null) => {
+import { useEditorEngine } from '@/components/store/editor';
+
+const isNavigationTargetEqual = (
+    navigationTarget1: CodeNavigationTarget | null,
+    navigationTarget2: CodeNavigationTarget | null,
+) => {
     if (!navigationTarget1 || !navigationTarget2) {
         return false;
     }
-    return pathsEqual(navigationTarget1.filePath, navigationTarget2.filePath)
-        && navigationTarget1.range.start.line === navigationTarget2.range.start.line
-        && navigationTarget1.range.start.column === navigationTarget2.range.start.column
-        && navigationTarget1.range.end.line === navigationTarget2.range.end.line
-        && navigationTarget1.range.end.column === navigationTarget2.range.end.column;
-}
+    return (
+        pathsEqual(navigationTarget1.filePath, navigationTarget2.filePath) &&
+        navigationTarget1.range.start.line === navigationTarget2.range.start.line &&
+        navigationTarget1.range.start.column === navigationTarget2.range.start.column &&
+        navigationTarget1.range.end.line === navigationTarget2.range.end.line &&
+        navigationTarget1.range.end.column === navigationTarget2.range.end.column
+    );
+};
 
 export function useCodeNavigation() {
     const editorEngine = useEditorEngine();
@@ -28,12 +35,12 @@ export function useCodeNavigation() {
         const disposer = reaction(
             () => ({
                 selected: editorEngine.elements.selected,
-                override: editorEngine.ide.codeNavigationOverride
+                override: editorEngine.ide.codeNavigationOverride,
             }),
             async ({ selected: selectedElements, override }) => {
                 const selectionChanged = selectedElements !== lastSelected.current;
                 const overrideChanged = override !== lastOverride.current;
-                
+
                 lastSelected.current = selectedElements;
                 lastOverride.current = override;
 
@@ -63,9 +70,13 @@ export function useCodeNavigation() {
                     }
 
                     try {
-                        const branchData = editorEngine.branches.getBranchDataById(selectedElement.branchId);
+                        const branchData = editorEngine.branches.getBranchDataById(
+                            selectedElement.branchId,
+                        );
                         if (!branchData) {
-                            console.warn(`[CodeNavigation] No branch data found for branchId: ${selectedElement.branchId}`);
+                            console.warn(
+                                `[CodeNavigation] No branch data found for branchId: ${selectedElement.branchId}`,
+                            );
                             return;
                         }
 
@@ -86,8 +97,8 @@ export function useCodeNavigation() {
                             filePath: metadata.path,
                             range: {
                                 start: { line: startLine, column: startColumn },
-                                end: { line: endLine, column: endColumn }
-                            }
+                                end: { line: endLine, column: endColumn },
+                            },
                         };
 
                         if (isNavigationTargetEqual(target, savedNavigationTarget.current)) {
@@ -101,7 +112,7 @@ export function useCodeNavigation() {
                     }
                 }
             },
-            { fireImmediately: true }
+            { fireImmediately: true },
         );
 
         return () => disposer();

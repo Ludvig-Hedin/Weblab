@@ -1,3 +1,7 @@
+import { camelCase } from 'lodash';
+
+import type { CodeDiff, Font } from '@weblab/models';
+import type { T } from '@weblab/parser';
 import {
     addGoogleFontSpecifier,
     generateFontVariableExport,
@@ -6,15 +10,16 @@ import {
     removeFontDeclaration,
     validateGoogleFontSetup,
 } from '@weblab/fonts';
-import type { CodeDiff, Font } from '@weblab/models';
 import { RouterType } from '@weblab/models';
-import type { T } from '@weblab/parser';
 import { generate, getAstFromContent, t } from '@weblab/parser';
-import { camelCase } from 'lodash';
+
 import type { EditorEngine } from '../engine';
 import { normalizePath } from '../sandbox/helpers';
 
-export const scanFontConfig = async (fontConfigPath: string, editorEngine: EditorEngine): Promise<Font[]> => {
+export const scanFontConfig = async (
+    fontConfigPath: string,
+    editorEngine: EditorEngine,
+): Promise<Font[]> => {
     try {
         const file = await readFontConfigFile(fontConfigPath, editorEngine);
         if (!file) {
@@ -27,12 +32,15 @@ export const scanFontConfig = async (fontConfigPath: string, editorEngine: Edito
         console.error('Error scanning fonts:', error);
         return [];
     }
-}
+};
 
 /**
  * Scan existing fonts declaration in the layout file and move them to the font config file
  */
-export const scanExistingFonts = async (layoutPath: string, editorEngine: EditorEngine): Promise<Font[] | undefined> => {
+export const scanExistingFonts = async (
+    layoutPath: string,
+    editorEngine: EditorEngine,
+): Promise<Font[] | undefined> => {
     const sandbox = editorEngine.activeSandbox;
     if (!sandbox) {
         console.error('No sandbox session found');
@@ -58,12 +66,16 @@ export const scanExistingFonts = async (layoutPath: string, editorEngine: Editor
         console.error('Error scanning existing fonts:', error);
         return [];
     }
-}
+};
 
 /**
  * Adds a new font to the font configuration file
  */
-export const addFontToConfig = async (font: Font, fontConfigPath: string, editorEngine: EditorEngine): Promise<boolean> => {
+export const addFontToConfig = async (
+    font: Font,
+    fontConfigPath: string,
+    editorEngine: EditorEngine,
+): Promise<boolean> => {
     try {
         // Convert the font family to the import name format (Pascal case, no spaces)
         const importName = font.family.replace(/\s+/g, '_');
@@ -109,25 +121,28 @@ export const addFontToConfig = async (font: Font, fontConfigPath: string, editor
         // Generate and write the updated code back to the file
         const { code } = generate(ast);
 
-        await editorEngine.activeSandbox.writeFile(
-            fontConfigPath,
-            code,
-        );
+        const sandbox = editorEngine.activeSandbox;
+        if (!sandbox) {
+            console.error('No sandbox session found');
+            return false;
+        }
+        await sandbox.writeFile(fontConfigPath, code);
 
         return true;
     } catch (error) {
-        console.error(
-            'Error adding font:',
-            error instanceof Error ? error.message : String(error),
-        );
+        console.error('Error adding font:', error instanceof Error ? error.message : String(error));
         return false;
     }
-}
+};
 
 /**
  * Removes a font from the font configuration file
  */
-export const removeFontFromConfig = async (font: Font, fontConfigPath: string, editorEngine: EditorEngine): Promise<CodeDiff | false> => {
+export const removeFontFromConfig = async (
+    font: Font,
+    fontConfigPath: string,
+    editorEngine: EditorEngine,
+): Promise<CodeDiff | false> => {
     try {
         const { content } = (await readFontConfigFile(fontConfigPath, editorEngine)) ?? {};
         if (!content) {
@@ -145,10 +160,7 @@ export const removeFontFromConfig = async (font: Font, fontConfigPath: string, e
                 path: fontConfigPath,
             };
 
-            await editorEngine.activeSandbox.writeFile(
-                fontConfigPath,
-                code,
-            );
+            await editorEngine.activeSandbox.writeFile(fontConfigPath, code);
             // Delete font files if this is a custom font
             if (fontFilesToDelete.length > 0) {
                 const routerConfig = await editorEngine.activeSandbox.getRouterConfig();
@@ -175,16 +187,19 @@ export const removeFontFromConfig = async (font: Font, fontConfigPath: string, e
         console.error('Error removing font:', error);
         return false;
     }
-}
+};
 
 /**
  * Reads the font configuration file
  */
-export const readFontConfigFile = async (fontConfigPath: string, editorEngine: EditorEngine): Promise<
+export const readFontConfigFile = async (
+    fontConfigPath: string,
+    editorEngine: EditorEngine,
+): Promise<
     | {
-        ast: T.File;
-        content: string;
-    }
+          ast: T.File;
+          content: string;
+      }
     | undefined
 > => {
     const codeEditor = editorEngine.fileSystem;
@@ -194,7 +209,7 @@ export const readFontConfigFile = async (fontConfigPath: string, editorEngine: E
 
     const file = await codeEditor.readFile(fontConfigPath);
     if (typeof file !== 'string') {
-        console.error("Font config file is not text");
+        console.error('Font config file is not text');
         return;
     }
     const content = file;
@@ -209,7 +224,7 @@ export const readFontConfigFile = async (fontConfigPath: string, editorEngine: E
         ast,
         content,
     };
-}
+};
 
 /**
  * Creates a default font configuration file template
@@ -243,19 +258,22 @@ const createDefaultFontConfigTemplate = (): string => {
 //   preload: true
 // });
 `;
-}
+};
 
 /**
  * Ensures the font configuration file exists
  */
-export const ensureFontConfigFileExists = async (fontConfigPath: string, editorEngine: EditorEngine): Promise<void> => {
+export const ensureFontConfigFileExists = async (
+    fontConfigPath: string,
+    editorEngine: EditorEngine,
+): Promise<void> => {
     const codeEditor = editorEngine.fileSystem;
     const fontConfigExists = await codeEditor.fileExists(fontConfigPath);
     if (!fontConfigExists) {
         const template = createDefaultFontConfigTemplate();
         await codeEditor.writeFile(fontConfigPath, template);
     }
-}
+};
 
 /**
  * Updates the font config path based on the detected router configuration
@@ -280,5 +298,4 @@ export const getFontConfigPath = async (editorEngine: EditorEngine): Promise<str
         console.error('Could not get router config');
         return null;
     }
-}
-
+};

@@ -1,19 +1,24 @@
-import { api } from '@/trpc/client';
-import { CodeProvider, createCodeProviderClient, type Provider } from '@weblab/code-provider';
-import type { Branch } from '@weblab/models';
 import { makeAutoObservable, runInAction } from 'mobx';
+
+import type { Provider } from '@weblab/code-provider';
+import type { Branch } from '@weblab/models';
+import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+
 import type { ErrorManager } from '../error';
-import { CLISessionImpl, CLISessionType, type CLISession, type TerminalSession } from './terminal';
+import type { CLISession, TerminalSession } from './terminal';
+import { api } from '@/trpc/client';
+import { CLISessionImpl, CLISessionType } from './terminal';
 
 export class SessionManager {
     provider: Provider | null = null;
     isConnecting = false;
+    connectionError: string | null = null;
     terminalSessions = new Map<string, CLISession>();
     activeTerminalSessionId = 'cli';
 
     constructor(
         private readonly branch: Branch,
-        private readonly errorManager: ErrorManager
+        private readonly errorManager: ErrorManager,
     ) {
         makeAutoObservable(this);
     }
@@ -28,21 +33,33 @@ export class SessionManager {
 
         runInAction(() => {
             this.isConnecting = true;
+            this.connectionError = null;
         });
 
         const attemptConnection = async () => {
-            const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                providerOptions: {
-                    codesandbox: {
-                        sandboxId,
-                        userId,
-                        initClient: true,
-                        getSession: async (sandboxId, userId) => {
-                            return api.sandbox.start.mutate({ sandboxId });
-                        },
-                    },
-                },
-            });
+            const provider =
+                this.branch.runtime.type === 'local'
+                    ? await createCodeProviderClient(CodeProvider.NodeFs, {
+                          providerOptions: {
+                              nodefs: {
+                                  rootPath: this.branch.runtime.local?.rootPath,
+                                  devCommand: this.branch.runtime.local?.devCommand,
+                                  port: this.branch.runtime.local?.port,
+                              },
+                          },
+                      })
+                    : await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                          providerOptions: {
+                              codesandbox: {
+                                  sandboxId,
+                                  userId,
+                                  initClient: true,
+                                  getSession: async (sandboxId, _userId) => {
+                                      return api.sandbox.start.mutate({ sandboxId });
+                                  },
+                              },
+                          },
+                      });
 
             runInAction(() => {
                 this.provider = provider;
@@ -61,7 +78,10 @@ export class SessionManager {
                 return;
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
-                console.error(`Failed to start sandbox session (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
+                console.error(
+                    `Failed to start sandbox session (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
+                    error,
+                );
 
                 runInAction(() => {
                     this.provider = null;
@@ -69,15 +89,16 @@ export class SessionManager {
 
                 if (attempt < MAX_RETRIES) {
                     console.log(`Retrying sandbox connection in ${RETRY_DELAY_MS}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
                 }
             }
         }
 
         runInAction(() => {
             this.isConnecting = false;
+            this.connectionError = lastError?.message ?? 'Failed to start sandbox session';
         });
-        throw lastError;
+        throw lastError ?? new Error('Failed to start sandbox session');
     }
 
     async restartDevServer(): Promise<boolean> {
@@ -110,12 +131,7 @@ export class SessionManager {
     }
 
     async createTerminalSessions(provider: Provider) {
-        const task = new CLISessionImpl(
-            'server',
-            CLISessionType.TASK,
-            provider,
-            this.errorManager,
-        );
+        const task = new CLISessionImpl('server', CLISessionType.TASK, provider, this.errorManager);
         this.terminalSessions.set(task.id, task);
         const terminal = new CLISessionImpl(
             'terminal',
@@ -129,10 +145,7 @@ export class SessionManager {
 
         // Initialize the sessions after creation
         try {
-            await Promise.all([
-                task.initTask(),
-                terminal.initTerminal()
-            ]);
+            await Promise.all([task.initTask(), terminal.initTerminal()]);
         } catch (error) {
             console.error('Failed to initialize terminal sessions:', error);
         }
@@ -209,7 +222,7 @@ export class SessionManager {
     async runCommand(
         command: string,
         streamCallback?: (output: string) => void,
-        ignoreError: boolean = false,
+        ignoreError = false,
     ): Promise<{
         output: string;
         success: boolean;
@@ -245,7 +258,7 @@ export class SessionManager {
         // probably need to be moved in `Provider.destroy()`
         this.terminalSessions.forEach((terminal) => {
             if (terminal.type === CLISessionType.TERMINAL) {
-                terminal.terminal?.kill();
+                void terminal.terminal?.kill();
                 if (terminal.xterm) {
                     terminal.xterm.dispose();
                 }
@@ -257,6 +270,7 @@ export class SessionManager {
         runInAction(() => {
             this.provider = null;
             this.isConnecting = false;
+            this.connectionError = null;
         });
         this.terminalSessions.clear();
     }

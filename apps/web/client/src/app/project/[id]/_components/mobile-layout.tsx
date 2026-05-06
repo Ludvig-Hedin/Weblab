@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
@@ -13,6 +14,10 @@ import { CommentsTab } from './right-panel/comments-tab';
 import { TopBar } from './top-bar';
 
 type MobileTab = 'chat' | 'comments' | 'preview';
+
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 3;
+const ZOOM_FACTOR = 1.25;
 
 const TABS: { id: MobileTab; icon: keyof typeof Icons; label: string }[] = [
     { id: 'chat', icon: 'Sparkles', label: 'Chat' },
@@ -26,7 +31,7 @@ export const MobileLayout = observer(() => {
     const currentConversation = editorEngine.chat.conversation.current;
 
     return (
-        <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-background">
+        <div className="bg-background flex h-[100dvh] w-screen flex-col overflow-hidden">
             <div className="w-full flex-shrink-0">
                 <TopBar />
             </div>
@@ -45,8 +50,19 @@ export const MobileLayout = observer(() => {
                                 projectId={editorEngine.projectId}
                             />
                         ) : (
-                            <div className="flex h-full items-center justify-center text-sm text-foreground-secondary">
-                                No active conversation
+                            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                                <p className="text-foreground-secondary text-sm">
+                                    No active conversation
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        void editorEngine.chat.conversation.startNewConversation();
+                                    }}
+                                >
+                                    Start a new conversation
+                                </Button>
                             </div>
                         )}
                     </div>
@@ -68,15 +84,46 @@ export const MobileLayout = observer(() => {
                         id="mobile-tabpanel-preview"
                         role="tabpanel"
                         aria-labelledby="mobile-tab-preview"
-                        className="relative h-full w-full overflow-hidden bg-background-weblab"
+                        className="bg-background-weblab relative h-full w-full overflow-hidden"
                     >
                         <Canvas />
+                        <div className="border-border bg-background absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border-[0.5px] px-1 py-1 drop-shadow-xl backdrop-blur">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    editorEngine.canvas.scale = Math.max(
+                                        MIN_SCALE,
+                                        editorEngine.canvas.scale / ZOOM_FACTOR,
+                                    );
+                                }}
+                                aria-label="Zoom out"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-full"
+                            >
+                                <Icons.Minus className="h-4 w-4" />
+                            </button>
+                            <span className="text-foreground-secondary min-w-10 text-center text-xs tabular-nums">
+                                {Math.round(editorEngine.canvas.scale * 100)}%
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    editorEngine.canvas.scale = Math.min(
+                                        MAX_SCALE,
+                                        editorEngine.canvas.scale * ZOOM_FACTOR,
+                                    );
+                                }}
+                                aria-label="Zoom in"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-full"
+                            >
+                                <Icons.Plus className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
             <div
-                className="flex-shrink-0 border-t border-border bg-background"
+                className="border-border bg-background flex-shrink-0 border-t"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="flex" role="tablist" aria-label="Project mobile navigation">

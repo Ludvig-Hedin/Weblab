@@ -1,29 +1,43 @@
-import type { EditorEngine } from '@/components/store/editor/engine';
+import path from 'path';
+import { useMemo, useState } from 'react';
+
 import type { CodeFileSystem } from '@weblab/file-system';
 import { useDirectory } from '@weblab/file-system/hooks';
 import { sanitizeFilename } from '@weblab/utility';
 import { isImageFile } from '@weblab/utility/src/file';
-import path from 'path';
-import { useMemo, useState } from 'react';
+
+import type { EditorEngine } from '@/components/store/editor/engine';
 import { updateImageReferences } from '../utils/image-references';
 
-export const useImageOperations = (projectId: string, branchId: string, activeFolder: string, codeEditor?: CodeFileSystem, editorEngine?: EditorEngine) => {
+export const useImageOperations = (
+    projectId: string,
+    branchId: string,
+    activeFolder: string,
+    codeEditor?: CodeFileSystem,
+    editorEngine?: EditorEngine,
+) => {
     const [isUploading, setIsUploading] = useState(false);
 
     // Get directory entries
-    const { entries: rootEntries, loading, error } = useDirectory(projectId, branchId, activeFolder);
+    const {
+        entries: rootEntries,
+        loading,
+        error,
+    } = useDirectory(projectId, branchId, activeFolder);
     const { entries: activeFolderEntries } = useDirectory(projectId, branchId, activeFolder);
 
     // Get available folders
     const folders = useMemo(() => {
         if (!rootEntries) return [];
-        return rootEntries.filter(entry => entry.isDirectory);
+        return rootEntries.filter((entry) => entry.isDirectory);
     }, [rootEntries]);
 
     // Get images in the active folder
     const images = useMemo(() => {
         if (!activeFolderEntries) return [];
-        const imageEntries = activeFolderEntries.filter(entry => !entry.isDirectory && isImageFile(entry.name));
+        const imageEntries = activeFolderEntries.filter(
+            (entry) => !entry.isDirectory && isImageFile(entry.name),
+        );
 
         return imageEntries;
     }, [activeFolderEntries]);
@@ -68,15 +82,17 @@ export const useImageOperations = (projectId: string, branchId: string, activeFo
 
         // Find all JS/TS files in the project
         const allFiles = await codeEditor.listFiles('**/*');
-        const jsFiles = allFiles.filter(f => {
+        const jsFiles = allFiles.filter((f) => {
             const ext = path.extname(f);
             // Only process JS/TS/JSX/TSX files, skip test files and build dirs
-            return ['.js', '.jsx', '.ts', '.tsx'].includes(ext) &&
-                   !f.includes('node_modules') &&
-                   !f.includes('.next') &&
-                   !f.includes('dist') &&
-                   !f.endsWith('.test.ts') &&
-                   !f.endsWith('.test.tsx');
+            return (
+                ['.js', '.jsx', '.ts', '.tsx'].includes(ext) &&
+                !f.includes('node_modules') &&
+                !f.includes('.next') &&
+                !f.includes('dist') &&
+                !f.endsWith('.test.ts') &&
+                !f.endsWith('.test.tsx')
+            );
         });
 
         // Update references in parallel
@@ -93,14 +109,18 @@ export const useImageOperations = (projectId: string, branchId: string, activeFo
                             return;
                         }
 
-                        const updatedContent = await updateImageReferences(content, oldPath, newPath);
+                        const updatedContent = await updateImageReferences(
+                            content,
+                            oldPath,
+                            newPath,
+                        );
                         if (updatedContent !== content) {
                             await codeEditor.writeFile(filePath, updatedContent);
                         }
                     } catch (error) {
                         console.warn(`Failed to update references in ${filePath}:`, error);
                     }
-                })()
+                })(),
             );
         }
 

@@ -1,13 +1,8 @@
 'use client';
 
-import { useEditorEngine } from '@/components/store/editor';
-import type { FileDiff, FileDiffStatus } from '@/components/store/editor/git/git';
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@weblab/ui/accordion';
+import { observer } from 'mobx-react-lite';
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import {
     Dialog,
     DialogContent,
@@ -18,7 +13,9 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { ScrollArea } from '@weblab/ui/scroll-area';
 import { cn } from '@weblab/ui/utils';
-import { observer } from 'mobx-react-lite';
+
+import type { FileDiff, FileDiffStatus } from '@/components/store/editor/git/git';
+import { useEditorEngine } from '@/components/store/editor';
 import { CodeDiff } from '../../right-panel/chat-tab/code-display/code-diff';
 
 interface DiffModalProps {
@@ -62,13 +59,13 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-4xl p-0 gap-0 overflow-hidden">
-                <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-4xl">
+                <DialogHeader className="border-border border-b px-6 pt-6 pb-4">
                     <div className="flex items-center gap-2">
                         <Icons.Code className="h-5 w-5" />
                         <DialogTitle className="text-xl font-semibold">Changes</DialogTitle>
                         {!isLoading && diffs.length > 0 && (
-                            <span className="text-sm text-foreground-secondary">
+                            <span className="text-foreground-secondary text-sm">
                                 {diffs.length} {diffs.length === 1 ? 'file' : 'files'}
                             </span>
                         )}
@@ -80,13 +77,13 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
 
                 <ScrollArea className="max-h-[70vh]">
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-16 text-foreground-secondary">
-                            <Icons.LoadingSpinner className="h-5 w-5 animate-spin mr-2" />
+                        <div className="text-foreground-secondary flex items-center justify-center py-16">
+                            <Icons.LoadingSpinner className="mr-2 h-5 w-5 animate-spin" />
                             Loading diff…
                         </div>
                     ) : diffs.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center text-foreground-secondary">
-                            <Icons.Check className="h-6 w-6 mb-2" />
+                        <div className="text-foreground-secondary flex flex-col items-center justify-center py-16 text-center">
+                            <Icons.Check className="mb-2 h-6 w-6" />
                             <p className="text-sm">No uncommitted changes</p>
                         </div>
                     ) : (
@@ -97,25 +94,25 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                                     <AccordionItem
                                         key={diff.path}
                                         value={diff.path}
-                                        className="border-b border-border last:border-b-0"
+                                        className="border-border border-b last:border-b-0"
                                     >
-                                        <AccordionTrigger className="px-6 py-3 hover:bg-background-secondary/40 hover:no-underline">
-                                            <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+                                        <AccordionTrigger className="hover:bg-background-secondary/40 px-6 py-3 hover:no-underline">
+                                            <div className="flex min-w-0 flex-1 items-center gap-3 pr-4">
                                                 <span
                                                     className={cn(
-                                                        'shrink-0 rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide font-medium',
+                                                        'shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase',
                                                         STATUS_CLASSES[diff.status],
                                                     )}
                                                 >
                                                     {STATUS_LABELS[diff.status]}
                                                 </span>
                                                 <span
-                                                    className="text-sm font-mono truncate text-left text-foreground-primary"
+                                                    className="text-foreground-primary truncate text-left font-mono text-sm"
                                                     title={diff.path}
                                                 >
                                                     {diff.path}
                                                 </span>
-                                                <span className="ml-auto flex items-center gap-2 text-xs shrink-0">
+                                                <span className="ml-auto flex shrink-0 items-center gap-2 text-xs">
                                                     {added > 0 && (
                                                         <span className="text-green-500">
                                                             +{added}
@@ -146,20 +143,20 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
 function DiffBody({ diff }: { diff: FileDiff }) {
     if (diff.skipped === 'binary') {
         return (
-            <div className="px-6 py-4 text-sm text-foreground-secondary">
+            <div className="text-foreground-secondary px-6 py-4 text-sm">
                 Binary file — no preview available.
             </div>
         );
     }
     if (diff.skipped === 'too-large') {
         return (
-            <div className="px-6 py-4 text-sm text-foreground-secondary">
+            <div className="text-foreground-secondary px-6 py-4 text-sm">
                 File too large to preview.
             </div>
         );
     }
     return (
-        <div className="border-t border-border">
+        <div className="border-border border-t">
             <CodeDiff originalCode={diff.original} modifiedCode={diff.modified} />
         </div>
     );
