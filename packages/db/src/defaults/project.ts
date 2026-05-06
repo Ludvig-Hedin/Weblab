@@ -18,6 +18,8 @@ export const createDefaultProject = ({
         previewImgPath: null,
         previewImgBucket: null,
         updatedPreviewImgAt: null,
+        storageMode: 'cloud',
+        runtimeMetadata: {},
         ...overrides,
 
         // deprecated

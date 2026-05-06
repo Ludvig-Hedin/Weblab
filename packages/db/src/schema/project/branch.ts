@@ -2,6 +2,7 @@ import { relations, sql } from 'drizzle-orm';
 import {
     boolean,
     index,
+    jsonb,
     pgTable,
     text,
     timestamp,
@@ -11,6 +12,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
+
+import type { BranchRuntime, BranchRuntimeType } from '@weblab/models';
 
 import { frames } from '../canvas/frame';
 import { projects } from './project';
@@ -39,6 +42,16 @@ export const branches = pgTable(
 
         // sandbox
         sandboxId: varchar('sandbox_id').notNull(),
+
+        // runtime mode (added in 0023_project_runtime_modes)
+        runtimeType: varchar('runtime_type')
+            .$type<BranchRuntimeType>()
+            .notNull()
+            .default('cloud'),
+        runtimeMetadata: jsonb('runtime_metadata')
+            .$type<Omit<BranchRuntime, 'type'>>()
+            .notNull()
+            .default({}),
     },
     (table) => [
         index('branches_project_id_idx').on(table.projectId),
@@ -48,9 +61,16 @@ export const branches = pgTable(
             .where(sql`${table.isDefault} = true`),
     ],
 ).enableRLS();
-export const branchInsertSchema = createInsertSchema(branches);
+const runtimeTypeSchema = z.enum(['cloud', 'local', 'hybrid']);
+
+export const branchInsertSchema = createInsertSchema(branches, {
+    runtimeType: runtimeTypeSchema.optional(),
+    runtimeMetadata: z.any().optional(),
+});
 export const branchUpdateSchema = createUpdateSchema(branches, {
     id: z.string().uuid(),
+    runtimeType: runtimeTypeSchema.optional(),
+    runtimeMetadata: z.any().optional(),
 });
 
 export const branchRelations = relations(branches, ({ one, many }) => ({

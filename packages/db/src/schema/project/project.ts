@@ -1,7 +1,9 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
+
+import type { ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
 
 import { canvases } from '../canvas';
 import { conversations, PROJECT_CONVERSATION_RELATION_NAME } from '../chat';
@@ -32,14 +34,31 @@ export const projects = pgTable('projects', {
     previewImgBucket: varchar('preview_img_bucket'),
     updatedPreviewImgAt: timestamp('updated_preview_img_at', { withTimezone: true }),
 
+    // runtime mode (added in 0023_project_runtime_modes)
+    storageMode: varchar('storage_mode')
+        .$type<ProjectStorageMode>()
+        .notNull()
+        .default('cloud'),
+    runtimeMetadata: jsonb('runtime_metadata')
+        .$type<ProjectRuntimeMetadata>()
+        .notNull()
+        .default({}),
+
     // deprecated
     sandboxId: varchar('sandbox_id'),
     sandboxUrl: varchar('sandbox_url'),
 }).enableRLS();
 
-export const projectInsertSchema = createInsertSchema(projects);
+const storageModeSchema = z.enum(['cloud', 'local', 'hybrid']);
+
+export const projectInsertSchema = createInsertSchema(projects, {
+    storageMode: storageModeSchema.optional(),
+    runtimeMetadata: z.any().optional(),
+});
 export const projectUpdateSchema = createUpdateSchema(projects, {
     id: z.string().uuid(),
+    storageMode: storageModeSchema.optional(),
+    runtimeMetadata: z.any().optional(),
 });
 
 export const projectRelations = relations(projects, ({ one, many }) => ({

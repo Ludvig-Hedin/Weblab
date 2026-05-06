@@ -1,8 +1,43 @@
-import type { Branch } from '@weblab/models';
+import type { Branch, BranchRuntime, BranchRuntimeType } from '@weblab/models';
 
 import type { Branch as DbBranch } from '../../schema';
 
+const VALID_RUNTIME_TYPES: readonly BranchRuntimeType[] = ['cloud', 'local', 'hybrid'];
+
+const isValidRuntimeType = (value: string | null | undefined): value is BranchRuntimeType =>
+    !!value && (VALID_RUNTIME_TYPES as readonly string[]).includes(value);
+
 export const fromDbBranch = (dbBranch: DbBranch): Branch => {
+    // Prefer the authoritative `runtime_type` + `runtime_metadata` columns;
+    // fall back to the legacy `sandbox_id` prefix heuristic for rows written
+    // before 0023_project_runtime_modes.
+    const hasMetadataColumns = isValidRuntimeType(dbBranch.runtimeType);
+
+    const runtime: BranchRuntime = hasMetadataColumns
+        ? {
+              type: dbBranch.runtimeType as BranchRuntimeType,
+              ...(dbBranch.runtimeMetadata as Omit<BranchRuntime, 'type'>),
+          }
+        : (dbBranch.sandboxId ?? '').startsWith('local:')
+          ? {
+                type: 'local',
+                sync: {
+                    enabled: false,
+                    status: 'disabled',
+                },
+            }
+          : {
+                type: 'cloud',
+                cloud: {
+                    provider: 'code_sandbox',
+                    sandboxId: dbBranch.sandboxId,
+                },
+                sync: {
+                    enabled: false,
+                    status: 'disabled',
+                },
+            };
+
     return {
         id: dbBranch.id,
         projectId: dbBranch.projectId,
@@ -22,10 +57,12 @@ export const fromDbBranch = (dbBranch: DbBranch): Branch => {
         sandbox: {
             id: dbBranch.sandboxId,
         },
+        runtime,
     };
 };
 
 export const toDbBranch = (branch: Branch): DbBranch => {
+    const { type, ...metadata } = branch.runtime;
     return {
         id: branch.id,
         name: branch.name,
@@ -38,5 +75,7 @@ export const toDbBranch = (branch: Branch): DbBranch => {
         gitCommitSha: branch.git?.commitSha ?? null,
         gitRepoUrl: branch.git?.repoUrl ?? null,
         sandboxId: branch.sandbox.id,
+        runtimeType: type,
+        runtimeMetadata: metadata,
     };
 };

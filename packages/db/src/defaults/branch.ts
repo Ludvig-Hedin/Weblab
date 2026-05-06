@@ -23,6 +23,8 @@ export const createDefaultBranch = ({
         gitCommitSha: null,
         gitRepoUrl: null,
         sandboxId,
+        runtimeType: sandboxId.startsWith('local:') ? 'local' : 'cloud',
+        runtimeMetadata: {},
         ...overrides,
     };
 };

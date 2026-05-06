@@ -1,8 +1,32 @@
-import type { PreviewImg, Project } from '@weblab/models';
+import type { PreviewImg, Project, ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
 
 import type { Project as DbProject } from '../../schema';
 
+const VALID_STORAGE_MODES: readonly ProjectStorageMode[] = ['cloud', 'local', 'hybrid'];
+
+const isValidStorageMode = (value: string | null | undefined): value is ProjectStorageMode =>
+    !!value && (VALID_STORAGE_MODES as readonly string[]).includes(value);
+
+const isEmptyRuntimeMetadata = (metadata: ProjectRuntimeMetadata | null | undefined): boolean =>
+    !metadata || Object.keys(metadata).length === 0;
+
 export const fromDbProject = (dbProject: DbProject): Project => {
+    const tags = dbProject.tags ?? [];
+
+    // Prefer the authoritative `storage_mode` column; fall back to the legacy
+    // tag-based inference when the column has not been populated yet.
+    const storageMode: ProjectStorageMode = isValidStorageMode(dbProject.storageMode)
+        ? dbProject.storageMode
+        : tags.includes('local')
+          ? 'local'
+          : tags.includes('hybrid')
+            ? 'hybrid'
+            : 'cloud';
+
+    const runtime: ProjectRuntimeMetadata | null = isEmptyRuntimeMetadata(dbProject.runtimeMetadata)
+        ? null
+        : dbProject.runtimeMetadata;
+
     return {
         id: dbProject.id,
         name: dbProject.name,
@@ -11,7 +35,9 @@ export const fromDbProject = (dbProject: DbProject): Project => {
             updatedAt: dbProject.updatedAt,
             previewImg: fromDbPreviewImg(dbProject),
             description: dbProject.description,
-            tags: dbProject.tags ?? [],
+            tags,
+            storageMode,
+            runtime,
         },
     };
 };
@@ -31,6 +57,8 @@ export const toDbProject = (project: Project): DbProject => {
         previewImgPath,
         previewImgBucket,
         updatedPreviewImgAt,
+        storageMode: project.metadata.storageMode ?? 'cloud',
+        runtimeMetadata: project.metadata.runtime ?? {},
 
         // deprecated
         sandboxId: null,

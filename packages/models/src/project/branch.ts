@@ -1,3 +1,24 @@
+export type BranchRuntimeType = 'cloud' | 'local' | 'hybrid';
+
+export interface BranchRuntime {
+    type: BranchRuntimeType;
+    cloud?: {
+        provider: 'code_sandbox';
+        sandboxId?: string | null;
+        previewUrl?: string | null;
+    };
+    local?: {
+        rootPath?: string | null;
+        devCommand?: string | null;
+        port?: number | null;
+    };
+    sync?: {
+        enabled: boolean;
+        status: 'disabled' | 'enabled' | 'paused' | 'conflict' | 'error';
+        lastSyncedAt?: Date | null;
+    };
+}
+
 export interface Branch {
     id: string;
     projectId: string;
@@ -14,4 +35,5 @@ export interface Branch {
     sandbox: {
         id: string;
     };
+    runtime: BranchRuntime;
 }

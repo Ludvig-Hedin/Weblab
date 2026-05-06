@@ -86,6 +86,8 @@ const branch1 = {
     gitCommitSha: null,
     gitRepoUrl: null,
     sandboxId: '123456',
+    runtimeType: 'cloud' as const,
+    runtimeMetadata: {},
 } satisfies Branch;
 
 const branch2 = {
@@ -100,6 +102,8 @@ const branch2 = {
     gitCommitSha: null,
     gitRepoUrl: null,
     sandboxId: '123456',
+    runtimeType: 'cloud' as const,
+    runtimeMetadata: {},
 } satisfies Branch;
 
 const branch3 = {
@@ -114,6 +118,8 @@ const branch3 = {
     gitCommitSha: null,
     gitRepoUrl: null,
     sandboxId: '123456',
+    runtimeType: 'cloud' as const,
+    runtimeMetadata: {},
 } satisfies Branch;
 
 const canvas0 = createDefaultCanvas(project0.id);
@@ -135,6 +141,7 @@ const userCanvas1 = createDefaultUserCanvas(user0.id, canvas1.id);
 const conversation0 = {
     id: uuidv4(),
     projectId: project0.id,
+    agentType: null,
     displayName: 'Test Conversation',
     createdAt: new Date(),
     updatedAt: new Date(),
