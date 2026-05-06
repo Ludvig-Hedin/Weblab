@@ -5,6 +5,7 @@ import { assertNever } from '@weblab/utility';
 
 import type { NodePath, T } from '../packages';
 import { t, traverse } from '../packages';
+import { getAstFromContent } from '../parse';
 import { groupElementsInNode, ungroupElementsInNode } from './group';
 import { getOidFromJsxElement } from './helpers';
 import { insertImageToNode, removeImageFromNode } from './image';
@@ -13,7 +14,6 @@ import { moveElementInNode } from './move';
 import { removeElementFromNode } from './remove';
 import { addClassToNode, renameNodeTag, replaceNodeClasses, updateNodeProp } from './style';
 import { updateNodeTextContent } from './text';
-import { getAstFromContent } from '../parse';
 
 export function transformAst(ast: T.File, oidToCodeDiff: Map<string, CodeDiffRequest>): void {
     addImportsFromStructureChanges(ast, oidToCodeDiff);

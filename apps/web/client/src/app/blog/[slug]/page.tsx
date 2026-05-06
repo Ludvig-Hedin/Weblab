@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
 
@@ -137,7 +136,7 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
 
                 {/* Cover image */}
-                <div className="mx-auto mb-12 aspect-[16/9] w-full max-w-5xl overflow-hidden rounded-lg">
+                <div className="mx-auto mb-12 aspect-[16/9] w-full max-w-3xl overflow-hidden rounded-lg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={post.frontmatter.coverImage}
@@ -147,20 +146,14 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
 
                 {/* Content + TOC */}
-                <div className="mx-auto flex max-w-5xl items-start gap-16">
-                    <article className="prose prose-invert prose-headings:font-light prose-headings:text-foreground-primary prose-h2:scroll-mt-28 prose-h3:scroll-mt-28 prose-p:text-foreground-secondary prose-p:leading-relaxed prose-a:text-foreground-primary prose-a:underline-offset-2 prose-strong:text-foreground-primary prose-code:text-foreground-primary prose-code:bg-foreground-primary/5 prose-code:rounded prose-code:px-1 prose-code:text-sm prose-pre:bg-foreground-primary/5 prose-pre:border prose-pre:border-foreground-primary/10 prose-blockquote:border-foreground-primary/30 prose-blockquote:text-foreground-secondary prose-hr:border-foreground-primary/10 prose-li:text-foreground-secondary max-w-none min-w-0 flex-1">
+                <div className="mx-auto flex max-w-5xl items-start gap-12">
+                    <article className="prose prose-invert prose-headings:font-light prose-headings:tracking-tight prose-headings:text-foreground-primary prose-h2:scroll-mt-28 prose-h3:scroll-mt-28 prose-p:text-foreground-secondary prose-p:leading-[1.6] prose-a:text-foreground-primary prose-a:underline-offset-2 prose-strong:text-foreground-primary prose-code:text-foreground-primary prose-code:bg-foreground-primary/5 prose-code:rounded prose-code:px-1 prose-code:text-sm prose-pre:bg-foreground-primary/5 prose-pre:border prose-pre:border-foreground-primary/10 prose-blockquote:border-foreground-primary/30 prose-blockquote:text-foreground-secondary prose-hr:border-foreground-primary/10 prose-li:text-foreground-secondary max-w-2xl min-w-0 flex-1 [&_h2]:mt-8 [&_h2]:mb-2 [&_h3]:mt-5 [&_h3]:mb-1.5 [&_ol]:my-3 [&_p]:my-3 [&_ul]:my-3">
                         <MDXRemote
                             source={post.content}
                             options={{
                                 mdxOptions: {
                                     remarkPlugins: [remarkGfm],
-                                    rehypePlugins: [
-                                        rehypeSlug,
-                                        [rehypeAutolinkHeadings, { behavior: 'wrap' }] as [
-                                            typeof rehypeAutolinkHeadings,
-                                            Record<string, unknown>,
-                                        ],
-                                    ],
+                                    rehypePlugins: [rehypeSlug],
                                 },
                             }}
                         />

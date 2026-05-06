@@ -1,12 +1,14 @@
-import { useEditorEngine } from '@/components/store/editor';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { AnimatePresence, motion } from 'motion/react';
+
 import { CodeBlock } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@weblab/ui/collapsible';
 import { Icons } from '@weblab/ui/icons';
 import { cn, getTruncatedFileName } from '@weblab/ui/utils';
-import { AnimatePresence, motion } from 'motion/react';
-import { observer } from 'mobx-react-lite';
-import { memo, useEffect, useMemo, useState } from 'react';
+
+import { useEditorEngine } from '@/components/store/editor';
 
 interface CollapsibleCodeBlockProps {
     path: string;
@@ -66,7 +68,7 @@ const CollapsibleCodeBlockComponent = ({
     };
 
     const branch = branchId
-        ? editorEngine.branches.allBranches.find(b => b.id === branchId)
+        ? editorEngine.branches.allBranches.find((b) => b.id === branchId)
         : editorEngine.branches.activeBranch;
 
     return (
@@ -74,18 +76,18 @@ const CollapsibleCodeBlockComponent = ({
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                 <div
                     className={cn(
-                        'border rounded-lg bg-background-primary relative',
+                        'bg-background-primary relative rounded-lg border',
                         !isOpen && 'group-hover:bg-background-secondary',
                     )}
                 >
                     <div
                         className={cn(
-                            'flex items-center justify-between text-foreground-secondary',
+                            'text-foreground-secondary flex items-center justify-between',
                             !isOpen && 'group-hover:text-foreground-primary',
                         )}
                     >
                         <CollapsibleTrigger asChild>
-                            <div className="flex-1 flex items-center gap-2 cursor-pointer pl-3 py-2">
+                            <div className="flex flex-1 cursor-pointer items-center gap-2 py-2 pl-3">
                                 {isStream ? (
                                     <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                                 ) : (
@@ -98,14 +100,17 @@ const CollapsibleCodeBlockComponent = ({
                                 )}
                                 <div
                                     className={cn(
-                                        'text-small pointer-events-none select-none flex items-center min-w-0 overflow-hidden',
+                                        'text-small pointer-events-none flex min-w-0 items-center overflow-hidden select-none',
                                         isStream && 'text-shimmer',
                                     )}
                                 >
-                                    <span className="truncate flex-1 min-w-0">{getTruncatedFileName(path)}</span>
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {getTruncatedFileName(path)}
+                                    </span>
                                     {branch && (
-                                        <span className="text-foreground-tertiary group-hover:text-foreground-secondary text-mini ml-0.5 flex-shrink-0 truncate max-w-24">
-                                            {' • '}{branch.name}
+                                        <span className="text-foreground-tertiary group-hover:text-foreground-secondary text-mini ml-0.5 max-w-24 flex-shrink-0 truncate">
+                                            {' • '}
+                                            {branch.name}
                                         </span>
                                     )}
                                 </div>
@@ -128,28 +133,30 @@ const CollapsibleCodeBlockComponent = ({
                                             code={isStream ? preview : content}
                                             language="jsx"
                                             isStreaming={isStream}
-                                            className="text-xs overflow-x-auto"
+                                            className="overflow-x-auto text-xs"
                                         />
                                         {isStream && truncated && (
-                                            <div className="border-t px-3 py-2 text-xs text-foreground-tertiary">
-                                                Showing a live preview while the file is being written. Expand after the tool finishes to inspect the full content.
+                                            <div className="text-foreground-tertiary border-t px-3 py-2 text-xs">
+                                                Showing a live preview while the file is being
+                                                written. Expand after the tool finishes to inspect
+                                                the full content.
                                             </div>
                                         )}
-                                        <div className="flex justify-end gap-1.5 p-1 border-t">
+                                        <div className="flex justify-end gap-1.5 border-t p-1">
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                className="h-7 px-2 text-foreground-secondary hover:text-foreground font-sans select-none"
+                                                className="text-foreground-secondary hover:text-foreground h-7 px-2 font-sans select-none"
                                                 onClick={copyToClipboard}
                                             >
                                                 {copied ? (
                                                     <>
-                                                        <Icons.Check className="h-4 w-4 mr-2" />
+                                                        <Icons.Check className="mr-2 h-4 w-4" />
                                                         Copied
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Icons.Copy className="h-4 w-4 mr-2" />
+                                                        <Icons.Copy className="mr-2 h-4 w-4" />
                                                         Copy
                                                     </>
                                                 )}
@@ -162,7 +169,7 @@ const CollapsibleCodeBlockComponent = ({
                     </CollapsibleContent>
                 </div>
             </Collapsible>
-        </div >
+        </div>
     );
 };
 

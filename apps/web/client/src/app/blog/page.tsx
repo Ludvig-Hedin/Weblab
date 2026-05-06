@@ -8,7 +8,6 @@ import type { BlogPostMeta } from '@/lib/blog';
 import { ChangelogGrid } from '@/app/_components/changelog-grid';
 import { WebsiteLayout } from '@/app/_components/website-layout';
 import { getAllPosts } from '@/lib/blog';
-import { cn } from '@/lib/utils';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 
 export const metadata: Metadata = {
@@ -29,30 +28,19 @@ function formatPostDate(date: string): string {
     return isValid(parsed) ? format(parsed, 'MMM d, yyyy') : 'Unknown date';
 }
 
-interface PostCardProps {
-    post: BlogPostMeta;
-    featured?: boolean;
-}
-
-function PostCard({ post, featured = false }: PostCardProps) {
+function PostCard({ post, featured = false }: { post: BlogPostMeta; featured?: boolean }) {
     const { slug, frontmatter, readingTime } = post;
     return (
         <Link
             href={`/blog/${slug}`}
-            className={cn(
-                // Base card: visible bg, clear border, rounded
-                'group flex flex-col overflow-hidden rounded-xl',
-                'bg-white/[0.06] ring-1 ring-white/10',
-                'transition-colors hover:bg-white/[0.09]',
-                featured && 'md:col-span-2',
-            )}
+            className="group relative flex flex-col overflow-hidden rounded-xl bg-foreground-primary/[0.05] transition-colors hover:bg-foreground-primary/[0.08]"
         >
-            {/* Cover image — always on top */}
             <div
-                className={cn(
-                    'relative w-full overflow-hidden bg-white/[0.04]',
-                    featured ? 'aspect-[16/8]' : 'aspect-[16/9]',
-                )}
+                className={
+                    featured
+                        ? 'aspect-[16/8] w-full overflow-hidden'
+                        : 'aspect-[16/9] w-full overflow-hidden'
+                }
             >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -61,28 +49,16 @@ function PostCard({ post, featured = false }: PostCardProps) {
                     className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
                 />
             </div>
-
-            {/* Text content */}
             <div className="flex flex-1 flex-col p-4">
-                <p className="text-foreground-tertiary mb-2 text-xs">
+                <p className="text-foreground-tertiary mb-1 text-xs">
                     {formatPostDate(frontmatter.date)}
                     <span className="mx-1.5">·</span>
                     {frontmatter.category}
                 </p>
-                <h2
-                    className={cn(
-                        'text-foreground-primary mb-2 font-normal leading-snug tracking-tight',
-                        featured ? 'text-xl md:text-2xl' : 'text-sm md:text-base',
-                    )}
-                >
+                <h2 className="text-foreground-primary mb-2 text-sm font-normal leading-snug tracking-tight">
                     {frontmatter.title}
                 </h2>
-                <p
-                    className={cn(
-                        'text-foreground-secondary mb-4 line-clamp-2 leading-snug',
-                        featured ? 'text-sm' : 'text-xs',
-                    )}
-                >
+                <p className="text-foreground-secondary mb-3 line-clamp-2 text-xs leading-relaxed">
                     {frontmatter.description}
                 </p>
                 <div className="mt-auto flex items-center gap-2 text-xs">
@@ -97,6 +73,8 @@ function PostCard({ post, featured = false }: PostCardProps) {
                     <span className="text-foreground-tertiary">{readingTime} min read</span>
                 </div>
             </div>
+            {/* Overlay border — renders above image and all content */}
+            <div className="ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-xl ring-1" />
         </Link>
     );
 }
@@ -107,9 +85,9 @@ export default function BlogPage() {
 
     return (
         <WebsiteLayout showFooter>
-            <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-20 md:px-8 md:pt-32">
+            <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-28 md:px-8 md:pt-32">
                 <header className="mb-8">
-                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium uppercase tracking-widest">
                         Resources
                     </p>
                     <h1 className="text-foreground-primary text-3xl font-light tracking-tight md:text-4xl">
@@ -122,11 +100,19 @@ export default function BlogPage() {
                         No posts yet. Check back soon.
                     </p>
                 ) : (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {featured && <PostCard post={featured} featured />}
-                        {rest.map((post) => (
-                            <PostCard key={post.slug} post={post} />
-                        ))}
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                        {featured && (
+                            <div className="w-full lg:w-[70.8%] lg:shrink-0">
+                                <PostCard post={featured} featured />
+                            </div>
+                        )}
+                        {rest.length > 0 && (
+                            <div className="flex w-full flex-col gap-3 lg:w-[29.2%]">
+                                {rest.map((post) => (
+                                    <PostCard key={post.slug} post={post} />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -138,7 +124,7 @@ export default function BlogPage() {
             {/* CTA Section */}
             <section className="border-foreground-primary/10 border-t">
                 <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center md:px-8">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium uppercase tracking-widest">
                         Get started
                     </p>
                     <h2 className="text-foreground-primary mb-8 text-balance text-4xl font-light tracking-tight md:text-5xl">

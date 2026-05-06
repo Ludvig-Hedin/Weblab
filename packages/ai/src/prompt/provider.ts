@@ -1,11 +1,11 @@
 import type { FileUIPart } from 'ai';
 
+import type { ChatMessage, MessageContext } from '@weblab/models';
 import {
     SHADCN_AVAILABLE_REGISTRY_HINT,
     SHADCN_BLOCKS,
     SHADCN_CORE_COMPONENTS,
 } from '@weblab/constants';
-import type { ChatMessage, MessageContext } from '@weblab/models';
 import { MessageContextType } from '@weblab/models';
 
 import {

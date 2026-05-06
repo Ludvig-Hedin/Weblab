@@ -33,11 +33,12 @@ export default function ${name}() {
 
 export function scaffoldAppPage(frames: FigmaTopLevelFrame[]): string {
     const imports = frames
-        .map((f) => `import ${toComponentName(f.name)} from '@/components/${toComponentName(f.name)}';`)
+        .map(
+            (f) =>
+                `import ${toComponentName(f.name)} from '@/components/${toComponentName(f.name)}';`,
+        )
         .join('\n');
-    const renders = frames
-        .map((f) => `      <${toComponentName(f.name)} />`)
-        .join('\n');
+    const renders = frames.map((f) => `      <${toComponentName(f.name)} />`).join('\n');
     return `${imports}
 
 export default function Page() {

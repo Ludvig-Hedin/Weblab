@@ -7,7 +7,6 @@ import {
     GrepTool,
     ListBranchesTool,
     ListFilesTool,
-    WeblabInstructionsTool,
     ReadFileTool,
     ReadStyleGuideTool,
     SandboxTool,
@@ -16,6 +15,7 @@ import {
     SearchReplaceMultiEditFileTool,
     TerminalCommandTool,
     TypecheckTool,
+    WeblabInstructionsTool,
     WebSearchTool,
     WriteFileTool,
 } from '../tools';

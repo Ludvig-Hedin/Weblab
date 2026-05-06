@@ -64,9 +64,9 @@ describe('extractReactComponents', () => {
     });
 
     it('ignores lowercase export arrow', () => {
-        expect(
-            extractReactComponents(`export const util = () => 0;`, 'src/utils/util.ts'),
-        ).toEqual([]);
+        expect(extractReactComponents(`export const util = () => 0;`, 'src/utils/util.ts')).toEqual(
+            [],
+        );
     });
 
     it('ignores lowercase default export function', () => {
@@ -180,10 +180,9 @@ describe('extractReactComponents', () => {
 
     it('deduplicates when a name appears via multiple patterns', () => {
         // A named function followed by `export default Name;` should appear once with type "default".
-        const source = [
-            `export function Shared() { return null; }`,
-            `export default Shared;`,
-        ].join('\n');
+        const source = [`export function Shared() { return null; }`, `export default Shared;`].join(
+            '\n',
+        );
         const result = extractReactComponents(source, 'src/components/shared.tsx');
         expect(result).toHaveLength(1);
         expect(result[0]).toEqual({

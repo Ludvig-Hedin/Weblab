@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import { nanoid } from 'nanoid';
 
 import type { ChatMessage, GitMessageCheckpoint } from '@weblab/models';
@@ -21,7 +22,6 @@ import { cn } from '@weblab/ui/utils';
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';
 import { restoreCheckpoint } from '@/components/store/editor/git';
-import { observer } from 'mobx-react-lite';
 import { SentContextPill } from '../context-pills/sent-context-pill';
 import { MessageContent } from './message-content';
 import { MultiBranchRevertModal } from './multi-branch-revert-modal';
@@ -165,7 +165,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
 
     function renderButtons() {
         return (
-            <div className="flex gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 pr-1">
+            <div className="flex gap-1 pr-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -222,31 +222,31 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
 
     return (
         <div className="group relative flex w-full flex-row justify-end px-2" key={message.id}>
-            <div className="flex w-[90%] ml-8 flex-col items-end gap-1">
-            <div className="bg-background-primary relative w-full flex flex-col rounded-lg border-[0.5px] p-2 shadow-sm">
-                <div className="relative h-6">
-                    <div className="absolute top-1 right-0 left-0 flex w-full flex-row items-center justify-start overflow-auto pr-16">
-                        <div className="text-micro text-foreground-secondary flex flex-row gap-3">
-                            {message.metadata?.context?.map((context) => (
-                                <SentContextPill key={nanoid()} context={context} />
-                            ))}
+            <div className="ml-8 flex w-[90%] flex-col items-end gap-1">
+                <div className="bg-background-primary relative flex w-full flex-col rounded-lg border-[0.5px] p-2 shadow-sm">
+                    <div className="relative h-6">
+                        <div className="absolute top-1 right-0 left-0 flex w-full flex-row items-center justify-start overflow-auto pr-16">
+                            <div className="text-micro text-foreground-secondary flex flex-row gap-3">
+                                {message.metadata?.context?.map((context) => (
+                                    <SentContextPill key={nanoid()} context={context} />
+                                ))}
+                            </div>
                         </div>
                     </div>
+                    <div className="text-small mt-1">
+                        {isEditing ? (
+                            renderEditingInput()
+                        ) : (
+                            <MessageContent
+                                messageId={message.id}
+                                parts={message.parts}
+                                applied={false}
+                                isStream={false}
+                            />
+                        )}
+                    </div>
                 </div>
-                <div className="text-small mt-1">
-                    {isEditing ? (
-                        renderEditingInput()
-                    ) : (
-                        <MessageContent
-                            messageId={message.id}
-                            parts={message.parts}
-                            applied={false}
-                            isStream={false}
-                        />
-                    )}
-                </div>
-            </div>
-            {!isEditing && renderButtons()}
+                {!isEditing && renderButtons()}
             </div>
             {gitCheckpoints.length > 0 && (
                 <div className="absolute top-1/2 left-2 -translate-y-1/2">
@@ -301,7 +301,9 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                         {gitCheckpoints.map((checkpoint) => (
                                             <DropdownMenuItem
                                                 key={checkpoint.branchId}
-                                                onClick={() => handleRestoreSingleBranch(checkpoint)}
+                                                onClick={() =>
+                                                    handleRestoreSingleBranch(checkpoint)
+                                                }
                                             >
                                                 {getBranchName(checkpoint.branchId)}
                                             </DropdownMenuItem>

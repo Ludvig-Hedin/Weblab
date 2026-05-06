@@ -31,7 +31,8 @@ const NAMED_FUNCTION_RE = /export\s+function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
 //   export const Foo = () => ...
 //   export const Foo: React.FC<Props> = ({ children }) => ...
 //   export const Foo: FC = (props) => ...
-const NAMED_ARROW_RE = /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)(?:\s*:\s*[^=]+?)?\s*=\s*(?:\([^)]*\)|[A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=]+?)?\s*=>/gm;
+const NAMED_ARROW_RE =
+    /^\s*export\s+const\s+([A-Z][A-Za-z0-9_]*)(?:\s*:\s*[^=]+?)?\s*=\s*(?:\([^)]*\)|[A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*[^=]+?)?\s*=>/gm;
 // Detects observer()/HOC-wrapped exports: `export const Foo = observer(...)`,
 // `export const Connected = withRouter(Inner)`, `export const Memoized = memo(...)`.
 // Also matches namespace-qualified wrappers such as `React.memo(...)` and
@@ -60,15 +61,13 @@ export function extractReactComponents(source: string, filePath: string): Discov
     // Heuristic: if the source contains sequences that are never valid in JS/TS
     // export declarations (e.g. `{{{{` which indicates template/non-JS content),
     // treat as unparseable.
-    if (/\{\{\{\{/.test(source) && !/export\s+(function|const|default)/.test(source)) {
+    if (source.includes('{{{{') && !/export\s+(function|const|default)/.test(source)) {
         return [];
     }
 
     // Strip block and single-line comments before applying regexes to avoid matching
     // commented-out exports (e.g. `// export const Foo = ...` or `/* ... */`).
-    const stripped = source
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '');
+    const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
     const results: DiscoveredComponent[] = [];
     const seen = new Set<string>();
@@ -163,13 +162,15 @@ async function scanDirectory(dir: string, projectRoot: string): Promise<Discover
 export const componentsRouter = router({
     listProjectComponents: publicProcedure
         .input(
-            z.object({
-                projectRoot: z
-                    .string()
-                    .min(1)
-                    .refine((p) => !p.includes('..'), 'Invalid project root path')
-                    .optional(),
-            }).optional(),
+            z
+                .object({
+                    projectRoot: z
+                        .string()
+                        .min(1)
+                        .refine((p) => !p.includes('..'), 'Invalid project root path')
+                        .optional(),
+                })
+                .optional(),
         )
         .query(async ({ input }) => {
             // Resolve the requested root and ensure it is contained inside SANDBOX_BASE_DIR.

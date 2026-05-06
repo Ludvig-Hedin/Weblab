@@ -12,7 +12,6 @@ import {
     GrepTool,
     ListBranchesTool,
     ListFilesTool,
-    WeblabInstructionsTool,
     ReadFileTool,
     ReadStyleGuideTool,
     SandboxTool,
@@ -22,6 +21,7 @@ import {
     TerminalCommandTool,
     TypecheckTool,
     UploadImageTool,
+    WeblabInstructionsTool,
     WebSearchTool,
     WriteFileTool,
 } from './classes';

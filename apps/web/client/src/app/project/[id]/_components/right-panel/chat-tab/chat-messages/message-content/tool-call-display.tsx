@@ -1,9 +1,19 @@
-import { FuzzyEditFileTool, SearchReplaceEditTool, SearchReplaceMultiEditFileTool, TerminalCommandTool, TypecheckTool, WebSearchTool, WriteFileTool } from '@weblab/ai';
-import type { WebSearchResult } from '@weblab/models';
 import type { ToolUIPart } from 'ai';
 import { observer } from 'mobx-react-lite';
 import stripAnsi from 'strip-ansi';
 import { type z } from 'zod';
+
+import type { WebSearchResult } from '@weblab/models';
+import {
+    FuzzyEditFileTool,
+    SearchReplaceEditTool,
+    SearchReplaceMultiEditFileTool,
+    TerminalCommandTool,
+    TypecheckTool,
+    WebSearchTool,
+    WriteFileTool,
+} from '@weblab/ai';
+
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { CollapsibleCodeBlock } from '../../code-display/collapsible-code-block';
 import { SearchSourcesDisplay } from '../../code-display/search-sources-display';
@@ -13,12 +23,12 @@ const ToolCallDisplayComponent = ({
     messageId,
     toolPart,
     isStream,
-    applied
+    applied,
 }: {
-    messageId: string,
-    toolPart: ToolUIPart,
-    isStream: boolean,
-    applied: boolean
+    messageId: string;
+    toolPart: ToolUIPart;
+    isStream: boolean;
+    applied: boolean;
 }) => {
     const toolName = toolPart.type.split('-')[1];
 
@@ -26,20 +36,19 @@ const ToolCallDisplayComponent = ({
         const args = toolPart.input as z.infer<typeof TerminalCommandTool.parameters> | null;
         const result = toolPart.output as { output?: string; error?: string } | null;
         if (!args?.command) {
-            return (
-                <ToolCallSimple
-                    toolPart={toolPart}
-                    key={toolPart.toolCallId}
-                />
-            );
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
         return (
             <BashCodeDisplay
                 key={toolPart.toolCallId}
                 content={args.command}
                 isStream={isStream}
-                defaultStdOut={toolPart.state === 'output-available' ? result?.output ?? null : null}
-                defaultStdErr={toolPart.state === 'output-available' ? result?.error ?? null : null}
+                defaultStdOut={
+                    toolPart.state === 'output-available' ? (result?.output ?? null) : null
+                }
+                defaultStdErr={
+                    toolPart.state === 'output-available' ? (result?.error ?? null) : null
+                }
             />
         );
     }
@@ -51,10 +60,18 @@ const ToolCallDisplayComponent = ({
             return (
                 <SearchSourcesDisplay
                     query={String(args.query)}
-                    results={Array.isArray(searchResult.result) ? (searchResult.result as unknown[]).map((result: unknown) => ({
-                        title: String((result as { title?: string; url?: string }).title ?? (result as { url?: string }).url ?? ''),
-                        url: String((result as { url?: string }).url ?? '')
-                    })) : []}
+                    results={
+                        Array.isArray(searchResult.result)
+                            ? (searchResult.result as unknown[]).map((result: unknown) => ({
+                                  title: String(
+                                      (result as { title?: string; url?: string }).title ??
+                                          (result as { url?: string }).url ??
+                                          '',
+                                  ),
+                                  url: String((result as { url?: string }).url ?? ''),
+                              }))
+                            : []
+                    }
                 />
             );
         }
@@ -66,12 +83,7 @@ const ToolCallDisplayComponent = ({
         const codeContent = args?.content;
         const branchId = args?.branchId;
         if (!filePath || !codeContent) {
-            return (
-                <ToolCallSimple
-                    toolPart={toolPart}
-                    key={toolPart.toolCallId}
-                />
-            );
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
         return (
             <CollapsibleCodeBlock
@@ -91,12 +103,7 @@ const ToolCallDisplayComponent = ({
         const codeContent = args?.content;
         const branchId = args?.branchId;
         if (!filePath || !codeContent) {
-            return (
-                <ToolCallSimple
-                    toolPart={toolPart}
-                    key={toolPart.toolCallId}
-                />
-            );
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
         return (
             <CollapsibleCodeBlock
@@ -116,12 +123,7 @@ const ToolCallDisplayComponent = ({
         const codeContent = args?.new_string;
         const branchId = args?.branchId;
         if (!filePath || !codeContent) {
-            return (
-                <ToolCallSimple
-                    toolPart={toolPart}
-                    key={toolPart.toolCallId}
-                />
-            );
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
         return (
             <CollapsibleCodeBlock
@@ -136,17 +138,14 @@ const ToolCallDisplayComponent = ({
     }
 
     if (toolName === SearchReplaceMultiEditFileTool.toolName) {
-        const args = toolPart.input as z.infer<typeof SearchReplaceMultiEditFileTool.parameters> | null;
+        const args = toolPart.input as z.infer<
+            typeof SearchReplaceMultiEditFileTool.parameters
+        > | null;
         const filePath = args?.file_path;
         const codeContent = args?.edits?.map((edit) => edit.new_string).join('\n...\n');
         const branchId = args?.branchId;
         if (!filePath || !codeContent) {
-            return (
-                <ToolCallSimple
-                    toolPart={toolPart}
-                    key={toolPart.toolCallId}
-                />
-            );
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
         return (
             <CollapsibleCodeBlock
@@ -208,23 +207,14 @@ const ToolCallDisplayComponent = ({
         );
     }
 
-    if (isStream || (toolPart.state !== 'output-available' && toolPart.state !== 'input-available')) {
-        return (
-            <ToolCallSimple
-                toolPart={toolPart}
-                key={toolPart.toolCallId}
-                loading={true}
-            />
-        );
+    if (
+        isStream ||
+        (toolPart.state !== 'output-available' && toolPart.state !== 'input-available')
+    ) {
+        return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={true} />;
     }
 
-
-    return (
-        <ToolCallSimple
-            toolPart={toolPart}
-            key={toolPart.toolCallId}
-        />
-    );
+    return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
 };
 
 export const ToolCallDisplay = observer(ToolCallDisplayComponent);
