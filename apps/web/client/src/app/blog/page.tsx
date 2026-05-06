@@ -33,15 +33,9 @@ function PostCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
     return (
         <Link
             href={`/blog/${slug}`}
-            className="group relative flex flex-col overflow-hidden rounded-xl bg-foreground-primary/[0.05] transition-colors hover:bg-foreground-primary/[0.08]"
+            className="group bg-foreground-primary/[0.05] hover:bg-foreground-primary/[0.08] relative flex flex-col overflow-hidden rounded-xl transition-colors"
         >
-            <div
-                className={
-                    featured
-                        ? 'aspect-[16/8] w-full overflow-hidden'
-                        : 'aspect-[16/9] w-full overflow-hidden'
-                }
-            >
+            <div className="aspect-[16/9] w-full overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={frontmatter.coverImage}
@@ -55,7 +49,13 @@ function PostCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
                     <span className="mx-1.5">·</span>
                     {frontmatter.category}
                 </p>
-                <h2 className="text-foreground-primary mb-2 text-sm font-normal leading-snug tracking-tight">
+                <h2
+                    className={
+                        featured
+                            ? 'text-foreground-primary mb-2 text-xl font-normal leading-snug tracking-tight md:text-2xl'
+                            : 'text-foreground-primary mb-2 text-sm font-normal leading-snug tracking-tight'
+                    }
+                >
                     {frontmatter.title}
                 </h2>
                 <p className="text-foreground-secondary mb-3 line-clamp-2 text-xs leading-relaxed">
@@ -85,9 +85,9 @@ export default function BlogPage() {
 
     return (
         <WebsiteLayout showFooter>
-            <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-28 md:px-8 md:pt-32">
+            <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-20 md:px-8 md:pt-32">
                 <header className="mb-8">
-                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium uppercase tracking-widest">
+                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium tracking-widest uppercase">
                         Resources
                     </p>
                     <h1 className="text-foreground-primary text-3xl font-light tracking-tight md:text-4xl">
@@ -124,10 +124,10 @@ export default function BlogPage() {
             {/* CTA Section */}
             <section className="border-foreground-primary/10 border-t">
                 <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center md:px-8">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium uppercase tracking-widest">
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium tracking-widest uppercase">
                         Get started
                     </p>
-                    <h2 className="text-foreground-primary mb-8 text-balance text-4xl font-light tracking-tight md:text-5xl">
+                    <h2 className="text-foreground-primary mb-8 text-4xl font-light tracking-tight text-balance md:text-5xl">
                         Start building with {APP_NAME}
                     </h2>
                     <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">

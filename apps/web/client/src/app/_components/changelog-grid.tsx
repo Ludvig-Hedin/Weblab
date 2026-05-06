@@ -40,17 +40,17 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
                     <Link
                         key={entry.slug}
                         href={Routes.CHANGELOG}
-                        className="group bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-xl p-5 transition-colors"
+                        className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-xl p-5 ring-1 transition-colors"
                     >
                         <div className="flex items-center gap-2">
                             <span className="border-foreground-primary/20 text-foreground-secondary rounded-full border px-2 py-0.5 text-xs font-medium">
-                                {entry.version}
+                                v{entry.version}
                             </span>
                             <span className="text-foreground-tertiary text-xs">
                                 {formatEntryDate(entry.date)}
                             </span>
                         </div>
-                        <p className="text-foreground-primary group-hover:text-foreground-primary text-sm leading-snug font-normal">
+                        <p className="text-foreground-primary text-sm font-normal leading-snug">
                             {entry.title}
                         </p>
                         {entry.tags.length > 0 && (

@@ -47,7 +47,7 @@ export default function ChangelogPage() {
                                 {/* Left: version + date */}
                                 <div className="mb-4 md:mb-0 md:w-40 md:shrink-0 md:pt-1">
                                     <span className="border-foreground-primary/20 text-foreground-secondary mb-2 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium">
-                                        {entry.version}
+                                        v{entry.version}
                                     </span>
                                     <p className="text-foreground-tertiary text-sm">
                                         {formatEntryDate(entry.date)}
