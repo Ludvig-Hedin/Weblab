@@ -1,14 +1,17 @@
-import { deployments, deploymentUpdateSchema, previewDomains, projectCustomDomains, type Deployment, type DrizzleDb } from '@weblab/db';
-import {
-    DeploymentStatus,
-    DeploymentType
-} from '@weblab/models';
-import { assertNever } from '@weblab/utility';
+import type { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { and, eq, ne } from 'drizzle-orm';
-import { z } from "zod";
 
-export async function getProjectUrls(db: DrizzleDb, projectId: string, type: DeploymentType): Promise<string[]> {
+import type { Deployment, deploymentUpdateSchema, DrizzleDb } from '@weblab/db';
+import { deployments, previewDomains, projectCustomDomains } from '@weblab/db';
+import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { assertNever } from '@weblab/utility';
+
+export async function getProjectUrls(
+    db: DrizzleDb,
+    projectId: string,
+    type: DeploymentType,
+): Promise<string[]> {
     let urls: string[] = [];
     if (type === DeploymentType.PREVIEW || type === DeploymentType.UNPUBLISH_PREVIEW) {
         const foundPreviewDomains = await db.query.previewDomains.findMany({
@@ -20,7 +23,7 @@ export async function getProjectUrls(db: DrizzleDb, projectId: string, type: Dep
                 message: 'No preview domain found',
             });
         }
-        urls = foundPreviewDomains.map(domain => domain.fullDomain);
+        urls = foundPreviewDomains.map((domain) => domain.fullDomain);
     } else if (type === DeploymentType.CUSTOM || type === DeploymentType.UNPUBLISH_CUSTOM) {
         const foundCustomDomains = await db.query.projectCustomDomains.findMany({
             where: eq(projectCustomDomains.projectId, projectId),
@@ -31,25 +34,32 @@ export async function getProjectUrls(db: DrizzleDb, projectId: string, type: Dep
                 message: 'No custom domain found',
             });
         }
-        urls = foundCustomDomains.map(domain => domain.fullDomain);
+        urls = foundCustomDomains.map((domain) => domain.fullDomain);
     } else {
         assertNever(type);
     }
     return urls;
 }
 
-export async function updateDeployment(db: DrizzleDb, deployment: z.infer<typeof deploymentUpdateSchema>): Promise<Deployment | null> {
+export async function updateDeployment(
+    db: DrizzleDb,
+    deployment: z.infer<typeof deploymentUpdateSchema>,
+): Promise<Deployment | null> {
     try {
-        const [result] = await db.update(deployments).set({
-            ...deployment,
-            type: deployment.type as DeploymentType,
-            status: deployment.status as DeploymentStatus
-        }).where(
-            and(
-                eq(deployments.id, deployment.id),
-                ne(deployments.status, DeploymentStatus.CANCELLED)
+        const [result] = await db
+            .update(deployments)
+            .set({
+                ...deployment,
+                type: deployment.type as DeploymentType,
+                status: deployment.status as DeploymentStatus,
+            })
+            .where(
+                and(
+                    eq(deployments.id, deployment.id),
+                    ne(deployments.status, DeploymentStatus.CANCELLED),
+                ),
             )
-        ).returning();
+            .returning();
         return result ?? null;
     } catch (error) {
         console.error(`Failed to update deployment ${deployment.id}:`, error);

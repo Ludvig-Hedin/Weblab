@@ -1,6 +1,9 @@
-import { fromDbUser, userProjects } from '@weblab/db';
+import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+
+import { fromDbUser, userProjects, users } from '@weblab/db';
+
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 export const memberRouter = createTRPCRouter({
@@ -11,34 +14,52 @@ export const memberRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            const members = await ctx.db.query.userProjects.findMany({
-                where: eq(userProjects.projectId, input.projectId),
-                with: {
-                    user: true,
-                },
-            });
-            // TODO: Fix this later
-            return members.map((member) => ({
-                role: member.role,
-                user: fromDbUser({
-                    id: member.user.id,
-                    email: member.user.email,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
+            const membership = await ctx.db
+                .select({ role: userProjects.role })
+                .from(userProjects)
+                .where(
+                    and(
+                        eq(userProjects.projectId, input.projectId),
+                        eq(userProjects.userId, ctx.user.id),
+                    ),
+                )
+                .limit(1);
 
-                    // @ts-expect-error - TODO: Fix this later
-                    firstName: member.user.firstName ?? '',
-                    // @ts-expect-error - TODO: Fix this later
-                    lastName: member.user.lastName ?? '',
-                    // @ts-expect-error - TODO: Fix this later
-                    displayName: member.user.displayName ?? '',
-                    // @ts-expect-error - TODO: Fix this later
-                    avatarUrl: member.user.avatarUrl ?? '',
-                    // @ts-expect-error - TODO: Fix this later
-                    stripeCustomerId: member.user.stripeCustomerId ?? null,
-                    // @ts-expect-error - TODO: Fix this later
-                    githubInstallationId: member.user.githubInstallationId ?? null,
-                }),
+            if (membership.length === 0) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Not a member of this project',
+                });
+            }
+
+            // Explicit join + selection — `query.userProjects.findMany({ with: { user: true } })`
+            // ends up returning a narrowed `{ id, email }` shape under our
+            // current drizzle relations setup, which loses the rest of the
+            // user record. Selecting columns directly from `users` gives us a
+            // fully-typed row that `fromDbUser(...)` can map over.
+            const rows = await ctx.db
+                .select({
+                    role: userProjects.role,
+                    user: {
+                        id: users.id,
+                        firstName: users.firstName,
+                        lastName: users.lastName,
+                        displayName: users.displayName,
+                        avatarUrl: users.avatarUrl,
+                        email: users.email,
+                        createdAt: users.createdAt,
+                        updatedAt: users.updatedAt,
+                        stripeCustomerId: users.stripeCustomerId,
+                        githubInstallationId: users.githubInstallationId,
+                    },
+                })
+                .from(userProjects)
+                .innerJoin(users, eq(userProjects.userId, users.id))
+                .where(eq(userProjects.projectId, input.projectId));
+
+            return rows.map((row) => ({
+                role: row.role,
+                user: fromDbUser(row.user),
             }));
         }),
     remove: protectedProcedure

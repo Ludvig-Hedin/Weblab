@@ -1,10 +1,15 @@
-import { env } from '@/env';
+import { TRPCError } from '@trpc/server';
+import { addDays, isAfter } from 'date-fns';
+import { and, eq, ilike, isNull } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
 import {
     authUsers,
     createDefaultUserCanvas,
+    fromDbUser,
     projectInvitationInsertSchema,
     projectInvitations,
-    fromDbUser,
     userCanvases,
     userProjects,
     users,
@@ -12,11 +17,8 @@ import {
 import { constructInvitationLink, getResendClient, sendInvitationEmail } from '@weblab/email';
 import { ProjectRole } from '@weblab/models';
 import { isFreeEmail } from '@weblab/utility';
-import { TRPCError } from '@trpc/server';
-import { addDays, isAfter } from 'date-fns';
-import { and, eq, ilike, isNull } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
-import { z } from 'zod';
+
+import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 export const invitationRouter = createTRPCRouter({
@@ -48,35 +50,37 @@ export const invitationRouter = createTRPCRouter({
             inviter: fromDbUser(invitation.inviter),
         };
     }),
-    getWithoutToken: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-        const invitation = await ctx.db.query.projectInvitations.findFirst({
-            where: eq(projectInvitations.id, input.id),
-            with: {
-                inviter: true,
-            },
-        });
-
-        if (!invitation) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'Invitation not found',
+    getWithoutToken: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async ({ ctx, input }) => {
+            const invitation = await ctx.db.query.projectInvitations.findFirst({
+                where: eq(projectInvitations.id, input.id),
+                with: {
+                    inviter: true,
+                },
             });
-        }
 
-        if (!invitation.inviter) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'Inviter not found',
-            });
-        }
+            if (!invitation) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Invitation not found',
+                });
+            }
 
-        return {
-            ...invitation,
-            token: null,
-            // @ts-expect-error - Drizzle is not typed correctly
-            inviter: fromDbUser(invitation.inviter),
-        };
-    }),
+            if (!invitation.inviter) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Inviter not found',
+                });
+            }
+
+            return {
+                ...invitation,
+                token: null,
+                // @ts-expect-error - Drizzle is not typed correctly
+                inviter: fromDbUser(invitation.inviter),
+            };
+        }),
     list: protectedProcedure
         .input(
             z.object({
@@ -116,43 +120,48 @@ export const invitationRouter = createTRPCRouter({
                 });
             }
 
-            const [invitation] = await ctx.db
-                .transaction(async (tx) => {
-                    const existingUser = await tx
-                        .select()
-                        .from(userProjects)
-                        .innerJoin(authUsers, eq(authUsers.id, userProjects.userId))
-                        .where(
-                            and(
-                                eq(userProjects.projectId, input.projectId),
-                                eq(authUsers.email, input.inviteeEmail),
-                            ),
-                        )
-                        .limit(1);
+            const [invitation] = await ctx.db.transaction(async (tx) => {
+                const existingUser = await tx
+                    .select()
+                    .from(userProjects)
+                    .innerJoin(authUsers, eq(authUsers.id, userProjects.userId))
+                    .where(
+                        and(
+                            eq(userProjects.projectId, input.projectId),
+                            eq(authUsers.email, input.inviteeEmail),
+                        ),
+                    )
+                    .limit(1);
 
-                    if (existingUser.length > 0) {
-                        throw new TRPCError({
-                            code: 'CONFLICT',
-                            message: 'User is already a member of the project',
-                        });
-                    }
+                if (existingUser.length > 0) {
+                    throw new TRPCError({
+                        code: 'CONFLICT',
+                        message: 'User is already a member of the project',
+                    });
+                }
 
-                    return await tx
-                        .insert(projectInvitations)
-                        .values([
-                            {
-                                ...input,
-                                role: input.role as ProjectRole,
-                                token: uuidv4(),
-                                inviterId: ctx.user.id,
-                                expiresAt: addDays(new Date(), 7),
-                            },
-                        ])
-                        .returning();
-                })
+                return await tx
+                    .insert(projectInvitations)
+                    .values([
+                        {
+                            ...input,
+                            role: input.role as ProjectRole,
+                            token: uuidv4(),
+                            inviterId: ctx.user.id,
+                            expiresAt: addDays(new Date(), 7),
+                        },
+                    ])
+                    .returning();
+            });
 
             if (invitation) {
                 if (!env.RESEND_API_KEY) {
+                    // CR-063: roll back the row if we can't even attempt the email,
+                    // otherwise we leave behind an invitation with no recipient
+                    // notification.
+                    await ctx.db
+                        .delete(projectInvitations)
+                        .where(eq(projectInvitations.id, invitation.id));
                     throw new TRPCError({
                         code: 'INTERNAL_SERVER_ERROR',
                         message: 'RESEND_API_KEY is not set, cannot send email',
@@ -162,22 +171,60 @@ export const invitationRouter = createTRPCRouter({
                     apiKey: env.RESEND_API_KEY,
                 });
 
-                const result = await sendInvitationEmail(
-                    emailClient,
-                    {
-                        inviteeEmail: input.inviteeEmail,
-                        invitedByName: inviter.firstName ?? inviter.displayName ?? undefined,
-                        invitedByEmail: ctx.user.email,
-                        inviteLink: constructInvitationLink(
-                            env.NEXT_PUBLIC_SITE_URL,
-                            invitation.id,
-                            invitation.token,
-                        ),
-                    },
-                    {
-                        dryRun: env.NODE_ENV !== 'production',
-                    },
-                );
+                // Bug fix #8: Default to actually sending emails. Previously this no-op'd
+                // outside production, so staging and preview deploys silently dropped invites.
+                // Set EMAIL_DRY_RUN=true to opt back into dry-run behavior.
+                let sendResult: Awaited<ReturnType<typeof sendInvitationEmail>> | undefined;
+                let sendException: unknown;
+                try {
+                    sendResult = await sendInvitationEmail(
+                        emailClient,
+                        {
+                            inviteeEmail: input.inviteeEmail,
+                            invitedByName: inviter.firstName ?? inviter.displayName ?? undefined,
+                            invitedByEmail: ctx.user.email,
+                            inviteLink: constructInvitationLink(
+                                env.NEXT_PUBLIC_SITE_URL,
+                                invitation.id,
+                                invitation.token,
+                            ),
+                        },
+                        {
+                            dryRun: env.EMAIL_DRY_RUN === 'true',
+                        },
+                    );
+                } catch (error) {
+                    sendException = error;
+                }
+
+                const sendFailed =
+                    !!sendException ||
+                    (sendResult &&
+                        typeof sendResult === 'object' &&
+                        'error' in sendResult &&
+                        sendResult.error);
+
+                if (sendFailed) {
+                    // CR-063: roll back the invitation row when the email cannot
+                    // be sent so retries don't accumulate orphan invites the
+                    // recipient never saw.
+                    await ctx.db
+                        .delete(projectInvitations)
+                        .where(eq(projectInvitations.id, invitation.id));
+                    console.error('[invitation.create] sendInvitationEmail failed', {
+                        invitationId: invitation.id,
+                        error:
+                            sendException ??
+                            (sendResult &&
+                                typeof sendResult === 'object' &&
+                                'error' in sendResult &&
+                                sendResult.error),
+                    });
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: 'Failed to send invitation email. Please try again.',
+                    });
+                }
             }
 
             return invitation;
@@ -264,6 +311,25 @@ export const invitationRouter = createTRPCRouter({
             if (isFreeEmail(ctx.user.email)) {
                 return [];
             }
+
+            // Bug fix #61: Only return suggested teammates if the caller has at least
+            // EDITOR role on the project. VIEWERs (and non-members) shouldn't be able
+            // to enumerate corporate-domain coworkers' emails.
+            const callerMembership = await ctx.db.query.userProjects.findFirst({
+                where: and(
+                    eq(userProjects.userId, ctx.user.id),
+                    eq(userProjects.projectId, input.projectId),
+                ),
+            });
+
+            if (
+                !callerMembership ||
+                (callerMembership.role !== ProjectRole.ADMIN &&
+                    callerMembership.role !== ProjectRole.EDITOR)
+            ) {
+                return [];
+            }
+
             const domain = ctx.user.email.split('@').at(-1);
 
             const suggestedUsers = await ctx.db

@@ -1,55 +1,72 @@
-import { env } from '@/env';
 import FirecrawlApp from '@mendable/firecrawl-js';
-import { applyCodeChange } from '@weblab/ai';
-import type { WebSearchResult } from '@weblab/models';
 import Exa from 'exa-js';
 import { z } from 'zod';
+
+import type { WebSearchResult } from '@weblab/models';
+import { applyCodeChange } from '@weblab/ai';
+
+import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 
 export const utilsRouter = createTRPCRouter({
     applyDiff: protectedProcedure
-        .input(z.object({
-            originalCode: z.string(),
-            updateSnippet: z.string(),
-            instruction: z.string(),
-            metadata: z.object({
-                projectId: z.string().optional(),
-                conversationId: z.string().optional(),
-            }).optional(),
-        }))
-        .mutation(async ({ input, ctx }): Promise<{ result: string | null, error: string | null }> => {
-            try {
-                const user = ctx.user;
-                const metadata = {
-                    ...input.metadata,
-                    userId: user.id,
-                };
-                const result = await applyCodeChange(input.originalCode, input.updateSnippet, input.instruction, metadata);
-                if (!result) {
-                    throw new Error('Failed to apply code change. Please try again.');
+        .input(
+            z.object({
+                originalCode: z.string(),
+                updateSnippet: z.string(),
+                instruction: z.string(),
+                metadata: z
+                    .object({
+                        projectId: z.string().optional(),
+                        conversationId: z.string().optional(),
+                    })
+                    .optional(),
+            }),
+        )
+        .mutation(
+            async ({ input, ctx }): Promise<{ result: string | null; error: string | null }> => {
+                try {
+                    const user = ctx.user;
+                    const metadata = {
+                        ...input.metadata,
+                        userId: user.id,
+                    };
+                    const result = await applyCodeChange(
+                        input.originalCode,
+                        input.updateSnippet,
+                        input.instruction,
+                        metadata,
+                    );
+                    if (!result) {
+                        throw new Error('Failed to apply code change. Please try again.');
+                    }
+                    return {
+                        result,
+                        error: null,
+                    };
+                } catch (error) {
+                    console.error('Failed to apply code change', error);
+                    return {
+                        error: error instanceof Error ? error.message : 'Unknown error',
+                        result: null,
+                    };
                 }
-                return {
-                    result,
-                    error: null,
-                };
-            } catch (error) {
-                console.error('Failed to apply code change', error);
-                return {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    result: null,
-                };
-            }
-        }),
+            },
+        ),
     scrapeUrl: protectedProcedure
-        .input(z.object({
-            url: z.string().url(),
-            formats: z.array(z.enum(['markdown', 'html', 'json', 'branding'])).default(['markdown']),
-            onlyMainContent: z.boolean().default(true),
-            includeTags: z.array(z.string()).optional(),
-            excludeTags: z.array(z.string()).optional(),
-            waitFor: z.number().min(0).optional(),
-        }))
-        .mutation(async ({ input }): Promise<{ result: string | null, error: string | null }> => {
+        .input(
+            z.object({
+                url: z.string().url(),
+                formats: z
+                    .array(z.enum(['markdown', 'html', 'json', 'branding']))
+                    .default(['markdown']),
+                onlyMainContent: z.boolean().default(true),
+                includeTags: z.array(z.string()).optional(),
+                excludeTags: z.array(z.string()).optional(),
+                waitFor: z.number().min(0).optional(),
+            }),
+        )
+        .mutation(async ({ input }): Promise<{ result: string | null; error: string | null }> => {
             try {
                 if (!env.FIRECRAWL_API_KEY) {
                     throw new Error('FIRECRAWL_API_KEY is not configured');
@@ -71,17 +88,21 @@ export const utilsRouter = createTRPCRouter({
                 }
 
                 const hasBranding = input.formats.includes('branding');
-                const hasContentFormats = input.formats.some(f => ['markdown', 'html', 'json'].includes(f));
+                const hasContentFormats = input.formats.some((f) =>
+                    ['markdown', 'html', 'json'].includes(f),
+                );
 
                 // Extract branding data if requested - access via type assertion since SDK types may not include it yet
                 const resultWithBranding = result as { branding?: unknown };
-                const brandingData = hasBranding && resultWithBranding.branding
-                    ? JSON.stringify(resultWithBranding.branding, null, 2)
-                    : null;
+                const brandingData =
+                    hasBranding && resultWithBranding.branding
+                        ? JSON.stringify(resultWithBranding.branding, null, 2)
+                        : null;
 
                 // Return the primary content format (markdown by default)
                 // or the first available format if markdown isn't available
-                const content = result.markdown ?? result.html ?? JSON.stringify(result.json, null, 2);
+                const content =
+                    result.markdown ?? result.html ?? JSON.stringify(result.json, null, 2);
 
                 // Combine content and branding if both are requested
                 if (hasBranding && hasContentFormats) {
@@ -89,7 +110,7 @@ export const utilsRouter = createTRPCRouter({
                     if (!content && !brandingData) {
                         throw new Error('No content or branding data was extracted from the URL');
                     }
-                    
+
                     const parts: string[] = [];
                     if (content) {
                         parts.push(content);
@@ -98,7 +119,9 @@ export const utilsRouter = createTRPCRouter({
                         // Only add separator if we have both content and branding
                         if (content) {
                             parts.push('\n\n=== Brand Identity ===\n');
-                            parts.push('The following brand identity information was extracted from the website:\n');
+                            parts.push(
+                                'The following brand identity information was extracted from the website:\n',
+                            );
                         }
                         parts.push(brandingData);
                     }
@@ -137,11 +160,16 @@ export const utilsRouter = createTRPCRouter({
             }
         }),
     webSearch: protectedProcedure
-        .input(z.object({
-            query: z.string().min(2).describe('Search query'),
-            allowed_domains: z.array(z.string()).optional().describe('Include only these domains'),
-            blocked_domains: z.array(z.string()).optional().describe('Exclude these domains'),
-        }))
+        .input(
+            z.object({
+                query: z.string().min(2).describe('Search query'),
+                allowed_domains: z
+                    .array(z.string())
+                    .optional()
+                    .describe('Include only these domains'),
+                blocked_domains: z.array(z.string()).optional().describe('Exclude these domains'),
+            }),
+        )
         .mutation(async ({ input }): Promise<WebSearchResult> => {
             try {
                 if (!env.EXA_API_KEY) {

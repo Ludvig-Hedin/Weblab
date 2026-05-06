@@ -1,7 +1,10 @@
-import { env } from '@/env';
-import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { trackEvent } from '@/utils/analytics/server';
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { generateText } from 'ai';
+import { and, eq, ne } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
+import type { Canvas, UserCanvas } from '@weblab/db';
 import { initModel } from '@weblab/ai';
 import { getSandboxPreviewUrl, STORAGE_BUCKETS } from '@weblab/constants';
 import {
@@ -26,15 +29,19 @@ import {
     toDbPreviewImg,
     userCanvases,
     userProjects,
-    type Canvas,
-    type UserCanvas
 } from '@weblab/db';
 import { compressImageServer } from '@weblab/image-server';
-import { LLMProvider, OPENROUTER_MODELS, ProjectCreateRequestStatus, ProjectRole } from '@weblab/models';
+import {
+    LLMProvider,
+    OPENROUTER_MODELS,
+    ProjectCreateRequestStatus,
+    ProjectRole,
+} from '@weblab/models';
 import { getScreenshotPath } from '@weblab/utility';
-import { generateText } from 'ai';
-import { and, eq, ne } from 'drizzle-orm';
-import { z } from 'zod';
+
+import { env } from '@/env';
+import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
+import { trackEvent } from '@/utils/analytics/server';
 import { projectCreateRequestRouter } from './createRequest';
 import { fork } from './fork';
 import { extractCsbPort, verifyProjectAccess } from './helper';
@@ -65,7 +72,10 @@ export const projectRouter = createTRPCRouter({
                 }
 
                 const branch = await ctx.db.query.branches.findFirst({
-                    where: and(eq(branches.projectId, input.projectId), eq(branches.isDefault, true)),
+                    where: and(
+                        eq(branches.projectId, input.projectId),
+                        eq(branches.isDefault, true),
+                    ),
                     with: {
                         frames: true,
                     },
@@ -109,7 +119,9 @@ export const projectRouter = createTRPCRouter({
                     signal: AbortSignal.timeout(10000),
                 });
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch screenshot: ${response.status} ${response.statusText}`);
+                    throw new Error(
+                        `Failed to fetch screenshot: ${response.status} ${response.statusText}`,
+                    );
                 }
 
                 const arrayBuffer = await response.arrayBuffer();
@@ -143,21 +155,18 @@ export const projectRouter = createTRPCRouter({
                     throw new Error('No data returned from storage upload');
                 }
 
-                const {
-                    previewImgUrl,
-                    previewImgPath,
-                    previewImgBucket,
-                    updatedPreviewImgAt,
-                } = toDbPreviewImg({
-                    type: 'storage',
-                    storagePath: {
-                        bucket: STORAGE_BUCKETS.PREVIEW_IMAGES,
-                        path: data.path,
-                    },
-                    updatedAt: new Date(),
-                });
+                const { previewImgUrl, previewImgPath, previewImgBucket, updatedPreviewImgAt } =
+                    toDbPreviewImg({
+                        type: 'storage',
+                        storagePath: {
+                            bucket: STORAGE_BUCKETS.PREVIEW_IMAGES,
+                            path: data.path,
+                        },
+                        updatedAt: new Date(),
+                    });
 
-                await ctx.db.update(projects)
+                await ctx.db
+                    .update(projects)
                     .set({
                         previewImgUrl,
                         previewImgPath,
@@ -170,20 +179,29 @@ export const projectRouter = createTRPCRouter({
                 return { success: true, path: data.path };
             } catch (error) {
                 console.error('Error capturing project screenshot:', error);
-                return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
             }
         }),
     list: protectedProcedure
-        .input(z.object({
-            limit: z.number().optional(),
-            excludeProjectId: z.string().optional(),
-        }).optional())
+        .input(
+            z
+                .object({
+                    limit: z.number().optional(),
+                    excludeProjectId: z.string().optional(),
+                })
+                .optional(),
+        )
         .query(async ({ ctx, input }) => {
             const fetchedUserProjects = await ctx.db.query.userProjects.findMany({
-                where: input?.excludeProjectId ? and(
-                    eq(userProjects.userId, ctx.user.id),
-                    ne(userProjects.projectId, input.excludeProjectId),
-                ) : eq(userProjects.userId, ctx.user.id),
+                where: input?.excludeProjectId
+                    ? and(
+                          eq(userProjects.userId, ctx.user.id),
+                          ne(userProjects.projectId, input.excludeProjectId),
+                      )
+                    : eq(userProjects.userId, ctx.user.id),
                 with: {
                     project: {
                         with: {
@@ -233,7 +251,7 @@ export const projectRouter = createTRPCRouter({
                 console.error('project not found');
                 return null;
             }
-            return fromDbProject(project)
+            return fromDbProject(project);
         }),
     getProjectWithCanvas: protectedProcedure
         .input(z.object({ projectId: z.string() }))
@@ -256,7 +274,8 @@ export const projectRouter = createTRPCRouter({
                 return null;
             }
             const canvas: Canvas = project.canvas ?? createDefaultCanvas(project.id);
-            const userCanvas: UserCanvas = project.canvas?.userCanvases[0] ?? createDefaultUserCanvas(ctx.user.id, canvas.id);
+            const userCanvas: UserCanvas =
+                project.canvas?.userCanvases[0] ?? createDefaultUserCanvas(ctx.user.id, canvas.id);
 
             return {
                 project: fromDbProject(project),
@@ -265,17 +284,19 @@ export const projectRouter = createTRPCRouter({
             };
         }),
     create: protectedProcedure
-        .input(z.object({
-            project: projectInsertSchema,
-            userId: z.string(),
-            sandboxId: z.string(),
-            sandboxUrl: z.string(),
-            creationData: projectCreateRequestInsertSchema
-                .omit({
-                    projectId: true,
-                })
-                .optional(),
-        }))
+        .input(
+            z.object({
+                project: projectInsertSchema,
+                userId: z.string(),
+                sandboxId: z.string(),
+                sandboxUrl: z.string(),
+                creationData: projectCreateRequestInsertSchema
+                    .omit({
+                        projectId: true,
+                    })
+                    .optional(),
+            }),
+        )
         .mutation(async ({ ctx, input }) => {
             return await ctx.db.transaction(async (tx) => {
                 // 1. Insert the new project
@@ -340,16 +361,90 @@ export const projectRouter = createTRPCRouter({
                 return newProject;
             });
         }),
+    createLocal: protectedProcedure
+        .input(
+            z.object({
+                name: z.string().trim().min(1),
+                description: z.string().optional(),
+                rootPath: z.string().trim().min(1),
+                devCommand: z.string().trim().min(1).default('bun run dev'),
+                port: z.number().int().min(1).max(65535).default(3000),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            return await ctx.db.transaction(async (tx) => {
+                const previewUrl = `http://localhost:${input.port}`;
+                const [newProject] = await tx
+                    .insert(projects)
+                    .values({
+                        name: input.name,
+                        description: input.description ?? 'Local project',
+                        tags: ['local'],
+                    })
+                    .returning();
+                if (!newProject) {
+                    throw new Error('Failed to create local project in database');
+                }
+
+                const localBranchId = `local:${uuidv4()}`;
+                const newBranch = createDefaultBranch({
+                    projectId: newProject.id,
+                    sandboxId: localBranchId,
+                    overrides: {
+                        description: 'Local main branch',
+                    },
+                });
+                await tx.insert(branches).values(newBranch);
+
+                await tx.insert(userProjects).values({
+                    userId: ctx.user.id,
+                    projectId: newProject.id,
+                    role: ProjectRole.OWNER,
+                });
+
+                const newCanvas = createDefaultCanvas(newProject.id);
+                await tx.insert(canvases).values(newCanvas);
+
+                const newUserCanvas = createDefaultUserCanvas(ctx.user.id, newCanvas.id, {
+                    x: '120',
+                    y: '120',
+                    scale: '0.56',
+                });
+                await tx.insert(userCanvases).values(newUserCanvas);
+
+                const desktopFrame = createDefaultFrame({
+                    canvasId: newCanvas.id,
+                    branchId: newBranch.id,
+                    url: previewUrl,
+                    type: DefaultFrameType.DESKTOP,
+                });
+                await tx.insert(frames).values(desktopFrame);
+
+                await tx.insert(conversations).values(createDefaultConversation(newProject.id));
+
+                trackEvent({
+                    distinctId: ctx.user.id,
+                    event: 'user_create_local_project',
+                    properties: {
+                        projectId: newProject.id,
+                    },
+                });
+
+                return fromDbProject(newProject);
+            });
+        }),
     fork,
     generateName: protectedProcedure
-        .input(z.object({
-            prompt: z.string(),
-        }))
+        .input(
+            z.object({
+                prompt: z.string(),
+            }),
+        )
         .mutation(async ({ ctx, input }): Promise<string> => {
             try {
                 const { model, providerOptions, headers } = initModel({
                     provider: LLMProvider.OPENROUTER,
-                    model: OPENROUTER_MODELS.OPEN_AI_GPT_5_NANO,
+                    model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
                 });
 
                 const MAX_NAME_LENGTH = 50;
@@ -360,15 +455,20 @@ export const projectRouter = createTRPCRouter({
                     providerOptions,
                     maxOutputTokens: 50,
                     experimental_telemetry: {
-                        isEnabled: true, metadata: {
+                        isEnabled: true,
+                        metadata: {
                             userId: ctx.user.id,
                             tags: ['project-name-generation'],
-                        }
+                        },
                     },
                 });
 
                 const generatedName = result.text.trim();
-                if (generatedName && generatedName.length > 0 && generatedName.length <= MAX_NAME_LENGTH) {
+                if (
+                    generatedName &&
+                    generatedName.length > 0 &&
+                    generatedName.length <= MAX_NAME_LENGTH
+                ) {
                     return generatedName;
                 }
 
@@ -398,65 +498,92 @@ export const projectRouter = createTRPCRouter({
             });
             return projects.map((project) => fromDbProject(project.project));
         }),
-    update: protectedProcedure.input(projectUpdateSchema).mutation(async ({ ctx, input }) => {
-        await verifyProjectAccess(ctx.db, ctx.user.id, input.id);
-        const [updatedProject] = await ctx.db.update(projects).set({
-            ...input,
-            updatedAt: new Date(),
-        }).where(
-            eq(projects.id, input.id)
-        ).returning();
-        if (!updatedProject) {
-            throw new Error('Project not found');
-        }
-        return fromDbProject(updatedProject);
-    }),
-    addTag: protectedProcedure.input(z.object({
-        projectId: z.string(),
-        tag: z.string(),
-    })).mutation(async ({ ctx, input }) => {
-        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
-        const project = await ctx.db.query.projects.findFirst({
-            where: eq(projects.id, input.projectId),
-        });
+    update: protectedProcedure
+        .input(
+            // Reject whitespace-only names server-side (issue #41). Trimming +
+            // min(1) ensures we never persist "" or "   " regardless of which
+            // client sent the mutation. `optional()` keeps the partial-update
+            // shape from `projectUpdateSchema` intact for callers that don't
+            // touch `name`.
+            projectUpdateSchema.extend({
+                name: z.string().trim().min(1, 'Project name cannot be empty').optional(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.id);
+            const [updatedProject] = await ctx.db
+                .update(projects)
+                .set({
+                    ...input,
+                    updatedAt: new Date(),
+                })
+                .where(eq(projects.id, input.id))
+                .returning();
+            if (!updatedProject) {
+                throw new Error('Project not found');
+            }
+            return fromDbProject(updatedProject);
+        }),
+    addTag: protectedProcedure
+        .input(
+            z.object({
+                projectId: z.string(),
+                tag: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            const project = await ctx.db.query.projects.findFirst({
+                where: eq(projects.id, input.projectId),
+            });
 
-        if (!project) {
-            throw new Error('Project not found');
-        }
+            if (!project) {
+                throw new Error('Project not found');
+            }
 
-        const currentTags = project.tags ?? [];
-        const newTags = currentTags.includes(input.tag)
-            ? currentTags
-            : [...currentTags, input.tag];
+            const currentTags = project.tags ?? [];
+            const newTags = currentTags.includes(input.tag)
+                ? currentTags
+                : [...currentTags, input.tag];
 
-        await ctx.db.update(projects).set({
-            tags: newTags,
-            updatedAt: new Date(),
-        }).where(eq(projects.id, input.projectId));
+            await ctx.db
+                .update(projects)
+                .set({
+                    tags: newTags,
+                    updatedAt: new Date(),
+                })
+                .where(eq(projects.id, input.projectId));
 
-        return { success: true, tags: newTags };
-    }),
-    removeTag: protectedProcedure.input(z.object({
-        projectId: z.string(),
-        tag: z.string(),
-    })).mutation(async ({ ctx, input }) => {
-        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
-        const project = await ctx.db.query.projects.findFirst({
-            where: eq(projects.id, input.projectId),
-        });
+            return { success: true, tags: newTags };
+        }),
+    removeTag: protectedProcedure
+        .input(
+            z.object({
+                projectId: z.string(),
+                tag: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            const project = await ctx.db.query.projects.findFirst({
+                where: eq(projects.id, input.projectId),
+            });
 
-        if (!project) {
-            throw new Error('Project not found');
-        }
+            if (!project) {
+                throw new Error('Project not found');
+            }
 
-        const currentTags = project.tags ?? [];
-        const newTags = currentTags.filter(tag => tag !== input.tag);
+            const currentTags = project.tags ?? [];
+            const newTags = currentTags.filter((tag) => tag !== input.tag);
 
-        await ctx.db.update(projects).set({
-            tags: newTags,
-            updatedAt: new Date(),
-        }).where(eq(projects.id, input.projectId));
+            await ctx.db
+                .update(projects)
+                .set({
+                    tags: newTags,
+                    updatedAt: new Date(),
+                })
+                .where(eq(projects.id, input.projectId));
 
-        return { success: true, tags: newTags };
-    }),
+            return { success: true, tags: newTags };
+        }),
 });

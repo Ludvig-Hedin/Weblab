@@ -1,21 +1,40 @@
+import { TRPCError } from '@trpc/server';
+import { generateText } from 'ai';
+import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
 import { initModel } from '@weblab/ai';
 import {
     conversationInsertSchema,
     conversations,
     conversationUpdateSchema,
-    fromDbConversation
+    fromDbConversation,
 } from '@weblab/db';
 import { LLMProvider, OPENROUTER_MODELS } from '@weblab/models';
-import { generateText } from 'ai';
-import { eq } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
-import { z } from 'zod';
+
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from '../project/helper';
+
+const loadConversationProjectId = async (
+    db: Parameters<typeof verifyProjectAccess>[0],
+    conversationId: string,
+): Promise<string> => {
+    const row = await db.query.conversations.findFirst({
+        where: eq(conversations.id, conversationId),
+        columns: { projectId: true },
+    });
+    if (!row) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversation not found' });
+    }
+    return row.projectId;
+};
 
 export const conversationRouter = createTRPCRouter({
     getAll: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const dbConversations = await ctx.db.query.conversations.findMany({
                 where: eq(conversations.projectId, input.projectId),
                 orderBy: (conversations, { desc }) => [desc(conversations.updatedAt)],
@@ -29,45 +48,62 @@ export const conversationRouter = createTRPCRouter({
                 where: eq(conversations.id, input.conversationId),
             });
             if (!conversation) {
-                throw new Error('Conversation not found');
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversation not found' });
             }
+            await verifyProjectAccess(ctx.db, ctx.user.id, conversation.projectId);
             return fromDbConversation(conversation);
         }),
-    upsert: protectedProcedure
-        .input(conversationInsertSchema)
-        .mutation(async ({ ctx, input }) => {
-            const [conversation] = await ctx.db.insert(conversations).values(input).returning();
-            if (!conversation) {
-                throw new Error('Conversation not created');
-            }
-            return fromDbConversation(conversation);
-        }),
-    update: protectedProcedure
-        .input(conversationUpdateSchema)
-        .mutation(async ({ ctx, input }) => {
-            const [conversation] = await ctx.db.update({
-                ...conversations,
-                updatedAt: new Date(),
-            }).set(input)
-                .where(eq(conversations.id, input.id)).returning();
-            if (!conversation) {
-                throw new Error('Conversation not updated');
-            }
-            return fromDbConversation(conversation);
-        }),
+    upsert: protectedProcedure.input(conversationInsertSchema).mutation(async ({ ctx, input }) => {
+        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+        const [conversation] = await ctx.db.insert(conversations).values(input).returning();
+        if (!conversation) {
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Conversation not created',
+            });
+        }
+        return fromDbConversation(conversation);
+    }),
+    update: protectedProcedure.input(conversationUpdateSchema).mutation(async ({ ctx, input }) => {
+        if (!input.id) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Missing conversation id' });
+        }
+        const projectId = await loadConversationProjectId(ctx.db, input.id);
+        await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+        const [conversation] = await ctx.db
+            .update(conversations)
+            .set({ ...input, updatedAt: new Date() })
+            .where(eq(conversations.id, input.id))
+            .returning();
+        if (!conversation) {
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Conversation not updated',
+            });
+        }
+        return fromDbConversation(conversation);
+    }),
     delete: protectedProcedure
-        .input(z.object({
-            conversationId: z.string()
-        }))
+        .input(
+            z.object({
+                conversationId: z.string(),
+            }),
+        )
         .mutation(async ({ ctx, input }) => {
+            const projectId = await loadConversationProjectId(ctx.db, input.conversationId);
+            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
             await ctx.db.delete(conversations).where(eq(conversations.id, input.conversationId));
         }),
     generateTitle: protectedProcedure
-        .input(z.object({
-            conversationId: z.string(),
-            content: z.string(),
-        }))
+        .input(
+            z.object({
+                conversationId: z.string(),
+                content: z.string(),
+            }),
+        )
         .mutation(async ({ ctx, input }) => {
+            const projectId = await loadConversationProjectId(ctx.db, input.conversationId);
+            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
             const { model, providerOptions, headers } = initModel({
                 provider: LLMProvider.OPENROUTER,
                 model: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU,
@@ -93,10 +129,17 @@ export const conversationRouter = createTRPCRouter({
             });
 
             const generatedName = result.text.trim();
-            if (generatedName && generatedName.length > 0 && generatedName.length <= MAX_NAME_LENGTH) {
-                await ctx.db.update(conversations).set({
-                    displayName: generatedName,
-                }).where(eq(conversations.id, input.conversationId));
+            if (
+                generatedName &&
+                generatedName.length > 0 &&
+                generatedName.length <= MAX_NAME_LENGTH
+            ) {
+                await ctx.db
+                    .update(conversations)
+                    .set({
+                        displayName: generatedName,
+                    })
+                    .where(eq(conversations.id, input.conversationId));
                 return generatedName;
             }
 
