@@ -16,14 +16,25 @@ import type {
 } from '@weblab/models';
 import { ChatType } from '@weblab/models';
 import { MessageContextType } from '@weblab/models/chat';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
+import { Textarea } from '@weblab/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
+import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility';
 
 import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
-import { AiPromptComposer } from '@/components/ai-prompt-composer';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
+import { MicButton } from '@/components/transcribe/mic-button';
+import {
+    AI_CHAT_INPUT_DRAG_CLASS,
+    AI_CHAT_INPUT_SURFACE_CLASS,
+    AI_CHAT_TEXTAREA_CLASS,
+    AI_CHAT_TEXTAREA_STYLE,
+} from '@/components/ui/ai-chat-input-styles';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { validateImageLimit } from '../context-pills/helpers';
@@ -72,6 +83,8 @@ export const ChatInput = observer(
         const t = useTranslations();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
         const [isComposing, setIsComposing] = useState(false);
+        const [actionTooltipOpen, setActionTooltipOpen] = useState(false);
+        const [isDragging, setIsDragging] = useState(false);
         const chatMode = editorEngine.state.chatMode;
         const currentConversation = editorEngine.chat.conversation.current;
         const [inputValue, setInputValue] = useState('');
@@ -188,7 +201,7 @@ export const ChatInput = observer(
 
         const inputEmpty = !inputValue || inputValue.trim().length === 0;
 
-        function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
+        function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
             if (isComposing) {
                 return;
             }
@@ -263,6 +276,7 @@ export const ChatInput = observer(
 
         const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
+            setIsDragging(false);
             e.currentTarget.removeAttribute('data-dragging-image');
 
             // First, check for internal drag-and-drop from image panel
@@ -383,6 +397,10 @@ export const ChatInput = observer(
             await handleImageEvents([file], displayName);
         };
 
+        const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+        };
+
         const handleDragStateChange = (isDragging: boolean, e: React.DragEvent) => {
             const hasImage =
                 e.dataTransfer.types.length > 0 &&
@@ -393,6 +411,7 @@ export const ChatInput = observer(
                         (item.type === 'Files' && e.dataTransfer.types.includes('public.file-url')),
                 );
             if (hasImage) {
+                setIsDragging(isDragging);
                 e.currentTarget.setAttribute('data-dragging-image', isDragging.toString());
             }
         };
@@ -404,32 +423,34 @@ export const ChatInput = observer(
         };
 
         return (
-            <AiPromptComposer
-                value={inputValue}
-                onChange={setInputValue}
-                onSubmit={sendMessage}
-                placeholder={getPlaceholderText()}
-                variant="editor-panel"
-                textareaRef={textareaRef}
-                className="text-foreground-tertiary text-small p-1.5 transition-colors duration-200"
-                surfaceClassName="focus-within:border-border"
-                submitDisabled={inputEmpty}
-                disabled={false}
-                showStopButton={isStreaming && inputEmpty}
-                onStop={onStop}
-                showMicButton
-                onTranscript={(text) => setInputValue((prev) => (prev ? `${prev} ${text}` : text))}
-                onDrop={handleDrop}
-                onDragStateChange={handleDragStateChange}
-                onPaste={handlePaste}
-                onInput={handleInput}
-                onKeyDown={handleKeyDown}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => {
-                    setIsComposing(false);
+            <div
+                className={cn(
+                    'text-foreground-tertiary text-small flex w-full flex-col p-1.5 transition-colors duration-200',
+                    AI_CHAT_INPUT_DRAG_CLASS,
+                    isDragging && 'cursor-copy bg-foreground-brand/30',
+                )}
+                onDrop={(e) => {
+                    void handleDrop(e);
+                    setIsDragging(false);
                 }}
-                topSlot={
-                    <>
+                onDragOver={handleDragOver}
+                onDragEnter={(e) => {
+                    e.preventDefault();
+                    handleDragStateChange(true, e);
+                }}
+                onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        handleDragStateChange(false, e);
+                    }
+                }}
+            >
+                <div
+                    className={cn(
+                        AI_CHAT_INPUT_SURFACE_CLASS,
+                        'focus-within:border-border @container',
+                    )}
+                >
+                    <div className="flex w-full flex-col px-2 pt-1.5">
                         <QueueItems
                             queuedMessages={queuedMessages}
                             removeFromQueue={removeFromQueue}
@@ -443,27 +464,89 @@ export const ChatInput = observer(
                             inputValue={inputValue}
                             setInput={setInputValue}
                         />
-                    </>
-                }
-                leftControls={
-                    <>
-                        <ActionButtons handleImageEvent={handleImageEvent} />
-                        <ChatModeToggle
-                            chatMode={chatMode}
-                            onChatModeChange={handleChatModeChange}
+                        <Textarea
+                            ref={textareaRef}
+                            placeholder={getPlaceholderText()}
+                            className={cn(AI_CHAT_TEXTAREA_CLASS, 'mt-1 max-h-32')}
+                            style={AI_CHAT_TEXTAREA_STYLE}
+                            rows={3}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onInput={handleInput}
+                            onKeyDown={handleKeyDown}
+                            onPaste={handlePaste}
+                            onCompositionStart={() => setIsComposing(true)}
+                            onCompositionEnd={() => {
+                                setIsComposing(false);
+                            }}
                         />
-                        <ModelSelector
-                            value={model}
-                            onChange={onModelChange}
-                            localModels={localModels}
-                            localModelsLoading={localModelsLoading}
-                        />
-                        {lastUsageMessage?.metadata?.usage && (
-                            <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
-                        )}
-                    </>
-                }
-            />
+                    </div>
+                    <div className="flex w-full flex-row justify-between px-2 py-1">
+                        <div className="flex flex-row items-center gap-1">
+                            <ActionButtons handleImageEvent={handleImageEvent} />
+                            <ChatModeToggle
+                                chatMode={chatMode}
+                                onChatModeChange={handleChatModeChange}
+                            />
+                            <ModelSelector
+                                value={model}
+                                onChange={onModelChange}
+                                localModels={localModels}
+                                localModelsLoading={localModelsLoading}
+                            />
+                            {lastUsageMessage?.metadata?.usage && (
+                                <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
+                            )}
+                        </div>
+                        <div className="flex flex-row items-center gap-1">
+                            <MicButton
+                                onTranscript={(text) =>
+                                    setInputValue((prev) => (prev ? `${prev} ${text}` : text))
+                                }
+                                disabled={isStreaming}
+                            />
+                            {isStreaming && inputEmpty ? (
+                                <Tooltip
+                                    open={actionTooltipOpen}
+                                    onOpenChange={setActionTooltipOpen}
+                                >
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            size={'icon'}
+                                            variant={'secondary'}
+                                            className="text-smallPlus text-primary bg-background-primary h-7 w-7 rounded-full"
+                                            onClick={() => {
+                                                setActionTooltipOpen(false);
+                                                void onStop();
+                                            }}
+                                        >
+                                            <Icons.Stop className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={6} hideArrow>
+                                        {'Stop response'}
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <Button
+                                    size={'icon'}
+                                    variant={'secondary'}
+                                    className={cn(
+                                        'h-7 w-7 rounded-full',
+                                        inputEmpty
+                                            ? 'text-primary'
+                                            : 'bg-foreground-primary text-background hover:bg-foreground-primary/80',
+                                    )}
+                                    disabled={inputEmpty}
+                                    onClick={() => void sendMessage()}
+                                >
+                                    <Icons.ArrowRight className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
     },
 );

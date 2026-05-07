@@ -30,7 +30,9 @@ Observed active areas:
 - Editor project-flow fixes around sandbox startup/restart, chat suggestions,
   mobile fallback states, auth redirects, GitHub imports, page forms, and local
   runtime branch startup.
-- AI chat input visual unification between create-project and canvas chat.
+- AI prompt composer unification between homepage, create-project, empty-projects, and canvas chat.
+  The shared component lives in `apps/web/client/src/components/ai-prompt-composer/`, with legacy
+  snapshots kept beside the previous create/editor implementations.
 - Project runtime mode plumbing for `cloud`, `local`, and future `hybrid`
   projects.
 - User settings preference migration to align local Supabase schemas with the

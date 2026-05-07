@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
 import { Create } from '@/app/_components/hero/create';
@@ -14,7 +14,14 @@ import { TopBar } from '../_components/top-bar';
 const Page = () => {
     const { data: user } = api.user.get.useQuery();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
+    const [shouldResumeCreate, setShouldResumeCreate] = useState(false);
     const backgroundUrl = useGetBackground('create');
+
+    useEffect(() => {
+        setShouldResumeCreate(
+            new URLSearchParams(window.location.search).get('resumeCreate') === '1',
+        );
+    }, []);
 
     return (
         <CreateManagerProvider>
@@ -54,6 +61,7 @@ const Page = () => {
                             isCreatingProject={isCreatingProject}
                             setIsCreatingProject={setIsCreatingProject}
                             user={user ?? null}
+                            autoSubmitRestoredDraft={shouldResumeCreate}
                         />
                         <ExternalTemplates templates={EXTERNAL_TEMPLATES} />
                     </div>
