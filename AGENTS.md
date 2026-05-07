@@ -77,6 +77,52 @@ Before broad or cross-cutting work, read the relevant files in
 - Do not mark a task complete until the app has been validated enough to confirm
   it is not left with avoidable runtime, build, type, lint, or config errors.
 
+### Changelog & Blog — Shipping Announcements
+
+When you ship something user-facing, record it. Use your judgment on the tier:
+
+| Tier | Threshold | Action |
+|------|-----------|--------|
+| **Major** | New user-facing feature, significant UI change, new page, important workflow or API change | Add a changelog entry |
+| **Very major** | Full feature worth announcing publicly, major redesign, new integration, capability that changes how users work | Add a changelog entry **and** a blog post |
+
+**Changelog entry** — `apps/web/client/src/lib/changelog-entries.ts`
+
+Prepend a new object to `CHANGELOG_ENTRIES` (array is newest-first):
+
+```ts
+{
+    slug: 'v1-6-short-slug',       // kebab-case, matches version prefix
+    version: '1.6',                // bump the last entry's version by 0.1
+    title: 'Feature Name',
+    description: 'One or two sentences. What it does and why it matters.',
+    date: 'YYYY-MM-DD',            // today's date
+    tags: ['Tag1', 'Tag2'],        // 2–4 short labels
+}
+```
+
+Include a UI image when the change has a visible UI: save a representative SVG
+or screenshot to `apps/web/client/public/assets/changelog/` and note the path
+in the description or as a comment.
+
+**Blog post** (very major only) — `apps/web/client/content/blog/<slug>.mdx`
+
+```mdx
+---
+title: "Post Title"
+description: "One sentence summary shown in cards and OG."
+date: "YYYY-MM-DD"
+author: "Your Name"
+authorImage: "https://github.com/<handle>.png"
+category: "Product"        # Engineering | Product | Deep Dive
+tags: ["tag1", "tag2"]
+coverImage: "/assets/blog/<slug>.svg"
+---
+```
+
+Save a cover image to `apps/web/client/public/assets/blog/`. Reuse an existing
+SVG from that directory if creating a new image would be complex.
+
 ### Next.js App Router
 
 - Default to Server Components. Add `use client` when using events,
@@ -143,6 +189,16 @@ Before broad or cross-cutting work, read the relevant files in
   `apps/web/client/src/app/project/[id]/_components/main.tsx`).
 - Example store: `apps/web/client/src/components/store/editor/engine.ts:1` (uses
   `makeAutoObservable`).
+
+### Design System — Source of Truth
+
+The living design system lives at **`/design-system`** (source: `apps/web/client/src/app/design-system/page.tsx`).
+
+- **Accessible on localhost** without auth. On any other host it requires a password set via `DESIGN_SYSTEM_PASSWORD` in `.env.local`.
+- **What it covers:** every `@weblab/ui` component with all variants/states, the full color palette, typography scale, spacing scale, border-radius scale, shadows, and brand assets.
+- **When you add or modify a component, token, or visual pattern** — update `page.tsx` to reflect it. New `@weblab/ui` component → add a demo section. Changed token name or value → update the corresponding swatch or control on that page.
+- Live editing (color pickers, sliders) injects CSS variable overrides for preview only — permanent token changes go into `apps/web/client/src/app/globals.css` or the relevant CSS file.
+- Use the design system page to verify visual consistency before shipping UI work. It is the single reference for "what the app looks like" across all components.
 
 ### Styling & UI
 

@@ -65,6 +65,55 @@ For broad or cross-cutting work, read the relevant files in `docs/agent-context/
 - When migration or config commands cannot be run safely in the current environment, document the blocker, the exact command or file change still needed, and the expected impact if it is skipped.
 - Do not mark a task complete until the app has been validated enough to confirm it is not left with avoidable runtime, build, type, lint, or config errors.
 
+## Changelog & Blog — Shipping Announcements
+
+When you ship something user-facing, record it. Use your judgment on the tier:
+
+| Tier | Threshold | Action |
+|------|-----------|--------|
+| **Major** | New user-facing feature, significant UI change, new page, important workflow or API change | Add a changelog entry |
+| **Very major** | Full feature worth announcing publicly, major redesign, new integration, capability that changes how users work | Add a changelog entry **and** a blog post |
+
+### Changelog entry
+
+File: `apps/web/client/src/lib/changelog-entries.ts`
+
+Prepend a new object to `CHANGELOG_ENTRIES` (array is newest-first):
+
+```ts
+{
+    slug: 'v1-6-short-slug',       // kebab-case, matches version prefix
+    version: '1.6',                // bump the last entry's version by 0.1
+    title: 'Feature Name',
+    description: 'One or two sentences. What it does and why it matters.',
+    date: 'YYYY-MM-DD',            // today's date
+    tags: ['Tag1', 'Tag2'],        // 2–4 short labels
+}
+```
+
+Include a UI image when the change has a visible UI: save a representative SVG or screenshot to `apps/web/client/public/assets/changelog/` and note the path in the description or as a comment.
+
+### Blog post
+
+File: `apps/web/client/content/blog/<slug>.mdx`
+
+Use this frontmatter:
+
+```mdx
+---
+title: "Post Title"
+description: "One sentence summary shown in cards and OG."
+date: "YYYY-MM-DD"
+author: "Your Name"
+authorImage: "https://github.com/<handle>.png"
+category: "Product"        # Engineering | Product | Deep Dive
+tags: ["tag1", "tag2"]
+coverImage: "/assets/blog/<slug>.svg"
+---
+```
+
+Save a cover image to `apps/web/client/public/assets/blog/` — use an existing SVG from that directory as a starting point if creating a new image would be complex.
+
 ## Monorepo Structure
 
 Bun workspaces monorepo with four workspace directories:
