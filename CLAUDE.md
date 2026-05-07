@@ -132,6 +132,16 @@ Changes to any package ripple into the 12+ dependent packages — scope changes 
 - Avoid putting the store instance in effect deps if it loops; split concerns.
 - Example store: `src/components/store/editor/engine.ts` (uses `makeAutoObservable`).
 
+## Design System — Source of Truth
+
+The living design system lives at **`/design-system`** (source: `apps/web/client/src/app/design-system/page.tsx`).
+
+- **Accessible on localhost** without auth. On any other host it requires `DESIGN_SYSTEM_PASSWORD` to be set — via `.env.local` for local development against a custom domain, or via the deployment platform's environment variable configuration (for example, Vercel project settings or a Docker Compose `environment:` block) for staging/production.
+- **What it covers:** every `@weblab/ui` component with all variants/states, the full color palette, typography scale, spacing scale, border-radius scale, shadows, and brand assets.
+- **When you add or modify a component, token, or visual pattern** — update `page.tsx` to reflect it. If you add a new component to `@weblab/ui`, add a demo section. If you change a token name or value, update the corresponding swatch or control on that page.
+- Live editing (color pickers, sliders) injects CSS variable overrides for preview only — permanent token changes go into `apps/web/client/src/app/globals.css` or the relevant CSS file.
+- Use the design system page to verify visual consistency before shipping UI work. It is the single reference for "what the app looks like" across all components.
+
 ## Styling & UI
 
 - TailwindCSS 4.x-first; global styles imported in `src/app/layout.tsx`.

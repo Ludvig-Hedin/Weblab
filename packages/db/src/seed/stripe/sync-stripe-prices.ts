@@ -7,7 +7,6 @@
  * Run once after a fresh db:seed (which inserts placeholder IDs):
  *   bun db:seed:sync-stripe
  */
-import { config } from 'dotenv';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@weblab/db/src/client';
@@ -15,8 +14,6 @@ import { PriceKey, PRO_PRODUCT_CONFIG, ProductType } from '@weblab/stripe';
 import { createStripeClient } from '@weblab/stripe/src/client';
 
 import { prices, products } from '../../schema';
-
-config({ path: '../../.env' });
 
 const syncStripePrices = async () => {
     console.log('Fetching Stripe product and prices…');
@@ -87,6 +84,7 @@ const syncStripePrices = async () => {
                 (p) =>
                     p.cost === stripePrice.unit_amount &&
                     p.paymentInterval === interval &&
+                    // PriceConfig currently models one-month billing only; ignore non-standard counts.
                     intervalCount === 1,
             );
             priceKey = priceConfig?.key;
@@ -141,9 +139,7 @@ const syncStripePrices = async () => {
         }
     }
 
-    console.log(
-        `\nDone. Updated: ${updated}  Inserted: ${inserted}  Skipped: ${skipped}`,
-    );
+    console.log(`\nDone. Updated: ${updated}  Inserted: ${inserted}  Skipped: ${skipped}`);
 };
 
 void (async () => {

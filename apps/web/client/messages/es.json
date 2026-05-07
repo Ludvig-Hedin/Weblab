@@ -225,9 +225,21 @@
             "currentPlan": "Plan actual",
             "pending": "Pendiente"
         },
+        "scheduledPlanStart": "Este plan comenzará el {date}",
         "enterprise": {
             "contactUs": "Contáctanos"
         }
+    },
+    "usage": {
+        "scheduledPlanStart": "Tu plan de {monthlyMessageLimit} créditos al mes comienza el {date}",
+        "creditsUsed": "{period} créditos usados",
+        "periods": {
+            "daily": "diarios",
+            "monthly": "mensuales"
+        }
+    },
+    "github": {
+        "popupBlocked": "Se bloqueó una ventana emergente. Permite ventanas emergentes para este sitio e inténtalo de nuevo."
     },
     "editor": {
         "modes": {

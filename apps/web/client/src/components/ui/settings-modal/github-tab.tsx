@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { Badge } from '@weblab/ui/badge';
 import { Button } from '@weblab/ui/button';
@@ -13,7 +13,18 @@ import { toast } from '@weblab/ui/sonner';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
-export const GitHubTab = observer(() => {
+const hasPreconditionFailedCode = (error: unknown) => {
+    if (!error || typeof error !== 'object' || !('data' in error)) {
+        return false;
+    }
+    const data = error.data;
+    return (
+        !!data && typeof data === 'object' && 'code' in data && data.code === 'PRECONDITION_FAILED'
+    );
+};
+
+export const GitHubTab = () => {
+    const t = useTranslations();
     const router = useRouter();
     const apiUtils = api.useUtils();
     const [repoSearch, setRepoSearch] = useState('');
@@ -50,7 +61,7 @@ export const GitHubTab = observer(() => {
             onError: () => toast.error('Failed to disconnect GitHub'),
         });
 
-    const isPreconditionFailed = (error as any)?.data?.code === 'PRECONDITION_FAILED';
+    const isPreconditionFailed = hasPreconditionFailedCode(error);
     const isConnected = !!installationId && !isPreconditionFailed;
     const hasQueryError = !!error && !isPreconditionFailed;
 
@@ -59,10 +70,17 @@ export const GitHubTab = observer(() => {
     );
 
     const handleConnect = async () => {
+        const newWindow = window.open('about:blank', '_blank', 'noopener');
+        if (!newWindow) {
+            toast.error(t('github.popupBlocked'));
+            return;
+        }
+
         try {
             const { url } = await generateUrl({});
-            window.location.href = url;
+            newWindow.location.href = url;
         } catch {
+            newWindow.close();
             toast.error('Failed to generate GitHub installation URL');
         }
     };
@@ -143,7 +161,11 @@ export const GitHubTab = observer(() => {
                             Install the GitHub App to allow Weblab to push commits and open pull
                             requests on your behalf.
                         </p>
-                        <Button size="sm" disabled={isGenerating} onClick={handleConnect}>
+                        <Button
+                            size="sm"
+                            disabled={isGenerating}
+                            onClick={() => void handleConnect()}
+                        >
                             <Icons.GitHubLogo className="mr-2 h-4 w-4" />
                             {isGenerating ? 'Redirecting…' : 'Connect GitHub'}
                         </Button>
@@ -233,4 +255,4 @@ export const GitHubTab = observer(() => {
             )}
         </div>
     );
-});
+};

@@ -208,6 +208,7 @@ declare const messages: {
             "currentPlan": "Current Plan",
             "pending": "Pending"
         },
+        "scheduledPlanStart": "This plan will start on {date}",
         "enterprise": {
             "contactUs": "Contact Us"
         },
@@ -231,6 +232,17 @@ declare const messages: {
         "footer": {
             "unusedMessages": "Unused chat messages will roll over to the next month."
         }
+    },
+    "usage": {
+        "scheduledPlanStart": "Your {monthlyMessageLimit} credits a month plan starts on {date}",
+        "creditsUsed": "{period} credits used",
+        "periods": {
+            "daily": "daily",
+            "monthly": "monthly"
+        }
+    },
+    "github": {
+        "popupBlocked": "A popup was blocked. Please allow popups for this site and try again."
     },
     "editor": {
         "modes": {

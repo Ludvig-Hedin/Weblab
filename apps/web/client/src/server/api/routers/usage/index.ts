@@ -27,7 +27,7 @@ export const usageRouter = createTRPCRouter({
             });
 
             // Free users (no subscription row, or subscription is on the FREE product) use calendar-bounded counting
-            if (!subscription || subscription.product.type !== ProductType.PRO) {
+            if (!subscription || subscription.product?.type !== ProductType.PRO) {
                 return getFreePlanUsage(tx, user.id, now);
             }
             return getSubscriptionUsage(tx, user.id, now);
@@ -57,7 +57,7 @@ export const usageRouter = createTRPCRouter({
                 });
 
                 let rateLimitId: string | undefined;
-                if (subscription?.product.type === ProductType.PRO) {
+                if (subscription?.product?.type === ProductType.PRO) {
                     const now = new Date();
                     const [limit] = await tx
                         .select({ id: rateLimits.id, left: rateLimits.left })

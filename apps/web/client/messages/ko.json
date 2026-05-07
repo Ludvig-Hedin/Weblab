@@ -225,9 +225,21 @@
             "currentPlan": "현재 플랜",
             "pending": "대기 중"
         },
+        "scheduledPlanStart": "이 플랜은 {date}에 시작됩니다",
         "enterprise": {
             "contactUs": "문의하기"
         }
+    },
+    "usage": {
+        "scheduledPlanStart": "{monthlyMessageLimit} 크레딧/월 플랜은 {date}에 시작됩니다",
+        "creditsUsed": "{period} 크레딧 사용됨",
+        "periods": {
+            "daily": "일일",
+            "monthly": "월간"
+        }
+    },
+    "github": {
+        "popupBlocked": "팝업이 차단되었습니다. 이 사이트의 팝업을 허용한 후 다시 시도하세요."
     },
     "editor": {
         "modes": {

@@ -44,8 +44,9 @@ export const ProCard = ({
 }) => {
     const t = useTranslations();
     const locale = useLocale();
-    const { subscription, isPro, refetchSubscription, setIsCheckingSubscription } =
-        useSubscription({ enabled: !isUnauthenticated });
+    const { subscription, isPro, refetchSubscription, setIsCheckingSubscription } = useSubscription(
+        { enabled: !isUnauthenticated },
+    );
     const { mutateAsync: checkout } = api.subscription.checkout.useMutation();
     const { mutateAsync: getPriceId } = api.subscription.getPriceId.useMutation();
     const { mutateAsync: updateSubscription } = api.subscription.update.useMutation();
@@ -60,6 +61,12 @@ export const ProCard = ({
     const isPendingTierSelected =
         selectedTier !== subscription?.price.key &&
         selectedTier === subscription?.scheduledChange?.price?.key;
+    const scheduledPlanStartDate =
+        subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString(locale, {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        }) ?? '';
 
     if (!PRO_PRODUCT_CONFIG.prices.length) {
         throw new Error('No pro tiers found');
@@ -100,7 +107,7 @@ export const ProCard = ({
             await releaseSubscriptionSchedule({
                 subscriptionScheduleId: subscription.scheduledChange.stripeSubscriptionScheduleId,
             });
-            refetchSubscription();
+            void refetchSubscription();
             toast.success('Scheduled downgrade canceled!');
         } catch (error) {
             console.error('Error canceling scheduled downgrade:', error);
@@ -148,7 +155,7 @@ export const ProCard = ({
                 stripeSubscriptionItemId: subscription.stripeSubscriptionItemId,
             });
 
-            refetchSubscription();
+            void refetchSubscription();
             toast.success('Subscription updated!');
         } catch (error) {
             toast.error(t('pricing.toasts.error.title'), {
@@ -199,15 +206,12 @@ export const ProCard = ({
         if (isUnauthenticated && onSignupClick) {
             onSignupClick();
         } else {
-            handleCheckout();
+            void handleCheckout();
         }
     };
 
     const creditsSelector = (
-        <Select
-            value={selectedTier}
-            onValueChange={(value) => setSelectedTier(value as PriceKey)}
-        >
+        <Select value={selectedTier} onValueChange={(value) => setSelectedTier(value as PriceKey)}>
             <SelectTrigger className="h-9 w-auto min-w-[196px] rounded-full text-sm">
                 <SelectValue placeholder={t(transKeys.pricing.credits.selectPlaceholder)} />
             </SelectTrigger>
@@ -218,10 +222,14 @@ export const ProCard = ({
                             <div className="flex items-center gap-2">
                                 {value.description}
                                 {value.key === subscription?.price.key && (
-                                    <Badge variant="secondary">{t(transKeys.pricing.credits.currentPlan)}</Badge>
+                                    <Badge variant="secondary">
+                                        {t(transKeys.pricing.credits.currentPlan)}
+                                    </Badge>
                                 )}
                                 {value.key === subscription?.scheduledChange?.price?.key && (
-                                    <Badge variant="secondary">{t(transKeys.pricing.credits.pending)}</Badge>
+                                    <Badge variant="secondary">
+                                        {t(transKeys.pricing.credits.pending)}
+                                    </Badge>
                                 )}
                             </div>
                         </SelectItem>
@@ -255,7 +263,9 @@ export const ProCard = ({
                 </div>
                 {isPendingTierSelected && isPro && (
                     <div className="text-small mt-2 text-balance text-amber-500">
-                        {`This plan will start on ${subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+                        {t('pricing.scheduledPlanStart', {
+                            date: scheduledPlanStartDate,
+                        })}
                     </div>
                 )}
                 <div className="border-border-primary my-8 border-t" />
@@ -305,7 +315,9 @@ export const ProCard = ({
 
                     {isPendingTierSelected && isPro && (
                         <div className="text-small text-balance text-amber-500">
-                            {`This plan will start on ${subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+                            {t('pricing.scheduledPlanStart', {
+                                date: scheduledPlanStartDate,
+                            })}
                         </div>
                     )}
                     {!isPro && <LegacyPromotion />}

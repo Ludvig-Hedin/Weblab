@@ -92,9 +92,21 @@
             "currentPlan": "現在のプラン",
             "pending": "保留中"
         },
+        "scheduledPlanStart": "このプランは{date}に開始されます",
         "enterprise": {
             "contactUs": "お問い合わせ"
         }
+    },
+    "usage": {
+        "scheduledPlanStart": "{monthlyMessageLimit}クレジット/月のプランは{date}に開始されます",
+        "creditsUsed": "{period}クレジット使用済み",
+        "periods": {
+            "daily": "日次",
+            "monthly": "月次"
+        }
+    },
+    "github": {
+        "popupBlocked": "ポップアップがブロックされました。このサイトのポップアップを許可してから、もう一度お試しください。"
     },
     "editor": {
         "modes": {

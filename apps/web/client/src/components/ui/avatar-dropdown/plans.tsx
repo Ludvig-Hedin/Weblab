@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { FREE_PRODUCT_CONFIG, ProductType, ScheduledSubscriptionAction } from '@weblab/stripe';
 import { Button } from '@weblab/ui/button';
@@ -13,6 +14,8 @@ import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
 
 export const UsageSection = observer(({ open }: { open: boolean }) => {
+    const t = useTranslations();
+    const locale = useLocale();
     const state = useStateManager();
     const { data: subscription, isLoading: subscriptionLoading } = api.subscription.get.useQuery();
     const {
@@ -24,7 +27,7 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
     const debouncedRefetchUsage = debounce(refetchUsage, 1000, { leading: true, trailing: false });
     useEffect(() => {
         if (open) {
-            debouncedRefetchUsage();
+            void debouncedRefetchUsage();
         }
     }, [open]);
 
@@ -51,7 +54,14 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
                 ScheduledSubscriptionAction.PRICE_CHANGE &&
             subscription.scheduledChange.price
         ) {
-            message = `Your ${subscription.scheduledChange.price.monthlyMessageLimit} credits a month plan starts on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            message = t('usage.scheduledPlanStart', {
+                monthlyMessageLimit: String(subscription.scheduledChange.price.monthlyMessageLimit),
+                date: subscription.scheduledChange.scheduledChangeAt.toLocaleDateString(locale, {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                }),
+            });
         } else if (
             subscription?.scheduledChange?.scheduledAction ===
             ScheduledSubscriptionAction.CANCELLATION
@@ -94,7 +104,12 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
                                 {usage?.limitCount ?? 0}
                             </div>
                             <div className="text-muted-foreground">
-                                {usage?.period === 'day' ? 'daily' : 'monthly'} credits used
+                                {t('usage.creditsUsed', {
+                                    period:
+                                        usage?.period === 'day'
+                                            ? t('usage.periods.daily')
+                                            : t('usage.periods.monthly'),
+                                })}
                             </div>
                         </>
                     )}

@@ -225,9 +225,21 @@
             "currentPlan": "当前方案",
             "pending": "待处理"
         },
+        "scheduledPlanStart": "此方案将于 {date} 开始",
         "enterprise": {
             "contactUs": "联系我们"
         }
+    },
+    "usage": {
+        "scheduledPlanStart": "你的每月 {monthlyMessageLimit} 积分方案将于 {date} 开始",
+        "creditsUsed": "已使用{period}积分",
+        "periods": {
+            "daily": "每日",
+            "monthly": "每月"
+        }
+    },
+    "github": {
+        "popupBlocked": "弹出窗口已被拦截。请允许此网站显示弹出窗口，然后重试。"
     },
     "editor": {
         "modes": {
