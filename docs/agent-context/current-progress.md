@@ -1,6 +1,6 @@
 # Current Progress Snapshot
 
-Last updated: 2026-05-06.
+Last updated: 2026-05-07.
 
 ## Product Direction
 
@@ -35,12 +35,17 @@ Observed active areas:
   projects.
 - User settings preference migration to align local Supabase schemas with the
   Drizzle `user_settings` shape.
+- Dev log cleanup for `/project/[id]`: configured DB repair/sync for missing
+  comment tables, settings columns, later hand-written DB edits, comment
+  polling backoff, tRPC error dedupe, and optional telemetry warning
+  suppression.
 - UI package/component changes for shared primitives and settings/modal flows.
 
 Useful progress notes already exist in:
 
 - `docs/project-runtime-modes.md`
 - `docs/user-settings-migration-2026-05-06.md`
+- `docs/dev-log-debug-2026-05-07.md`
 - `docs/ai-chat-input-unification-2026-05-06.md`
 - `docs/editor-project-flow-fixes-2026-05-06.md`
 - `docs/project-card-interactions-2026-05-06.md`
