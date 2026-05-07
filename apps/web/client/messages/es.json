@@ -191,7 +191,9 @@
         "buttons": {
             "currentPlan": "Plan Actual",
             "getPro": "Obtener Pro",
-            "manageSubscription": "Gestionar Suscripción"
+            "manageSubscription": "Gestionar Suscripción",
+            "getStarted": "Comenzar",
+            "upgrade": "Actualizar"
         },
         "loading": {
             "checkingPayment": "Verificando pago..."
@@ -212,6 +214,19 @@
         },
         "footer": {
             "unusedMessages": "Los mensajes de chat no utilizados se transferirán al siguiente mes"
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "5 créditos de IA al día",
+            "monthlyCreditsFeature": "15 créditos de IA al mes",
+            "dailyCreditsLabel": "5 créditos diarios"
+        },
+        "credits": {
+            "selectPlaceholder": "Seleccionar créditos",
+            "currentPlan": "Plan actual",
+            "pending": "Pendiente"
+        },
+        "enterprise": {
+            "contactUs": "Contáctanos"
         }
     },
     "editor": {
@@ -408,7 +423,6 @@
             "contactUs": {
                 "title": "Contáctenos",
                 "website": "Sitio Web",
-
                 "github": "GitHub",
                 "email": "Correo Electrónico"
             },

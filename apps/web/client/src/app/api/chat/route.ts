@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
             });
             return new Response(
                 JSON.stringify({
-                    error: 'Message limit exceeded. Please upgrade to a paid plan.',
+                    error: 'Credit limit exceeded. Please upgrade to a paid plan.',
                     code: 402,
                     usage: usageCheckResult.usage,
                 }),

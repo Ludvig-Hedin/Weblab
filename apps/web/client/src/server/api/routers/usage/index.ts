@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { UsageResult } from '@weblab/models';
 import { rateLimits, subscriptions, usageRecords } from '@weblab/db';
 import { UsageType } from '@weblab/models';
-import { FREE_PRODUCT_CONFIG, SubscriptionStatus } from '@weblab/stripe';
+import { FREE_PRODUCT_CONFIG, ProductType, SubscriptionStatus } from '@weblab/stripe';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
@@ -17,16 +17,17 @@ export const usageRouter = createTRPCRouter({
         return ctx.db.transaction(async (tx) => {
             // Calculate date ranges
             const now = new Date();
-            // If the user has an active subscription then they can use their rate limits (including carry-over)
+            // If the user has an active PRO subscription then they can use their rate limits (including carry-over)
             const subscription = await tx.query.subscriptions.findFirst({
                 where: and(
                     eq(subscriptions.userId, user.id),
                     eq(subscriptions.status, SubscriptionStatus.ACTIVE),
                 ),
+                with: { product: true },
             });
 
-            // if no subscription then user is on a free plan
-            if (!subscription) {
+            // Free users (no subscription row, or subscription is on the FREE product) use calendar-bounded counting
+            if (!subscription || subscription.product.type !== ProductType.PRO) {
                 return getFreePlanUsage(tx, user.id, now);
             }
             return getSubscriptionUsage(tx, user.id, now);
@@ -45,17 +46,18 @@ export const usageRouter = createTRPCRouter({
             // running a transaction helps with concurrency issues and ensures that
             // the usage is incremented atomically
             return ctx.db.transaction(async (tx) => {
-                // users on free plans don't have their rate limits stored in the database
-                // the limits are calculated on the fly instead
+                // Only PRO users have rate limits stored in the database.
+                // Free users are counted on the fly via usageRecords.
                 const subscription = await tx.query.subscriptions.findFirst({
                     where: and(
                         eq(subscriptions.userId, user.id),
                         eq(subscriptions.status, SubscriptionStatus.ACTIVE),
                     ),
+                    with: { product: true },
                 });
 
                 let rateLimitId: string | undefined;
-                if (subscription) {
+                if (subscription?.product.type === ProductType.PRO) {
                     const now = new Date();
                     const [limit] = await tx
                         .select({ id: rateLimits.id, left: rateLimits.left })
@@ -73,10 +75,11 @@ export const usageRouter = createTRPCRouter({
                         .orderBy(desc(rateLimits.carryOverTotal))
                         .limit(1);
 
-                    // if there are no credits left then rollback
+                    // if there are no credits left then rollback — tx.rollback() throws
+                    // a TransactionRollbackError which Drizzle catches to abort; the
+                    // explicit throw makes the intent unambiguous to static analysis.
                     if (!limit?.left) {
-                        tx.rollback();
-                        return;
+                        return tx.rollback();
                     }
 
                     await tx

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { PriceKey, PRO_PRODUCT_CONFIG } from '@weblab/stripe';
 import { Badge } from '@weblab/ui/badge';
@@ -35,14 +35,17 @@ export const ProCard = ({
     delay,
     isUnauthenticated = false,
     onSignupClick,
+    variant = 'card',
 }: {
     delay: number;
     isUnauthenticated?: boolean;
     onSignupClick?: () => void;
+    variant?: 'card' | 'flat';
 }) => {
     const t = useTranslations();
+    const locale = useLocale();
     const { subscription, isPro, refetchSubscription, setIsCheckingSubscription } =
-        useSubscription();
+        useSubscription({ enabled: !isUnauthenticated });
     const { mutateAsync: checkout } = api.subscription.checkout.useMutation();
     const { mutateAsync: getPriceId } = api.subscription.getPriceId.useMutation();
     const { mutateAsync: updateSubscription } = api.subscription.update.useMutation();
@@ -157,7 +160,6 @@ export const ProCard = ({
         }
     };
 
-    // Set selected tier based on current subscription
     useEffect(() => {
         if (subscription?.price.key) {
             setSelectedTier(subscription.price.key);
@@ -175,11 +177,11 @@ export const ProCard = ({
         }
 
         if (isUnauthenticated) {
-            return 'Get Started with Pro';
+            return t(transKeys.pricing.buttons.getStarted);
         }
 
         if (!isPro) {
-            return 'Upgrade to Pro Plan';
+            return t(transKeys.pricing.buttons.upgrade);
         }
 
         if (!isNewTierSelected) {
@@ -201,6 +203,77 @@ export const ProCard = ({
         }
     };
 
+    const creditsSelector = (
+        <Select
+            value={selectedTier}
+            onValueChange={(value) => setSelectedTier(value as PriceKey)}
+        >
+            <SelectTrigger className="h-9 w-auto min-w-[196px] rounded-full text-sm">
+                <SelectValue placeholder={t(transKeys.pricing.credits.selectPlaceholder)} />
+            </SelectTrigger>
+            <SelectContent className="z-99">
+                <SelectGroup>
+                    {PRO_PRODUCT_CONFIG.prices.map((value) => (
+                        <SelectItem key={value.key} value={value.key}>
+                            <div className="flex items-center gap-2">
+                                {value.description}
+                                {value.key === subscription?.price.key && (
+                                    <Badge variant="secondary">{t(transKeys.pricing.credits.currentPlan)}</Badge>
+                                )}
+                                {value.key === subscription?.scheduledChange?.price?.key && (
+                                    <Badge variant="secondary">{t(transKeys.pricing.credits.pending)}</Badge>
+                                )}
+                            </div>
+                        </SelectItem>
+                    ))}
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+    );
+
+    if (variant === 'flat') {
+        return (
+            <div className="flex flex-col">
+                <div className="space-y-1">
+                    <h2 className="text-foreground text-3xl font-light">
+                        {t(transKeys.pricing.plans.pro.name)}
+                    </h2>
+                    <p className="text-foreground text-sm font-semibold">
+                        {formatPrice(selectedTierData?.cost ?? 0)}
+                    </p>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <Button
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleButtonClick}
+                        disabled={isCheckingOut || (!isUnauthenticated && !isNewTierSelected)}
+                    >
+                        {buttonContent()}
+                    </Button>
+                    {creditsSelector}
+                </div>
+                {isPendingTierSelected && isPro && (
+                    <div className="text-small mt-2 text-balance text-amber-500">
+                        {`This plan will start on ${subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`}
+                    </div>
+                )}
+                <div className="border-border-primary my-8 border-t" />
+                <div className="flex flex-col gap-3">
+                    {PRO_FEATURES.map((feature) => (
+                        <div
+                            key={feature}
+                            className="text-foreground-secondary flex items-start gap-3 text-sm"
+                        >
+                            <Icons.CheckCircled className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span>{feature}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <MotionCard
             className="w-[360px]"
@@ -221,32 +294,7 @@ export const ProCard = ({
                 </p>
                 <div className="border-border-primary -mx-6 my-6 border-[0.5px]" />
                 <div className="mb-6 flex flex-col gap-2">
-                    <Select
-                        value={selectedTier}
-                        onValueChange={(value) => setSelectedTier(value as PriceKey)}
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select a plan" />
-                        </SelectTrigger>
-                        <SelectContent className="z-99">
-                            <SelectGroup>
-                                {PRO_PRODUCT_CONFIG.prices.map((value) => (
-                                    <SelectItem key={value.key} value={value.key}>
-                                        <div className="flex items-center gap-2">
-                                            {value.description}
-                                            {value.key === subscription?.price.key && (
-                                                <Badge variant="secondary">Current Plan</Badge>
-                                            )}
-                                            {value.key ===
-                                                subscription?.scheduledChange?.price?.key && (
-                                                <Badge variant="secondary">Pending</Badge>
-                                            )}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    {creditsSelector}
                     <Button
                         className="w-full"
                         onClick={handleButtonClick}

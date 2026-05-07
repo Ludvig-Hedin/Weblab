@@ -24,29 +24,39 @@ const FREE_TIER = {
     name: 'Free',
     price: '$0/month',
     description: 'Prototype and experiment in code with ease.',
-    features: [
+    staticFeatures: [
         'Visual code editor access',
         '5 projects',
-        '5 AI chat messages a day',
-        '15 AI messages a month',
         'Unlimited styling and code editing',
         'Limited to 1 screenshot per chat',
     ],
     defaultSelectValue: 'daily',
-    selectValues: [{ value: 'daily', label: '5 Daily Messages' }],
 };
 
 export const FreeCard = ({
     delay,
     isUnauthenticated = false,
     onSignupClick,
+    variant = 'card',
 }: {
     delay: number;
     isUnauthenticated?: boolean;
     onSignupClick?: () => void;
+    variant?: 'card' | 'flat';
 }) => {
     const t = useTranslations();
-    const { subscription, isPro, setIsCheckingSubscription } = useSubscription();
+    const freeFeatures = [
+        FREE_TIER.staticFeatures[0],
+        FREE_TIER.staticFeatures[1],
+        t(transKeys.pricing.freeCard.dailyCreditsFeature),
+        t(transKeys.pricing.freeCard.monthlyCreditsFeature),
+        FREE_TIER.staticFeatures[2],
+        FREE_TIER.staticFeatures[3],
+    ];
+    const dailyCreditsLabel = t(transKeys.pricing.freeCard.dailyCreditsLabel);
+    const { subscription, isPro, setIsCheckingSubscription } = useSubscription({
+        enabled: !isUnauthenticated,
+    });
     const { mutateAsync: manageSubscription } = api.subscription.manageSubscription.useMutation();
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const isFree = !isPro;
@@ -107,6 +117,43 @@ export const FreeCard = ({
         }
     };
 
+    if (variant === 'flat') {
+        return (
+            <div className="flex flex-col">
+                <div className="space-y-1">
+                    <h2 className="text-foreground text-3xl font-light">{FREE_TIER.name}</h2>
+                    <p className="text-foreground text-sm font-semibold">{FREE_TIER.price}</p>
+                </div>
+                <div className="mt-6">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full"
+                        onClick={handleButtonClick}
+                        disabled={
+                            isCheckingOut ||
+                            (!isUnauthenticated && (isFree || isScheduledCancellation))
+                        }
+                    >
+                        {buttonContent()}
+                    </Button>
+                </div>
+                <div className="border-border-primary my-8 border-t" />
+                <div className="flex flex-col gap-3">
+                    {freeFeatures.map((feature) => (
+                        <div
+                            key={feature}
+                            className="text-foreground-secondary flex items-start gap-3 text-sm"
+                        >
+                            <Icons.CheckCircled className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span>{feature}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <MotionCard
             className="w-[360px]"
@@ -131,11 +178,7 @@ export const FreeCard = ({
                         </SelectTrigger>
                         <SelectContent className="z-99">
                             <SelectGroup>
-                                {FREE_TIER.selectValues.map((value) => (
-                                    <SelectItem key={value.value} value={value.value}>
-                                        {value.label}
-                                    </SelectItem>
-                                ))}
+                                <SelectItem value="daily">{dailyCreditsLabel}</SelectItem>
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -152,7 +195,7 @@ export const FreeCard = ({
                     </Button>
                 </div>
                 <div className="flex h-42 flex-col gap-2">
-                    {FREE_TIER.features.map((feature) => (
+                    {freeFeatures.map((feature) => (
                         <div
                             key={feature}
                             className="text-foreground-secondary/80 flex items-center gap-3 text-sm"

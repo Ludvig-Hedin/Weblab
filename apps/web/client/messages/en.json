@@ -191,7 +191,22 @@
         "buttons": {
             "currentPlan": "Current Plan",
             "getPro": "Get Pro",
-            "manageSubscription": "Manage Subscription"
+            "manageSubscription": "Manage Subscription",
+            "getStarted": "Get Started",
+            "upgrade": "Upgrade"
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "5 AI credits a day",
+            "monthlyCreditsFeature": "15 AI credits a month",
+            "dailyCreditsLabel": "5 Daily Credits"
+        },
+        "credits": {
+            "selectPlaceholder": "Select credits",
+            "currentPlan": "Current Plan",
+            "pending": "Pending"
+        },
+        "enterprise": {
+            "contactUs": "Contact Us"
         },
         "loading": {
             "checkingPayment": "Checking for payment..."

@@ -6,11 +6,12 @@ import { toast } from '@weblab/ui/sonner';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
 
-export const useSubscription = () => {
+export const useSubscription = ({ enabled = true }: { enabled?: boolean } = {}) => {
     const state = useStateManager();
     const { data: subscription, refetch: refetchSubscription } = api.subscription.get.useQuery(
         undefined,
         {
+            enabled,
             refetchInterval: state.isSubscriptionModalOpen ? 3000 : false,
         },
     );

@@ -51,7 +51,7 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
                 ScheduledSubscriptionAction.PRICE_CHANGE &&
             subscription.scheduledChange.price
         ) {
-            message = `Your ${subscription.scheduledChange.price.monthlyMessageLimit} messages a month plan starts on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            message = `Your ${subscription.scheduledChange.price.monthlyMessageLimit} credits a month plan starts on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
         } else if (
             subscription?.scheduledChange?.scheduledAction ===
             ScheduledSubscriptionAction.CANCELLATION
@@ -94,7 +94,7 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
                                 {usage?.limitCount ?? 0}
                             </div>
                             <div className="text-muted-foreground">
-                                {usage?.period === 'day' ? 'daily' : 'monthly'} chats used
+                                {usage?.period === 'day' ? 'daily' : 'monthly'} credits used
                             </div>
                         </>
                     )}

@@ -12,6 +12,7 @@ import { AuthModal } from '../_components/auth-modal';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { FAQSection } from '../_components/landing-page/faq-section';
 import { WebsiteLayout } from '../_components/website-layout';
+import { PricingTable } from '@/components/ui/pricing-table';
 
 const HIGHLIGHTED_FEATURES = [
     {
@@ -90,14 +91,19 @@ Best regards,
     return (
         <WebsiteLayout showFooter={true}>
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-8">
-                <div className="mt-24 mb-12 w-full text-left">
+                <div className="mt-24 mb-16 w-full text-left">
                     <h1 className="text-foreground mb-4 text-5xl font-light">Pricing</h1>
                     <p className="text-muted-foreground text-regular">
                         Equip your product team with the power of AI
                     </p>
                 </div>
 
-                {/* Enterprise Section */}
+                {/* Plan Cards */}
+                <div className="mb-24 w-full">
+                    <PricingTable />
+                </div>
+
+                {/* Enterprise Detail Section */}
                 <div className="mx-auto w-full max-w-6xl">
                     <div className="border-border-primary rounded-lg border p-8 sm:p-12">
                         <div className="mb-8 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">

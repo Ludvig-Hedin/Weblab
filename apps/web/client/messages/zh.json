@@ -164,7 +164,12 @@
                 "name": "Launch",
                 "price": "$50/月",
                 "description": "适用于初创公司和成长型团队",
-                "features": ["无限制的每日消息", "优先支持", "高级集成", "团队协作功能"]
+                "features": [
+                    "无限制的每日消息",
+                    "优先支持",
+                    "高级集成",
+                    "团队协作功能"
+                ]
             },
             "scale": {
                 "name": "Scale",
@@ -186,7 +191,9 @@
         "buttons": {
             "currentPlan": "当前方案",
             "getPro": "升级到 Pro",
-            "manageSubscription": "管理订阅"
+            "manageSubscription": "管理订阅",
+            "getStarted": "立即开始",
+            "upgrade": "升级"
         },
         "loading": {
             "checkingPayment": "正在检查付款..."
@@ -207,6 +214,19 @@
         },
         "footer": {
             "unusedMessages": "未使用的聊天消息会结转到下个月"
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "每天5个AI积分",
+            "monthlyCreditsFeature": "每月15个AI积分",
+            "dailyCreditsLabel": "5个每日积分"
+        },
+        "credits": {
+            "selectPlaceholder": "选择积分",
+            "currentPlan": "当前方案",
+            "pending": "待处理"
+        },
+        "enterprise": {
+            "contactUs": "联系我们"
         }
     },
     "editor": {
@@ -403,7 +423,6 @@
             "contactUs": {
                 "title": "联系我们",
                 "website": "网站",
-
                 "github": "GitHub",
                 "email": "邮箱"
             },

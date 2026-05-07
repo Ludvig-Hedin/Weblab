@@ -26,7 +26,7 @@ export interface PriceConfig {
 
 export const PRO_PRICES: PriceConfig[] = [
     {
-        description: '100 Messages per Month',
+        description: '100 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_1,
         name: 'Tier 1',
         product: ProductType.PRO,
@@ -35,7 +35,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '200 Messages per Month',
+        description: '200 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_2,
         name: 'Tier 2',
         product: ProductType.PRO,
@@ -44,7 +44,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '400 Messages per Month',
+        description: '400 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_3,
         name: 'Tier 3',
         product: ProductType.PRO,
@@ -53,7 +53,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '800 Messages per Month',
+        description: '800 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_4,
         name: 'Tier 4',
         product: ProductType.PRO,
@@ -62,7 +62,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '1,200 Messages per Month',
+        description: '1,200 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_5,
         name: 'Tier 5',
         product: ProductType.PRO,
@@ -71,7 +71,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '2,000 Messages per Month',
+        description: '2,000 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_6,
         name: 'Tier 6',
         product: ProductType.PRO,
@@ -80,7 +80,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '3,000 Messages per Month',
+        description: '3,000 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_7,
         name: 'Tier 7',
         product: ProductType.PRO,
@@ -89,7 +89,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '4,000 Messages per Month',
+        description: '4,000 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_8,
         name: 'Tier 8',
         product: ProductType.PRO,
@@ -98,7 +98,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '5,000 Messages per Month',
+        description: '5,000 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_9,
         name: 'Tier 9',
         product: ProductType.PRO,
@@ -107,7 +107,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: '7,500 Messages per Month',
+        description: '7,500 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_10,
         name: 'Tier 10',
         product: ProductType.PRO,
@@ -116,7 +116,7 @@ export const PRO_PRICES: PriceConfig[] = [
         paymentInterval: 'month',
     },
     {
-        description: 'Unlimited Messages per Month',
+        description: 'Unlimited Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_11,
         name: 'Tier 11',
         product: ProductType.PRO,

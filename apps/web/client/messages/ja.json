@@ -58,7 +58,9 @@
         "buttons": {
             "currentPlan": "現在のプラン",
             "getPro": "Proを取得",
-            "manageSubscription": "サブスクリプションを管理"
+            "manageSubscription": "サブスクリプションを管理",
+            "getStarted": "今すぐ始める",
+            "upgrade": "アップグレード"
         },
         "loading": {
             "checkingPayment": "支払いを確認中..."
@@ -79,6 +81,19 @@
         },
         "footer": {
             "unusedMessages": "未使用のチャットメッセージは翌月に繰り越されます。"
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "1日5AIクレジット",
+            "monthlyCreditsFeature": "月15AIクレジット",
+            "dailyCreditsLabel": "1日5クレジット"
+        },
+        "credits": {
+            "selectPlaceholder": "クレジットを選択",
+            "currentPlan": "現在のプラン",
+            "pending": "保留中"
+        },
+        "enterprise": {
+            "contactUs": "お問い合わせ"
         }
     },
     "editor": {
@@ -408,7 +423,6 @@
             "contactUs": {
                 "title": "お問い合わせ",
                 "website": "ウェブサイト",
-
                 "github": "GitHub",
                 "email": "メール"
             },

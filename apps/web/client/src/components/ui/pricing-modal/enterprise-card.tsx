@@ -20,7 +20,13 @@ const ENTERPRISE_TIER = {
     ],
 };
 
-export const EnterpriseCard = ({ delay }: { delay: number }) => {
+export const EnterpriseCard = ({
+    delay,
+    variant = 'card',
+}: {
+    delay: number;
+    variant?: 'card' | 'flat';
+}) => {
     const t = useTranslations();
 
     const handleContactUs = () => {
@@ -36,6 +42,34 @@ Best regards,
 
         window.location.href = `mailto:contact@weblab.build?subject=${subject}&body=${body}`;
     };
+
+    if (variant === 'flat') {
+        return (
+            <div className="flex flex-col">
+                <div className="space-y-1">
+                    <h2 className="text-foreground text-3xl font-light">{ENTERPRISE_TIER.name}</h2>
+                    <p className="text-foreground text-sm font-semibold">{ENTERPRISE_TIER.price}</p>
+                </div>
+                <div className="mt-6">
+                    <Button size="sm" className="rounded-full" onClick={handleContactUs}>
+                        Contact Us
+                    </Button>
+                </div>
+                <div className="border-border-primary my-8 border-t" />
+                <div className="flex flex-col gap-3">
+                    {ENTERPRISE_TIER.features.map((feature) => (
+                        <div
+                            key={feature}
+                            className="text-foreground-secondary flex items-start gap-3 text-sm"
+                        >
+                            <Icons.CheckCircled className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                            <span>{feature}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <MotionCard

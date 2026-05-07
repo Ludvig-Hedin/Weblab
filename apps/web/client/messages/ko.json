@@ -164,7 +164,12 @@
                 "name": "Launch",
                 "price": "$50/월",
                 "description": "스타트업과 성장 중인 팀에 적합",
-                "features": ["무제한 일일 메시지", "우선 지원", "고급 통합", "팀 협업 기능"]
+                "features": [
+                    "무제한 일일 메시지",
+                    "우선 지원",
+                    "고급 통합",
+                    "팀 협업 기능"
+                ]
             },
             "scale": {
                 "name": "Scale",
@@ -186,7 +191,9 @@
         "buttons": {
             "currentPlan": "현재 사용중인 요금제",
             "getPro": "프로 구독하기",
-            "manageSubscription": "구독 관리"
+            "manageSubscription": "구독 관리",
+            "getStarted": "시작하기",
+            "upgrade": "업그레이드"
         },
         "loading": {
             "checkingPayment": "결제 확인 중..."
@@ -207,6 +214,19 @@
         },
         "footer": {
             "unusedMessages": "사용하지 않은 채팅 메시지는 다음 달로 이월됩니다."
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "하루 5개의 AI 크레딧",
+            "monthlyCreditsFeature": "월 15개의 AI 크레딧",
+            "dailyCreditsLabel": "일일 크레딧 5개"
+        },
+        "credits": {
+            "selectPlaceholder": "크레딧 선택",
+            "currentPlan": "현재 플랜",
+            "pending": "대기 중"
+        },
+        "enterprise": {
+            "contactUs": "문의하기"
         }
     },
     "editor": {
@@ -403,7 +423,6 @@
             "contactUs": {
                 "title": "문의하기",
                 "website": "웹사이트",
-
                 "github": "GitHub",
                 "email": "이메일"
             },
