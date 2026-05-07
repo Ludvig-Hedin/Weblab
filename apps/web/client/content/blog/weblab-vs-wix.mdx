@@ -1,0 +1,82 @@
+---
+title: "Weblab vs Wix: Developer Tool vs Small-Business Website Builder"
+description: "Wix Harmony brings AI-powered website building to small businesses. Weblab brings visual editing to React engineering teams. The audiences barely overlap."
+date: "2026-04-30"
+author: "Ludvig Hedin"
+authorImage: "https://github.com/Ludvig-Hedin.png"
+category: "Comparisons"
+tags: ["wix", "comparison", "visual editor", "react", "website builder"]
+coverImage: "/assets/blog/canvas-editor.svg"
+---
+
+Wix is the most widely used website builder in the world, serving hundreds of millions of users who want professional websites without touching code. In January 2026, Wix launched Wix Harmony — a hybrid AI website builder combining natural language generation with traditional drag-and-drop editing. It is a meaningful product for its audience.
+
+Weblab is built for a completely different audience: software engineering teams with React codebases who need visual editing to integrate with their GitHub workflow.
+
+If you are reading this comparison trying to choose between these two products, the decision is almost certainly straightforward.
+
+## Wix in 2026
+
+Wix's core offering is a drag-and-drop website builder with an extensive template library, built-in hosting, eCommerce, booking tools, and CMS — all in one platform. The pricing ranges from $17/month (Light, basic features) to $159/month (Business Elite, unlimited storage and premium support), billed annually.
+
+### Wix Harmony
+
+Launched January 2026, Wix Harmony adds Aria — an AI agent that accepts natural language instructions and executes them within the Wix editor. You can tell Aria to add a new section, change the color palette, or rearrange the layout, and it makes the change visually. The result is a hybrid workflow: AI generation for speed, drag-and-drop refinement for precision.
+
+Wix AI tools are available from the free plan. The AI writing assistant supports 11 languages.
+
+### What Wix Cannot Do
+
+- Connect to an external React codebase
+- Use your design tokens or component library
+- Generate pull requests or integrate with GitHub
+- Let engineers and designers collaborate in a shared component model
+- Deploy to your own infrastructure (sites live on Wix's servers)
+
+## Weblab for Engineering Teams
+
+Weblab gives React teams a visual editing layer that integrates with their existing process. It reads your codebase, displays your components on an infinite canvas, and writes changes back to your repository as pull requests. Designers can make visual changes without the terminal; engineers review and merge them like any other PR.
+
+### The Design System Difference
+
+Wix's AI generates new website sections using Wix's own design primitives. Weblab's AI is constrained to your existing components and tokens. If your design system has a `<Button variant="primary">` and a `<Button variant="secondary">`, Weblab's AI uses those — it cannot invent a new button style. This prevents brand drift over time.
+
+## Side-by-Side Comparison
+
+| Feature | Weblab | Wix |
+|---------|--------|-----|
+| Target audience | Engineering teams with React codebases | Small businesses, non-technical users |
+| Input | Your existing React / Next.js codebase | Wix's visual editor |
+| Output | GitHub pull request | Wix-hosted website |
+| Code ownership | Yes — always | No |
+| React support | Native | None |
+| Design system | AI enforces your tokens | Wix's own components |
+| AI | Design-system-aware | Aria (natural language site editing) |
+| eCommerce | Bring your own | Built-in Wix eCommerce |
+| Hosting | Your infrastructure | Wix servers |
+| Open source | Yes | No |
+| Pricing | Free to open source | $17–$159/month |
+
+## Who Should Use Each
+
+**Wix is right if:**
+- You are a small business owner, freelancer, or individual
+- You want a complete website solution with domain, hosting, and email
+- You have no technical skills and do not want any
+- Affordability is your primary criterion
+- You need built-in booking, eCommerce, or CMS tools
+
+**Weblab is right if:**
+- Your team has a React or Next.js product with an existing codebase
+- Designers and engineers collaborate and share a component library
+- Visual changes must go through code review as pull requests
+- Your AI editor must respect your design system
+- You deploy to Vercel, AWS, or your own infrastructure
+
+## The Bottom Line
+
+Wix and Weblab address orthogonal problems. Wix is a consumer product for people who need a website. Weblab is a developer tool for teams who have a codebase. The right product is whichever one describes your situation.
+
+---
+
+[Compare Weblab to other tools →](/compare) | [Start using Weblab →](/projects)
