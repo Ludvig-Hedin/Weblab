@@ -234,7 +234,7 @@ export const Create = observer(
                         (item.type === 'Files' && e.dataTransfer.types.includes('public.file-url')),
                 );
             if (!hasImage) {
-                e.currentTarget.setAttribute('data-dragging-image', 'false');
+                e.currentTarget.setAttribute('data-weblab-dragging-image', 'false');
             }
         };
 
@@ -295,7 +295,6 @@ export const Create = observer(
                     disabled={isCreatingProject}
                     submitDisabled={isInputInvalid}
                     showImageButton
-                    imageButtonTooltip="Upload image"
                     imageButtonDisabled={isHandlingFile}
                     showMicButton
                     onTranscript={handleTranscript}

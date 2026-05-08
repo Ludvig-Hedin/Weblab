@@ -7,12 +7,12 @@ import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
+import { PricingTable } from '@/components/ui/pricing-table';
 import { Routes } from '@/utils/constants';
 import { AuthModal } from '../_components/auth-modal';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { FAQSection } from '../_components/landing-page/faq-section';
 import { WebsiteLayout } from '../_components/website-layout';
-import { PricingTable } from '@/components/ui/pricing-table';
 
 const HIGHLIGHTED_FEATURES = [
     {

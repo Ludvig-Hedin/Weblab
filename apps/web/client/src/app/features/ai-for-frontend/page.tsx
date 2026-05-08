@@ -80,17 +80,14 @@ export default function AiForFrontendPage() {
                 </div>
 
                 {/* AI-Friendly Summary Section - Hidden visually but available for crawlers */}
-                <section
-                    className="sr-only"
-                    aria-label="Product Summary"
-                >
+                <section className="sr-only" aria-label="Product Summary">
                     <h1>{APP_NAME}: AI for Frontend Development</h1>
                     <p>
                         {APP_NAME} is an AI-powered visual editor for frontend development that
                         connects to your existing React, Vue, or Angular codebase. Unlike generic AI
-                        code generators that produce throwaway HTML/CSS, {APP_NAME} constrains AI
-                        to your real components and design system — your buttons, cards, and
-                        layouts. Changes become mergeable pull requests, not prototypes that need
+                        code generators that produce throwaway HTML/CSS, {APP_NAME} constrains AI to
+                        your real components and design system — your buttons, cards, and layouts.
+                        Changes become mergeable pull requests, not prototypes that need
                         translation.
                     </p>
                     <h2>Key Features</h2>
@@ -98,7 +95,9 @@ export default function AiForFrontendPage() {
                         <li>AI constrained to your design system — no brand drift</li>
                         <li>Works with React, Next.js, Vue, Angular, Svelte, and more</li>
                         <li>Supports Tailwind, CSS Modules, styled-components, SASS</li>
-                        <li>Compatible with shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI</li>
+                        <li>
+                            Compatible with shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI
+                        </li>
                         <li>Visual canvas interface — no coding required for designers</li>
                         <li>Changes become real pull requests engineers can merge</li>
                         <li>Open source</li>

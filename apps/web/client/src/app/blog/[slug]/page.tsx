@@ -12,9 +12,9 @@ import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { BlogPostMeta } from '@/lib/blog';
 import { WebsiteLayout } from '@/app/_components/website-layout';
 import { TableOfContents } from '@/app/blog/_components/table-of-contents';
+import { blogPostingSchema, breadcrumbSchema } from '@/app/seo';
 import { getAllPosts, getPostBySlug, getRelatedPosts } from '@/lib/blog';
 import { ExternalRoutes, Routes } from '@/utils/constants';
-import { blogPostingSchema, breadcrumbSchema } from '@/app/seo';
 
 interface Props {
     params: Promise<{ slug: string }>;

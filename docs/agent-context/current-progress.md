@@ -41,6 +41,8 @@ Observed active areas:
   comment tables, settings columns, later hand-written DB edits, comment
   polling backoff, tRPC error dedupe, and optional telemetry warning
   suppression.
+- Telemetry provider client runtime fix: PostHog missing-key handling must not
+  read server-only env values from the client component.
 - UI package/component changes for shared primitives and settings/modal flows.
 
 Useful progress notes already exist in:

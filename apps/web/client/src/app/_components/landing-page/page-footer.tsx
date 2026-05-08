@@ -5,6 +5,9 @@ import { Icons } from '@weblab/ui/icons';
 
 import { ExternalRoutes, Routes } from '@/utils/constants';
 
+const linkClass =
+    'relative inline-block text-foreground-secondary transition-colors duration-200 hover:text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
+
 export function Footer() {
     const router = useRouter();
 
@@ -22,9 +25,9 @@ export function Footer() {
                 <div className="flex flex-1 flex-col justify-center gap-12 md:flex-row md:gap-12">
                     <div>
                         <h3 className="text-regularPlus text-foreground-primary mb-4">Company</h3>
-                        <ul className="text-regular text-foreground-secondary flex flex-col gap-4">
+                        <ul className="text-regular flex flex-col gap-4">
                             <li>
-                                <a href={Routes.ABOUT} className="hover:underline">
+                                <a href={Routes.ABOUT} className={linkClass}>
                                     About
                                 </a>
                             </li>
@@ -32,7 +35,7 @@ export function Footer() {
                                 <a
                                     href={ExternalRoutes.DOCS}
                                     target="_blank"
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="View Weblab documentation"
                                 >
                                     Docs
@@ -41,7 +44,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.FAQ}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Frequently Asked Questions"
                                 >
                                     FAQ
@@ -50,7 +53,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.BLOG}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Read the Weblab blog"
                                 >
                                     Blog
@@ -59,7 +62,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.CHANGELOG}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="See what's new in Weblab"
                                 >
                                     Changelog
@@ -68,7 +71,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href="mailto:contact@weblab.build"
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Contact Weblab support"
                                 >
                                     Contact
@@ -78,11 +81,11 @@ export function Footer() {
                     </div>
                     <div>
                         <h3 className="text-regularPlus text-foreground-primary mb-4">Product</h3>
-                        <ul className="text-regular text-foreground-secondary flex flex-col gap-4">
+                        <ul className="text-regular flex flex-col gap-4">
                             <li>
                                 <a
                                     href={Routes.PROJECTS}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="View your projects"
                                 >
                                     My Projects
@@ -92,7 +95,7 @@ export function Footer() {
                                 <a
                                     href={ExternalRoutes.GITHUB}
                                     target="_blank"
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="View Weblab on GitHub"
                                 >
                                     GitHub Repo
@@ -101,7 +104,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href="/features"
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="View Weblab features"
                                 >
                                     Features
@@ -110,7 +113,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.FEATURES_AI}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="AI-powered development tools"
                                 >
                                     AI
@@ -119,7 +122,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.FEATURES_AI_FRONTEND}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="AI constrained to your design system"
                                 >
                                     AI for Frontend
@@ -128,7 +131,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.FEATURES_PROTOTYPE}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Rapid prototyping features"
                                 >
                                     Prototyping
@@ -137,7 +140,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.FEATURES_BUILDER}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Visual builder tools"
                                 >
                                     Visual Builder
@@ -146,7 +149,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href="/pricing"
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="View Weblab pricing"
                                 >
                                     Pricing
@@ -156,11 +159,11 @@ export function Footer() {
                     </div>
                     <div>
                         <h3 className="text-regularPlus text-foreground-primary mb-4">Workflows</h3>
-                        <ul className="text-regular text-foreground-secondary flex flex-col gap-4">
+                        <ul className="text-regular flex flex-col gap-4">
                             <li>
                                 <a
                                     href={Routes.WORKFLOWS_CLAUDE_CODE}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Use Weblab with Claude Code"
                                 >
                                     Claude Code
@@ -169,7 +172,7 @@ export function Footer() {
                             <li>
                                 <a
                                     href={Routes.WORKFLOWS_VIBE_CODING}
-                                    className="hover:underline"
+                                    className={linkClass}
                                     title="Vibe coding for teams"
                                 >
                                     Vibe Coding
@@ -186,8 +189,9 @@ export function Footer() {
                                 rel="noopener noreferrer"
                                 title="View Weblab on GitHub"
                                 aria-label="View Weblab on GitHub"
+                                className="transition-all duration-150 hover:scale-110"
                             >
-                                <Icons.GitHubLogo className="text-foreground-secondary hover:text-foreground-primary h-5.5 w-5.5 transition-colors" />
+                                <Icons.GitHubLogo className="text-foreground-secondary hover:text-foreground-primary h-5.5 w-5.5 transition-colors duration-150" />
                             </a>
                         </div>
                     </div>
@@ -200,19 +204,19 @@ export function Footer() {
                     <div className="text-foreground-tertiary text-small mb-4 flex w-full justify-center gap-8 md:mb-0 md:w-auto">
                         <a
                             href="/terms-of-service"
-                            className="hover:underline"
+                            className={linkClass}
                             title="Read our Terms of Service"
                         >
                             Terms of Service
                         </a>
                         <a
                             href="/privacy-policy"
-                            className="hover:underline"
+                            className={linkClass}
                             title="Read our Privacy Policy"
                         >
                             Privacy Policy
                         </a>
-                        <a href="/site-map" className="hover:underline" title="View the sitemap">
+                        <a href="/site-map" className={linkClass} title="View the sitemap">
                             Sitemap
                         </a>
                     </div>

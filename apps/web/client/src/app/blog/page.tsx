@@ -52,8 +52,8 @@ function PostCard({ post, featured = false }: { post: BlogPostMeta; featured?: b
                 <h2
                     className={
                         featured
-                            ? 'text-foreground-primary mb-2 text-xl font-normal leading-snug tracking-tight md:text-2xl'
-                            : 'text-foreground-primary mb-2 text-sm font-normal leading-snug tracking-tight'
+                            ? 'text-foreground-primary mb-2 text-xl leading-snug font-normal tracking-tight md:text-2xl'
+                            : 'text-foreground-primary mb-2 text-sm leading-snug font-normal tracking-tight'
                     }
                 >
                     {frontmatter.title}

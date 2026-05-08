@@ -54,3 +54,4 @@ mise.toml
 
 # Generated design index (Weblab visual editor artifact)
 packages/ui/.t3/
+reference/

@@ -34,7 +34,7 @@ export const TopBar = () => {
                         href={link.href}
                         key={link.href}
                         className={cn(
-                            'hover:opacity-80',
+                            'transition-opacity duration-150 hover:opacity-70',
                             currentPath === link.href && 'text-foreground-primary',
                             link.href === Routes.HOME && 'py-4 pr-2',
                         )}

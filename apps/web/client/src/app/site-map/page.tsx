@@ -269,7 +269,7 @@ export default function SitemapPage() {
                     Sitemap
                 </h1>
                 <p className="text-foreground-secondary mb-16 max-w-2xl text-lg">
-                    Browse all pages on Weblab.com — features, workflows, resources, and more.
+                    Browse all pages on Weblab.build.
                 </p>
 
                 <div className="flex flex-col gap-12 lg:flex-row" ref={containerRef}>

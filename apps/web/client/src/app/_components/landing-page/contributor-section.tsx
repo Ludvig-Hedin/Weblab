@@ -2,9 +2,10 @@
 
 import './contributor.css';
 
-import { Icons } from '@weblab/ui/icons';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+
+import { Icons } from '@weblab/ui/icons';
 
 interface Contributor {
     login: string;
@@ -87,33 +88,36 @@ const FloatingRings = ({ repo }: { repo: string }) => {
 
     return (
         <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square pointer-events-none"
+            className="pointer-events-none absolute top-1/2 left-1/2 aspect-square -translate-x-1/2 -translate-y-1/2"
             style={{ width: size, height: size }}
         >
             {/* Inner ring (clockwise) */}
-            <div className="absolute left-1/2 top-1/2 w-full h-full spin-normal">
+            <div className="spin-normal absolute top-1/2 left-1/2 h-full w-full">
                 {Array.from({ length: innerRingCount }).map((_, i) => {
                     const angle = (i / innerRingCount) * 2 * Math.PI;
                     const x = center + Math.cos(angle) * innerRadius;
                     const y = center + Math.sin(angle) * innerRadius;
-                    const contributor = !isLoading && contributors.length > 0 ? contributors[i % contributors.length] : null;
+                    const contributor =
+                        !isLoading && contributors.length > 0
+                            ? contributors[i % contributors.length]
+                            : null;
                     return (
                         <div
                             key={`inner-${i}`}
-                            className="absolute rounded-full bg-white/20 border border-foreground-primary/40 border-[0.5px] shadow-lg overflow-hidden counter-spin"
+                            className="border-foreground-primary/40 counter-spin absolute overflow-hidden rounded-full border border-[0.5px] bg-white/20 shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
                                 left: `${x - 28}px`,
                                 top: `${y - 28}px`,
-                                transformOrigin: 'center center'
+                                transformOrigin: 'center center',
                             }}
                         >
                             {contributor && (
                                 <img
                                     src={contributor.avatar_url}
                                     alt={`${contributor.login}'s avatar`}
-                                    className="w-full h-full object-cover"
+                                    className="h-full w-full object-cover"
                                     loading="lazy"
                                 />
                             )}
@@ -122,30 +126,33 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                 })}
             </div>
             {/* Outer ring */}
-            <div className="absolute left-1/2 top-1/2 w-full h-full spin-reverse">
+            <div className="spin-reverse absolute top-1/2 left-1/2 h-full w-full">
                 {Array.from({ length: outerRingCount }).map((_, i) => {
                     const angle = (i / outerRingCount) * 2 * Math.PI;
                     const x = center + Math.cos(angle) * outerRadius;
                     const y = center + Math.sin(angle) * outerRadius;
                     const contributorIndex = (i + innerRingCount) % (contributors.length || 1);
-                    const contributor = !isLoading && contributors.length > 0 ? contributors[contributorIndex] : null;
+                    const contributor =
+                        !isLoading && contributors.length > 0
+                            ? contributors[contributorIndex]
+                            : null;
                     return (
                         <div
                             key={`outer-${i}`}
-                            className="absolute rounded-full bg-white/20 border border-foreground-primary/40 border-[0.5px] shadow-lg overflow-hidden counter-spin-reverse"
+                            className="border-foreground-primary/40 counter-spin-reverse absolute overflow-hidden rounded-full border border-[0.5px] bg-white/20 shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
                                 left: `${x - 28}px`,
                                 top: `${y - 28}px`,
-                                transformOrigin: 'center center'
+                                transformOrigin: 'center center',
                             }}
                         >
                             {contributor && (
                                 <img
                                     src={contributor.avatar_url}
                                     alt={`${contributor.login}'s avatar`}
-                                    className="w-full h-full object-cover"
+                                    className="h-full w-full object-cover"
                                     loading="lazy"
                                 />
                             )}
@@ -170,10 +177,10 @@ interface ContributorSectionProps {
 
 export function ContributorSection({
     contributorCount = 0,
-    githubLink = "https://github.com/Ludvig-Hedin/Weblab",
+    githubLink = 'https://github.com/Ludvig-Hedin/Weblab',
     // discordLink = "https://discord.gg/ZZzadNQtns"
 }: ContributorSectionProps) {
-    const [starCount, setStarCount] = useState<string>("0");
+    const [starCount, setStarCount] = useState<string>('0');
     const [isLoading, setIsLoading] = useState(true);
     const repo = parseRepoFromUrl(githubLink);
 
@@ -199,24 +206,29 @@ export function ContributorSection({
     }, [contributorCount, repo]);
 
     return (
-        <div className="relative w-full flex items-center justify-center py-32 mt-8 overflow-hidden px-4">
+        <div className="relative mt-8 flex w-full items-center justify-center overflow-hidden px-4 py-32">
             {/* Main Contributors Content */}
-            <div className="w-full max-w-6xl mx-auto relative z-10 flex flex-col items-center justify-center bg-background-weblab rounded-3xl px-12 py-32 shadow-xl overflow-hidden md:[--md-scale:1] [--md-scale:0]" style={{ minWidth: 420 }}>
+            <div
+                className="bg-background-weblab relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center justify-center overflow-hidden rounded-3xl px-12 py-32 shadow-xl [--md-scale:0] md:[--md-scale:1]"
+                style={{ minWidth: 420 }}
+            >
                 {/* Floating Circles: two concentric rings */}
                 <FloatingRings repo={repo} />
-                <h2 className="text-foreground-primary text-3xl md:text-4xl font-light text-center mb-2">
+                <h2 className="text-foreground-primary mb-2 text-center text-3xl font-light md:text-4xl">
                     Supported by you &<br />
                     {isLoading ? '...' : starCount} other builders
                 </h2>
-                <p className="text-foreground-secondary text-regular text-center mb-8 max-w-xl">Join the community building <br /> the open source Cursor for Designers</p>
-                <div className="flex gap-4 flex-col md:flex-row w-full justify-center items-center">
+                <p className="text-foreground-secondary text-regular mb-8 max-w-xl text-center">
+                    Join the community building <br /> the open source Cursor for Designers
+                </p>
+                <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
                     <Link
                         href={githubLink}
                         target="_blank"
-                        className="bg-foreground-primary text-background-primary text-regularPlus rounded-lg px-6 py-3 flex items-center gap-2 shadow hover:bg-foreground-primary/80 transition cursor-pointer"
+                        className="bg-foreground-primary text-background-primary text-regularPlus hover:bg-foreground-primary/80 flex cursor-pointer items-center gap-2 rounded-lg px-6 py-3 shadow transition"
                     >
                         Contribute to Weblab
-                        <Icons.GitHubLogo className="w-4.5 h-4.5" />
+                        <Icons.GitHubLogo className="h-4.5 w-4.5" />
                     </Link>
                     {/* <Link
                         href={discordLink}
@@ -230,4 +242,4 @@ export function ContributorSection({
             </div>
         </div>
     );
-} 
+}

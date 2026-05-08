@@ -13,7 +13,6 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 
 import { env } from '@/env';
-import { useGetBackground } from '@/hooks/use-get-background';
 import { transKeys } from '@/i18n/keys';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { DevLoginButton, LoginButton } from '../_components/login-button';
@@ -29,7 +28,6 @@ const AUTH_PROVIDERS = new Set(
 
 export default function LoginPage() {
     const t = useTranslations();
-    const backgroundUrl = useGetBackground('login');
     const returnUrl = useSearchParams().get(LocalForageKeys.RETURN_URL);
     const router = useRouter();
     const [email, setEmail] = useState('');
@@ -160,14 +158,33 @@ export default function LoginPage() {
                     <p>{t(transKeys.welcome.version, { version: pkg.version })}</p>
                 </div>
             </div>
-            <div className="m-6 hidden w-full md:block">
-                <Image
-                    className="h-full w-full rounded-xl object-cover"
-                    src={backgroundUrl}
-                    alt=""
-                    width={1000}
-                    height={1000}
-                />
+            <div className="m-6 hidden w-full overflow-hidden rounded-xl md:block">
+                <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 p-8">
+                    {/* Subtle radial glow behind the screenshot */}
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_60%,rgba(100,149,237,0.08),transparent)]" />
+                    <div className="relative w-full max-w-2xl">
+                        {/* Browser chrome bar */}
+                        <div className="flex items-center gap-1.5 rounded-t-lg bg-zinc-800/80 px-4 py-2.5 backdrop-blur-sm">
+                            <span className="h-3 w-3 rounded-full bg-red-500/70" />
+                            <span className="h-3 w-3 rounded-full bg-yellow-500/70" />
+                            <span className="h-3 w-3 rounded-full bg-green-500/70" />
+                            <div className="ml-3 flex-1 rounded bg-zinc-700/60 px-3 py-1 text-xs text-zinc-400">
+                                weblab.build
+                            </div>
+                        </div>
+                        {/* Screenshot */}
+                        <div className="overflow-hidden rounded-b-lg shadow-2xl ring-1 ring-white/10">
+                            <Image
+                                className="w-full object-cover object-top"
+                                src="/assets/site-version-4.png"
+                                alt="Weblab app"
+                                width={1200}
+                                height={800}
+                                priority
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

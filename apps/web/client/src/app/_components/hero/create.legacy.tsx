@@ -162,7 +162,7 @@ export const Create = observer(
             // Find and reset the container's data attribute
             const container = e.currentTarget.closest('[data-create-container]');
             if (container) {
-                container.setAttribute('data-dragging-image', 'false');
+                container.setAttribute('data-weblab-dragging-image', 'false');
             }
             const files = Array.from(e.dataTransfer.files);
             handleNewImageFiles(files);
@@ -255,7 +255,7 @@ export const Create = observer(
                 // Find the container div with the bg-background-secondary class
                 const container = e.currentTarget.closest('[data-create-container]');
                 if (container) {
-                    container.setAttribute('data-dragging-image', isDragging.toString());
+                    container.setAttribute('data-weblab-dragging-image', isDragging.toString());
                 }
             }
         };
