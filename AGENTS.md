@@ -51,6 +51,8 @@ Before broad or cross-cutting work, read the relevant files in
 - API: tRPC + Zod (`apps/web/client/src/server/api/*`).
 - Package manager: Bun only — use Bun for all installs and scripts; do not use
   npm, yarn, or pnpm.
+- Deployment: `apps/web/client` is deployed on **Railway** (not Vercel). Do not
+  check Vercel for deployment status or production logs.
 
 ### Agent Priorities
 

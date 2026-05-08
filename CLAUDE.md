@@ -46,6 +46,10 @@ bun db:reset         # Reset schema + reseed
 > Refrain from running the dev server in automation contexts.
 > Use Bun for all installs and scripts; do not use npm, yarn, or pnpm.
 
+## Deployment
+
+`apps/web/client` is deployed on **Railway** (not Vercel). When verifying deployments or checking production logs, use the Railway dashboard or CLI — do not look in Vercel. The GitHub remote is `https://github.com/Ludvig-Hedin/Weblab.git`.
+
 ## Optional Context Pack
 
 For broad or cross-cutting work, read the relevant files in `docs/agent-context/`:
