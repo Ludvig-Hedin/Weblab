@@ -9,7 +9,7 @@ import type { Provider } from '@weblab/code-provider';
 import type { FrameworkId, ProjectFile } from '@weblab/framework';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { SandboxTemplates, Templates } from '@weblab/constants';
-import { getFrameworkAdapter } from '@weblab/framework';
+import { detectFrameworkFromFiles, getFrameworkAdapter } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
 import { ProcessedFileType } from '@/app/projects/types';
@@ -35,6 +35,8 @@ interface ProjectCreationContextValue {
     framework: FrameworkId;
     setFramework: (id: FrameworkId) => void;
     isMultiFrameworkEnabled: boolean;
+    /** Run every adapter against `files` and update `framework` to the first match. */
+    autoDetectFramework: (files: ProcessedFile[]) => Promise<void>;
 
     // Actions
     error: string | null;
@@ -241,6 +243,27 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         }));
 
     /**
+     * Try every registered adapter against the uploaded files and update the
+     * picker selection to the first one that recognizes them. Called
+     * opportunistically on upload so users don't have to manually pick a
+     * framework — the picker becomes an override, not a required step.
+     *
+     * Skips when no adapter matches (silent: the picker stays visible if the
+     * flag is on, and the existing default ('nextjs') keeps the import flow
+     * working).
+     */
+    const autoDetectFramework = async (files: ProcessedFile[]): Promise<void> => {
+        try {
+            const detected = await detectFrameworkFromFiles(toProjectFiles(files));
+            if (detected) setFramework(detected);
+        } catch (err) {
+            // Detection failures are non-fatal — log for diagnostics and
+            // leave the picker at its current value.
+            console.warn('[import] framework auto-detection failed', err);
+        }
+    };
+
+    /**
      * Validates the imported folder against the picked framework's adapter.
      * Kept under the historical name `validateNextJsProject` so existing
      * callers don't churn — the function is now framework-aware and dispatches
@@ -343,6 +366,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         framework,
         setFramework,
         isMultiFrameworkEnabled,
+        autoDetectFramework,
         error,
         setProjectData,
         nextStep,

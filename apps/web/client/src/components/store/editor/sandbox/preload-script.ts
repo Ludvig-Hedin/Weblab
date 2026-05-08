@@ -12,6 +12,20 @@ import { RouterType } from '@weblab/models';
 import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@weblab/parser';
 import { isRootLayoutFile, normalizePath } from '@weblab/utility';
 
+/**
+ * Path the static-HTML preload script is written to in the project root.
+ * Static HTML projects don't have a `public/` directory; the dev task
+ * (`npx serve .`) serves project root, so a root-level path is publicly
+ * reachable without configuration.
+ */
+const STATIC_HTML_PRELOAD_FILENAME = '__weblab-preload.js';
+/**
+ * Marker comment used to detect whether the preload script tag has already
+ * been injected into an HTML file. Avoids duplicate injections on subsequent
+ * sandbox starts.
+ */
+const STATIC_HTML_PRELOAD_MARKER = 'data-weblab-preload="1"';
+
 export async function getPreloadScriptContent(): Promise<string> {
     const candidateSources = Array.from(
         new Set([WEBLAB_PRELOAD_SCRIPT_SRC, ...DEPRECATED_PRELOAD_SCRIPT_SRCS]),
@@ -104,6 +118,77 @@ export async function injectPreloadScriptIntoLayout(
         args: {
             path: layoutPath,
             content: modifiedContent,
+            overwrite: true,
+        },
+    });
+}
+
+/**
+ * Static-HTML equivalent of `copyPreloadScriptToPublic` + `injectPreloadScriptIntoLayout`.
+ * Writes the preload bundle to the project root (no public/ for static
+ * sites) and adds a `<script>` tag to the `<head>` of `index.html`. Idempotent —
+ * subsequent calls detect the marker and no-op.
+ */
+export async function copyPreloadScriptToStaticHtml(provider: Provider): Promise<void> {
+    try {
+        const scriptContent = await getPreloadScriptContent();
+        await provider.writeFile({
+            args: {
+                path: STATIC_HTML_PRELOAD_FILENAME,
+                content: scriptContent,
+                overwrite: true,
+            },
+        });
+
+        await injectPreloadScriptIntoStaticHtml(provider);
+    } catch (error) {
+        console.error('[PreloadScript] Failed to copy static-HTML preload script:', error);
+        throw error;
+    }
+}
+
+export async function injectPreloadScriptIntoStaticHtml(provider: Provider): Promise<void> {
+    const indexHtmlPath = 'index.html';
+    let response;
+    try {
+        response = await provider.readFile({ args: { path: indexHtmlPath } });
+    } catch (err) {
+        throw new Error(
+            `Could not read index.html for static-HTML preload injection. ` +
+                `Static HTML projects require an index.html at the project root. ` +
+                `Original error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+    }
+    if (typeof response.file.content !== 'string') {
+        throw new Error(`index.html is not a text file`);
+    }
+
+    const original = response.file.content;
+    if (original.includes(STATIC_HTML_PRELOAD_MARKER)) {
+        // Already injected — no-op so repeated sandbox starts don't pile
+        // up duplicate <script> tags.
+        return;
+    }
+
+    const tag = `<script defer src="/${STATIC_HTML_PRELOAD_FILENAME}" ${STATIC_HTML_PRELOAD_MARKER}></script>`;
+    // Prefer to inject before </head>. If there's no <head> element (rare —
+    // some hand-written demos skip it), fall back to inserting before <body>
+    // or as the very first content. parse5 would be more correct, but a
+    // bounded string operation matches what parse5 would do for the common
+    // case and keeps the dependency surface small for this hot path.
+    let modified: string;
+    if (/<\/head\s*>/i.test(original)) {
+        modified = original.replace(/<\/head\s*>/i, `    ${tag}\n  </head>`);
+    } else if (/<body[\s>]/i.test(original)) {
+        modified = original.replace(/<body([\s>])/i, `<head>\n    ${tag}\n  </head>\n<body$1`);
+    } else {
+        modified = `${tag}\n${original}`;
+    }
+
+    await provider.writeFile({
+        args: {
+            path: indexHtmlPath,
+            content: modified,
             overwrite: true,
         },
     });

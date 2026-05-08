@@ -29,7 +29,11 @@ export const EditorEngineProvider = ({
     const engineRef = useRef<EditorEngine | null>(null);
 
     const [editorEngine, setEditorEngine] = useState(() => {
-        const engine = new EditorEngine(project.id, posthog);
+        const engine = new EditorEngine(
+            project.id,
+            posthog,
+            project.metadata?.runtime?.framework ?? null,
+        );
         engine.initBranches(branches);
         engine.init();
         engine.screenshot.lastScreenshotAt = project.metadata?.previewImg?.updatedAt ?? null;
@@ -47,7 +51,11 @@ export const EditorEngineProvider = ({
                 }
 
                 // Create new engine for new project
-                const newEngine = new EditorEngine(project.id, posthog);
+                const newEngine = new EditorEngine(
+                    project.id,
+                    posthog,
+                    project.metadata?.runtime?.framework ?? null,
+                );
                 await newEngine.initBranches(branches);
                 await newEngine.init();
                 newEngine.screenshot.lastScreenshotAt =

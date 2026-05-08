@@ -289,4 +289,207 @@ describe('htmlPipeline.applyEdits — structural', () => {
         expect(html).toContain('keep');
         expect(html).not.toContain('remove');
     });
+
+    test('GROUP wraps the listed siblings in a new container at the first sibling position', async () => {
+        const ast = htmlPipeline.parse('<div><p>a</p><p>b</p><p>c</p></div>')!;
+        htmlPipeline.injectOids(ast);
+        const map = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: 'index.html',
+            branchId: 'b',
+        });
+        // map order: outer div first, then p#a, p#b, p#c.
+        const oids = Array.from(map.keys());
+        const divOid = oids[0]!;
+        const pAOid = oids[1]!;
+        const pCOid = oids[3]!;
+        await htmlPipeline.applyEdits(
+            ast,
+            new Map([
+                [
+                    divOid,
+                    {
+                        oid: divOid,
+                        branchId: 'b',
+                        attributes: {},
+                        tagName: null,
+                        textContent: null,
+                        overrideClasses: null,
+                        structureChanges: [
+                            {
+                                type: 'group',
+                                oid: divOid,
+                                container: {
+                                    domId: 'g1',
+                                    oid: 'group-oid-1',
+                                    tagName: 'section',
+                                    attributes: { class: 'wrapper' },
+                                },
+                                children: [
+                                    { domId: 'd-a', oid: pAOid, frameId: 'f', branchId: 'b' },
+                                    { domId: 'd-c', oid: pCOid, frameId: 'f', branchId: 'b' },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            ]) as never,
+        );
+        const html = await htmlPipeline.generate(ast, '');
+        // p#a and p#c are now inside <section class="wrapper">; p#b is left
+        // outside the wrapper but adjacent to it. Section is at the position
+        // of the first grouped child (p#a's original index).
+        expect(html).toMatch(
+            /<section[^>]*class="wrapper"[^>]*>[\s\S]*<p[^>]*>a<\/p>[\s\S]*<p[^>]*>c<\/p>[\s\S]*<\/section>/,
+        );
+        expect(html).toContain('<p ' + EditorAttributes.DATA_WEBLAB_ID + '="' + pCOid + '">c</p>');
+    });
+
+    test('GROUP dedupes a repeated child oid (no double-move, no cycle)', async () => {
+        const ast = htmlPipeline.parse('<div><p>only</p></div>')!;
+        htmlPipeline.injectOids(ast);
+        const map = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: 'index.html',
+            branchId: 'b',
+        });
+        const oids = Array.from(map.keys());
+        const divOid = oids[0]!;
+        const pOid = oids[1]!;
+        await htmlPipeline.applyEdits(
+            ast,
+            new Map([
+                [
+                    divOid,
+                    {
+                        oid: divOid,
+                        branchId: 'b',
+                        attributes: {},
+                        tagName: null,
+                        textContent: null,
+                        overrideClasses: null,
+                        structureChanges: [
+                            {
+                                type: 'group',
+                                oid: divOid,
+                                container: {
+                                    domId: 'g2',
+                                    oid: 'group-oid-2',
+                                    tagName: 'section',
+                                    attributes: {},
+                                },
+                                children: [
+                                    { domId: 'd-1', oid: pOid, frameId: 'f', branchId: 'b' },
+                                    // Same oid passed twice — should be deduped.
+                                    { domId: 'd-2', oid: pOid, frameId: 'f', branchId: 'b' },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            ]) as never,
+        );
+        const html = await htmlPipeline.generate(ast, '');
+        // <p> appears exactly once inside the container, not twice.
+        const pMatches = html.match(/<p[\s>]/g) ?? [];
+        expect(pMatches.length).toBe(1);
+    });
+
+    test('UNGROUP spreads the container children into the parent at the container position', async () => {
+        const ast = htmlPipeline.parse(
+            '<div><span>before</span><section><p>x</p><p>y</p></section><span>after</span></div>',
+        )!;
+        htmlPipeline.injectOids(ast);
+        const map = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: 'index.html',
+            branchId: 'b',
+        });
+        const oids = Array.from(map.keys());
+        const divOid = oids[0]!;
+        // map walk order: div, span#before, section, p#x, p#y, span#after.
+        const sectionOid = oids[2]!;
+        await htmlPipeline.applyEdits(
+            ast,
+            new Map([
+                [
+                    divOid,
+                    {
+                        oid: divOid,
+                        branchId: 'b',
+                        attributes: {},
+                        tagName: null,
+                        textContent: null,
+                        overrideClasses: null,
+                        structureChanges: [
+                            {
+                                type: 'ungroup',
+                                oid: divOid,
+                                container: {
+                                    domId: 'sec',
+                                    oid: sectionOid,
+                                    tagName: 'section',
+                                    attributes: {},
+                                },
+                                children: [],
+                            },
+                        ],
+                    },
+                ],
+            ]) as never,
+        );
+        const html = await htmlPipeline.generate(ast, '');
+        // The <section> wrapper is gone; its <p> children are now direct
+        // children of <div>, and the surrounding <span>s are preserved.
+        expect(html).not.toContain('<section');
+        expect(html).toMatch(
+            /<span[^>]*>before<\/span><p[^>]*>x<\/p><p[^>]*>y<\/p><span[^>]*>after<\/span>/,
+        );
+    });
+
+    test('INSERT_IMAGE throws an actionable error (image pipeline not yet wired for static HTML)', () => {
+        const ast = htmlPipeline.parse('<div></div>')!;
+        htmlPipeline.injectOids(ast);
+        const map = htmlPipeline.buildTemplateNodeMap({
+            ast,
+            filename: 'index.html',
+            branchId: 'b',
+        });
+        const divOid = Array.from(map.keys())[0]!;
+        // applyEdits is synchronous in the HTML pipeline — the throw bubbles
+        // out of the call site directly, no Promise wrapping.
+        expect(() =>
+            htmlPipeline.applyEdits(
+                ast,
+                new Map([
+                    [
+                        divOid,
+                        {
+                            oid: divOid,
+                            branchId: 'b',
+                            attributes: {},
+                            tagName: null,
+                            textContent: null,
+                            overrideClasses: null,
+                            structureChanges: [
+                                {
+                                    type: 'insert-image',
+                                    folderPath: 'images',
+                                    targets: [
+                                        { domId: 'd', oid: divOid, frameId: 'f', branchId: 'b' },
+                                    ],
+                                    image: {
+                                        originPath: 'hero.png',
+                                        content: '',
+                                        fileName: 'hero.png',
+                                        mimeType: 'image/png',
+                                    },
+                                },
+                            ],
+                        },
+                    ],
+                ]) as never,
+            ),
+        ).toThrow(/Image operations are not yet supported/);
+    });
 });

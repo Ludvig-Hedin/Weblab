@@ -1,5 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 
+import type { FrameworkId } from '@weblab/framework';
 import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { createDefaultProject } from '@weblab/db';
 import { CreateRequestContextType } from '@weblab/models';
@@ -139,6 +140,13 @@ export class CreateManager {
          * endpoint (~2 s) is used instead of `createFromGitHub` (~90 s).
          */
         sandboxId?: string;
+        /**
+         * Framework id from the template's metadata. Persisted in the new
+         * project's runtime metadata so the chat AI and editor pipelines pick
+         * up the right behavior. Defaults to 'nextjs' when omitted (matches
+         * pre-multi-framework template authoring).
+         */
+        framework?: FrameworkId;
     }) {
         this.error = null;
         try {
@@ -177,6 +185,7 @@ export class CreateManager {
                     name: input.name,
                     description: input.description,
                     tags: ['template-import'],
+                    runtimeMetadata: input.framework ? { framework: input.framework } : undefined,
                 },
             });
 

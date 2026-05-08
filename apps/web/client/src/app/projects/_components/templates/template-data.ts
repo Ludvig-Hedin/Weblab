@@ -1,3 +1,5 @@
+import type { FrameworkId } from '@weblab/framework';
+
 export type ExternalTemplateCategory =
     | 'boilerplate'
     | 'starter'
@@ -12,6 +14,14 @@ export interface ExternalTemplate {
     shortDescription: string;
     description: string;
     category: ExternalTemplateCategory;
+    /**
+     * Framework adapter this template targets. Used by the templates page to
+     * filter ("show me static HTML templates") and by the create flow to set
+     * the project's framework without asking the user. Defaults to 'nextjs'
+     * when omitted, since every existing template was authored before
+     * multi-framework support and is a Next.js project.
+     */
+    framework?: FrameworkId;
     tags: string[];
     sourceUrl: string;
     /**

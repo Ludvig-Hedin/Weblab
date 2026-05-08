@@ -11,7 +11,11 @@ import type { ErrorManager } from '../error';
 import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
 import { GitManager } from '../git';
 import { detectRouterConfig } from '../pages/helper';
-import { copyPreloadScriptToPublic, getLayoutPath as detectLayoutPath } from './preload-script';
+import {
+    copyPreloadScriptToPublic,
+    copyPreloadScriptToStaticHtml,
+    getLayoutPath as detectLayoutPath,
+} from './preload-script';
 import { SessionManager } from './session';
 
 export enum PreloadScriptState {
@@ -114,12 +118,19 @@ export class SandboxManager {
                 throw new Error('No provider available for preload script injection');
             }
 
-            const routerConfig = await this.getRouterConfig();
-            if (!routerConfig) {
-                throw new Error('No router config found for preload script injection');
+            // Static-HTML projects don't have a Next.js router or layout file
+            // to inject into. Use the dedicated path that writes the preload
+            // bundle to the project root and injects a <script> tag into
+            // index.html's <head>.
+            if (this.editorEngine.framework === 'static-html') {
+                await copyPreloadScriptToStaticHtml(this.session.provider);
+            } else {
+                const routerConfig = await this.getRouterConfig();
+                if (!routerConfig) {
+                    throw new Error('No router config found for preload script injection');
+                }
+                await copyPreloadScriptToPublic(this.session.provider, routerConfig);
             }
-
-            await copyPreloadScriptToPublic(this.session.provider, routerConfig);
             runInAction(() => {
                 this.preloadScriptState = PreloadScriptState.INJECTED;
                 this.preloadRetryCount = 0;

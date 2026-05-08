@@ -87,6 +87,8 @@ function CreatingContent() {
                     repoUrl: template.repoUrl,
                     branch: template.branch,
                     subpath: template.subpath,
+                    sandboxId: template.sandboxId,
+                    framework: template.framework,
                 });
 
                 if (!project) {
@@ -135,7 +137,7 @@ function CreatingContent() {
                 detail={errorMessage ?? 'An unknown error occurred.'}
                 backHref={Routes.MARKETPLACE}
                 backLabel="Back to Marketplace"
-                retryHref={`${Routes.PROJECT_CREATING}?templateId=${templateId}`}
+                retryHref={null}
             />
         );
     }

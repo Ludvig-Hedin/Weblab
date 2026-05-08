@@ -43,6 +43,7 @@ export const NewSelectFolder = () => {
         resetProjectData,
         cancel,
         validateNextJsProject,
+        autoDetectFramework,
     } = useProjectCreation();
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
@@ -191,7 +192,11 @@ export const NewSelectFolder = () => {
                 return;
             }
 
-            // Validate the project
+            // Auto-detect framework BEFORE validating so the validator runs
+            // against the right adapter (e.g. an HTML folder validates via
+            // static-html, not Next.js). Detection failure is non-fatal —
+            // validation will surface a clearer error if no adapter matches.
+            await autoDetectFramework(processedFiles);
             const validationResult = await validateNextJsProject(processedFiles);
             setValidation(validationResult);
 

@@ -2,6 +2,7 @@ import type { PostHog } from 'posthog-js/react';
 import { makeAutoObservable } from 'mobx';
 
 import type { CodeFileSystem } from '@weblab/file-system';
+import type { FrameworkId } from '@weblab/framework';
 import { type Branch } from '@weblab/models';
 
 import { ActionManager } from './action';
@@ -37,6 +38,14 @@ import { ThemeManager } from './theme';
 export class EditorEngine {
     readonly projectId: string;
     readonly posthog: PostHog;
+    /**
+     * Framework adapter id for this project, read once at engine
+     * construction from the project's runtime metadata. Surfaced so UI
+     * (chat header chip, error states) can show what stack the AI is
+     * calibrated for. `null` for legacy projects created before
+     * multi-framework support — readers should treat that as 'nextjs'.
+     */
+    readonly framework: FrameworkId | null;
     readonly branches: BranchManager = new BranchManager(this);
 
     get activeSandbox(): SandboxManager {
@@ -79,9 +88,10 @@ export class EditorEngine {
     readonly comment: CommentManager = new CommentManager(this);
     readonly presence: PresenceManager = new PresenceManager(this);
 
-    constructor(projectId: string, posthog: PostHog) {
+    constructor(projectId: string, posthog: PostHog, framework: FrameworkId | null = null) {
         this.projectId = projectId;
         this.posthog = posthog;
+        this.framework = framework;
         makeAutoObservable(this);
     }
 

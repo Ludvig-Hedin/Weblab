@@ -76,3 +76,36 @@ export function isFrameworkReady(adapter: FrameworkAdapter): boolean {
 export function listReadyFrameworkAdapters(): ReadonlyArray<FrameworkAdapter> {
     return ADAPTERS.filter(isFrameworkReady);
 }
+
+/**
+ * Try every registered adapter's `validate()` against the given files and
+ * return the id of the first one that accepts them. Used by the import flow
+ * to auto-pick a framework so users don't have to answer "what are you
+ * building?" when we can already tell from the files.
+ *
+ * Order is the registration order in `ADAPTERS` — Next.js wins ties, then
+ * Vite-React, etc., with `static-html` last. That ordering matches the
+ * specificity of each adapter's `validate()`: Next.js requires `next` in
+ * deps + a router; static-html only requires `index.html`. So a Next.js
+ * project (which technically also has html files in a build output) will
+ * still be detected as Next.js.
+ *
+ * Returns `null` when no adapter recognizes the files — the picker should
+ * stay visible in that case so the user can choose manually.
+ */
+export async function detectFrameworkFromFiles(
+    files: Parameters<FrameworkAdapter['validate']>[0],
+): Promise<FrameworkId | null> {
+    for (const adapter of ADAPTERS) {
+        try {
+            const result = await adapter.validate(files);
+            if (result.isValid) return adapter.id;
+        } catch {
+            // An adapter throwing during validation is treated as "not this
+            // one" — keep trying. We don't want a misbehaving adapter to
+            // crash detection for the others.
+            continue;
+        }
+    }
+    return null;
+}
