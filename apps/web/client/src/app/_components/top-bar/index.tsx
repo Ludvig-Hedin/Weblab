@@ -43,12 +43,12 @@ export const TopBar = () => {
                     </Link>
                 ))}
 
-                <div className="md:hidden">
+                <div className="lg:hidden">
                     <GitHubButton />
                 </div>
 
-                {/* Desktop dropdowns - hidden on mobile */}
-                <div className="ml-3 hidden items-center gap-5 md:flex">
+                {/* Desktop dropdowns - hidden on mobile/tablet */}
+                <div className="ml-3 hidden items-center gap-5 lg:flex">
                     {NAVIGATION_CATEGORIES.map((category) => (
                         <DropdownMenu
                             key={category.label}
@@ -62,8 +62,8 @@ export const TopBar = () => {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-                {/* Auth button - hidden on mobile */}
-                <div className="hidden md:block">
+                {/* Auth button - hidden on mobile/tablet */}
+                <div className="hidden lg:block">
                     <AuthButton />
                 </div>
 

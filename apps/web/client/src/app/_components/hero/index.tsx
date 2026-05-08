@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+
+import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { vujahdayScript } from '../../fonts';
 import { Create } from './create';
@@ -10,11 +14,11 @@ import { CreateError } from './create-error';
 import { DownloadButton } from './download-button';
 import { HighDemand } from './high-demand';
 import { Import } from './import';
-import { MobileEmailCapture } from './mobile-email-capture';
 import { UnicornBackground } from './unicorn-background';
 
 export function Hero() {
-    const { data: user } = api.user.get.useQuery();
+    const { data: user, isSuccess } = api.user.get.useQuery();
+    const { setIsAuthModalOpen } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
     return (
@@ -24,7 +28,7 @@ export function Hero() {
             <div className="pointer-events-none mb-42 flex h-full w-full flex-col items-center justify-center gap-10 pt-12">
                 <div className="relative z-20 flex flex-col items-center gap-3 pt-8 pb-2">
                     <motion.h1
-                        className="text-center text-6xl !leading-[0.9] leading-tight font-light"
+                        className="text-center text-4xl !leading-[0.9] leading-tight font-light sm:text-6xl"
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
                         animate={{ opacity: 1, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -33,7 +37,7 @@ export function Hero() {
                         AI visual website builder
                         <br />
                         <span
-                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[4.6rem] leading-[1.0]`}
+                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.1] sm:text-[4.6rem] sm:leading-[1.0]`}
                         >
                             for React teams
                         </span>
@@ -67,13 +71,28 @@ export function Hero() {
                 </motion.div>
                 <div className="pointer-events-auto relative z-20 flex flex-row items-center gap-4">
                     <motion.div
-                        className="sm:block"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
                     >
                         <DownloadButton />
                     </motion.div>
+                    {isSuccess && !user?.id && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
+                        >
+                            <Button
+                                variant="outline"
+                                className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10"
+                                onClick={() => setIsAuthModalOpen(true)}
+                            >
+                                <Icons.Person className="h-4 w-4" />
+                                Sign in
+                            </Button>
+                        </motion.div>
+                    )}
                 </div>
                 <motion.div
                     className="text-foreground-secondary pointer-events-auto relative z-20 hidden items-center gap-4 text-sm sm:flex"
@@ -83,7 +102,6 @@ export function Hero() {
                 >
                     <Import />
                 </motion.div>
-                <MobileEmailCapture />
             </div>
         </div>
     );

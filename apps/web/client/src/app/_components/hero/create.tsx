@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
 import type { ImageMessageContext, User } from '@weblab/models';
 import { MessageContextType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
-import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser } from '@weblab/utility';
@@ -141,14 +140,6 @@ export const Create = observer(
                 return;
             }
             await createProject(inputValue, selectedImages);
-        };
-
-        const handleAuthPrompt = async () => {
-            if (inputValue.trim().length > 0) {
-                await saveAiPromptCreateDraft(inputValue, selectedImages);
-                await localforage.setItem(LocalForageKeys.RETURN_URL, AI_PROMPT_CREATE_RESUME_PATH);
-            }
-            setIsAuthModalOpen(true);
         };
 
         const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
@@ -309,18 +300,6 @@ export const Create = observer(
                             void handleSubmit();
                         }
                     }}
-                    notice={
-                        !user?.id ? (
-                            <button
-                                type="button"
-                                onClick={() => void handleAuthPrompt()}
-                                className="border-foreground-primary/15 bg-background/40 text-foreground-secondary hover:bg-background/60 hover:text-foreground-primary mx-2 mt-2 mb-1 flex cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors"
-                            >
-                                <span>Sign in to start designing — your prompt will be saved.</span>
-                                <Icons.ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
-                            </button>
-                        ) : null
-                    }
                     topSlot={
                         <div
                             className={cn(

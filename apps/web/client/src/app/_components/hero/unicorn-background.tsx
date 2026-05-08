@@ -11,23 +11,34 @@ export function UnicornBackground() {
         const container = containerRef.current;
         if (!container) return;
 
-        // Handle wheel events to allow scrolling while keeping mouse interactivity
         const handleWheel = (e: WheelEvent) => {
-            // Prevent the default to avoid double-scrolling
             e.preventDefault();
-            // Manually trigger scroll on the window
-            window.scrollBy({
-                top: e.deltaY,
-                left: e.deltaX,
-                behavior: 'auto',
-            });
+            window.scrollBy({ top: e.deltaY, left: e.deltaX, behavior: 'auto' });
         };
-
-        // Use passive: false so we can call preventDefault()
         container.addEventListener('wheel', handleWheel, { passive: false });
+
+        // On touch devices there is no real cursor, so drive a slow Lissajous
+        // path to keep the background alive without any user input.
+        let rafId: number | null = null;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        if (isTouchDevice) {
+            let t = 0;
+            const tick = () => {
+                t += 0.003; // ~35 s per full cycle at 60 fps — very slow
+                const w = window.innerWidth;
+                const h = window.innerHeight;
+                const x = w / 2 + Math.sin(t) * w * 0.35;
+                const y = h / 2 + Math.sin(t * 0.71) * h * 0.25;
+                container.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }));
+                rafId = requestAnimationFrame(tick);
+            };
+            rafId = requestAnimationFrame(tick);
+        }
 
         return () => {
             container.removeEventListener('wheel', handleWheel);
+            if (rafId !== null) cancelAnimationFrame(rafId);
         };
     }, []);
 
