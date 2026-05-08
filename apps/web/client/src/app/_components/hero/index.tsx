@@ -17,7 +17,7 @@ import { Import } from './import';
 import { UnicornBackground } from './unicorn-background';
 
 export function Hero() {
-    const { data: user, isSuccess } = api.user.get.useQuery();
+    const { data: user } = api.user.get.useQuery();
     const { setIsAuthModalOpen } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
@@ -77,7 +77,7 @@ export function Hero() {
                     >
                         <DownloadButton />
                     </motion.div>
-                    {isSuccess && !user?.id && (
+                    {!user?.id && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
