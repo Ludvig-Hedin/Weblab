@@ -43,10 +43,7 @@ export function SquareProjectCardPresentation({
     };
 
     return (
-        <div
-            className="group cursor-pointer transition-all duration-300"
-            onClick={handleClick}
-        >
+        <div className="group cursor-pointer transition-all duration-300" onClick={handleClick}>
             <div
                 className={`relative aspect-[4/2.8] w-full overflow-hidden rounded-lg shadow-sm transition-all duration-300`}
             >

@@ -57,6 +57,9 @@ export const env = createEnv({
         // Exa
         EXA_API_KEY: z.string().optional(),
 
+        // Mem0
+        MEM0_API_KEY: z.string().optional(),
+
         // Langfuse
         LANGFUSE_SECRET_KEY: z.string().optional(),
         LANGFUSE_PUBLIC_KEY: z.string().optional(),
@@ -69,6 +72,23 @@ export const env = createEnv({
 
         // Figma
         FIGMA_PERSONAL_ACCESS_TOKEN: z.string().optional(),
+
+        // Design system page password (required when not on localhost)
+        DESIGN_SYSTEM_PASSWORD: z.string().optional(),
+
+        // OAuth provider connection token encryption (32-byte base64 secret).
+        // Required at runtime for `/api/auth/providers/*`; optional in build/dev.
+        PROVIDER_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+
+        // OAuth client credentials per provider.
+        GEMINI_OAUTH_CLIENT_ID: z.string().optional(),
+        GEMINI_OAUTH_CLIENT_SECRET: z.string().optional(),
+        OPENCODE_OAUTH_CLIENT_ID: z.string().optional(),
+        OPENCODE_OAUTH_CLIENT_SECRET: z.string().optional(),
+        CURSOR_OAUTH_CLIENT_ID: z.string().optional(),
+        CURSOR_OAUTH_CLIENT_SECRET: z.string().optional(),
+        CODEX_OAUTH_CLIENT_ID: z.string().optional(),
+        CODEX_OAUTH_CLIENT_SECRET: z.string().optional(),
     },
     /**
      * Specify your client-side environment variables schema here. This way you can ensure the app
@@ -94,6 +114,7 @@ export const env = createEnv({
         NEXT_PUBLIC_AUTH_PROVIDERS: z.string().default('github,google'),
         NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: z.coerce.boolean().default(false),
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(false),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
@@ -114,6 +135,7 @@ export const env = createEnv({
         NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
         NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: process.env.NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED,
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: process.env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED,
+        NEXT_PUBLIC_PROVIDER_PICKER_V2: process.env.NEXT_PUBLIC_PROVIDER_PICKER_V2,
 
         // Supabase
         SUPABASE_URL:
@@ -195,6 +217,9 @@ export const env = createEnv({
         // Exa
         EXA_API_KEY: process.env.EXA_API_KEY,
 
+        // Mem0
+        MEM0_API_KEY: process.env.MEM0_API_KEY,
+
         // Langfuse
         LANGFUSE_SECRET_KEY: process.env.LANGFUSE_SECRET_KEY,
         LANGFUSE_PUBLIC_KEY: process.env.LANGFUSE_PUBLIC_KEY,
@@ -207,6 +232,20 @@ export const env = createEnv({
 
         // Figma
         FIGMA_PERSONAL_ACCESS_TOKEN: process.env.FIGMA_PERSONAL_ACCESS_TOKEN,
+
+        // Design system
+        DESIGN_SYSTEM_PASSWORD: process.env.DESIGN_SYSTEM_PASSWORD,
+
+        // Provider OAuth (CLI provider sign-in on hosted web)
+        PROVIDER_TOKEN_ENCRYPTION_KEY: process.env.PROVIDER_TOKEN_ENCRYPTION_KEY,
+        GEMINI_OAUTH_CLIENT_ID: process.env.GEMINI_OAUTH_CLIENT_ID,
+        GEMINI_OAUTH_CLIENT_SECRET: process.env.GEMINI_OAUTH_CLIENT_SECRET,
+        OPENCODE_OAUTH_CLIENT_ID: process.env.OPENCODE_OAUTH_CLIENT_ID,
+        OPENCODE_OAUTH_CLIENT_SECRET: process.env.OPENCODE_OAUTH_CLIENT_SECRET,
+        CURSOR_OAUTH_CLIENT_ID: process.env.CURSOR_OAUTH_CLIENT_ID,
+        CURSOR_OAUTH_CLIENT_SECRET: process.env.CURSOR_OAUTH_CLIENT_SECRET,
+        CODEX_OAUTH_CLIENT_ID: process.env.CODEX_OAUTH_CLIENT_ID,
+        CODEX_OAUTH_CLIENT_SECRET: process.env.CODEX_OAUTH_CLIENT_SECRET,
     },
     /**
      * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

@@ -1,0 +1,46 @@
+{
+    "name": "@weblab/ai-cli",
+    "description": "CLI-based AI provider adapters (Codex, Claude Code, Gemini, OpenCode, Cursor) for the Weblab desktop app",
+    "type": "module",
+    "module": "src/index.ts",
+    "types": "src/index.ts",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./src/index.ts",
+        "./main": "./src/main/index.ts",
+        "./types": "./src/types.ts"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Ludvig-Hedin/Weblab.git"
+    },
+    "scripts": {
+        "clean": "rm -rf node_modules",
+        "lint": "eslint . --max-warnings 0",
+        "format": "eslint --fix .",
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "weblab",
+        "ai",
+        "cli"
+    ],
+    "author": {
+        "name": "Weblab",
+        "email": "contact@weblab.build"
+    },
+    "license": "Apache-2.0",
+    "homepage": "https://weblab.build",
+    "devDependencies": {
+        "@types/node": "^22.10.0",
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "eslint": "^9.0.0",
+        "typescript": "^5.5.4"
+    },
+    "dependencies": {
+        "@weblab/ai": "*",
+        "@weblab/models": "*"
+    }
+}

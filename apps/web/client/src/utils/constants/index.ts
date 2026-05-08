@@ -28,8 +28,10 @@ export const Routes = {
 
     // Dashboard
     PROJECTS: '/projects',
+    MARKETPLACE: '/projects/marketplace',
     PROJECT: '/project',
     NEW_PROJECT: '/projects/new',
+    PROJECT_CREATING: '/projects/creating',
     PROJECT_TEMPLATES: '/projects/templates',
     IMPORT_PROJECT: '/projects/import',
     IMPORT_GITHUB: '/projects/import/github',

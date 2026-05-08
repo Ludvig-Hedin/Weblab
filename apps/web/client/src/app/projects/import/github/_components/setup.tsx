@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 
@@ -39,6 +41,10 @@ export const SetupGithub = () => {
             setSelectedOrg(organization || null);
         }
         setSelectedRepo(null);
+        // Reset scroll to top so user sees the start of the new filtered list.
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+        }
     };
 
     const handleRepositorySelect = (value: string) => {
@@ -323,8 +329,12 @@ export const SetupGithub = () => {
                         onClick={nextStep}
                         disabled={!selectedRepo || repositoryImport.isImporting}
                     >
-                        <Icons.Download className="mr-2 h-4 w-4" />
-                        <span>Import</span>
+                        {repositoryImport.isImporting ? (
+                            <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Icons.Download className="mr-2 h-4 w-4" />
+                        )}
+                        <span>{repositoryImport.isImporting ? 'Importing…' : 'Import'}</span>
                     </Button>
                 </div>
             </StepFooter>

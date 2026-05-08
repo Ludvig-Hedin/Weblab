@@ -70,7 +70,7 @@ export const GitHubTab = () => {
     );
 
     const handleConnect = async () => {
-        const newWindow = window.open('about:blank', '_blank', 'noopener');
+        const newWindow = window.open('about:blank', '_blank');
         if (!newWindow) {
             toast.error(t('github.popupBlocked'));
             return;
@@ -167,7 +167,7 @@ export const GitHubTab = () => {
                             onClick={() => void handleConnect()}
                         >
                             <Icons.GitHubLogo className="mr-2 h-4 w-4" />
-                            {isGenerating ? 'Redirecting…' : 'Connect GitHub'}
+                            {isGenerating ? 'Opening…' : 'Connect GitHub'}
                         </Button>
                     </div>
                 )}

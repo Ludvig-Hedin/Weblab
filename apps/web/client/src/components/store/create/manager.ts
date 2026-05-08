@@ -134,6 +134,11 @@ export class CreateManager {
         repoUrl: string;
         branch: string;
         subpath?: string;
+        /**
+         * Pre-seeded CodeSandbox sandbox ID. When provided, the fast `fork`
+         * endpoint (~2 s) is used instead of `createFromGitHub` (~90 s).
+         */
+        sandboxId?: string;
     }) {
         this.error = null;
         try {
@@ -142,11 +147,31 @@ export class CreateManager {
                 return;
             }
 
-            const { sandboxId, previewUrl } = await this.createSandboxFromGithub(
-                input.repoUrl,
-                input.branch,
-                input.subpath,
-            );
+            if (input.sandboxId && input.subpath) {
+                this.error = 'Cannot use subpath with pre-seeded sandbox templates';
+                return;
+            }
+
+            let sandboxResult: { sandboxId: string; previewUrl: string };
+
+            if (input.sandboxId) {
+                // Fast path: fork a pre-seeded sandbox template (~2 s).
+                sandboxResult = await api.sandbox.fork.mutate({
+                    sandbox: { id: input.sandboxId, port: 3000 },
+                    config: {
+                        title: input.name,
+                        tags: ['template-import'],
+                    },
+                });
+            } else {
+                // Slow path: import directly from GitHub (~90 s).
+                sandboxResult = await this.createSandboxFromGithub(
+                    input.repoUrl,
+                    input.branch,
+                    input.subpath,
+                );
+            }
+
             const project = createDefaultProject({
                 overrides: {
                     name: input.name,
@@ -158,8 +183,8 @@ export class CreateManager {
             return await api.project.create.mutate({
                 project,
                 userId: input.userId,
-                sandboxId,
-                sandboxUrl: previewUrl,
+                sandboxId: sandboxResult.sandboxId,
+                sandboxUrl: sandboxResult.previewUrl,
             });
         } catch (error) {
             console.error(error);

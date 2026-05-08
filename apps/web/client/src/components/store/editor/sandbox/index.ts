@@ -1,4 +1,4 @@
-import { makeAutoObservable, reaction } from 'mobx';
+import { makeAutoObservable, reaction, runInAction } from 'mobx';
 
 import type { Provider } from '@weblab/code-provider';
 import type { CodeFileSystem } from '@weblab/file-system';
@@ -106,7 +106,9 @@ export class SandboxManager {
                 return;
             }
 
-            this.preloadScriptState = PreloadScriptState.LOADING;
+            runInAction(() => {
+                this.preloadScriptState = PreloadScriptState.LOADING;
+            });
 
             if (!this.session.provider) {
                 throw new Error('No provider available for preload script injection');
@@ -118,15 +120,19 @@ export class SandboxManager {
             }
 
             await copyPreloadScriptToPublic(this.session.provider, routerConfig);
-            this.preloadScriptState = PreloadScriptState.INJECTED;
-            this.preloadRetryCount = 0;
-            if (this.preloadRetryTimeout) {
-                clearTimeout(this.preloadRetryTimeout);
-                this.preloadRetryTimeout = null;
-            }
+            runInAction(() => {
+                this.preloadScriptState = PreloadScriptState.INJECTED;
+                this.preloadRetryCount = 0;
+                if (this.preloadRetryTimeout) {
+                    clearTimeout(this.preloadRetryTimeout);
+                    this.preloadRetryTimeout = null;
+                }
+            });
         } catch (error) {
             console.error('[SandboxManager] Failed to ensure preload script exists:', error);
-            this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
+            runInAction(() => {
+                this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
+            });
             this.schedulePreloadRetry();
         }
     }

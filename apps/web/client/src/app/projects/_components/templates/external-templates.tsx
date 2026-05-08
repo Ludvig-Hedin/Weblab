@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { motion } from 'motion/react';
-import { toast } from 'sonner';
 
 import type { User } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -13,7 +11,6 @@ import { Icons } from '@weblab/ui/icons';
 
 import type { ExternalTemplate } from './template-data';
 import { useAuthContext } from '@/app/auth/auth-context';
-import { useCreateManager } from '@/components/store/create';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { ProjectPreviewSurface } from '../select/project-preview-surface';
@@ -66,41 +63,19 @@ interface ExternalTemplateCardProps {
 
 function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardProps) {
     const { setIsAuthModalOpen } = useAuthContext();
-    const createManager = useCreateManager();
     const router = useRouter();
-    const [isCreating, setIsCreating] = useState(false);
 
     const detailsHref = `${Routes.PROJECT_TEMPLATES}/${template.id}`;
+    const creatingHref = `${Routes.PROJECT_CREATING}?templateId=${template.id}`;
 
     const handleUseTemplate = async () => {
         if (!user?.id) {
-            await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
+            await localforage.setItem(LocalForageKeys.RETURN_URL, creatingHref);
             setIsAuthModalOpen(true);
             return;
         }
-        setIsCreating(true);
-        try {
-            const project = await createManager.startPublicGitHubTemplate({
-                userId: user.id,
-                name: template.name,
-                description: template.shortDescription,
-                repoUrl: template.repoUrl,
-                branch: template.branch,
-                subpath: template.subpath,
-            });
-            if (!project) {
-                throw new Error(createManager.error ?? 'No project was returned');
-            }
-            toast.success(`Created project from ${template.name}`);
-            router.push(`${Routes.PROJECT}/${project.id}`);
-        } catch (error) {
-            console.error('Error creating project from external template:', error);
-            toast.error('Failed to create project from template', {
-                description: error instanceof Error ? error.message : String(error),
-            });
-        } finally {
-            setIsCreating(false);
-        }
+        // Navigate immediately — progress is shown on the creating page.
+        router.push(creatingHref);
     };
 
     return (
@@ -131,14 +106,9 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
                     <Button
                         size="default"
                         onClick={() => void handleUseTemplate()}
-                        disabled={isCreating}
                         className="bg-background text-foreground hover:bg-background-secondary border-border gap-2 border"
                     >
-                        {isCreating ? (
-                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <Icons.FilePlus className="h-4 w-4" />
-                        )}
+                        <Icons.FilePlus className="h-4 w-4" />
                         Use template
                     </Button>
                     {template.previewUrl && (

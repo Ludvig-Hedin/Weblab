@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web-client",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["dev"],
+      "cwd": "apps/web/client",
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}

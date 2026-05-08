@@ -5,20 +5,21 @@ import { env } from '@/env';
 
 class PostHogSingleton {
     private static instance: PostHog | null = null;
-    private constructor() {}
+    private static hasWarnedMissingKey = false;
 
     public static getInstance(): PostHog | null {
         if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
-            console.warn('PostHog key not found');
+            if (env.NODE_ENV !== 'development' && !PostHogSingleton.hasWarnedMissingKey) {
+                console.warn('PostHog key not found');
+                PostHogSingleton.hasWarnedMissingKey = true;
+            }
             return null;
         }
-        if (!PostHogSingleton.instance) {
-            PostHogSingleton.instance = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
-                host: env.NEXT_PUBLIC_POSTHOG_HOST,
-                flushAt: 1,
-                flushInterval: 0,
-            });
-        }
+        PostHogSingleton.instance ??= new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
+            host: env.NEXT_PUBLIC_POSTHOG_HOST,
+            flushAt: 1,
+            flushInterval: 0,
+        });
         return PostHogSingleton.instance;
     }
 }

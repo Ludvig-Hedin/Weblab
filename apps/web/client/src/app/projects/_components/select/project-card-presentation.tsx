@@ -199,7 +199,10 @@ export function ProjectCardPresentation({
                     <div className="bg-background/30 pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
                         <Button
                             size="default"
-                            onClick={(e) => { e.stopPropagation(); handleEdit(); }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit();
+                            }}
                             className="border-border bg-background text-foreground hover:bg-background-secondary w-auto cursor-pointer gap-2 border"
                         >
                             <Icons.PencilPaper />

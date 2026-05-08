@@ -17,10 +17,7 @@ import { verifyProjectAccess } from '../project/helper';
 
 type DbOrTx = Pick<DrizzleDb, 'query'>;
 
-const projectIdForConversation = async (
-    db: DbOrTx,
-    conversationId: string,
-): Promise<string> => {
+const projectIdForConversation = async (db: DbOrTx, conversationId: string): Promise<string> => {
     const row = await db.query.conversations.findFirst({
         where: eq(conversations.id, conversationId),
         columns: { projectId: true },
@@ -94,9 +91,7 @@ export const messageRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const conversationIds = Array.from(
                 new Set(
-                    input.messages
-                        .map((m) => m.conversationId)
-                        .filter((id): id is string => !!id),
+                    input.messages.map((m) => m.conversationId).filter((id): id is string => !!id),
                 ),
             );
             if (conversationIds.length === 0) {

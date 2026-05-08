@@ -237,10 +237,7 @@ export const subscriptionRouter = createTRPCRouter({
             // schedule before performing any Stripe-side mutation.
             const ownedSubscription = await ctx.db.query.subscriptions.findFirst({
                 where: and(
-                    eq(
-                        subscriptions.stripeSubscriptionScheduleId,
-                        input.subscriptionScheduleId,
-                    ),
+                    eq(subscriptions.stripeSubscriptionScheduleId, input.subscriptionScheduleId),
                     eq(subscriptions.userId, ctx.user.id),
                 ),
             });

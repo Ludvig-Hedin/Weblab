@@ -13,27 +13,25 @@ interface ProjectPreviewSurfaceProps {
     className?: string;
 }
 
-const FallbackPreview = () => {
+const FallbackPreview = ({ projectName }: { projectName: string }) => {
+    const initial = projectName.trim().charAt(0).toUpperCase() || '?';
     return (
-        <div className="absolute inset-0 overflow-hidden rounded-[inherit] bg-[#151210]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.12),_transparent_40%),linear-gradient(145deg,_rgba(120,94,72,0.26),_rgba(17,15,14,0.96)_55%)]" />
-            <div className="absolute inset-x-0 top-0 bottom-0 p-4">
-                <div className="flex h-full flex-col gap-3 rounded-[20px] border border-white/8 bg-black/20 p-3">
-                    <div className="h-16 rounded-2xl bg-white/10" />
-                    <div className="grid flex-1 grid-cols-[1.25fr_0.85fr] gap-3">
-                        <div className="rounded-[18px] bg-white/8" />
-                        <div className="flex flex-col gap-3">
-                            <div className="h-14 rounded-[18px] bg-white/7" />
-                            <div className="flex-1 rounded-[18px] bg-white/6" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <div className="h-8 rounded-full bg-white/8" />
-                        <div className="h-8 rounded-full bg-white/7" />
-                        <div className="h-8 rounded-full bg-white/6" />
-                    </div>
-                </div>
-            </div>
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-[inherit] bg-[#111]">
+            {/* Subtle radial highlight */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.045),transparent_60%)]" />
+            {/* Faint grid lines */}
+            <div
+                className="absolute inset-0 opacity-[0.04]"
+                style={{
+                    backgroundImage:
+                        'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)',
+                    backgroundSize: '32px 32px',
+                }}
+            />
+            {/* Initial letter */}
+            <span className="relative text-5xl font-semibold text-white/10 select-none">
+                {initial}
+            </span>
         </div>
     );
 };
@@ -93,7 +91,7 @@ export const ProjectPreviewSurface = ({
 
     return (
         <div className={cn('relative overflow-hidden rounded-xl bg-[#1c1c1c]', className)}>
-            <FallbackPreview />
+            <FallbackPreview projectName={projectName} />
 
             {/* Screenshot */}
             {shouldRenderImage && (

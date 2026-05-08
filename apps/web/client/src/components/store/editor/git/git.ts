@@ -113,7 +113,7 @@ export class GitManager {
             // Set user.name if not configured
             if (!hasName) {
                 const nameConfigResult = await this.runCommand(
-                    'git config user.name `${APP_NAME}`',
+                    `git config user.name ${escapeShellString(APP_NAME)}`,
                 );
                 if (!nameConfigResult.success) {
                     console.error('Failed to set git user.name:', nameConfigResult.error);

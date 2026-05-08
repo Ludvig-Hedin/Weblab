@@ -36,21 +36,28 @@ export class StylePreferencesStore {
     /** Element OID -> set of property names that must be written inline only. */
     overrideByElement: Record<string, Set<string>> = {};
 
-    private readonly storageKey: string;
     private hydrated = false;
     private persistDisposer?: () => void;
 
+    // Getter rather than an eagerly-assigned field so that it reads
+    // editorEngine.projectId lazily. StylePreferencesStore is constructed as a
+    // class field initializer on EditorEngine — before the EditorEngine
+    // constructor body runs and assigns `this.projectId`. Accessing projectId
+    // in the constructor would always yield undefined.
+    private get storageKey(): string {
+        return `weblab:style-preferences:${this.editorEngine.projectId}`;
+    }
+
     constructor(private editorEngine: EditorEngine) {
-        if (!editorEngine.projectId) {
-            console.warn(
-                'StylePreferencesStore: projectId is missing, preferences will not be persisted correctly',
-            );
-        }
-        this.storageKey = `weblab:style-preferences:${editorEngine.projectId}`;
         makeAutoObservable(this);
     }
 
     init() {
+        if (!this.editorEngine.projectId) {
+            console.warn(
+                'StylePreferencesStore: projectId is missing, preferences will not be persisted correctly',
+            );
+        }
         this.hydrate();
         // Persist whenever a tracked field changes. We serialize once per microtask.
         let queued = false;

@@ -1,17 +1,8 @@
 'use client';
 
-import {
-    isFrameworkReady,
-    listFrameworkAdapters,
-    type FrameworkId,
-} from '@weblab/framework';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@weblab/ui/select';
+import type { FrameworkId } from '@weblab/framework';
+import { isFrameworkReady, listFrameworkAdapters } from '@weblab/framework';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 
 import { useProjectCreation } from '../_context';
 
@@ -42,10 +33,7 @@ export function FrameworkPicker() {
             >
                 Framework
             </label>
-            <Select
-                value={framework}
-                onValueChange={(value) => setFramework(value as FrameworkId)}
-            >
+            <Select value={framework} onValueChange={(value) => setFramework(value as FrameworkId)}>
                 <SelectTrigger id="framework-picker" className="w-full">
                     <SelectValue />
                 </SelectTrigger>
@@ -53,11 +41,7 @@ export function FrameworkPicker() {
                     {adapters.map((adapter) => {
                         const ready = isFrameworkReady(adapter);
                         return (
-                            <SelectItem
-                                key={adapter.id}
-                                value={adapter.id}
-                                disabled={!ready}
-                            >
+                            <SelectItem key={adapter.id} value={adapter.id} disabled={!ready}>
                                 {adapter.displayName}
                                 {!ready ? ' (coming soon)' : ''}
                             </SelectItem>

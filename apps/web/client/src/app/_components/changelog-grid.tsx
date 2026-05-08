@@ -50,7 +50,7 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
                                 {formatEntryDate(entry.date)}
                             </span>
                         </div>
-                        <p className="text-foreground-primary text-sm font-normal leading-snug">
+                        <p className="text-foreground-primary text-sm leading-snug font-normal">
                             {entry.title}
                         </p>
                         {entry.tags.length > 0 && (

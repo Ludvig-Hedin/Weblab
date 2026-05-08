@@ -180,45 +180,44 @@ export const githubRouter = createTRPCRouter({
     ),
 
     // Repository fetching using GitHub App installation (required)
-    getRepositoriesWithApp: protectedProcedure
-        .query(async ({ ctx }) => {
-            try {
-                const { octokit, installationId } = await getUserGitHubInstallation(
-                    ctx.db,
-                    ctx.user.id,
-                );
+    getRepositoriesWithApp: protectedProcedure.query(async ({ ctx }) => {
+        try {
+            const { octokit, installationId } = await getUserGitHubInstallation(
+                ctx.db,
+                ctx.user.id,
+            );
 
-                const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({
-                    installation_id: parseInt(installationId, 10),
-                    per_page: 100,
-                    page: 1,
-                });
+            const { data } = await octokit.rest.apps.listReposAccessibleToInstallation({
+                installation_id: parseInt(installationId, 10),
+                per_page: 100,
+                page: 1,
+            });
 
-                // Transform to match reference implementation pattern
-                return data.repositories.map((repo) => ({
-                    id: repo.id,
-                    name: repo.name,
-                    full_name: repo.full_name,
-                    description: repo.description,
-                    private: repo.private,
-                    default_branch: repo.default_branch,
-                    clone_url: repo.clone_url,
-                    html_url: repo.html_url,
-                    updated_at: repo.updated_at,
-                    owner: {
-                        login: repo.owner.login,
-                        avatar_url: repo.owner.avatar_url,
-                    },
-                }));
-            } catch (error) {
-                throw new TRPCError({
-                    code: 'FORBIDDEN',
-                    message:
-                        'GitHub App installation is invalid or has been revoked. Please reinstall the GitHub App.',
-                    cause: error,
-                });
-            }
-        }),
+            // Transform to match reference implementation pattern
+            return data.repositories.map((repo) => ({
+                id: repo.id,
+                name: repo.name,
+                full_name: repo.full_name,
+                description: repo.description,
+                private: repo.private,
+                default_branch: repo.default_branch,
+                clone_url: repo.clone_url,
+                html_url: repo.html_url,
+                updated_at: repo.updated_at,
+                owner: {
+                    login: repo.owner.login,
+                    avatar_url: repo.owner.avatar_url,
+                },
+            }));
+        } catch (error) {
+            throw new TRPCError({
+                code: 'FORBIDDEN',
+                message:
+                    'GitHub App installation is invalid or has been revoked. Please reinstall the GitHub App.',
+                cause: error,
+            });
+        }
+    }),
     handleInstallationCallbackUrl: protectedProcedure
         .input(
             z.object({

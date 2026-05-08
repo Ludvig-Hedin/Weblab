@@ -29,6 +29,13 @@ export interface ExternalTemplate {
     subpath?: string;
     previewUrl: string;
     branch: string;
+    /**
+     * Pre-seeded CodeSandbox sandbox ID. When present, the fast `fork` endpoint
+     * is used (~2 s) instead of the slow `createFromGitHub` import (~90 s).
+     * Populate by running `createFromGitHub` once per template and recording the
+     * returned `sandboxId`.
+     */
+    sandboxId?: string;
     highlights: string[];
     bestFor: string;
     accentClassName: string;

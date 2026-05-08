@@ -6,6 +6,8 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { MotionCard } from '@weblab/ui/motion-card';
 
+import { transKeys } from '@/i18n/keys';
+
 const ENTERPRISE_TIER = {
     name: 'Enterprise',
     price: 'Custom pricing',
@@ -52,7 +54,7 @@ Best regards,
                 </div>
                 <div className="mt-6">
                     <Button size="sm" className="rounded-full" onClick={handleContactUs}>
-                        Contact Us
+                        {t(transKeys.pricing.enterprise.contactUs)}
                     </Button>
                 </div>
                 <div className="border-border-primary my-8 border-t" />
@@ -90,7 +92,7 @@ Best regards,
                 <div className="border-border-primary -mx-6 my-6 border-[0.5px]" />
                 <div className="mb-6 flex flex-col gap-2">
                     <Button className="w-full" onClick={handleContactUs}>
-                        Contact Us
+                        {t(transKeys.pricing.enterprise.contactUs)}
                     </Button>
                 </div>
                 <div className="flex h-42 flex-col gap-2">

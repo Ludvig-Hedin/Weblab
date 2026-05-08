@@ -28,6 +28,24 @@ export interface CommentReply {
     updatedAt: Date;
 }
 
+function parseSeenCommentIds(raw: string): string[] {
+    const value: unknown = JSON.parse(raw);
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+}
+
+function getTRPCErrorCode(error: unknown): string | undefined {
+    if (typeof error !== 'object' || error === null) {
+        return undefined;
+    }
+
+    const data = 'data' in error ? error.data : undefined;
+    if (typeof data !== 'object' || data === null || !('code' in data)) {
+        return undefined;
+    }
+
+    return typeof data.code === 'string' ? data.code : undefined;
+}
+
 export class CommentManager {
     comments: ProjectComment[] = [];
     activeCommentId: string | null = null;
@@ -38,6 +56,9 @@ export class CommentManager {
 
     private pollingInterval: ReturnType<typeof setInterval> | null = null;
     private currentProjectId: string | null = null;
+    private loadPromise: Promise<void> | null = null;
+    private commentsUnavailable = false;
+    private hasLoggedLoadError = false;
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -47,7 +68,9 @@ export class CommentManager {
         const projectId = this.editorEngine.projectId;
         this.loadSeenIds(projectId);
         await this.loadComments(projectId);
-        this.startPolling(projectId);
+        if (!this.commentsUnavailable) {
+            this.startPolling(projectId);
+        }
     }
 
     // ─── Seen / unread tracking ──────────────────────────────────────────────
@@ -61,7 +84,7 @@ export class CommentManager {
         try {
             const raw = localStorage.getItem(this.storageKey(projectId));
             if (raw) {
-                const ids: string[] = JSON.parse(raw);
+                const ids = parseSeenCommentIds(raw);
                 ids.forEach((id) => this.seenCommentIds.add(id));
             }
         } catch {
@@ -112,6 +135,21 @@ export class CommentManager {
     // ─── Polling ─────────────────────────────────────────────────────────────
 
     async loadComments(projectId: string) {
+        if (this.commentsUnavailable) {
+            return;
+        }
+
+        if (this.loadPromise) {
+            return this.loadPromise;
+        }
+
+        this.loadPromise = this.loadCommentsOnce(projectId).finally(() => {
+            this.loadPromise = null;
+        });
+        return this.loadPromise;
+    }
+
+    private async loadCommentsOnce(projectId: string) {
         runInAction(() => {
             this.isLoading = true;
         });
@@ -122,7 +160,22 @@ export class CommentManager {
                 this.isLoading = false;
             });
         } catch (error) {
-            console.error('Failed to load comments:', error);
+            const code = getTRPCErrorCode(error);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            const shouldDisable =
+                code === 'UNAUTHORIZED' ||
+                code === 'FORBIDDEN' ||
+                (code === undefined && message.includes('Unauthorized'));
+
+            if (shouldDisable) {
+                this.commentsUnavailable = true;
+                this.stopPolling();
+            }
+
+            if (!this.hasLoggedLoadError) {
+                console.error('Failed to load comments:', error);
+                this.hasLoggedLoadError = true;
+            }
             runInAction(() => {
                 this.isLoading = false;
             });
@@ -130,10 +183,13 @@ export class CommentManager {
     }
 
     startPolling(projectId: string) {
+        if (this.commentsUnavailable) {
+            return;
+        }
         this.currentProjectId = projectId;
         this.stopPolling();
         this.pollingInterval = setInterval(() => {
-            this.loadComments(projectId);
+            void this.loadComments(projectId);
         }, 30_000);
         if (typeof document !== 'undefined') {
             document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -152,7 +208,7 @@ export class CommentManager {
 
     private onVisibilityChange = () => {
         if (document.visibilityState === 'visible' && this.currentProjectId) {
-            this.loadComments(this.currentProjectId);
+            void this.loadComments(this.currentProjectId);
         }
     };
 
@@ -184,7 +240,7 @@ export class CommentManager {
         try {
             const result = await api.comment.comment.create.mutate(input);
             await this.loadComments(input.projectId);
-            const newId = (result as any).id as string;
+            const newId = result.id;
             runInAction(() => {
                 this.pendingPlacement = null;
                 this.markAsSeen(newId); // own comments are immediately "seen"
@@ -276,6 +332,9 @@ export class CommentManager {
         this.activeCommentId = null;
         this.pendingPlacement = null;
         this.currentProjectId = null;
+        this.loadPromise = null;
+        this.commentsUnavailable = false;
+        this.hasLoggedLoadError = false;
         this.isLoading = false;
         this.commentsVisible = true;
         this.seenCommentIds.clear();

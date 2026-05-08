@@ -8,6 +8,7 @@ export interface GitHubAppInstallation {
     hasInstallation: boolean;
     installationId: string | null;
     isChecking: boolean;
+    isConnecting: boolean;
     error: string | null;
     redirectToInstallation: (redirectUrl?: string) => Promise<void>;
     refetch: () => void;
@@ -51,16 +52,21 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
     });
 
     const [error, setError] = useState<string | null>(null);
+    // True after user clicks "Connect GitHub" and until installation is confirmed.
+    const [isConnecting, setIsConnecting] = useState(false);
     const hasInstallation = !!installationId;
 
     useEffect(() => {
-        setError(checkInstallationError?.message || null);
+        // PRECONDITION_FAILED just means no installation yet — not a user-facing error.
+        const code = (checkInstallationError as { data?: { code?: string } } | null)?.data?.code;
+        setError(code === 'PRECONDITION_FAILED' ? null : (checkInstallationError?.message ?? null));
     }, [checkInstallationError]);
 
-    // Stop polling as soon as the install lands.
+    // Stop polling and clear connecting state as soon as the install lands.
     useEffect(() => {
         if (hasInstallation) {
             pollDeadlineRef.current = null;
+            setIsConnecting(false);
         }
     }, [hasInstallation]);
 
@@ -70,14 +76,21 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
 
     const redirectToInstallation = async (redirectUrl?: string) => {
         try {
-            const finalRedirectUrl = redirectUrl;
             const result = await generateInstallationUrl.mutateAsync({
-                redirectUrl: finalRedirectUrl,
+                redirectUrl,
             });
 
             if (result?.url) {
+                const newWindow = window.open(result.url, '_blank');
+                if (!newWindow) {
+                    // Popup was blocked — tell the user instead of silently failing.
+                    setError(
+                        'A popup was blocked. Please allow popups for this site and try again.',
+                    );
+                    return;
+                }
                 pollDeadlineRef.current = Date.now() + INSTALL_POLL_DEADLINE_MS;
-                window.open(result.url, '_blank');
+                setIsConnecting(true);
             }
         } catch (error) {
             console.error('Error generating GitHub App installation URL:', error);
@@ -88,6 +101,7 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
         hasInstallation,
         installationId: installationId || null,
         isChecking,
+        isConnecting,
         error,
         redirectToInstallation,
         refetch: checkInstallation,

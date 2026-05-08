@@ -16,6 +16,7 @@ import { api } from '@/trpc/react';
 // - Keeps PostHog React context so existing `usePostHog()` calls continue to work.
 
 let gleapSingleton: any | null = null;
+let hasWarnedMissingPostHogKey = false;
 
 export function TelemetryProvider({ children }: { children: React.ReactNode }) {
     const { data: user } = api.user.get.useQuery();
@@ -35,7 +36,10 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                 console.warn('PostHog init failed', e);
             }
         } else {
-            console.warn('PostHog key is not set, skipping initialization');
+            if (!hasWarnedMissingPostHogKey) {
+                console.warn('PostHog key is not set, skipping initialization');
+                hasWarnedMissingPostHogKey = true;
+            }
         }
 
         if (env.NEXT_PUBLIC_GLEAP_API_KEY) {
