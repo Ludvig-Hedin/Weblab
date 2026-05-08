@@ -52,5 +52,6 @@
     "devDependencies": {
         "@weblab/eslint": "*"
     },
+    "ignoredBuildScripts": ["better-sqlite3"],
     "packageManager": "bun@1.3.1"
 }
