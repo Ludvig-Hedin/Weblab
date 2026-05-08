@@ -79,7 +79,7 @@ function getVariantClasses(variant: NonNullable<AiPromptComposerProps['variant']
             return {
                 root: 'w-[680px] max-w-[calc(100vw-32px)]',
                 surface: 'shadow-2xl shadow-black/20 backdrop-blur-xl',
-                textarea: 'min-h-[44px] text-base',
+                textarea: 'min-h-[44px] pt-4 text-base',
                 button: 'h-10 w-10',
                 icon: 'h-5 w-5',
                 footer: 'px-2 pt-2 pb-2',

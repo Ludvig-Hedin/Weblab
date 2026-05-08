@@ -43,7 +43,7 @@ export function Hero() {
                         </span>
                     </motion.h1>
                     <motion.p
-                        className="text-foreground-secondary mt-2 max-w-xl text-center text-lg text-balance"
+                        className="text-foreground-secondary mt-2 max-w-xl text-center text-lg leading-snug text-balance"
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
                         animate={{ opacity: 1, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
@@ -69,7 +69,7 @@ export function Hero() {
                         variant="hero"
                     />
                 </motion.div>
-                <div className="pointer-events-auto relative z-20 flex flex-row items-center gap-4">
+                <div className="pointer-events-auto relative z-20 flex flex-row flex-wrap items-center justify-center gap-4">
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -93,15 +93,15 @@ export function Hero() {
                             </Button>
                         </motion.div>
                     )}
+                    <motion.div
+                        className="text-foreground-secondary flex items-center gap-4 text-sm"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.65, ease: 'easeOut' }}
+                    >
+                        <Import />
+                    </motion.div>
                 </div>
-                <motion.div
-                    className="text-foreground-secondary pointer-events-auto relative z-20 hidden items-center gap-4 text-sm sm:flex"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
-                >
-                    <Import />
-                </motion.div>
             </div>
         </div>
     );
