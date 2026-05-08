@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const joinPath = (...parts: string[]): string => {
-    return parts
-        .join('/')
-        .replace(/\/+/g, '/')
-        .replace(/\/$/, '') || '/';
-};
-
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -21,6 +14,10 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { isBinaryFile } from '@weblab/utility';
+
+const joinPath = (...parts: string[]): string => {
+    return parts.join('/').replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+};
 
 interface UploadModalProps {
     basePath: string;
@@ -159,9 +156,9 @@ export const UploadModal = ({
                             onChange={(e) => setCurrentPath(e.target.value)}
                             placeholder="/"
                             disabled={isLoading}
-                            className="text-sm"
+                            className="text-small"
                         />
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground text-mini">
                             Path where files will be uploaded
                         </p>
                     </div>
@@ -193,11 +190,11 @@ export const UploadModal = ({
                             <div className="text-center">
                                 {selectedFiles && selectedFiles.length > 0 ? (
                                     <div className="space-y-2">
-                                        <p className="text-sm font-medium text-green-500">
+                                        <p className="text-small font-medium text-green-500">
                                             {selectedFiles.length} file
                                             {selectedFiles.length > 1 ? 's' : ''} selected
                                         </p>
-                                        <div className="text-muted-foreground space-y-1 text-xs">
+                                        <div className="text-muted-foreground text-mini space-y-1">
                                             {Array.from(selectedFiles).map((file, index) => (
                                                 <div key={index}>
                                                     {file.name} ({(file.size / 1024).toFixed(1)} KB)
@@ -218,10 +215,10 @@ export const UploadModal = ({
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        <p className="text-sm">
+                                        <p className="text-small">
                                             Drag and drop files here, or click to select
                                         </p>
-                                        <p className="text-muted-foreground text-xs">
+                                        <p className="text-muted-foreground text-mini">
                                             Multiple files can be selected
                                         </p>
                                     </div>
@@ -242,7 +239,7 @@ export const UploadModal = ({
                     >
                         {isLoading
                             ? 'Uploading...'
-                            : `Upload ${selectedFiles?.length ?? 0} file${!selectedFiles || selectedFiles.length !== 1 ? 's' : ''}`}
+                            : `Upload ${selectedFiles?.length ?? 0} file${selectedFiles?.length !== 1 ? 's' : ''}`}
                     </Button>
                 </DialogFooter>
             </DialogContent>

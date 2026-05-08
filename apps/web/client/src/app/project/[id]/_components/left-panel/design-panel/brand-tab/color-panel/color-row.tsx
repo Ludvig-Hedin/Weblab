@@ -5,7 +5,7 @@ interface ColorRowProps {
 
 export const ColorRow = ({ label, colors }: ColorRowProps) => (
     <div className="flex flex-col gap-1">
-        <span className="text-muted-foreground text-xs">{label}</span>
+        <span className="text-muted-foreground text-mini">{label}</span>
         <div className="grid grid-cols-6 gap-1">
             {colors.map((color, index) => (
                 <div

@@ -38,7 +38,7 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
                 );
             if (hasImage) {
                 setIsDragging(isDragging);
-                e.currentTarget.setAttribute('data-dragging-image', isDragging.toString());
+                e.currentTarget.setAttribute('data-weblab-dragging-image', isDragging.toString());
             }
         },
         [],
@@ -94,7 +94,7 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
         (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             setIsDragging(false);
-            e.currentTarget.removeAttribute('data-dragging-image');
+            e.currentTarget.removeAttribute('data-weblab-dragging-image');
 
             const files = e.dataTransfer.files;
             if (files.length > 0 && onUpload) {

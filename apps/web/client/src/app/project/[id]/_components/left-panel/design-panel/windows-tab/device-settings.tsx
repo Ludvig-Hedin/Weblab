@@ -22,7 +22,7 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
     }, [frameData]);
 
     if (!frameData) {
-        return <p className="text-foreground-primary text-sm">Frame not found</p>;
+        return <p className="text-foreground-primary text-small">Frame not found</p>;
     }
 
     async function changeTheme(newTheme: SystemTheme) {
@@ -43,9 +43,9 @@ export const DeviceSettings = observer(({ frameId }: { frameId: string }) => {
 
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-foreground-primary text-sm">Device Settings</p>
+            <p className="text-foreground-primary text-small">Device Settings</p>
             <div className="flex flex-row items-center justify-between">
-                <span className="text-foreground-secondary text-xs">Theme</span>
+                <span className="text-foreground-secondary text-mini">Theme</span>
                 <div className="bg-background-secondary flex w-3/5 flex-row rounded p-0.5">
                     <Button
                         size={'icon'}

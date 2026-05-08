@@ -133,10 +133,10 @@ const CollapsibleCodeBlockComponent = ({
                                             code={isStream ? preview : content}
                                             language="jsx"
                                             isStreaming={isStream}
-                                            className="overflow-x-auto text-xs"
+                                            className="text-mini overflow-x-auto"
                                         />
                                         {isStream && truncated && (
-                                            <div className="text-foreground-tertiary border-t px-3 py-2 text-xs">
+                                            <div className="text-foreground-tertiary text-mini border-t px-3 py-2">
                                                 Showing a live preview while the file is being
                                                 written. Expand after the tool finishes to inspect
                                                 the full content.

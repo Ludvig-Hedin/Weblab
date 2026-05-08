@@ -139,7 +139,7 @@ export const PreviewDomainSection = observer(() => {
                                 {stripAnsi(deployment?.error)}
                             </p>
                         )}
-                        <Button variant="outline" className="w-full rounded-md p-3" onClick={retry}>
+                        <Button variant="outline" className="w-full p-3" onClick={retry}>
                             Try Updating Again
                         </Button>
                     </div>

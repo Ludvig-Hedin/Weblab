@@ -23,7 +23,7 @@ export const SearchSourcesDisplay = observer(({ query, results }: SearchSourcesD
         <div className="overflow-hidden">
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>
                 <CollapsibleTrigger asChild>
-                    <div className="text-foreground-secondary flex cursor-pointer items-center gap-2 p-1 text-sm">
+                    <div className="text-foreground-secondary text-small flex cursor-pointer items-center gap-2 p-1">
                         <Icons.ChevronDown
                             className={cn(
                                 'text-foreground-tertiary h-4 w-4 min-w-4 transition-transform duration-200',
@@ -32,7 +32,7 @@ export const SearchSourcesDisplay = observer(({ query, results }: SearchSourcesD
                         />
                         <div className="flex flex-col">
                             <span>Searched web</span>
-                            <span className="text-foreground-tertiary truncate text-xs">
+                            <span className="text-foreground-tertiary text-mini truncate">
                                 {query}
                             </span>
                         </div>
@@ -61,7 +61,7 @@ export const SearchSourcesDisplay = observer(({ query, results }: SearchSourcesD
                                                     rel="noopener noreferrer"
                                                     className="hover:bg-background-secondary/50 block rounded px-2 py-1 transition-colors"
                                                 >
-                                                    <div className="flex items-center text-xs">
+                                                    <div className="text-mini flex items-center">
                                                         <span
                                                             className="text-foreground-secondary hover:text-foreground flex-shrink-0 truncate font-medium"
                                                             style={{

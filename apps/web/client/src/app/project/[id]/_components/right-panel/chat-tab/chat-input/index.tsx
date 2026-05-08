@@ -263,7 +263,7 @@ export const ChatInput = observer(
 
         const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
-            e.currentTarget.removeAttribute('data-dragging-image');
+            e.currentTarget.removeAttribute('data-weblab-dragging-image');
 
             // First, check for internal drag-and-drop from image panel
             const jsonData = e.dataTransfer.getData('application/json');
@@ -393,7 +393,7 @@ export const ChatInput = observer(
                         (item.type === 'Files' && e.dataTransfer.types.includes('public.file-url')),
                 );
             if (hasImage) {
-                e.currentTarget.setAttribute('data-dragging-image', isDragging.toString());
+                e.currentTarget.setAttribute('data-weblab-dragging-image', isDragging.toString());
             }
         };
 

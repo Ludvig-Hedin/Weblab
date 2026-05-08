@@ -67,10 +67,10 @@ export const ProjectLoadError = ({ variant, message }: { variant: Variant; messa
         <div className="bg-background flex h-screen w-screen items-center justify-center">
             <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
                 <Icons.ExclamationTriangle className="text-foreground-primary h-8 w-8" />
-                <h1 className="text-xl font-medium">{copy.title}</h1>
-                <p className="text-foreground-secondary text-sm">{copy.description}</p>
+                <h1 className="text-title3 font-medium">{copy.title}</h1>
+                <p className="text-foreground-secondary text-small">{copy.description}</p>
                 {message && variant === 'unknown' && (
-                    <pre className="text-foreground-tertiary bg-background-secondary max-w-full rounded-md px-3 py-2 text-xs break-words whitespace-pre-wrap">
+                    <pre className="text-foreground-tertiary bg-background-secondary text-mini max-w-full rounded-md px-3 py-2 break-words whitespace-pre-wrap">
                         {message}
                     </pre>
                 )}

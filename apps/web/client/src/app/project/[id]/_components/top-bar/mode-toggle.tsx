@@ -64,10 +64,10 @@ export const ModeToggle = observer(() => {
                                 value={item.mode}
                                 aria-label={item.hotkey.description}
                                 className={cn(
-                                    'cursor-pointer bg-transparent px-4 py-2 text-sm whitespace-nowrap transition-all duration-150 ease-in-out',
+                                    'text-small cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-all duration-150 ease-in-out',
                                     mode === item.mode
-                                        ? 'text-active hover:text-active text-sm hover:bg-transparent'
-                                        : 'text-foreground-secondary hover:text-foreground-hover text-sm hover:bg-transparent',
+                                        ? 'text-active hover:text-active text-small hover:bg-transparent'
+                                        : 'text-foreground-secondary hover:text-foreground-hover text-small hover:bg-transparent',
                                 )}
                             >
                                 {t(

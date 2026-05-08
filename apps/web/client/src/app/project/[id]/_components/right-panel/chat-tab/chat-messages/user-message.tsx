@@ -205,7 +205,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                             className="h-6 w-6 p-1"
                         >
                             {isCopied ? (
-                                <Icons.Check className="h-4 w-4 text-blue-200" />
+                                <Icons.Check className="text-foreground-brand h-4 w-4" />
                             ) : (
                                 <Icons.Copy className="h-4 w-4" />
                             )}
@@ -222,12 +222,15 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     return (
         <div className="group relative flex w-full flex-row justify-end px-2" key={message.id}>
             <div className="ml-8 flex w-[90%] flex-col items-end gap-1">
-                <div className="bg-background-primary relative flex w-full flex-col rounded-lg border-[0.5px] p-2 shadow-sm">
+                <div className="bg-background-primary border-border relative flex w-full flex-col rounded-md border p-2.5 shadow-sm">
                     <div className="relative h-6">
                         <div className="absolute top-1 right-0 left-0 flex w-full flex-row items-center justify-start overflow-auto pr-16">
                             <div className="text-micro text-foreground-secondary flex flex-row gap-3">
                                 {message.metadata?.context?.map((context, index) => (
-                                    <SentContextPill key={`${context.type}-${index}`} context={context} />
+                                    <SentContextPill
+                                        key={`${context.type}-${index}`}
+                                        context={context}
+                                    />
                                 ))}
                             </div>
                         </div>
@@ -255,7 +258,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                 <button
                                     onClick={handleRestoreLegacy}
                                     className={cn(
-                                        'rounded-md p-2 text-xs opacity-0 group-hover:opacity-100 hover:opacity-80',
+                                        'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
                                         isRestoring ? 'opacity-100' : 'opacity-0',
                                     )}
                                     disabled={isRestoring}
@@ -279,7 +282,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                         <DropdownMenuTrigger asChild>
                                             <button
                                                 className={cn(
-                                                    'rounded-md p-2 text-xs opacity-0 group-hover:opacity-100 hover:opacity-80',
+                                                    'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
                                                     isRestoring ? 'opacity-100' : 'opacity-0',
                                                 )}
                                                 disabled={isRestoring}

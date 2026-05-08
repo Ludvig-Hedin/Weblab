@@ -59,7 +59,7 @@ export const ImagePill = React.forwardRef<
             </div>
 
             {/* Right side: Filename */}
-            <span className="max-w-[100px] overflow-hidden pr-1 text-xs text-ellipsis whitespace-nowrap">
+            <span className="text-mini max-w-[100px] overflow-hidden pr-1 text-ellipsis whitespace-nowrap">
                 {getTruncatedName(context)}
             </span>
 

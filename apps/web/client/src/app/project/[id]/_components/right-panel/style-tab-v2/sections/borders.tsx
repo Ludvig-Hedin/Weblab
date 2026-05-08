@@ -69,7 +69,7 @@ function CornerRadius() {
 
     return (
         <div className="flex items-start gap-3 px-3 py-2">
-            <span className="text-foreground-secondary w-12 shrink-0 pt-1.5 text-xs">Radius</span>
+            <span className="text-foreground-secondary text-mini w-12 shrink-0 pt-1.5">Radius</span>
             <div className="flex flex-1 flex-col gap-1">
                 {linked ? (
                     <NumberInput
@@ -89,10 +89,10 @@ function CornerRadius() {
                     type="button"
                     onClick={() => setLinked((v) => !v)}
                     className={cn(
-                        'self-end rounded px-2 py-0.5 text-[10px]',
+                        'text-micro self-end rounded px-2 py-0.5 transition-colors duration-150',
                         linked
-                            ? 'bg-blue-500/20 text-blue-500'
-                            : 'bg-foreground-secondary/10 text-foreground-secondary',
+                            ? 'bg-foreground/12 text-foreground-primary'
+                            : 'bg-foreground/5 text-foreground-tertiary hover:bg-foreground/10',
                     )}
                 >
                     {linked ? 'Linked' : 'Per corner'}
@@ -112,7 +112,7 @@ function CornerInput({ property, label }: { property: string; label: string }) {
                 compact
                 value={styleValue.value}
                 onCommit={setter.set}
-                className={cn(styleValue.isSet && 'border-blue-500/40')}
+                className={cn(styleValue.isSet && 'border-blue-400/40')}
                 aria-label={`Radius ${label}`}
             />
         </div>

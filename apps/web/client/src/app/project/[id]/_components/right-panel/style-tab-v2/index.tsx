@@ -36,8 +36,8 @@ const TARGET_LABEL: Record<WriteTarget, string> = {
 const StyleTabV2Empty = () => (
     <div className="flex h-full items-center justify-center px-6 text-center">
         <div className="space-y-2">
-            <p className="text-foreground-primary text-sm font-medium">No element selected</p>
-            <p className="text-foreground-tertiary text-xs">
+            <p className="text-foreground-primary text-small font-medium">No element selected</p>
+            <p className="text-foreground-tertiary text-mini">
                 Pick an element in the canvas to inspect and edit its styles.
             </p>
         </div>

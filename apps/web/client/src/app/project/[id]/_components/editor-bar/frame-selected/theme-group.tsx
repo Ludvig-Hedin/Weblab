@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 
 import { SystemTheme } from '@weblab/models/assets';
@@ -20,12 +22,10 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
     useEffect(() => {
         const getTheme = async () => {
             if (!frameData?.view) {
-                console.error('No frame view found');
                 return;
             }
 
             if (typeof frameData.view.getTheme !== 'function') {
-                console.warn('Frame view getTheme method not available yet');
                 return;
             }
 
@@ -81,7 +81,7 @@ export function ThemeGroup({ frameData }: { frameData: FrameData }) {
                         <SelectItem
                             key={option.value}
                             value={option.value}
-                            className="cursor-pointer text-xs"
+                            className="text-mini cursor-pointer"
                         >
                             <OptionIcon className="text-foreground-weblab h-3.5 w-3.5" />
                             {option.label}

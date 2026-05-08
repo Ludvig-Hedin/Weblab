@@ -33,13 +33,13 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
             <div className="relative flex h-full items-center overflow-hidden">
                 <button
                     className={cn(
-                        'flex h-full min-w-0 flex-1 items-center text-sm focus:outline-none',
+                        'text-small flex h-full min-w-0 flex-1 items-center focus:outline-none',
                         isActive
                             ? isFileDirty
-                                ? 'text-blue-300'
+                                ? 'text-blue-400'
                                 : 'text-foreground'
                             : isFileDirty
-                              ? 'text-blue-500'
+                              ? 'text-blue-400'
                               : 'text-foreground-secondary/50',
                     )}
                     onClick={onClick}
@@ -49,7 +49,7 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                         <span
                             className={cn(
                                 'ml-1 flex-shrink-0',
-                                isActive ? 'text-blue-300' : 'text-blue-500',
+                                isActive ? 'text-blue-400' : 'text-blue-400',
                             )}
                         >
                             ●
@@ -59,7 +59,7 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                         <div
                             className={cn(
                                 'absolute bottom-0 left-0 h-[2px] w-full',
-                                isFileDirty ? 'bg-blue-300' : 'bg-foreground-hover',
+                                isFileDirty ? 'bg-blue-400' : 'bg-foreground-hover',
                             )}
                         ></div>
                     )}

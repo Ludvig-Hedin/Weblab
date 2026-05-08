@@ -46,7 +46,7 @@ export const TopBar = observer(() => {
     ];
 
     return (
-        <div className="bg-background-weblab/60 flex h-10 flex-row items-center justify-center p-0 backdrop-blur-xl">
+        <div className="bg-background-secondary border-border flex h-10 flex-row items-center justify-center border-b p-0">
             <div className="flex flex-grow basis-0 flex-row items-center justify-start">
                 <ProjectBreadcrumb />
                 <span className="text-foreground-secondary/50 text-small">/</span>

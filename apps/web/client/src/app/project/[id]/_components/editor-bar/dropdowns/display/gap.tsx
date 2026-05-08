@@ -23,7 +23,7 @@ export const GapInput = () => {
 
     return (
         <div className="flex w-full items-center gap-0">
-            <span className="text-muted-foreground w-20 text-sm">Gap</span>
+            <span className="text-muted-foreground text-small w-20">Gap</span>
             <div className="flex-1">
                 <InputIcon
                     value={numValue}

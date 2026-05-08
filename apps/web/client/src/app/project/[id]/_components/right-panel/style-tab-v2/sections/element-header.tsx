@@ -147,7 +147,7 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
     return (
         <div className="border-border/40 flex flex-col gap-2 border-b px-3 py-3">
             <div className="flex items-center gap-2">
-                <span className="text-foreground-secondary w-12 shrink-0 text-xs">Tag</span>
+                <span className="text-foreground-secondary text-mini w-12 shrink-0">Tag</span>
                 <SelectField
                     value={tagName}
                     options={TAG_OPTIONS}
@@ -156,7 +156,7 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
                 />
             </div>
             <div className="flex items-center gap-2">
-                <span className="text-foreground-secondary w-12 shrink-0 text-xs">ID</span>
+                <span className="text-foreground-secondary text-mini w-12 shrink-0">ID</span>
                 <TextField
                     value={idValue}
                     placeholder="hero-section"
@@ -164,7 +164,7 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
                 />
             </div>
             <div className="flex items-start gap-2">
-                <span className="text-foreground-secondary w-12 shrink-0 pt-1.5 text-xs">
+                <span className="text-foreground-secondary text-mini w-12 shrink-0 pt-1.5">
                     Class
                 </span>
                 <div className="border-input bg-background flex min-h-[28px] flex-1 flex-wrap items-center gap-1 rounded-md border p-1">
@@ -192,7 +192,7 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
 
 function ClassChip({ cls, onRemove }: { cls: string; onRemove: () => void }) {
     return (
-        <span className="bg-foreground-secondary/10 text-foreground-primary inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs">
+        <span className="bg-foreground-secondary/10 text-foreground-primary text-mini inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5">
             {cls}
             <button
                 type="button"
@@ -222,7 +222,7 @@ function ClassInput({ onCommit }: { onCommit: (v: string) => void }) {
                 }
             }}
             className={cn(
-                'placeholder:text-muted-foreground min-w-[80px] flex-1 bg-transparent px-1 text-xs outline-none',
+                'placeholder:text-muted-foreground text-mini min-w-[80px] flex-1 bg-transparent px-1 outline-none',
             )}
         />
     );

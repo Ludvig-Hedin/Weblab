@@ -20,7 +20,7 @@ const formatCommandOutput = (output: string | null) => {
         // Add appropriate styling based on line content
         if (cleanLine.includes('installed')) {
             return (
-                <div key={index} className="flex items-center gap-2 text-green-400">
+                <div key={index} className="text-foreground-positive flex items-center gap-2">
                     <Icons.Check className="h-4 w-4" />
                     <span>{cleanLine}</span>
                 </div>
@@ -29,7 +29,7 @@ const formatCommandOutput = (output: string | null) => {
 
         if (cleanLine.includes('error') || cleanLine.includes('Error')) {
             return (
-                <div key={index} className="flex items-center gap-2 text-red-400">
+                <div key={index} className="text-destructive flex items-center gap-2">
                     <Icons.CrossCircled className="h-4 w-4" />
                     <span>{cleanLine}</span>
                 </div>
@@ -38,7 +38,7 @@ const formatCommandOutput = (output: string | null) => {
 
         if (cleanLine.includes('warning') || cleanLine.includes('Warning')) {
             return (
-                <div key={index} className="flex items-center gap-2 text-yellow-400">
+                <div key={index} className="text-foreground-secondary flex items-center gap-2">
                     <Icons.ExclamationTriangle className="h-4 w-4" />
                     <span>{cleanLine}</span>
                 </div>
@@ -47,7 +47,7 @@ const formatCommandOutput = (output: string | null) => {
 
         if (cleanLine.includes('$')) {
             return (
-                <div key={index} className="flex items-center gap-2 text-blue-400">
+                <div key={index} className="text-foreground-primary flex items-center gap-2">
                     <Icons.Terminal className="h-4 w-4" />
                     <span>{cleanLine}</span>
                 </div>
@@ -111,7 +111,7 @@ export const BashCodeDisplay = observer(
         return (
             <div className="bg-background text-foreground flex w-full flex-col rounded-lg border">
                 <div className="flex h-full w-full flex-col">
-                    <div className="bg-background-secondary relative flex w-full overflow-auto p-4 text-xs">
+                    <div className="bg-background-secondary text-mini relative flex w-full overflow-auto p-4">
                         <code className="whitespace-pre">
                             <span className="text-foreground-secondary mr-2 select-none">$</span>
                             {content}
@@ -121,12 +121,12 @@ export const BashCodeDisplay = observer(
                         <div className="bg-foreground-secondary/30 h-[1px] w-full"></div>
                     )}
                     {stdOut !== null && (
-                        <code className="bg-background-secondary max-h-48 w-full space-y-1 overflow-auto px-4 py-2 font-mono text-xs whitespace-pre">
+                        <code className="bg-background-secondary text-mini max-h-48 w-full space-y-1 overflow-auto px-4 py-2 font-mono whitespace-pre">
                             {formatCommandOutput(stdOut)}
                         </code>
                     )}
                     {stdErr !== null && (
-                        <code className="bg-background-secondary max-h-48 w-full overflow-auto px-4 py-2 font-mono text-xs whitespace-pre text-red-500">
+                        <code className="bg-background-secondary text-destructive text-mini max-h-48 w-full overflow-auto px-4 py-2 font-mono whitespace-pre">
                             {formatCommandOutput(stdErr)}
                         </code>
                     )}
@@ -151,7 +151,7 @@ export const BashCodeDisplay = observer(
                     ) : (
                         <Button
                             size={'sm'}
-                            className="group flex flex-grow gap-2 rounded-none bg-purple-400/20 px-1 text-purple-200 hover:bg-purple-400/40 hover:text-purple-100"
+                            className="group bg-foreground/8 text-foreground-primary hover:bg-foreground/15 flex flex-grow gap-2 rounded-none px-1"
                             variant={'ghost'}
                             onClick={runCommand}
                             disabled={running || isStream}
@@ -159,7 +159,7 @@ export const BashCodeDisplay = observer(
                             {running ? (
                                 <Icons.LoadingSpinner className="animate-spin" />
                             ) : (
-                                <Icons.Play className="text-purple-300 transition-none group-hover:text-purple-100" />
+                                <Icons.Play className="text-foreground-secondary group-hover:text-foreground-primary transition-none" />
                             )}
                             Run command
                         </Button>

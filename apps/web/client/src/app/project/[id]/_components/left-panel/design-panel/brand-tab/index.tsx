@@ -75,16 +75,16 @@ export const BrandTab = observer(() => {
     }
 
     return (
-        <div className="text-active flex h-full w-full flex-grow flex-col p-0 text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-grow flex-col p-0">
             {/* Brand Palette Section */}
             <div className="border-border flex flex-col gap-3 border-b px-4 pt-4 pb-6">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm">Brand Colors</span>
+                        <span className="text-small">Brand Colors</span>
                     </div>
 
                     <div
-                        className="bg-background-weblab border-foreground/50 grid h-[40px] max-h-[40px] cursor-pointer grid-cols-12 gap-0 overflow-hidden rounded-lg border-[0.5px] transition-all duration-200 hover:border-transparent"
+                        className="bg-background-tertiary border-border hover:border-border-hover grid h-[40px] max-h-[40px] cursor-pointer grid-cols-12 gap-0 overflow-hidden rounded-md border transition-colors duration-150"
                         onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
                     >
                         {brandColors.length > 0
@@ -102,7 +102,7 @@ export const BrandTab = observer(() => {
 
                 <Button
                     variant="ghost"
-                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 h-10 w-full rounded-lg border text-sm"
+                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-10 w-full rounded-lg border"
                     onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
                 >
                     Manage brand colors
@@ -113,13 +113,13 @@ export const BrandTab = observer(() => {
             <div className="flex flex-col gap-1.5 px-4 pt-5 pb-6">
                 <div className="flex flex-col">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm">Site Fonts</span>
+                        <span className="text-small">Site Fonts</span>
                     </div>
                     <SystemFont />
                 </div>
                 <Button
                     variant="ghost"
-                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 h-10 w-full rounded-lg border text-sm"
+                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-10 w-full rounded-lg border"
                     onClick={() => editorEngine.state.setBrandTab(BrandTabValue.FONTS)}
                 >
                     Manage site fonts

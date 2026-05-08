@@ -209,7 +209,7 @@ export const FileTreeNode = ({
                         <span className="truncate">{node.data.name}</span>
                     )}
                     {/* {!isDirectory && contentMatches?.has(node.data.path) && (
-                        <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full font-medium min-w-[20px] text-center">
+                        <span className="ml-1 px-1.5 py-0.5 text-mini bg-primary/10 text-primary rounded-full font-medium min-w-[20px] text-center">
                             {contentMatches.get(node.data.path)}
                         </span>
                     )} */}

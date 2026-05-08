@@ -204,14 +204,14 @@ export const LayersTab = observer(() => {
         <div
             id="layer-tab-id"
             ref={ref}
-            className="text-active flex h-full w-full flex-col overflow-hidden p-3 text-xs"
+            className="text-active text-mini flex h-full w-full flex-col overflow-hidden p-3"
             onMouseOver={() => setTreeHovered(true)}
             onMouseLeave={handleMouseLeaveTree}
         >
             <div className="mb-2 flex items-center gap-2">
                 <div className="relative flex-1">
                     <Input
-                        className="h-8 pr-8 text-xs"
+                        className="text-mini h-8 pr-8"
                         placeholder="Search layers"
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}

@@ -101,15 +101,15 @@ export const Suggestions = observer(
                             ref={(el) => {
                                 buttonRefs.current[index] = el;
                             }}
-                            initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{
-                                delay: 0.1 + index * 0.1,
-                                duration: 0.3,
+                                delay: 0.05 + index * 0.05,
+                                duration: 0.2,
                                 ease: 'easeOut',
                             }}
                             key={suggestion.title}
-                            className="relative flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2 text-left text-xs text-blue-300 transition-all hover:bg-blue-500/20 focus:border-blue-400/40 focus:bg-blue-500/30 focus:text-blue-200 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="border-border bg-background-tertiary/40 text-foreground-secondary hover:bg-background-tertiary hover:text-foreground-primary focus:border-foreground/30 focus:bg-background-tertiary focus:text-foreground-primary text-mini relative flex items-center gap-2 rounded-md border p-2 text-left transition-colors duration-150 focus:outline-none"
                             onClick={() => setInput(suggestion.prompt)}
                             onFocus={() => {
                                 setFocusedIndex(index);

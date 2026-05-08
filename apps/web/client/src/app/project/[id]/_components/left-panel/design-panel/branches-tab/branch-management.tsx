@@ -123,7 +123,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
     };
 
     return (
-        <div className="text-active flex h-full w-full flex-grow flex-col p-0 text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-grow flex-col p-0">
             <div className="border-border flex items-center justify-start gap-2 border-b py-3 pr-2.5 pl-3">
                 <Button
                     variant="ghost"
@@ -133,15 +133,15 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                 >
                     <Icons.ArrowLeft className="h-4 w-4" />
                 </Button>
-                <h2 className="text-foreground text-sm font-normal">Branch Settings</h2>
+                <h2 className="text-foreground text-small font-normal">Branch Settings</h2>
             </div>
 
             <div className="border-border space-y-4 border-b p-4">
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <label className="text-foreground text-sm">Name</label>
+                        <label className="text-foreground text-small">Name</label>
                         {isActiveBranch && (
-                            <span className="rounded bg-purple-800 px-2 py-1 text-xs text-purple-200">
+                            <span className="text-mini rounded bg-purple-800 px-2 py-1 text-purple-200">
                                 Active
                             </span>
                         )}
@@ -152,7 +152,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                             onChange={(e) => setNewName(e.target.value)}
                             onKeyDown={handleKeyDown}
                             onBlur={handleRename}
-                            className="h-9 text-sm"
+                            className="text-small h-9"
                             autoFocus
                         />
                     ) : (
@@ -180,7 +180,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
 
             <div className="flex-1 space-y-3 p-4">
                 <div className="space-y-2">
-                    <h3 className="text-foreground text-sm">Actions</h3>
+                    <h3 className="text-foreground text-small">Actions</h3>
                     <div className="flex w-full flex-col items-center gap-2">
                         <Button
                             variant="outline"
@@ -229,7 +229,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
 
                 <div className="border-border border-t pt-4">
                     <div className="space-y-2">
-                        <div className="text-foreground-tertiary/80 space-y-1 text-xs">
+                        <div className="text-foreground-tertiary/80 text-mini space-y-1">
                             <div>Created {timeAgo(branch.createdAt)} ago</div>
                             <div>Last modified {timeAgo(branch.updatedAt)} ago</div>
                         </div>

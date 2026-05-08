@@ -192,7 +192,7 @@ export const PageSelector = observer(
                             variant="ghost"
                             size={buttonSize}
                             className={cn(
-                                'h-auto px-2 py-1 text-xs hover:!bg-transparent focus:!bg-transparent active:!bg-transparent',
+                                'text-mini h-auto px-2 py-1 hover:!bg-transparent focus:!bg-transparent active:!bg-transparent',
                                 buttonClassName,
                                 className,
                             )}
@@ -233,7 +233,7 @@ export const PageSelector = observer(
                                     {editorEngine.pages.isScanning && (
                                         <DropdownMenuItem
                                             disabled
-                                            className="text-muted-foreground text-xs"
+                                            className="text-muted-foreground text-mini"
                                         >
                                             <Icons.LoadingSpinner className="mr-2 h-3 w-3 animate-spin" />
                                             <span>Scanning pages...</span>

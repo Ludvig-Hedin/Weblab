@@ -123,7 +123,11 @@ export const CodeTab = memo(
                 }
             };
 
-            const updateExistingFile = (index: number, newFile: EditorFile, currentFiles: EditorFile[]) => {
+            const updateExistingFile = (
+                index: number,
+                newFile: EditorFile,
+                currentFiles: EditorFile[],
+            ) => {
                 const existingFile = currentFiles[index];
                 if (!existingFile) return;
 

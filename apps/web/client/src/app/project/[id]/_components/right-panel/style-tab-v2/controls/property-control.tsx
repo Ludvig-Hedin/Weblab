@@ -151,14 +151,14 @@ export const PropertyControl = observer(function PropertyControl({
                         type="button"
                         onClick={handleLabelClick}
                         title={`${label} — alt-click to reset`}
-                        className="flex w-20 shrink-0 items-center gap-1.5 text-left text-xs"
+                        className="text-mini flex w-20 shrink-0 items-center gap-1.5 text-left"
                     >
                         <span
                             aria-hidden
                             className={cn(
                                 'h-1.5 w-1.5 rounded-full transition-colors',
                                 styleValue.isSet
-                                    ? 'bg-blue-500'
+                                    ? 'bg-blue-400'
                                     : 'bg-foreground-secondary/30 group-hover/control:bg-foreground-secondary/60',
                             )}
                         />
@@ -186,16 +186,16 @@ export const PropertyControl = observer(function PropertyControl({
                                 <TooltipTrigger asChild>
                                     <span
                                         className={cn(
-                                            'shrink-0 rounded-sm px-1 text-[9px] tracking-wider uppercase',
+                                            'text-micro shrink-0 rounded-sm px-1 uppercase',
                                             styleValue.override
-                                                ? 'bg-blue-500/20 text-blue-500'
-                                                : 'bg-foreground-secondary/10 text-foreground-secondary',
+                                                ? 'bg-foreground/12 text-foreground-primary'
+                                                : 'bg-foreground/5 text-foreground-tertiary',
                                         )}
                                     >
                                         {targetChipText}
                                     </span>
                                 </TooltipTrigger>
-                                <TooltipContent side="left" className="text-xs">
+                                <TooltipContent side="left" className="text-mini">
                                     {styleValue.override
                                         ? `Inline override (this element only)`
                                         : `Writing as ${TARGET_LABELS[styleValue.writeTarget]}`}
@@ -208,7 +208,7 @@ export const PropertyControl = observer(function PropertyControl({
             <ContextMenuContent className="w-56">
                 <ContextMenuItem onSelect={reset} disabled={!styleValue.isSet}>
                     Reset
-                    <span className="text-foreground-secondary ml-auto text-xs">⌥-click</span>
+                    <span className="text-foreground-secondary text-mini ml-auto">⌥-click</span>
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onSelect={() => void copy()} disabled={!styleValue.value}>

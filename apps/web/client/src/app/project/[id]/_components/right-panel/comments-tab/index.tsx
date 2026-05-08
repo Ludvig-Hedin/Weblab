@@ -63,7 +63,7 @@ export const CommentsTab = observer(() => {
                 <button
                     onClick={() => setFilter('open')}
                     className={cn(
-                        'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                        'text-mini rounded-md px-2.5 py-1 font-medium transition-colors',
                         filter === 'open'
                             ? 'bg-background-tertiary text-foreground-primary'
                             : 'text-foreground-tertiary hover:text-foreground-hover',
@@ -74,7 +74,7 @@ export const CommentsTab = observer(() => {
                 <button
                     onClick={() => setFilter('resolved')}
                     className={cn(
-                        'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                        'text-mini rounded-md px-2.5 py-1 font-medium transition-colors',
                         filter === 'resolved'
                             ? 'bg-background-tertiary text-foreground-primary'
                             : 'text-foreground-tertiary hover:text-foreground-hover',
@@ -87,11 +87,11 @@ export const CommentsTab = observer(() => {
             {/* List */}
             <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
                 {editorEngine.comment.isLoading && filtered.length === 0 ? (
-                    <div className="text-foreground-tertiary flex flex-1 items-center justify-center text-xs">
+                    <div className="text-foreground-tertiary text-mini flex flex-1 items-center justify-center">
                         Loading...
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="text-foreground-tertiary flex flex-1 items-center justify-center text-xs">
+                    <div className="text-foreground-tertiary text-mini flex flex-1 items-center justify-center">
                         {filter === 'open' ? 'No open comments' : 'No resolved comments'}
                     </div>
                 ) : (
@@ -108,17 +108,17 @@ export const CommentsTab = observer(() => {
                             )}
                         >
                             <div className="flex items-center gap-2">
-                                <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
+                                <div className="bg-foreground/12 text-foreground-secondary flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
                                     {getInitials(comment.authorName)}
                                 </div>
-                                <span className="text-foreground-primary flex-1 truncate text-xs font-medium">
+                                <span className="text-foreground-primary text-mini flex-1 truncate font-medium">
                                     {comment.authorName}
                                 </span>
                                 <span className="text-foreground-tertiary text-[10px]">
                                     {formatRelativeTime(comment.createdAt)}
                                 </span>
                             </div>
-                            <p className="text-foreground-secondary line-clamp-2 text-xs">
+                            <p className="text-foreground-secondary text-mini line-clamp-2">
                                 {comment.content}
                             </p>
                             {comment.replies.length > 0 && (

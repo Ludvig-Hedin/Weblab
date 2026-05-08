@@ -195,14 +195,14 @@ export const FileTree = ({
                 onRefresh={onRefresh}
                 onKeyDown={handleKeyDown}
             />
-            <div ref={resizeObserverRef} className="min-h-0 w-full flex-1 px-2 text-xs">
+            <div ref={resizeObserverRef} className="text-mini min-h-0 w-full flex-1 px-2">
                 {isLoading ? (
-                    <div className="text-foreground/50 flex h-full flex-col items-center justify-start pt-4 text-sm">
+                    <div className="text-foreground/50 text-small flex h-full flex-col items-center justify-start pt-4">
                         <div className="border-foreground-hover mb-2 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
                         <span>Loading files...</span>
                     </div>
                 ) : filteredFiles.length === 0 ? (
-                    <div className="text-foreground/50 flex h-full flex-col items-center justify-start pt-4 text-sm">
+                    <div className="text-foreground/50 text-small flex h-full flex-col items-center justify-start pt-4">
                         {fileEntries.length === 0 ? 'No files found' : 'No files match your search'}
                     </div>
                 ) : (

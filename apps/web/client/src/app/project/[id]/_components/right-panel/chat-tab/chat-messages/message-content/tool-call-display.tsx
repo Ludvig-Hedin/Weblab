@@ -174,7 +174,7 @@ const ToolCallDisplayComponent = ({
     //     return (
     //         <div>
     //             {todos.map((todo) => (
-    //                 <div className="flex items-center gap-2 text-sm" key={todo.content}>
+    //                 <div className="flex items-center gap-2 text-small" key={todo.content}>
     //                     <div className="flex items-center justify-center w-4 h-4 min-w-4">
     //                         {
     //                             todo.status === 'completed' ?

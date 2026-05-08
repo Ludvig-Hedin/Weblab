@@ -26,7 +26,7 @@ import { TextColor } from './text-inputs/text-color';
 // Group definitions for the text-selected toolbar
 export const TEXT_SELECTED_GROUPS = [
     {
-        key: 'text-base',
+        key: 'text-regular',
         label: 'Base',
         components: [<ColorBackground />, <Border />, <BorderColor />, <Radius />],
     },

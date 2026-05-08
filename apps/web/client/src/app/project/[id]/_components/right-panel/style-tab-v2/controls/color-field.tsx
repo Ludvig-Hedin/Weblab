@@ -40,7 +40,7 @@ export function ColorField({ value, onCommit, placeholder = 'transparent' }: Col
             <PopoverTrigger asChild>
                 <button
                     type="button"
-                    className="border-input bg-background hover:border-ring/50 flex h-7 w-full items-center gap-2 rounded-md border px-2 text-xs"
+                    className="border-input bg-background hover:border-ring/50 text-mini flex h-7 w-full items-center gap-2 rounded-md border px-2"
                     aria-label="Open color picker"
                 >
                     <span

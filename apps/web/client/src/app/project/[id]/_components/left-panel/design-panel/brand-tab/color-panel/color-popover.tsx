@@ -60,7 +60,7 @@ export const ColorPopover = ({
             <PopoverContent className="w-56 p-0" side="right" align="start">
                 <div className="flex flex-col gap-0 p-0">
                     <div className="flex flex-col gap-1 p-2 pb-1">
-                        <label className="text-muted-foreground text-xs">Color Name</label>
+                        <label className="text-muted-foreground text-mini">Color Name</label>
                         <ColorNameInput
                             initialName={editedName}
                             onSubmit={handleNameChange}

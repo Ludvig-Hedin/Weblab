@@ -223,7 +223,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                 <DialogHeader>
                     <div className="mb-1 flex items-center gap-2">
                         <Icons.Commit className="h-5 w-5" />
-                        <DialogTitle className="text-xl font-semibold">
+                        <DialogTitle className="text-title3 font-semibold">
                             Commit your changes
                         </DialogTitle>
                     </div>
@@ -234,7 +234,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
                 <div className="space-y-4">
                     {/* Branch */}
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="text-small flex items-center justify-between">
                         <span className="text-foreground-secondary">Branch</span>
                         <div className="text-foreground-primary flex items-center gap-1.5">
                             <Icons.Branch className="h-3.5 w-3.5" />
@@ -243,7 +243,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     </div>
 
                     {/* Changes */}
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="text-small flex items-center justify-between">
                         <span className="text-foreground-secondary">Changes</span>
                         <div className="flex items-center gap-2">
                             {fileCount !== null && (
@@ -263,14 +263,14 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         </div>
                     </div>
                     {gitInfoError && (
-                        <p className="text-foreground-secondary text-xs">{gitInfoError}</p>
+                        <p className="text-foreground-secondary text-mini">{gitInfoError}</p>
                     )}
 
                     {/* Include unstaged */}
                     <div className="flex items-center justify-between">
                         <label
                             htmlFor="include-unstaged"
-                            className="cursor-pointer text-sm select-none"
+                            className="text-small cursor-pointer select-none"
                         >
                             Include unstaged
                         </label>
@@ -282,7 +282,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                         />
                     </div>
                     {!includeUnstaged && stagedFileCount !== null && (
-                        <p className="text-foreground-secondary text-xs">
+                        <p className="text-foreground-secondary text-mini">
                             {stagedFileCount === 0
                                 ? 'Stage at least one file before committing staged changes only.'
                                 : `${stagedFileCount} staged ${stagedFileCount === 1 ? 'file' : 'files'} ready to commit.`}
@@ -292,13 +292,13 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     {/* Commit message */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">Commit message</span>
+                            <span className="text-small font-medium">Commit message</span>
                         </div>
                         <Textarea
                             value={commitMessage}
                             onChange={(e) => setCommitMessage(e.target.value)}
                             placeholder="Leave blank to autogenerate a commit message"
-                            className="resize-none text-sm"
+                            className="text-small resize-none"
                             rows={3}
                             disabled={isLoading}
                         />
@@ -306,7 +306,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
                     {/* Next steps */}
                     <div className="space-y-1">
-                        <p className="text-sm font-medium">Next steps</p>
+                        <p className="text-small font-medium">Next steps</p>
                         <div className="border-border divide-border divide-y overflow-hidden rounded-md border">
                             {(['commit', 'commit-push', 'commit-pr'] as CommitAction[]).map((a) => (
                                 <button
@@ -315,7 +315,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                                     onClick={() => setAction(a)}
                                     disabled={isLoading}
                                     className={cn(
-                                        'flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors',
+                                        'text-small flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
                                         action === a
                                             ? 'text-foreground-primary'
                                             : 'text-foreground-secondary hover:text-foreground-primary hover:bg-background-secondary/40',
@@ -385,7 +385,7 @@ export const GitActionsButton = observer(() => {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="border-input flex h-full items-center gap-1.5 rounded-none border-r px-2.5 text-xs hover:rounded-none"
+                    className="border-input text-mini flex h-full items-center gap-1.5 rounded-none border-r px-2.5 hover:rounded-none"
                     onClick={() => openModal('commit')}
                 >
                     <Icons.Cube className="h-3.5 w-3.5" />

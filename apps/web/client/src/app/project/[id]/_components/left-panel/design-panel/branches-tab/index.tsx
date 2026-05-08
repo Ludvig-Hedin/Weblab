@@ -129,8 +129,8 @@ export const BranchesTab = observer(() => {
         <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b p-4">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-sm">Branches</h2>
-                    <span className="text-muted-foreground text-xs">
+                    <h2 className="text-small">Branches</h2>
+                    <span className="text-muted-foreground text-mini">
                         ({branches.allBranches.length})
                     </span>
                 </div>
@@ -143,8 +143,8 @@ export const BranchesTab = observer(() => {
                     <PopoverContent align="end" className="w-72 p-3">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm font-medium">Create Branch</p>
-                                <p className="text-muted-foreground text-xs">
+                                <p className="text-small font-medium">Create Branch</p>
+                                <p className="text-muted-foreground text-mini">
                                     Fork the current branch or start from a blank sandbox.
                                 </p>
                             </div>
@@ -201,7 +201,7 @@ export const BranchesTab = observer(() => {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search branches"
-                            className="h-8 pl-7 text-sm"
+                            className="text-small h-8 pl-7"
                         />
                     </div>
                 </div>
@@ -241,7 +241,7 @@ export const BranchesTab = observer(() => {
             <div className="flex-1 overflow-auto">
                 <div className="space-y-1 p-2">
                     {filteredBranches.length === 0 && (
-                        <div className="text-muted-foreground py-6 text-center text-xs">
+                        <div className="text-muted-foreground text-mini py-6 text-center">
                             No branches match &quot;{searchQuery}&quot;
                         </div>
                     )}
@@ -269,7 +269,7 @@ export const BranchesTab = observer(() => {
                                         <Icons.Branch className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                                     )}
                                     <div className="min-w-0 flex-1 overflow-hidden">
-                                        <div className="truncate text-sm font-medium">
+                                        <div className="text-small truncate font-medium">
                                             {branch.name}
                                         </div>
                                         <div className="text-mini text-muted-foreground mb-1 truncate">

@@ -103,8 +103,10 @@ const Section = ({
 }) => (
     <section className="border-border/50 border-b pb-4 last:border-b-0 last:pb-0">
         <div className="mb-3">
-            <h3 className="text-foreground text-sm font-medium">{title}</h3>
-            {description && <p className="text-foreground-tertiary mt-1 text-xs">{description}</p>}
+            <h3 className="text-foreground text-small font-medium">{title}</h3>
+            {description && (
+                <p className="text-foreground-tertiary text-mini mt-1">{description}</p>
+            )}
         </div>
         <div className="space-y-3">{children}</div>
     </section>
@@ -196,9 +198,9 @@ const DraftInput = ({
                 }}
                 disabled={disabled}
                 placeholder={placeholder}
-                className="h-full border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="text-small h-full border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-            {suffix && <span className="text-foreground-tertiary ml-2 text-xs">{suffix}</span>}
+            {suffix && <span className="text-foreground-tertiary text-mini ml-2">{suffix}</span>}
         </div>
     );
 };
@@ -231,7 +233,7 @@ const DraftTextarea = ({
                 }
             }}
             placeholder={placeholder}
-            className="border-border/60 bg-background-secondary min-h-16 resize-none px-2.5 py-2 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-border/60 bg-background-secondary text-small min-h-16 resize-none px-2.5 py-2 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         />
     );
 };
@@ -248,7 +250,7 @@ const SelectField = ({
     placeholder?: string;
 }) => (
     <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-full text-sm">
+        <SelectTrigger className="border-border/60 bg-background-secondary text-small h-8 w-full">
             <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -275,7 +277,7 @@ const AlignButtons = ({
                 type="button"
                 onClick={() => onChange(option)}
                 className={cn(
-                    'rounded-md px-2 py-1.5 text-xs capitalize transition-colors',
+                    'text-mini rounded-md px-2 py-1.5 capitalize transition-colors',
                     value === option
                         ? 'bg-foreground text-background'
                         : 'text-foreground-secondary hover:bg-background-tertiary',
@@ -366,10 +368,10 @@ export const StyleTab = observer(() => {
         return (
             <div className="flex h-full items-center justify-center px-6 text-center">
                 <div className="space-y-2">
-                    <p className="text-foreground text-sm font-medium">
+                    <p className="text-foreground text-small font-medium">
                         {t(transKeys.editor.panels.edit.tabs.styles.emptyState)}
                     </p>
-                    <p className="text-foreground-tertiary text-xs">
+                    <p className="text-foreground-tertiary text-mini">
                         {t(transKeys.editor.panels.edit.tabs.styles.emptyStateHint)}
                     </p>
                 </div>
@@ -482,7 +484,7 @@ export const StyleTab = observer(() => {
                             onCommit={(value) => void commitTagName(value)}
                         />
                     </div>
-                    <div className="text-foreground-tertiary mt-3 truncate text-xs">
+                    <div className="text-foreground-tertiary text-mini mt-3 truncate">
                         {selectedElement.domId}
                     </div>
                 </section>
@@ -640,7 +642,7 @@ export const StyleTab = observer(() => {
                 >
                     {(['padding', 'margin'] as const).map((group) => (
                         <div key={group} className="space-y-2">
-                            <div className="text-foreground-secondary text-xs font-medium capitalize">
+                            <div className="text-foreground-secondary text-mini font-medium capitalize">
                                 {group}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -740,7 +742,7 @@ export const StyleTab = observer(() => {
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <FieldLabel>Opacity</FieldLabel>
-                            <span className="text-foreground-secondary text-xs">
+                            <span className="text-foreground-secondary text-mini">
                                 {opacityPercent}%
                             </span>
                         </div>
@@ -783,7 +785,7 @@ export const StyleTab = observer(() => {
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-full text-sm">
+                                    <SelectTrigger className="border-border/60 bg-background-secondary text-small h-8 w-full">
                                         <SelectValue
                                             placeholder={textState.fontFamily || 'Choose font'}
                                         />

@@ -125,14 +125,14 @@ export const SearchTab = observer(() => {
         : `${totalCount} result${totalCount === 1 ? '' : 's'}`;
 
     return (
-        <div className="text-active flex h-full w-full flex-col p-3 text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-col p-3">
             {/* Header: input + filter button */}
             <div className="mb-2 flex items-center gap-2">
                 <div className="relative flex-1">
                     <Icons.MagnifyingGlass className="text-foreground-primary/50 pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
                         ref={inputRef}
-                        className="h-8 pr-8 pl-7 text-xs"
+                        className="text-mini h-8 pr-8 pl-7"
                         placeholder="Find in design"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -183,7 +183,7 @@ export const SearchTab = observer(() => {
                                 <ToggleGroupItem
                                     key={opt.value}
                                     value={opt.value}
-                                    className="justify-start text-xs"
+                                    className="text-mini justify-start"
                                 >
                                     {opt.label}
                                 </ToggleGroupItem>
@@ -204,7 +204,7 @@ export const SearchTab = observer(() => {
                                 {scopeLabel}
                                 <Icons.ChevronDown className="h-3 w-3" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="text-xs">
+                            <DropdownMenuContent align="start" className="text-mini">
                                 <DropdownMenuItem onClick={() => setScope('page')}>
                                     This page
                                 </DropdownMenuItem>

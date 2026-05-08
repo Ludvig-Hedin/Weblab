@@ -102,7 +102,7 @@ export const Opacity = observer(() => {
                         />
                         <span
                             onClick={(e) => e.stopPropagation()}
-                            className="text-muted-foreground bg-transparent pr-2 text-xs"
+                            className="text-muted-foreground text-mini bg-transparent pr-2"
                         >
                             %
                         </span>

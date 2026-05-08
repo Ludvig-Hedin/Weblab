@@ -54,9 +54,9 @@ const ColorGroup = ({
                 onClick={() => setExpanded(!expanded)}
             >
                 <div className="flex flex-1 items-center gap-1">
-                    <span className="text-xs font-normal capitalize">{toNormalCase(name)}</span>
+                    <span className="text-mini font-normal capitalize">{toNormalCase(name)}</span>
                     {isDefault && (
-                        <span className="text-muted-foreground ml-2 text-xs">Default</span>
+                        <span className="text-muted-foreground text-mini ml-2">Default</span>
                     )}
                 </div>
                 {expanded ? <Icons.ChevronUp /> : <Icons.ChevronDown />}
@@ -78,7 +78,7 @@ const ColorGroup = ({
                                 className="h-5 w-5 rounded-sm"
                                 style={{ backgroundColor: color.lightColor }}
                             />
-                            <span className="max-w-32 truncate text-xs font-normal">
+                            <span className="text-mini max-w-32 truncate font-normal">
                                 {toNormalCase(color.name)}
                             </span>
                             {isSelected && (
@@ -630,21 +630,21 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                         <div className="flex gap-1">
                             <TabsTrigger
                                 value={TabValue.BRAND}
-                                className="hover:bg-background-secondary hover:text-foreground-primary flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 text-xs transition-colors"
+                                className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                             >
                                 Brand
                             </TabsTrigger>
 
                             <TabsTrigger
                                 value={TabValue.CUSTOM}
-                                className="hover:bg-background-secondary hover:text-foreground-primary flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 text-xs transition-colors"
+                                className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                             >
                                 Custom
                             </TabsTrigger>
                             {!hideGradient && (
                                 <TabsTrigger
                                     value={TabValue.GRADIENT}
-                                    className="hover:bg-background-secondary hover:text-foreground-primary flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 text-xs transition-colors"
+                                    className="hover:bg-background-secondary hover:text-foreground-primary text-mini flex items-center justify-center rounded-md bg-transparent px-1.5 py-1 transition-colors"
                                 >
                                     Gradient
                                 </TabsTrigger>
@@ -682,7 +682,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                 )}
 
                 {!isCreatingNewColor && (
-                    <TabsContent value={TabValue.BRAND} className="m-0 p-0 text-xs">
+                    <TabsContent value={TabValue.BRAND} className="text-mini m-0 p-0">
                         <div className="border-t border-b">
                             <div className="relative">
                                 <Icons.MagnifyingGlass className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 transform" />
@@ -690,7 +690,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                                     ref={inputRef}
                                     type="text"
                                     placeholder="Search colors"
-                                    className="rounded-none border-none pr-8 pl-7 text-xs"
+                                    className="text-mini rounded-none border-none pr-8 pl-7"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleKeyDown}
@@ -776,7 +776,7 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                         <div className="flex w-full flex-row items-center justify-between px-2 py-1">
                             <span className="text-foreground-secondary text-small">Presets</span>
                             <button
-                                className={`flex h-6 w-6 items-center justify-center rounded px-1 py-1 text-xs transition-colors ${
+                                className={`text-mini flex h-6 w-6 items-center justify-center rounded px-1 py-1 transition-colors ${
                                     viewMode === 'grid'
                                         ? 'text-foreground-secondary hover:text-foreground-primary hover:bg-background-hover'
                                         : 'text-foreground-primary bg-background-secondary'

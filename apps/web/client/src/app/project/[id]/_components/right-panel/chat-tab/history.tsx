@@ -54,7 +54,7 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
             <PopoverContent side="left" align="start" className="rounded-xl p-0">
                 <div className="flex flex-col select-none">
                     <div className="border-b">
-                        <div className="text-foreground-tertiary flex h-fit flex-row items-center justify-between p-1 text-xs">
+                        <div className="text-foreground-tertiary text-mini flex h-fit flex-row items-center justify-between p-1">
                             <span className="px-2">Chat History</span>
                             <Button
                                 variant={'ghost'}
@@ -89,7 +89,7 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
                                                 }
                                             >
                                                 <Icons.ChatBubble className="mx-2 flex-none" />
-                                                <span className="w-80 truncate text-left text-xs">
+                                                <span className="text-mini w-80 truncate text-left">
                                                     {conversation.title ?? 'New Conversation'}
                                                 </span>
                                                 <Tooltip>
@@ -141,7 +141,7 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
                         </Button>
                         <Button
                             variant={'destructive'}
-                            className="rounded-md text-sm"
+                            className="text-small rounded-md"
                             onClick={handleDeleteConversation}
                         >
                             Delete

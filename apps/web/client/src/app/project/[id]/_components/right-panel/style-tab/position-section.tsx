@@ -103,11 +103,11 @@ export const PositionSection = observer(() => {
         <div className="space-y-3">
             <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-tertiary text-xs tracking-[0.2em] uppercase">
+                    <span className="text-foreground-tertiary text-mini tracking-[0.2em] uppercase">
                         Type
                     </span>
                     <Select value={positionValue} onValueChange={handlePositionTypeChange}>
-                        <SelectTrigger className="border-border/60 bg-background-secondary h-8 w-[148px] text-sm">
+                        <SelectTrigger className="border-border/60 bg-background-secondary text-small h-8 w-[148px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -139,7 +139,7 @@ export const PositionSection = observer(() => {
                             disabled={key !== 'zIndex' && !canEditOffsets}
                             placeholder={key === 'zIndex' ? 'auto' : '0px'}
                             className={cn(
-                                'border-border/60 bg-background-secondary h-8 text-sm',
+                                'border-border/60 bg-background-secondary text-small h-8',
                                 key !== 'zIndex' && !canEditOffsets && 'opacity-60',
                             )}
                         />
@@ -148,7 +148,7 @@ export const PositionSection = observer(() => {
             </div>
 
             {!canEditOffsets && (
-                <p className="text-foreground-tertiary text-xs">
+                <p className="text-foreground-tertiary text-mini">
                     Offset fields activate for `absolute` and `fixed` positioned elements.
                 </p>
             )}

@@ -37,10 +37,10 @@ const FontFiles = observer(
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col">
-                                <span className="text-sm font-normal">
+                                <span className="text-small font-normal">
                                     {extractFontParts(font.file.name).family}
                                 </span>
-                                <span className="text-muted-foreground text-xs">
+                                <span className="text-muted-foreground text-mini">
                                     {font.file.name}
                                 </span>
                             </div>
@@ -48,7 +48,7 @@ const FontFiles = observer(
                             <div className="flex items-center gap-2">
                                 <div className="relative">
                                     <select
-                                        className="bg-foreground/5 border-foreground/10 text-foreground hover:bg-background-hover hover:text-accent-foreground hover:border-border-hover cursor-pointer appearance-none rounded-md border p-2 pr-8 text-sm"
+                                        className="bg-foreground/5 border-foreground/10 text-foreground hover:bg-background-hover hover:text-accent-foreground hover:border-border-hover text-small cursor-pointer appearance-none rounded-md border p-2 pr-8"
                                         value={font.weight}
                                         onChange={(e) => onWeightChange(index, e.target.value)}
                                     >

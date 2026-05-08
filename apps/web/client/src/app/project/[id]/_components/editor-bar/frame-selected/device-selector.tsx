@@ -132,13 +132,13 @@ export const DeviceSelector = observer(() => {
             <SelectContent>
                 {Object.entries(DEVICE_OPTIONS).map(([category, devices]) => (
                     <SelectGroup key={category}>
-                        <SelectLabel className="text-xs">{category}</SelectLabel>
+                        <SelectLabel className="text-mini">{category}</SelectLabel>
                         {Object.entries(devices).map(([name, dimensions]) => (
                             <SelectItem
                                 key={`${category}:${name}`}
                                 value={`${category}:${name}`}
                                 className={cn(
-                                    'flex cursor-pointer items-center text-xs',
+                                    'text-mini flex cursor-pointer items-center',
                                     device === `${category}:${name}` &&
                                         'bg-background-tertiary/50 text-foreground-primary',
                                 )}

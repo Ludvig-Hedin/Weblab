@@ -18,7 +18,7 @@ export const PublishButton = observer(() => {
             }}
         >
             <TriggerButton />
-            <DropdownMenuContent align="end" className="w-96 p-0 text-sm">
+            <DropdownMenuContent align="end" className="text-small w-96 p-0">
                 <PublishDropdown />
             </DropdownMenuContent>
         </DropdownMenu>

@@ -133,7 +133,7 @@ export const ZoomControls = observer(() => {
                     <TooltipContent side="right">{t(transKeys.editor.zoom.level)}</TooltipContent>
                 </TooltipPortal>
             </Tooltip>
-            <PopoverContent className="bg-background/85 ml-5 flex w-42 min-w-42 flex-col p-1.5 backdrop-blur-md">
+            <PopoverContent className="bg-background-primary border-border ml-5 flex w-42 min-w-42 flex-col rounded-md border p-1.5 shadow-xl">
                 <Input
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
@@ -142,7 +142,7 @@ export const ZoomControls = observer(() => {
                             handleCustomZoom(inputValue);
                         }
                     }}
-                    className={`text-smallPlus mb-1 h-6 rounded border p-1 text-left focus-visible:border-[#109BFF]`}
+                    className={`text-smallPlus mb-1 h-6 rounded border p-1 text-left focus-visible:border-blue-400`}
                     autoFocus
                 />
                 <button

@@ -137,7 +137,7 @@ export const MultiBranchRevertModal = ({
                                         isRestoring && 'cursor-not-allowed opacity-50',
                                     )}
                                 >
-                                    <span className="text-sm">
+                                    <span className="text-small">
                                         {editorEngine.branches.getBranchById(checkpoint.branchId)
                                             ?.name ?? checkpoint.branchId}
                                     </span>

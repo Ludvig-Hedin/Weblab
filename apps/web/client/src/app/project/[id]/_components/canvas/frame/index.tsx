@@ -163,7 +163,7 @@ export const FrameView = observer(
                                 }}
                             >
                                 <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
-                                <p className="animate-shimmer bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-center text-sm text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter">
+                                <p className="animate-shimmer text-small bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-center text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter">
                                     {LOADING_MESSAGES[messageIndex]}
                                 </p>
                             </div>

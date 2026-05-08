@@ -18,7 +18,7 @@ export const WindowsTab = observer(() => {
 
     const emptyState = (
         <p
-            className={`${WIDTH} text-foreground-secondary flex h-full items-center justify-center p-2 text-center text-sm`}
+            className={`${WIDTH} text-foreground-secondary text-small flex h-full items-center justify-center p-2 text-center`}
         >
             {t(transKeys.editor.panels.layers.tabs.windows.emptyState)}
         </p>
@@ -37,7 +37,7 @@ export const WindowsTab = observer(() => {
     return (
         <div className={`${WIDTH} flex flex-col`}>
             <div className="flex flex-row items-center justify-between px-3 py-2">
-                <p className="text-foreground-primary text-sm">Window Settings</p>
+                <p className="text-foreground-primary text-small">Window Settings</p>
                 <Button
                     onClick={closeWindowsTab}
                     variant="ghost"

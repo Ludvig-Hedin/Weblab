@@ -276,13 +276,13 @@ export const PagesTab = observer(() => {
     return (
         <div
             ref={ref}
-            className="text-active flex h-full w-full flex-grow flex-col gap-2 overflow-hidden p-3 text-xs"
+            className="text-active text-mini flex h-full w-full flex-grow flex-col gap-2 overflow-hidden p-3"
         >
             <div className="m-0 flex flex-row items-center justify-between gap-2">
                 <div className="relative flex-grow">
                     <Input
                         ref={inputRef}
-                        className="h-8 pr-8 text-xs"
+                        className="text-mini h-8 pr-8"
                         placeholder="Search pages"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}

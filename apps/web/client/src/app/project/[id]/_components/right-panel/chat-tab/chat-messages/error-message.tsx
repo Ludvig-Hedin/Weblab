@@ -39,12 +39,13 @@ export const ErrorMessage = observer(({ error: chatError }: ErrorMessageProps) =
     if (usage) {
         return (
             <div className="text-small flex w-full flex-col items-center justify-center gap-2 px-4 pb-4">
-                <p className="text-foreground-secondary text-mini my-1 text-blue-300 select-none">
+                <p className="text-foreground-secondary text-mini my-1 select-none">
                     You reached your {usage.limitCount}{' '}
                     {usage.period === 'day' ? 'daily' : 'monthly'} credit limit.
                 </p>
                 <Button
-                    className="mx-10 w-full border-blue-400 bg-blue-500 text-white shadow-lg shadow-blue-500/50 transition-all duration-300 hover:border-blue-200/80 hover:bg-blue-400 hover:text-white hover:shadow-blue-500/70"
+                    variant="default"
+                    className="mx-10 w-full"
                     onClick={() => (stateManager.isSubscriptionModalOpen = true)}
                 >
                     Get more {usage.period === 'day' ? 'daily' : 'monthly'} credits

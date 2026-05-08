@@ -44,7 +44,7 @@ export const ImageGrid = ({
         <div
             className={cn(
                 'flex-1 overflow-auto',
-                isDragging && 'cursor-copy bg-blue-500/40',
+                isDragging && 'cursor-copy bg-blue-400/20',
                 'h-full',
             )}
             onDragEnter={handleDragEnter}
@@ -72,7 +72,7 @@ export const ImageGrid = ({
             {images.length === 0 && (
                 <div className="text-foreground-secondary flex flex-col items-center justify-center py-8">
                     <Icons.Image className="mb-2 h-8 w-8" />
-                    <div className="text-sm">
+                    <div className="text-small">
                         {search
                             ? 'No images or videos match your search'
                             : 'No images or videos in this folder'}

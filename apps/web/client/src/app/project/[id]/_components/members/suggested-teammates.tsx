@@ -27,8 +27,8 @@ export const SuggestedTeammates = ({ projectId }: SuggestedTeammateProps) => {
         <div className="flex flex-col gap-2 p-3">
             <Separator />
             <div className="space-y-0.5">
-                <div className="text-sm">Suggested Teammates</div>
-                <div className="text-muted-foreground text-xs">
+                <div className="text-small">Suggested Teammates</div>
+                <div className="text-muted-foreground text-mini">
                     Invite relevant people to collaborate
                 </div>
             </div>

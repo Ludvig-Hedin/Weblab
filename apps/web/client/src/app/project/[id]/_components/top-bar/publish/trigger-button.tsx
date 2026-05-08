@@ -33,7 +33,7 @@ export const TriggerButton = observer(() => {
 
     if (isCompleted) {
         colorClasses =
-            'border-blue-300 bg-blue-400/90 hover:bg-blue-400 dark:border-blue-300 dark:bg-blue-700 dark:hover:bg-blue-500/20 dark:text-blue-100 text-white hover:text-background';
+            'border-blue-400/60 bg-blue-400/90 hover:bg-blue-400 text-white hover:text-background';
         text = editorEngine.history.length > 0 ? 'Update' : 'Live';
         icon = <Icons.Globe className="mr-1 h-4 w-4" />;
     } else if (isDeploying) {
@@ -54,7 +54,7 @@ export const TriggerButton = observer(() => {
                 variant="default"
                 size="sm"
                 className={cn(
-                    'flex h-8 items-center justify-center rounded-md border-[0.5px] px-3 text-xs shadow-sm transition-all duration-300 ease-in-out',
+                    'text-mini flex h-8 items-center justify-center rounded-md border px-3 transition-colors duration-150',
                     colorClasses,
                 )}
             >

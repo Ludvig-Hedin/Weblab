@@ -167,7 +167,7 @@ export const ProjectBreadcrumb = observer(() => {
                             </div>
                             <Badge
                                 variant="secondary"
-                                className="ml-2 rounded-full bg-blue-400 p-0.5 px-1.5 text-xs text-white"
+                                className="bg-foreground/10 text-foreground-secondary text-micro ml-2 rounded-full px-1.5 py-0 font-medium tracking-wide uppercase"
                             >
                                 PRO
                             </Badge>

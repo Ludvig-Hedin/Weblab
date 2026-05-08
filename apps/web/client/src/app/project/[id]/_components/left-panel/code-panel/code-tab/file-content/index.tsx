@@ -73,7 +73,7 @@ export const CodeEditorArea = ({
             <div className="h-full">
                 {openedFiles.length === 0 || !activeFile ? (
                     <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="text-muted-foreground text-center text-base">
+                        <div className="text-muted-foreground text-regular text-center">
                             Open a file or select an element on the page.
                         </div>
                     </div>

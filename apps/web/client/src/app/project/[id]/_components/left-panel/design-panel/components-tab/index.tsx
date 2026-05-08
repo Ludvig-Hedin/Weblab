@@ -89,16 +89,16 @@ export const ComponentsTab = observer(() => {
     );
 
     return (
-        <div className="text-active flex h-full w-full flex-col overflow-hidden text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-col overflow-hidden">
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
-                <span className="text-foreground-primary text-sm font-medium">Components</span>
+                <span className="text-foreground-primary text-small font-medium">Components</span>
             </div>
 
             <div className="px-3 pb-2">
                 <div className="relative">
                     <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
-                        className="h-8 pr-8 pl-7 text-xs"
+                        className="text-mini h-8 pr-8 pl-7"
                         placeholder="Search templates"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -119,15 +119,15 @@ export const ComponentsTab = observer(() => {
                 <div className="flex flex-col gap-3">
                     {/* My Components section */}
                     <div className="mb-1 flex flex-col gap-1.5">
-                        <span className="text-foreground-primary px-1 py-1 text-sm font-medium">
+                        <span className="text-foreground-primary text-small px-1 py-1 font-medium">
                             My Components
                         </span>
                         {isLoadingComponents ? (
-                            <p className="text-muted-foreground px-1 py-4 text-center text-xs">
+                            <p className="text-muted-foreground text-mini px-1 py-4 text-center">
                                 Scanning project…
                             </p>
                         ) : !userComponents?.length ? (
-                            <p className="text-muted-foreground px-1 py-4 text-center text-xs">
+                            <p className="text-muted-foreground text-mini px-1 py-4 text-center">
                                 No components found in src/
                             </p>
                         ) : (
@@ -152,7 +152,7 @@ export const ComponentsTab = observer(() => {
                             <div key={value} className="flex flex-col gap-1.5">
                                 <button
                                     type="button"
-                                    className="text-foreground-primary flex w-full items-center justify-between px-1 py-1 text-sm font-medium"
+                                    className="text-foreground-primary text-small flex w-full items-center justify-between px-1 py-1 font-medium"
                                     onClick={() =>
                                         setCollapsed((p) => ({ ...p, [value]: !p[value] }))
                                     }
@@ -182,7 +182,7 @@ export const ComponentsTab = observer(() => {
                         );
                     })}
                     {filteredTemplates.length === 0 && (
-                        <div className="text-muted-foreground flex items-center justify-center py-12 text-xs">
+                        <div className="text-muted-foreground text-mini flex items-center justify-center py-12">
                             No matching templates
                         </div>
                     )}

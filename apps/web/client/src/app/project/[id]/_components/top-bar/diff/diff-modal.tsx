@@ -63,9 +63,9 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                 <DialogHeader className="border-border border-b px-6 pt-6 pb-4">
                     <div className="flex items-center gap-2">
                         <Icons.Code className="h-5 w-5" />
-                        <DialogTitle className="text-xl font-semibold">Changes</DialogTitle>
+                        <DialogTitle className="text-title3 font-semibold">Changes</DialogTitle>
                         {!isLoading && diffs.length > 0 && (
-                            <span className="text-foreground-secondary text-sm">
+                            <span className="text-foreground-secondary text-small">
                                 {diffs.length} {diffs.length === 1 ? 'file' : 'files'}
                             </span>
                         )}
@@ -84,7 +84,7 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                     ) : diffs.length === 0 ? (
                         <div className="text-foreground-secondary flex flex-col items-center justify-center py-16 text-center">
                             <Icons.Check className="mb-2 h-6 w-6" />
-                            <p className="text-sm">No uncommitted changes</p>
+                            <p className="text-small">No uncommitted changes</p>
                         </div>
                     ) : (
                         <Accordion type="multiple" className="w-full">
@@ -107,12 +107,12 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                                                     {STATUS_LABELS[diff.status]}
                                                 </span>
                                                 <span
-                                                    className="text-foreground-primary truncate text-left font-mono text-sm"
+                                                    className="text-foreground-primary text-small truncate text-left font-mono"
                                                     title={diff.path}
                                                 >
                                                     {diff.path}
                                                 </span>
-                                                <span className="ml-auto flex shrink-0 items-center gap-2 text-xs">
+                                                <span className="text-mini ml-auto flex shrink-0 items-center gap-2">
                                                     {added > 0 && (
                                                         <span className="text-green-500">
                                                             +{added}
@@ -143,14 +143,14 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
 function DiffBody({ diff }: { diff: FileDiff }) {
     if (diff.skipped === 'binary') {
         return (
-            <div className="text-foreground-secondary px-6 py-4 text-sm">
+            <div className="text-foreground-secondary text-small px-6 py-4">
                 Binary file — no preview available.
             </div>
         );
     }
     if (diff.skipped === 'too-large') {
         return (
-            <div className="text-foreground-secondary px-6 py-4 text-sm">
+            <div className="text-foreground-secondary text-small px-6 py-4">
                 File too large to preview.
             </div>
         );

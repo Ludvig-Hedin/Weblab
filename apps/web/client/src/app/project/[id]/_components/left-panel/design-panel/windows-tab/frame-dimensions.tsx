@@ -25,7 +25,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
     const frameData = editorEngine.frames.get(frameId);
 
     if (!frameData) {
-        return <p className="text-foreground-primary text-sm">Frame not found</p>;
+        return <p className="text-foreground-primary text-small">Frame not found</p>;
     }
 
     const [metadata, setMetadata] = useState<WindowMetadata>(() =>
@@ -103,11 +103,11 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
 
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-foreground-primary text-sm">Frame Dimensions</p>
+            <p className="text-foreground-primary text-small">Frame Dimensions</p>
             <div className="flex flex-row items-center justify-between">
-                <span className="text-foreground-secondary text-xs">Device</span>
+                <span className="text-foreground-secondary text-mini">Device</span>
                 <Select value={device} onValueChange={handleDeviceChange}>
-                    <SelectTrigger className="bg-background-secondary border-background-secondary h-fit w-3/5 rounded px-2 py-1.5 text-xs focus:ring-0 focus:outline-none">
+                    <SelectTrigger className="bg-background-secondary border-background-secondary text-mini h-fit w-3/5 rounded px-2 py-1.5 focus:ring-0 focus:outline-none">
                         <SelectValue placeholder="Select device" />
                     </SelectTrigger>
                     <SelectContent className="bg-background-secondary rounded-md">
@@ -120,7 +120,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
                                             <SelectItem
                                                 key={idx}
                                                 value={category + ':' + deviceName}
-                                                className="focus:bg-background-tertiary cursor-pointer rounded-md text-xs"
+                                                className="focus:bg-background-tertiary text-mini cursor-pointer rounded-md"
                                             >
                                                 {deviceName}
                                             </SelectItem>
@@ -134,7 +134,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
                                 <SelectItem
                                     key={'Custom'}
                                     value={'Custom:Custom'}
-                                    className="focus:bg-background-tertiary cursor-pointer rounded-md text-xs"
+                                    className="focus:bg-background-tertiary text-mini cursor-pointer rounded-md"
                                 >
                                     {'Custom'}
                                 </SelectItem>
@@ -145,7 +145,7 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
             </div>
 
             <div className="flex flex-row items-center justify-between">
-                <span className="text-foreground-secondary text-xs">Orientation</span>
+                <span className="text-foreground-secondary text-mini">Orientation</span>
                 <div className="bg-background-secondary flex w-3/5 flex-row rounded p-0.5">
                     <Button
                         size={'icon'}
@@ -171,32 +171,32 @@ export const FrameDimensions = observer(({ frameId }: { frameId: string }) => {
             </div>
 
             <div className="relative flex flex-row items-center justify-between">
-                <span className="text-foreground-secondary text-xs">Width</span>
+                <span className="text-foreground-secondary text-mini">Width</span>
                 <div className="relative w-3/5">
                     <Input
-                        className="text-foreground-active bg-background-secondary h-8 w-full [appearance:textfield] rounded border-none px-2 text-start text-xs focus:ring-0 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        className="text-foreground-active bg-background-secondary text-mini h-8 w-full [appearance:textfield] rounded border-none px-2 text-start focus:ring-0 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         value={metadata.width}
                         min={parseInt(DefaultSettings.MIN_DIMENSIONS.width)}
                         type="number"
                         onChange={(event) => handleDimensionInput(event, 'width')}
                     />
-                    <p className="text-foreground-secondary absolute top-1/2 right-2 h-fit w-fit -translate-y-1/2 transform p-0 text-xs">
+                    <p className="text-foreground-secondary text-mini absolute top-1/2 right-2 h-fit w-fit -translate-y-1/2 transform p-0">
                         px
                     </p>
                 </div>
             </div>
 
             <div className="relative flex flex-row items-center justify-between">
-                <span className="text-foreground-secondary text-xs">Height</span>
+                <span className="text-foreground-secondary text-mini">Height</span>
                 <div className="relative w-3/5">
                     <Input
-                        className="text-foreground-active bg-background-secondary h-8 w-full [appearance:textfield] rounded border-none px-2 text-start text-xs focus:ring-0 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        className="text-foreground-active bg-background-secondary text-mini h-8 w-full [appearance:textfield] rounded border-none px-2 text-start focus:ring-0 focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         value={metadata.height}
                         min={parseInt(DefaultSettings.MIN_DIMENSIONS.height)}
                         type="number"
                         onChange={(event) => handleDimensionInput(event, 'height')}
                     />
-                    <p className="text-foreground-secondary absolute top-1/2 right-2 h-fit w-fit -translate-y-1/2 transform p-0 text-xs">
+                    <p className="text-foreground-secondary text-mini absolute top-1/2 right-2 h-fit w-fit -translate-y-1/2 transform p-0">
                         px
                     </p>
                 </div>

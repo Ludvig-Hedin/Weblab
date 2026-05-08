@@ -190,7 +190,7 @@ export const CommentPopover = observer(() => {
                 {/* New comment form — inline submit button */}
                 {pendingPlacement && !activeComment && (
                     <div className="p-2">
-                        <div className="border-border bg-background-secondary flex items-end gap-1.5 rounded-lg border transition-all focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                        <div className="border-border focus-within:border-foreground/20 focus-within:ring-foreground/15 bg-background-secondary flex items-end gap-1.5 rounded-lg border transition-all focus-within:ring-1">
                             <textarea
                                 ref={newCommentInputRef}
                                 value={newCommentText}
@@ -207,16 +207,18 @@ export const CommentPopover = observer(() => {
                                 }}
                                 placeholder="Add a comment..."
                                 rows={2}
-                                className="text-foreground-primary placeholder:text-foreground-tertiary min-w-0 flex-1 resize-none bg-transparent px-2.5 pt-2 pb-1.5 text-sm focus:outline-none"
+                                className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-2.5 pt-2 pb-1.5 focus:outline-none"
                             />
-                            <button
+                            <Button
+                                variant="default"
+                                size="icon"
                                 onClick={handleSubmitNew}
                                 disabled={!newCommentText.trim() || isSubmitting}
-                                className="mr-1.5 mb-1.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="mr-1.5 mb-1.5 h-7 w-7 flex-shrink-0 rounded-md"
                                 aria-label="Post comment"
                             >
                                 <Icons.ArrowRight className="h-3.5 w-3.5" />
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}
@@ -227,12 +229,12 @@ export const CommentPopover = observer(() => {
                         {/* Main comment */}
                         <div className="border-border/50 border-b p-3">
                             <div className="flex items-start gap-2">
-                                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
+                                <div className="bg-foreground/12 text-foreground-secondary flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
                                     {getInitials(activeComment.authorName)}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-baseline justify-between gap-1">
-                                        <span className="text-foreground-primary truncate text-xs font-semibold">
+                                        <span className="text-foreground-primary text-mini truncate font-semibold">
                                             {activeComment.authorName}
                                         </span>
                                         <span className="text-foreground-tertiary flex-shrink-0 text-[10px]">
@@ -245,14 +247,14 @@ export const CommentPopover = observer(() => {
                                                 value={editingText}
                                                 onChange={(e) => setEditingText(e.target.value)}
                                                 rows={3}
-                                                className="bg-background-secondary border-border text-foreground-primary w-full resize-none rounded-lg border px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                className="bg-background-secondary border-border text-foreground-primary text-mini w-full resize-none rounded-lg border px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                                 autoFocus
                                             />
                                             <div className="flex justify-end gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-6 text-xs"
+                                                    className="text-mini h-6"
                                                     onClick={() => {
                                                         setEditingCommentId(null);
                                                         setEditingText('');
@@ -262,7 +264,8 @@ export const CommentPopover = observer(() => {
                                                 </Button>
                                                 <Button
                                                     size="sm"
-                                                    className="h-6 bg-blue-600 text-xs text-white hover:bg-blue-700"
+                                                    variant="default"
+                                                    className="text-mini h-6"
                                                     onClick={handleSaveEdit}
                                                     disabled={isSubmitting}
                                                 >
@@ -271,7 +274,7 @@ export const CommentPopover = observer(() => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-foreground-secondary mt-0.5 text-xs">
+                                        <p className="text-foreground-secondary text-mini mt-0.5">
                                             {activeComment.content}
                                         </p>
                                     )}
@@ -364,7 +367,7 @@ export const CommentPopover = observer(() => {
                                 {activeComment.replies.map((reply) => (
                                     <div key={reply.id} className="px-3 py-2.5">
                                         <div className="flex items-start gap-2">
-                                            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-600/70 text-[9px] font-semibold text-white">
+                                            <div className="bg-foreground/12 text-foreground-secondary flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
                                                 {getInitials(reply.authorName)}
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -414,12 +417,13 @@ export const CommentPopover = observer(() => {
                                     }}
                                     placeholder="Add a reply..."
                                     rows={2}
-                                    className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                    className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary focus:ring-foreground/20 text-mini flex-1 resize-none rounded-lg border px-2.5 py-1.5 focus:ring-1 focus:outline-none"
                                 />
                                 <Button
-                                    size="sm"
+                                    variant="default"
+                                    size="icon"
                                     aria-label="Send reply"
-                                    className="h-7 w-7 self-end bg-blue-600 p-0 text-white hover:bg-blue-700"
+                                    className="h-7 w-7 self-end"
                                     onClick={handleSubmitReply}
                                     disabled={!replyText.trim() || isSubmitting}
                                 >

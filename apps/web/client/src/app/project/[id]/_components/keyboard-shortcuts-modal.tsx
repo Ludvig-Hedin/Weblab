@@ -205,10 +205,10 @@ const MultiHotkeyRow = ({
         <span className="flex items-center gap-1">
             {hotkeys.map((h, i) => (
                 <span key={h.command} className="flex items-center gap-1">
-                    {i > 0 && <span className="text-foreground-tertiary text-xs">or</span>}
+                    {i > 0 && <span className="text-foreground-tertiary text-mini">or</span>}
                     <Kbd>
                         <span
-                            className="inline-grid auto-cols-max grid-flow-col items-center gap-1.5 text-xs [&_kbd]:text-[1.1em]"
+                            className="text-mini inline-grid auto-cols-max grid-flow-col items-center gap-1.5 [&_kbd]:text-[1.1em]"
                             dangerouslySetInnerHTML={{ __html: h.readableCommand }}
                         />
                     </Kbd>
@@ -239,7 +239,7 @@ export const KeyboardShortcutsModal = observer(() => {
                             key={section.title}
                             className="border-border/60 bg-background-secondary/40 rounded-lg border p-4"
                         >
-                            <h3 className="text-foreground mb-3 text-sm font-medium">
+                            <h3 className="text-foreground text-small mb-3 font-medium">
                                 {section.title}
                             </h3>
                             <div className="space-y-2">

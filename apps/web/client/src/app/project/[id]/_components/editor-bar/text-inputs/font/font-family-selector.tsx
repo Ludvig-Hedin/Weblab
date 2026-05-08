@@ -61,7 +61,7 @@ export const FontFamilySelector = observer(() => {
                         className="flex items-center gap-2 px-3"
                         aria-label="Font Family Selector"
                     >
-                        <span className="truncate text-sm">
+                        <span className="text-small truncate">
                             {toNormalCase(textState.fontFamily) || 'Sans Serif'}
                         </span>
                     </ToolbarButton>
@@ -76,7 +76,7 @@ export const FontFamilySelector = observer(() => {
                     {editorEngine.font.fonts.length === 0 ? (
                         <div className="flex h-20 flex-col items-center justify-center text-center">
                             <Icons.Brand className="text-muted-foreground mb-1 h-5 w-5" />
-                            <span className="text-muted-foreground text-sm">
+                            <span className="text-muted-foreground text-small">
                                 No fonts found <br /> Add fonts from the Brand Tab
                             </span>
                         </div>
@@ -98,7 +98,7 @@ export const FontFamilySelector = observer(() => {
                     <Button
                         variant="secondary"
                         size="lg"
-                        className="w-full rounded-md text-sm font-medium"
+                        className="text-small w-full rounded-md font-medium"
                         aria-label="Manage Brand fonts"
                         tabIndex={0}
                         onClick={() => {

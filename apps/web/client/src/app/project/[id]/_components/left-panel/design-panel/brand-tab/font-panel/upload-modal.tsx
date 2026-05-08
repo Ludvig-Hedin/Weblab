@@ -129,14 +129,14 @@ const UploadModal = observer(
                         {isUploading && (
                             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
                                 <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                <span className="text-primary text-base font-medium">
+                                <span className="text-primary text-regular font-medium">
                                     Uploading...
                                 </span>
                             </div>
                         )}
 
                         <div className="flex items-center justify-between p-6 pt-4 pb-3">
-                            <AlertDialogTitle className="text-left text-base font-medium">
+                            <AlertDialogTitle className="text-regular text-left font-medium">
                                 Upload a font
                             </AlertDialogTitle>
                             <Button
@@ -200,7 +200,7 @@ const UploadModal = observer(
                                 <p className="text-primary mb-1 text-center">
                                     Click to upload or drag and drop
                                 </p>
-                                <p className="text-muted-foreground text-center text-sm">
+                                <p className="text-muted-foreground text-small text-center">
                                     For maximum browser support, upload in
                                     <br />
                                     TTF, OTF, EOT and WOFF formats.
@@ -229,7 +229,7 @@ const UploadModal = observer(
                                     variant="ghost"
                                     onClick={handleCancel}
                                     disabled={isUploading}
-                                    className="text-sm"
+                                    className="text-small"
                                 >
                                     Cancel
                                 </Button>
@@ -237,7 +237,7 @@ const UploadModal = observer(
                                     variant="default"
                                     onClick={handleSave}
                                     disabled={fontFiles.length === 0 || isUploading}
-                                    className="rounded-md text-sm"
+                                    className="text-small rounded-md"
                                 >
                                     {isUploading ? (
                                         <>

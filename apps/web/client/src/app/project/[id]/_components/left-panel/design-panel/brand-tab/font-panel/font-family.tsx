@@ -19,7 +19,7 @@ interface FontVariantProps {
 const FontVariant = ({ name }: FontVariantProps) => {
     const fontVariant = `font-${camelCase(name).toLowerCase()}`;
 
-    return <div className={cn('text-muted-foreground text-sm', fontVariant)}>{name}</div>;
+    return <div className={cn('text-muted-foreground text-small', fontVariant)}>{name}</div>;
 };
 
 export interface FontFamilyProps {
@@ -75,14 +75,14 @@ export const FontFamily = ({
                     />
 
                     <span
-                        className={`truncate text-sm transition-opacity duration-200`}
+                        className={`text-small truncate transition-opacity duration-200`}
                         style={{ fontFamily: name }}
                     >
                         {name}
                     </span>
 
                     {isDefault && (
-                        <span className="text-muted-foreground ml-2 text-xs">(Default)</span>
+                        <span className="text-muted-foreground text-mini ml-2">(Default)</span>
                     )}
                 </div>
                 <div className="flex items-center opacity-0 transition-opacity duration-100 group-hover:opacity-100">

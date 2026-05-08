@@ -13,7 +13,7 @@ const GROUP_WIDTHS = {
     // Text groups (wider due to more components)
     'text-typography': 360, // Font Family + Weight + Size + Color + Align + Advanced
     'text-dimensions': 160, // Width + Height
-    'text-base': 180, // Color + Border + Radius
+    'text-regular': 180, // Color + Border + Radius
     'text-layout': 180, // Display + Padding + Margin
     'text-opacity': 80, // Opacity
 };

@@ -73,26 +73,34 @@ export const Main = observer(() => {
 
     if (!isProjectReady) {
         const steps: { label: string; ready: boolean }[] = [
-            { label: 'Connecting sandbox', ready: readyState.sandbox },
-            { label: 'Loading canvas', ready: readyState.canvas },
-            { label: 'Loading conversations', ready: readyState.conversations },
+            { label: 'Starting workspace', ready: readyState.sandbox },
+            { label: 'Preparing canvas', ready: readyState.canvas },
+            { label: 'Restoring chat', ready: readyState.conversations },
         ];
         return (
-            <div className="flex h-screen w-screen items-center justify-center">
-                <div className="flex min-w-[260px] flex-col items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Icons.LoadingSpinner className="text-foreground-primary h-6 w-6 animate-spin" />
-                        <div className="text-xl">Loading project...</div>
+            <div className="bg-background flex h-screen w-screen items-center justify-center">
+                <div className="flex min-w-[260px] flex-col items-center gap-5">
+                    <div className="flex items-center gap-2.5">
+                        <Icons.LoadingSpinner className="text-foreground-primary h-5 w-5 animate-spin" />
+                        <div className="text-title3 text-foreground-primary">
+                            Setting up your editor
+                        </div>
                     </div>
-                    <ul className="text-foreground-secondary flex w-full flex-col gap-1.5 text-sm">
+                    <ul className="text-foreground-tertiary text-small flex w-full flex-col gap-1.5">
                         {steps.map((step) => (
                             <li key={step.label} className="flex items-center gap-2">
                                 {step.ready ? (
-                                    <Icons.CheckCircled className="h-4 w-4 text-green-500" />
+                                    <Icons.CheckCircled className="text-foreground-positive h-4 w-4" />
                                 ) : (
-                                    <Icons.LoadingSpinner className="text-foreground-tertiary h-4 w-4 animate-spin" />
+                                    <Icons.LoadingSpinner className="text-foreground-quadranary h-4 w-4 animate-spin" />
                                 )}
-                                <span className={step.ready ? 'text-foreground-primary' : ''}>
+                                <span
+                                    className={
+                                        step.ready
+                                            ? 'text-foreground-primary'
+                                            : 'text-foreground-tertiary'
+                                    }
+                                >
                                     {step.label}
                                 </span>
                             </li>

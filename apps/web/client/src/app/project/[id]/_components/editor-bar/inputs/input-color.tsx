@@ -47,7 +47,7 @@ export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColor
                                 type="text"
                                 value={tempColor.toHex6()}
                                 onChange={handleInputChange}
-                                className="text-foreground h-full w-full bg-transparent text-sm focus:outline-none"
+                                className="text-foreground text-small h-full w-full bg-transparent focus:outline-none"
                             />
                         </div>
                     </PopoverTrigger>
@@ -65,7 +65,7 @@ export const InputColor = ({ color, elementStyleKey, onColorChange }: InputColor
                     </PopoverContent>
                 </Popover>
             </div>
-            <div className="text-foreground bg-background-tertiary/50 flex h-full items-center rounded-r-md px-3 py-1.5 text-xs">
+            <div className="text-foreground bg-background-tertiary/50 text-mini flex h-full items-center rounded-r-md px-3 py-1.5">
                 {Math.round(tempColor.rgb.a * 100).toString()}%
             </div>
         </div>

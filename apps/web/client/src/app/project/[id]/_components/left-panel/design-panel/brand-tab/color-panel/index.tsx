@@ -78,7 +78,7 @@ const ColorPanel = observer(() => {
     };
 
     return (
-        <div className="text-active flex h-full w-full flex-grow flex-col overflow-y-auto p-0 text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-grow flex-col overflow-y-auto p-0">
             <div className="border-border bg-background fixed top-0 right-0 left-0 z-10 flex items-center justify-start gap-2 border-b py-1.5 pr-2.5 pl-3">
                 <Button
                     variant="ghost"
@@ -88,7 +88,7 @@ const ColorPanel = observer(() => {
                 >
                     <Icons.ArrowLeft className="h-4 w-4" />
                 </Button>
-                <h2 className="text-foreground text-sm font-normal">Brand Colors</h2>
+                <h2 className="text-foreground text-small font-normal">Brand Colors</h2>
             </div>
             {/* Theme Toggle */}
             <div className="border-border mt-[2.5rem] flex gap-2 border-b px-4 py-3">
@@ -145,7 +145,7 @@ const ColorPanel = observer(() => {
                 ) : (
                     <Button
                         variant="ghost"
-                        className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 h-10 w-full rounded-lg border border-white/5 text-sm"
+                        className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 text-small h-10 w-full rounded-lg border border-white/5"
                         onClick={() => setIsAddingNewGroup(true)}
                     >
                         Add a new group
@@ -155,7 +155,7 @@ const ColorPanel = observer(() => {
 
             {/* Color Palette section */}
             <div className="border-border flex flex-col gap-4 border-b px-4 py-[18px]">
-                <h3 className="mb-1 text-sm font-medium">Default Colors</h3>
+                <h3 className="text-small mb-1 font-medium">Default Colors</h3>
                 {Object.entries(colorDefaults).map(([colorName, colors]) => (
                     <BrandPalletGroup
                         key={colorName}

@@ -9,7 +9,7 @@ export function SentContextPill({ context }: { context: MessageContext }) {
         const img = context;
         return (
             <span
-                className="flex flex-row items-center gap-1 text-xs select-none"
+                className="text-mini flex flex-row items-center gap-1 select-none"
                 key={img.displayName}
             >
                 <span className="h-5 w-5 flex-none overflow-hidden rounded">
@@ -35,7 +35,7 @@ export function SentContextPill({ context }: { context: MessageContext }) {
 
     return (
         <span
-            className="flex flex-row items-center gap-0.5 text-xs select-none"
+            className="text-mini flex flex-row items-center gap-0.5 select-none"
             key={context.displayName}
         >
             {getContextIcon(context)}

@@ -142,7 +142,7 @@ export const CloneProjectDialog = observer(
                         />
                         <p
                             className={cn(
-                                'text-xs text-red-500 transition-opacity',
+                                'text-mini text-red-500 transition-opacity',
                                 isCloneProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                             )}
                         >

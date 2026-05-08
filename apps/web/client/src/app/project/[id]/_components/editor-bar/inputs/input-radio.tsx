@@ -32,7 +32,7 @@ export const InputRadio = ({ options, value, onChange, className }: InputRadioPr
                 <button
                     key={option.value}
                     className={cn(
-                        'h-9 flex-1 cursor-pointer px-1 text-sm transition-colors',
+                        'text-small h-9 flex-1 cursor-pointer px-1 transition-colors',
                         value === option.value
                             ? 'bg-background-tertiary text-foreground'
                             : 'bg-background-tertiary/50 text-muted-foreground hover:bg-background-tertiary/70 hover:text-foreground',

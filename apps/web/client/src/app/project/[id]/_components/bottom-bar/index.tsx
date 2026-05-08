@@ -130,7 +130,7 @@ export const BottomBar = observer(() => {
                         opacity: shouldShow ? 1 : 0,
                         y: shouldShow ? 0 : 20,
                     }}
-                    className="border-border bg-background flex flex-col rounded-full border-[0.5px] p-1 px-1.5 drop-shadow-xl backdrop-blur"
+                    className="border-border bg-background-primary flex flex-col rounded-full border p-1 px-1.5 shadow-xl"
                     transition={{
                         type: 'spring',
                         bounce: 0.1,
@@ -212,7 +212,7 @@ export const BottomBar = observer(() => {
                                 onPointerMove={handleZoomPointerMove}
                                 onPointerUp={handleZoomPointerUp}
                                 className={cn(
-                                    'text-foreground-secondary w-10 border-none bg-transparent text-center text-xs tabular-nums transition-colors outline-none select-none',
+                                    'text-foreground-secondary text-mini w-10 border-none bg-transparent text-center tabular-nums transition-colors outline-none select-none',
                                     isEditingZoom
                                         ? 'text-foreground-primary cursor-text'
                                         : 'hover:text-foreground-primary cursor-ew-resize',

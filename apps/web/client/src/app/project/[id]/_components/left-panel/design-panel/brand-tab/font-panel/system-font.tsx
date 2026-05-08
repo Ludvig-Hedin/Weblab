@@ -16,12 +16,12 @@ const SystemFont = observer(() => {
                 <div className="border-default my-2 flex h-20 items-center justify-center rounded-lg border-2 border-dashed">
                     <div className="flex items-center gap-2">
                         <Icons.LoadingSpinner className="text-muted-foreground h-4 w-4 animate-spin" />
-                        <span className="text-muted-foreground text-sm">Scanning fonts...</span>
+                        <span className="text-muted-foreground text-small">Scanning fonts...</span>
                     </div>
                 </div>
             ) : !fontManager.fonts.length ? (
                 <div className="border-default my-2 flex h-20 items-center justify-center rounded-lg border-2 border-dashed">
-                    <span className="text-muted-foreground text-sm">No fonts added</span>
+                    <span className="text-muted-foreground text-small">No fonts added</span>
                 </div>
             ) : (
                 fontManager.fonts.map((font, index) => (

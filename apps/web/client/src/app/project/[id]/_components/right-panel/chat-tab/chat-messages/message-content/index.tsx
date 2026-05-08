@@ -62,7 +62,7 @@ const MessageContentComponent = ({
                     defaultOpen={true}
                 >
                     <ReasoningTrigger />
-                    <ReasoningContent className="text-xs">{part.text}</ReasoningContent>
+                    <ReasoningContent className="text-mini">{part.text}</ReasoningContent>
                 </Reasoning>
             );
         }

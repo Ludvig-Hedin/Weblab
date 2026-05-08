@@ -44,9 +44,9 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
             <Avatar>
                 <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div className="text-muted-foreground flex flex-1 flex-col justify-center gap-0.5 text-sm">
+            <div className="text-muted-foreground text-small flex flex-1 flex-col justify-center gap-0.5">
                 <div>Pending Invitation</div>
-                <div className="truncate text-xs">{invitation.inviteeEmail}</div>
+                <div className="text-mini truncate">{invitation.inviteeEmail}</div>
             </div>
             <div className="flex flex-row items-center justify-center">
                 <Tooltip>

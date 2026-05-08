@@ -40,7 +40,7 @@ export const ImgFit = () => {
             <DropdownMenuTrigger asChild>
                 <ToolbarButton isOpen={isOpen} className="flex items-center gap-2 px-3">
                     <Icons.Image className="h-4 min-h-4 w-4 min-w-4" />
-                    <span className="text-sm">
+                    <span className="text-small">
                         {objectFit === 'cover'
                             ? 'Cover'
                             : objectFit === 'contain'
@@ -52,11 +52,11 @@ export const ImgFit = () => {
             <DropdownMenuContent align="start" className="mt-2 min-w-[120px] rounded-lg p-1">
                 <div className="space-y-2 p-2">
                     <div className="space-y-1">
-                        <span className="text-muted-foreground text-sm">Type</span>
+                        <span className="text-muted-foreground text-small">Type</span>
                         <div className="flex gap-1">
                             <button
                                 onClick={() => handleFitChange('cover')}
-                                className={`flex-1 rounded-md px-3 py-1 text-sm ${
+                                className={`text-small flex-1 rounded-md px-3 py-1 ${
                                     objectFit === 'cover'
                                         ? 'bg-background-tertiary/20 text-foreground'
                                         : 'text-muted-foreground hover:bg-background-tertiary/10'
@@ -66,7 +66,7 @@ export const ImgFit = () => {
                             </button>
                             <button
                                 onClick={() => handleFitChange('contain')}
-                                className={`flex-1 rounded-md px-3 py-1 text-sm ${
+                                className={`text-small flex-1 rounded-md px-3 py-1 ${
                                     objectFit === 'contain'
                                         ? 'bg-background-tertiary/20 text-foreground'
                                         : 'text-muted-foreground hover:bg-background-tertiary/10'
@@ -76,7 +76,7 @@ export const ImgFit = () => {
                             </button>
                             <button
                                 onClick={() => handleFitChange('fill')}
-                                className={`flex-1 rounded-md px-3 py-1 text-sm ${
+                                className={`text-small flex-1 rounded-md px-3 py-1 ${
                                     objectFit === 'fill'
                                         ? 'bg-background-tertiary/20 text-foreground'
                                         : 'text-muted-foreground hover:bg-background-tertiary/10'

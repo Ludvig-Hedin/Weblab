@@ -138,7 +138,7 @@ export const Radius = observer(() => {
                     <button
                         onClick={() => setActiveTab('all')}
                         className={cn(
-                            'flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors',
+                            'text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors',
                             activeTab === 'all'
                                 ? 'text-foreground-primary bg-background-active/50'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover',
@@ -149,7 +149,7 @@ export const Radius = observer(() => {
                     <button
                         onClick={() => setActiveTab('individual')}
                         className={cn(
-                            'flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors',
+                            'text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors',
                             activeTab === 'individual'
                                 ? 'text-foreground-primary bg-background-active/50'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover',

@@ -165,7 +165,7 @@ export const Margin = observer(() => {
                 <DropdownMenuTrigger asChild>
                     <ToolbarButton
                         isOpen={isOpen}
-                        className={`flex min-w-9 items-center gap-1 data-[state=open]:!text-foreground ${marginValue ? '!text-foreground-primary [&_*]:!text-foreground-primary' : ''}`}
+                        className={`data-[state=open]:!text-foreground flex min-w-9 items-center gap-1 ${marginValue ? '!text-foreground-primary [&_*]:!text-foreground-primary' : ''}`}
                     >
                         <MarginIcon className="h-4 min-h-4 w-4 min-w-4" />
                         {marginValue && (
@@ -180,7 +180,7 @@ export const Margin = observer(() => {
                 <div className="mb-3 flex items-center gap-2">
                     <button
                         onClick={() => setActiveTab(MarginTab.ALL)}
-                        className={`flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors ${
+                        className={`text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors ${
                             activeTab === MarginTab.ALL
                                 ? 'bg-background-active/50 text-foreground-primary'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
@@ -190,7 +190,7 @@ export const Margin = observer(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab(MarginTab.INDIVIDUAL)}
-                        className={`flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors ${
+                        className={`text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors ${
                             activeTab === MarginTab.INDIVIDUAL
                                 ? 'bg-background-active/50 text-foreground-primary'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'

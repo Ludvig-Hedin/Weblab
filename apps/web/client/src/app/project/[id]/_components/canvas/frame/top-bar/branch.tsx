@@ -41,7 +41,7 @@ export const BranchDisplay = observer(
                             variant="ghost"
                             size={buttonSize}
                             className={cn(
-                                'h-auto px-2 py-1 text-xs hover:!bg-transparent focus:!bg-transparent active:!bg-transparent',
+                                'text-mini h-auto px-2 py-1 hover:!bg-transparent focus:!bg-transparent active:!bg-transparent',
                                 buttonClassName,
                             )}
                         >

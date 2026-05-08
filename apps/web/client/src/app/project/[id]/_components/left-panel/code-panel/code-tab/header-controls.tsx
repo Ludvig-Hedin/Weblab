@@ -133,8 +133,8 @@ export const CodeControls = ({
                             className={cn(
                                 'group mr-0.5 ml-1 h-fit w-fit cursor-pointer px-2 py-1',
                                 isDirty
-                                    ? 'text-background-primary bg-foreground-primary hover:bg-blue-500 hover:text-blue-100'
-                                    : 'hover:bg-background-weblab hover:text-blue-200',
+                                    ? 'text-background-primary bg-foreground-primary hover:bg-foreground-primary/80'
+                                    : 'hover:bg-background-tertiary hover:text-foreground-primary',
                             )}
                         >
                             {isSaving ? (

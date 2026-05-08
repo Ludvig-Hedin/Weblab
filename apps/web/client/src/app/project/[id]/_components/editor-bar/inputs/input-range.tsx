@@ -140,7 +140,7 @@ export const InputRange = ({
                         onChange={handleChange}
                         onBlur={handleBlur}
                         onKeyDown={handleKeyDown}
-                        className="text-foreground input-range-text max-w-[40px] min-w-[40px] bg-transparent text-sm uppercase focus:outline-none"
+                        className="text-foreground input-range-text text-small max-w-[40px] min-w-[40px] bg-transparent uppercase focus:outline-none"
                     />
 
                     <DropdownMenu modal={false}>

@@ -150,7 +150,7 @@ export const Padding = observer(() => {
                 <div className="mb-3 flex items-center gap-2">
                     <button
                         onClick={() => setActiveTab(PaddingTab.ALL)}
-                        className={`flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors ${
+                        className={`text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors ${
                             activeTab === PaddingTab.ALL
                                 ? 'text-foreground-primary bg-background-active/50'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'
@@ -160,7 +160,7 @@ export const Padding = observer(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab(PaddingTab.INDIVIDUAL)}
-                        className={`flex-1 cursor-pointer rounded-md px-4 py-1.5 text-sm transition-colors ${
+                        className={`text-small flex-1 cursor-pointer rounded-md px-4 py-1.5 transition-colors ${
                             activeTab === PaddingTab.INDIVIDUAL
                                 ? 'text-foreground-primary bg-background-active/50'
                                 : 'text-muted-foreground hover:bg-background-tertiary/20 hover:text-foreground-hover'

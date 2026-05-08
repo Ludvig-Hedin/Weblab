@@ -17,14 +17,14 @@ export const FolderList = ({ folders, onFolderClick }: FolderListProps) => {
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="text-foreground-secondary text-xs font-medium">Folders</div>
+            <div className="text-foreground-secondary text-mini font-medium">Folders</div>
             <div className="flex flex-wrap gap-1">
                 {folders.map((folder) => (
                     <Button
                         key={folder.path}
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs"
+                        className="text-mini h-7"
                         onClick={() => onFolderClick(folder)}
                     >
                         <Icons.File className="mr-1 h-3 w-3" />

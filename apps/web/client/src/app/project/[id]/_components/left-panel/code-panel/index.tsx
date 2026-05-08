@@ -16,7 +16,7 @@ export const CodePanel = observer(() => {
     return (
         <div
             className={cn(
-                'transition-width bg-background/95 group/panel flex size-full overflow-hidden rounded-tr-xl border-[0.5px] shadow backdrop-blur-xl duration-300',
+                'transition-width bg-background-secondary border-border group/panel flex size-full overflow-hidden rounded-tr-xl border-t border-r duration-300',
                 editorEngine.state.editorMode !== EditorMode.CODE && 'hidden',
             )}
         >

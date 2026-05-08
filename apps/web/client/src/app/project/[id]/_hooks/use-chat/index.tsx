@@ -1,7 +1,7 @@
 'use client';
 
 import type { FinishReason } from 'ai';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat as useAiChat } from '@ai-sdk/react';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { usePostHog } from 'posthog-js/react';
@@ -20,6 +20,8 @@ import { jsonClone } from '@weblab/utility';
 import { useEditorEngine } from '@/components/store/editor';
 import { handleToolCall } from '@/components/tools';
 import { api } from '@/trpc/client';
+import { WeblabCliTransport } from './cli-transport';
+import { RoutingChatTransport } from './routing-transport';
 import { createCheckpointsForAllBranches, getUserChatMessageFromString } from './utils';
 
 export type SendMessage = (content: string, type: ChatType) => Promise<ChatMessage>;
@@ -57,20 +59,31 @@ export function useChat({
     const [queuedMessages, setQueuedMessages] = useState<QueuedMessage[]>([]);
     const isProcessingQueue = useRef(false);
 
+    const transport = useMemo(
+        () =>
+            new RoutingChatTransport(
+                new DefaultChatTransport({
+                    api: '/api/chat',
+                    body: {
+                        conversationId,
+                        projectId,
+                        model,
+                        ollamaBaseUrl,
+                    },
+                }) as unknown as ConstructorParameters<typeof RoutingChatTransport>[0],
+                new WeblabCliTransport() as unknown as ConstructorParameters<
+                    typeof RoutingChatTransport
+                >[1],
+            ),
+        [conversationId, projectId, model, ollamaBaseUrl],
+    );
+
     const { addToolResult, messages, error, stop, setMessages, regenerate, status } =
         useAiChat<ChatMessage>({
             id: 'user-chat',
             messages: initialMessages,
             sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
-            transport: new DefaultChatTransport({
-                api: '/api/chat',
-                body: {
-                    conversationId,
-                    projectId,
-                    model,
-                    ollamaBaseUrl,
-                },
-            }),
+            transport: transport as unknown as DefaultChatTransport<ChatMessage>,
             onToolCall: async (toolCall) => {
                 setIsExecutingToolCall(true);
                 void handleToolCall(toolCall.toolCall, editorEngine, addToolResult).then(() => {

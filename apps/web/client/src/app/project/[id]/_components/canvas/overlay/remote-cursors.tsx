@@ -52,7 +52,7 @@ export const RemoteCursors = observer(() => {
                         </svg>
                         {/* Name label */}
                         <div
-                            className="mt-0.5 rounded px-1.5 py-0.5 text-xs whitespace-nowrap text-white shadow-sm"
+                            className="text-mini mt-0.5 rounded px-1.5 py-0.5 whitespace-nowrap text-white shadow-sm"
                             style={{ backgroundColor: user.color }}
                         >
                             {user.displayName}

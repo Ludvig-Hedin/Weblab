@@ -34,7 +34,7 @@ function VarRow({
 
     return (
         <div className="flex items-center gap-1 px-3 py-1">
-            <span className="text-foreground-secondary text-xs">--</span>
+            <span className="text-foreground-secondary text-mini">--</span>
             <input
                 type="text"
                 value={name}
@@ -46,7 +46,7 @@ function VarRow({
                 }}
                 placeholder="brand"
                 aria-label="Custom property name"
-                className="border-input bg-background h-7 w-24 min-w-0 rounded-md border px-2 text-xs outline-none"
+                className="border-input bg-background text-mini h-7 w-24 min-w-0 rounded-md border px-2 outline-none"
             />
             <TextField
                 value={value}
@@ -114,7 +114,7 @@ export const CustomPropertiesSection = observer(function CustomPropertiesSection
             }
         >
             {rows.length === 0 && !draft && (
-                <p className="text-foreground-tertiary px-3 py-2 text-xs">
+                <p className="text-foreground-tertiary text-mini px-3 py-2">
                     No custom properties. Click "+ Add" to create one.
                 </p>
             )}

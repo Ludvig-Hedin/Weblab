@@ -279,12 +279,12 @@ export const ImageItem = ({
                         onChange={(e) => setNewName(e.target.value)}
                         onKeyDown={handleKeyDown}
                         onBlur={() => void handleRename()}
-                        className="focus-visible:ring-ring h-6 border-0 bg-transparent p-1 text-xs focus-visible:ring-1"
+                        className="focus-visible:ring-ring text-mini h-6 border-0 bg-transparent p-1 focus-visible:ring-1"
                         autoFocus
                         onClick={(e) => e.stopPropagation()}
                     />
                 ) : (
-                    <div className="text-foreground-primary truncate text-xs" title={image.name}>
+                    <div className="text-foreground-primary text-mini truncate" title={image.name}>
                         {image.name}
                     </div>
                 )}

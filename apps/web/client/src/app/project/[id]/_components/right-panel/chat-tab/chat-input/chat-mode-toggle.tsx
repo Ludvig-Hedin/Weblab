@@ -64,7 +64,7 @@ export const ChatModeToggle = observer(
                             />
                             <span
                                 className={cn(
-                                    'text-xs font-medium',
+                                    'text-mini font-medium',
                                     chatMode === ChatType.ASK && 'text-blue-200',
                                 )}
                             >

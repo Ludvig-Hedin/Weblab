@@ -22,7 +22,7 @@ export const UrlSection = ({ url, isCopyable }: { url: string; isCopyable: boole
 
     return (
         <div className="flex flex-row items-center justify-between gap-2">
-            <Input className="bg-background-secondary w-full text-xs" value={url} readOnly />
+            <Input className="bg-background-secondary text-mini w-full" value={url} readOnly />
             {isCopyable ? (
                 <Button onClick={copyUrl} variant="outline" size="icon">
                     {isCopied ? (
@@ -32,7 +32,7 @@ export const UrlSection = ({ url, isCopyable }: { url: string; isCopyable: boole
                     )}
                 </Button>
             ) : (
-                <Link href={validUrl} target="_blank" className="text-sm">
+                <Link href={validUrl} target="_blank" className="text-small">
                     <Button variant="outline" size="icon">
                         <Icons.ExternalLink className="h-4 w-4" />
                     </Button>

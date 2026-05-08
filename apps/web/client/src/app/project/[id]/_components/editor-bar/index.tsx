@@ -100,7 +100,7 @@ export const EditorBar = observer(({ availableWidth }: { availableWidth?: number
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 className={cn(
-                    'border-border bg-background z-50 flex flex-col overflow-hidden rounded-xl border-[0.5px] p-1 px-1 drop-shadow-xl backdrop-blur',
+                    'border-border bg-background-primary z-50 flex flex-col overflow-hidden rounded-xl border p-1 shadow-xl',
                     editorEngine.state.editorMode !== EditorMode.DESIGN &&
                         !windowSelected &&
                         'hidden',

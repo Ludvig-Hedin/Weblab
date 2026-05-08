@@ -32,7 +32,7 @@ export const DirectionInput = () => {
 
     return (
         <div className="flex items-center gap-0">
-            <span className="text-muted-foreground w-20 text-sm">Direction</span>
+            <span className="text-muted-foreground text-small w-20">Direction</span>
             <InputRadio
                 options={Object.values(directionOptions)}
                 value={value}

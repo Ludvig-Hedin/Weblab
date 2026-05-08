@@ -161,7 +161,7 @@ export const InputImage = observer(() => {
                                 <Icons.Image className="h-2 w-2" />
                             )}
                             {isUploading && (
-                                <div className="absolute inset-0 animate-pulse rounded bg-blue-500/20" />
+                                <div className="bg-foreground/8 absolute inset-0 animate-pulse rounded" />
                             )}
                         </ToolbarButton>
                     </DropdownMenuTrigger>
@@ -174,7 +174,7 @@ export const InputImage = observer(() => {
                     <div className="flex flex-col">
                         {/* Header */}
                         <div className="flex items-center justify-between p-3">
-                            <h3 className="text-foreground text-sm font-medium">Image Fill</h3>
+                            <h3 className="text-foreground text-small font-medium">Image Fill</h3>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -209,7 +209,7 @@ export const InputImage = observer(() => {
                                                 onClick={() =>
                                                     handleFillOptionChangeInternal(option.value)
                                                 }
-                                                className="text-sm"
+                                                className="text-small"
                                                 disabled={isUploading}
                                             >
                                                 {option.label}
@@ -220,7 +220,7 @@ export const InputImage = observer(() => {
                             </div>
 
                             {/* Image preview */}
-                            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-blue-600">
+                            <div className="bg-background-tertiary relative aspect-[4/3] w-full overflow-hidden rounded-lg">
                                 {previewImage ? (
                                     <>
                                         <img
@@ -229,16 +229,16 @@ export const InputImage = observer(() => {
                                             className="h-full w-full object-cover"
                                         />
                                         {isUploading && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10">
-                                                <div className="rounded-full bg-white/90 p-2">
-                                                    <Icons.LoadingSpinner className="h-4 w-4 animate-spin text-blue-600" />
+                                            <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
+                                                <div className="bg-background-secondary rounded-full p-2">
+                                                    <Icons.LoadingSpinner className="text-foreground-secondary h-4 w-4 animate-spin" />
                                                 </div>
                                             </div>
                                         )}
                                     </>
                                 ) : (
-                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
-                                        <Icons.Image className="h-12 w-12 text-white/50" />
+                                    <div className="flex h-full w-full items-center justify-center">
+                                        <Icons.Image className="text-foreground-tertiary/50 h-12 w-12" />
                                     </div>
                                 )}
                             </div>
@@ -272,7 +272,9 @@ export const InputImage = observer(() => {
                             </Button>
 
                             {uploadError && (
-                                <div className="mt-1 px-1 text-xs text-red-500">{uploadError}</div>
+                                <div className="text-mini mt-1 px-1 text-red-500">
+                                    {uploadError}
+                                </div>
                             )}
 
                             {currentBackgroundImage && (

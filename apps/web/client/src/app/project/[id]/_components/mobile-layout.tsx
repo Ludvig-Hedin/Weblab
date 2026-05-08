@@ -51,7 +51,7 @@ export const MobileLayout = observer(() => {
                             />
                         ) : (
                             <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                                <p className="text-foreground-secondary text-sm">
+                                <p className="text-foreground-secondary text-small">
                                     No active conversation
                                 </p>
                                 <Button
@@ -87,7 +87,7 @@ export const MobileLayout = observer(() => {
                         className="bg-background-weblab relative h-full w-full overflow-hidden"
                     >
                         <Canvas />
-                        <div className="border-border bg-background absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border-[0.5px] px-1 py-1 drop-shadow-xl backdrop-blur">
+                        <div className="border-border bg-background-primary absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border px-1 py-1 shadow-xl">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -101,7 +101,7 @@ export const MobileLayout = observer(() => {
                             >
                                 <Icons.Minus className="h-4 w-4" />
                             </button>
-                            <span className="text-foreground-secondary min-w-10 text-center text-xs tabular-nums">
+                            <span className="text-foreground-secondary text-mini min-w-10 text-center tabular-nums">
                                 {Math.round(editorEngine.canvas.scale * 100)}%
                             </span>
                             <button
@@ -140,7 +140,7 @@ export const MobileLayout = observer(() => {
                                 aria-controls={panelId}
                                 onClick={() => setActiveTab(id)}
                                 className={cn(
-                                    'flex flex-1 flex-col items-center gap-1 py-3 text-xs transition-colors',
+                                    'text-mini flex flex-1 flex-col items-center gap-1 py-3 transition-colors',
                                     activeTab === id
                                         ? 'text-foreground-primary'
                                         : 'text-foreground-tertiary hover:text-foreground-secondary',

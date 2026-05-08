@@ -40,7 +40,7 @@ export const Height = observer(() => {
             <DropdownMenuContent align="start" className="mt-1 w-[280px] space-y-3 rounded-lg p-3">
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-white text-sm">Height</span>
+                        <span className="text-muted-white text-small">Height</span>
                         <InputDropdown
                             value={dimensionState.height.num ?? 0}
                             unit={dimensionState.height.unit}
@@ -52,7 +52,7 @@ export const Height = observer(() => {
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">Min</span>
+                        <span className="text-muted-foreground text-small">Min</span>
                         <InputDropdown
                             value={dimensionState.minHeight.num ?? 0}
                             unit={dimensionState.minHeight.unit}
@@ -64,7 +64,7 @@ export const Height = observer(() => {
                         />
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-sm">Max</span>
+                        <span className="text-muted-foreground text-small">Max</span>
                         <InputDropdown
                             value={dimensionState.maxHeight.num ?? 0}
                             unit={dimensionState.maxHeight.unit}

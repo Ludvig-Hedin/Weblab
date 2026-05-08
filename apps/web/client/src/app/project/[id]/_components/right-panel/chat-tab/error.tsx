@@ -44,29 +44,29 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
         >
             <div
                 className={cn(
-                    'relative rounded-lg border border-amber-200 bg-amber-100 dark:border-amber-500/20 dark:bg-amber-950',
-                    !isOpen && 'hover:bg-amber-50 dark:hover:bg-amber-900',
+                    'border-border bg-background-tertiary/40 relative rounded-md border',
+                    !isOpen && 'hover:bg-background-tertiary/70',
                 )}
             >
                 <div
                     className={cn(
-                        'flex items-center justify-between text-amber-800 transition-colors dark:text-amber-200',
-                        !isOpen && 'hover:text-amber-600 dark:hover:text-amber-400',
+                        'text-foreground-secondary flex items-center justify-between transition-colors',
+                        !isOpen && 'hover:text-foreground-primary',
                     )}
                 >
                     <CollapsibleTrigger asChild disabled={errorCount === 1}>
                         <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 py-2 pl-3">
                             <Icons.ChevronDown
                                 className={cn(
-                                    'h-4 w-4 shrink-0 text-amber-600 transition-transform duration-200 dark:text-amber-400',
+                                    'text-foreground-tertiary h-4 w-4 shrink-0 transition-transform duration-200',
                                     isOpen && 'rotate-180',
                                 )}
                             />
                             <div className="min-w-0 flex-1 text-start">
-                                <p className="text-small pointer-events-none truncate text-amber-800 select-none dark:text-amber-200">
+                                <p className="text-small text-foreground-primary pointer-events-none truncate select-none">
                                     {errorCount === 1 ? 'Error' : `${errorCount} Errors`}
                                 </p>
-                                <p className="text-small pointer-events-none hidden max-w-[300px] truncate text-amber-800 select-none dark:text-yellow-200">
+                                <p className="text-mini text-foreground-tertiary pointer-events-none hidden max-w-[300px] truncate select-none">
                                     {errorCount === 1
                                         ? allErrors[0]?.content
                                         : `You have ${errorCount} errors`}
@@ -79,7 +79,7 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
                             variant="ghost"
                             size="sm"
                             disabled={isStreaming}
-                            className="h-7 px-2 font-sans text-amber-600 select-none hover:bg-amber-200 hover:text-amber-900 dark:text-amber-400 dark:hover:bg-amber-700 dark:hover:text-amber-100"
+                            className="text-foreground-secondary hover:bg-foreground/8 hover:text-foreground-primary h-7 px-2 select-none"
                             onClick={sendFixError}
                         >
                             <Icons.MagicWand className="mr-2 h-4 w-4" />
@@ -97,7 +97,7 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
                             }
                             transition={{ duration: 0.2, ease: 'easeInOut' }}
                             style={{ overflow: 'hidden' }}
-                            className="border-t border-amber-200/20 dark:border-amber-500/20"
+                            className="border-border/60 border-t"
                         >
                             <div className="max-h-60 overflow-auto px-2.5 py-2">
                                 {allErrors.map((error: ParsedError) => (
@@ -105,12 +105,12 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
                                         key={`${error.branchId}-${error.content}`}
                                         className="mb-3 font-mono last:mb-0"
                                     >
-                                        <div className="mb-1 flex items-center gap-2 text-sm text-amber-800/80 dark:text-amber-200/80">
+                                        <div className="text-mini text-foreground-tertiary mb-1 flex items-center gap-2">
                                             <span className="truncate">
                                                 {error.sourceId} • {error.branchName}
                                             </span>
                                         </div>
-                                        <pre className="text-micro text-amber-800/60 dark:text-amber-200/60">
+                                        <pre className="text-micro text-foreground-secondary">
                                             {error.content}
                                         </pre>
                                     </div>

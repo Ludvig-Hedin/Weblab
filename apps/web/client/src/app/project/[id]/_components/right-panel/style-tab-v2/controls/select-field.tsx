@@ -25,12 +25,12 @@ export function SelectField({
 }: SelectFieldProps) {
     return (
         <Select value={value || undefined} onValueChange={onCommit}>
-            <SelectTrigger className={cn('h-7 text-xs', className)}>
+            <SelectTrigger className={cn('text-mini h-7', className)}>
                 <SelectValue placeholder={placeholder ?? '—'} />
             </SelectTrigger>
             <SelectContent>
                 {options.map((option) => (
-                    <SelectItem key={option.value} value={option.value} className="text-xs">
+                    <SelectItem key={option.value} value={option.value} className="text-mini">
                         {option.label}
                     </SelectItem>
                 ))}

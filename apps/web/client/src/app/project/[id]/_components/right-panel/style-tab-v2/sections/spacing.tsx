@@ -32,7 +32,7 @@ function BoxField({ side, type, linked, onLink }: BoxFieldProps) {
                 if (linked) onLink(value);
                 else setter.set(value);
             }}
-            className={cn('w-12 text-center', styleValue.isSet && 'border-blue-500/40')}
+            className={cn('w-12 text-center', styleValue.isSet && 'border-blue-400/40')}
             aria-label={`${type} ${side}`}
         />
     );
@@ -75,7 +75,7 @@ function BoxModel({ type, label }: BoxModelProps) {
 
     return (
         <div className="flex items-center gap-3 px-3 py-2">
-            <span className="text-foreground-secondary w-12 shrink-0 text-xs">{label}</span>
+            <span className="text-foreground-secondary text-mini w-12 shrink-0">{label}</span>
             <div className="grid flex-1 grid-cols-[1fr_auto_1fr] grid-rows-[auto_auto_auto] items-center gap-1">
                 <div />
                 <BoxField side="top" type={type} linked={linked} onLink={linkAll} />
@@ -85,10 +85,10 @@ function BoxModel({ type, label }: BoxModelProps) {
                     type="button"
                     onClick={() => setLinked((v) => !v)}
                     className={cn(
-                        'mx-1 h-5 w-5 rounded text-[9px] font-bold',
+                        'text-micro mx-1 h-5 w-5 rounded font-medium transition-colors duration-150',
                         linked
-                            ? 'bg-blue-500/20 text-blue-500'
-                            : 'bg-foreground-secondary/10 text-foreground-secondary hover:bg-foreground-secondary/20',
+                            ? 'bg-foreground/12 text-foreground-primary'
+                            : 'bg-foreground/5 text-foreground-tertiary hover:bg-foreground/10 hover:text-foreground-secondary',
                     )}
                     aria-label={linked ? 'Unlink sides' : 'Link sides'}
                     title={linked ? 'Unlink sides' : 'Link all four sides'}

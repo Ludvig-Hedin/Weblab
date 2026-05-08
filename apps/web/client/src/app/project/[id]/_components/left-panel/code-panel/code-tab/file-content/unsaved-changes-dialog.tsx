@@ -16,7 +16,7 @@ export function UnsavedChangesDialog({
     const isMultiple = fileCount > 1;
     return (
         <div className="bg-card border-border absolute top-4 left-1/2 z-50 w-[320px] -translate-x-1/2 rounded-lg border p-4 shadow-lg">
-            <div className="text-foreground mb-4 text-sm">
+            <div className="text-foreground text-small mb-4">
                 You have unsaved changes. Are you sure you want to close{' '}
                 {isMultiple ? `${fileCount} files` : 'this file'}?
             </div>
@@ -27,7 +27,7 @@ export function UnsavedChangesDialog({
                 <Button
                     onClick={onSave}
                     variant="ghost"
-                    className="text-sm text-blue-500 hover:text-blue-500"
+                    className="text-foreground-brand text-small"
                 >
                     Save
                 </Button>

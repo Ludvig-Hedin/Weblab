@@ -44,10 +44,10 @@ export const SearchResultRow = forwardRef<HTMLButtonElement, SearchResultRowProp
                     }
                 }}
                 className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors',
+                    'text-mini flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                     isActive
-                        ? 'bg-accent text-foreground border-foreground/20 border-[0.5px]'
-                        : 'text-foreground-primary/80 hover:bg-accent/50 border-[0.5px] border-transparent',
+                        ? 'bg-background-tertiary text-foreground-primary border-border border'
+                        : 'text-foreground-secondary hover:bg-background-tertiary/60 hover:text-foreground-primary border border-transparent',
                 )}
             >
                 <NodeIcon

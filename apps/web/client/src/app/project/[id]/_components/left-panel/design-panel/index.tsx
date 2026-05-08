@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
 import { LeftPanelTabValue } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -75,12 +77,15 @@ export const DesignPanel = observer(() => {
     const t = useTranslations();
     const isLocked = editorEngine.state.leftPanelLocked;
     const selectedTab = editorEngine.state.leftPanelTab;
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleMouseEnter = (tab: LeftPanelTabValue) => {
-        if (isLocked) {
-            return;
-        }
-        editorEngine.state.setLeftPanelTab(tab);
+        if (isLocked) return;
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = setTimeout(() => {
+            editorEngine.state.setLeftPanelTab(tab);
+        }, 150);
     };
 
     const isMouseInContentPanel = (e: React.MouseEvent<HTMLDivElement>): boolean => {
@@ -97,6 +102,10 @@ export const DesignPanel = observer(() => {
     };
 
     const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
         if (!isLocked) {
             // This is to handle things like dropdown where the mouse is still in the content panel
             if (!isMouseInContentPanel(e)) {
@@ -143,10 +152,26 @@ export const DesignPanel = observer(() => {
         }
     };
 
+    if (isCollapsed) {
+        return (
+            <div className="mt-3 flex">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Open left panel"
+                    className="border-border bg-background-secondary text-foreground-secondary hover:bg-background-tertiary hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-xl border border-l-0"
+                    onClick={() => setIsCollapsed(false)}
+                >
+                    <Icons.ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
             {/* Left sidebar with tabs */}
-            <div className="bg-background-weblab/60 flex w-14 flex-col items-center gap-1.5 px-1.5 py-1.5 backdrop-blur-xl">
+            <div className="bg-background-secondary border-border flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
                 {tabs.map((tab) => {
                     const label = getTabLabel(tab.value);
 
@@ -156,12 +181,12 @@ export const DesignPanel = observer(() => {
                                 <button
                                     aria-label={label}
                                     className={cn(
-                                        'flex h-10 w-10 items-center justify-center rounded-lg p-2',
+                                        'flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150',
                                         selectedTab === tab.value && isLocked
-                                            ? 'bg-accent text-foreground border-foreground/20 border-[0.5px]'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+                                            ? 'bg-background-tertiary text-foreground-primary'
+                                            : 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-tertiary/60',
                                         tab.disabled &&
-                                            'hover:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent',
+                                            'hover:text-foreground-tertiary cursor-not-allowed opacity-40 hover:bg-transparent',
                                     )}
                                     disabled={tab.disabled}
                                     onClick={() => !tab.disabled && handleClick(tab.value)}
@@ -188,14 +213,28 @@ export const DesignPanel = observer(() => {
                 <div className="mt-auto mb-4 flex flex-col items-center gap-0">
                     <ZoomControls />
                     <HelpButton />
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                aria-label="Collapse left panel"
+                                className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-tertiary/60 flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
+                                onClick={() => setIsCollapsed(true)}
+                            >
+                                <Icons.ChevronRight className="h-4 w-4 rotate-180" />
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" hideArrow>
+                            Collapse panel
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             </div>
 
             {/* Content panel */}
             {editorEngine.state.leftPanelTab && (
                 <>
-                    <div className="bg-background/95 w-[272px] flex-1 rounded-xl">
-                        <div className="h-full overflow-auto rounded-xl border p-0 shadow backdrop-blur-xl">
+                    <div className="bg-background-secondary w-[272px] flex-1">
+                        <div className="border-border h-full overflow-auto border-r p-0">
                             {selectedTab === LeftPanelTabValue.INSERT && <InsertTab />}
                             {selectedTab === LeftPanelTabValue.COMPONENTS && <ComponentsTab />}
                             {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}

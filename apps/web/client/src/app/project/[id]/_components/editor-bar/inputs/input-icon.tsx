@@ -48,7 +48,7 @@ export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: 
                     value={localValue}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="text-foreground hover:text-foreground w-[40px] bg-transparent text-sm uppercase focus:outline-none"
+                    className="text-foreground hover:text-foreground text-small w-[40px] bg-transparent uppercase focus:outline-none"
                 />
 
                 <DropdownMenu modal={false}>

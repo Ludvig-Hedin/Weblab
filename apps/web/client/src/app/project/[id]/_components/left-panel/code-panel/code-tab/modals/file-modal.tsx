@@ -88,9 +88,9 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
                             onChange={(e) => setCurrentPath(e.target.value)}
                             placeholder="/"
                             disabled={isLoading}
-                            className="text-sm"
+                            className="text-small"
                         />
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground text-mini">
                             Path where the file will be created
                         </p>
                     </div>
@@ -114,14 +114,14 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
                             onCompositionEnd={() => setIsComposing(false)}
                         />
                         {warning && (
-                            <p className="flex items-center gap-2 text-sm text-yellow-300">
+                            <p className="text-small flex items-center gap-2 text-yellow-300">
                                 {warning}
                             </p>
                         )}
                         {fullPath && !warning && (
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-muted-foreground text-small">
                                 Full path:{' '}
-                                <code className="bg-background-secondary rounded px-1 py-0.5 text-xs">
+                                <code className="bg-background-secondary text-mini rounded px-1 py-0.5">
                                     {fullPath}
                                 </code>
                             </p>

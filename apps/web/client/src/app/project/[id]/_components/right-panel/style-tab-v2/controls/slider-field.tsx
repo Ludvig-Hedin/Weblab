@@ -56,7 +56,7 @@ export function SliderField({
                 }}
                 className="flex-1"
             />
-            <span className="text-foreground-secondary w-10 text-right text-xs tabular-nums">
+            <span className="text-foreground-secondary text-mini w-10 text-right tabular-nums">
                 {Math.round(display)}
                 {suffix ?? ''}
             </span>

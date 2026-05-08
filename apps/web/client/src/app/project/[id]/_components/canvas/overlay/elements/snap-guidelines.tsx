@@ -37,7 +37,7 @@ export const SnapGuidelines = observer(() => {
                     return (
                         <div
                             key={line.id}
-                            className="absolute bg-[#109BFF]"
+                            className="absolute bg-blue-400"
                             style={{
                                 left: `${line.start}px`,
                                 top: `${line.position + visualOffset}px`,
@@ -52,7 +52,7 @@ export const SnapGuidelines = observer(() => {
                     return (
                         <div
                             key={line.id}
-                            className="absolute bg-[#109BFF]"
+                            className="absolute bg-blue-400"
                             style={{
                                 left: `${line.position}px`,
                                 top: `${line.start}px`,

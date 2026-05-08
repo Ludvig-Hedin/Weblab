@@ -9,15 +9,12 @@ export const NoCustomDomain = () => {
         <>
             <div className="flex w-full items-center">
                 <h3 className="">Custom Domain</h3>
-                <span className="ml-auto rounded-full bg-blue-400 px-1.5 py-0.5 text-xs text-white">
+                <span className="bg-foreground/10 text-foreground-secondary text-micro ml-auto rounded-full px-1.5 py-0.5 font-medium tracking-wide uppercase">
                     PRO
                 </span>
             </div>
 
-            <Button
-                onClick={openCustomDomain}
-                className="border-blue w-full rounded-md border bg-blue-600 p-3 text-white hover:bg-blue-700"
-            >
+            <Button onClick={openCustomDomain} variant="default" className="w-full rounded-md p-3">
                 Link a Custom Domain
             </Button>
         </>

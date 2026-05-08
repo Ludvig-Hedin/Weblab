@@ -65,14 +65,14 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
                     value={selectedRole}
                     onValueChange={(value) => setSelectedRole(value as ProjectRole)}
                 >
-                    <SelectTrigger className="absolute right-0 w-24 rounded-tl-none rounded-bl-none border-0 bg-transparent p-2 text-xs focus:ring-0">
+                    <SelectTrigger className="text-mini absolute right-0 w-24 rounded-tl-none rounded-bl-none border-0 bg-transparent p-2 focus:ring-0">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ProjectRole.ADMIN}>
                             <div className="flex flex-col">
                                 <span>Admin</span>
-                                <span className="text-muted-foreground text-xs">
+                                <span className="text-muted-foreground text-mini">
                                     Can edit and manage members
                                 </span>
                             </div>
@@ -80,7 +80,7 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
                         <SelectItem value={ProjectRole.EDITOR}>
                             <div className="flex flex-col">
                                 <span>Editor</span>
-                                <span className="text-muted-foreground text-xs">
+                                <span className="text-muted-foreground text-mini">
                                     Can edit the project
                                 </span>
                             </div>
@@ -88,7 +88,9 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
                         <SelectItem value={ProjectRole.VIEWER}>
                             <div className="flex flex-col">
                                 <span>Viewer</span>
-                                <span className="text-muted-foreground text-xs">Can view only</span>
+                                <span className="text-muted-foreground text-mini">
+                                    Can view only
+                                </span>
                             </div>
                         </SelectItem>
                     </SelectContent>

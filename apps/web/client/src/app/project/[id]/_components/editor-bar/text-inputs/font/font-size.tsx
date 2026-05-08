@@ -107,7 +107,7 @@ export const FontSizeSelector = () => {
                                 onKeyDown={handleInputKeyDown}
                                 onBlur={handleInputBlur}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full [appearance:textfield] bg-transparent text-center text-sm focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                className="text-small w-full [appearance:textfield] bg-transparent text-center focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             />
                         </ToolbarButton>
                     </DropdownMenuTrigger>
@@ -125,7 +125,7 @@ export const FontSizeSelector = () => {
                         <button
                             key={size}
                             onClick={() => handleSizeSelect(size)}
-                            className={`text-muted-foreground data-[highlighted]:bg-background-tertiary/10 border-border/0 data-[highlighted]:border-border data-[highlighted]:text-foreground cursor-pointer justify-center rounded-md border px-2 py-1 text-sm ${
+                            className={`text-muted-foreground data-[highlighted]:bg-background-tertiary/10 border-border/0 data-[highlighted]:border-border data-[highlighted]:text-foreground text-small cursor-pointer justify-center rounded-md border px-2 py-1 ${
                                 size === textState.fontSize
                                     ? 'bg-background-tertiary/20 border-border text-foreground border'
                                     : ''

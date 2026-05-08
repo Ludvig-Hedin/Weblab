@@ -51,7 +51,7 @@ export const DraftContextPill = React.forwardRef<
                     <Icons.CrossL className="text-primary-foreground h-2.5 w-2.5" />
                 </button>
             </div>
-            <span className="text-xs">{getTruncatedName(context)}</span>
+            <span className="text-mini">{getTruncatedName(context)}</span>
         </motion.span>
     );
 });

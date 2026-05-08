@@ -183,9 +183,9 @@ export const InsertTab = observer(() => {
     };
 
     return (
-        <div className="text-active flex h-full w-full flex-col overflow-hidden text-xs">
+        <div className="text-active text-mini flex h-full w-full flex-col overflow-hidden">
             <div className="flex items-center justify-between px-3 pt-3 pb-1">
-                <span className="text-foreground-primary text-sm font-medium">Add</span>
+                <span className="text-foreground-primary text-small font-medium">Add</span>
             </div>
 
             <div className="px-3 pb-2">
@@ -196,7 +196,7 @@ export const InsertTab = observer(() => {
                             type="button"
                             onClick={() => setMode(value)}
                             className={cn(
-                                '-mb-px border-b-2 px-1 pb-2 text-sm capitalize transition-colors',
+                                'text-small -mb-px border-b-2 px-1 pb-2 capitalize transition-colors',
                                 mode === value
                                     ? 'border-foreground-primary text-foreground-primary'
                                     : 'text-muted-foreground hover:text-foreground-primary border-transparent',
@@ -212,7 +212,7 @@ export const InsertTab = observer(() => {
                 <div className="relative">
                     <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
-                        className="h-8 pr-8 pl-7 text-xs"
+                        className="text-mini h-8 pr-8 pl-7"
                         placeholder={mode === 'elements' ? 'Search elements' : 'Search blocks'}
                         value={searchQuery}
                         onChange={(event) => setSearchQuery(event.target.value)}
@@ -240,7 +240,7 @@ export const InsertTab = observer(() => {
                                 <div key={value} className="flex flex-col gap-1.5">
                                     <button
                                         type="button"
-                                        className="text-foreground-primary flex w-full items-center justify-between px-1 py-1 text-sm font-medium"
+                                        className="text-foreground-primary text-small flex w-full items-center justify-between px-1 py-1 font-medium"
                                         onClick={() => toggleCategory(value)}
                                         aria-expanded={!isCollapsed}
                                     >
@@ -268,7 +268,7 @@ export const InsertTab = observer(() => {
                             );
                         })}
                         {filteredPresets.length === 0 && (
-                            <div className="text-muted-foreground flex items-center justify-center py-12 text-xs">
+                            <div className="text-muted-foreground text-mini flex items-center justify-center py-12">
                                 No matching elements
                             </div>
                         )}
@@ -283,7 +283,7 @@ export const InsertTab = observer(() => {
                                 <div key={value} className="flex flex-col gap-1.5">
                                     <button
                                         type="button"
-                                        className="text-foreground-primary flex w-full items-center justify-between px-1 py-1 text-sm font-medium"
+                                        className="text-foreground-primary text-small flex w-full items-center justify-between px-1 py-1 font-medium"
                                         onClick={() => toggleBlockCategory(value)}
                                         aria-expanded={!isCollapsed}
                                     >
@@ -311,7 +311,7 @@ export const InsertTab = observer(() => {
                             );
                         })}
                         {filteredBlocks.length === 0 && (
-                            <div className="text-muted-foreground flex items-center justify-center py-12 text-xs">
+                            <div className="text-muted-foreground text-mini flex items-center justify-center py-12">
                                 No matching blocks
                             </div>
                         )}

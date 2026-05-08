@@ -29,7 +29,7 @@ export const QueueItems = ({
                         <Icons.ChevronDown
                             className={`size-4 transition-transform ${queueExpanded ? 'rotate-180' : ''}`}
                         />
-                        <span className="text-xs">{messages.length} chats in queue</span>
+                        <span className="text-mini">{messages.length} chats in queue</span>
                     </div>
                 </Button>
             </CollapsibleTrigger>

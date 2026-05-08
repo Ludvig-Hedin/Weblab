@@ -71,19 +71,21 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
                 <div className="truncate">
                     {displayName}
-                    {isSelf && <span className="text-muted-foreground ml-1.5 text-xs">(you)</span>}
+                    {isSelf && (
+                        <span className="text-muted-foreground text-mini ml-1.5">(you)</span>
+                    )}
                 </div>
-                <div className="text-muted-foreground truncate text-xs">{user.email}</div>
+                <div className="text-muted-foreground text-mini truncate">{user.email}</div>
             </div>
 
             {/* Role badge */}
-            <span className="text-muted-foreground shrink-0 text-xs capitalize">{role}</span>
+            <span className="text-muted-foreground text-mini shrink-0 capitalize">{role}</span>
 
             {/* Bug fix #8: two-step confirmation — prevents accidental removal */}
             {canRemove &&
                 (confirming ? (
                     <div className="flex shrink-0 items-center gap-1">
-                        <span className="text-muted-foreground text-xs">Remove?</span>
+                        <span className="text-muted-foreground text-mini">Remove?</span>
                         <Button
                             variant="ghost"
                             size="icon"

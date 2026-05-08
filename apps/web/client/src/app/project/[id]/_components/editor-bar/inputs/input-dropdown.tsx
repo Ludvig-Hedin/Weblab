@@ -48,11 +48,11 @@ export const InputDropdown = ({
                     value={localValue}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="text-foreground w-[40px] bg-transparent text-left text-sm focus:outline-none"
+                    className="text-foreground text-small w-[40px] bg-transparent text-left focus:outline-none"
                     aria-label="Value input"
                 />
                 <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground cursor-pointer text-sm transition-colors focus:outline-none">
+                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground text-small cursor-pointer transition-colors focus:outline-none">
                         {unit}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-[64px] min-w-0">
@@ -60,7 +60,7 @@ export const InputDropdown = ({
                             <DropdownMenuItem
                                 key={unitOption}
                                 onClick={() => onUnitChange?.(unitOption)}
-                                className="hover:bg-background-tertiary/70 hover:text-foreground flex h-9 w-full items-center justify-center px-2 text-center text-sm transition-colors"
+                                className="hover:bg-background-tertiary/70 hover:text-foreground text-small flex h-9 w-full items-center justify-center px-2 text-center transition-colors"
                             >
                                 {unitOption.toUpperCase()}
                             </DropdownMenuItem>
@@ -75,7 +75,7 @@ export const InputDropdown = ({
                         className="bg-background-tertiary/50 hover:bg-background-tertiary/70 hover:text-foreground ml-[1px] flex h-[36px] w-[84px] cursor-pointer items-center justify-between rounded-l-none rounded-r-md px-2.5 transition-colors"
                     >
                         <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground group-hover:text-foreground text-sm transition-colors">
+                            <span className="text-muted-foreground group-hover:text-foreground text-small transition-colors">
                                 {OPTION_OVERRIDES[dropdownValue] ?? dropdownValue}
                             </span>
                         </div>
@@ -90,7 +90,7 @@ export const InputDropdown = ({
                         <DropdownMenuItem
                             key={option}
                             onClick={() => onDropdownChange?.(option)}
-                            className="text-muted-foreground hover:bg-background-tertiary/70 hover:text-foreground border-border/0 data-[highlighted]:border-border flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-sm transition-colors"
+                            className="text-muted-foreground hover:bg-background-tertiary/70 hover:text-foreground border-border/0 data-[highlighted]:border-border text-small flex cursor-pointer items-center rounded-md border px-2 py-1.5 transition-colors"
                         >
                             {OPTION_OVERRIDES[option] ?? option}
                         </DropdownMenuItem>

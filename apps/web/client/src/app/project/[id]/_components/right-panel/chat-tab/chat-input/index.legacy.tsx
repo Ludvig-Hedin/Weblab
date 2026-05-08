@@ -277,7 +277,7 @@ export const ChatInput = observer(
         const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             setIsDragging(false);
-            e.currentTarget.removeAttribute('data-dragging-image');
+            e.currentTarget.removeAttribute('data-weblab-dragging-image');
 
             // First, check for internal drag-and-drop from image panel
             const jsonData = e.dataTransfer.getData('application/json');
@@ -412,7 +412,7 @@ export const ChatInput = observer(
                 );
             if (hasImage) {
                 setIsDragging(isDragging);
-                e.currentTarget.setAttribute('data-dragging-image', isDragging.toString());
+                e.currentTarget.setAttribute('data-weblab-dragging-image', isDragging.toString());
             }
         };
 
@@ -427,7 +427,7 @@ export const ChatInput = observer(
                 className={cn(
                     'text-foreground-tertiary text-small flex w-full flex-col p-1.5 transition-colors duration-200',
                     AI_CHAT_INPUT_DRAG_CLASS,
-                    isDragging && 'cursor-copy bg-foreground-brand/30',
+                    isDragging && 'bg-foreground-brand/30 cursor-copy',
                 )}
                 onDrop={(e) => {
                     void handleDrop(e);

@@ -27,7 +27,7 @@ export const ActionSection = () => {
                     variant="outline"
                     className={cn(
                         'w-full rounded-md p-3',
-                        !customDomain.publishedAt && 'bg-blue-400 text-white hover:bg-blue-500',
+                        !customDomain.publishedAt && 'bg-blue-400 text-white hover:bg-blue-400/80',
                     )}
                     disabled={isDeploying || isLoading}
                 >
@@ -42,7 +42,7 @@ export const ActionSection = () => {
                             {stripAnsi(deployment?.error)}
                         </p>
                     )}
-                    <Button variant="outline" className="w-full rounded-md p-3" onClick={retry}>
+                    <Button variant="outline" className="w-full p-3" onClick={retry}>
                         Try Updating Again
                     </Button>
                 </div>

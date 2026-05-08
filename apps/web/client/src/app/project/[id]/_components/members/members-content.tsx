@@ -19,16 +19,16 @@ export const MembersContent = () => {
 
     if (loadingMembers || loadingInvitations) {
         return (
-            <div className="text-muted-foreground flex h-32 items-center justify-center gap-2 p-3 text-sm">
+            <div className="text-muted-foreground text-small flex h-32 items-center justify-center gap-2 p-3">
                 <Icons.LoadingSpinner className="text-foreground-primary h-6 w-6 animate-spin" />
-                <div className="text-sm">Loading members...</div>
+                <div className="text-small">Loading members...</div>
             </div>
         );
     }
 
     return (
         <>
-            <div className="text-muted-foreground border-b border-b-[0.5px] p-3 text-sm">
+            <div className="text-muted-foreground text-small border-b border-b-[0.5px] p-3">
                 Invite Team Members
             </div>
             <InviteMemberInput projectId={projectId} />

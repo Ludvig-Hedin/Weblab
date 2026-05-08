@@ -221,12 +221,12 @@ export const BrandPalletGroup = ({
                                                             <TooltipPortal>
                                                                 <TooltipContent side="top">
                                                                     <div className="flex flex-col">
-                                                                        <span className="text-sm">
+                                                                        <span className="text-small">
                                                                             {toNormalCase(
                                                                                 color.name,
                                                                             )}
                                                                         </span>
-                                                                        <span className="text-background-tertiary text-xs">
+                                                                        <span className="text-background-tertiary text-mini">
                                                                             {getColorValue(color)}
                                                                         </span>
                                                                     </div>
@@ -249,10 +249,10 @@ export const BrandPalletGroup = ({
                                                             }}
                                                         />
                                                         <div className="flex flex-col">
-                                                            <span className="text-foreground text-sm">
+                                                            <span className="text-foreground text-small">
                                                                 {toNormalCase(color.name)}
                                                             </span>
-                                                            <span className="text-muted-foreground text-xs">
+                                                            <span className="text-muted-foreground text-mini">
                                                                 {getColorValue(color)}
                                                             </span>
                                                         </div>
@@ -265,7 +265,7 @@ export const BrandPalletGroup = ({
                                                                 setEditingColorIndex(index)
                                                             }
                                                         >
-                                                            <span className="flex w-full items-center text-sm">
+                                                            <span className="text-small flex w-full items-center">
                                                                 <Icons.Pencil className="mr-2 h-4 w-4" />
                                                                 <span>Edit color</span>
                                                             </span>
@@ -279,7 +279,7 @@ export const BrandPalletGroup = ({
                                                                 onDuplicate?.(color.name)
                                                             }
                                                         >
-                                                            <span className="flex w-full items-center text-sm">
+                                                            <span className="text-small flex w-full items-center">
                                                                 <Icons.Copy className="mr-2 h-4 w-4" />
                                                                 <span>Duplicate</span>
                                                             </span>
@@ -291,7 +291,7 @@ export const BrandPalletGroup = ({
                                                             className="hover:bg-background-secondary focus:bg-background-secondary w-full rounded-sm group px-2 py-1"
                                                             onClick={() => handleViewInCode(color)}
                                                         >
-                                                            <span className="flex w-full text-sm items-center">
+                                                            <span className="flex w-full text-small items-center">
                                                                 <Icons.ExternalLink className="mr-2 h-4 w-4" />
                                                                 <span>View in code</span>
                                                             </span>
@@ -304,7 +304,7 @@ export const BrandPalletGroup = ({
                                                                 className="hover:bg-background-secondary focus:bg-background-secondary group w-full rounded-sm px-2 py-1"
                                                                 onClick={() => onDelete(color.name)}
                                                             >
-                                                                <span className="flex w-full items-center text-sm">
+                                                                <span className="text-small flex w-full items-center">
                                                                     <Icons.Trash className="mr-2 h-4 w-4" />
                                                                     <span>Delete</span>
                                                                 </span>
@@ -320,7 +320,7 @@ export const BrandPalletGroup = ({
                                                                         onDelete(color.name)
                                                                     }
                                                                 >
-                                                                    <span className="flex w-full items-center text-sm">
+                                                                    <span className="text-small flex w-full items-center">
                                                                         <Icons.Reset className="mr-2 h-4 w-4" />
                                                                         <span>Reset override</span>
                                                                     </span>

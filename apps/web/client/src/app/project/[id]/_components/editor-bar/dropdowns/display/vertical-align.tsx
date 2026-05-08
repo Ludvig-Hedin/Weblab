@@ -51,7 +51,7 @@ export const VerticalAlignInput = observer(() => {
 
     return (
         <div className="flex items-center gap-0">
-            <span className="text-muted-foreground w-20 text-sm">Vertical</span>
+            <span className="text-muted-foreground text-small w-20">Vertical</span>
             <InputRadio
                 options={Object.values(verticalAlignOptions)}
                 value={value}

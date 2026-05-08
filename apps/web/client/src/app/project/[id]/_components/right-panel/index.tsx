@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -34,21 +34,16 @@ export const RightPanel = observer(() => {
     const currentConversation = editorEngine.chat.conversation.current;
     const hasElementSelection = editorEngine.elements.selected.length > 0;
 
-    // Auto-switch to the style tab whenever a new element is selected. We
-    // switch unconditionally — selecting an element is a strong intent signal,
-    // so always surface the style controls (even if the user was on comments).
-    useEffect(() => {
-        if (hasElementSelection) {
-            setActiveTab('style');
-        }
-    }, [hasElementSelection]);
+    // Show a dot on the Style tab when an element is selected but the user hasn't
+    // switched to it yet. This is a passive signal — we never force a tab switch.
+    const showStyleDot = hasElementSelection && activeTab !== 'style';
 
     return (
         <div
             className={cn(
                 'flex h-full items-start justify-end transition-[width,opacity] duration-200',
                 !isCollapsed &&
-                    'bg-background/95 group/panel w-full rounded-tl-xl border-[0.5px] shadow backdrop-blur-xl',
+                    'bg-background-secondary group/panel border-border w-full rounded-tl-xl border-t border-l',
             )}
         >
             {isCollapsed ? (
@@ -57,7 +52,7 @@ export const RightPanel = observer(() => {
                         variant="ghost"
                         size="icon"
                         aria-label="Open AI chat panel"
-                        className="border-border bg-background/95 text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-10 w-10 rounded-l-xl rounded-r-none border border-r-0 shadow"
+                        className="border-border bg-background-secondary text-foreground-secondary hover:bg-background-tertiary hover:text-foreground-primary h-10 w-10 rounded-l-xl rounded-r-none border border-r-0"
                         onClick={() => setIsCollapsed(false)}
                     >
                         <Icons.ChevronRight className="h-4 w-4 rotate-180" />
@@ -78,11 +73,14 @@ export const RightPanel = observer(() => {
                             onValueChange={(value) => setActiveTab(value as RightPanelTab)}
                             className="flex h-full flex-col gap-0"
                         >
-                            <div className="border-border flex h-10 w-full flex-row items-center border-b p-1">
-                                <TabsList className="bg-background-secondary h-8 rounded-lg">
-                                    <TabsTrigger value="style" className="gap-1.5">
+                            <div className="border-border flex h-10 w-full flex-row items-center border-b px-2">
+                                <TabsList className="bg-background-tertiary/40 h-7 rounded-md p-0.5">
+                                    <TabsTrigger value="style" className="relative gap-1.5">
                                         <Icons.Layout className="h-4 w-4" />
                                         {t(transKeys.editor.panels.edit.tabs.styles.name)}
+                                        {showStyleDot && (
+                                            <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-blue-400" />
+                                        )}
                                     </TabsTrigger>
                                     <TabsTrigger value="chat" className="gap-1.5">
                                         <Icons.Sparkles className="h-4 w-4" />
@@ -141,7 +139,7 @@ export const RightPanel = observer(() => {
                                         />
                                     ) : (
                                         <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                                            <p className="text-foreground-secondary text-sm">
+                                            <p className="text-foreground-secondary text-small">
                                                 {t(
                                                     transKeys.editor.panels.edit.tabs.chat
                                                         .noActiveConversation,

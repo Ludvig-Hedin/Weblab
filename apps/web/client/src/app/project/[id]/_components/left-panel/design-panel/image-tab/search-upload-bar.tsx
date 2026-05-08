@@ -41,7 +41,7 @@ export const SearchUploadBar = ({
                     placeholder="Search images and videos..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="h-8 pr-8 text-xs"
+                    className="text-mini h-8 pr-8"
                 />
                 {search && (
                     <button

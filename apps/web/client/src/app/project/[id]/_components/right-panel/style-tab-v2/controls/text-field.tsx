@@ -52,7 +52,7 @@ export function TextField({ value, onCommit, placeholder, className }: TextField
                 }
             }}
             className={cn(
-                'border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 h-7 w-full min-w-0 rounded-md border px-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]',
+                'border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 text-small h-7 w-full min-w-0 rounded-md border px-2 shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]',
                 className,
             )}
         />

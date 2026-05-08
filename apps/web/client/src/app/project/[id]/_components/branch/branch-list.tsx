@@ -63,14 +63,14 @@ export function BranchList({
                                 )}
                                 <span className="truncate font-medium">{branch.name}</span>
                             </div>
-                            <span className="text-muted-foreground ml-2 text-xs whitespace-nowrap">
+                            <span className="text-muted-foreground text-mini ml-2 whitespace-nowrap">
                                 {timeAgo(branch.updatedAt)} ago
                             </span>
                         </DropdownMenuItem>
                     ))}
 
                     {filteredBranches.length === 0 && (
-                        <div className="text-muted-foreground py-4 text-center text-sm">
+                        <div className="text-muted-foreground text-small py-4 text-center">
                             No branches found
                         </div>
                     )}

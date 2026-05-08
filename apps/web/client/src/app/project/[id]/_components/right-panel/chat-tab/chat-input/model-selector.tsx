@@ -16,7 +16,22 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
-export const ModelSelector = ({
+import { env } from '@/env';
+import { ModelSelectorV2 } from './model-selector-v2';
+
+export const ModelSelector = (props: {
+    value: ChatModel;
+    onChange: (model: ChatModel) => void;
+    localModels: LocalModelOption[];
+    localModelsLoading: boolean;
+}) => {
+    if (env.NEXT_PUBLIC_PROVIDER_PICKER_V2) {
+        return <ModelSelectorV2 {...props} />;
+    }
+    return <ModelSelectorLegacy {...props} />;
+};
+
+const ModelSelectorLegacy = ({
     value,
     onChange,
     localModels,
@@ -45,7 +60,7 @@ export const ModelSelector = ({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1.5 px-2 text-xs"
+                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary text-mini h-8 gap-1.5 px-2"
                 >
                     <Icons.ChevronDown className="h-3.5 w-3.5 shrink-0" />
                     <span className="max-w-[80px] truncate @[260px]:max-w-[160px]">
@@ -54,7 +69,7 @@ export const ModelSelector = ({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
-                <DropdownMenuLabel className="text-foreground-tertiary px-3 py-1.5 text-xs font-normal">
+                <DropdownMenuLabel className="text-foreground-tertiary text-mini px-3 py-1.5 font-normal">
                     Cloud models
                 </DropdownMenuLabel>
                 {CHAT_MODEL_OPTIONS.map((option) => (
@@ -66,18 +81,18 @@ export const ModelSelector = ({
                             option.model === value && 'bg-background-weblab',
                         )}
                     >
-                        <span className="text-sm font-medium">{option.label}</span>
-                        <span className="text-foreground-tertiary text-xs">{option.model}</span>
+                        <span className="text-small font-medium">{option.label}</span>
+                        <span className="text-foreground-tertiary text-mini">{option.model}</span>
                     </DropdownMenuItem>
                 ))}
 
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-foreground-tertiary px-3 py-1.5 text-xs font-normal">
+                <DropdownMenuLabel className="text-foreground-tertiary text-mini px-3 py-1.5 font-normal">
                     Local models
                 </DropdownMenuLabel>
 
                 {localModelsLoading ? (
-                    <DropdownMenuItem disabled className="px-3 py-2 text-xs">
+                    <DropdownMenuItem disabled className="text-mini px-3 py-2">
                         Detecting…
                     </DropdownMenuItem>
                 ) : localModels.length > 0 ? (
@@ -91,18 +106,23 @@ export const ModelSelector = ({
                             )}
                         >
                             <div className="flex w-full items-center justify-between">
-                                <span className="text-sm font-medium">{option.label}</span>
+                                <span className="text-small font-medium">{option.label}</span>
                                 {option.size && (
-                                    <span className="text-foreground-tertiary text-xs">
+                                    <span className="text-foreground-tertiary text-mini">
                                         {option.size}
                                     </span>
                                 )}
                             </div>
-                            <span className="text-foreground-tertiary text-xs">{option.model}</span>
+                            <span className="text-foreground-tertiary text-mini">
+                                {option.model}
+                            </span>
                         </DropdownMenuItem>
                     ))
                 ) : (
-                    <DropdownMenuItem disabled className="text-muted-foreground px-3 py-2 text-xs">
+                    <DropdownMenuItem
+                        disabled
+                        className="text-muted-foreground text-mini px-3 py-2"
+                    >
                         No local models — start Ollama to use them
                     </DropdownMenuItem>
                 )}

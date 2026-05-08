@@ -23,11 +23,11 @@ export function Section({ id, title, setCount, children, className, actions }: S
     return (
         <AccordionItem value={id} className={cn('border-border/40 px-1', className)}>
             <div className="flex items-center">
-                <AccordionTrigger className="text-foreground-primary flex-1 px-3 py-2 text-xs font-medium tracking-wide uppercase hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                <AccordionTrigger className="text-foreground-secondary text-micro flex-1 px-3 py-2 font-medium uppercase hover:no-underline [&[data-state=open]>svg]:rotate-180">
                     <span className="flex items-center gap-2">
                         {title}
                         {setCount !== undefined && setCount > 0 && (
-                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500/20 px-1 text-[10px] font-medium text-blue-500">
+                            <span className="bg-foreground/8 text-foreground-secondary text-micro inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-medium">
                                 {setCount}
                             </span>
                         )}
