@@ -10,7 +10,7 @@ const client = new Client({
         process.env.SUPABASE_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
     ssl:
         process.env.SUPABASE_DATABASE_URL?.includes("supabase.com") === true
-            ? { rejectUnauthorized: false }
+            ? { rejectUnauthorized: true }
             : undefined,
 });
 

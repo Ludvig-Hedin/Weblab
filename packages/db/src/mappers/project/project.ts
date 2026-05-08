@@ -1,4 +1,9 @@
-import type { PreviewImg, Project, ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
+import type {
+    PreviewImg,
+    Project,
+    ProjectRuntimeMetadata,
+    ProjectStorageMode,
+} from '@weblab/models';
 
 import type { Project as DbProject } from '../../schema';
 

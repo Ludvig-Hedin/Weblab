@@ -44,10 +44,7 @@ export const branches = pgTable(
         sandboxId: varchar('sandbox_id').notNull(),
 
         // runtime mode (added in 0023_project_runtime_modes)
-        runtimeType: varchar('runtime_type')
-            .$type<BranchRuntimeType>()
-            .notNull()
-            .default('cloud'),
+        runtimeType: varchar('runtime_type').$type<BranchRuntimeType>().notNull().default('cloud'),
         runtimeMetadata: jsonb('runtime_metadata')
             .$type<Omit<BranchRuntime, 'type'>>()
             .notNull()

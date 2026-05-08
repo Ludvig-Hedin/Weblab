@@ -15,8 +15,8 @@ export const fromDbBranch = (dbBranch: DbBranch): Branch => {
 
     const runtime: BranchRuntime = hasMetadataColumns
         ? {
-              type: dbBranch.runtimeType as BranchRuntimeType,
-              ...(dbBranch.runtimeMetadata as Omit<BranchRuntime, 'type'>),
+              type: dbBranch.runtimeType,
+              ...dbBranch.runtimeMetadata,
           }
         : (dbBranch.sandboxId ?? '').startsWith('local:')
           ? {

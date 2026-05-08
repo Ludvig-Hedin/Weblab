@@ -21,7 +21,7 @@ BEGIN
         COALESCE(
             NEW.raw_user_meta_data ->> 'given_name',
             NEW.raw_user_meta_data ->> 'first_name',
-            split_part(NEW.raw_user_meta_data ->> 'full_name', ' ', 1)
+            NULLIF(split_part(NEW.raw_user_meta_data ->> 'full_name', ' ', 1), '')
         ),
         COALESCE(
             NEW.raw_user_meta_data ->> 'family_name',

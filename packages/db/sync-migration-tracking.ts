@@ -23,10 +23,10 @@ const client = new Client({
             : undefined,
 });
 
-await client.connect();
-console.log("Connected");
-
 try {
+    await client.connect();
+    console.log("Connected");
+
     await client.query(`CREATE SCHEMA IF NOT EXISTS "drizzle"`);
     await client.query(`
         CREATE TABLE IF NOT EXISTS "drizzle"."__drizzle_migrations" (

@@ -35,10 +35,7 @@ export const projects = pgTable('projects', {
     updatedPreviewImgAt: timestamp('updated_preview_img_at', { withTimezone: true }),
 
     // runtime mode (added in 0023_project_runtime_modes)
-    storageMode: varchar('storage_mode')
-        .$type<ProjectStorageMode>()
-        .notNull()
-        .default('cloud'),
+    storageMode: varchar('storage_mode').$type<ProjectStorageMode>().notNull().default('cloud'),
     runtimeMetadata: jsonb('runtime_metadata')
         .$type<ProjectRuntimeMetadata>()
         .notNull()
