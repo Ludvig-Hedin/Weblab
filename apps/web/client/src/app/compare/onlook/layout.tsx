@@ -12,29 +12,6 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 const description = `Looking for an Onlook alternative? ${APP_NAME} is a visual editor for React built on the same open-source foundations, with extended workflows, AI integrations, and team collaboration.`;
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: `Is ${APP_NAME} an Onlook alternative?`,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: `${APP_NAME} is built on the same open-source foundations as Onlook (Apache 2.0). It extends them with additional workflows for Claude Code and vibe coding, design-system-aware AI, and team collaboration.`,
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is Weblab open source like Onlook?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: `Yes. ${APP_NAME} is open source. The repository is at https://github.com/Ludvig-Hedin/Weblab.`,
-      },
-    },
-  ],
-};
-
 export const metadata: Metadata = {
   title: `Onlook alternative — ${APP_NAME}, a maintained visual editor for React`,
   description,
@@ -88,10 +65,6 @@ export default function CompareOnlookLayout({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {children}
     </>

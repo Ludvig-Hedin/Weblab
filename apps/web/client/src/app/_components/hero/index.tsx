@@ -30,12 +30,12 @@ export function Hero() {
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Design visually,
+                        AI visual website builder
                         <br />
                         <span
                             className={`font-normal italic ${vujahdayScript.className} ml-1 text-[4.6rem] leading-[1.0]`}
                         >
-                            ship instantly
+                            for React teams
                         </span>
                     </motion.h1>
                     <motion.p
@@ -45,8 +45,8 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        An infinite canvas to build websites and apps — what you design is what
-                        ships, no handoff required.
+                        Design with your real components on an infinite canvas. Keep the Cursor for
+                        Designers speed, but ship production pull requests instead of prototypes.
                     </motion.p>
                     <HighDemand />
                     <CreateError />

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+Sitemap: https://weblab.build/sitemap.xml

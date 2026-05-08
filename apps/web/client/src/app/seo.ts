@@ -1,5 +1,11 @@
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+const baseUrl = `https://${APP_DOMAIN}`;
+
+export function absoluteUrl(path: string) {
+    return new URL(path, baseUrl).toString();
+}
+
 export function breadcrumbSchema(items: { name: string; path: string }[]) {
     return {
         '@context': 'https://schema.org',
@@ -8,7 +14,7 @@ export function breadcrumbSchema(items: { name: string; path: string }[]) {
             '@type': 'ListItem',
             position: i + 1,
             name: item.name,
-            item: `https://${APP_DOMAIN}${item.path}`,
+            item: absoluteUrl(item.path),
         })),
     };
 }
@@ -17,48 +23,56 @@ export const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: APP_NAME,
-    url: `https://${APP_DOMAIN}/`,
-    logo: `https://${APP_DOMAIN}/favicon.ico`,
+    url: `${baseUrl}/`,
+    logo: absoluteUrl('/brand/symbol.png'),
     sameAs: ['https://github.com/Ludvig-Hedin/Weblab', 'https://www.linkedin.com/company/weblab/'],
 };
 
-// Q&A pulled from /faq to keep the JSON-LD aligned with what's actually on the
-// page. Update both this list and apps/web/client/src/app/faq/page.tsx together.
-export const faqSchema = {
+export const websiteSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: `What is ${APP_NAME}?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. AI is constrained to your design system, and changes become pull requests engineers can merge directly.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Who is ${APP_NAME} for?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} is for product teams with designers and an existing component library — design engineers, product designers in code-forward teams, frontend developers who want visual tooling, and teams maintaining design systems.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `What frontend frameworks does ${APP_NAME} support?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} focuses on React and Next.js projects. We're built on a Babel JSX/TSX parser optimized for the React ecosystem.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Where is ${APP_NAME} based?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} is built in Sweden. Open-source contributors are scattered across the world.`,
-            },
-        },
-    ],
+    '@type': 'WebSite',
+    name: APP_NAME,
+    url: `${baseUrl}/`,
+    publisher: {
+        '@type': 'Organization',
+        name: APP_NAME,
+        url: `${baseUrl}/`,
+    },
 };
+
+export function blogPostingSchema(post: {
+    slug: string;
+    title: string;
+    description: string;
+    date: string;
+    author: string;
+    authorImage: string;
+    coverImage: string;
+}) {
+    const url = absoluteUrl(`/blog/${post.slug}`);
+
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: post.description,
+        datePublished: post.date,
+        dateModified: post.date,
+        url,
+        mainEntityOfPage: url,
+        image: absoluteUrl(post.coverImage),
+        author: {
+            '@type': 'Person',
+            name: post.author,
+            image: absoluteUrl(post.authorImage),
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: APP_NAME,
+            logo: {
+                '@type': 'ImageObject',
+                url: absoluteUrl('/brand/symbol.png'),
+            },
+        },
+    };
+}

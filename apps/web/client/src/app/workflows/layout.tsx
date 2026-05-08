@@ -30,7 +30,7 @@ export const metadata: Metadata = {
         url: `https://${APP_DOMAIN}/workflows`,
         type: 'website',
         siteName: APP_NAME,
-        title: 'Workflows | ${APP_NAME}',
+        title: `Workflows | ${APP_NAME}`,
         description: `Connect ${APP_NAME} to your AI coding workflow. Visual design layer for Claude Code, Cursor, and more.`,
         images: [
             {
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     },
     /* twitter: {
         card: 'summary_large_image',
-        title: 'Workflows | ${APP_NAME}',
+        title: `Workflows | ${APP_NAME}`,
         description: 'Visual design layer for Claude Code, Cursor, and AI coding tools.',
         images: ['/favicon.ico'],
     }, */

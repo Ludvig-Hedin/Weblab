@@ -3,7 +3,7 @@ import { type Metadata } from 'next';
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
-    title: 'Vibe Coding for Teams: Add Collaboration to Your AI Workflow | ${APP_NAME}',
+    title: `Vibe Coding for Teams: Add Collaboration to Your AI Workflow | ${APP_NAME}`,
     description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.`,
     keywords: [
         // Primary keywords
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
         url: `https://${APP_DOMAIN}/workflows/vibe-coding`,
         type: 'website',
         siteName: APP_NAME,
-        title: 'Vibe Coding for Teams | ${APP_NAME}',
+        title: `Vibe Coding for Teams | ${APP_NAME}`,
         description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components, collaborate in real-time, ship PRs.`,
         images: [
             {
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
         card: 'summary_large_image',
         site: '@weblab',
         creator: '@weblab',
-        title: 'Vibe Coding for Teams | ${APP_NAME}',
+        title: `Vibe Coding for Teams | ${APP_NAME}`,
         description:
             `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Real components, real-time collaboration, real PRs.`,
         images: [
@@ -97,71 +97,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: 'What is vibe coding?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Vibe coding is a workflow where you describe what you want to build in natural language and AI generates the code. Most vibe coding tools are designed for solo use, not teams.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What is the problem with vibe coding?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "Most vibe coding tools are solo workflows. You can't easily share work-in-progress, collaborate in real-time, or hand off to engineers. The output is often throwaway code that doesn't match your design system.",
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `How does ${APP_NAME} solve the vibe coding collaboration problem?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} adds a visual canvas layer to vibe coding. Share your canvas with teammates, leave spatial comments, and work together in real-time. AI is constrained to your design system, so outputs are consistent. Changes become PRs engineers can merge.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Can I use ${APP_NAME} with my existing vibe coding tools?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes. Use any AI coding tool to build. Then open in ${APP_NAME} to visually iterate, collaborate with your team, and refine before shipping. ${APP_NAME} works with your existing codebase.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Does ${APP_NAME} work with my design system?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes. ${APP_NAME} connects to your existing component library and constrains AI to your design system. Your buttons, cards, and layouts — not generic HTML. No brand drift.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'How do vibe-coded changes get into production?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Changes you make in ${APP_NAME} become real code changes. When ready, submit as a pull request for engineers to review and merge. No export, no translation — the code is production-ready.`,
-            },
-        },
-    ],
-};
-
 export default function VibeCodingLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

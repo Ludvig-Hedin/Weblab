@@ -1,0 +1,56 @@
+# Weblab LLM Context
+
+Weblab is an open-source AI visual website builder and visual code editor for React and Next.js teams. It helps teams build and edit websites with AI while preserving real components, design tokens, source control, and code review.
+
+## What Weblab Does
+
+Weblab opens an existing frontend project, renders the real application on a visual canvas, and lets users edit UI visually. Designers can adjust layout, styling, components, and content without rewriting the app from scratch. Engineers still receive normal pull requests and can review the generated code changes.
+
+## Primary Use Cases
+
+- Build websites with AI using an existing React or Next.js codebase.
+- Visually edit real components instead of static mockups.
+- Keep AI-generated UI constrained to a design system.
+- Turn design changes into GitHub pull requests.
+- Give product designers and design engineers a canvas for production UI.
+- Compare AI builders and no-code tools against code-native visual editing.
+
+## Target Queries
+
+- Weblab
+- weblab.build
+- visual site builder
+- visual website builder
+- AI website builder
+- build websites with AI
+- React visual editor
+- Next.js visual editor
+- AI visual editor for React
+- website builder for existing codebase
+- design system AI builder
+- Webflow alternative for React
+- Framer alternative for React
+- Lovable alternative for existing codebases
+- v0 alternative for design systems
+
+## Important URLs
+
+- https://weblab.build/
+- https://weblab.build/features
+- https://weblab.build/features/ai
+- https://weblab.build/features/builder
+- https://weblab.build/features/ai-for-frontend
+- https://weblab.build/workflows
+- https://weblab.build/workflows/claude-code
+- https://weblab.build/workflows/vibe-coding
+- https://weblab.build/compare
+- https://weblab.build/compare/webflow
+- https://weblab.build/compare/framer
+- https://weblab.build/compare/lovable
+- https://weblab.build/compare/bolt
+- https://weblab.build/compare/v0
+- https://weblab.build/blog/best-website-builder-2026
+- https://weblab.build/blog/best-visual-editor-react-2026
+- https://weblab.build/blog/best-ai-design-tools-2026
+- https://docs.weblab.build
+- https://github.com/Ludvig-Hedin/Weblab

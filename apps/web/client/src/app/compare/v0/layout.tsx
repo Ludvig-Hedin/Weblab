@@ -12,29 +12,6 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 const description = `${APP_NAME} vs v0 by Vercel: ${APP_NAME} edits your real components on a canvas. v0 generates new components from prompts. Compare design-system support, output, and team workflow.`;
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: `Is ${APP_NAME} a v0 alternative?`,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: `${APP_NAME} and v0 are different tools for different stages. v0 generates new component snippets from prompts. ${APP_NAME} is a visual editor for an existing React codebase that ships pull requests.`,
-      },
-    },
-    {
-      "@type": "Question",
-      name: `Can I use v0-generated components inside ${APP_NAME}?`,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: `Yes. Drop v0-generated components into your repository and ${APP_NAME} will let you arrange and edit them visually on the canvas like any other React component.`,
-      },
-    },
-  ],
-};
-
 export const metadata: Metadata = {
   title: `${APP_NAME} vs v0 by Vercel — Visual Editor vs AI Component Generator`,
   description,
@@ -89,10 +66,6 @@ export default function CompareV0Layout({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {children}
     </>

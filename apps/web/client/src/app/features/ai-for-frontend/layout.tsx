@@ -111,95 +111,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: 'What is Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is an AI-powered visual editor for frontend development. It connects to your existing React, Vue, or Angular codebase and lets designers create interfaces using real components. AI is constrained to your design system, and changes become pull requests engineers can merge directly.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'How is Weblab different from other AI code generators?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Most AI tools generate generic HTML/CSS from scratch. Weblab connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Does Weblab work with my existing React components?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Yes. Weblab connects to your codebase and lets you design with your real components — the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What frontend frameworks does Weblab support?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab works with React, Next.js, Vue, Angular, Svelte, Preact, SolidJS, Qwik, and Web Components. It also supports any CSS approach — Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS, Less, Vanilla Extract, and more.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What component libraries does Weblab support?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab works with all major component libraries including shadcn/ui, Material UI, Mantine, Chakra UI, Radix UI, Ant Design, Headless UI, Blueprint, Fluent UI, and PrimeReact.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Can AI drift from my design system in Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "No. Unlike raw AI code generation, Weblab constrains AI to your existing components, colors, and tokens. AI can only use what's in your design system — no drift, no off-brand results.",
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'How do I get AI-generated changes into production?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "Changes you make in Weblab become real code changes. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation.",
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Do I need to know how to code to use Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don't need to touch it unless you want to.",
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Who is Weblab for?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is for product teams with designers and an existing component library. Ideal users include design engineers, product designers working in code-forward teams, and teams maintaining design systems.',
-            },
-        },
-    ],
-};
-
 export default function AiForFrontendLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

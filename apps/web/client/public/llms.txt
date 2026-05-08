@@ -1,0 +1,32 @@
+# Weblab
+
+> AI visual website builder and visual editor for React and Next.js teams.
+
+Weblab connects to an existing codebase, reads real components and design tokens, and gives product teams a visual canvas for editing websites and application UI. AI edits are constrained to the team's design system, and changes are shipped as GitHub pull requests instead of throwaway prototypes.
+
+## Core Pages
+
+- [Home](https://weblab.build/): AI visual website builder for React teams
+- [Features](https://weblab.build/features): Product capabilities and visual editing workflow
+- [AI Visual Editor](https://weblab.build/features/ai): Build UI with AI using real components
+- [Visual Builder](https://weblab.build/features/builder): Visual site builder for existing React codebases
+- [AI for Frontend](https://weblab.build/features/ai-for-frontend): AI workflows for frontend teams
+- [Workflows](https://weblab.build/workflows): Claude Code, Cursor, and vibe coding workflows
+- [Compare](https://weblab.build/compare): Comparisons with Webflow, Framer, Lovable, Bolt, v0, Replit, and more
+- [Blog](https://weblab.build/blog): Guides, comparisons, and product thinking
+- [Docs](https://docs.weblab.build): Product documentation
+- [GitHub](https://github.com/Ludvig-Hedin/Weblab): Open-source repository
+
+## Best Resources
+
+- [Best Website Builder 2026](https://weblab.build/blog/best-website-builder-2026)
+- [Best Visual Editor for React 2026](https://weblab.build/blog/best-visual-editor-react-2026)
+- [Best AI Design Tools 2026](https://weblab.build/blog/best-ai-design-tools-2026)
+- [Weblab vs Webflow](https://weblab.build/compare/webflow)
+- [Weblab vs Framer](https://weblab.build/compare/framer)
+- [Weblab vs Lovable](https://weblab.build/compare/lovable)
+- [Weblab vs v0](https://weblab.build/compare/v0)
+
+## Positioning
+
+Weblab is best for teams that already have a React or Next.js codebase and want designers, product managers, and engineers to edit production UI together. It is different from no-code website builders because it works with real source code. It is different from prompt-only AI app builders because it constrains AI to the existing design system.

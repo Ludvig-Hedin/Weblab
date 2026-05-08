@@ -99,63 +99,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: `How does ${APP_NAME} work with Claude Code?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Claude Code handles the terminal and code generation. ${APP_NAME} provides the visual canvas. Together, they give you a complete design-to-code workflow — Claude Code builds, ${APP_NAME} lets you visually iterate and refine.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Do I need to know code to use ${APP_NAME} with Claude Code?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `No. ${APP_NAME} gives you a visual canvas where you can drag, resize, and arrange elements. The code runs underneath — you don't need to touch it unless you want to.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Can I use my existing components with ${APP_NAME}?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes. ${APP_NAME} connects to your existing codebase and lets you design with your real components — the buttons, cards, and layouts your engineers already built.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `What makes ${APP_NAME} different from using Claude Code alone?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Claude Code is terminal-based and works best for building. ${APP_NAME} adds the visual layer designers need — an infinite canvas, team collaboration, and visual iteration on AI-generated UIs.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Does ${APP_NAME} constrain AI to my design system?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes. Unlike raw AI code generation, ${APP_NAME} constrains AI to your existing components, colors, and tokens. This means outputs match your design system — no drift, no off-brand results.`,
-            },
-        },
-    ],
-};
-
 export default function ClaudeCodeLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

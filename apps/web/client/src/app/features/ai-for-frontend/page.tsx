@@ -82,13 +82,16 @@ export default function AiForFrontendPage() {
                 {/* AI-Friendly Summary Section - Hidden visually but available for crawlers */}
                 <section
                     className="sr-only"
-                    aria-label="Product Summary`>
-                    <h1>${APP_NAME}: AI for Frontend Development</h1>
+                    aria-label="Product Summary"
+                >
+                    <h1>{APP_NAME}: AI for Frontend Development</h1>
                     <p>
-                        ${APP_NAME} is an AI-powered visual editor for frontend development that connects to your existing
-                        React, Vue, or Angular codebase. Unlike generic AI code generators that produce throwaway HTML/CSS,
-                        ${APP_NAME} constrains AI to your real components and design system — your buttons, cards, and layouts.
-                        Changes become mergeable pull requests, not prototypes that need translation.
+                        {APP_NAME} is an AI-powered visual editor for frontend development that
+                        connects to your existing React, Vue, or Angular codebase. Unlike generic AI
+                        code generators that produce throwaway HTML/CSS, {APP_NAME} constrains AI
+                        to your real components and design system — your buttons, cards, and
+                        layouts. Changes become mergeable pull requests, not prototypes that need
+                        translation.
                     </p>
                     <h2>Key Features</h2>
                     <ul>
@@ -100,17 +103,17 @@ export default function AiForFrontendPage() {
                         <li>Changes become real pull requests engineers can merge</li>
                         <li>Open source</li>
                     </ul>
-                    <h2>Who is ${APP_NAME} for?</h2>
+                    <h2>Who is {APP_NAME} for?</h2>
                     <p>
-                        ${APP_NAME} is for product teams with designers and an existing component library.
-                        Ideal users include design engineers, product designers working in code-forward teams,
-                        and teams maintaining design systems who want AI that respects their existing work.
+                        {APP_NAME} is for product teams with designers and an existing component
+                        library. Ideal users include design engineers, product designers working in
+                        code-forward teams, and teams maintaining design systems who want AI that
+                        respects their existing work.
                     </p>
                 </section>
 
                 {/* The Problem Section */}
-                <section className=`w-full bg-black py-32"
-                >
+                <section className="w-full bg-black py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"

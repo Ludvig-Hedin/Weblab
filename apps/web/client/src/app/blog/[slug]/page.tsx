@@ -14,6 +14,7 @@ import { WebsiteLayout } from '@/app/_components/website-layout';
 import { TableOfContents } from '@/app/blog/_components/table-of-contents';
 import { getAllPosts, getPostBySlug, getRelatedPosts } from '@/lib/blog';
 import { ExternalRoutes, Routes } from '@/utils/constants';
+import { blogPostingSchema, breadcrumbSchema } from '@/app/seo';
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -95,9 +96,31 @@ export default async function BlogPostPage({ params }: Props) {
     if (!post) notFound();
 
     const related = getRelatedPosts(slug, 3);
+    const articleJsonLd = blogPostingSchema({
+        slug,
+        title: post.frontmatter.title,
+        description: post.frontmatter.description,
+        date: post.frontmatter.date,
+        author: post.frontmatter.author,
+        authorImage: post.frontmatter.authorImage,
+        coverImage: post.frontmatter.coverImage,
+    });
+    const breadcrumbsJsonLd = breadcrumbSchema([
+        { name: 'Home', path: '/' },
+        { name: 'Blog', path: '/blog' },
+        { name: post.frontmatter.title, path: `/blog/${slug}` },
+    ]);
 
     return (
         <WebsiteLayout showFooter>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+            />
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-20 md:px-8 md:pt-32">
                 {/* Back link */}
                 <Link

@@ -12,37 +12,6 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 const description = `${APP_NAME} vs Replit: ${APP_NAME} is a visual canvas editor for your existing React codebase. Replit is a browser-based IDE with an AI agent that builds and deploys full-stack apps from prompts. Compare features, design system support, and code ownership.`;
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: `Is ${APP_NAME} a Replit alternative?`,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: `${APP_NAME} and Replit solve different problems. Replit is a cloud IDE that lets you write and run code in the browser, with an AI agent that generates and deploys full-stack apps. ${APP_NAME} is a visual design-and-code editor that connects to your local React codebase and ships pull requests to GitHub.`,
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Does Replit support visual editing for React?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Replit is code-first: you write code in an editor and see a preview. It does not provide a visual canvas for editing existing React components. Weblab provides an infinite design canvas where you can select, drag, resize, and style your real React components visually.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Can I import my existing React project into Replit?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Replit supports importing from GitHub, but its AI agent is optimized for generating new apps. Weblab is designed specifically for editing existing React codebases — connecting to your local project, reading your components and design tokens, and writing changes back as pull requests.",
-      },
-    },
-  ],
-};
-
 export const metadata: Metadata = {
   title: `${APP_NAME} vs Replit — Visual React Editor vs Browser IDE + AI Agent`,
   description,
@@ -97,10 +66,6 @@ export default function CompareReplitLayout({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {children}
     </>

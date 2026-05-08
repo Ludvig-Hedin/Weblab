@@ -92,55 +92,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: 'What is Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is an open-source visual builder for frontend development. It connects to your existing codebase and lets you design with your real components on an infinite canvas.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What can I use Weblab to do?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is great for creating websites, prototypes, user interfaces, and designs. Design visually with your real React, Vue, or Angular components, and changes become mergeable pull requests.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What is the difference between Weblab and other design tools?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is a visual editor for code. Unlike traditional design tools that create static mockups, Weblab works with your real components — what you design IS the code. Changes become PRs, not specs.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Do I need to know how to code?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "No. Designers use a familiar visual canvas with drag-and-drop, resize, and styling controls. The code runs underneath — you don't need to touch it unless you want to.",
-            },
-        },
-    ],
-};
-
 export default function BuilderFeaturesLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

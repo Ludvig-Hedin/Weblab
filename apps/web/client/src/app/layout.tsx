@@ -7,7 +7,7 @@ import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 
-import { APP_DOMAIN, APP_NAME, APP_TAGLINE } from '@weblab/constants';
+import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { Toaster } from '@weblab/ui/sonner';
 
 import RB2BLoader from '@/components/rb2b-loader';
@@ -18,14 +18,16 @@ import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { TRPCReactProvider } from '@/trpc/react';
 import { ThemeProvider } from './_components/theme';
 import { AuthProvider } from './auth/auth-context';
-import { faqSchema, organizationSchema } from './seo';
+import { absoluteUrl, organizationSchema, websiteSchema } from './seo';
 
 const isProduction = env.NODE_ENV === 'production';
 
-const description = `${APP_NAME} lets you design with your real components and ship PRs, not prototypes. Edit your React app visually, write changes back to code in real-time, and iterate with AI.`;
+const title = `${APP_NAME} - AI Visual Website Builder for React Teams`;
+const description = `${APP_NAME} is an AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} – ${APP_TAGLINE}`,
+    metadataBase: new URL(`https://${APP_DOMAIN}`),
+    title,
     description,
     icons: [
         { rel: 'icon', url: '/favicon.svg', type: 'image/svg+xml' },
@@ -35,29 +37,30 @@ export const metadata: Metadata = {
         url: `https://${APP_DOMAIN}/`,
         type: 'website',
         siteName: APP_NAME,
-        title: `${APP_NAME} – ${APP_TAGLINE}`,
+        title,
         description,
         images: [
             {
-                url: '/og-image.png',
+                url: absoluteUrl('/og-image.png'),
                 width: 1200,
                 height: 630,
                 alt: `${APP_NAME} visual editor preview`,
             },
         ],
     },
-    /* twitter: {
+    twitter: {
         card: 'summary_large_image',
-        site: '@weblab', // update when Twitter handle changes
-        creator: '@weblab',
-        title: `${APP_NAME} – ${APP_TAGLINE}`,
+        title,
         description,
         images: [
             {
-                url: '/favicon.ico',
+                url: absoluteUrl('/og-image.png'),
+                width: 1200,
+                height: 630,
+                alt: `${APP_NAME} visual editor preview`,
             },
         ],
-    }, */
+    },
 };
 
 const inter = Inter({
@@ -80,7 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 />
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
                 />
             </head>
             <body>

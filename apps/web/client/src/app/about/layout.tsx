@@ -93,55 +93,12 @@ const organizationJsonLd = {
     ],
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: `What is ${APP_NAME}?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} is an AI-powered visual editor for frontend development. It connects to your existing React, Vue, or Angular codebase and lets you design with your real components. AI is constrained to your design system, and changes become mergeable pull requests.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Who founded ${APP_NAME}?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} was founded by Ludvig Hedin.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Where is ${APP_NAME} based?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} is built in Sweden.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `Is ${APP_NAME} open source?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes. ${APP_NAME} is open source with 100+ contributors. You can browse the codebase, contribute improvements, or self-host it for your team.`,
-            },
-        },
-    ],
-};
-
 export default function AboutLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

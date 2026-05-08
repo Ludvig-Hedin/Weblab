@@ -120,26 +120,6 @@ const faqSections = [
     },
 ];
 
-// Generate JSON-LD for all FAQs
-const generateFAQJsonLd = () => {
-    const allFaqs = faqSections.flatMap((section) =>
-        section.faqs.map((faq) => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: typeof faq.answer === 'string' ? faq.answer : faq.question, // Fallback for JSX answers
-            },
-        })),
-    );
-
-    return {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: allFaqs,
-    };
-};
-
 export default function FAQPage() {
     const [currentSection, setCurrentSection] = useState(faqSections[0]?.anchor || '');
     const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -179,12 +159,6 @@ export default function FAQPage() {
 
     return (
         <WebsiteLayout showFooter={true}>
-            {/* JSON-LD Structured Data */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(generateFAQJsonLd()) }}
-            />
-
             {/* Hidden AI-friendly summary */}
             <section className="sr-only" aria-label="FAQ Summary">
                 <h1>Weblab Frequently Asked Questions</h1>

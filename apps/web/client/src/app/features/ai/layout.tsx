@@ -95,55 +95,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: 'What is Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Weblab is an AI-powered visual editor for frontend development. It connects to your existing codebase and lets you design with your real components. AI is constrained to your design system, and changes become mergeable pull requests.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'How does Weblab AI differ from other AI code generators?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Most AI tools generate generic HTML/CSS from scratch. Weblab connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Does Weblab AI work with my existing React components?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: 'Yes. Weblab connects to your codebase and lets you design with your real components — the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API.',
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Can AI drift from my design system in Weblab?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: "No. Unlike raw AI code generation, Weblab constrains AI to your existing components, colors, and tokens. AI can only use what's in your design system — no drift, no off-brand results.",
-            },
-        },
-    ],
-};
-
 export default function AiFeaturesLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

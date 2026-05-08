@@ -94,63 +94,12 @@ const jsonLd = {
     },
 };
 
-const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-        {
-            '@type': 'Question',
-            name: `What makes ${APP_NAME} different from other prototyping tools?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} generates functional React prototypes with real interactions — not just clickable mockups. While other tools create static prototypes, ${APP_NAME}'s AI builds production-ready code you can actually test and deploy.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: `How quickly can I create a prototype with ${APP_NAME}?`,
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Most prototypes can be generated in seconds. Simply describe your idea or import a reference design image, and ${APP_NAME}'s AI will create a functional prototype with working components, proper styling, and interactive features ready for testing.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'What kind of prototypes can I build?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `You can build any type of web application prototype — dashboards, e-commerce sites, social platforms, SaaS tools, mobile apps, and more. ${APP_NAME} generates components with real interactions.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'Is the generated code production-ready?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Yes! ${APP_NAME} generates clean, well-structured React code with proper TypeScript, Tailwind CSS, and modern best practices. You can use the prototype code as a foundation for your production application.`,
-            },
-        },
-        {
-            '@type': 'Question',
-            name: 'How do I share prototypes with my team?',
-            acceptedAnswer: {
-                '@type': 'Answer',
-                text: `${APP_NAME} provides instant deployment to live URLs that you can share with anyone. Team members can interact with the prototype, leave comments, and collaborate in real-time.`,
-            },
-        },
-    ],
-};
-
 export default function PrototypeFeaturesLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
             />
             {children}
         </>

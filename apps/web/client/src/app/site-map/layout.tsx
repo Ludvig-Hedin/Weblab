@@ -3,10 +3,10 @@ import type { Metadata } from 'next';
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 export const metadata: Metadata = {
-    title: 'Sitemap | ${APP_NAME}',
+    title: `Sitemap | ${APP_NAME}`,
     description: `Complete sitemap for ${APP_NAME}.com — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.`,
     openGraph: {
-        title: 'Sitemap | ${APP_NAME}',
+        title: `Sitemap | ${APP_NAME}`,
         description: `Complete sitemap for ${APP_NAME}.com. Browse all pages including features, workflows, and resources.`,
         type: 'website',
         url: `https://${APP_DOMAIN}/site-map`,
