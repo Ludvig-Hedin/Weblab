@@ -65,6 +65,11 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-062 | fixed (2026-05-07) — script wrapped in `bash -c` |
 | CR-063 | fixed (2026-05-07) — invitation row rolled back on email failure |
 | CR-064 | deferred (2026-05-07) — Anthropic models can't run generateObject; needs a non-Anthropic small-tier model added to OPENROUTER_MODELS first |
+| CR-065 | auto-fixed (2026-05-08) — `text-smallall` typo in terminal-area.tsx |
+| CR-066 | auto-fixed (2026-05-08) — dead `ButtonLink` import in about/page.tsx |
+| CR-067 | fixed (2026-05-08) — microphone=(self) restores transcription |
+| CR-068 | fixed (2026-05-08) — isComposing removed from props interface |
+| CR-069 | fixed (2026-05-08) — DB query removed; 501 returned directly |
 
 ---
 
@@ -787,3 +792,63 @@ Review window: full local working tree (114 tracked changed files plus untracked
 - **Why deferred (2026-05-07):** Routing to `CLAUDE_3_5_HAIKU` is the obvious cheap option, but the comment in `packages/models/src/llm/index.ts:11` is explicit that `generateObject` does not work with Anthropic models on OpenRouter — so Haiku won't actually fix the problem. Picking a real cheap, non-Anthropic, structured-output-capable model ID requires checking the live OpenRouter catalog and is a product decision (cost / quality trade-off) rather than something to fabricate from training data. Leaving the runtime on `OPEN_AI_GPT_5_5` for now since that's what shipped; the cost concern is tracked here.
 - **Suggested approach when picked up:** Verify a current cheap structured-output OpenRouter model (e.g. an `openai/gpt-5.5-mini` if it exists, GLM-5.1, Kimi K2.6 mini), add it to `OPENROUTER_MODELS`, route `repairToolCall` to it, and update `MODEL_MAX_TOKENS`.
 - **Status:** deferred — needs product/model decision
+
+---
+
+## CR-065 — `text-smallall` typo in `terminal-area.tsx` *(auto-fixed)*
+
+- **Area:** `apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:95`
+- **Type:** bug / visual
+- **Impact:** user-facing — "Terminal" label rendered without any size class (browser default)
+- **Risk:** negligible
+- **Summary:** `text-smallall` is not a valid Tailwind class. The label falls back to browser default font size, making it visually inconsistent with the rest of the bottom bar.
+- **Fix applied:** Changed `text-smallall` → `text-small`.
+- **Status:** auto-fixed
+
+---
+
+## CR-066 — Dead `ButtonLink` import in `about/page.tsx` *(auto-fixed)*
+
+- **Area:** `apps/web/client/src/app/about/page.tsx:9`
+- **Type:** DX / lint
+- **Impact:** internal — unused import; will trigger ESLint `no-unused-vars` warning
+- **Risk:** negligible
+- **Summary:** The Substack `ButtonLink` was removed from the about page but the import statement remained.
+- **Fix applied:** Removed `import { ButtonLink } from '../_components/button-link';`.
+- **Status:** auto-fixed
+
+---
+
+## CR-067 — `Permissions-Policy: microphone=()` blocks transcription in production
+
+- **Area:** `apps/web/client/next.config.ts` — new `headers()` block
+- **Type:** bug / functionality
+- **Impact:** user-facing — mic button silently broken on hosted web
+- **Risk:** medium
+- **Summary:** The CSP `Permissions-Policy` header added in the SEO commit sets `microphone=()`, which instructs browsers to deny `navigator.mediaDevices.getUserMedia({ audio: true })` for all origins including `self`. The app's transcription feature (`use-transcribe.ts`) uses `getUserMedia` — this will throw a `NotAllowedError` in Chrome/Firefox and the mic button will fail silently.
+- **Suggested approach:** Change `microphone=()` to `microphone=(self)` to allow the same-origin app to request mic access while still blocking cross-origin iframes from doing so.
+- **Status:** fixed — changed `microphone=()` to `microphone=(self)` in `next.config.ts`
+
+---
+
+## CR-068 — `isComposing` declared in `AiPromptComposerProps` but never read
+
+- **Area:** `apps/web/client/src/components/ai-prompt-composer/index.tsx:44`
+- **Type:** DX / dead API surface
+- **Impact:** internal — misleads callers; `onCompositionStart`/`onCompositionEnd` are wired, but `isComposing` state is ignored
+- **Risk:** low
+- **Summary:** The component accepts `isComposing?: boolean` in its props interface and destructures `onCompositionStart` / `onCompositionEnd`, but never destructures or reads `isComposing`. Callers tracking their own composition state and passing it in will see no effect.
+- **Suggested approach:** Either remove the prop from the interface if it's not needed, or wire it into the textarea/logic (e.g., to prevent submit on IME composition-end key events).
+- **Status:** fixed — removed `isComposing` from `AiPromptComposerProps` interface in `index.tsx`
+
+---
+
+## CR-069 — Unnecessary DB query in `chat/route.ts` CLI-provider guard
+
+- **Area:** `apps/web/client/src/app/api/chat/route.ts` — `streamResponse`
+- **Type:** performance / design
+- **Impact:** internal — one extra DB round-trip per non-openrouter/non-ollama request, all of which still return 501
+- **Risk:** low
+- **Summary:** When `provider` is not `openrouter`/`ollama`, the code queries `userProviderConnections` to distinguish 412 ("not connected") from 501 ("routing not implemented"). Both cases result in an error response — even if the row exists the 501 is unconditional. The DB query is only used to vary the error message, adding latency to every rejected request. The comment correctly explains routing is not yet implemented, so the 501 branch is always hit when a connection exists.
+- **Suggested approach:** Remove the DB query and return 501 unconditionally for non-openrouter/non-ollama providers. Re-introduce the connection check once actual routing is implemented and the 412 path serves a real retry flow.
+- **Status:** fixed — removed DB query; 501 returned directly. Unused imports (`and`, `eq`, `userProviderConnections`, `db`) cleaned up.

@@ -170,7 +170,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                     </Tabs>
                 ) : (
                     <div className="text-muted-foreground flex h-full items-center justify-center">
-                        <span className="text-sm">No terminal sessions available</span>
+                        <span className="text-small">No terminal sessions available</span>
                     </div>
                 )}
             </div>

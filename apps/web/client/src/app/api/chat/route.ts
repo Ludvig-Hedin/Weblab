@@ -2,7 +2,12 @@ import { type NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatMessage, ChatMetadata, ChatModel } from '@weblab/models';
-import { createRootAgentStream } from '@weblab/ai';
+import {
+    addMemoriesFromConversation,
+    createRootAgentStream,
+    inferProviderFromModelId,
+    searchMemories,
+} from '@weblab/ai';
 import { toDbMessage } from '@weblab/db';
 import { CHAT_MODEL_OPTIONS, ChatType } from '@weblab/models';
 
@@ -108,6 +113,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     };
     const { messages, chatType, conversationId, projectId } = body;
 
+    // Launch memory search concurrently with model validation so it doesn't add latency.
+    // Uses the last user message text as the search query.
+    const lastUserMessageForMemory = messages.findLast((m) => m.role === 'user');
+    const memoryQueryText = (lastUserMessageForMemory?.parts ?? [])
+        .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+        .map((p) => p.text)
+        .join(' ');
+    const memoriesPromise = memoryQueryText
+        ? searchMemories(memoryQueryText, userId, projectId)
+        : Promise.resolve([]);
+
     const selectedModel: ChatModel = body.model ?? CHAT_MODEL_OPTIONS[0].model;
     if (!isValidChatModel(selectedModel)) {
         return new Response(JSON.stringify({ error: 'Invalid model identifier.', code: 400 }), {
@@ -116,6 +132,23 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         });
     }
     const isLocalModel = selectedModel.startsWith('ollama/');
+
+    // CLI providers (Codex, Claude Code, Gemini, OpenCode, Cursor) only run on
+    // the user's machine via the desktop CLI bridge. If the renderer somehow
+    // sends one of those models to the hosted /api/chat (e.g. someone running
+    // hosted web with a stale model selection), refuse early. Provider-specific
+    // outbound model routing has not landed yet; the DB connection check is
+    // deferred until routing is actually implemented (see CODE_REVIEW_BACKLOG CR-069).
+    const provider = inferProviderFromModelId(selectedModel);
+    if (provider !== 'openrouter' && provider !== 'ollama') {
+        return new Response(
+            JSON.stringify({
+                error: `Provider "${provider}" routing is not yet implemented on hosted web. Use the desktop app for CLI providers.`,
+                code: 'cli_provider_routing_not_implemented',
+            }),
+            { status: 501, headers: { 'Content-Type': 'application/json' } },
+        );
+    }
 
     // Updating the usage record and rate limit is done here to avoid
     // abuse in the case where a single user sends many concurrent requests.
@@ -133,6 +166,8 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         if (chatType === ChatType.EDIT && !isLocalModel) {
             usageRecord = await incrementUsage(req, traceId);
         }
+        // Await memories that were fetched concurrently above ([] on any failure)
+        const memories = await memoriesPromise;
         const stream = createRootAgentStream({
             chatType,
             conversationId,
@@ -142,6 +177,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             messages,
             model: selectedModel,
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
+            memories,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
@@ -164,6 +200,12 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                 await api.chat.message.replaceConversationMessages({
                     conversationId,
                     messages: messagesToStore,
+                });
+
+                // Fire-and-forget: extract facts and store them in Mem0.
+                // Never awaited — the streaming response has already been sent.
+                addMemoriesFromConversation(finalMessages, userId, projectId).catch((err) => {
+                    console.warn('[mem0] Failed to store memories:', err);
                 });
             },
             onError: errorHandler,

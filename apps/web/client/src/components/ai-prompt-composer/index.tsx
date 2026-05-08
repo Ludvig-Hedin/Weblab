@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -40,7 +41,6 @@ export interface AiPromptComposerProps {
     minRows?: number;
     maxTextareaClassName?: string;
     textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
-    isComposing?: boolean;
     onCompositionStart?: () => void;
     onCompositionEnd?: () => void;
     onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -126,7 +126,7 @@ export function AiPromptComposer({
     onDragStateChange,
     onContainerClick,
     onImageFiles,
-    imageButtonTooltip = 'Upload image',
+    imageButtonTooltip,
     imageButtonDisabled = false,
     showImageButton = false,
     showMicButton = false,
@@ -148,6 +148,7 @@ export function AiPromptComposer({
     submitButtonClassName,
     submitIconClassName,
 }: AiPromptComposerProps) {
+    const t = useTranslations('aiPromptComposer');
     const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const activeTextareaRef = textareaRef ?? internalTextareaRef;
@@ -171,7 +172,7 @@ export function AiPromptComposer({
         if (
             event.target instanceof Element &&
             (event.target.closest('button') ||
-                event.target.closest('[data-ai-prompt-ignore-focus]') ||
+                event.target.closest('[data-weblab-ai-prompt-ignore-focus]') ||
                 event.target === activeTextareaRef.current)
         ) {
             return;
@@ -181,7 +182,7 @@ export function AiPromptComposer({
 
     const setDragState = (nextDragging: boolean, event: React.DragEvent<HTMLDivElement>) => {
         setIsDragging(nextDragging);
-        event.currentTarget.setAttribute('data-dragging-image', String(nextDragging));
+        event.currentTarget.setAttribute('data-weblab-dragging-image', String(nextDragging));
         onDragStateChange?.(nextDragging, event);
     };
 
@@ -339,7 +340,7 @@ export function AiPromptComposer({
                                 </TooltipTrigger>
                                 <TooltipPortal>
                                     <TooltipContent side="top" sideOffset={5}>
-                                        {imageButtonTooltip}
+                                        {imageButtonTooltip ?? t('uploadImageTooltip')}
                                     </TooltipContent>
                                 </TooltipPortal>
                             </Tooltip>

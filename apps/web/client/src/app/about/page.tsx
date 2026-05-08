@@ -6,7 +6,6 @@ import { useReducedMotion } from '@weblab/ui/hooks';
 import { Icons } from '@weblab/ui/icons';
 
 import { WebsiteLayout } from '@/app/_components/website-layout';
-import { ButtonLink } from '../_components/button-link';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { Illustrations } from '../_components/landing-page/illustrations';
 import { vujahdayScript } from '../fonts';
@@ -87,7 +86,7 @@ export default function AboutPage() {
                 <section className="text-foreground-primary bg-black py-64">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h1
-                            className="mb-24 text-left text-6xl leading-tight font-light"
+                            className="mb-8 text-left text-6xl !leading-[1]"
                             {...getBlurAnimationProps()}
                         >
                             Design deserves
@@ -170,16 +169,7 @@ export default function AboutPage() {
                                     willChange: 'opacity, filter',
                                     transform: 'translateZ(0)',
                                 }}
-                            >
-                                <ButtonLink
-                                    href="https://weblab.substack.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    rightIcon={<span className="ml-2">→</span>}
-                                >
-                                    Read more on Substack
-                                </ButtonLink>
-                            </motion.div>
+                            ></motion.div>
                         </div>
                         <div className="grid grid-cols-1 gap-x-16 gap-y-12">
                             {/* Founder */}
