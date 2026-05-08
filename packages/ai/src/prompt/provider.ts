@@ -8,6 +8,7 @@ import {
 } from '@weblab/constants';
 import { MessageContextType } from '@weblab/models';
 
+import type { MemorySearchResult } from '../memory/types';
 import {
     AgentRuleContext,
     BranchContext,
@@ -32,11 +33,12 @@ export interface HydrateMessageOptions {
     lastAssistantMessageIndex: number;
 }
 
-export function getSystemPrompt() {
+export function getSystemPrompt(memories?: MemorySearchResult[]) {
     let prompt = '';
     prompt += wrapXml('role', SYSTEM_PROMPT);
     prompt += wrapXml('shadcn-block-catalog', getShadcnBlockCatalogPrompt());
     prompt += wrapXml('shell', SHELL_PROMPT);
+    prompt += buildMemoriesPrompt(memories);
     return prompt;
 }
 
@@ -61,8 +63,8 @@ function getShadcnBlockCatalogPrompt() {
     ].join('\n');
 }
 
-export function getCreatePageSystemPrompt() {
-    let prompt = getSystemPrompt() + '\n\n';
+export function getCreatePageSystemPrompt(memories?: MemorySearchResult[]) {
+    let prompt = getSystemPrompt(memories) + '\n\n';
     prompt += wrapXml('create-system-prompt', CREATE_NEW_PAGE_SYSTEM_PROMPT);
     return prompt;
 }
@@ -73,10 +75,21 @@ export function getSuggestionSystemPrompt() {
     return prompt;
 }
 
-export function getAskModeSystemPrompt() {
+export function getAskModeSystemPrompt(memories?: MemorySearchResult[]) {
     let prompt = '';
     prompt += wrapXml('role', ASK_MODE_SYSTEM_PROMPT);
+    prompt += buildMemoriesPrompt(memories);
     return prompt;
+}
+
+/**
+ * Formats retrieved Mem0 memories as a bullet list wrapped in <user-memories> XML.
+ * Returns '' when memories is empty or undefined so no extra content is added.
+ */
+function buildMemoriesPrompt(memories: MemorySearchResult[] | undefined): string {
+    if (!memories || memories.length === 0) return '';
+    const bullets = memories.map((m) => `- ${m.memory}`).join('\n');
+    return wrapXml('user-memories', bullets);
 }
 
 export function getExampleConversation(

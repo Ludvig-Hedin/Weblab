@@ -8,12 +8,11 @@ import { checkTranscribeRateLimit } from './helpers/rate-limit';
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 const ALLOWED_AUDIO_PREFIXES = ['audio/'];
 
-// OpenRouter exposes an OpenAI-compatible audio transcription endpoint.
-// If your OpenRouter account doesn't have audio access enabled, swap this URL
-// to OpenAI direct (https://api.openai.com/v1/audio/transcriptions) with the
-// OPENAI_API_KEY env var.
+const OPENAI_TRANSCRIPTIONS_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const OPENROUTER_TRANSCRIPTIONS_URL = 'https://openrouter.ai/api/v1/audio/transcriptions';
-const TRANSCRIPTION_MODEL = 'openai/whisper-1';
+// OpenAI uses the bare model name; OpenRouter requires the namespaced form.
+const OPENAI_MODEL = 'whisper-1';
+const OPENROUTER_MODEL = 'openai/whisper-1';
 
 interface TranscriptionResponse {
     text?: string;
@@ -61,7 +60,9 @@ export async function POST(req: NextRequest) {
             return jsonError(415, `Unsupported audio type: ${file.type}`);
         }
 
-        if (!env.OPENROUTER_API_KEY) {
+        // Prefer OpenAI directly (native Whisper); fall back to OpenRouter.
+        const useOpenAI = !!env.OPENAI_API_KEY;
+        if (!useOpenAI && !env.OPENROUTER_API_KEY) {
             return jsonError(500, 'Transcription is not configured on the server.');
         }
 
@@ -69,28 +70,30 @@ export async function POST(req: NextRequest) {
         // Whisper infers extension from the filename; preserve it when possible.
         const inputName = file instanceof File && file.name ? file.name : 'audio.webm';
         upstream.append('file', file, inputName);
-        upstream.append('model', TRANSCRIPTION_MODEL);
+        upstream.append('model', useOpenAI ? OPENAI_MODEL : OPENROUTER_MODEL);
         upstream.append('response_format', 'json');
-        // English + Swedish are primary; Whisper auto-detects when no language is set,
-        // so we only forward an explicit hint if the client sent one.
+        // Whisper auto-detects language; only forward an explicit hint when provided.
         if (typeof language === 'string' && language.length > 0) {
             upstream.append('language', language);
         }
 
-        // Bound the upstream call so a hung Whisper request can't tie up the
-        // serverless function for its full timeout window.
+        const transcribeUrl = useOpenAI ? OPENAI_TRANSCRIPTIONS_URL : OPENROUTER_TRANSCRIPTIONS_URL;
+        const requestHeaders: Record<string, string> = {
+            Authorization: `Bearer ${useOpenAI ? env.OPENAI_API_KEY! : env.OPENROUTER_API_KEY}`,
+        };
+        if (!useOpenAI) {
+            requestHeaders['HTTP-Referer'] = 'https://weblab.build';
+            requestHeaders['X-Title'] = 'Weblab';
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 90_000);
 
         let response: Response;
         try {
-            response = await fetch(OPENROUTER_TRANSCRIPTIONS_URL, {
+            response = await fetch(transcribeUrl, {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-                    'HTTP-Referer': 'https://weblab.build',
-                    'X-Title': 'Weblab',
-                },
+                headers: requestHeaders,
                 body: upstream,
                 signal: controller.signal,
             });

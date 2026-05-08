@@ -14,6 +14,35 @@ const createContext = async (req: NextRequest) => {
     });
 };
 
+const loggedErrors = new Map<string, number>();
+const ERROR_DEDUPE_MS = 30_000;
+
+function getCauseSummary(cause: unknown): string | null {
+    if (!cause || typeof cause !== 'object') {
+        return null;
+    }
+
+    const message = 'message' in cause && typeof cause.message === 'string' ? cause.message : null;
+    const code = 'code' in cause && typeof cause.code === 'string' ? cause.code : null;
+    const nestedCause = 'cause' in cause ? getCauseSummary(cause.cause) : null;
+
+    const summary = [code, message].filter(Boolean).join(': ');
+    if (summary && nestedCause) {
+        return `${summary}; cause: ${nestedCause}`;
+    }
+    return summary || nestedCause;
+}
+
+function shouldLogError(key: string): boolean {
+    const now = Date.now();
+    const lastLoggedAt = loggedErrors.get(key);
+    if (lastLoggedAt && now - lastLoggedAt < ERROR_DEDUPE_MS) {
+        return false;
+    }
+    loggedErrors.set(key, now);
+    return true;
+}
+
 const handler = (req: NextRequest) =>
     fetchRequestHandler({
         endpoint: '/api/trpc',
@@ -31,7 +60,14 @@ const handler = (req: NextRequest) =>
                       if (isExpectedLoggedOutUserQuery) {
                           return;
                       }
-                      console.error(`❌ tRPC failed on ${path ?? '<no-path>'}: ${error.message}`);
+
+                      const cause = getCauseSummary(error.cause);
+                      const summary = cause ? `${error.message} (${cause})` : error.message;
+                      const key = `${path ?? '<no-path>'}:${summary}`;
+
+                      if (shouldLogError(key)) {
+                          console.error(`❌ tRPC failed on ${path ?? '<no-path>'}: ${summary}`);
+                      }
                   }
                 : undefined,
     });

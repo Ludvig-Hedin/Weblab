@@ -10,6 +10,7 @@ import {
     OPENROUTER_MODELS,
 } from '@weblab/models';
 
+import type { MemorySearchResult } from '../memory/types';
 import type { ToolCall } from '@ai-sdk/provider-utils';
 import {
     convertToStreamMessages,
@@ -29,6 +30,7 @@ export const createRootAgentStream = ({
     messages,
     model,
     ollamaBaseUrl,
+    memories,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -38,9 +40,10 @@ export const createRootAgentStream = ({
     messages: ChatMessage[];
     model: ChatModel;
     ollamaBaseUrl?: string;
+    memories: MemorySearchResult[];
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
-    const systemPrompt = getSystemPromptFromType(chatType);
+    const systemPrompt = getSystemPromptFromType(chatType, memories);
     const toolSet = getToolSetFromType(chatType);
     return streamText({
         providerOptions: modelConfig.providerOptions,
@@ -67,15 +70,15 @@ export const createRootAgentStream = ({
     });
 };
 
-const getSystemPromptFromType = (chatType: ChatType): string => {
+const getSystemPromptFromType = (chatType: ChatType, memories: MemorySearchResult[]): string => {
     switch (chatType) {
         case ChatType.CREATE:
-            return getCreatePageSystemPrompt();
+            return getCreatePageSystemPrompt(memories);
         case ChatType.ASK:
-            return getAskModeSystemPrompt();
+            return getAskModeSystemPrompt(memories);
         case ChatType.EDIT:
         default:
-            return getSystemPrompt();
+            return getSystemPrompt(memories);
     }
 };
 

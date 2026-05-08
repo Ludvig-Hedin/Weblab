@@ -26,12 +26,9 @@ export default function GitHubInstallCallbackPage() {
         const setupAction = searchParams.get('setup_action');
         const stateParam = searchParams.get('state');
 
-        if (process.env.NODE_ENV === 'development') {
-            console.log('GitHub installation callback:', {
-                installationId,
-                setupAction,
-                state: stateParam,
-            });
+        // Scrub sensitive params from browser history immediately after reading.
+        if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', window.location.pathname);
         }
 
         if (!installationId) {
@@ -60,15 +57,12 @@ export default function GitHubInstallCallbackPage() {
                 state: stateParam,
             },
             {
-                onSuccess: (data) => {
+                onSuccess: () => {
                     setState('success');
-                    setMessage(data.message);
-                    console.log('GitHub App installation completed:', data);
-
                     setTimeout(() => {
-                        // Close the tab since we are using a new tab
+                        // Close the tab — it was opened by window.open() in the import flow.
                         window.close();
-                    }, 3000);
+                    }, 5000);
                 },
                 onError: (error) => {
                     setState('error');
@@ -176,8 +170,8 @@ export default function GitHubInstallCallbackPage() {
                                             indicatorColor="bg-green-500"
                                             indicatorIcon={Icons.CheckCircled}
                                             iconAnimated={true}
-                                            title="All set!"
-                                            description="Your GitHub account is now connected"
+                                            title="GitHub connected!"
+                                            description="You can close this tab and return to Weblab."
                                         />
                                     )}
 
