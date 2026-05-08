@@ -1,6 +1,7 @@
 import type { ToolSet } from 'ai';
 import { generateObject, NoSuchToolError, smoothStream, stepCountIs, streamText } from 'ai';
 
+import type { FrameworkId } from '@weblab/framework';
 import type { ChatMessage, ChatModel, ModelConfig, OllamaModelId } from '@weblab/models';
 import {
     ChatType,
@@ -31,6 +32,7 @@ export const createRootAgentStream = ({
     model,
     ollamaBaseUrl,
     memories,
+    framework,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -41,9 +43,15 @@ export const createRootAgentStream = ({
     model: ChatModel;
     ollamaBaseUrl?: string;
     memories: MemorySearchResult[];
+    /**
+     * The project's framework id, used to pick the right system prompt
+     * variant. Optional for backward compatibility — when omitted the JSX
+     * (React) variant is used, matching pre-multi-framework behavior.
+     */
+    framework?: FrameworkId | null;
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
-    const systemPrompt = getSystemPromptFromType(chatType, memories);
+    const systemPrompt = getSystemPromptFromType(chatType, memories, framework);
     const toolSet = getToolSetFromType(chatType);
     return streamText({
         providerOptions: modelConfig.providerOptions,
@@ -70,15 +78,19 @@ export const createRootAgentStream = ({
     });
 };
 
-const getSystemPromptFromType = (chatType: ChatType, memories: MemorySearchResult[]): string => {
+const getSystemPromptFromType = (
+    chatType: ChatType,
+    memories: MemorySearchResult[],
+    framework?: FrameworkId | null,
+): string => {
     switch (chatType) {
         case ChatType.CREATE:
-            return getCreatePageSystemPrompt(memories);
+            return getCreatePageSystemPrompt(memories, framework);
         case ChatType.ASK:
-            return getAskModeSystemPrompt(memories);
+            return getAskModeSystemPrompt(memories, framework);
         case ChatType.EDIT:
         default:
-            return getSystemPrompt(memories);
+            return getSystemPrompt(memories, framework);
     }
 };
 

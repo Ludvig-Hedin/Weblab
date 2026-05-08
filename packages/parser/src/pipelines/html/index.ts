@@ -207,10 +207,95 @@ function detach(node: ChildNode): void {
 }
 
 /**
+ * GROUP: wrap the listed child oids inside a new container element under a
+ * shared parent. Mirrors `groupElementsInNode` in the JSX pipeline. The
+ * container is inserted at the position of the first grouped child, then the
+ * children are moved into it in their original order.
+ */
+function applyGroup(root: Node, action: CodeAction & { type: CodeActionType.GROUP }): void {
+    const childOids = action.children
+        .map((target) => target.oid)
+        .filter((oid): oid is string => Boolean(oid));
+    if (childOids.length === 0) return;
+
+    const firstChild = findElementByOid(root, childOids[0]!);
+    const sharedParent = firstChild?.parentNode;
+    if (!sharedParent || !('childNodes' in sharedParent)) return;
+
+    const childrenInParent = sharedParent.childNodes;
+    const targets: ChildNode[] = [];
+    const seen = new Set<Element>();
+    let firstIndex = childrenInParent.length;
+
+    for (const oid of childOids) {
+        const el = findElementByOid(root, oid);
+        // Only group siblings — skip elements whose parent isn't the shared
+        // parent, and skip elements not actually present in childNodes
+        // (defensive: indexOf returns -1 for detached/foreign nodes).
+        // Also dedupe so the same oid passed twice doesn't move the element
+        // twice and create container-as-its-own-child cycles.
+        if (el?.parentNode !== sharedParent || seen.has(el)) continue;
+        const idx = childrenInParent.indexOf(el as ChildNode);
+        if (idx < 0) continue;
+        if (idx < firstIndex) firstIndex = idx;
+        seen.add(el);
+        targets.push(el as ChildNode);
+    }
+    if (targets.length === 0) return;
+
+    const container = buildElement(
+        sharedParent as Element,
+        action.container.tagName,
+        action.container.attributes ?? {},
+        null,
+        action.container.oid,
+    );
+
+    for (const target of targets) detach(target);
+
+    // After detach, indices have shifted. firstIndex was the position of the
+    // first target before detach, which is the visual slot the container
+    // should occupy. Math.min clamps in case the shared parent now has fewer
+    // children than firstIndex (all targets came after firstIndex anyway).
+    const insertIdx = Math.max(0, Math.min(firstIndex, sharedParent.childNodes.length));
+    sharedParent.childNodes.splice(insertIdx, 0, container);
+    container.parentNode = sharedParent;
+
+    for (const target of targets) {
+        target.parentNode = container;
+        container.childNodes.push(target);
+    }
+}
+
+/**
+ * UNGROUP: spread the container's children into its parent at the
+ * container's position, then remove the container. Mirrors
+ * `ungroupElementsInNode` in the JSX pipeline.
+ */
+function applyUngroup(root: Node, action: CodeAction & { type: CodeActionType.UNGROUP }): void {
+    const container = findElementByOid(root, action.container.oid);
+    const parent = container?.parentNode;
+    if (!container || !parent || !('childNodes' in parent)) return;
+
+    const containerIdx = parent.childNodes.indexOf(container as ChildNode);
+    if (containerIdx < 0) return;
+
+    const promotedChildren = [...container.childNodes];
+    container.childNodes = [];
+
+    parent.childNodes.splice(containerIdx, 1, ...promotedChildren);
+    for (const child of promotedChildren) {
+        child.parentNode = parent;
+    }
+}
+
+/**
  * Apply a structural edit to the document. Mirrors the JSX-side logic in
  * `code-edit/transform.ts > applyStructureChanges`. Implements INSERT,
- * REMOVE, and MOVE today; GROUP/UNGROUP/IMAGE ops fall back to a console
- * warning until ported.
+ * REMOVE, MOVE, GROUP, and UNGROUP. Image ops throw an explicit error
+ * because they require the project asset pipeline (not yet wired for
+ * static HTML); throwing surfaces the limitation in the editor's error UI
+ * instead of silently no-op'ing.
  */
 function applyStructureChange(rootAst: HtmlAst, action: CodeAction): void {
     const root = rootAst.root as unknown as Node;
@@ -247,15 +332,24 @@ function applyStructureChange(rootAst: HtmlAst, action: CodeAction): void {
             return;
         }
         case CodeActionType.GROUP:
+            applyGroup(root, action);
+            return;
         case CodeActionType.UNGROUP:
+            applyUngroup(root, action);
+            return;
         case CodeActionType.INSERT_IMAGE:
         case CodeActionType.REMOVE_IMAGE:
-            // Image and group operations require richer logic (asset
-            // pipeline, multi-element wrap/unwrap). Tracked as follow-up;
-            // editor surfaces a "not yet supported" toast for these on
-            // HTML projects.
-            console.warn(`[html-pipeline] structural action '${action.type}' not yet implemented`);
-            return;
+            // Image operations need the project asset pipeline (upload
+            // location resolution, public/ → relative path translation for
+            // static HTML). Throw rather than silently warn so the editor's
+            // error UI surfaces a clear message — silent no-ops produced
+            // confusing UX where the action appeared to succeed but the
+            // file was unchanged. Mirrors JSX-side behavior, which lets
+            // unhandled actions bubble up to the caller.
+            throw new Error(
+                `Image operations are not yet supported on static HTML projects (action: ${action.type}). ` +
+                    `Add the image manually to the project and reference it with <img src="...">.`,
+            );
         default: {
             // Exhaustiveness guard — TypeScript would catch a new
             // CodeActionType variant at compile time.

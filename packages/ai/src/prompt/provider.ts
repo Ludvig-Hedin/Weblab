@@ -1,7 +1,9 @@
 import type { FileUIPart } from 'ai';
 
+import type { FrameworkId } from '@weblab/framework';
 import type { ChatMessage, MessageContext } from '@weblab/models';
 import {
+    APP_NAME,
     SHADCN_AVAILABLE_REGISTRY_HINT,
     SHADCN_BLOCKS,
     SHADCN_CORE_COMPONENTS,
@@ -19,10 +21,11 @@ import {
 import {
     ASK_MODE_SYSTEM_PROMPT,
     CREATE_NEW_PAGE_SYSTEM_PROMPT,
+    frameworkSupportsShadcn,
+    getSystemPromptForFramework,
     SHELL_PROMPT,
     SUGGESTION_SYSTEM_PROMPT,
     SUMMARY_PROMPTS,
-    SYSTEM_PROMPT,
 } from './constants';
 import { wrapXml } from './helpers';
 
@@ -33,10 +36,12 @@ export interface HydrateMessageOptions {
     lastAssistantMessageIndex: number;
 }
 
-export function getSystemPrompt(memories?: MemorySearchResult[]) {
+export function getSystemPrompt(memories?: MemorySearchResult[], framework?: FrameworkId | null) {
     let prompt = '';
-    prompt += wrapXml('role', SYSTEM_PROMPT);
-    prompt += wrapXml('shadcn-block-catalog', getShadcnBlockCatalogPrompt());
+    prompt += wrapXml('role', getSystemPromptForFramework(framework));
+    if (frameworkSupportsShadcn(framework)) {
+        prompt += wrapXml('shadcn-block-catalog', getShadcnBlockCatalogPrompt());
+    }
     prompt += wrapXml('shell', SHELL_PROMPT);
     prompt += buildMemoriesPrompt(memories);
     return prompt;
@@ -63,8 +68,11 @@ function getShadcnBlockCatalogPrompt() {
     ].join('\n');
 }
 
-export function getCreatePageSystemPrompt(memories?: MemorySearchResult[]) {
-    let prompt = getSystemPrompt(memories) + '\n\n';
+export function getCreatePageSystemPrompt(
+    memories?: MemorySearchResult[],
+    framework?: FrameworkId | null,
+) {
+    let prompt = getSystemPrompt(memories, framework) + '\n\n';
     prompt += wrapXml('create-system-prompt', CREATE_NEW_PAGE_SYSTEM_PROMPT);
     return prompt;
 }
@@ -75,9 +83,19 @@ export function getSuggestionSystemPrompt() {
     return prompt;
 }
 
-export function getAskModeSystemPrompt(memories?: MemorySearchResult[]) {
+export function getAskModeSystemPrompt(
+    memories?: MemorySearchResult[],
+    framework?: FrameworkId | null,
+) {
     let prompt = '';
-    prompt += wrapXml('role', ASK_MODE_SYSTEM_PROMPT);
+    if (framework === 'static-html') {
+        prompt += wrapXml(
+            'role',
+            `You are ${APP_NAME}'s AI assistant, designed to help users understand their static HTML/CSS/JavaScript projects and provide thoughtful guidance.`,
+        );
+    } else {
+        prompt += wrapXml('role', ASK_MODE_SYSTEM_PROMPT);
+    }
     prompt += buildMemoriesPrompt(memories);
     return prompt;
 }
