@@ -1,6 +1,5 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import type { SignInMethod } from '@weblab/models';
@@ -19,7 +18,10 @@ export async function login(
     returnUrl?: string | null,
 ) {
     const supabase = await createClient();
-    const origin = (await headers()).get('origin') ?? env.NEXT_PUBLIC_SITE_URL;
+    // Always use the configured site URL — request headers (Origin / Host) can
+    // be wrong behind Railway/Docker proxies and have caused redirects to
+    // 0.0.0.0:3000.
+    const origin = env.NEXT_PUBLIC_SITE_URL;
     const sanitizedReturnUrl = sanitizeReturnUrl(returnUrl ?? null, { origin });
     // Encode returnUrl in OAuth redirectTo so it survives the provider round-trip
     // and is available in the auth callback route.

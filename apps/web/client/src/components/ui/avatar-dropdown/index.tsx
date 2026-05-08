@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
@@ -27,7 +26,6 @@ import { UsageSection } from './plans';
 export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const stateManager = useStateManager();
     const supabase = createClient();
-    const router = useRouter();
     const t = useTranslations();
 
     const { data: user } = api.user.get.useQuery();
@@ -42,10 +40,10 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         // Clear analytics/feedback identities before signing out
         void resetTelemetry();
         await supabase.auth.signOut();
-        // Always land on /projects after sign-out — never carry the previous
-        // session's pathname forward, otherwise the next sign-in could route
-        // a different account into a project they don't own.
-        router.push(Routes.PROJECTS);
+        // Hard-navigate to /login. A soft router.push would keep the
+        // React Query cache (incl. user.get) populated, leaving the navbar
+        // showing the avatar even after the session cookie was cleared.
+        window.location.assign(Routes.LOGIN);
     };
 
     const handleOpenSubscription = () => {

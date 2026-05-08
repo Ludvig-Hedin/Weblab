@@ -4,13 +4,17 @@ import { users } from '@weblab/db';
 import { db } from '@weblab/db/src/client';
 import { extractNames } from '@weblab/utility';
 
+import { env } from '@/env';
 import { trackEvent } from '@/utils/analytics/server';
 import { Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/server';
 import { sanitizeReturnUrl } from '@/utils/url';
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
+    // Use the configured site URL — request.url's host can resolve to the
+    // internal container hostname (0.0.0.0:3000) behind proxies.
+    const origin = env.NEXT_PUBLIC_SITE_URL;
     const code = searchParams.get('code');
     // returnUrl is propagated through the OAuth provider via redirectTo query.
     // Sanitize before re-emitting so we never trust a foreign origin / open redirect.
