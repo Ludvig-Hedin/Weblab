@@ -39,9 +39,12 @@ export async function loadAiPromptCreateDraft(): Promise<AiPromptCreateDraft | n
         return null;
     }
 
-    const isStale =
-        typeof draft.timestamp === 'number' && Date.now() - draft.timestamp > DRAFT_MAX_AGE_MS;
-    if (isStale) {
+    if (typeof draft.timestamp !== 'number') {
+        await removeAiPromptCreateDraft();
+        return null;
+    }
+
+    if (Date.now() - draft.timestamp > DRAFT_MAX_AGE_MS) {
         await removeAiPromptCreateDraft();
         return null;
     }

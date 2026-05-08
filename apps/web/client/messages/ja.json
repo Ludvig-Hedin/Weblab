@@ -441,5 +441,8 @@
             "reportIssue": "問題を報告",
             "shortcuts": "ショートカット"
         }
+    },
+    "aiPromptComposer": {
+        "uploadImageTooltip": "画像をアップロード"
     }
 }

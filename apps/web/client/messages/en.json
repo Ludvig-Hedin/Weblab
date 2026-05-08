@@ -442,5 +442,8 @@
             "reportIssue": "Report Issue",
             "shortcuts": "Shortcuts"
         }
+    },
+    "aiPromptComposer": {
+        "uploadImageTooltip": "Upload image"
     }
 }
