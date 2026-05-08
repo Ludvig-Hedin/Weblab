@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, Menu, ipcMain, session } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Weblab';
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
@@ -36,6 +37,11 @@ ipcMain.handle('weblab:open-oauth', async (_event, url) => {
     } catch {
         return false;
     }
+});
+
+registerCliIpc({
+    appOrigin: APP_ORIGIN,
+    getWebContents: () => mainWindow?.webContents ?? null,
 });
 
 // --- Single-instance + custom protocol registration ---------------------------
