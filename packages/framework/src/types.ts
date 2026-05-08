@@ -1,17 +1,13 @@
-import type { RouterType } from '@weblab/models';
+import type { ProjectFrameworkId, RouterType } from '@weblab/models';
 
 /**
- * Identifier for a supported framework. Stored verbatim in the
- * `projects.framework` column. New adapters must add an id here AND register
- * themselves in `./registry.ts`.
+ * Identifier for a supported framework. New adapters must add an id here AND
+ * register themselves in `./registry.ts`. Aliased to `ProjectFrameworkId` from
+ * `@weblab/models` so values stored in `ProjectRuntimeMetadata.framework` are
+ * the same type — readers in app code don't have to translate at the
+ * persistence boundary.
  */
-export type FrameworkId =
-    | 'nextjs'
-    | 'vite-react'
-    | 'remix'
-    | 'astro'
-    | 'tanstack-start'
-    | 'static-html';
+export type FrameworkId = ProjectFrameworkId;
 
 /**
  * Identifier for an editor pipeline (parser/oid-injection/edit/generate strategy).

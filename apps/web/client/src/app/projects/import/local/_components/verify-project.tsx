@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 
 import { APP_NAME } from '@weblab/constants';
+import { getFrameworkAdapter } from '@weblab/framework';
 import { Button } from '@weblab/ui/button';
 import { CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
@@ -13,12 +14,13 @@ import { useProjectCreation } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const VerifyProject = () => {
-    const { projectData, prevStep, nextStep, isFinalizing, validateNextJsProject } =
+    const { projectData, prevStep, nextStep, isFinalizing, validateNextJsProject, framework } =
         useProjectCreation();
     const [validation, setValidation] = useState<NextJsProjectValidation | null>(null);
+    const frameworkName = getFrameworkAdapter(framework).displayName;
 
     useEffect(() => {
-        validateProject();
+        void validateProject();
     }, [projectData]);
 
     const validateProject = async () => {
@@ -69,7 +71,7 @@ export const VerifyProject = () => {
                     </div>
                     <Icons.ExclamationTriangle className="h-5 w-5 text-amber-200" />
                 </div>
-                <p className="text-sm text-amber-100">This is not a NextJS Project</p>
+                <p className="text-sm text-amber-100">{`This folder doesn't look like a ${frameworkName} project`}</p>
             </div>
         </motion.div>
     );
@@ -85,23 +87,23 @@ export const VerifyProject = () => {
                 </>
             );
         }
-        if (validation?.isValid) {
+        if (validation.isValid) {
             return (
                 <>
                     <CardTitle>{'Project verified'}</CardTitle>
                     <CardDescription>{`Your project is ready to import to ${APP_NAME}`}</CardDescription>
                 </>
             );
-        } else {
-            return (
-                <>
-                    <CardTitle>{`This project won't work with ${APP_NAME}`}</CardTitle>
-                    <CardDescription>
-                        {`${APP_NAME} only works with NextJS + React + Tailwind projects`}
-                    </CardDescription>
-                </>
-            );
         }
+        return (
+            <>
+                <CardTitle>{`This project won't work with ${APP_NAME}`}</CardTitle>
+                <CardDescription>
+                    {validation.error ??
+                        `This folder doesn't match a ${frameworkName} project layout.`}
+                </CardDescription>
+            </>
+        );
     };
 
     return (

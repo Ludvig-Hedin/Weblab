@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ChatMessage, ChatMetadata, ChatModel } from '@weblab/models';
+import type { ChatMessage, ChatMetadata, ChatModel, ProjectFrameworkId } from '@weblab/models';
 import {
     addMemoriesFromConversation,
     createRootAgentStream,
@@ -123,6 +123,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     const memoriesPromise = memoryQueryText
         ? searchMemories(memoryQueryText, userId, projectId)
         : Promise.resolve([]);
+    // Fetch the project's framework concurrently with memories so the system
+    // prompt can be calibrated to the actual stack (Next.js vs static HTML).
+    // Failures are non-fatal — we fall back to the React/Next.js prompt, which
+    // matches pre-multi-framework behavior.
+    const frameworkPromise: Promise<ProjectFrameworkId | null> = api.project
+        .get({ projectId })
+        .then((p) => p?.metadata.runtime?.framework ?? null)
+        .catch((err) => {
+            console.warn('[chat] failed to read project framework, defaulting to React', err);
+            return null;
+        });
 
     const selectedModel: ChatModel = body.model ?? CHAT_MODEL_OPTIONS[0].model;
     if (!isValidChatModel(selectedModel)) {
@@ -166,8 +177,9 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         if (chatType === ChatType.EDIT && !isLocalModel) {
             usageRecord = await incrementUsage(req, traceId);
         }
-        // Await memories that were fetched concurrently above ([] on any failure)
-        const memories = await memoriesPromise;
+        // Await memories and framework — both kicked off concurrently with
+        // model validation above. Both default safely on failure.
+        const [memories, framework] = await Promise.all([memoriesPromise, frameworkPromise]);
         const stream = createRootAgentStream({
             chatType,
             conversationId,
@@ -178,6 +190,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             model: selectedModel,
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
             memories,
+            framework,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,

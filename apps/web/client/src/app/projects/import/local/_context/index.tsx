@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import type { Provider } from '@weblab/code-provider';
-import type { FrameworkId } from '@weblab/framework';
+import type { FrameworkId, ProjectFile } from '@weblab/framework';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
-import { NEXT_JS_FILE_EXTENSIONS, SandboxTemplates, Templates } from '@weblab/constants';
-import { RouterType } from '@weblab/models';
-import { isTargetFile } from '@weblab/utility';
+import { SandboxTemplates, Templates } from '@weblab/constants';
+import { getFrameworkAdapter } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
 import { ProcessedFileType } from '@/app/projects/types';
@@ -194,6 +193,11 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 project: {
                     name: projectData.name ?? 'New project',
                     description: 'Your new project',
+                    // Persist the picked framework so the chat route, editor
+                    // pipelines, and any future framework-aware UI can read it
+                    // back. Stored inside the existing jsonb runtime metadata
+                    // column so this lands without a DB migration.
+                    runtimeMetadata: { framework },
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
@@ -224,68 +228,41 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         }
     };
 
+    /**
+     * Convert the importer's ProcessedFile[] to the framework adapter's
+     * ProjectFiles shape: text files keep their string content; binary files
+     * surface as `null` content so adapters can still see the path (e.g. to
+     * detect images) but won't try to parse them.
+     */
+    const toProjectFiles = (files: ProcessedFile[]): ProjectFile[] =>
+        files.map((f) => ({
+            path: f.path,
+            content: f.type === ProcessedFileType.TEXT ? f.content : null,
+        }));
+
+    /**
+     * Validates the imported folder against the picked framework's adapter.
+     * Kept under the historical name `validateNextJsProject` so existing
+     * callers don't churn — the function is now framework-aware and dispatches
+     * via `getFrameworkAdapter(framework).validate(...)`. The Next.js adapter
+     * preserves the original validation rules; static-html only requires an
+     * `index.html` at the root.
+     */
     const validateNextJsProject = async (
         files: ProcessedFile[],
     ): Promise<NextJsProjectValidation> => {
-        const packageJsonFile = files.find(
-            (f) => f.path.endsWith('package.json') && f.type === ProcessedFileType.TEXT,
-        );
-
-        if (typeof packageJsonFile?.content !== 'string') {
-            return { isValid: false, error: 'Package.json is not a text file' };
+        const adapter = getFrameworkAdapter(framework);
+        const result = await adapter.validate(toProjectFiles(files));
+        if (!result.isValid) {
+            return { isValid: false, error: result.error };
         }
-
-        try {
-            const packageJson = JSON.parse(packageJsonFile.content) as Record<string, unknown>;
-            const dependencies = packageJson.dependencies as Record<string, string> | undefined;
-            const devDependencies = packageJson.devDependencies as
-                | Record<string, string>
-                | undefined;
-            const hasNext = dependencies?.next ?? devDependencies?.next;
-            if (!hasNext) {
-                return { isValid: false, error: 'Next.js not found in dependencies' };
-            }
-
-            const hasReact = dependencies?.react ?? devDependencies?.react;
-            if (!hasReact) {
-                return { isValid: false, error: 'React not found in dependencies' };
-            }
-
-            const hasTailwind = dependencies?.tailwindcss ?? devDependencies?.tailwindcss;
-            if (!hasTailwind) {
-                return { isValid: false, error: 'Tailwind CSS not found in dependencies' };
-            }
-
-            let routerType: RouterType = RouterType.PAGES;
-
-            const hasAppLayout = files.some((f) =>
-                isTargetFile(f.path, {
-                    fileName: 'layout',
-                    targetExtensions: NEXT_JS_FILE_EXTENSIONS,
-                    potentialPaths: ['app', 'src/app'],
-                }),
-            );
-
-            if (hasAppLayout) {
-                routerType = RouterType.APP;
-            } else {
-                // Check for Pages Router (pages directory)
-                const hasPagesDir = files.some(
-                    (f) => f.path.includes('pages/') || f.path.includes('src/pages/'),
-                );
-
-                if (!hasPagesDir) {
-                    return {
-                        isValid: false,
-                        error: 'No valid Next.js router structure found (missing app/ or pages/ directory)',
-                    };
-                }
-            }
-
-            return { isValid: true, routerType };
-        } catch {
-            return { isValid: false, error: 'Invalid package.json format' };
-        }
+        // Adapter returns RouterType (enum) | undefined directly — the
+        // verify screen and downstream consumers accept the same literal
+        // ('app' | 'pages') values.
+        return {
+            isValid: true,
+            routerType: result.routerType,
+        };
     };
 
     const nextStep = () => {
