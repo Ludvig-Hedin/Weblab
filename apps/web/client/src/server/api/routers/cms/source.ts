@@ -365,14 +365,25 @@ export async function ensureDefaultWeblabSource(
         where: and(eq(cmsSources.projectId, projectId), eq(cmsSources.type, CmsSourceType.WEBLAB)),
     });
     if (existing) return existing.id;
-    const [inserted] = await db
+    const [inserted] = await (db as DrizzleDb)
         .insert(cmsSources)
         .values({
             projectId,
             name: 'Weblab CMS',
             type: CmsSourceType.WEBLAB,
         })
+        .onConflictDoNothing()
         .returning();
-    if (!inserted) throw new Error('Failed to create default Weblab CMS source');
+    if (!inserted) {
+        // Another concurrent call inserted first — re-fetch to get the id.
+        const refetch = await db.query.cmsSources.findFirst({
+            where: and(
+                eq(cmsSources.projectId, projectId),
+                eq(cmsSources.type, CmsSourceType.WEBLAB),
+            ),
+        });
+        if (!refetch) throw new Error('Failed to create default Weblab CMS source');
+        return refetch.id;
+    }
     return inserted.id;
 }

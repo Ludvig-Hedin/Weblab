@@ -169,6 +169,20 @@
       "when": 1778104815124,
       "tag": "0023_project_runtime_modes",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778275384894,
+      "tag": "0024_absurd_kat_farrell",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1778316844604,
+      "tag": "0025_stale_earthquake",
+      "breakpoints": true
     }
   ]
 }

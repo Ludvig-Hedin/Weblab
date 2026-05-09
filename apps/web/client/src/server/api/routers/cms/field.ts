@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -138,6 +139,19 @@ export const cmsFieldRouter = createTRPCRouter({
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             await assertCollectionInProject(ctx.db, input.projectId, input.collectionId);
             await ctx.db.transaction(async (tx) => {
+                const existing = await tx.query.cmsFields.findMany({
+                    where: eq(cmsFields.collectionId, input.collectionId),
+                    columns: { id: true },
+                });
+                const validIds = new Set(existing.map((f) => f.id));
+                for (const id of input.orderedFieldIds) {
+                    if (!validIds.has(id)) {
+                        throw new TRPCError({
+                            code: 'BAD_REQUEST',
+                            message: `Field ${id} does not belong to this collection`,
+                        });
+                    }
+                }
                 for (let i = 0; i < input.orderedFieldIds.length; i++) {
                     const id = input.orderedFieldIds[i]!;
                     await tx
