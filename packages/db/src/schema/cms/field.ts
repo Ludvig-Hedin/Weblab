@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, integer, jsonb, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { boolean, integer, jsonb, pgTable, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import type { CmsFieldType } from '@weblab/models';
 
@@ -37,7 +37,9 @@ export const cmsFields = pgTable('cms_field', {
     order: integer('order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}).enableRLS();
+}, (table) => ({
+    uniqueKeyPerCollection: unique('cms_field_collection_key_unique').on(table.collectionId, table.key),
+})).enableRLS();
 
 export const cmsFieldRelations = relations(cmsFields, ({ one }) => ({
     collection: one(cmsCollections, {

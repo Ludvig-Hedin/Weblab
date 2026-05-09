@@ -4,15 +4,20 @@ import { toast } from '@weblab/ui/sonner';
 import type { EditorEngine } from '@/components/store/editor/engine';
 import type { ToolCall } from '@ai-sdk/provider-utils';
 
+type AddToolResult = (
+    toolResult:
+        | { state?: 'output-available'; tool: string; toolCallId: string; output: any; errorText?: never }
+        | { state: 'output-error'; tool: string; toolCallId: string; output?: never; errorText: string },
+) => Promise<void>;
+
 export async function handleToolCall(
     toolCall: ToolCall<string, unknown>,
     editorEngine: EditorEngine,
-    addToolResult: (toolResult: { tool: string; toolCallId: string; output: any }) => Promise<void>,
+    addToolResult: AddToolResult,
 ) {
     const toolName = toolCall.toolName;
     const currentChatMode = editorEngine.state.chatMode;
     const availableTools = getToolClassesFromType(currentChatMode);
-    let output: unknown = null;
 
     try {
         const tool = availableTools.find((tool) => tool.toolName === toolName);
@@ -26,16 +31,25 @@ export async function handleToolCall(
         }
         // Parse the input to the tool parameters. Throws if invalid.
         const validatedInput = tool.parameters.parse(toolCall.input);
-        const toolInstance = new tool();
+        // ToolClass is typed as `typeof BaseTool` (abstract) but the array
+        // only contains concrete subclasses, so the instantiation is safe.
+        type ConcreteTool = new () => { handle: (input: object, editorEngine: EditorEngine) => Promise<unknown> };
+        const toolInstance = new (tool as unknown as ConcreteTool)();
         // Can force type with as any because we know the input is valid.
-        output = await toolInstance.handle(validatedInput as any, editorEngine);
-    } catch (error) {
-        output = 'error handling tool call ' + error;
-    } finally {
-        void addToolResult({
+        const output = await toolInstance.handle(validatedInput as any, editorEngine);
+        await addToolResult({
             tool: toolName,
             toolCallId: toolCall.toolCallId,
-            output: output,
+            output,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        toast.error(`Tool failed: ${toolName} — ${message}`);
+        await addToolResult({
+            state: 'output-error',
+            tool: toolName,
+            toolCallId: toolCall.toolCallId,
+            errorText: message,
         });
     }
 }

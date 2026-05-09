@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { projects } from '../project';
 import { cmsFields } from './field';
@@ -34,7 +34,9 @@ export const cmsCollections = pgTable('cms_collection', {
     description: text('description'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}).enableRLS();
+}, (table) => ({
+    uniqueSlugPerProject: unique('cms_collection_project_slug_unique').on(table.projectId, table.slug),
+})).enableRLS();
 
 export const cmsCollectionRelations = relations(cmsCollections, ({ one, many }) => ({
     project: one(projects, {

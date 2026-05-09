@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { projects } from '../project';
 import { cmsCollections } from './collection';
@@ -27,7 +27,9 @@ export const cmsCollectionPages = pgTable('cms_collection_page', {
     matchFieldKey: varchar('match_field_key').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}).enableRLS();
+}, (table) => ({
+    uniquePagePerProject: unique('cms_collection_page_project_path_unique').on(table.projectId, table.pagePath),
+})).enableRLS();
 
 export const cmsCollectionPageRelations = relations(cmsCollectionPages, ({ one }) => ({
     project: one(projects, {

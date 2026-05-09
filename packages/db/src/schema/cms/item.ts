@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { jsonb, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { CmsItemStatus } from '@weblab/models';
 
@@ -35,7 +35,10 @@ export const cmsItems = pgTable('cms_item', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
     publishedAt: timestamp('published_at', { withTimezone: true }),
-}).enableRLS();
+}, (table) => ({
+    uniqueSlugPerCollection: unique('cms_item_collection_slug_unique').on(table.collectionId, table.slug),
+    uniqueRemoteIdPerCollection: unique('cms_item_collection_remote_id_unique').on(table.collectionId, table.remoteId),
+})).enableRLS();
 
 export const cmsItemRelations = relations(cmsItems, ({ one }) => ({
     collection: one(cmsCollections, {

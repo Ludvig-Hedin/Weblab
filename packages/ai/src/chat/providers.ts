@@ -60,7 +60,10 @@ function getOpenRouterProvider(model: OPENROUTER_MODELS): LanguageModel {
             'X-Title': 'Weblab',
         },
     });
-    return openrouter(model);
+    // TODO (CR-022): `@ai-sdk/gateway` vendors its own copy of `@ai-sdk/provider`
+    // at a different minor, causing a structural LanguageModel mismatch. Remove
+    // once the vendored duplicate is aligned (same issue as the Ollama cast).
+    return openrouter(model) as unknown as LanguageModel;
 }
 
 function getOllamaProvider(modelId: OllamaModelId, baseUrl: string): LanguageModel {

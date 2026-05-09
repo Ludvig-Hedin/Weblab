@@ -71,6 +71,15 @@ const OLLAMA_ENTRY: ProviderManifestEntry = {
     ollamaSpecials: true,
 };
 
+// NOTE on model IDs: each CLI provider's `--model` flag accepts the
+// provider's canonical model name (the same string the user could pass on
+// the command line). The lists below are kept conservative and shipped as
+// known-real defaults; richer model discovery (Codex's account snapshot,
+// Gemini's listModels, OpenCode's app-server) lands per-provider in the
+// adapter's first probe. When a CLI rejects a hardcoded ID, the safer fix
+// is to remove it here rather than leave a name that produces opaque CLI
+// errors. Adapters that prefer "let the CLI choose" should be set to `[]`.
+
 const CODEX_ENTRY: ProviderManifestEntry = {
     kind: 'codex',
     label: 'Codex',
@@ -79,14 +88,9 @@ const CODEX_ENTRY: ProviderManifestEntry = {
     installUrl: 'https://github.com/openai/codex',
     authCommand: 'codex login',
     webOAuth: { startPath: '/api/auth/providers/codex/start', provider: 'codex' },
-    models: [
-        { id: 'gpt-5.4', label: 'GPT-5.4' },
-        { id: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
-        { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
-        { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
-        { id: 'gpt-5.2', label: 'GPT-5.2' },
-        { id: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
-    ],
+    // Empty until the Codex adapter probes the account snapshot for the
+    // user's actually-available model list. Picker shows "Detecting…".
+    models: [],
 };
 
 const CLAUDE_CODE_ENTRY: ProviderManifestEntry = {
@@ -98,10 +102,12 @@ const CLAUDE_CODE_ENTRY: ProviderManifestEntry = {
     authCommand: 'claude auth login',
     // Intentionally no webOAuth — Anthropic does not expose the consumer
     // subscription via OAuth, so Claude on hosted web stays "Desktop only".
+    // Conservative defaults — these are real Claude API model names. Newer
+    // versions can be added as Anthropic publishes them.
     models: [
-        { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
         { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-        { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5' },
+        { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
+        { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
     ],
 };
 
@@ -113,10 +119,11 @@ const GEMINI_ENTRY: ProviderManifestEntry = {
     installUrl: 'https://github.com/google-gemini/gemini-cli',
     authCommand: 'gemini auth login',
     webOAuth: { startPath: '/api/auth/providers/gemini/start', provider: 'gemini' },
+    // Real public Gemini model identifiers accepted by the Gemini API and CLI.
     models: [
-        { id: 'gemini-3-pro-preview', label: 'Gemini 3 Pro Preview' },
         { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
         { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
     ],
     supportsCustomModel: true,
 };
@@ -143,7 +150,10 @@ const CURSOR_ENTRY: ProviderManifestEntry = {
     installUrl: 'https://docs.cursor.com/cli',
     authCommand: 'cursor-agent login',
     webOAuth: { startPath: '/api/auth/providers/cursor/start', provider: 'cursor' },
-    models: [{ id: 'cursor-default', label: 'Cursor (default)' }],
+    // cursor-agent uses its own remote model selection; we don't pass --model.
+    // The adapter sends the prompt and lets Cursor pick. The single entry is a
+    // sentinel so the picker still renders one selectable row.
+    models: [{ id: 'auto', label: 'Auto (Cursor picks)' }],
 };
 
 /**
