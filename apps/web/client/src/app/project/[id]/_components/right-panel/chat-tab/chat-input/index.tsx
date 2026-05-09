@@ -16,11 +16,18 @@ import type {
 } from '@weblab/models';
 import { ChatType } from '@weblab/models';
 import { MessageContextType } from '@weblab/models/chat';
+import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility';
 
 import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
+import type {
+    MentionConfig,
+    MentionItem,
+    SlashCommand,
+} from '@/components/ai-prompt-composer/types';
+import type { Editor } from '@tiptap/react';
 import { AiPromptComposer } from '@/components/ai-prompt-composer';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
@@ -70,7 +77,7 @@ export const ChatInput = observer(
     }: ChatInputProps) => {
         const editorEngine = useEditorEngine();
         const t = useTranslations();
-        const textareaRef = useRef<HTMLTextAreaElement>(null);
+        const editorRef = useRef<Editor | null>(null);
         const [isComposing, setIsComposing] = useState(false);
         const chatMode = editorEngine.state.chatMode;
         const currentConversation = editorEngine.chat.conversation.current;
@@ -79,6 +86,7 @@ export const ChatInput = observer(
             () => currentConversation?.suggestions ?? [],
         );
         const lastSuggestionSignatureRef = useRef<string | null>(null);
+        const fileListCacheRef = useRef<{ items: MentionItem[]; timestamp: number } | null>(null);
         const lastUsageMessage = useMemo(
             () => messages.findLast((msg) => msg.metadata?.usage),
             [messages],
@@ -92,19 +100,19 @@ export const ChatInput = observer(
 
         const focusInput = () => {
             requestAnimationFrame(() => {
-                textareaRef.current?.focus();
+                editorRef.current?.commands.focus();
             });
         };
 
         useEffect(() => {
-            if (textareaRef.current && !isStreaming) {
+            if (editorRef.current && !isStreaming) {
                 focusInput();
             }
         }, [isStreaming, messages]);
 
         useEffect(() => {
             const focusHandler = () => {
-                if (textareaRef.current && !isStreaming) {
+                if (editorRef.current && !isStreaming) {
                     focusInput();
                 }
             };
@@ -188,32 +196,21 @@ export const ChatInput = observer(
 
         const inputEmpty = !inputValue || inputValue.trim().length === 0;
 
-        function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
-            if (isComposing) {
-                return;
-            }
-            e.currentTarget.style.height = 'auto';
-            e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-        }
-
-        const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Tab') {
-                // Always prevent default tab behavior
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Only let natural tab order continue if handleTabNavigation returns false
                 const handled = suggestionRef.current?.handleTabNavigation(e.shiftKey);
                 if (!handled) {
-                    // Focus the textarea
-                    textareaRef.current?.focus();
+                    editorRef.current?.commands.focus();
                 }
             } else if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 if (suggestionRef.current?.handleEnterSelection()) {
-                    setTimeout(() => textareaRef.current?.focus(), 0);
+                    setTimeout(() => editorRef.current?.commands.focus(), 0);
                     return;
                 }
 
@@ -253,7 +250,8 @@ export const ChatInput = observer(
                 .filter((file): file is File => file !== null);
         };
 
-        const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const handlePaste = (e: ClipboardEvent) => {
+            if (!e.clipboardData) return;
             const imageFiles = extractImageFiles(e.clipboardData.items);
             if (imageFiles.length > 0) {
                 e.preventDefault();
@@ -397,6 +395,177 @@ export const ChatInput = observer(
             }
         };
 
+        const mentionConfig = useMemo(
+            (): MentionConfig => ({
+                searchFiles: async (query: string): Promise<MentionItem[]> => {
+                    try {
+                        const branchData = editorEngine.branches.activeBranchData;
+                        const now = Date.now();
+                        let items: MentionItem[];
+                        // Cache the file list for 5 s to avoid redundant listAll() calls per keystroke
+                        if (
+                            fileListCacheRef.current &&
+                            now - fileListCacheRef.current.timestamp < 5000
+                        ) {
+                            items = fileListCacheRef.current.items;
+                        } else {
+                            const allFiles = await branchData.codeEditor.listAll();
+                            items = allFiles.map(({ path, type }) => ({
+                                id: path,
+                                label: path.split('/').pop() ?? path,
+                                path,
+                                isDirectory: type === 'directory',
+                            }));
+                            fileListCacheRef.current = { items, timestamp: now };
+                        }
+                        if (!query) return items.slice(0, 20);
+                        const lowerQuery = query.toLowerCase();
+                        return items
+                            .filter(({ path }) => path.toLowerCase().includes(lowerQuery))
+                            .slice(0, 20);
+                    } catch {
+                        return [];
+                    }
+                },
+                onMentionSelect: async (item: MentionItem): Promise<void> => {
+                    try {
+                        const branchData = editorEngine.branches.activeBranchData;
+                        const branchId = editorEngine.branches.activeBranch?.id;
+                        if (!branchId) return;
+
+                        if (item.isDirectory) {
+                            // Reuse cached file list when available
+                            const cached = fileListCacheRef.current;
+                            const allFiles =
+                                cached && Date.now() - cached.timestamp < 5000
+                                    ? cached.items
+                                    : await branchData.codeEditor.listAll().then((fs) =>
+                                          fs.map(({ path, type }) => ({
+                                              id: path,
+                                              label: path.split('/').pop() ?? path,
+                                              path,
+                                              isDirectory: type === 'directory',
+                                          })),
+                                      );
+
+                            const dirFiles = allFiles
+                                .filter((f) => !f.isDirectory && f.path.startsWith(item.path + '/'))
+                                .slice(0, 20);
+
+                            const fileContexts = await Promise.all(
+                                dirFiles.map(async (f) => {
+                                    const raw = await branchData.codeEditor.readFile(f.path);
+                                    if (!raw) return null;
+                                    const content =
+                                        typeof raw === 'string'
+                                            ? raw
+                                            : new TextDecoder().decode(raw);
+                                    return {
+                                        type: MessageContextType.FILE as const,
+                                        path: f.path,
+                                        displayName: f.path.split('/').pop() ?? f.path,
+                                        content,
+                                        branchId,
+                                    };
+                                }),
+                            );
+
+                            editorEngine.chat.context.addContexts(
+                                fileContexts.filter((c): c is NonNullable<typeof c> => c !== null),
+                            );
+                        } else {
+                            const raw = await branchData.codeEditor.readFile(item.path);
+                            if (!raw) {
+                                toast.error(`Could not read file: ${item.label}`);
+                                return;
+                            }
+                            const content =
+                                typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
+                            editorEngine.chat.context.addContexts([
+                                {
+                                    type: MessageContextType.FILE as const,
+                                    path: item.path,
+                                    displayName: item.label,
+                                    content,
+                                    branchId,
+                                },
+                            ]);
+                        }
+                    } catch (error) {
+                        console.error('Failed to add file context:', error);
+                        toast.error('Failed to add file to chat');
+                    }
+                },
+            }),
+            // editorEngine is a stable MobX store instance; fileListCacheRef is a stable ref
+            [editorEngine],
+        );
+
+        const slashCommands = useMemo(
+            (): SlashCommand[] => [
+                {
+                    name: 'ask',
+                    label: 'Ask',
+                    description: 'Ask a question about your project',
+                    icon: Icons.ChatBubble,
+                    keywords: ['question', 'help'],
+                    action: () => {
+                        editorEngine.state.chatMode = ChatType.ASK;
+                    },
+                },
+                {
+                    name: 'edit',
+                    label: 'Edit',
+                    description: 'Edit your project with AI',
+                    icon: Icons.Pencil,
+                    action: () => {
+                        editorEngine.state.chatMode = ChatType.EDIT;
+                    },
+                },
+                {
+                    name: 'create',
+                    label: 'Create',
+                    description: 'Create new elements or pages',
+                    icon: Icons.Sparkles,
+                    action: () => {
+                        editorEngine.state.chatMode = ChatType.CREATE;
+                    },
+                },
+                {
+                    name: 'fix',
+                    label: 'Fix',
+                    description: 'Fix issues in your project',
+                    icon: Icons.MagicWand,
+                    action: () => {
+                        editorEngine.state.chatMode = ChatType.FIX;
+                    },
+                },
+                {
+                    name: 'clear',
+                    label: 'Clear chat',
+                    description: 'Clear the current conversation',
+                    icon: Icons.Trash,
+                    keywords: ['reset', 'new'],
+                    action: () => {
+                        editorEngine.chat.conversation.clear();
+                    },
+                },
+                {
+                    name: 'file',
+                    label: 'Add file',
+                    description: 'Mention a file to add as context',
+                    icon: Icons.File,
+                    keywords: ['context', 'attach'],
+                    action: () => {
+                        editorRef.current?.commands.focus();
+                        editorRef.current?.commands.insertContent('@');
+                    },
+                },
+            ],
+
+            [editorEngine],
+        );
+
         const suggestionRef = useRef<SuggestionsRef>(null);
 
         const handleChatModeChange = (mode: ChatType) => {
@@ -410,7 +579,9 @@ export const ChatInput = observer(
                 onSubmit={sendMessage}
                 placeholder={getPlaceholderText()}
                 variant="editor-panel"
-                textareaRef={textareaRef}
+                editorRef={editorRef}
+                mentionConfig={mentionConfig}
+                slashCommands={slashCommands}
                 className="text-foreground-tertiary text-small p-1.5 transition-colors duration-200"
                 surfaceClassName="focus-within:border-border"
                 submitDisabled={inputEmpty}
@@ -422,7 +593,6 @@ export const ChatInput = observer(
                 onDrop={handleDrop}
                 onDragStateChange={handleDragStateChange}
                 onPaste={handlePaste}
-                onInput={handleInput}
                 onKeyDown={handleKeyDown}
                 onCompositionStart={() => setIsComposing(true)}
                 onCompositionEnd={() => {

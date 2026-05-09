@@ -14,7 +14,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
             class: 'bg-blue-500/10 text-blue-400 rounded px-1 py-0.5 text-sm font-medium cursor-default select-none',
         },
         renderText({ node }) {
-            return `@${node.attrs.label ?? node.attrs.id ?? ''}`;
+            return `@${node.attrs.id ?? node.attrs.label ?? ''}`;
         },
         renderHTML({ node }) {
             return ['span', { 'data-mention': '' }, `@${node.attrs.label ?? node.attrs.id ?? ''}`];
