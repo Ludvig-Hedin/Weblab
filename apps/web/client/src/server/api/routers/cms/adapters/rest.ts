@@ -116,7 +116,8 @@ export const restAdapter: CmsSourceAdapter = {
         return Promise.all(
             endpoints.map(async (endpoint): Promise<RemoteCollection> => {
                 try {
-                    const url = `${creds.baseUrl.replace(/\/$/, '')}${endpoint.path}`;
+                    const normalizedPath = endpoint.path.startsWith('/') ? endpoint.path : `/${endpoint.path}`;
+                    const url = `${creds.baseUrl.replace(/\/$/, '')}${normalizedPath}`;
                     const res = await fetchWithTimeout(url, {
                         headers: authHeaders(creds),
                         timeoutMs: 8_000,
@@ -143,7 +144,8 @@ export const restAdapter: CmsSourceAdapter = {
         const path = endpointPath(creds, remoteCollectionRef);
         if (!path) return [];
         try {
-            const url = `${creds.baseUrl.replace(/\/$/, '')}${path}`;
+            const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+            const url = `${creds.baseUrl.replace(/\/$/, '')}${normalizedPath}`;
             const res = await fetchWithTimeout(url, {
                 headers: authHeaders(creds),
                 timeoutMs: 15_000,

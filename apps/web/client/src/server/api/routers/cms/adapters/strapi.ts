@@ -111,8 +111,15 @@ export const strapiAdapter: CmsSourceAdapter = {
             >;
         };
         return (data.data ?? []).map((entry): RemoteItem => {
-            // v4 has `attributes`; v5 flattens. Coerce.
-            const values = entry.attributes ? entry.attributes : (entry as Record<string, unknown>);
+            // v4 has `attributes`; v5 flattens. Strip system fields (id,
+            // createdAt, updatedAt, publishedAt) from v5 values so they
+            // don't duplicate what's already in RemoteItem.id.
+            const STRAPI_SYSTEM_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'publishedAt', 'documentId']);
+            const values = entry.attributes
+                ? entry.attributes
+                : Object.fromEntries(
+                      Object.entries(entry).filter(([k]) => !STRAPI_SYSTEM_FIELDS.has(k)),
+                  );
             const slugValue = values.slug;
             const slug = typeof slugValue === 'string' ? slugValue : undefined;
             return {

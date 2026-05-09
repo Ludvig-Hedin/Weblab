@@ -86,6 +86,7 @@ export const cmsCollectionPageRouter = createTRPCRouter({
                     })
                     .where(eq(cmsCollectionPages.id, existing.id))
                     .returning();
+                if (!updated) throw new Error('Collection page was deleted during update');
                 return updated;
             }
             const [created] = await ctx.db

@@ -5,8 +5,14 @@ import { createServerClient } from '@supabase/ssr';
 import { env } from '@/env';
 
 export async function updateSession(request: NextRequest) {
+    // Clone request headers (NextRequest.headers is read-only; mutating it
+    // directly throws at runtime). Forward x-pathname so downstream Server
+    // Components can preserve deep-link returnUrls after redirects.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
     let supabaseResponse = NextResponse.next({
-        request,
+        request: { headers: requestHeaders },
     });
 
     const supabase = createServerClient(
@@ -18,11 +24,13 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value),
                     );
+                    // Re-create with our modified headers so x-pathname is
+                    // preserved even when Supabase refreshes the session.
                     supabaseResponse = NextResponse.next({
-                        request,
+                        request: { headers: requestHeaders },
                     });
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options),
@@ -37,7 +45,7 @@ export async function updateSession(request: NextRequest) {
         await Promise.race([
             supabase.auth.getUser(),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Supabase auth refresh timed out')), 5000),
+                setTimeout(() => reject(new Error('Supabase auth refresh timed out')), 2000),
             ),
         ]);
     } catch (error) {

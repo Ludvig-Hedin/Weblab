@@ -161,6 +161,7 @@ export const cmsBindingRouter = createTRPCRouter({
                     .set({ binding: input.binding, updatedAt: new Date() })
                     .where(eq(cmsBindings.id, existing.id))
                     .returning();
+                if (!updated) throw new Error('Binding was deleted during update');
                 return updated;
             }
             const [created] = await ctx.db

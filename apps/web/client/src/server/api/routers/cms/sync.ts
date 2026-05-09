@@ -180,6 +180,10 @@ export async function runSourceSync(
  * fine but multiplies the v3 migration footprint. The prefix-on-description
  * approach is reversible and contained; v3.x can promote it to a real column.
  */
+// NOTE: this prefix is stored in the database. If you need to change it,
+// write a migration to update existing rows — otherwise collections lose
+// their remote refs. Keep it collision-free: ordinary user descriptions
+// that happen to start with this string will be mis-parsed.
 const REMOTE_REF_PREFIX = 'remote:';
 
 export function readRemoteRef(description: string | null): string | null {
