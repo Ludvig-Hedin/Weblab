@@ -42,14 +42,14 @@ function getBridge(): CliBridge | null {
 
 /** True when the desktop bridge is available. */
 export function hasCliBridge(): boolean {
-    return getBridge() !== null;
+    return getBridge() \!== null;
 }
 
 /** True when this model+provider combination should be routed through the CLI bridge. */
 export function shouldUseCliBridge(model: string): boolean {
-    if (!hasCliBridge()) return false;
+    if (\!hasCliBridge()) return false;
     const provider = inferProviderFromModelId(model);
-    return provider !== 'openrouter' && provider !== 'ollama';
+    return provider \!== 'openrouter' && provider \!== 'ollama';
 }
 
 function flattenContent(message: UIMessage): string {
@@ -61,15 +61,18 @@ function flattenContent(message: UIMessage): string {
 }
 
 export class WeblabCliTransport implements ChatTransport<UIMessage> {
+    constructor(private readonly getModel?: () => string | undefined) {}
+
     async sendMessages(
         options: Parameters<ChatTransport<UIMessage>['sendMessages']>[0],
     ): Promise<ReadableStream<UIMessageChunk>> {
         const bridge = getBridge();
-        if (!bridge) throw new Error('CLI bridge not available — desktop runtime required');
+        if (\!bridge) throw new Error('CLI bridge not available — desktop runtime required');
 
         const streamId = uuidv4();
-        const model = (options.body as { model?: string } | undefined)?.model;
-        if (!model) throw new Error('Missing model in chat request body');
+        const callBodyModel = (options.body as { model?: string } | undefined)?.model;
+        const model = callBodyModel ?? this.getModel?.();
+        if (\!model) throw new Error('Missing model in chat request body');
         const provider = inferProviderFromModelId(model);
 
         const cliMessages = options.messages.map((m) => ({
@@ -78,17 +81,43 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
         }));
 
         let unsubscribe: (() => void) | null = null;
+        // Single-fire terminal guard. Adapters can emit duplicate terminal
+        // events (spawn 'error' then readline 'close' → both fire). Without
+        // this, calling controller.error()/close() after termination throws
+        // "Cannot perform action while not in readable state" and the IPC
+        // listener throws uncaught into the renderer.
+        let terminated = false;
+        const cleanup = () => {
+            const fn = unsubscribe;
+            unsubscribe = null;
+            fn?.();
+        };
+        const terminate = (apply: () => void) => {
+            if (terminated) return;
+            terminated = true;
+            try {
+                apply();
+            } catch {
+                // controller already closed/errored elsewhere
+            }
+            cleanup();
+        };
 
         const stream = new ReadableStream<UIMessageChunk>({
             start(controller) {
                 unsubscribe = bridge.onEvent((event) => {
-                    if (event.streamId !== streamId) return;
+                    if (event.streamId \!== streamId) return;
                     if (event.kind === 'part') {
-                        controller.enqueue(event.payload);
+                        if (terminated) return;
+                        try {
+                            controller.enqueue(event.payload);
+                        } catch {
+                            // stream may have closed mid-flight
+                        }
                     } else if (event.kind === 'error') {
-                        controller.error(new Error(event.payload.message));
+                        terminate(() => controller.error(new Error(event.payload.message)));
                     } else if (event.kind === 'finish') {
-                        controller.close();
+                        terminate(() => controller.close());
                     }
                 });
 
@@ -96,11 +125,7 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
                     'abort',
                     () => {
                         bridge.abort(streamId);
-                        try {
-                            controller.close();
-                        } catch {
-                            // already closed
-                        }
+                        terminate(() => controller.close());
                     },
                     { once: true },
                 );
@@ -108,19 +133,25 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
                 void bridge
                     .startStream({ streamId, provider, model, messages: cliMessages })
                     .then((result) => {
-                        if (!result.ok) {
-                            controller.error(
-                                new Error(result.error ?? 'cli bridge refused stream'),
+                        if (\!result.ok) {
+                            terminate(() =>
+                                controller.error(
+                                    new Error(result.error ?? 'cli bridge refused stream'),
+                                ),
                             );
                         }
                     })
                     .catch((cause: unknown) => {
-                        controller.error(cause instanceof Error ? cause : new Error(String(cause)));
+                        terminate(() =>
+                            controller.error(
+                                cause instanceof Error ? cause : new Error(String(cause)),
+                            ),
+                        );
                     });
             },
             cancel() {
                 bridge.abort(streamId);
-                unsubscribe?.();
+                terminate(() => undefined);
             },
         });
 
