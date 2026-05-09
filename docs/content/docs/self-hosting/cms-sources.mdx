@@ -1,0 +1,110 @@
+---
+title: CMS Sources
+description: Connecting external CMSes (Payload, Strapi, REST) to Weblab projects.
+---
+
+Weblab projects can connect to external content management systems and pull
+items into the project's collections. Authors keep editing in their existing
+CMS; designers bind canvas elements to the synced data.
+
+## Supported sources
+
+- **Payload** (REST API, v2 and v3)
+- **Strapi** (REST API, v4 and v5)
+- **Generic REST** — any endpoint that returns `{ items: [...] }`,
+  `{ data: [...] }`, `{ results: [...] }`, or a top-level array
+
+## Encryption key
+
+Source credentials (API keys, bearer tokens) are encrypted with AES-256-GCM
+before being written to the database. The encryption key is read from the
+`CMS_SOURCE_ENCRYPTION_KEY` env var — a base64-encoded 32-byte secret.
+
+Generate one:
+
+```bash
+openssl rand -base64 32
+```
+
+Set it on every environment that runs the Weblab server (production,
+staging, local). Without it, users cannot connect external sources.
+
+The key is only consulted server-side. The browser never sees the
+plaintext credentials and never sees the key.
+
+### Rotating the key
+
+GCM's auth tag binds the ciphertext to the exact key it was encrypted
+under. Rotation must re-encrypt every existing row.
+
+1. Generate a new key with `openssl rand -base64 32`.
+2. While the old key is still in `CMS_SOURCE_ENCRYPTION_KEY`, run a
+   one-shot migration script that decrypts each `cms_source.credentials`
+   blob and re-encrypts it under the new key. (Internal note for
+   engineers: see `docs/agent-context/cms-architecture.md` for the helper
+   functions.)
+3. Update `CMS_SOURCE_ENCRYPTION_KEY` to the new value and redeploy.
+4. Verify: open the CMS workspace's Sources tab and click **Test** on every
+   external source. All should report "Connection works".
+
+Skipping step 2 results in failed syncs immediately after the env var
+swap, with errors that look like authentication failures from the remote
+CMS even though credentials are correct.
+
+## Editing externally-synced items
+
+Items pulled from an external source are read-only inside Weblab's item
+editor. Opening one shows a banner:
+
+> This item is synced from an external source. Edits will be overwritten
+> on the next sync.
+
+The Save and Publish buttons are disabled to prevent accidental local
+edits that would be wiped on the next refresh.
+
+This is by design: the external CMS is the source of truth, and Weblab's
+sync is one-way (pull-only) in this release. Editors should make changes
+in the source CMS and then click **Refresh** in the Sources tab to pull
+the updated values.
+
+If you need to override a value locally without changing the external
+source, move the collection back to the default Weblab source first. (UI
+to do this directly is on the roadmap.)
+
+## What syncs
+
+The first sync after mapping a remote collection imports every item the
+adapter returns (paginated up to ~500 per call). Subsequent syncs UPSERT
+by `(collection_id, remote_id)` — items added remotely are added locally,
+items updated remotely overwrite local values.
+
+**Items deleted remotely are not deleted locally.** This is conservative:
+a transient adapter failure that returned an empty list could otherwise
+nuke a project's content. A "prune missing items" action is on the
+roadmap.
+
+## What doesn't sync (yet)
+
+- Webhooks / push-based updates from the source
+- Two-way sync (Weblab edits → source CMS)
+- GraphQL endpoints — REST-only in this release
+- Pagination beyond a single page of results
+- Auth flows beyond bearer tokens / API keys
+
+## Troubleshooting
+
+**"Connection failed: API key was rejected"** — check that the key is
+valid in the source CMS and has read permissions on the configured
+collections.
+
+**"Synced 0 items"** — the source returned a successful response but no
+items. For Payload, verify the collection slug; for Strapi, verify the
+plural API name; for REST, verify the endpoint path and that the response
+shape matches one of the supported envelopes.
+
+**Edits to a synced item disappear** — see "Editing externally-synced
+items" above. This is intentional.
+
+**Source button "Test" works but Refresh fails** — most likely the
+adapter can authenticate but can't list items in the configured
+collections. Check the source CMS's permissions for the API key.

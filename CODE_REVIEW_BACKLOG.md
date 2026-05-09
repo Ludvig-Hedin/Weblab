@@ -852,3 +852,127 @@ Review window: full local working tree (114 tracked changed files plus untracked
 - **Summary:** When `provider` is not `openrouter`/`ollama`, the code queries `userProviderConnections` to distinguish 412 ("not connected") from 501 ("routing not implemented"). Both cases result in an error response — even if the row exists the 501 is unconditional. The DB query is only used to vary the error message, adding latency to every rejected request. The comment correctly explains routing is not yet implemented, so the 501 branch is always hit when a connection exists.
 - **Suggested approach:** Remove the DB query and return 501 unconditionally for non-openrouter/non-ollama providers. Re-introduce the connection check once actual routing is implemented and the 412 path serves a real retry flow.
 - **Status:** fixed — removed DB query; 501 returned directly. Unused imports (`and`, `eq`, `userProviderConnections`, `db`) cleaned up.
+
+---
+
+## CR-070 — Inverted prune logic in `runSourceSync` when adapter returns zero items
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/sync.ts` — prune branch
+- **Type:** bug / data correctness
+- **Impact:** internal — `prune=true` on an empty adapter response was a no-op when the intent was "remove every remote-sourced item"
+- **Risk:** medium
+- **Summary:** The code used `inArray(remoteId, [])` as the "drop everything" branch, which actually matches nothing. AND with `isNotNull(remoteId)` is therefore always false → 0 deletes. Comment said "drop every remote-sourced item" — opposite of behavior.
+- **Suggested approach:** When `remoteIds.length === 0`, omit the `notInArray` clause so the AND is `(collectionId AND isNotNull(remoteId))` and every remote-sourced row is removed.
+- **Status:** auto-fixed — branch now omits the `notInArray` clause when adapter returned zero items; unused `inArray` import removed.
+
+---
+
+## CR-071 — URL injection via unencoded remote-collection refs in CMS adapters
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/adapters/{payload,strapi}.ts`
+- **Type:** security (low/medium)
+- **Impact:** server-side — user-controlled `remoteCollectionRef` interpolated raw into adapter URLs
+- **Risk:** low (server only calls user's own configured base URL; cross-tenant only if a collaborator sets a malicious `remoteRef` on a shared project)
+- **Summary:** `fetchItems(creds, remoteCollectionRef)` and the schema-discovery path built URLs as `${baseUrl}/api/${remoteRef}`. Unencoded slashes/?# in `remoteRef` could inject query params or path segments. `remoteRef` reaches these helpers from the encoded `remote:` prefix on `cms_collection.description`, which is not strictly validated.
+- **Suggested approach:** `encodeURIComponent` the slug in URL building.
+- **Status:** auto-fixed — Payload and Strapi adapters now `encodeURIComponent` the remote ref / plural name.
+
+---
+
+## CR-072 — Stale selection state in items-table when switching collections
+
+- **Area:** `apps/web/client/src/app/project/[id]/_components/cms-workspace/items-table.tsx`
+- **Type:** bug / UX
+- **Impact:** user-facing — bulk-delete bar would show "Delete N" with stale ids from the previous collection
+- **Risk:** low
+- **Summary:** `selectedIds` was a local `Set<string>` that never reset between collection switches. Search input had the same issue.
+- **Suggested approach:** Reset both via `useEffect` keyed on `collection.id`.
+- **Status:** auto-fixed — added reset effect on `collection.id` change.
+
+---
+
+## CR-073 — SSRF risk in CMS source adapters (no private-IP / loopback guard)
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/adapters/{payload,strapi,rest}.ts`
+- **Type:** security (high)
+- **Impact:** server-side — server-side request forgery vector
+- **Risk:** high
+- **Summary:** Adapters accept arbitrary `baseUrl` from user-supplied credentials and `fetch()` it server-side. A malicious project owner could enter `http://169.254.169.254/...` (cloud metadata), `http://localhost:6379` (internal Redis), or other private network addresses. Responses are parsed for items only (so direct data exfiltration is limited), but the SSRF reach itself is the concern.
+- **Suggested approach:** Add a URL allowlist/denylist:
+  - block `localhost`, `127.0.0.1`, `0.0.0.0`
+  - block RFC1918 ranges (10/8, 172.16/12, 192.168/16)
+  - block link-local (169.254/16, fe80::/10) and IPv6 loopback (`::1`)
+  Resolve the host once before fetch and refuse if it lands in any banned range. Mind DNS rebinding: re-resolve on each request and refuse if the resolved IP doesn't match the originally-validated set.
+- **Status:** open — high priority; not auto-fixed (correct SSRF protection warrants careful review).
+
+---
+
+## CR-074 — `cms.source.mapCollections` allows duplicate collection slugs
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/source.ts` — `mapCollections.create` mode
+- **Type:** bug / data integrity
+- **Impact:** internal — `cms.collection.create` enforces app-level slug uniqueness; `mapCollections` does not
+- **Risk:** low
+- **Summary:** When the wizard maps multiple remote collections to "Create new" mode, it inserts collections without checking that the slug isn't already taken in the project. Two remotes with the same humanized name would silently land as duplicates.
+- **Suggested approach:** Mirror the duplication check from `cms.collection.create` inside the transaction — query existing slugs once, throw on conflict — or add a real DB unique constraint on `(project_id, slug)`.
+- **Status:** open.
+
+---
+
+## CR-075 — REPEAT clones inherit original template's `data-oid`
+
+- **Area:** `apps/web/preload/script/api/cms.ts` — pass 2 cloning
+- **Type:** design debt / UX
+- **Impact:** user-facing — selecting a cloned list-descendant in the canvas always picks the first clone
+- **Risk:** low
+- **Summary:** Pass 2 clones the saved template HTML once per item without rewriting `data-oid`/`data-weblab-dom-id`. Multiple DOM nodes share the same `data-oid`.
+- **Suggested approach:** Either suffix per-clone ids (`oid-iN`) and teach the selection layer to strip the suffix, or tag clones with `data-weblab-clone="true"` and have the selection layer ignore them in favor of the original template node.
+- **Status:** open — known limitation, documented in `cms.ts` header comment.
+
+---
+
+## CR-076 — Editor undo/redo does not cover CMS binding mutations
+
+- **Area:** CMS workspace + `apps/web/client/src/components/store/editor/history`
+- **Type:** UX / design debt
+- **Impact:** user-facing — Cmd-Z does not undo bind/unbind/sort/limit/filter/routing changes
+- **Risk:** medium for power users
+- **Summary:** Binding mutations go directly through tRPC and don't dispatch through the editor's `Action` system. Documented as accepted limitation; mirrors Webflow/Framer behavior.
+- **Suggested approach:** Either add a `BindCmsAction` variant to `packages/models/src/actions/action.ts` plus dispatch+revert handlers, or build a separate `CmsHistoryManager` keyed on oid that takes Cmd-Z while the workspace has focus.
+- **Status:** open — documented in `docs/agent-context/cms-architecture.md`.
+
+---
+
+## CR-077 — XSS / CSS-injection surface via `backgroundImage` for image-shaped CMS values
+
+- **Area:** `apps/web/preload/script/api/cms.ts` — `applyValueToNode` image branch
+- **Type:** security (low)
+- **Impact:** preview iframe only (sandboxed user code)
+- **Risk:** low
+- **Summary:** When the bound value is `{ url: string }` and the target node is not an `<img>`, the URL is interpolated into `style.backgroundImage = url("...")` via `JSON.stringify`. `JSON.stringify` escapes `"` and `\`, but other CSS tokens aren't validated; non-http(s) schemes (`javascript:`, etc.) aren't blocked.
+- **Suggested approach:** Validate via `new URL(value.url)`; reject anything other than `http`, `https`, or restricted `data:image/*` schemes.
+- **Status:** open — low priority; preview is already sandboxed.
+
+---
+
+## CR-078 — Defense-in-depth: project-scope filter in CMS update/delete WHEREs
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/{source,binding,collection,collection-page}.ts`
+- **Type:** security / defense-in-depth
+- **Impact:** internal
+- **Risk:** very low (existing pre-checks fetch with project scope; no current procedure mutates `projectId`)
+- **Summary:** Several update/delete mutations fetch the row scoped to the project, throw if not found, then run the actual update/delete with `eq(table.id, input.id)` only — without a redundant `eq(table.projectId, …)` filter.
+- **Suggested approach:** Add `eq(table.projectId, input.projectId)` to every CMS update/delete WHERE clause as belt-and-suspenders.
+- **Status:** open.
+
+---
+
+## CR-079 — `cms.source.testConnection` accepts plaintext credentials in payload
+
+- **Area:** `apps/web/client/src/server/api/routers/cms/source.ts` — `testConnection` mutation input
+- **Type:** security (low) / observability
+- **Impact:** internal — credentials traverse tRPC payloads
+- **Risk:** low (HTTPS in transit; concern is request-body capture in logs)
+- **Summary:** `testConnection` accepts `{ credentials: Record<string, unknown> }`. If any middleware or Sentry-style request-body capture is enabled, those logs contain plaintext API keys / bearer tokens.
+- **Suggested approach:** Audit the project's logging middleware and add a scrubber for `cms.source.testConnection` payloads. Longer-term, swap to a short-lived signed-token flow if request capture is needed.
+- **Status:** open — needs an audit of the project's logging middleware.

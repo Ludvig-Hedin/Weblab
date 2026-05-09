@@ -10,7 +10,7 @@ import type {
     InsertMode,
     LeftPanelTabValue,
 } from '@weblab/models';
-import { ChatType, EditorMode } from '@weblab/models';
+import { ChatType, CmsTabValue, EditorMode } from '@weblab/models';
 
 export class StateManager {
     private _canvasScrolling = false;
@@ -32,6 +32,16 @@ export class StateManager {
     manageBranchId: string | null = null;
 
     chatMode: ChatType = ChatType.EDIT;
+
+    /** CMS workspace UI state. The workspace is shown when editorMode is CMS. */
+    cmsTab: CmsTabValue = CmsTabValue.COLLECTIONS;
+    cmsSelectedCollectionId: string | null = null;
+    cmsEditingItemId: string | null = null;
+    cmsCreateCollectionOpen = false;
+    cmsBindDialogOpen = false;
+    cmsBindTargetOid: string | null = null;
+    cmsCurrentItemId: string | null = null;
+    cmsRoutingDialogOpen = false;
 
     constructor() {
         makeAutoObservable(this);
@@ -101,6 +111,43 @@ export class StateManager {
         this.chatMode = mode;
     }
 
+    setCmsTab(tab: CmsTabValue) {
+        this.cmsTab = tab;
+    }
+
+    setCmsSelectedCollectionId(id: string | null) {
+        this.cmsSelectedCollectionId = id;
+        if (id !== this.cmsSelectedCollectionId) {
+            this.cmsEditingItemId = null;
+        }
+    }
+
+    setCmsEditingItemId(id: string | null) {
+        this.cmsEditingItemId = id;
+    }
+
+    setCmsCreateCollectionOpen(open: boolean) {
+        this.cmsCreateCollectionOpen = open;
+    }
+
+    openCmsBindDialog(oid: string) {
+        this.cmsBindTargetOid = oid;
+        this.cmsBindDialogOpen = true;
+    }
+
+    closeCmsBindDialog() {
+        this.cmsBindDialogOpen = false;
+        this.cmsBindTargetOid = null;
+    }
+
+    setCmsCurrentItemId(id: string | null) {
+        this.cmsCurrentItemId = id;
+    }
+
+    setCmsRoutingDialogOpen(open: boolean) {
+        this.cmsRoutingDialogOpen = open;
+    }
+
     set canvasScrolling(value: boolean) {
         this._canvasScrolling = value;
         this.resetCanvasScrolling();
@@ -130,6 +177,10 @@ export class StateManager {
             this.pendingInsertElement = null;
             this.pendingInsertBlock = null;
             this.pendingInsertComponent = null;
+            this.cmsCreateCollectionOpen = false;
+            this.cmsBindDialogOpen = false;
+            this.cmsBindTargetOid = null;
+            this.cmsRoutingDialogOpen = false;
         });
         this.resetCanvasScrollingDebounced.cancel();
     }

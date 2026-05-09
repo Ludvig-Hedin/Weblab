@@ -1,4 +1,5 @@
 export * from './chat';
+export * from './cms';
 export * from './comment';
 export * from './code';
 export * from './domain';

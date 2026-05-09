@@ -10,6 +10,13 @@ export enum EditorMode {
     PREVIEW = 'preview',
     PAN = 'pan',
     COMMENT = 'comment',
+    CMS = 'cms',
+}
+
+export enum CmsTabValue {
+    COLLECTIONS = 'collections',
+    FIELDS = 'fields',
+    SOURCES = 'sources',
 }
 
 export enum InsertMode {
@@ -21,6 +28,7 @@ export enum InsertMode {
     INSERT_LINK = 'insert-link',
     INSERT_INPUT = 'insert-input',
     INSERT_IMAGE = 'insert-image',
+    INSERT_WEBLAB_LIST = 'insert-weblab-list',
 }
 
 export enum SettingsTabValue {
