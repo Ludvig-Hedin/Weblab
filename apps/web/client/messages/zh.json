@@ -130,7 +130,27 @@
             "and": "和",
             "tos": "服务条款"
         },
-        "version": "版本 {{version}}"
+        "version": "版本 {{version}}",
+        "error": {
+            "backToLogin": "返回登录",
+            "getHelp": "获取帮助",
+            "authCode": {
+                "eyebrow": "身份验证错误",
+                "title": "无法完成登录",
+                "body": "登录时出现问题。可能是链接已过期或登录窗口关闭过早。请重试 — 如果问题持续存在，请联系支持团队。",
+                "goHome": "返回首页",
+                "errorCodeLabel": "错误代码"
+            },
+            "login": {
+                "eyebrow": "登录错误",
+                "title": "出现了问题",
+                "body": "登录时遇到意外错误，请重试。",
+                "tryAgain": "重试",
+                "errorDetailsLabel": "错误参考",
+                "copyErrorDetails": "复制错误详情",
+                "copied": "已复制"
+            }
+        }
     },
     "pricing": {
         "plans": {
