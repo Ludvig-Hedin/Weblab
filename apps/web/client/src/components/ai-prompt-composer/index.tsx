@@ -1,22 +1,22 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { Textarea } from '@weblab/ui/textarea';
 import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import type { MentionConfig, SlashCommand } from './types';
+import type { Editor } from '@tiptap/react';
 import { MicButton } from '@/components/transcribe/mic-button';
 import {
     AI_CHAT_INPUT_DRAG_CLASS,
     AI_CHAT_INPUT_SURFACE_CLASS,
-    AI_CHAT_TEXTAREA_CLASS,
-    AI_CHAT_TEXTAREA_STYLE,
 } from '@/components/ui/ai-chat-input-styles';
+import { TipTapEditor } from './tiptap-editor';
 
 export interface AiPromptComposerImage {
     id?: string;
@@ -40,12 +40,15 @@ export interface AiPromptComposerProps {
     isSubmitting?: boolean;
     minRows?: number;
     maxTextareaClassName?: string;
+    /** @deprecated use editorRef instead */
     textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+    editorRef?: React.RefObject<Editor | null>;
+    mentionConfig?: MentionConfig;
+    slashCommands?: SlashCommand[];
     onCompositionStart?: () => void;
     onCompositionEnd?: () => void;
-    onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-    onInput?: (event: React.FormEvent<HTMLTextAreaElement>) => void;
-    onPaste?: (event: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+    onKeyDown?: (event: KeyboardEvent) => void;
+    onPaste?: (event: ClipboardEvent) => void;
     onDrop?: (event: React.DragEvent<HTMLDivElement>) => void | Promise<void>;
     onDragStateChange?: (isDragging: boolean, event: React.DragEvent<HTMLDivElement>) => void;
     onContainerClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -77,7 +80,7 @@ function getVariantClasses(variant: NonNullable<AiPromptComposerProps['variant']
     switch (variant) {
         case 'hero':
             return {
-                root: 'w-[680px] max-w-[calc(100vw-32px)]',
+                root: 'w-[540px] max-w-[calc(100vw-32px)]',
                 surface: 'shadow-2xl shadow-black/20 backdrop-blur-xl',
                 textarea: 'min-h-[44px] pt-4 text-base',
                 button: 'h-10 w-10',
@@ -91,7 +94,7 @@ function getVariantClasses(variant: NonNullable<AiPromptComposerProps['variant']
                 textarea: '',
                 button: 'h-9 w-9',
                 icon: 'h-5 w-5',
-                footer: 'px-0 pt-2 pb-2',
+                footer: 'px-2 pt-2 pb-2',
             };
         case 'editor-panel':
         default:
@@ -114,13 +117,15 @@ export function AiPromptComposer({
     variant = 'create',
     disabled = false,
     isSubmitting = false,
-    minRows = 3,
+    minRows: _minRows,
     maxTextareaClassName,
-    textareaRef,
+    textareaRef: _textareaRef,
+    editorRef,
+    mentionConfig,
+    slashCommands,
     onCompositionStart,
     onCompositionEnd,
     onKeyDown,
-    onInput,
     onPaste,
     onDrop,
     onDragStateChange,
@@ -149,9 +154,9 @@ export function AiPromptComposer({
     submitIconClassName,
 }: AiPromptComposerProps) {
     const t = useTranslations('aiPromptComposer');
-    const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
+    const internalEditorRef = useRef<Editor | null>(null);
+    const activeEditorRef = editorRef ?? internalEditorRef;
     const inputRef = useRef<HTMLInputElement>(null);
-    const activeTextareaRef = textareaRef ?? internalTextareaRef;
     const [isDragging, setIsDragging] = useState(false);
     const [imageTooltipOpen, setImageTooltipOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -173,11 +178,11 @@ export function AiPromptComposer({
             event.target instanceof Element &&
             (event.target.closest('button') ||
                 event.target.closest('[data-weblab-ai-prompt-ignore-focus]') ||
-                event.target === activeTextareaRef.current)
+                event.target.closest('.ProseMirror'))
         ) {
             return;
         }
-        activeTextareaRef.current?.focus();
+        activeEditorRef.current?.commands.focus();
     };
 
     const setDragState = (nextDragging: boolean, event: React.DragEvent<HTMLDivElement>) => {
@@ -279,25 +284,19 @@ export function AiPromptComposer({
                 <div className="flex w-full flex-col px-2 pt-1.5">
                     {topSlot}
                     {inlineSlot}
-                    <Textarea
-                        ref={activeTextareaRef}
-                        className={cn(
-                            AI_CHAT_TEXTAREA_CLASS,
-                            classes.textarea,
-                            maxTextareaClassName,
-                            textareaClassName,
-                        )}
-                        placeholder={placeholder}
-                        style={AI_CHAT_TEXTAREA_STYLE as CSSProperties}
-                        rows={minRows}
+                    <TipTapEditor
                         value={value}
-                        disabled={disabled}
-                        onChange={(event) => onChange(event.target.value)}
-                        onInput={onInput}
+                        onChange={onChange}
                         onKeyDown={onKeyDown}
                         onPaste={onPaste}
                         onCompositionStart={onCompositionStart}
                         onCompositionEnd={onCompositionEnd}
+                        placeholder={placeholder}
+                        disabled={disabled}
+                        className={cn(classes.textarea, maxTextareaClassName, textareaClassName)}
+                        editorRef={activeEditorRef}
+                        mentionConfig={mentionConfig}
+                        slashCommands={slashCommands}
                     />
                     {footerHint}
                 </div>

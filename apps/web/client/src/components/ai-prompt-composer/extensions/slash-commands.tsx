@@ -2,11 +2,12 @@
 'use client';
 
 import { Extension } from '@tiptap/core';
-import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
+import Suggestion from '@tiptap/suggestion';
 
+import type { SlashListRef } from '../slash-list';
 import type { SlashCommand } from '../types';
-import { SlashList, type SlashListRef } from '../slash-list';
+import { SlashList } from '../slash-list';
 
 export function buildSlashCommandsExtension(commands: SlashCommand[]) {
     return Extension.create({
@@ -37,7 +38,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                                 component = new ReactRenderer(SlashList, {
                                     editor: props.editor,
                                     props: {
-                                        items: props.items as SlashCommand[],
+                                        items: props.items,
                                         command: (item: SlashCommand) => {
                                             props.command(item);
                                             item.action();
@@ -47,7 +48,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
 
                                 popupEl = document.createElement('div');
                                 popupEl.className =
-                                    'bg-background-primary border-border absolute z-50 min-w-[280px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
+                                    'bg-background-primary border-border absolute z-[100] min-w-[280px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
                                 popupEl.appendChild(component.element);
                                 document.body.appendChild(popupEl);
 
@@ -59,7 +60,7 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                                 if (!component || !popupEl) return;
 
                                 component.updateProps({
-                                    items: props.items as SlashCommand[],
+                                    items: props.items,
                                     command: (item: SlashCommand) => {
                                         props.command(item);
                                         item.action();
@@ -73,7 +74,10 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                             onKeyDown(props) {
                                 if (!component || !popupEl) return false;
                                 if (props.event.key === 'Escape') {
-                                    popupEl.style.display = 'none';
+                                    popupEl.remove();
+                                    component.destroy();
+                                    popupEl = undefined;
+                                    component = undefined;
                                     return true;
                                 }
                                 return component.ref?.onKeyDown({ event: props.event }) ?? false;

@@ -22,31 +22,36 @@ export const SlashList = forwardRef<SlashListRef, SlashListProps>(({ items, comm
         setSelectedIndex(0);
     }, [items]);
 
-    useImperativeHandle(ref, () => ({
-        onKeyDown({ event }) {
-            if (event.key === 'ArrowUp') {
-                setSelectedIndex((prev) => (prev - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1));
-                return true;
-            }
-            if (event.key === 'ArrowDown') {
-                setSelectedIndex((prev) => (prev + 1) % Math.max(items.length, 1));
-                return true;
-            }
-            if (event.key === 'Enter') {
-                const item = items[selectedIndex];
-                if (item) {
-                    command(item);
+    useImperativeHandle(
+        ref,
+        () => ({
+            onKeyDown({ event }) {
+                if (event.key === 'ArrowUp') {
+                    setSelectedIndex(
+                        (prev) =>
+                            (prev - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1),
+                    );
+                    return true;
                 }
-                return true;
-            }
-            return false;
-        },
-    }));
+                if (event.key === 'ArrowDown') {
+                    setSelectedIndex((prev) => (prev + 1) % Math.max(items.length, 1));
+                    return true;
+                }
+                if (event.key === 'Enter') {
+                    const item = items[selectedIndex];
+                    if (item) {
+                        command(item);
+                    }
+                    return true;
+                }
+                return false;
+            },
+        }),
+        [items, selectedIndex, command],
+    );
 
     if (items.length === 0) {
-        return (
-            <div className="text-foreground-tertiary px-3 py-2 text-xs">No commands found</div>
-        );
+        return <div className="text-foreground-tertiary px-3 py-2 text-xs">No commands found</div>;
     }
 
     return (
@@ -68,8 +73,12 @@ export const SlashList = forwardRef<SlashListRef, SlashListProps>(({ items, comm
                         }}
                     >
                         <Icon className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
-                        <span className="text-foreground-primary text-xs font-medium">{item.label}</span>
-                        <span className="text-foreground-tertiary ml-auto text-xs">{item.description}</span>
+                        <span className="text-foreground-primary text-xs font-medium">
+                            {item.label}
+                        </span>
+                        <span className="text-foreground-tertiary ml-auto text-xs">
+                            {item.description}
+                        </span>
                     </button>
                 );
             })}

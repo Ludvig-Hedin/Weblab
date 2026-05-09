@@ -4,8 +4,9 @@
 import Mention from '@tiptap/extension-mention';
 import { ReactRenderer } from '@tiptap/react';
 
+import type { MentionListRef } from '../mention-list';
 import type { MentionConfig, MentionItem } from '../types';
-import { MentionList, type MentionListRef } from '../mention-list';
+import { MentionList } from '../mention-list';
 
 export function buildFileMentionExtension(config: MentionConfig) {
     return Mention.configure({
@@ -33,14 +34,14 @@ export function buildFileMentionExtension(config: MentionConfig) {
                                 items: props.items as MentionItem[],
                                 command: (item: MentionItem) => {
                                     props.command({ id: item.path, label: item.label });
-                                    config.onMentionSelect(item);
+                                    void config.onMentionSelect(item);
                                 },
                             },
                         });
 
                         popupEl = document.createElement('div');
                         popupEl.className =
-                            'bg-background-primary border-border absolute z-50 min-w-[240px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
+                            'bg-background-primary border-border absolute z-[100] min-w-[240px] max-w-sm overflow-hidden rounded-lg border shadow-lg';
                         popupEl.appendChild(component.element);
                         document.body.appendChild(popupEl);
 
@@ -54,7 +55,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                             items: props.items as MentionItem[],
                             command: (item: MentionItem) => {
                                 props.command({ id: item.path, label: item.label });
-                                config.onMentionSelect(item);
+                                void config.onMentionSelect(item);
                             },
                         });
 
@@ -65,7 +66,10 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     onKeyDown(props) {
                         if (!component || !popupEl) return false;
                         if (props.event.key === 'Escape') {
-                            popupEl.style.display = 'none';
+                            popupEl.remove();
+                            component.destroy();
+                            popupEl = undefined;
+                            component = undefined;
                             return true;
                         }
                         return component.ref?.onKeyDown({ event: props.event }) ?? false;

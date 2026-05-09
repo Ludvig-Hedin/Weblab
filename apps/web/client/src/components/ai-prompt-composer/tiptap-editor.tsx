@@ -2,15 +2,15 @@
 'use client';
 
 import type { CSSProperties, MutableRefObject } from 'react';
-import { useEffect, useRef } from 'react';
-import type { Editor } from '@tiptap/react';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { useEffect, useMemo, useRef } from 'react';
 import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 import { cn } from '@weblab/ui/utils';
 
 import type { MentionConfig, SlashCommand } from './types';
+import type { Editor } from '@tiptap/react';
 import { buildFileMentionExtension } from './extensions/file-mention';
 import { buildSlashCommandsExtension } from './extensions/slash-commands';
 
@@ -48,19 +48,22 @@ export function TipTapEditor({
     const onKeyDownRef = useRef(onKeyDown);
     onKeyDownRef.current = onKeyDown;
 
-    const extensions = [
-        StarterKit.configure({
-            heading: false,
-            codeBlock: false,
-            blockquote: false,
-            horizontalRule: false,
-            bulletList: false,
-            orderedList: false,
-        }),
-        Placeholder.configure({ placeholder: placeholder ?? '' }),
-        ...(mentionConfig ? [buildFileMentionExtension(mentionConfig)] : []),
-        ...(slashCommands?.length ? [buildSlashCommandsExtension(slashCommands)] : []),
-    ];
+    const extensions = useMemo(
+        () => [
+            StarterKit.configure({
+                heading: false,
+                codeBlock: false,
+                blockquote: false,
+                horizontalRule: false,
+                bulletList: false,
+                orderedList: false,
+            }),
+            Placeholder.configure({ placeholder: placeholder ?? '' }),
+            ...(mentionConfig ? [buildFileMentionExtension(mentionConfig)] : []),
+            ...(slashCommands?.length ? [buildSlashCommandsExtension(slashCommands)] : []),
+        ],
+        [mentionConfig, slashCommands, placeholder],
+    );
 
     const editor = useEditor({
         extensions,
@@ -70,15 +73,17 @@ export function TipTapEditor({
         editorProps: {
             attributes: {
                 class: cn(
-                    'text-small resize-none rounded-none outline-none',
-                    'text-foreground-primary caret-foreground-brand bg-transparent',
+                    'text-small resize-none overflow-auto rounded-none outline-none',
+                    'min-h-[44px] cursor-text px-3 py-1.5',
+                    'text-foreground-primary caret-foreground-brand bg-transparent dark:bg-transparent',
                     'selection:bg-foreground-brand/30 selection:text-foreground-brand',
-                    'cursor-text min-h-[44px]',
+                    'focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
                     className ?? '',
                 ),
             },
             handleKeyDown(_view, event) {
                 onKeyDownRef.current?.(event);
+                // Relies on caller calling e.preventDefault() synchronously before returning.
                 return event.defaultPrevented;
             },
             handleDOMEvents: {
@@ -108,7 +113,10 @@ export function TipTapEditor({
         }
     }, [editor, editorRef]);
 
-    // Sync externally-set value (e.g. suggestion clicks, clear-on-send)
+    // Sync externally-set value. `value` is plain text only — setContent replaces rich
+    // mention atoms with flat text, so callers must only set non-empty values before
+    // the editor has mentions (i.e. transcription/suggestion fills). Clear-on-send
+    // (empty string) is always safe.
     useEffect(() => {
         if (!editor) return;
         const currentText = editor.getText({ blockSeparator: '\n' });

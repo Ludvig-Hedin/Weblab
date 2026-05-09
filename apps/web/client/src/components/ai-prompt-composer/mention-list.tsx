@@ -24,31 +24,36 @@ export const MentionList = forwardRef<MentionListRef, MentionListProps>(
             setSelectedIndex(0);
         }, [items]);
 
-        useImperativeHandle(ref, () => ({
-            onKeyDown({ event }) {
-                if (event.key === 'ArrowUp') {
-                    setSelectedIndex((prev) => (prev - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1));
-                    return true;
-                }
-                if (event.key === 'ArrowDown') {
-                    setSelectedIndex((prev) => (prev + 1) % Math.max(items.length, 1));
-                    return true;
-                }
-                if (event.key === 'Enter') {
-                    const item = items[selectedIndex];
-                    if (item) {
-                        command(item);
+        useImperativeHandle(
+            ref,
+            () => ({
+                onKeyDown({ event }) {
+                    if (event.key === 'ArrowUp') {
+                        setSelectedIndex(
+                            (prev) =>
+                                (prev - 1 + Math.max(items.length, 1)) % Math.max(items.length, 1),
+                        );
+                        return true;
                     }
-                    return true;
-                }
-                return false;
-            },
-        }));
+                    if (event.key === 'ArrowDown') {
+                        setSelectedIndex((prev) => (prev + 1) % Math.max(items.length, 1));
+                        return true;
+                    }
+                    if (event.key === 'Enter') {
+                        const item = items[selectedIndex];
+                        if (item) {
+                            command(item);
+                        }
+                        return true;
+                    }
+                    return false;
+                },
+            }),
+            [items, selectedIndex, command],
+        );
 
         if (items.length === 0) {
-            return (
-                <div className="text-foreground-tertiary px-3 py-2 text-xs">No results</div>
-            );
+            return <div className="text-foreground-tertiary px-3 py-2 text-xs">No results</div>;
         }
 
         return (

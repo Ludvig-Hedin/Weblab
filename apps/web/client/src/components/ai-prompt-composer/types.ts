@@ -10,7 +10,7 @@ export interface MentionItem {
 
 export interface MentionConfig {
     searchFiles: (query: string) => Promise<MentionItem[]>;
-    onMentionSelect: (item: MentionItem) => void;
+    onMentionSelect: (item: MentionItem) => void | Promise<void>;
 }
 
 export interface SlashCommand {
