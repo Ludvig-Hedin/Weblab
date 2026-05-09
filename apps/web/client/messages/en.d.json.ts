@@ -134,6 +134,26 @@ declare const messages: {
             tos: 'Terms of Service';
         };
         version: 'Version {version}';
+        error: {
+            backToLogin: 'Back to login';
+            getHelp: 'Get help';
+            authCode: {
+                eyebrow: 'Authentication error';
+                title: 'We could not finish sign in';
+                body: 'Something went wrong while signing you in. This can happen if the link expired or the sign-in window was closed too early. Please try again — if the problem persists, contact support.';
+                goHome: 'Go home';
+                errorCodeLabel: 'Error code';
+            };
+            login: {
+                eyebrow: 'Sign-in error';
+                title: 'Something went wrong';
+                body: 'We hit an unexpected error while signing you in. Please try again.';
+                tryAgain: 'Try again';
+                errorDetailsLabel: 'Error reference';
+                copyErrorDetails: 'Copy error details';
+                copied: 'Copied';
+            };
+        };
     };
     pricing: {
         plans: {
