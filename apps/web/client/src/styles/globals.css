@@ -37,3 +37,14 @@ html[data-font-size='large']  { font-size: 16px; }
 /* Font family */
 html[data-font-family='sans']  { font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); }
 html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif; }
+
+/* TipTap chat input placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply text-foreground-primary/50 pointer-events-none float-left h-0;
+}
+
+/* TipTap mention chip */
+.ProseMirror .mention {
+    @apply bg-blue-500/10 text-blue-400 rounded px-1 py-0.5 text-sm font-medium;
+}
