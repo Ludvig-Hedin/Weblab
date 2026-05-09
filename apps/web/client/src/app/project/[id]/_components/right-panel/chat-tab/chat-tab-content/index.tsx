@@ -5,6 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChatMessage, ChatModel, LocalModelOption } from '@weblab/models';
 import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 
+import {
+    loadAiPromptCreateModel,
+    removeAiPromptCreateModel,
+} from '@/components/ai-prompt-composer/create-draft';
 import { api } from '@/trpc/react';
 import { useChat } from '../../../../_hooks/use-chat';
 import { ChatInput } from '../chat-input';
@@ -38,6 +42,24 @@ export const ChatTabContent = ({
         }
     }, [userSettings?.chat.defaultModel]);
 
+    // One-shot handoff from the create-project surface: if the user picked a
+    // model on the hero or /projects/new before opening this editor, consume
+    // and clear it on first mount so it overrides the saved default for this
+    // session. The hero writes the key on every picker change, so the most
+    // recent choice wins.
+    useEffect(() => {
+        let cancelled = false;
+        void loadAiPromptCreateModel().then((handoff) => {
+            if (cancelled || !handoff) return;
+            userChangedModel.current = true;
+            setModel(handoff as ChatModel);
+            void removeAiPromptCreateModel();
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     // Fetch available local Ollama models
     useEffect(() => {
         const baseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
@@ -66,7 +88,9 @@ export const ChatTabContent = ({
         isStreaming,
         sendMessage,
         editMessage,
+        regenerateLastAssistant,
         messages,
+        setMessages,
         error,
         stop,
         queuedMessages,
@@ -78,6 +102,43 @@ export const ChatTabContent = ({
         model,
         ollamaBaseUrl,
     });
+
+    // `useAiChat` snapshots `initialMessages` once on mount and never re-syncs
+    // when the underlying tRPC query refetches. Without this effect, AI streams
+    // that completed in another tab/window while this tab was backgrounded
+    // would never appear here. When the query refetches (e.g. on window focus
+    // — see `refetchOnWindowFocus: true` in the parent `ChatTab`), merge the
+    // freshly-fetched messages into the live `useChat` state.
+    //
+    // Guards:
+    //  - Skip while streaming so we don't clobber the in-progress assistant
+    //    message with a stale server snapshot.
+    //  - Skip if the server snapshot only contains messages we already have
+    //    (prevents redundant rerenders and reordering).
+    //  - Skip if local state has unsynced messages newer than the server
+    //    snapshot (e.g. optimistic user message that hasn't been persisted
+    //    yet); the next refetch after persistence will reconcile.
+    const messagesRef = useRef(messages);
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+    useEffect(() => {
+        if (isStreaming) return;
+        if (!initialMessages) return;
+
+        const current = messagesRef.current;
+        const currentIds = new Set(current.map((m) => m.id));
+        const incomingIds = new Set(initialMessages.map((m) => m.id));
+
+        // If server has a message we don't, and we don't have any local-only
+        // messages (e.g. optimistic sends), adopt the server snapshot.
+        const hasNewServerMessages = initialMessages.some((m) => !currentIds.has(m.id));
+        const hasLocalOnlyMessages = current.some((m) => !incomingIds.has(m.id));
+
+        if (hasNewServerMessages && !hasLocalOnlyMessages) {
+            setMessages(initialMessages);
+        }
+    }, [initialMessages, isStreaming, setMessages]);
 
     const handleModelChange = (next: ChatModel) => {
         userChangedModel.current = true;
@@ -91,6 +152,7 @@ export const ChatTabContent = ({
                 isStreaming={isStreaming}
                 error={error}
                 onEditMessage={editMessage}
+                onRegenerateLastAssistant={regenerateLastAssistant}
             />
             <ErrorSection isStreaming={isStreaming} onSendMessage={sendMessage} />
             <ChatInput

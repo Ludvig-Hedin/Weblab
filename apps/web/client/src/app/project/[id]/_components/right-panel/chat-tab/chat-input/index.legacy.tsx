@@ -26,6 +26,7 @@ import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility'
 
 import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
+import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
 import { MicButton } from '@/components/transcribe/mic-button';
@@ -43,7 +44,6 @@ import { Suggestions } from '../suggestions';
 import { ActionButtons } from './action-buttons';
 import { ChatContextWindow } from './chat-context';
 import { ChatModeToggle } from './chat-mode-toggle';
-import { ModelSelector } from './model-selector';
 import { QueueItems } from './queue-items';
 
 interface ChatInputProps {

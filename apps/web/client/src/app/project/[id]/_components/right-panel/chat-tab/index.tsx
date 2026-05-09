@@ -11,14 +11,19 @@ interface ChatTabProps {
 export const ChatTab = ({ conversationId, projectId }: ChatTabProps) => {
     const { data: initialMessages, isLoading } = api.chat.message.getAll.useQuery(
         { conversationId: conversationId },
-        { enabled: !!conversationId },
+        {
+            enabled: !!conversationId,
+            // Pick up assistant messages that finished streaming in another
+            // tab/window while this tab was backgrounded.
+            refetchOnWindowFocus: true,
+        },
     );
 
     if (!initialMessages || isLoading) {
         return (
             <div className="text-foreground-secondary flex h-full w-full flex-1 items-center justify-center">
                 <Icons.LoadingSpinner className="mr-2 animate-spin" />
-                <p>Loading messages...</p>
+                <p>Loading messages…</p>
             </div>
         );
     }

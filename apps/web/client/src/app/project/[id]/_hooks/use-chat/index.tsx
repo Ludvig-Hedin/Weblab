@@ -21,6 +21,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { handleToolCall } from '@/components/tools';
 import { api } from '@/trpc/client';
 import { WeblabCliTransport } from './cli-transport';
+import { OllamaWebTransport } from './ollama-web-transport';
 import { RoutingChatTransport } from './routing-transport';
 import { createCheckpointsForAllBranches, getUserChatMessageFromString } from './utils';
 
@@ -56,26 +57,61 @@ export function useChat({
 
     const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
     const [isExecutingToolCall, setIsExecutingToolCall] = useState(false);
+    // Counts in-flight `handleToolCall` invocations so `isExecutingToolCall`
+    // only flips back to false when ALL parallel tools have settled. Without
+    // this, the first tool to finish would clear the flag while siblings are
+    // still mutating files.
+    const inflightToolCalls = useRef(0);
     const [queuedMessages, setQueuedMessages] = useState<QueuedMessage[]>([]);
     const isProcessingQueue = useRef(false);
+
+    // The selected model + ollamaBaseUrl are read via ref-backed factories so
+    // the transport instance stays stable across model changes. Without this,
+    // every model toggle would rebuild the transport and could orphan an
+    // active stream. The HTTP transport pulls fresh values via
+    // `prepareSendMessagesRequest`; RoutingChatTransport uses `getModel` for
+    // its routing decision.
+    const modelRef = useRef(model);
+    const ollamaBaseUrlRef = useRef(ollamaBaseUrl);
+    useEffect(() => {
+        modelRef.current = model;
+        ollamaBaseUrlRef.current = ollamaBaseUrl;
+    }, [model, ollamaBaseUrl]);
+    const getModel = useCallback(() => modelRef.current, []);
+    const getOllamaBaseUrl = useCallback(() => ollamaBaseUrlRef.current, []);
 
     const transport = useMemo(
         () =>
             new RoutingChatTransport(
                 new DefaultChatTransport({
                     api: '/api/chat',
-                    body: {
-                        conversationId,
-                        projectId,
-                        model,
-                        ollamaBaseUrl,
-                    },
+                    // Re-build the request body on every send so the latest
+                    // model + ollamaBaseUrl ride along, even when useChat's
+                    // auto-continuation (`sendAutomaticallyWhen`) doesn't
+                    // pass them through per-call.
+                    prepareSendMessagesRequest: ({ messages, body }) => ({
+                        body: {
+                            conversationId,
+                            projectId,
+                            model: modelRef.current,
+                            ollamaBaseUrl: ollamaBaseUrlRef.current,
+                            messages,
+                            ...(body ?? {}),
+                        },
+                    }),
                 }) as unknown as ConstructorParameters<typeof RoutingChatTransport>[0],
-                new WeblabCliTransport() as unknown as ConstructorParameters<
+                new WeblabCliTransport(getModel) as unknown as ConstructorParameters<
                     typeof RoutingChatTransport
                 >[1],
+                getModel,
+                new OllamaWebTransport(
+                    getModel,
+                    getOllamaBaseUrl,
+                ) as unknown as ConstructorParameters<typeof RoutingChatTransport>[3],
             ),
-        [conversationId, projectId, model, ollamaBaseUrl],
+        // Intentionally NOT depending on `model` or `ollamaBaseUrl` — the
+        // refs above keep them fresh without forcing a transport rebuild.
+        [conversationId, projectId, getModel, getOllamaBaseUrl],
     );
 
     const { addToolResult, messages, error, stop, setMessages, regenerate, status } =
@@ -85,10 +121,22 @@ export function useChat({
             sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
             transport: transport as unknown as DefaultChatTransport<ChatMessage>,
             onToolCall: async (toolCall) => {
+                // Track every concurrent invocation so the spinner stays up
+                // until the LAST tool finishes. Awaiting `handleToolCall` also
+                // matches the SDK's `onToolCall` contract: returning a
+                // pending Promise prevents auto-continuation (and the
+                // attendant `tool_use without tool_result` 400) from firing
+                // before every result has been written.
+                inflightToolCalls.current += 1;
                 setIsExecutingToolCall(true);
-                void handleToolCall(toolCall.toolCall, editorEngine, addToolResult).then(() => {
-                    setIsExecutingToolCall(false);
-                });
+                try {
+                    await handleToolCall(toolCall.toolCall, editorEngine, addToolResult);
+                } finally {
+                    inflightToolCalls.current = Math.max(0, inflightToolCalls.current - 1);
+                    if (inflightToolCalls.current === 0) {
+                        setIsExecutingToolCall(false);
+                    }
+                }
             },
             onFinish: ({ message }) => {
                 const finishReason = message.metadata?.finishReason;
@@ -267,6 +315,25 @@ export function useChat({
         [processMessageEdit, posthog, isStreaming, stop, editorEngine.chat.context],
     );
 
+    // Manual recovery affordance for streams that were interrupted (e.g. tab
+    // closed mid-response). The AI SDK's `regenerate()` discards the latest
+    // assistant turn and re-asks against the previous user message — that's a
+    // full retry, not a true "continue from where we left off". The button
+    // surfaced for this should therefore be labelled "Regenerate" so the user
+    // knows their partial reply will be replaced.
+    const regenerateLastAssistant = useCallback(async () => {
+        if (isStreaming) return;
+        posthog.capture('user_regenerate_last_assistant');
+        await regenerate({
+            body: {
+                chatType: ChatType.EDIT,
+                conversationId,
+                model,
+                ollamaBaseUrl,
+            },
+        });
+    }, [isStreaming, posthog, regenerate, conversationId, model, ollamaBaseUrl]);
+
     useEffect(() => {
         // Actions to handle when the chat is finished
         if (finishReason && finishReason !== 'tool-calls') {
@@ -363,7 +430,9 @@ export function useChat({
         status,
         sendMessage,
         editMessage,
+        regenerateLastAssistant,
         messages,
+        setMessages,
         error,
         stop,
         isStreaming,

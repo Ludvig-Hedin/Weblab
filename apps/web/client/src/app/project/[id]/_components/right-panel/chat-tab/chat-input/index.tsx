@@ -33,6 +33,7 @@ import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/mode
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
 import { transKeys } from '@/i18n/keys';
+import { useAiAvailability } from '@/services/offline/ai-availability';
 import { api } from '@/trpc/react';
 import { validateImageLimit } from '../context-pills/helpers';
 import { InputContextPills } from '../context-pills/input-context-pills';
@@ -81,6 +82,7 @@ export const ChatInput = observer(
         const [isComposing, setIsComposing] = useState(false);
         const chatMode = editorEngine.state.chatMode;
         const currentConversation = editorEngine.chat.conversation.current;
+        const aiAvailability = useAiAvailability(model);
         const [inputValue, setInputValue] = useState('');
         const [suggestions, setSuggestions] = useState<ChatSuggestion[]>(
             () => currentConversation?.suggestions ?? [],
@@ -311,6 +313,9 @@ export const ChatInput = observer(
         }
 
         const getPlaceholderText = () => {
+            if (!aiAvailability.canUseAi) {
+                return aiAvailability.message;
+            }
             if (chatMode === ChatType.ASK) {
                 return 'Ask a question about your project...';
             }
@@ -658,8 +663,8 @@ export const ChatInput = observer(
                 slashCommands={slashCommands}
                 className="text-foreground-tertiary text-small p-1.5 transition-colors duration-200"
                 surfaceClassName="focus-within:border-border"
-                submitDisabled={inputEmpty}
-                disabled={false}
+                submitDisabled={inputEmpty || !aiAvailability.canUseAi}
+                disabled={!aiAvailability.canUseAi}
                 showStopButton={isStreaming}
                 onStop={onStop}
                 showMicButton

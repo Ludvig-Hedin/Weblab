@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { ProviderKind, ProviderStatus } from '@weblab/ai';
 import type { LocalModelOption } from '@weblab/models';
@@ -9,6 +9,12 @@ import { CLI_PROVIDER_KINDS, DEFAULT_PROVIDER_STATUS, getProviderManifest } from
 import { api } from '@/trpc/react';
 
 type StatusMap = Record<ProviderKind, ProviderStatus>;
+
+export type UseProviderStatusesResult = {
+    statuses: StatusMap;
+    /** Re-probe the desktop bridge and re-fetch web connections. */
+    refresh: () => void;
+};
 
 /**
  * In step 1 we only know two things:
@@ -39,16 +45,20 @@ export function useProviderStatuses({
 }: {
     localModels: ReadonlyArray<LocalModelOption>;
     localModelsLoading: boolean;
-}): StatusMap {
+}): UseProviderStatusesResult {
     const [desktopStatuses, setDesktopStatuses] = useState<Partial<
         Record<ProviderKind, ProviderStatus>
     > | null>(null);
     const [hasNativeBridge, setHasNativeBridge] = useState<boolean | null>(null);
-    const { data: webConnections } = api.provider.connectionsList.useQuery(undefined, {
-        // Only fire on hosted web — desktop uses the IPC bridge instead.
-        enabled: typeof window !== 'undefined' && !window.weblabNative?.cli,
-        staleTime: 30_000,
-    });
+    // Bumped to force the desktop probe useEffect to re-run; tRPC handles its
+    // own refetch via the returned `refetch` function.
+    const [probeNonce, setProbeNonce] = useState(0);
+    const { data: webConnections, refetch: refetchWebConnections } =
+        api.provider.connectionsList.useQuery(undefined, {
+            // Only fire on hosted web — desktop uses the IPC bridge instead.
+            enabled: typeof window !== 'undefined' && !window.weblabNative?.cli,
+            staleTime: 30_000,
+        });
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -81,9 +91,14 @@ export function useProviderStatuses({
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [probeNonce]);
 
-    return useMemo<StatusMap>(() => {
+    const refresh = useCallback(() => {
+        setProbeNonce((n) => n + 1);
+        void refetchWebConnections();
+    }, [refetchWebConnections]);
+
+    const statuses = useMemo<StatusMap>(() => {
         const map = buildInitial();
 
         // Ollama is special: its discovery already runs through /api/models/local.
@@ -129,4 +144,6 @@ export function useProviderStatuses({
 
         return map;
     }, [hasNativeBridge, desktopStatuses, localModels, localModelsLoading, webConnections]);
+
+    return useMemo(() => ({ statuses, refresh }), [statuses, refresh]);
 }

@@ -33,6 +33,7 @@
     "license": "Apache-2.0",
     "homepage": "https://weblab.build",
     "devDependencies": {
+        "@types/bun": "^1.1.14",
         "@types/node": "^22.10.0",
         "@weblab/eslint": "*",
         "@weblab/typescript": "*",
@@ -40,7 +41,6 @@
         "typescript": "^5.5.4"
     },
     "dependencies": {
-        "@weblab/ai": "*",
         "@weblab/models": "*"
     }
 }

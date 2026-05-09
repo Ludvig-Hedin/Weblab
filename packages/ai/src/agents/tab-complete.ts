@@ -1,13 +1,7 @@
 import { generateText } from 'ai';
 
-import type { ChatModel } from '@weblab/models';
-import {
-    DEFAULT_TAB_COMPLETE_MODEL,
-    getProviderFromModel,
-    LLMProvider,
-    OPENROUTER_MODELS,
-    type OllamaModelId,
-} from '@weblab/models';
+import type { ChatModel, OllamaModelId, OPENROUTER_MODELS } from '@weblab/models';
+import { DEFAULT_TAB_COMPLETE_MODEL, getProviderFromModel, LLMProvider } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
 import { escapeXml } from './xml-escape';
@@ -17,8 +11,7 @@ import { escapeXml } from './xml-escape';
  * we fall back to a chat-style prompt that still works on GPT/Claude/etc. */
 const isCodestral = (model: string) => model.toLowerCase().includes('codestral');
 
-const buildFimPrompt = (prefix: string, suffix: string) =>
-    `[SUFFIX]${suffix}[PREFIX]${prefix}`;
+const buildFimPrompt = (prefix: string, suffix: string) => `[SUFFIX]${suffix}[PREFIX]${prefix}`;
 
 const SYSTEM_PROMPT = `You are a fill-in-the-middle code completion engine.
 
@@ -69,7 +62,9 @@ export const generateTabCompletion = async ({
     const selectedModel: ChatModel = model ?? DEFAULT_TAB_COMPLETE_MODEL;
     const provider = getProviderFromModel(selectedModel);
     if (provider !== LLMProvider.OLLAMA && provider !== LLMProvider.OPENROUTER) {
-        throw new Error(`tab-complete: unsupported provider "${provider}" for model "${selectedModel}"`);
+        throw new Error(
+            `tab-complete: unsupported provider "${provider}" for model "${selectedModel}"`,
+        );
     }
     const modelConfig =
         provider === LLMProvider.OLLAMA

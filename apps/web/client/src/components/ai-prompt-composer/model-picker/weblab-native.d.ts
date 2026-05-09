@@ -23,7 +23,13 @@ export type WeblabNativeBridge = {
         startStream?: (req: unknown) => Promise<{ ok: boolean; error?: string }>;
         abort?: (streamId: string) => void;
         onEvent?: (listener: (event: unknown) => void) => () => void;
-        ollamaPullModel?: (model: string) => Promise<{ ok: boolean; error?: string }>;
+        ollamaPullModel?: (
+            model: string,
+            pullId: string,
+        ) => Promise<{ ok: boolean; error?: string }>;
+        onOllamaPullProgress?: (
+            listener: (event: { pullId: string; line: string }) => void,
+        ) => () => void;
         ollamaQuit?: () => Promise<{ ok: boolean; error?: string }>;
     };
 };

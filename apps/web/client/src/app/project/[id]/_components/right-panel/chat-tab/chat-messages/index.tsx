@@ -26,12 +26,19 @@ const getLatestAssistantMessageId = (messages: ChatMessage[]) =>
 interface ChatMessagesProps {
     messages: ChatMessage[];
     onEditMessage: EditMessage;
+    onRegenerateLastAssistant: () => Promise<void>;
     isStreaming: boolean;
     error?: Error;
 }
 
 export const ChatMessages = observer(
-    ({ messages, onEditMessage, isStreaming, error }: ChatMessagesProps) => {
+    ({
+        messages,
+        onEditMessage,
+        onRegenerateLastAssistant,
+        isStreaming,
+        error,
+    }: ChatMessagesProps) => {
         const editorEngine = useEditorEngine();
         const t = useTranslations();
         const latestAssistantMessageId = getLatestAssistantMessageId(messages);
@@ -39,18 +46,28 @@ export const ChatMessages = observer(
         const renderMessage = useCallback(
             (message: ChatMessage) => {
                 switch (message.role) {
-                    case 'assistant':
+                    case 'assistant': {
+                        const isLatestAssistant = message.id === latestAssistantMessageId;
                         return (
                             <div key={message.id} className="my-2">
                                 <AssistantMessage
                                     key={message.id}
                                     message={message}
-                                    isStreaming={
-                                        isStreaming && message.id === latestAssistantMessageId
+                                    isStreaming={isStreaming && isLatestAssistant}
+                                    // Only the latest assistant message gets
+                                    // the regenerate affordance + streaming
+                                    // flag, so non-latest assistant messages
+                                    // keep stable props and stay memoized
+                                    // across global streaming-state changes.
+                                    isLatestAssistant={isLatestAssistant}
+                                    isAnyStreaming={isLatestAssistant ? isStreaming : false}
+                                    onRegenerate={
+                                        isLatestAssistant ? onRegenerateLastAssistant : undefined
                                     }
                                 />
                             </div>
                         );
+                    }
                     case 'user':
                         return (
                             <div key={message.id} className="my-2">
@@ -67,7 +84,7 @@ export const ChatMessages = observer(
                         assertNever(message.role);
                 }
             },
-            [latestAssistantMessageId, onEditMessage, isStreaming],
+            [latestAssistantMessageId, onEditMessage, isStreaming, onRegenerateLastAssistant],
         );
 
         if (!messages || messages.length === 0) {

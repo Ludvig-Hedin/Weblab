@@ -44,7 +44,13 @@ const ModelSelectorLegacy = ({
 }) => {
     const cloudOption = CHAT_MODEL_OPTIONS.find((o) => o.model === value);
     const localOption = localModels.find((o) => o.model === value);
-    const currentLabel = cloudOption?.label ?? localOption?.label ?? value;
+    const fullLabel = cloudOption?.label ?? localOption?.label ?? value;
+    // Strip provider prefix ("OpenAI GPT 5.5" → "GPT 5.5", "Anthropic Claude" → "Claude").
+    // Falls back to the raw label if no recognized provider prefix is present.
+    const currentLabel = fullLabel.replace(
+        /^(OpenAI|Anthropic|Google|Meta|Mistral|xAI|Ollama|DeepSeek|Cohere)\s+/i,
+        '',
+    );
 
     const [isOpen, setIsOpen] = useState(false);
 
@@ -60,12 +66,14 @@ const ModelSelectorLegacy = ({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary text-mini h-8 gap-1.5 px-2"
+                    aria-label={`Model: ${currentLabel}`}
+                    className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary text-mini h-7 gap-1 rounded-md px-1.5 font-normal"
                 >
-                    <Icons.ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    <span className="max-w-[80px] truncate @[260px]:max-w-[160px]">
+                    {/* Hide the label on narrow panels; the chevron stays as the affordance. */}
+                    <span className="hidden max-w-[160px] truncate @[260px]:inline">
                         {currentLabel}
                     </span>
+                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">

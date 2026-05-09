@@ -1,13 +1,7 @@
 import { smoothStream, streamText } from 'ai';
 
-import type { ChatModel } from '@weblab/models';
-import {
-    DEFAULT_INLINE_EDIT_MODEL,
-    getProviderFromModel,
-    LLMProvider,
-    OPENROUTER_MODELS,
-    type OllamaModelId,
-} from '@weblab/models';
+import type { ChatModel, OllamaModelId, OPENROUTER_MODELS } from '@weblab/models';
+import { DEFAULT_INLINE_EDIT_MODEL, getProviderFromModel, LLMProvider } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
 import { escapeXml } from './xml-escape';
@@ -69,7 +63,9 @@ export const createInlineEditStream = ({
     const selectedModel: ChatModel = model ?? DEFAULT_INLINE_EDIT_MODEL;
     const provider = getProviderFromModel(selectedModel);
     if (provider !== LLMProvider.OLLAMA && provider !== LLMProvider.OPENROUTER) {
-        throw new Error(`inline-edit: unsupported provider "${provider}" for model "${selectedModel}"`);
+        throw new Error(
+            `inline-edit: unsupported provider "${provider}" for model "${selectedModel}"`,
+        );
     }
     const modelConfig =
         provider === LLMProvider.OLLAMA

@@ -3,27 +3,34 @@ import type { ChatMessage } from '@weblab/models';
 import type { MemorySearchResult } from './types';
 import { getMemoryClient } from './client';
 
+const INSTRUCTION_RE = /<instruction>([\s\S]*?)<\/instruction>/;
+
+/**
+ * Extracts the clean user instruction from a hydrated message text part.
+ * Hydrated user messages wrap the actual intent in <instruction>…</instruction>
+ * alongside large XML context blobs (file contents, highlights, errors, etc.).
+ * This strips the noise and returns only the human-readable request.
+ * Falls back to the raw text when no <instruction> tag is present.
+ */
+export function extractInstructionText(rawText: string): string {
+    return INSTRUCTION_RE.exec(rawText)?.[1]?.trim() || rawText.trim();
+}
+
 /**
  * Search Mem0 for memories relevant to the given query.
- * Scoped by both user_id (cross-project preferences) and run_id (project-specific context).
+ * Scoped to the user only (not to a specific project) so preferences learned
+ * in any project — e.g. "I prefer minimal UI" — surface everywhere.
+ * Memories are still stored with run_id=projectId for provenance, but recall
+ * is intentionally user-wide so the AI feels cross-project smart.
  * Returns [] on any error so the chat pipeline is never blocked.
  */
-export async function searchMemories(
-    query: string,
-    userId: string,
-    projectId: string,
-): Promise<MemorySearchResult[]> {
+export async function searchMemories(query: string, userId: string): Promise<MemorySearchResult[]> {
     try {
         const client = getMemoryClient();
-        const results = await client.search(query, {
-            filters: { user_id: userId, run_id: projectId },
-            limit: 10,
-        });
-        // mem0ai returns { results: MemorySearchResult[] }
-        const items = Array.isArray(results)
-            ? results
-            : ((results as { results: MemorySearchResult[] }).results ?? []);
-        return items as MemorySearchResult[];
+        // Use top-level user_id (same as add) — not nested in filters —
+        // so Mem0 returns all memories for this user regardless of project.
+        const results = await client.search(query, { user_id: userId, limit: 10 });
+        return (results as MemorySearchResult[]) ?? [];
     } catch (err) {
         console.warn('[mem0] searchMemories failed:', err);
         return [];
@@ -31,10 +38,11 @@ export async function searchMemories(
 }
 
 /**
- * Store memories from a completed conversation.
+ * Store memories from a single exchange (last user + last assistant message).
+ * Mem0's intended usage is per-exchange, not per full history — it handles
+ * deduplication internally. Sending the entire conversation history on every
+ * turn duplicates all prior turns and grows O(n²) with conversation length.
  * Safe for fire-and-forget: never throws.
- * Strips XML context blobs and tool parts before sending to Mem0 so only
- * clean, human-readable exchanges are stored.
  */
 export async function addMemoriesFromConversation(
     messages: ChatMessage[],
@@ -43,8 +51,14 @@ export async function addMemoriesFromConversation(
 ): Promise<void> {
     try {
         const client = getMemoryClient();
-        const cleanMessages = extractMemoryMessages(messages);
+        // `messages` (from onFinish) always ends with the just-completed exchange:
+        // [...history, currentUserMessage, freshAssistantResponse].
+        // Slice the last 2 so Mem0 only sees the new exchange — not the entire
+        // conversation history that it has already processed in prior turns.
+        const lastExchange = messages.slice(-2);
+        const cleanMessages = extractMemoryMessages(lastExchange);
         if (cleanMessages.length === 0) return;
+        // Store with run_id so Mem0 records provenance, but search is user-wide.
         await client.add(cleanMessages, { user_id: userId, run_id: projectId });
     } catch (err) {
         console.warn('[mem0] addMemoriesFromConversation failed:', err);
@@ -78,9 +92,7 @@ export function extractMemoryMessages(
                 .map((p) => p.text ?? '')
                 .join('\n');
 
-            // Extract only the user's actual instruction, stripping injected XML context
-            const instructionMatch = /<instruction>([\s\S]*?)<\/instruction>/.exec(rawText);
-            const content = instructionMatch?.[1]?.trim() || rawText.trim();
+            const content = extractInstructionText(rawText);
             if (content) result.push({ role: 'user', content });
         } else {
             // Assistant: text parts only, skip tool-call / tool-result noise

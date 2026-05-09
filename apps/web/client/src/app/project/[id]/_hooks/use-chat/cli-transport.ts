@@ -42,14 +42,14 @@ function getBridge(): CliBridge | null {
 
 /** True when the desktop bridge is available. */
 export function hasCliBridge(): boolean {
-    return getBridge() \!== null;
+    return getBridge() !== null;
 }
 
 /** True when this model+provider combination should be routed through the CLI bridge. */
 export function shouldUseCliBridge(model: string): boolean {
-    if (\!hasCliBridge()) return false;
+    if (!hasCliBridge()) return false;
     const provider = inferProviderFromModelId(model);
-    return provider \!== 'openrouter' && provider \!== 'ollama';
+    return provider !== 'openrouter' && provider !== 'ollama';
 }
 
 function flattenContent(message: UIMessage): string {
@@ -67,12 +67,12 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
         options: Parameters<ChatTransport<UIMessage>['sendMessages']>[0],
     ): Promise<ReadableStream<UIMessageChunk>> {
         const bridge = getBridge();
-        if (\!bridge) throw new Error('CLI bridge not available — desktop runtime required');
+        if (!bridge) throw new Error('CLI bridge not available — desktop runtime required');
 
         const streamId = uuidv4();
         const callBodyModel = (options.body as { model?: string } | undefined)?.model;
         const model = callBodyModel ?? this.getModel?.();
-        if (\!model) throw new Error('Missing model in chat request body');
+        if (!model) throw new Error('Missing model in chat request body');
         const provider = inferProviderFromModelId(model);
 
         const cliMessages = options.messages.map((m) => ({
@@ -106,7 +106,7 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
         const stream = new ReadableStream<UIMessageChunk>({
             start(controller) {
                 unsubscribe = bridge.onEvent((event) => {
-                    if (event.streamId \!== streamId) return;
+                    if (event.streamId !== streamId) return;
                     if (event.kind === 'part') {
                         if (terminated) return;
                         try {
@@ -133,7 +133,7 @@ export class WeblabCliTransport implements ChatTransport<UIMessage> {
                 void bridge
                     .startStream({ streamId, provider, model, messages: cliMessages })
                     .then((result) => {
-                        if (\!result.ok) {
+                        if (!result.ok) {
                             terminate(() =>
                                 controller.error(
                                     new Error(result.error ?? 'cli bridge refused stream'),

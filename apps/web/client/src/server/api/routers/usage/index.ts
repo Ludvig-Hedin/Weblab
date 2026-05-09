@@ -115,6 +115,7 @@ export const usageRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            const callerId = ctx.user.id;
             return ctx.db.transaction(async (tx) => {
                 if (input.rateLimitId) {
                     await tx
@@ -122,13 +123,23 @@ export const usageRouter = createTRPCRouter({
                         .set({
                             left: sql`${rateLimits.left} + 1`,
                         })
-                        .where(and(eq(rateLimits.id, input.rateLimitId)));
+                        .where(
+                            and(
+                                eq(rateLimits.id, input.rateLimitId),
+                                eq(rateLimits.userId, callerId),
+                            ),
+                        );
                 }
 
                 if (input.usageRecordId) {
                     await tx
                         .delete(usageRecords)
-                        .where(and(eq(usageRecords.id, input.usageRecordId)));
+                        .where(
+                            and(
+                                eq(usageRecords.id, input.usageRecordId),
+                                eq(usageRecords.userId, callerId),
+                            ),
+                        );
                 }
 
                 return { rateLimitId: input.rateLimitId, usageRecordId: input.usageRecordId };

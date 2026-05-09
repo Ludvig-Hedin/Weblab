@@ -11,9 +11,6 @@ import type { CliAdapter, CliEventEmitter, CliMessage, CliStreamRequest } from '
 /**
  * Format the chat history into a single prompt for the Claude Code CLI.
  *
- * The CLI accepts a prompt via `-p <prompt>` or stdin. We use stdin so the
- * prompt can contain arbitrary characters without shell-escape concerns.
- *
  * For multi-turn history, we prepend a structured transcript and let Claude
  * answer the latest user message. This is intentionally simple — richer tool
  * use / file context comes in a follow-up.
@@ -69,12 +66,18 @@ export class ClaudeAdapter implements CliAdapter {
         const { streamId, model, messages, workingDirectory } = request;
         const prompt = buildPrompt(messages);
 
-        const args = ['-p', '--output-format', 'stream-json', '--verbose', '--model', model];
+        // Claude Code CLI: `-p "<prompt>"` takes the prompt as the next
+        // positional argument; `--output-format stream-json` requires
+        // `--verbose`. See apps/desktop/cli/claude.js for the runtime mirror.
+        const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
+        if (model) {
+            args.push('--model', model);
+        }
 
         let child: ReturnType<typeof spawn>;
         try {
             child = spawn('claude', args, {
-                stdio: ['pipe', 'pipe', 'pipe'],
+                stdio: ['ignore', 'pipe', 'pipe'],
                 cwd: workingDirectory,
                 shell: process.platform === 'win32',
             });
@@ -118,16 +121,16 @@ export class ClaudeAdapter implements CliAdapter {
         emit({ streamId, kind: 'part', payload: { type: 'start', messageId } });
         emit({ streamId, kind: 'part', payload: { type: 'start-step' } });
 
-        // Pipe the prompt in via stdin then close — the CLI reads until EOF.
-        child.stdin?.write(prompt);
-        child.stdin?.end();
-
         const rl = createInterface({ input: child.stdout!, crlfDelay: Infinity });
         rl.on('line', (line) => {
             const parsed = parseLine(line);
             if (!parsed) return;
             if (parsed.type === 'assistant') {
-                const content = parsed.message?.content ?? [];
+                // Cast: the narrowed union still has the `{type:string;[k:string]:unknown}`
+                // catchall arm which TS prefers over the structured `assistant` arm,
+                // dropping the `message.content` types.
+                const assistant = parsed as Extract<ClaudeStreamLine, { type: 'assistant' }>;
+                const content = assistant.message?.content ?? [];
                 for (const block of content) {
                     if (block.type === 'text' && typeof block.text === 'string') {
                         if (!textOpened) {

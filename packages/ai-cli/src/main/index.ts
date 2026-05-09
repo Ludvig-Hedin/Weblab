@@ -1,6 +1,4 @@
-import type { ProviderKind } from '@weblab/ai';
-
-import type { CliAdapter, CliEvent, CliEventEmitter, CliStreamRequest } from '../types';
+import type { CliAdapter, CliEvent, CliEventEmitter, CliStreamRequest, ProviderKind } from '../types';
 import { createClaudeAdapter } from '../claude';
 import {
     createCodexAdapter,

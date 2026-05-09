@@ -1,4 +1,18 @@
-import type { ProviderKind } from '@weblab/ai';
+/**
+ * Provider kinds this package's adapters speak. Duplicated as a literal-union
+ * (rather than imported from `@weblab/ai`) so the ai-cli package's typecheck
+ * stays leaf — importing from `@weblab/ai` would transitively pull TSX modules
+ * via re-exports and break `tsc --noEmit`. Keep this in sync with
+ * `packages/ai/src/providers/manifest.ts:ProviderKind`.
+ */
+export type ProviderKind =
+    | 'openrouter'
+    | 'ollama'
+    | 'codex'
+    | 'claude-code'
+    | 'gemini'
+    | 'opencode'
+    | 'cursor';
 
 /**
  * One AI SDK v6 UIMessageStreamPart payload, narrowed to the subset we emit

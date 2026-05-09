@@ -1,6 +1,4 @@
-import type { ProviderKind } from '@weblab/ai';
-
-import type { CliAdapter, CliEventEmitter, CliStreamRequest } from './types';
+import type { CliAdapter, CliEventEmitter, CliStreamRequest, ProviderKind } from './types';
 
 class NotImplementedAdapter implements CliAdapter {
     constructor(public readonly kind: ProviderKind) {}

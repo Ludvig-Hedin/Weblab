@@ -1,3 +1,5 @@
+'use client';
+
 import { memo, useEffect, useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
@@ -17,6 +19,8 @@ interface CollapsibleCodeBlockProps {
     applied: boolean;
     isStream?: boolean;
     branchId?: string;
+    /** When true, show an "Apply" button that writes the file content to disk. */
+    showApply?: boolean;
 }
 
 const MAX_STREAMING_PREVIEW_CHARS = 12000;
@@ -45,10 +49,13 @@ const CollapsibleCodeBlockComponent = ({
     content,
     isStream,
     branchId,
+    showApply,
 }: CollapsibleCodeBlockProps) => {
     const editorEngine = useEditorEngine();
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [applying, setApplying] = useState(false);
+    const [applyDone, setApplyDone] = useState(false);
     const { preview, truncated } = useMemo(() => getStreamingPreview(content), [content]);
 
     useEffect(() => {
@@ -58,9 +65,22 @@ const CollapsibleCodeBlockComponent = ({
     }, [isStream]);
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(content);
+        void navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const applyFile = async () => {
+        setApplying(true);
+        try {
+            await editorEngine.activeSandbox?.writeFile(path, content);
+            setApplyDone(true);
+            setTimeout(() => setApplyDone(false), 2500);
+        } catch (e) {
+            console.error('Failed to apply file:', e);
+        } finally {
+            setApplying(false);
+        }
     };
 
     const getAnimation = () => {
@@ -142,7 +162,33 @@ const CollapsibleCodeBlockComponent = ({
                                                 the full content.
                                             </div>
                                         )}
-                                        <div className="flex justify-end gap-1.5 border-t p-1">
+                                        <div className="flex items-center justify-end gap-1.5 border-t p-1">
+                                            {showApply && !isStream && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="text-foreground-secondary hover:text-foreground h-7 px-2 font-sans select-none"
+                                                    onClick={() => void applyFile()}
+                                                    disabled={applying}
+                                                >
+                                                    {applying ? (
+                                                        <>
+                                                            <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
+                                                            Applying…
+                                                        </>
+                                                    ) : applyDone ? (
+                                                        <>
+                                                            <Icons.Check className="mr-2 h-4 w-4" />
+                                                            Applied
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Icons.Play className="mr-2 h-4 w-4" />
+                                                            Apply
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
                                             <Button
                                                 size="sm"
                                                 variant="ghost"

@@ -59,3 +59,25 @@ export async function loadAiPromptCreateDraft(): Promise<AiPromptCreateDraft | n
 export async function removeAiPromptCreateDraft(): Promise<void> {
     await localforage.removeItem(AI_PROMPT_CREATE_DRAFT_KEY);
 }
+
+/**
+ * Picker selection persisted across hero reloads AND used as a one-shot
+ * handoff from the create surface to the editor's first chat. Stored separately
+ * from the prompt draft so it survives the post-create cleanup that happens
+ * inside `createProject` — the editor's chat-tab consumes and clears it on
+ * its first mount.
+ */
+export const AI_PROMPT_CREATE_MODEL_KEY = 'ai-prompt-create-model';
+
+export async function saveAiPromptCreateModel(model: string): Promise<void> {
+    await localforage.setItem(AI_PROMPT_CREATE_MODEL_KEY, model);
+}
+
+export async function loadAiPromptCreateModel(): Promise<string | null> {
+    const value = await localforage.getItem<string>(AI_PROMPT_CREATE_MODEL_KEY);
+    return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+export async function removeAiPromptCreateModel(): Promise<void> {
+    await localforage.removeItem(AI_PROMPT_CREATE_MODEL_KEY);
+}

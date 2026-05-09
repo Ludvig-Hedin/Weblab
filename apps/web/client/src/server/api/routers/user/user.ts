@@ -32,8 +32,11 @@ export const userRouter = createTRPCRouter({
         return userData;
     }),
     getById: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
+        if (input !== ctx.user.id) {
+            throw new Error('Unauthorized');
+        }
         const user = await ctx.db.query.users.findFirst({
-            where: eq(users.id, input),
+            where: eq(users.id, ctx.user.id),
             with: {
                 userProjects: {
                     with: {
@@ -45,18 +48,25 @@ export const userRouter = createTRPCRouter({
         return user;
     }),
     upsert: protectedProcedure
-        .input(userInsertSchema)
+        .input(
+            userInsertSchema.omit({
+                id: true,
+                githubInstallationId: true,
+                createdAt: true,
+                updatedAt: true,
+            }),
+        )
         .mutation(async ({ ctx, input }): Promise<User | null> => {
             const authUser = ctx.user;
 
             const existingUser = await ctx.db.query.users.findFirst({
-                where: eq(users.id, input.id),
+                where: eq(users.id, authUser.id),
             });
 
             const { firstName, lastName, displayName } = getUserName(authUser);
 
             const userData = {
-                id: input.id,
+                id: authUser.id,
                 firstName: input.firstName ?? firstName,
                 lastName: input.lastName ?? lastName,
                 displayName: input.displayName ?? displayName,
@@ -78,7 +88,7 @@ export const userRouter = createTRPCRouter({
 
             if (!existingUser) {
                 await trackEvent({
-                    distinctId: input.id,
+                    distinctId: authUser.id,
                     event: 'user_first_signup',
                     properties: {
                         email: userData.email,
