@@ -12,11 +12,26 @@ export function addClassToNode(node: T.JSXElement, className: string): void {
     if (classNameAttr) {
         if (t.isStringLiteral(classNameAttr.value)) {
             classNameAttr.value.value = customTwMerge(classNameAttr.value.value, className);
-        } else if (
-            t.isJSXExpressionContainer(classNameAttr.value) &&
-            t.isCallExpression(classNameAttr.value.expression)
-        ) {
-            classNameAttr.value.expression.arguments.push(t.stringLiteral(className));
+        } else if (t.isJSXExpressionContainer(classNameAttr.value)) {
+            const expr = classNameAttr.value.expression;
+            if (t.isCallExpression(expr)) {
+                // Deduplicate static string args; dynamic args are left to the
+                // call expression's own merge function (cn, clsx, etc.).
+                const alreadyPresent = expr.arguments.some(
+                    (arg) => t.isStringLiteral(arg) && arg.value === className,
+                );
+                if (!alreadyPresent) {
+                    expr.arguments.push(t.stringLiteral(className));
+                }
+            } else if (!t.isJSXEmptyExpression(expr)) {
+                // Dynamic expressions cannot be statically deduplicated —
+                // skip customTwMerge here since the value is only known at runtime.
+                classNameAttr.value.expression = t.binaryExpression(
+                    '+',
+                    t.binaryExpression('+', expr as T.Expression, t.stringLiteral(' ')),
+                    t.stringLiteral(className),
+                );
+            }
         }
     } else {
         insertAttribute(openingElement, 'className', className);

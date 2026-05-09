@@ -44,7 +44,7 @@ export async function importSkillFromUrl(rawUrl: string): Promise<string> {
     try {
         const res = await fetch(url, {
             method: 'GET',
-            redirect: 'follow',
+            redirect: 'error',
             headers: { 'User-Agent': 'weblab-skill-importer/1.0' },
             signal: controller.signal,
         });

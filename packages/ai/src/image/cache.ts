@@ -30,7 +30,11 @@ declare global {
 }
 
 const TTL_MS = 30 * 60 * 1000;
-const MAX_ENTRIES = 200;
+// Per-user cap (instead of a global cap). A noisy user generating many images
+// in rapid succession can no longer evict another user's freshly-cached
+// images. Map insertion order is preserved, so the first key encountered for
+// a given user is also that user's oldest live entry.
+const MAX_ENTRIES_PER_USER = 50;
 
 const cache: Map<string, CacheEntry> = (() => {
     if (globalThis.__weblabImageCache) return globalThis.__weblabImageCache;
@@ -44,10 +48,16 @@ function evictExpired() {
     for (const [id, entry] of cache) {
         if (entry.expiresAt < now) cache.delete(id);
     }
-    while (cache.size > MAX_ENTRIES) {
-        const oldestKey = cache.keys().next().value;
-        if (!oldestKey) break;
-        cache.delete(oldestKey);
+}
+
+function evictForUser(userId: string) {
+    const userEntryIds: string[] = [];
+    for (const [id, entry] of cache) {
+        if (entry.userId === userId) userEntryIds.push(id);
+    }
+    const toDelete = userEntryIds.length - MAX_ENTRIES_PER_USER;
+    for (let i = 0; i < toDelete; i++) {
+        cache.delete(userEntryIds[i]!);
     }
 }
 
@@ -64,6 +74,7 @@ export function putImage(b64: string, mimeType: string, userId: string): string 
         userId,
         expiresAt: Date.now() + TTL_MS,
     });
+    evictForUser(userId);
     return id;
 }
 

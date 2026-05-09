@@ -12,11 +12,14 @@ const APP_ORIGIN = new URL(APP_URL).origin;
 // so dev (localhost:3000) and production (the configured site URL) both work.
 // The CLI bridge handlers re-check senderFrame.url against this set on every
 // call — preload's check alone isn't enough because the renderer can navigate.
+// CR-109: localhost entries are gated to non-production so release builds don't
+// accept IPC from http://localhost.
 const ALLOWED_IPC_ORIGINS = new Set([
     APP_ORIGIN,
     `https://${APP_DOMAIN}`,
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
+    ...(!app.isPackaged
+        ? ['http://localhost:3000', 'http://127.0.0.1:3000']
+        : []),
 ]);
 
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...

@@ -98,7 +98,7 @@ const nextConfig: NextConfig = {
                         key: 'Cache-Control',
                         value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
                     },
-                    { key: 'Vary', value: 'Cookie, Accept-Encoding' },
+                    { key: 'Vary', value: 'Accept-Encoding' },
                 ],
             },
             {
@@ -109,7 +109,7 @@ const nextConfig: NextConfig = {
                         key: 'Cache-Control',
                         value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
                     },
-                    { key: 'Vary', value: 'Cookie, Accept-Encoding' },
+                    { key: 'Vary', value: 'Accept-Encoding' },
                 ],
             },
         ];

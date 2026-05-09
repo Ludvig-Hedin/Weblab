@@ -25,10 +25,19 @@ function buildAllowedOrigins() {
     } catch {
         // ignore malformed env value
     }
-    out.add(`https://${process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build'}`);
-    // Dev convenience: standard Next.js dev ports.
-    out.add('http://localhost:3000');
-    out.add('http://127.0.0.1:3000');
+    // Use URL parsing to guard against malformed domains (e.g. ports, paths in
+    // the env var) that would produce a non-origin string (CR-108).
+    const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
+    try {
+        out.add(new URL(`https://${domain}`).origin);
+    } catch {
+        out.add('https://weblab.build');
+    }
+    // Dev convenience: standard Next.js dev ports (non-production only).
+    if (process.env.NODE_ENV !== 'production') {
+        out.add('http://localhost:3000');
+        out.add('http://127.0.0.1:3000');
+    }
     return out;
 }
 

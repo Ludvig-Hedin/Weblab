@@ -26,7 +26,7 @@ export function loadEditorState(projectId: string): EditorPersistedState | null 
         const raw = window.localStorage.getItem(storageKey(projectId));
         if (!raw) return null;
         const parsed = JSON.parse(raw) as unknown;
-        if (!parsed || typeof parsed !== 'object') return null;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
         return parsed as EditorPersistedState;
     } catch {
         return null;

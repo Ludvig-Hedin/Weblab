@@ -21,7 +21,7 @@ import { cn } from '@weblab/ui/utils';
 import { api } from '@/trpc/react';
 import { ScopeBadge } from './scope-badge';
 
-const NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
+const NAME_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/;
 
 export type SkillFormScope = 'global' | 'project';
 
