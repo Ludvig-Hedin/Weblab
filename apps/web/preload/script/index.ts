@@ -8,6 +8,7 @@ import { preloadMethods } from './api';
 
 export let penpalParent: PromisifiedPenpalParentMethods | null = null;
 let isConnecting = false;
+let trustedOrigins: string[] = [];
 
 /**
  * Find the correct parent window for Weblab connection.
@@ -66,9 +67,9 @@ const getTrustedParentOrigins = (remoteWindow: Window): string[] => {
         }
     }
     console.warn(
-        `${PENPAL_CHILD_CHANNEL} - Could not determine parent origin; falling back to '*'`,
+        `${PENPAL_CHILD_CHANNEL} - Could not determine parent origin; aborting connection`,
     );
-    return ['*'];
+    return [];
 };
 
 const createMessageConnection = async () => {
@@ -80,9 +81,19 @@ const createMessageConnection = async () => {
     console.log(`${PENPAL_CHILD_CHANNEL} - Creating penpal connection`);
 
     const remoteWindow = findWeblabParent();
+    const origins = getTrustedParentOrigins(remoteWindow);
+    if (origins.length === 0) {
+        console.error(
+            `${PENPAL_CHILD_CHANNEL} - No trusted origins available; aborting connection`,
+        );
+        isConnecting = false;
+        return null;
+    }
+    trustedOrigins = origins;
+
     const messenger = new WindowMessenger({
         remoteWindow,
-        allowedOrigins: getTrustedParentOrigins(remoteWindow),
+        allowedOrigins: origins,
     });
 
     const connection = connect({
@@ -125,3 +136,59 @@ const reconnect = debounce(() => {
 }, 1000);
 
 createMessageConnection();
+
+// Preview-site theme toggle: the editor's bottom bar broadcasts
+// { type: 'weblab:preview-theme', theme: 'light' | 'dark' | 'system' } via
+// postMessage. We mirror the value onto <html data-weblab-preview-theme="…">
+// and add/remove the conventional `dark` class so user code (Tailwind, CSS
+// `prefers-color-scheme`, framework theme providers) can react.
+type PreviewTheme = 'light' | 'dark' | 'system';
+const PREVIEW_THEME_MESSAGE_TYPE = 'weblab:preview-theme';
+
+let systemThemeMediaQuery: MediaQueryList | null = null;
+let systemThemeListener: ((e: MediaQueryListEvent) => void) | null = null;
+
+const applyPreviewTheme = (theme: PreviewTheme): void => {
+    if (theme !== 'system' && systemThemeListener && systemThemeMediaQuery) {
+        systemThemeMediaQuery.removeEventListener('change', systemThemeListener);
+        systemThemeMediaQuery = null;
+        systemThemeListener = null;
+    }
+
+    const root = document.documentElement;
+    root.setAttribute('data-weblab-preview-theme', theme);
+    const resolved =
+        theme === 'system'
+            ? window.matchMedia?.('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+            : theme;
+    root.classList.toggle('dark', resolved === 'dark');
+    root.style.colorScheme = resolved;
+
+    if (theme === 'system' && !systemThemeMediaQuery) {
+        const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+        if (mq) {
+            systemThemeMediaQuery = mq;
+            systemThemeListener = (e: MediaQueryListEvent) => {
+                const r = document.documentElement;
+                r.classList.toggle('dark', e.matches);
+                r.style.colorScheme = e.matches ? 'dark' : 'light';
+            };
+            mq.addEventListener('change', systemThemeListener);
+        }
+    }
+};
+
+window.addEventListener('message', (event: MessageEvent) => {
+    const data = event.data as { type?: string; theme?: PreviewTheme } | null;
+    if (data?.type !== PREVIEW_THEME_MESSAGE_TYPE) return;
+    // Fail closed: if we never resolved a trusted parent origin (e.g. the
+    // penpal connection failed), drop all theme messages rather than
+    // accepting them from arbitrary origins.
+    if (trustedOrigins.length === 0 || !trustedOrigins.includes(event.origin)) return;
+    const theme = data.theme;
+    if (theme === 'light' || theme === 'dark' || theme === 'system') {
+        applyPreviewTheme(theme);
+    }
+});

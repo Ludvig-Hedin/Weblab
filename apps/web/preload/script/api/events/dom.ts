@@ -62,6 +62,8 @@ export function listenForDomMutation() {
                         console.error('Failed to send window mutation event:', error);
                     });
             }
+            // Mutations may add tall content; nudge the parent so auto-height keeps up.
+            reportContentSize();
         }
     });
 
@@ -75,9 +77,74 @@ export function listenForResize() {
                 console.error('Failed to send window resize event:', error);
             });
         }
+        reportContentSize();
     }
 
     window.addEventListener('resize', notifyResize);
+}
+
+/**
+ * Track the page's intrinsic content size (driving auto-height frames in the
+ * canvas). The parent receives `{ width, height }` whenever the body / docEl
+ * resizes, on initial load, and after DOM mutations finish.
+ */
+let lastReportedHeight = 0;
+let lastReportedWidth = 0;
+
+export function reportContentSize() {
+    if (!penpalParent) return;
+    try {
+        const docEl = document.documentElement;
+        const body = document.body;
+        const height = Math.max(
+            docEl?.scrollHeight ?? 0,
+            docEl?.offsetHeight ?? 0,
+            body?.scrollHeight ?? 0,
+            body?.offsetHeight ?? 0,
+        );
+        const width = Math.max(
+            docEl?.scrollWidth ?? 0,
+            docEl?.offsetWidth ?? 0,
+            body?.scrollWidth ?? 0,
+            body?.offsetWidth ?? 0,
+        );
+        if (Math.abs(height - lastReportedHeight) < 1 && Math.abs(width - lastReportedWidth) < 1) {
+            return;
+        }
+        lastReportedHeight = height;
+        lastReportedWidth = width;
+        penpalParent.onContentResized({ width, height }).catch((error: Error) => {
+            console.error('Failed to send content resize event:', error);
+        });
+    } catch (error) {
+        console.warn('reportContentSize failed:', error);
+    }
+}
+
+/**
+ * Observe the documentElement for size changes (a content-driven height) and
+ * push updates to the parent. Called once during ready.
+ */
+export function listenForContentResize() {
+    if (typeof ResizeObserver === 'undefined') {
+        return;
+    }
+    try {
+        const ro = new ResizeObserver(() => reportContentSize());
+        if (document.documentElement) {
+            ro.observe(document.documentElement);
+        }
+        if (document.body) {
+            ro.observe(document.body);
+        }
+    } catch (error) {
+        console.warn('ResizeObserver setup failed:', error);
+    }
+    // Belt-and-braces in case the page's lifecycle hides scroll-height changes.
+    window.addEventListener('load', () => reportContentSize());
+    setTimeout(reportContentSize, 100);
+    setTimeout(reportContentSize, 500);
+    setTimeout(reportContentSize, 1500);
 }
 
 function shouldIgnoreMutatedNode(node: HTMLElement): boolean {
@@ -85,7 +152,12 @@ function shouldIgnoreMutatedNode(node: HTMLElement): boolean {
         return true;
     }
 
-    if (node.getAttribute(EditorAttributes.DATA_WEBLAB_INSERTED)) {
+    // Recognize both the current `data-weblab-inserted` and the legacy
+    // `data-onlook-inserted` attributes so older customer projects keep working.
+    if (
+        node.getAttribute(EditorAttributes.DATA_WEBLAB_INSERTED) ||
+        node.getAttribute(EditorAttributes.DATA_ONLOOK_INSERTED)
+    ) {
         return true;
     }
 
@@ -99,10 +171,12 @@ function dedupNewElement(newEl: HTMLElement) {
     if (!oid) {
         return;
     }
+    const insertedSelectors = [
+        `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_WEBLAB_INSERTED}]`,
+        `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_ONLOOK_INSERTED}]`,
+    ];
     document
-        .querySelectorAll(
-            `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_WEBLAB_INSERTED}]`,
-        )
+        .querySelectorAll(insertedSelectors.join(','))
         .forEach((targetEl) => {
             const ATTRIBUTES_TO_REPLACE = [
                 EditorAttributes.DATA_WEBLAB_DOM_ID,

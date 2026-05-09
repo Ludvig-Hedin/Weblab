@@ -8,6 +8,17 @@ const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${APP_DOMAIN}`;
 const APP_ORIGIN = new URL(APP_URL).origin;
 
+// Origins the IPC layer accepts requests from. Mirrors the preload's allow-list
+// so dev (localhost:3000) and production (the configured site URL) both work.
+// The CLI bridge handlers re-check senderFrame.url against this set on every
+// call — preload's check alone isn't enough because the renderer can navigate.
+const ALLOWED_IPC_ORIGINS = new Set([
+    APP_ORIGIN,
+    `https://${APP_DOMAIN}`,
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]);
+
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
 const PROTOCOL = 'weblab';
 
@@ -40,7 +51,7 @@ ipcMain.handle('weblab:open-oauth', async (_event, url) => {
 });
 
 registerCliIpc({
-    appOrigin: APP_ORIGIN,
+    allowedOrigins: ALLOWED_IPC_ORIGINS,
     getWebContents: () => mainWindow?.webContents ?? null,
 });
 

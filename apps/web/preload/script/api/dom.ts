@@ -1,7 +1,7 @@
 import debounce from 'lodash/debounce';
 
 import type { LayerNode } from '@weblab/models';
-import { EditorAttributes } from '@weblab/constants';
+import { EditorAttributes, isWeblabDataAttribute } from '@weblab/constants';
 
 import { isValidHtmlElement } from '../helpers/dom';
 import { getInstanceId, getOid, getOrAssignDomId } from '../helpers/ids';
@@ -149,7 +149,7 @@ function processNode(node: HTMLElement): LayerNode {
             attribute.name !== 'class' &&
             attribute.name !== 'style' &&
             attribute.name !== 'id' &&
-            !attribute.name.startsWith('data-weblab-')
+            !isWeblabDataAttribute(attribute.name)
         );
     });
     const role = node.getAttribute('role')?.toLowerCase() ?? null;

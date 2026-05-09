@@ -1,9 +1,11 @@
 import type { ProcessDomResult } from './dom';
+import { findListAncestorOid, setCmsData } from './cms';
 import { buildLayerTree, processDom } from './dom';
 import {
     getChildrenCount,
     getElementAtLoc,
     getElementByDomId,
+    getElementByOid,
     getOffsetParent,
     getParentElement,
     updateElementInstance,
@@ -31,10 +33,17 @@ import {
 import { getComputedStyleByDomId } from './elements/style';
 import { editText, isChildTextEditable, startEditingText, stopEditingText } from './elements/text';
 import { handleBodyReady } from './ready';
-import { captureScreenshot } from './screenshot';
+import { captureScreenshot as _captureScreenshot } from './screenshot';
+import { serializeDocumentForOffline } from './snapshot';
 import { setBranchId, setFrameId } from './state';
 import { updateStyle } from './style';
 import { getTheme, setTheme } from './theme';
+
+let capabilities = { allowScreenshot: false };
+
+function setCapabilities(caps: Partial<{ allowScreenshot: boolean }>): void {
+    capabilities = { ...capabilities, ...caps };
+}
 
 function withTryCatch<T extends (...args: any[]) => any>(fn: T): T {
     return ((...args: any[]) => {
@@ -55,12 +64,13 @@ const rawMethods = {
     getComputedStyleByDomId,
     updateElementInstance,
     getFirstWeblabElement,
-    captureScreenshot,
     buildLayerTree,
+    setCapabilities,
 
     // Elements
     getElementAtLoc,
     getElementByDomId,
+    getElementByOid,
     getElementIndex,
     setElementType,
     getElementType,
@@ -102,12 +112,30 @@ const rawMethods = {
     insertImage,
     removeImage,
     handleBodyReady,
+
+    // CMS
+    setCmsData,
+    findListAncestorOid,
+
+    // Offline
+    serializeDocumentForOffline,
 };
 
-// Wrap all methods in a try/catch to prevent the preload script from crashing
-export const preloadMethods = Object.fromEntries(
+// Wrap all methods in a try/catch to prevent the preload script from crashing.
+// captureScreenshot is intentionally excluded so callers receive the explicit
+// "Screenshot capability not enabled" error rather than a silent null.
+const wrappedMethods = Object.fromEntries(
     Object.entries(rawMethods).map(([key, fn]) => [key, withTryCatch(fn)]),
 ) as typeof rawMethods;
+
+async function captureScreenshot() {
+    if (!capabilities.allowScreenshot) {
+        throw new Error('Screenshot capability not enabled');
+    }
+    return _captureScreenshot();
+}
+
+export const preloadMethods = { ...wrappedMethods, captureScreenshot };
 
 export type PenpalChildMethods = typeof preloadMethods;
 export type { ProcessDomResult };

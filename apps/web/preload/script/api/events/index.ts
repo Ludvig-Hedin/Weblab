@@ -1,6 +1,14 @@
-import { listenForDomMutation, listenForResize } from './dom';
+import {
+    listenForContentResize,
+    listenForDomMutation,
+    listenForResize,
+    reportContentSize,
+} from './dom';
 
 export function listenForDomChanges() {
     listenForDomMutation();
     listenForResize();
+    listenForContentResize();
 }
+
+export { reportContentSize };

@@ -27,6 +27,9 @@ export function isValidHtmlElement(element: Element): boolean {
         element.nodeType === Node.ELEMENT_NODE &&
         !DOM_IGNORE_TAGS.includes(element.tagName) &&
         !element.hasAttribute(EditorAttributes.DATA_WEBLAB_IGNORE) &&
+        // Legacy alias from the previous "Onlook" branding — historical projects
+        // may still ship `data-onlook-ignore` on intentionally-skipped nodes.
+        !element.hasAttribute(EditorAttributes.DATA_ONLOOK_IGNORE) &&
         (element as HTMLElement).style.display !== 'none'
     );
 }

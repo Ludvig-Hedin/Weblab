@@ -1,7 +1,8 @@
-import type { CssNode, Declaration, Raw, Rule, SelectorList } from 'css-tree';
+import type { Atrule, CssNode, Declaration, Raw, Rule, SelectorList } from 'css-tree';
 import { generate, parse, walk } from 'css-tree';
 
 import type { StyleChange } from '@weblab/models';
+import type { BreakpointActionContext } from '@weblab/models/actions';
 import { EditorAttributes } from '@weblab/constants';
 
 import { getDomIdSelector } from '../../helpers';
@@ -78,14 +79,25 @@ class CSSManager {
         return matchingNodes;
     }
 
-    public updateStyle(domId: string, style: Record<string, StyleChange>) {
+    public updateStyle(
+        domId: string,
+        style: Record<string, StyleChange>,
+        breakpoint?: BreakpointActionContext,
+    ) {
         const selector = getDomIdSelector(domId, false);
         const ast = this.stylesheet;
+
+        // Resolve the container that should hold the rules: either the
+        // top-level stylesheet (no breakpoint context), or the body of a
+        // matching `@media (min-width: …)` Atrule. The Atrule is created on
+        // demand and reused on subsequent edits at the same threshold.
+        const container = breakpoint ? this.findOrCreateMediaBlock(ast, breakpoint.minWidth) : ast;
+
         for (const [property, value] of Object.entries(style)) {
             const cssProperty = this.jsToCssProperty(property);
-            const matchingNodes = this.find(ast, selector);
+            const matchingNodes = this.findInContainer(container, selector);
             if (!matchingNodes.length) {
-                this.addRule(ast, selector, cssProperty, value.value);
+                this.addRule(container, selector, cssProperty, value.value);
             } else {
                 matchingNodes.forEach((node) => {
                     if (node.type === 'Rule') {
@@ -97,7 +109,60 @@ class CSSManager {
         this.stylesheet = ast;
     }
 
-    addRule(ast: CssNode, selector: string, property: string, value: string) {
+    /**
+     * Locate (or create) a top-level `@media (min-width: <px>)` block in the
+     * stylesheet. The body of this Atrule receives breakpoint-scoped rules so
+     * smaller viewports don't apply Tablet/Desktop overrides at runtime.
+     */
+    private findOrCreateMediaBlock(ast: CssNode, minWidth: number): CssNode {
+        if (ast.type !== 'StyleSheet') return ast;
+        const queryText = `(min-width: ${minWidth}px)`;
+        for (const child of ast.children) {
+            if (child.type !== 'Atrule' || child.name !== 'media') continue;
+            const prelude = child.prelude;
+            if (!prelude) continue;
+            const generated = generate(prelude).replace(/\s+/g, ' ').trim();
+            if (generated === queryText) {
+                if (!child.block) {
+                    // css-tree types declare Atrule.block as nullable. For
+                    // @media this should never be null in practice, but if
+                    // it is we initialize one rather than silently falling
+                    // back to the top-level stylesheet (which would leak
+                    // breakpoint-scoped rules to all viewports).
+                    child.block = { type: 'Block', children: [] as any };
+                }
+                return child.block;
+            }
+        }
+        const block: Atrule['block'] = { type: 'Block', children: [] as any };
+        const atrule: Atrule = {
+            type: 'Atrule',
+            name: 'media',
+            prelude: { type: 'Raw', value: queryText } as Raw,
+            block,
+        } as Atrule;
+        ast.children.push(atrule);
+        return block;
+    }
+
+    private findInContainer(container: CssNode, selectorToFind: string) {
+        const matchingNodes: CssNode[] = [];
+        walk(container, {
+            visit: 'Rule',
+            enter: (node: CssNode) => {
+                if (node.type === 'Rule' && node.prelude.type === 'SelectorList') {
+                    node.prelude.children.forEach((selector) => {
+                        if (generate(selector) === selectorToFind) {
+                            matchingNodes.push(node);
+                        }
+                    });
+                }
+            },
+        });
+        return matchingNodes;
+    }
+
+    addRule(container: CssNode, selector: string, property: string, value: string) {
         const newRule: Rule = {
             type: 'Rule',
             prelude: {
@@ -126,8 +191,8 @@ class CSSManager {
             },
         };
 
-        if (ast.type === 'StyleSheet') {
-            ast.children.push(newRule);
+        if (container.type === 'StyleSheet' || container.type === 'Block') {
+            (container.children as unknown as CssNode[]).push(newRule);
         }
     }
 

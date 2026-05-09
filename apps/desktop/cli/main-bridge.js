@@ -19,19 +19,19 @@ const ADAPTERS = {
     ollama: stubs.ollama,
 };
 
-function isFromAppOrigin(event, appOrigin) {
+function isFromAllowedOrigin(event, allowedOrigins) {
     try {
         const senderUrl =
             (event.senderFrame && event.senderFrame.url) ||
             (event.sender && event.sender.getURL && event.sender.getURL());
         if (!senderUrl) return false;
-        return new URL(senderUrl).origin === appOrigin;
+        return allowedOrigins.has(new URL(senderUrl).origin);
     } catch {
         return false;
     }
 }
 
-function registerStreamingHandlers({ ipcMain, appOrigin, getWebContents }) {
+function registerStreamingHandlers({ ipcMain, allowedOrigins, getWebContents }) {
     const active = new Map();
 
     const emit = (cliEvent) => {
@@ -45,7 +45,7 @@ function registerStreamingHandlers({ ipcMain, appOrigin, getWebContents }) {
     };
 
     ipcMain.handle('weblab-cli:start', async (event, request) => {
-        if (!isFromAppOrigin(event, appOrigin)) {
+        if (!isFromAllowedOrigin(event, allowedOrigins)) {
             return { ok: false, error: 'origin_mismatch' };
         }
         if (!request || !request.streamId || !request.provider) {
@@ -81,7 +81,7 @@ function registerStreamingHandlers({ ipcMain, appOrigin, getWebContents }) {
     });
 
     ipcMain.on('weblab-cli:abort', (event, arg) => {
-        if (!isFromAppOrigin(event, appOrigin)) return;
+        if (!isFromAllowedOrigin(event, allowedOrigins)) return;
         const streamId = arg && arg.streamId;
         if (!streamId) return;
         const entry = active.get(streamId);
