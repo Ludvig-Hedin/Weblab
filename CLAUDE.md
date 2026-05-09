@@ -50,17 +50,48 @@ bun db:reset         # Reset schema + reseed
 
 `apps/web/client` is deployed on **Railway** (not Vercel). When verifying deployments or checking production logs, use the Railway dashboard or CLI — do not look in Vercel. The GitHub remote is `https://github.com/Ludvig-Hedin/Weblab.git`.
 
+## Agent Memory — Read First (Every Session)
+
+Persistent, repo-scoped memory lives in `docs/agent-memory/`:
+
+- **`user-preferences.md`** — read at the start of every session. Short,
+  durable preferences for the project owner (Ludvig).
+- `feature-log.md` — append on significant ships.
+- `architecture-decisions.md` — append on architectural choices worth
+  remembering.
+
+See `docs/agent-memory/README.md` for the read/write protocol.
+
 ## Optional Context Pack
 
-For broad or cross-cutting work, read the relevant files in `docs/agent-context/`:
+For broad or cross-cutting work, read the relevant files in `docs/agent-context/`.
+**Always read the relevant doc(s) before planning a big edit, refactor, or
+feature addition.**
 
-- `README.md` - suggested read order.
-- `current-progress.md` - active worktree context and recent progress.
-- `repo-map.md` - monorepo map and runtime flow.
-- `development-setup.md` - commands, env, validation, and migrations.
-- `editor-architecture.md` - canvas, iframe, MobX engine, sandbox, and AI chat behavior.
-- `data-api-architecture.md` - tRPC, Supabase, Drizzle, migrations, auth, and integrations.
-- `design-product-context.md` - brand, product, and UI/design expectations.
+Read order for most tasks:
+
+1. `current-progress.md` — active worktree context and recent progress.
+2. `repo-map.md` — monorepo map and runtime flow.
+3. `development-setup.md` — commands, env, validation, and migrations.
+
+Reference (read for the area you're touching):
+
+- `packages-reference.md` — every package in `packages/*` and what it does.
+- `trpc-routers-reference.md` — every tRPC router and its purpose.
+- `routes-reference.md` — every Next.js App Router route.
+
+Deep dives:
+
+- `editor-architecture.md` — canvas, iframe, MobX engine, sandbox, AI chat
+  behavior.
+- `ai-chat-architecture.md` — TipTap composer, mention/slash commands, AI
+  pipeline.
+- `cms-architecture.md` — CMS workspace, bindings, preview integration.
+- `breakpoints-architecture.md` — responsive frame breakpoints, parser
+  rebase.
+- `data-api-architecture.md` — tRPC, Supabase, Drizzle, migrations, auth,
+  integrations.
+- `design-product-context.md` — brand, product, UI/design expectations.
 
 ## Validation, Migrations, and Config Changes
 
@@ -68,6 +99,37 @@ For broad or cross-cutting work, read the relevant files in `docs/agent-context/
 - If a change requires database migrations, config updates, env changes, setup steps, or generated artifacts, either run the required local migration/config command yourself or clearly tell the project owner exactly what they must run manually.
 - When migration or config commands cannot be run safely in the current environment, document the blocker, the exact command or file change still needed, and the expected impact if it is skipped.
 - Do not mark a task complete until the app has been validated enough to confirm it is not left with avoidable runtime, build, type, lint, or config errors.
+
+## Documentation Discipline (for Agents)
+
+Documentation is part of "done" — not optional polish.
+
+**Before a big edit / refactor / feature addition:**
+
+1. Read `docs/agent-memory/user-preferences.md`.
+2. Read `docs/agent-context/current-progress.md` to know what's in flight.
+3. Read the relevant `docs/agent-context/*.md` for the area you're touching
+   (packages, routers, routes, editor, AI chat, CMS, breakpoints, data/API).
+4. If recent changes might be relevant, scan `git log --oneline -30` and
+   `docs/agent-memory/feature-log.md`.
+
+**After a significant ship:**
+
+1. Update the affected `docs/agent-context/*.md` if the change alters
+   architecture, contracts, or how an area works.
+2. Append an entry to `docs/agent-memory/feature-log.md` (see its README for
+   what qualifies).
+3. If the change establishes or rejects a pattern other agents should follow,
+   append to `docs/agent-memory/architecture-decisions.md`.
+4. If the change is user-facing, add a changelog entry (and blog post if it
+   meets the "very major" bar — see below).
+5. Update `docs/agent-context/current-progress.md` if the worktree state
+   has shifted meaningfully.
+
+**For new packages, routers, or top-level routes:**
+
+Also update the matching reference:
+`packages-reference.md`, `trpc-routers-reference.md`, `routes-reference.md`.
 
 ## Changelog & Blog — Shipping Announcements
 
@@ -128,21 +190,23 @@ Bun workspaces monorepo with four workspace directories:
 | `apps/web/server` | Fastify + tRPC WebSocket server (Bun runtime) |
 | `apps/backend` | Supabase CLI wrapper, Deno Edge Functions, DB migrations |
 | `docs/` | Fumadocs documentation site |
-| `packages/*` | 16 shared libraries (see below) |
+| `packages/*` | 25 shared libraries (full catalog: `docs/agent-context/packages-reference.md`) |
 | `tooling/*` | Shared ESLint, TypeScript, Prettier configs |
 
-### Key Shared Packages
+### Key Shared Packages (highlights)
 
-- **@weblab/ui** — Radix UI + TailwindCSS component library; prefer it over custom components
-- **@weblab/types** — Shared TypeScript types; import types from here, not re-declared locally
+- **@weblab/ui** — Radix UI + TailwindCSS + shadcn component library; prefer it over custom components
+- **@weblab/types** / **@weblab/models** — Shared TypeScript types; import from here, never re-declared locally
 - **@weblab/db** — Drizzle ORM schema + Postgres migrations (source of truth for DB types)
-- **@weblab/ai** — LLM integrations (OpenRouter primary, OpenAI fallback, Langfuse observability)
-- **@weblab/parser** — Babel-based JSX/TSX parser for code transformations
-- **@weblab/rpc** — tRPC interface definitions shared between client and server
-- **@weblab/penpal** — Cross-frame/iframe RPC (used for sandboxed code execution)
-- **@weblab/github** — Octokit-based GitHub API client
+- **@weblab/ai** — LLM integrations (OpenRouter primary, OpenAI fallback, multi-provider routing)
+- **@weblab/ai-cli** — CLI adapters (Codex, Claude Code, Gemini, OpenCode, Cursor) for desktop local providers
+- **@weblab/parser** — Babel-based JSX/TSX parser, AST edits, responsive class rebase
+- **@weblab/framework** — Framework adapter (Next.js, Vite, Remix, Astro, TanStack Start, static HTML)
+- **@weblab/code-provider** / **@weblab/file-system** — Code sandbox + file-system abstractions
+- **@weblab/mcp** — Model Context Protocol server (file/bash/project tools for AI)
+- **@weblab/rpc** / **@weblab/penpal** — tRPC contracts + cross-frame/iframe RPC
 
-Changes to any package ripple into the 12+ dependent packages — scope changes narrowly.
+Full catalog (25 packages): `docs/agent-context/packages-reference.md`. Changes to a package ripple into dependents — scope changes narrowly.
 
 ## App Router Rules (`apps/web/client`)
 

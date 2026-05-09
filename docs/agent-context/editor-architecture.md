@@ -89,9 +89,29 @@ Canvas chat is not only UI. It coordinates:
 - suggestions generated from completed conversation turns
 - Ask/Build mode behavior
 
-Shared input styling lives in `apps/web/client/src/components/ui` and related
-chat input style helpers. Preserve the no-layout-shift focus behavior described
-in `docs/ai-chat-input-unification-2026-05-06.md`.
+The chat input on every surface (homepage, create, in-canvas) shares a single
+**TipTap-based composer** at `apps/web/client/src/components/ai-prompt-composer/`
+with `@` mention popup and `/` slash command palette. **Read
+`ai-chat-architecture.md` before changing chat input behavior or AI provider
+routing.**
+
+Preserve the no-layout-shift focus behavior described in
+`docs/ai-chat-input-unification-2026-05-06.md`.
+
+## CMS Workspace
+
+The editor now includes a CMS workspace (`_components/cms-workspace/`) that
+binds canvas elements to external content sources, with a `cms-pill` indicator
+and `block-preview` rendering. The `cms` tRPC router exposes the data model.
+**Read `cms-architecture.md` before changing CMS bindings, the workspace UI,
+or the `cms` router.**
+
+## Responsive Frame Breakpoints
+
+Frames now carry breakpoint metadata (migration `0029_frame_breakpoints.sql`)
+and the parser includes a responsive class rebase step. **Read
+`breakpoints-architecture.md` before changing frame dimensions, the parser
+rebase logic, or breakpoint UI.**
 
 ## Common Risks
 

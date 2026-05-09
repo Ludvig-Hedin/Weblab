@@ -16,9 +16,11 @@ Rules:
 - Return plain serializable objects/arrays; SuperJSON handles serialization.
 - Keep authorization checks close to the router operation.
 
-Current router groups include sandbox, user, invitation, project, branch,
-settings, chat, comment, figma, frame, userCanvas, utils, member, domain,
-github, subscription, usage, publish, and editor forwarding.
+Current routers (21 total): `sandbox`, `user`, `invitation`, `project`,
+`provider`, `branch`, `settings`, `chat`, `cms`, `comment`, `figma`, `frame`,
+`userCanvas`, `utils`, `member`, `domain`, `github`, `subscription`, `usage`,
+`publish`, `forward`. **See `trpc-routers-reference.md` for purpose, paths,
+and add-a-router protocol.**
 
 ## Supabase Clients
 

@@ -3,8 +3,7 @@
 Durable preferences for the project owner. **Read this at the start of every
 session.** Append carefully; see `README.md` write protocol.
 
-> Owner identity: Ludvig Hedin. GitHub: `Ludvig-Hedin`. Email:
-> `martin@e-w.se`. Brand: Weblab.
+> Owner identity: Ludvig Hedin. GitHub: `Ludvig-Hedin`. Brand: Weblab.
 
 ---
 

@@ -22,20 +22,43 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 - Goal: small, correct diffs aligned with the project’s architecture.
 - Non-goals: editing generated artifacts, lockfiles, or `node_modules`.
 
+### Agent Memory — Read First (Every Session)
+
+Persistent, repo-scoped memory lives in `docs/agent-memory/`:
+
+- **`user-preferences.md`** — read at the start of every session.
+- `feature-log.md` — append on significant ships.
+- `architecture-decisions.md` — append on architectural choices worth
+  remembering.
+
+See `docs/agent-memory/README.md` for the read/write protocol.
+
 ### Optional Context Pack
 
-Before broad or cross-cutting work, read the relevant files in
+Before broad or cross-cutting work — and **always before planning a big
+edit, refactor, or feature addition** — read the relevant files in
 `docs/agent-context/`:
 
-- `README.md` for the suggested read order.
-- `current-progress.md` for active worktree context and recent progress.
-- `repo-map.md` for the monorepo map and runtime flow.
-- `development-setup.md` for commands, env, validation, and migrations.
-- `editor-architecture.md` for canvas, iframe, MobX engine, sandbox, and AI
-  chat behavior.
-- `data-api-architecture.md` for tRPC, Supabase, Drizzle, migrations, auth, and
-  integrations.
-- `design-product-context.md` for brand, product, and UI/design expectations.
+Read order for most tasks:
+
+- `current-progress.md` — active worktree context and recent progress.
+- `repo-map.md` — monorepo map and runtime flow.
+- `development-setup.md` — commands, env, validation, and migrations.
+
+Reference (read for the area you're touching):
+
+- `packages-reference.md` — every package in `packages/*` (25 total).
+- `trpc-routers-reference.md` — every tRPC router (21 total).
+- `routes-reference.md` — every Next.js App Router route.
+
+Deep dives:
+
+- `editor-architecture.md` — canvas, iframe, MobX engine, sandbox.
+- `ai-chat-architecture.md` — TipTap composer, mention/slash commands.
+- `cms-architecture.md` — CMS workspace and bindings.
+- `breakpoints-architecture.md` — responsive frame breakpoints.
+- `data-api-architecture.md` — tRPC, Supabase, Drizzle, migrations, auth.
+- `design-product-context.md` — brand, product, UI/design expectations.
 
 ### Repo Map
 
@@ -78,6 +101,33 @@ Before broad or cross-cutting work, read the relevant files in
   needed, and the expected impact if it is skipped.
 - Do not mark a task complete until the app has been validated enough to confirm
   it is not left with avoidable runtime, build, type, lint, or config errors.
+
+### Documentation Discipline
+
+Documentation is part of "done" — not optional polish.
+
+**Before a big edit / refactor / feature addition:**
+
+1. Read `docs/agent-memory/user-preferences.md`.
+2. Read `docs/agent-context/current-progress.md`.
+3. Read the relevant `docs/agent-context/*.md` for the area you're touching.
+4. Scan recent context if needed: `git log --oneline -30` and
+   `docs/agent-memory/feature-log.md`.
+
+**After a significant ship:**
+
+1. Update affected `docs/agent-context/*.md` if architecture/contracts
+   changed.
+2. Append to `docs/agent-memory/feature-log.md` (qualifies = new feature, new
+   router, new package, schema-shape change, significant refactor).
+3. If a pattern is established or rejected, append to
+   `docs/agent-memory/architecture-decisions.md`.
+4. User-facing → add a changelog entry (and blog post if "very major").
+5. Update `docs/agent-context/current-progress.md` if worktree state shifted.
+
+**For new packages, routers, or top-level routes:** also update the matching
+reference doc (`packages-reference.md`, `trpc-routers-reference.md`,
+`routes-reference.md`).
 
 ### Changelog & Blog — Shipping Announcements
 

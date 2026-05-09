@@ -83,9 +83,18 @@ unless the maintainer explicitly says to.
 
 Recent migration context:
 
-- `0021_project_runtime_modes.sql` supports runtime metadata for project modes.
-- `0022_user_settings_preferences.sql` adds missing user preference columns
-  used by `api.user.settings.get`.
+- `0022_user_settings_preferences.sql` — user preference columns used by
+  `api.user.settings.get`.
+- `0023_project_runtime_modes.sql` — runtime metadata for project modes
+  (`cloud` / `local` / planned `hybrid`).
+- `0024_*` — subscription cascade fix + related polish (three `0024_*`
+  files exist; all three apply).
+- `0025_auth_user_trigger.sql` — auth user trigger correction.
+- `0026_project_settings_pk.sql` — primary key fix on `project_settings`.
+- `0027_comment_author_fk.sql` — comment FK to author.
+- `0028_missing_indexes.sql` — query performance indexes.
+- `0029_frame_breakpoints.sql` — per-frame responsive breakpoints (see
+  `breakpoints-architecture.md`).
 
 ## Validation Guide
 
