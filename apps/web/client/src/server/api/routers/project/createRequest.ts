@@ -5,11 +5,13 @@ import { projectCreateRequests } from '@weblab/db';
 import { ProjectCreateRequestStatus } from '@weblab/models';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from './helper';
 
 export const projectCreateRequestRouter = createTRPCRouter({
     getPendingRequest: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const request = await ctx.db.query.projectCreateRequests.findFirst({
                 where: and(
                     eq(projectCreateRequests.projectId, input.projectId),
@@ -26,6 +28,7 @@ export const projectCreateRequestRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             await ctx.db
                 .update(projectCreateRequests)
                 .set({

@@ -8,10 +8,9 @@ import { getSandboxPreviewUrl, Tags } from '@weblab/constants';
 import {
     branches,
     canvases,
+    createDefaultBreakpointGroup,
     createDefaultCanvas,
-    createDefaultFrame,
     createDefaultUserCanvas,
-    DefaultFrameType,
     frames,
     projects,
     userCanvases,
@@ -21,6 +20,7 @@ import { ProjectRole } from '@weblab/models';
 
 import { protectedProcedure } from '@/server/api/trpc';
 import { trackEvent } from '@/utils/analytics/server';
+import { verifyProjectAccess } from './helper';
 
 type ForkedBranch = {
     newBranch: Branch;
@@ -152,14 +152,11 @@ function createDefaultFramesForDefaultBranch(
         return [];
     }
 
-    const desktopFrame = createDefaultFrame({
+    return createDefaultBreakpointGroup({
         canvasId,
         branchId: defaultBranchMap.newBranch.id,
         url: defaultBranchMap.newSandboxUrl,
-        type: DefaultFrameType.DESKTOP,
     });
-
-    return [desktopFrame];
 }
 
 export const fork = protectedProcedure
@@ -170,6 +167,8 @@ export const fork = protectedProcedure
         }),
     )
     .mutation(async ({ ctx, input }) => {
+        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+
         // 1. Get the source project with canvas, frames, and branches
         const sourceProject = (await ctx.db.query.projects.findFirst({
             where: eq(projects.id, input.projectId),

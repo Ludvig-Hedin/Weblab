@@ -1,4 +1,5 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { TRPCError } from '@trpc/server';
 import { generateText } from 'ai';
 import { and, eq, ne } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,11 +13,10 @@ import {
     canvases,
     conversations,
     createDefaultBranch,
+    createDefaultBreakpointGroup,
     createDefaultCanvas,
     createDefaultConversation,
-    createDefaultFrame,
     createDefaultUserCanvas,
-    DefaultFrameType,
     frames,
     fromDbCanvas,
     fromDbFrame,
@@ -45,6 +45,7 @@ import { trackEvent } from '@/utils/analytics/server';
 import { projectCreateRequestRouter } from './createRequest';
 import { fork } from './fork';
 import { extractCsbPort, verifyProjectAccess } from './helper';
+import { offlineRouter } from './offline';
 
 export const projectRouter = createTRPCRouter({
     hasAccess: protectedProcedure
@@ -62,6 +63,7 @@ export const projectRouter = createTRPCRouter({
             return !!project && project.userProjects.length > 0;
         }),
     createRequest: projectCreateRequestRouter,
+    offline: offlineRouter,
     captureScreenshot: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .mutation(async ({ ctx, input }) => {
@@ -222,7 +224,6 @@ export const projectRouter = createTRPCRouter({
                 .map((userProject) => {
                     const project = userProject.project;
                     const defaultBranch = project.branches[0];
-                    const frameUrl = defaultBranch?.frames[0]?.url ?? null;
                     const previewDomain = project.previewDomains[0]?.fullDomain ?? null;
                     const publishedDomain = project.projectCustomDomains[0]?.fullDomain ?? null;
                     const previewUrl = previewDomain ? `https://${previewDomain}` : null;
@@ -232,7 +233,10 @@ export const projectRouter = createTRPCRouter({
                         ...fromDbProject(project),
                         previewUrl,
                         publishedUrl,
-                        siteUrl: publishedUrl ?? previewUrl ?? frameUrl,
+                        // Only surface user-facing weblab domains. The raw CSB sandbox
+                        // URL (frameUrl) is an internal dev-server address that should
+                        // never appear in the project card or be shared externally.
+                        siteUrl: publishedUrl ?? previewUrl ?? null,
                     };
                 })
                 .sort(
@@ -244,6 +248,7 @@ export const projectRouter = createTRPCRouter({
     get: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const project = await ctx.db.query.projects.findFirst({
                 where: eq(projects.id, input.projectId),
             });
@@ -256,6 +261,7 @@ export const projectRouter = createTRPCRouter({
     getProjectWithCanvas: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const project = await ctx.db.query.projects.findFirst({
                 where: eq(projects.id, input.projectId),
                 with: {
@@ -287,7 +293,6 @@ export const projectRouter = createTRPCRouter({
         .input(
             z.object({
                 project: projectInsertSchema,
-                userId: z.string(),
                 sandboxId: z.string(),
                 sandboxUrl: z.string(),
                 creationData: projectCreateRequestInsertSchema
@@ -298,6 +303,7 @@ export const projectRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            const ownerId = ctx.user.id;
             return await ctx.db.transaction(async (tx) => {
                 // 1. Insert the new project
                 const [newProject] = await tx.insert(projects).values(input.project).returning();
@@ -314,7 +320,7 @@ export const projectRouter = createTRPCRouter({
 
                 // 3. Create the association in the junction table
                 await tx.insert(userProjects).values({
-                    userId: input.userId,
+                    userId: ownerId,
                     projectId: newProject.id,
                     role: ProjectRole.OWNER,
                 });
@@ -323,21 +329,20 @@ export const projectRouter = createTRPCRouter({
                 const newCanvas = createDefaultCanvas(newProject.id);
                 await tx.insert(canvases).values(newCanvas);
 
-                const newUserCanvas = createDefaultUserCanvas(input.userId, newCanvas.id, {
+                const newUserCanvas = createDefaultUserCanvas(ownerId, newCanvas.id, {
                     x: '120',
                     y: '120',
                     scale: '0.56',
                 });
                 await tx.insert(userCanvases).values(newUserCanvas);
 
-                // 5. Create the default frame
-                const desktopFrame = createDefaultFrame({
+                // 5. Create the default breakpoint group (Desktop + Tablet + Phone)
+                const defaultFrames = createDefaultBreakpointGroup({
                     canvasId: newCanvas.id,
                     branchId: newBranch.id,
                     url: input.sandboxUrl,
-                    type: DefaultFrameType.DESKTOP,
                 });
-                await tx.insert(frames).values(desktopFrame);
+                await tx.insert(frames).values(defaultFrames);
 
                 // 6. Create the default chat conversation
                 await tx.insert(conversations).values(createDefaultConversation(newProject.id));
@@ -352,7 +357,7 @@ export const projectRouter = createTRPCRouter({
                 }
 
                 trackEvent({
-                    distinctId: input.userId,
+                    distinctId: ownerId,
                     event: 'user_create_project',
                     properties: {
                         projectId: newProject.id,
@@ -412,13 +417,12 @@ export const projectRouter = createTRPCRouter({
                 });
                 await tx.insert(userCanvases).values(newUserCanvas);
 
-                const desktopFrame = createDefaultFrame({
+                const defaultFrames = createDefaultBreakpointGroup({
                     canvasId: newCanvas.id,
                     branchId: newBranch.id,
                     url: previewUrl,
-                    type: DefaultFrameType.DESKTOP,
                 });
-                await tx.insert(frames).values(desktopFrame);
+                await tx.insert(frames).values(defaultFrames);
 
                 await tx.insert(conversations).values(createDefaultConversation(newProject.id));
 
@@ -488,10 +492,16 @@ export const projectRouter = createTRPCRouter({
             });
         }),
     getPreviewProjects: protectedProcedure
-        .input(z.object({ userId: z.string() }))
+        .input(z.object({ userId: z.string() }).optional())
         .query(async ({ ctx, input }) => {
+            if (input?.userId && input.userId !== ctx.user.id) {
+                throw new TRPCError({
+                    code: 'UNAUTHORIZED',
+                    message: "Cannot access another user's preview projects",
+                });
+            }
             const projects = await ctx.db.query.userProjects.findMany({
-                where: eq(userProjects.userId, input.userId),
+                where: eq(userProjects.userId, ctx.user.id),
                 with: {
                     project: true,
                 },

@@ -80,6 +80,11 @@ export const env = createEnv({
         // Required at runtime for `/api/auth/providers/*`; optional in build/dev.
         PROVIDER_TOKEN_ENCRYPTION_KEY: z.string().optional(),
 
+        // External CMS source credential encryption (32-byte base64 secret).
+        // Required at runtime to connect Payload/Strapi/REST sources; optional
+        // in build/dev. Generate with `openssl rand -base64 32`.
+        CMS_SOURCE_ENCRYPTION_KEY: z.string().optional(),
+
         // OAuth client credentials per provider.
         GEMINI_OAUTH_CLIENT_ID: z.string().optional(),
         GEMINI_OAUTH_CLIENT_SECRET: z.string().optional(),
@@ -98,7 +103,7 @@ export const env = createEnv({
     client: {
         NEXT_PUBLIC_SITE_URL: z.url().default('http://localhost:3000'),
         NEXT_PUBLIC_SHOW_DEV_LOGIN: z.preprocess((value) => {
-            if (value === undefined) return true;
+            if (value === undefined) return false;
             if (typeof value === 'string') return value === 'true';
             return value;
         }, z.boolean()),
@@ -113,12 +118,16 @@ export const env = createEnv({
         NEXT_PUBLIC_CUSTOM_FONTS_ENABLED: z.coerce.boolean().default(false),
         NEXT_PUBLIC_AUTH_PROVIDERS: z.string().default('github,google'),
         NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: z.coerce.boolean().default(false),
-        NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(false),
-        NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(true),
+        NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(true),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
         NEXT_PUBLIC_APP_DOMAIN: z.string().default('weblab.build'),
+        // Tri-state SW opt-in. Empty = production-only (default). 'true'
+        // forces registration even in dev (for QAing offline locally).
+        // 'false' disables SW entirely.
+        NEXT_PUBLIC_ENABLE_SW: z.enum(['true', 'false']).optional(),
     },
 
     /**
@@ -171,6 +180,7 @@ export const env = createEnv({
         // Brand
         NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
         NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN,
+        NEXT_PUBLIC_ENABLE_SW: process.env.NEXT_PUBLIC_ENABLE_SW,
 
         // Hosting
         FREESTYLE_API_KEY: process.env.FREESTYLE_API_KEY,
@@ -238,6 +248,7 @@ export const env = createEnv({
 
         // Provider OAuth (CLI provider sign-in on hosted web)
         PROVIDER_TOKEN_ENCRYPTION_KEY: process.env.PROVIDER_TOKEN_ENCRYPTION_KEY,
+        CMS_SOURCE_ENCRYPTION_KEY: process.env.CMS_SOURCE_ENCRYPTION_KEY,
         GEMINI_OAUTH_CLIENT_ID: process.env.GEMINI_OAUTH_CLIENT_ID,
         GEMINI_OAUTH_CLIENT_SECRET: process.env.GEMINI_OAUTH_CLIENT_SECRET,
         OPENCODE_OAUTH_CLIENT_ID: process.env.OPENCODE_OAUTH_CLIENT_ID,

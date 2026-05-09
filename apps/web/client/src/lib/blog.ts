@@ -11,8 +11,12 @@ export interface BlogPostFrontmatter {
     title: string;
     description: string;
     date: string;
+    /** ISO date — last meaningful update. Falls back to `date` when absent. */
+    updated?: string;
     author: string;
     authorImage: string;
+    /** Optional canonical URL for the author (LinkedIn/X/personal site) — used in BlogPosting Person schema for E-E-A-T. */
+    authorUrl?: string;
     category: string;
     tags: string[];
     coverImage: string;
@@ -77,7 +81,9 @@ function validateBlogPostFrontmatter(data: Record<string, unknown>): BlogPostFro
         !Array.isArray(data.tags) ||
         !data.tags.every((tag) => typeof tag === 'string') ||
         typeof data.coverImage !== 'string' ||
-        (data.draft !== undefined && typeof data.draft !== 'boolean')
+        (data.draft !== undefined && typeof data.draft !== 'boolean') ||
+        (data.updated !== undefined && typeof data.updated !== 'string') ||
+        (data.authorUrl !== undefined && typeof data.authorUrl !== 'string')
     ) {
         return null;
     }
@@ -86,8 +92,10 @@ function validateBlogPostFrontmatter(data: Record<string, unknown>): BlogPostFro
         title: data.title,
         description: data.description,
         date: data.date,
+        updated: data.updated,
         author: data.author,
         authorImage: data.authorImage,
+        authorUrl: data.authorUrl,
         category: data.category,
         tags: data.tags,
         coverImage: data.coverImage,

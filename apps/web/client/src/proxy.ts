@@ -8,5 +8,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/projects/:path*', '/project/:path*', '/invitation/:path*', '/auth/callback'],
+    matcher: [
+        // Match every dynamic request except static assets and image files.
+        // Wide matcher ensures session refresh runs everywhere a user can land.
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    ],
 };

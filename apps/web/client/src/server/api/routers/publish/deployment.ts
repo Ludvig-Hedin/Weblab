@@ -6,6 +6,7 @@ import { deployments, deploymentUpdateSchema } from '@weblab/db';
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from '../project/helper';
 import { updateDeployment } from './helpers';
 import { createDeployment, publish } from './helpers/index.ts';
 
@@ -19,6 +20,7 @@ export const deploymentRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
             const { projectId, type } = input;
+            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
             const deployment = await ctx.db.query.deployments.findFirst({
                 where: and(eq(deployments.projectId, projectId), eq(deployments.type, type)),
                 orderBy: desc(deployments.createdAt),
@@ -26,6 +28,16 @@ export const deploymentRouter = createTRPCRouter({
             return deployment ?? null;
         }),
     update: protectedProcedure.input(deploymentUpdateSchema).mutation(async ({ ctx, input }) => {
+        const existing = await ctx.db.query.deployments.findFirst({
+            where: eq(deployments.id, input.id),
+        });
+        if (!existing) {
+            throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'Deployment not found',
+            });
+        }
+        await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
         return await updateDeployment(ctx.db, input);
     }),
     create: protectedProcedure
@@ -41,6 +53,8 @@ export const deploymentRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const { projectId, type, sandboxId, buildScript, buildFlags, envVars } = input;
+
+            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
 
             const userId = ctx.user.id;
 
@@ -83,6 +97,16 @@ export const deploymentRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }): Promise<void> => {
             const { deploymentId } = input;
+            const deploymentRow = await ctx.db.query.deployments.findFirst({
+                where: eq(deployments.id, deploymentId),
+            });
+            if (!deploymentRow) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Deployment not found',
+                });
+            }
+            await verifyProjectAccess(ctx.db, ctx.user.id, deploymentRow.projectId);
             const existingDeployment = await ctx.db.query.deployments.findFirst({
                 where: and(
                     eq(deployments.id, deploymentId),
@@ -145,11 +169,19 @@ export const deploymentRouter = createTRPCRouter({
                 where: eq(deployments.id, deploymentId),
             });
 
+            if (!deployment) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Deployment not found',
+                });
+            }
+            await verifyProjectAccess(ctx.db, ctx.user.id, deployment.projectId);
+
             await updateDeployment(ctx.db, {
                 id: deploymentId,
                 status: DeploymentStatus.CANCELLED,
                 message: 'Cancelled by user',
-                envVars: deployment?.envVars ?? {},
+                envVars: deployment.envVars ?? {},
             });
         }),
 });

@@ -5,6 +5,7 @@ import type { Provider } from '@weblab/code-provider';
 import type { Deployment, deploymentUpdateSchema } from '@weblab/db';
 import type { FileOperations } from '@weblab/utility';
 import {
+    APP_NAME,
     CUSTOM_OUTPUT_DIR,
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
@@ -117,7 +118,7 @@ export class PublishManager {
             await updateDeployment({
                 id: deploymentId,
                 status: DeploymentStatus.IN_PROGRESS,
-                message: 'Adding `Built with ${APP_NAME}` badge...',
+                message: `Adding "Built with ${APP_NAME}" badge...`,
                 progress: 35,
                 envVars,
             });

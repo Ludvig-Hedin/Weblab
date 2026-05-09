@@ -25,6 +25,7 @@ export const Routes = {
     AUTH_CALLBACK: '/auth/callback',
     AUTH_CODE_ERROR: '/auth/auth-code-error',
     AUTH_REDIRECT: '/auth/redirect',
+    PROFILE_SETUP: '/profile-setup',
 
     // Dashboard
     PROJECTS: '/projects',
@@ -72,4 +73,20 @@ export const LocalForageKeys = {
      *  while signed out. Consumed by useImportLocalProject to re-open the picker
      *  automatically after a successful sign-in. */
     PENDING_LOCAL_IMPORT: 'pendingLocalImport',
+    /** Set once the first-run editor onboarding tour has been seen (or dismissed).
+     *  Read on editor mount; the tour is suppressed when this flag is truthy. */
+    ONBOARDING_SEEN: 'weblab-onboarding-seen',
+    /** Project id the user most recently opened. Used by the offline bootstrap
+     *  to know which project to fall through to when a SSR fetch fails. */
+    LAST_OPENED_PROJECT_ID: 'weblab-last-opened-project-id',
 } as const;
+
+/** Convenience export — the tour module imports this directly. */
+export const ONBOARDING_SEEN_KEY = LocalForageKeys.ONBOARDING_SEEN;
+
+/** Per-project key tracking which conversation the user last had open.
+ *  Used to restore the same chat thread on return instead of defaulting to
+ *  whichever conversation was most-recently `updatedAt` (which can change
+ *  due to auto-titling, collaborator edits, etc.). */
+export const lastActiveConversationKey = (projectId: string) =>
+    `lastActiveConversation:${projectId}`;

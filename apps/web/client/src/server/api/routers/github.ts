@@ -1,12 +1,62 @@
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import crypto from 'node:crypto';
 
 import type { DrizzleDb } from '@weblab/db';
 import { users } from '@weblab/db';
 import { createInstallationOctokit, generateInstallationUrl } from '@weblab/github';
 
+import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
+
+// 15 minutes — install flow generally completes in under a minute.
+const INSTALL_STATE_TTL_MS = 15 * 60 * 1000;
+
+function getInstallStateKey(): Buffer {
+    // Derive a per-deployment HMAC key from the Supabase service-role key.
+    // This avoids a new env var while keeping the HMAC scoped to a domain
+    // string so the same key isn't reused across signing surfaces.
+    return crypto
+        .createHash('sha256')
+        .update(`${env.SUPABASE_SERVICE_ROLE_KEY}|github-install-state`)
+        .digest();
+}
+
+function signInstallState(userId: string): string {
+    const nonce = crypto.randomBytes(16).toString('base64url');
+    const ts = Date.now().toString();
+    const payload = `${userId}.${nonce}.${ts}`;
+    const sig = crypto
+        .createHmac('sha256', getInstallStateKey())
+        .update(payload)
+        .digest('base64url');
+    return Buffer.from(`${payload}.${sig}`, 'utf8').toString('base64url');
+}
+
+function verifyInstallState(state: string, expectedUserId: string): boolean {
+    let decoded: string;
+    try {
+        decoded = Buffer.from(state, 'base64url').toString('utf8');
+    } catch {
+        return false;
+    }
+    const parts = decoded.split('.');
+    if (parts.length !== 4) return false;
+    const [userId, nonce, ts, sig] = parts;
+    if (!userId || !nonce || !ts || !sig) return false;
+    if (userId !== expectedUserId) return false;
+    const tsNum = Number.parseInt(ts, 10);
+    if (!Number.isFinite(tsNum) || Date.now() - tsNum > INSTALL_STATE_TTL_MS) return false;
+    const expected = crypto
+        .createHmac('sha256', getInstallStateKey())
+        .update(`${userId}.${nonce}.${ts}`)
+        .digest('base64url');
+    const sigBuf = Buffer.from(sig);
+    const expBuf = Buffer.from(expected);
+    if (sigBuf.length !== expBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expBuf);
+}
 
 const parseRepoUrl = (repoUrl: string): { owner: string; repo: string } => {
     const bad = () =>
@@ -146,9 +196,15 @@ export const githubRouter = createTRPCRouter({
                 .optional(),
         )
         .mutation(async ({ input, ctx }) => {
+            // SECURITY: do not use ctx.user.id as the CSRF state — user UUIDs
+            // are not secret with respect to other users (they leak via
+            // member listings, comments, etc.) and let an attacker forge a
+            // callback that overwrites the victim's GitHub installation.
+            // Use an HMAC-signed, time-limited state instead.
+            const signedState = signInstallState(ctx.user.id);
             const { url, state } = generateInstallationUrl({
                 redirectUrl: input?.redirectUrl,
-                state: ctx.user.id, // Use user ID as state for CSRF protection
+                state: signedState,
             });
 
             return { url, state };
@@ -166,6 +222,10 @@ export const githubRouter = createTRPCRouter({
                 });
                 return installationId;
             } catch (error) {
+                // No installation stored yet — normal for a new user, not an error.
+                if (error instanceof TRPCError && error.code === 'PRECONDITION_FAILED') {
+                    return null;
+                }
                 console.error('Error checking GitHub App installation:', error);
                 throw new TRPCError({
                     code: 'FORBIDDEN',
@@ -227,12 +287,11 @@ export const githubRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            // Validate state parameter matches current user ID for CSRF protection
-            if (input.state && input.state !== ctx.user.id) {
-                console.error('State mismatch:', { expected: ctx.user.id, received: input.state });
+            // Validate HMAC-signed state — see signInstallState above.
+            if (!input.state || !verifyInstallState(input.state, ctx.user.id)) {
                 throw new TRPCError({
                     code: 'BAD_REQUEST',
-                    message: 'Invalid state parameter',
+                    message: 'Invalid or expired state parameter',
                 });
             }
 

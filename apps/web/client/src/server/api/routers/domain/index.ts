@@ -9,6 +9,7 @@ import {
 } from '@weblab/db';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from '../project/helper';
 import { customRouter } from './custom';
 import { previewRouter } from './preview';
 import { verificationRouter } from './verify';
@@ -24,6 +25,7 @@ export const domainRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const preview = await ctx.db.query.previewDomains.findFirst({
                 where: eq(previewDomains.projectId, input.projectId),
             });

@@ -1,15 +1,32 @@
 import { TRPCError } from '@trpc/server';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import type { DrizzleDb } from '@weblab/db';
 import {
     CodeProvider,
     createCodeProviderClient,
     getStaticCodeProvider,
 } from '@weblab/code-provider';
 import { APP_NAME, DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@weblab/constants';
+import { branches } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from './helper';
+
+async function verifySandboxAccess(db: DrizzleDb, userId: string, sandboxId: string) {
+    const branch = await db.query.branches.findFirst({
+        where: eq(branches.sandboxId, sandboxId),
+    });
+    if (!branch) {
+        throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Sandbox not found',
+        });
+    }
+    await verifyProjectAccess(db, userId, branch.projectId);
+}
 
 const SANDBOX_PRIVACY = 'private' as const;
 
@@ -78,6 +95,7 @@ export const sandboxRouter = createTRPCRouter({
         )
         .mutation(async ({ input, ctx }) => {
             const userId = ctx.user.id;
+            await verifySandboxAccess(ctx.db, userId, input.sandboxId);
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 userId,
@@ -96,7 +114,8 @@ export const sandboxRouter = createTRPCRouter({
                 sandboxId: z.string(),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
             const provider = await getProvider({ sandboxId: input.sandboxId });
             try {
                 await provider.pauseProject({});
@@ -180,10 +199,45 @@ export const sandboxRouter = createTRPCRouter({
                 sandboxId: z.string(),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
             const provider = await getProvider({ sandboxId: input.sandboxId });
             try {
                 await provider.stopProject({});
+            } finally {
+                await provider.destroy().catch(() => {});
+            }
+        }),
+    /**
+     * Best-effort cleanup for sandboxes that were forked but never attached to
+     * a project (e.g. project.create failed, walkFiles threw, user closed the
+     * tab mid-import). The regular `delete` endpoint requires an owning branch
+     * row, which orphans by definition do not have, so it would always reject.
+     *
+     * Safety: we still refuse if ANY branch row references the sandbox — that
+     * would be a real, owned project and must go through `delete` with proper
+     * ownership checks.
+     */
+    deleteOrphan: protectedProcedure
+        .input(
+            z.object({
+                sandboxId: z.string(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const branch = await ctx.db.query.branches.findFirst({
+                where: eq(branches.sandboxId, input.sandboxId),
+            });
+            if (branch) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message:
+                        'Sandbox is attached to a project; use sandbox.delete with project ownership.',
+                });
+            }
+            const provider = await getProvider({ sandboxId: input.sandboxId });
+            try {
+                await provider.stopProject({}).catch(() => {});
             } finally {
                 await provider.destroy().catch(() => {});
             }

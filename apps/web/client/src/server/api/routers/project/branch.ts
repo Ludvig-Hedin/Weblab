@@ -11,15 +11,17 @@ import {
     branchInsertSchema,
     branchUpdateSchema,
     canvases,
-    createDefaultFrame,
+    createDefaultBreakpointGroup,
+    DEFAULT_BREAKPOINT_PRESETS,
     frames,
     fromDbBranch,
     fromDbFrame,
+    GROUP_GUTTER,
 } from '@weblab/db';
 import { calculateNonOverlappingPosition, generateUniqueBranchName } from '@weblab/utility';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { extractCsbPort } from './helper';
+import { extractCsbPort, verifyProjectAccess } from './helper';
 
 const SANDBOX_PRIVACY = 'private' as const;
 
@@ -40,6 +42,7 @@ export const branchRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const dbBranches = await ctx.db.query.branches.findMany({
                 where: input.onlyDefault
                     ? and(eq(branches.isDefault, true), eq(branches.projectId, input.projectId))
@@ -62,6 +65,13 @@ export const branchRouter = createTRPCRouter({
             }));
         }),
     create: protectedProcedure.input(branchInsertSchema).mutation(async ({ ctx, input }) => {
+        if (!input.projectId) {
+            throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'projectId is required',
+            });
+        }
+        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
         try {
             await ctx.db.insert(branches).values(input);
             return true;
@@ -74,15 +84,34 @@ export const branchRouter = createTRPCRouter({
         }
     }),
     update: protectedProcedure.input(branchUpdateSchema).mutation(async ({ ctx, input }) => {
+        const existing = await ctx.db.query.branches.findFirst({
+            where: eq(branches.id, input.id),
+        });
+        if (!existing) {
+            throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'Branch not found',
+            });
+        }
+        await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+
+        // Strip server-immutable fields from the update set; the project and
+        // sandbox associations are not user-mutable through this procedure.
+        const { projectId: _projectId, sandboxId: _sandboxId, id: _id, ...rest } = input;
+
         try {
             await ctx.db
                 .update(branches)
-                .set({ ...input, updatedAt: new Date() })
+                .set({ ...rest, updatedAt: new Date() })
                 .where(eq(branches.id, input.id));
             return true;
         } catch (error) {
             console.error('Error updating branch', error);
-            return false;
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Failed to update branch',
+                cause: error,
+            });
         }
     }),
     delete: protectedProcedure
@@ -92,12 +121,26 @@ export const branchRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            const existing = await ctx.db.query.branches.findFirst({
+                where: eq(branches.id, input.branchId),
+            });
+            if (!existing) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Branch not found',
+                });
+            }
+            await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
             try {
                 await ctx.db.delete(branches).where(eq(branches.id, input.branchId));
                 return true;
             } catch (error) {
                 console.error('Error deleting branch', error);
-                return false;
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to delete branch',
+                    cause: error,
+                });
             }
         }),
     fork: protectedProcedure
@@ -122,6 +165,8 @@ export const branchRouter = createTRPCRouter({
                         message: 'Source branch not found',
                     });
                 }
+
+                await verifyProjectAccess(ctx.db, ctx.user.id, sourceBranch.projectId);
 
                 // Get existing branch names for unique name generation
                 const existingBranches = await ctx.db.query.branches.findMany({
@@ -187,60 +232,66 @@ export const branchRouter = createTRPCRouter({
                         // Get existing frames for smart positioning
                         const existingFrames = await getExistingFrames(tx, canvas.id);
 
-                        // Use the first frame from the source branch as reference, or default dimensions
-                        let frameWidth = 1200;
-                        let frameHeight = 800;
+                        // Use the first frame's position as anchor for the new group
                         let baseX = 100;
                         let baseY = 100;
-
                         if (
                             sourceBranch.frames &&
                             sourceBranch.frames.length > 0 &&
                             sourceBranch.frames[0]
                         ) {
                             const sourceFrame = sourceBranch.frames[0];
-                            frameWidth = parseInt(sourceFrame.width) || frameWidth;
-                            frameHeight = parseInt(sourceFrame.height) || frameHeight;
                             baseX = parseInt(sourceFrame.x) || baseX;
                             baseY = parseInt(sourceFrame.y) || baseY;
                         }
 
-                        // Create a proposed frame based on source frame dimensions
-                        const proposedFrame: Frame = {
+                        // Total width occupied by a default group (Desktop + Tablet + Phone with gutters)
+                        const groupWidth =
+                            DEFAULT_BREAKPOINT_PRESETS.reduce(
+                                (sum, p) => sum + p.width + GROUP_GUTTER,
+                                0,
+                            ) - GROUP_GUTTER;
+                        const desktopHeight = DEFAULT_BREAKPOINT_PRESETS[0]!.height;
+
+                        const probe: Frame = {
                             id: uuidv4(),
                             branchId: newBranchId,
                             canvasId: canvas.id,
                             position: {
-                                x: baseX + frameWidth + 100, // Initial offset to the right
+                                x: baseX + groupWidth + 100,
                                 y: baseY,
                             },
                             dimension: {
-                                width: frameWidth,
-                                height: frameHeight,
+                                width: groupWidth,
+                                height: desktopHeight,
                             },
                             url: previewUrl,
+                            groupId: 'probe',
+                            breakpoint: {
+                                id: 'desktop',
+                                name: 'Desktop',
+                                width: groupWidth,
+                                order: 0,
+                            },
                         };
 
-                        // Calculate non-overlapping position
                         const optimalPosition = calculateNonOverlappingPosition(
-                            proposedFrame,
+                            probe,
                             existingFrames,
                         );
 
-                        const newFrame = createDefaultFrame({
+                        const newFramesGroup = createDefaultBreakpointGroup({
                             canvasId: canvas.id,
                             branchId: newBranchId,
                             url: previewUrl,
-                            overrides: {
-                                x: optimalPosition.x.toString(),
-                                y: optimalPosition.y.toString(),
-                                width: frameWidth.toString(),
-                                height: frameHeight.toString(),
-                            },
+                            startX: optimalPosition.x,
+                            startY: optimalPosition.y,
                         });
 
-                        await tx.insert(frames).values(newFrame);
-                        createdFrames.push(fromDbFrame(newFrame));
+                        await tx.insert(frames).values(newFramesGroup);
+                        for (const f of newFramesGroup) {
+                            createdFrames.push(fromDbFrame(f));
+                        }
                     }
 
                     return {
@@ -274,6 +325,7 @@ export const branchRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             try {
                 return await ctx.db.transaction(async (tx) => {
                     // Get existing branches with frames for unique name generation and port extraction
@@ -348,42 +400,52 @@ export const branchRouter = createTRPCRouter({
                             // Get existing frames for smart positioning
                             const existingFrames = await getExistingFrames(tx, canvas.id);
 
-                            // Create a proposed frame based on input position
-                            const proposedFrame: Frame = {
+                            const groupWidth =
+                                DEFAULT_BREAKPOINT_PRESETS.reduce(
+                                    (sum, p) => sum + p.width + GROUP_GUTTER,
+                                    0,
+                                ) - GROUP_GUTTER;
+                            const desktopHeight = DEFAULT_BREAKPOINT_PRESETS[0]!.height;
+
+                            const probe: Frame = {
                                 id: uuidv4(),
                                 branchId: newBranchId,
                                 canvasId: canvas.id,
                                 position: {
-                                    x: input.framePosition.x + input.framePosition.width + 100, // Initial simple offset
+                                    x: input.framePosition.x + input.framePosition.width + 100,
                                     y: input.framePosition.y,
                                 },
                                 dimension: {
-                                    width: input.framePosition.width,
-                                    height: input.framePosition.height,
+                                    width: groupWidth,
+                                    height: desktopHeight,
                                 },
                                 url: previewUrl,
+                                groupId: 'probe',
+                                breakpoint: {
+                                    id: 'desktop',
+                                    name: 'Desktop',
+                                    width: groupWidth,
+                                    order: 0,
+                                },
                             };
 
-                            // Calculate non-overlapping position
                             const optimalPosition = calculateNonOverlappingPosition(
-                                proposedFrame,
+                                probe,
                                 existingFrames,
                             );
 
-                            const newFrame = createDefaultFrame({
+                            const newFramesGroup = createDefaultBreakpointGroup({
                                 canvasId: canvas.id,
                                 branchId: newBranchId,
                                 url: previewUrl,
-                                overrides: {
-                                    x: optimalPosition.x.toString(),
-                                    y: optimalPosition.y.toString(),
-                                    width: input.framePosition.width.toString(),
-                                    height: input.framePosition.height.toString(),
-                                },
+                                startX: optimalPosition.x,
+                                startY: optimalPosition.y,
                             });
 
-                            await tx.insert(frames).values(newFrame);
-                            createdFrames.push(fromDbFrame(newFrame));
+                            await tx.insert(frames).values(newFramesGroup);
+                            for (const f of newFramesGroup) {
+                                createdFrames.push(fromDbFrame(f));
+                            }
                         }
                     }
 

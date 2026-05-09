@@ -13,7 +13,7 @@ export const unpublish = async (db: DrizzleDb, deployment: Deployment, urls: str
             message: 'Deployment not found',
         });
     }
-    updateDeployment(db, {
+    await updateDeployment(db, {
         id: deployment.id,
         status: DeploymentStatus.IN_PROGRESS,
         message: 'Unpublishing project...',
@@ -28,7 +28,7 @@ export const unpublish = async (db: DrizzleDb, deployment: Deployment, urls: str
             envVars: {},
         });
 
-        updateDeployment(db, {
+        await updateDeployment(db, {
             id: deployment.id,
             status: DeploymentStatus.COMPLETED,
             message: 'Project unpublished!',
@@ -36,7 +36,7 @@ export const unpublish = async (db: DrizzleDb, deployment: Deployment, urls: str
             envVars: deployment.envVars ?? {},
         });
     } catch (error) {
-        updateDeployment(db, {
+        await updateDeployment(db, {
             id: deployment.id,
             status: DeploymentStatus.FAILED,
             error: error instanceof Error ? error.message : 'Unknown error',
