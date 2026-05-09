@@ -91,7 +91,7 @@ export function ResponsiveWebsiteBlock() {
                     <div className="flex h-full w-full flex-col items-center justify-start overflow-hidden bg-[#E5E3DE] p-4 pt-8 select-none">
                         {/* Hero Content */}
                         <div className="text-center text-[#3C342F]">
-                            <h1 className="mb-3 font-serif text-xl">Le Fidgette</h1>
+                            <p className="mb-3 font-serif text-xl">Le Fidgette</p>
                             <p className="mb-6 text-xs text-balance opacity-90">
                                 Creating natural shapes inspired by the natural world.
                             </p>

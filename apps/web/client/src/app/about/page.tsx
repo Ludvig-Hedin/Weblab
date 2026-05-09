@@ -85,14 +85,14 @@ export default function AboutPage() {
                 {/* Hero Section */}
                 <section className="text-foreground-primary bg-black py-64">
                     <div className="mx-auto max-w-6xl px-8">
-                        <motion.h1
+                        <motion.h2
                             className="mb-8 text-left text-6xl !leading-[1]"
                             {...getBlurAnimationProps()}
                         >
                             Design deserves
                             <br />
                             better tools
-                        </motion.h1>
+                        </motion.h2>
 
                         <motion.div className="max-w-lg text-left" {...getBlurAnimationProps(0.2)}>
                             <p className="md:text-large text-foreground-secondary max-w-lg text-left text-lg font-light text-balance md:max-w-none">

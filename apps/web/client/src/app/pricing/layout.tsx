@@ -9,7 +9,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Pricing', path: '/pricing' },
 ]);
 
-const description = `${APP_NAME} pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Free tier available, transparent paid plans for growing teams.`;
+const description = `${APP_NAME} pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.`;
 
 export const metadata: Metadata = {
     title: `Pricing | ${APP_NAME} — Visual Editor for React`,

@@ -56,9 +56,9 @@ export const metadata: Metadata = {
     creator: APP_NAME,
     publisher: APP_NAME,
     category: 'Software',
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/`,
-    },
+    // Canonical is declared per route (page.tsx / layout.tsx). Setting it on the
+    // root layout caused two `<link rel="canonical">` tags to render on every
+    // subpage in some Next.js metadata-merge cases — see SEO audit C1.
     robots: {
         index: true,
         follow: true,

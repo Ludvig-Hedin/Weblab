@@ -78,6 +78,33 @@ const nextConfig: NextConfig = {
                     { key: 'Content-Type', value: 'application/manifest+json; charset=utf-8' },
                 ],
             },
+            // Edge-cache marketing HTML on Cloudflare so non-EU TTFB is not gated
+            // on the Railway origin in europe-west4. Keep auth/api/projects/dynamic
+            // routes excluded — they still default to no-store via Next's dynamic
+            // rendering pipeline.
+            //
+            // Two rules: an explicit '/' rule (Next's named-param `:path` does
+            // not match the empty path) and a wildcard rule for everything else
+            // that the negative-lookahead allows.
+            {
+                source: '/',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
+                    },
+                ],
+            },
+            {
+                source:
+                    '/:path((?!api|auth|login|projects|project|invitation|sw\\.js|manifest\\.webmanifest|_next).*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
+                    },
+                ],
+            },
         ];
     },
     eslint: {

@@ -11,7 +11,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 export const metadata: Metadata = {
     title: `About ${APP_NAME} | The Visual Editor for React`,
-    description: `Meet the founder behind ${APP_NAME} — an AI-powered visual editor for frontend development. Built in Sweden to obliterate the divide between creativity and implementation. Open source.`,
+    description: `Meet the founder behind ${APP_NAME} — an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.`,
     keywords: [
         // Company
         `${APP_NAME} founder`,

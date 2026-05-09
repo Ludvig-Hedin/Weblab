@@ -4,6 +4,7 @@ import { BrandWordmark } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
 
 import { ExternalRoutes, Routes } from '@/utils/constants';
+import { ContactLink } from './contact-link';
 
 const linkClass =
     'relative inline-block text-foreground-secondary transition-colors duration-200 hover:text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
@@ -69,13 +70,14 @@ export function Footer() {
                                 </a>
                             </li>
                             <li>
-                                <a
-                                    href="mailto:contact@weblab.build"
+                                <ContactLink
+                                    user="contact"
+                                    domain="weblab.build"
                                     className={linkClass}
                                     title="Contact Weblab support"
                                 >
                                     Contact
-                                </a>
+                                </ContactLink>
                             </li>
                         </ul>
                     </div>

@@ -10,8 +10,8 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 ]);
 
 export const metadata: Metadata = {
-    title: `Features | ${APP_NAME} - AI-Powered Visual Editor for React, Vue, Angular`,
-    description: `Explore ${APP_NAME}'s features: AI constrained to your design system, infinite canvas, real-time collaboration, component library integration, version history, and direct GitHub PR output. Works with React, Next.js, Vue, Angular, Tailwind, shadcn/ui, and more.`,
+    title: `Features | ${APP_NAME} — AI Visual Editor for React Teams`,
+    description: `Explore ${APP_NAME}'s features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.`,
     keywords: [
         // Core features
         'visual editor features',
