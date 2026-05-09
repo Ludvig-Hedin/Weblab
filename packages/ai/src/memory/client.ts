@@ -1,4 +1,4 @@
-import MemoryClient from 'mem0ai';
+import type MemoryClient from 'mem0ai';
 
 let _client: MemoryClient | null = null;
 
@@ -7,12 +7,16 @@ let _client: MemoryClient | null = null;
  * Reads MEM0_API_KEY directly from process.env (same pattern as OpenRouter key in providers.ts).
  * Throws if the key is missing — callers in operations.ts must catch this.
  */
-export function getMemoryClient(): MemoryClient {
+export async function getMemoryClient(): Promise<MemoryClient> {
     if (_client) return _client;
     const apiKey = process.env.MEM0_API_KEY;
     if (!apiKey) {
         throw new Error('MEM0_API_KEY is not set');
     }
-    _client = new MemoryClient({ apiKey });
-    return _client;
+    // eslint-disable-next-line no-new-func
+    const serverImport = new Function('p', 'return import(p)');
+    const { default: MemoryClientCtor } = await serverImport('mem0ai');
+    const client = new MemoryClientCtor({ apiKey }) as MemoryClient;
+    _client = client;
+    return client;
 }

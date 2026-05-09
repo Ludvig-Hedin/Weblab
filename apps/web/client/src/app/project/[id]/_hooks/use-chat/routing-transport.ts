@@ -2,7 +2,7 @@
 
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 
-import { inferProviderFromModelId } from '@weblab/ai';
+import { inferProviderFromModelId } from '@weblab/ai/client';
 
 import { isOnline } from '@/services/offline/online-status';
 import { shouldUseCliBridge } from './cli-transport';

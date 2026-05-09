@@ -1,4 +1,4 @@
-import type { ProviderKind } from '@weblab/ai';
+import type { ProviderKind } from '@weblab/ai/client';
 
 /**
  * Shape of the desktop Electron preload bridge exposed via

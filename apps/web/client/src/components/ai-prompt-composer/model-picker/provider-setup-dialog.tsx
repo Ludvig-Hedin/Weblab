@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { ProviderManifestEntry, ProviderStatus } from '@weblab/ai';
+import type { ProviderManifestEntry, ProviderStatus } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,

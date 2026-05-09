@@ -1,13 +1,13 @@
 'use client';
 
 import type { ToolUIPart } from 'ai';
+import { memo, useState } from 'react';
 import mime from 'mime-lite';
 import { observer } from 'mobx-react-lite';
-import { memo, useState } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-import { TOOLS_MAP } from '@weblab/ai';
+import { TOOLS_MAP } from '@weblab/ai/client';
 import { Tool, ToolContent, ToolHeader } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -38,9 +38,7 @@ const ToolCallImageResultComponent = ({
     const title = ToolClass ? safeGetLabel(ToolClass, toolPart.input) : 'Generated image';
 
     const output =
-        toolPart.state === 'output-available'
-            ? (toolPart.output as ImageToolOutput | null)
-            : null;
+        toolPart.state === 'output-available' ? (toolPart.output as ImageToolOutput | null) : null;
     const url = output?.url ?? null;
 
     const [adding, setAdding] = useState(false);
@@ -49,7 +47,10 @@ const ToolCallImageResultComponent = ({
     const [imageLoadError, setImageLoadError] = useState(false);
 
     const selectedImg = pickSelectedImageElement(editorEngine);
-    const altText = ((output?.prompt ?? 'Generated image').trim() || 'Generated image').slice(0, 120);
+    const altText = ((output?.prompt ?? 'Generated image').trim() || 'Generated image').slice(
+        0,
+        120,
+    );
 
     const handleAdd = async () => {
         if (!output?.id) return;
@@ -99,15 +100,15 @@ const ToolCallImageResultComponent = ({
                                 src={url}
                                 alt={altText}
                                 onError={() => setImageLoadError(true)}
-                                className="rounded-md border border-border max-h-72 w-auto self-start"
+                                className="border-border max-h-72 w-auto self-start rounded-md border"
                             />
                         ) : (
-                            <p className="text-xs text-destructive">
+                            <p className="text-destructive text-xs">
                                 Image expired (cache TTL is 30 minutes). Regenerate to retry.
                             </p>
                         )}
                         {output?.prompt ? (
-                            <p className="text-xs text-muted-foreground line-clamp-2">
+                            <p className="text-muted-foreground line-clamp-2 text-xs">
                                 {output.prompt}
                             </p>
                         ) : null}
@@ -125,10 +126,7 @@ const ToolCallImageResultComponent = ({
                                 variant="outline"
                                 onClick={handleReplace}
                                 disabled={
-                                    replacing ||
-                                    !output?.id ||
-                                    !selectedImg?.oid ||
-                                    imageLoadError
+                                    replacing || !output?.id || !selectedImg?.oid || imageLoadError
                                 }
                                 title={
                                     selectedImg?.oid
@@ -141,10 +139,10 @@ const ToolCallImageResultComponent = ({
                         </div>
                     </div>
                 ) : (
-                    <div className="p-2 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground p-2 text-xs">
                         {loading ? 'Generating image…' : 'No image returned.'}
                         {toolPart.errorText ? (
-                            <div className="mt-1 text-destructive">{toolPart.errorText}</div>
+                            <div className="text-destructive mt-1">{toolPart.errorText}</div>
                         ) : null}
                     </div>
                 )}
@@ -155,10 +153,7 @@ const ToolCallImageResultComponent = ({
 
 export const ToolCallImageResult = memo(observer(ToolCallImageResultComponent));
 
-function safeGetLabel(
-    toolClass: { getLabel: (input: unknown) => string },
-    input: unknown,
-): string {
+function safeGetLabel(toolClass: { getLabel: (input: unknown) => string }, input: unknown): string {
     try {
         return toolClass.getLabel(input);
     } catch {

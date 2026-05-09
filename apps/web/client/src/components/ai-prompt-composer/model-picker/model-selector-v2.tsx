@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai';
+import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
 import type { ChatModel, LocalModelOption } from '@weblab/models';
-import { PROVIDER_MANIFEST } from '@weblab/ai';
+import { PROVIDER_MANIFEST } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
 import {
     Command,

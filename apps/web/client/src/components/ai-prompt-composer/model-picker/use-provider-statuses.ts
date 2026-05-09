@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { ProviderKind, ProviderStatus } from '@weblab/ai';
+import type { ProviderKind, ProviderStatus } from '@weblab/ai/client';
 import type { LocalModelOption } from '@weblab/models';
-import { CLI_PROVIDER_KINDS, DEFAULT_PROVIDER_STATUS, getProviderManifest } from '@weblab/ai';
+import { CLI_PROVIDER_KINDS, DEFAULT_PROVIDER_STATUS, getProviderManifest } from '@weblab/ai/client';
 
 import { api } from '@/trpc/react';
 

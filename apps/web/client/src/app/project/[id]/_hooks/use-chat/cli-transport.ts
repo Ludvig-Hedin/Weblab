@@ -3,7 +3,7 @@
 import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
 
-import { inferProviderFromModelId } from '@weblab/ai';
+import { inferProviderFromModelId } from '@weblab/ai/client';
 
 /**
  * Bridge from Vercel AI SDK's ChatTransport contract to the Electron main

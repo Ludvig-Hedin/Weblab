@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { inferProviderFromModelId } from '@weblab/ai';
+import { inferProviderFromModelId } from '@weblab/ai/client';
 
 import { isOllamaReachable } from './ollama-client';
 import { useOnlineStatus } from './online-status';

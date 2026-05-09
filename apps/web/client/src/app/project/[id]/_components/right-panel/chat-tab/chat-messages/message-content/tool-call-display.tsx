@@ -14,7 +14,7 @@ import {
     TypecheckTool,
     WebSearchTool,
     WriteFileTool,
-} from '@weblab/ai';
+} from '@weblab/ai/client';
 
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { CollapsibleCodeBlock } from '../../code-display/collapsible-code-block';

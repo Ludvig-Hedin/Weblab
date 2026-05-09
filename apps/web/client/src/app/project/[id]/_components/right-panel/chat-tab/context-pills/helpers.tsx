@@ -1,5 +1,5 @@
 import type { MessageContext } from '@weblab/models/chat';
-import { getContextClass, getContextLabel } from '@weblab/ai';
+import { getContextClass, getContextLabel } from '@weblab/ai/client';
 import { DefaultSettings } from '@weblab/constants';
 import { MessageContextType } from '@weblab/models/chat';
 import { NodeIcon } from '@weblab/ui/node-icon';

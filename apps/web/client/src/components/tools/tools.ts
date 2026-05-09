@@ -1,4 +1,4 @@
-import { getToolClassesFromType } from '@weblab/ai';
+import { getToolClassesFromType } from '@weblab/ai/client';
 import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '@/components/store/editor/engine';
@@ -6,8 +6,20 @@ import type { ToolCall } from '@ai-sdk/provider-utils';
 
 type AddToolResult = (
     toolResult:
-        | { state?: 'output-available'; tool: string; toolCallId: string; output: any; errorText?: never }
-        | { state: 'output-error'; tool: string; toolCallId: string; output?: never; errorText: string },
+        | {
+              state?: 'output-available';
+              tool: string;
+              toolCallId: string;
+              output: any;
+              errorText?: never;
+          }
+        | {
+              state: 'output-error';
+              tool: string;
+              toolCallId: string;
+              output?: never;
+              errorText: string;
+          },
 ) => Promise<void>;
 
 export async function handleToolCall(
@@ -33,7 +45,9 @@ export async function handleToolCall(
         const validatedInput = tool.parameters.parse(toolCall.input);
         // ToolClass is typed as `typeof BaseTool` (abstract) but the array
         // only contains concrete subclasses, so the instantiation is safe.
-        type ConcreteTool = new () => { handle: (input: object, editorEngine: EditorEngine) => Promise<unknown> };
+        type ConcreteTool = new () => {
+            handle: (input: object, editorEngine: EditorEngine) => Promise<unknown>;
+        };
         const toolInstance = new (tool as unknown as ConcreteTool)();
         // Can force type with as any because we know the input is valid.
         const output = await toolInstance.handle(validatedInput as any, editorEngine);

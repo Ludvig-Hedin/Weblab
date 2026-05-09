@@ -9,6 +9,9 @@ import './src/env';
 
 const nextConfig: NextConfig = {
     devIndicators: false,
+    // Prevent Node.js-only packages from being bundled into client/edge chunks.
+    // These are loaded via native require() in Route Handlers at runtime.
+    serverExternalPackages: ['openai', 'mem0ai'],
     ...(process.env.STANDALONE_BUILD === 'true' && { output: 'standalone' }),
     async headers() {
         return [
@@ -113,10 +116,6 @@ const nextConfig: NextConfig = {
                 ],
             },
         ];
-    },
-    eslint: {
-        // Don't run ESLint during builds - handle it separately in CI
-        ignoreDuringBuilds: true,
     },
 };
 

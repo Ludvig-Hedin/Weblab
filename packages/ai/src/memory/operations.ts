@@ -26,7 +26,7 @@ export function extractInstructionText(rawText: string): string {
  */
 export async function searchMemories(query: string, userId: string): Promise<MemorySearchResult[]> {
     try {
-        const client = getMemoryClient();
+        const client = await getMemoryClient();
         // Use top-level user_id (same as add) — not nested in filters —
         // so Mem0 returns all memories for this user regardless of project.
         const results = await client.search(query, { user_id: userId, limit: 10 });
@@ -50,7 +50,7 @@ export async function addMemoriesFromConversation(
     projectId: string,
 ): Promise<void> {
     try {
-        const client = getMemoryClient();
+        const client = await getMemoryClient();
         // `messages` (from onFinish) always ends with the just-completed exchange:
         // [...history, currentUserMessage, freshAssistantResponse].
         // Slice the last 2 so Mem0 only sees the new exchange — not the entire

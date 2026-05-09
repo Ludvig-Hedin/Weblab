@@ -1,6 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import type { Dirent } from 'node:fs';
 
 import type { SkillInfo, SkillScope, SkillSummary } from './types';
 import { EMBEDDED_SKILLS } from './embedded';
@@ -18,6 +16,9 @@ const cacheByScope: Map<string, { skills: SkillInfo[]; expiresAt: number }> = ((
     globalThis.__weblabSkillsCache = fresh;
     return fresh;
 })();
+
+// eslint-disable-next-line no-new-func
+const _serverImport = new Function('p', 'return import(p)');
 
 function scopeCacheKey(scope: SkillScope | undefined): string {
     if (!scope?.userId) return 'local-only';
@@ -41,7 +42,9 @@ function evictExpired() {
  * a `skills/` folder. Used in dev so editing a SKILL.md is reflected on the
  * next chat turn without re-running the codegen. Capped at 6 levels.
  */
-function findSkillsRoot(): string | null {
+async function findSkillsRoot(): Promise<string | null> {
+    const { existsSync } = await _serverImport('node:fs');
+    const { dirname, join, resolve } = await _serverImport('node:path');
     let current = resolve(process.cwd());
     for (let i = 0; i < 6; i++) {
         const candidate = join(current, 'skills');
@@ -79,6 +82,7 @@ function parseFrontmatter(raw: string): { name?: string; description?: string; b
 }
 
 async function readSkillFile(skillMdPath: string, fallbackName: string): Promise<SkillInfo> {
+    const { readFile } = await _serverImport('node:fs/promises');
     const raw = await readFile(skillMdPath, 'utf8');
     const { name, description, body } = parseFrontmatter(raw);
     return {
@@ -89,12 +93,24 @@ async function readSkillFile(skillMdPath: string, fallbackName: string): Promise
     };
 }
 
+async function safeReaddir(path: string): Promise<Dirent[]> {
+    try {
+        const { readdirSync } = await _serverImport('node:fs');
+        return readdirSync(path, { withFileTypes: true });
+    } catch {
+        return [];
+    }
+}
+
 async function loadFromFilesystem(): Promise<SkillInfo[] | null> {
-    const root = findSkillsRoot();
+    const root = await findSkillsRoot();
     if (!root) return null;
 
+    const { existsSync } = await _serverImport('node:fs');
+    const { join } = await _serverImport('node:path');
+
     const skillFiles: Array<{ path: string; name: string }> = [];
-    const topEntries = safeReaddir(root);
+    const topEntries = await safeReaddir(root);
     for (const entry of topEntries) {
         if (!entry.isDirectory()) continue;
         const dir = join(root, entry.name);
@@ -104,7 +120,7 @@ async function loadFromFilesystem(): Promise<SkillInfo[] | null> {
             continue;
         }
         // Nested group dir — scan one level deeper for SKILL.md.
-        const inner = safeReaddir(dir);
+        const inner = await safeReaddir(dir);
         for (const child of inner) {
             if (!child.isDirectory()) continue;
             const nested = join(dir, child.name, 'SKILL.md');
@@ -222,12 +238,4 @@ export async function loadSkillSummaries(scope?: SkillScope): Promise<SkillSumma
 export async function loadSkillByName(name: string, scope?: SkillScope): Promise<SkillInfo | null> {
     const skills = await loadSkills(scope);
     return skills.find((s) => s.name === name) ?? null;
-}
-
-function safeReaddir(path: string) {
-    try {
-        return readdirSync(path, { withFileTypes: true });
-    } catch {
-        return [];
-    }
 }

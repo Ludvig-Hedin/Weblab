@@ -1,8 +1,8 @@
 import type { ToolUIPart } from 'ai';
 import { memo } from 'react';
 
-import type { BaseTool } from '@weblab/ai';
-import { TOOLS_MAP } from '@weblab/ai';
+import type { BaseTool } from '@weblab/ai/client';
+import { TOOLS_MAP } from '@weblab/ai/client';
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '@weblab/ui/ai-elements';
 import { Icons } from '@weblab/ui/icons';
 
