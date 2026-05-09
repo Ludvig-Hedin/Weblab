@@ -8,9 +8,9 @@ import {
     createRootAgentStream,
     extractInstructionText,
     inferProviderFromModelId,
-    loadSkillSummaries,
     searchMemories,
 } from '@weblab/ai';
+import { loadSkillSummaries } from '@weblab/ai/server';
 import { toDbMessage } from '@weblab/db';
 import { CHAT_MODEL_OPTIONS, ChatType } from '@weblab/models';
 

@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { invalidateSkillsCache } from '@weblab/ai';
+import { invalidateSkillsCache } from '@weblab/ai/server';
 import { fromDbSkill, skills } from '@weblab/db';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
