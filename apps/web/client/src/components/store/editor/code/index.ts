@@ -1,5 +1,8 @@
+import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
+import type { BreakpointId } from '@weblab/models';
+import type { BreakpointEntry } from '@weblab/parser';
 import { type Action, type CodeDiffRequest, type FileToRequests } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 import { assertNever } from '@weblab/utility';
@@ -19,6 +22,7 @@ import {
     getWriteCodeRequests,
     processGroupedRequests,
 } from './requests';
+import { addResponsiveTailwindToRequest } from './tailwind';
 
 export class CodeManager {
     constructor(private editorEngine: EditorEngine) {
@@ -127,7 +131,83 @@ export class CodeManager {
         return requestByFile;
     }
 
-    clear() {}
+    /**
+     * Persist a responsive style override to source for one `(oid, property)`.
+     *
+     * `valuesByBreakpoint` is keyed by the user's stable breakpoint id. We
+     * resolve each id's `minWidth` from the FramesManager, rebase to mobile-
+     * first, and let the existing tailwind/CodeDiffRequest pipeline write the
+     * resulting className tokens (`p-4 md:p-2 lg:p-6`) into the JSX source.
+     *
+     * For non-Tailwind projects we currently fall back to the iframe-only
+     * injection layer (no source write) — extending the writer to a
+     * project-level overrides.css is a follow-up the parser modules already
+     * have the rebase math for.
+     *
+     * Debounced upstream by `ActionManager.scheduleSourceRebase` per
+     * `(oid, property)` so a slider drag doesn't thrash files. The 600ms
+     * debounce here is a single shared timer — if you call this directly
+     * (outside the action pipeline) for two different keys in quick
+     * succession, only the last call within the window will fire. The
+     * action pipeline is the only high-frequency caller; one-shot callers
+     * (alt-click clear) are safe.
+     */
+    writeResponsiveStyle = debounce(this.undebouncedWriteResponsiveStyle.bind(this), 600);
+
+    private async undebouncedWriteResponsiveStyle({
+        oid,
+        property,
+        valuesByBreakpoint,
+    }: {
+        oid: string;
+        property: string;
+        valuesByBreakpoint: Record<BreakpointId, string>;
+    }): Promise<void> {
+        // Resolve breakpoint widths (and active branch) from the canvas.
+        const allFrames = this.editorEngine.frames.getAll();
+        if (allFrames.length === 0) return;
+
+        const widthById = new Map<string, number>();
+        let branchIdForOid: string | null = null;
+        for (const f of allFrames) {
+            const id = f.frame.breakpoint?.id;
+            if (!id) continue;
+            if (!widthById.has(id)) widthById.set(id, f.frame.breakpoint.width);
+            if (!branchIdForOid && f.selected) branchIdForOid = f.frame.branchId;
+        }
+        if (!branchIdForOid) {
+            branchIdForOid = allFrames[0]!.frame.branchId;
+        }
+
+        const entries: BreakpointEntry[] = [];
+        for (const [id, value] of Object.entries(valuesByBreakpoint)) {
+            // Skip ids that don't map to a frame breakpoint, but keep
+            // ids whose width is legitimately 0 (mobile-first base).
+            const minWidth = widthById.get(id);
+            if (minWidth === undefined) continue;
+            entries.push({ id, minWidth, value });
+        }
+        if (entries.length === 0) return;
+
+        const requests = new Map<string, CodeDiffRequest>();
+        const request = await getOrCreateCodeDiffRequest(oid, branchIdForOid, requests);
+        addResponsiveTailwindToRequest(request, property, entries);
+
+        try {
+            await this.writeRequest(Array.from(requests.values()));
+        } catch (error) {
+            console.error('writeResponsiveStyle failed', { oid, property, error });
+        }
+    }
+
+    clear() {
+        // Guard `.cancel()` because the debounced field can be reassigned or
+        // shadowed by a subclass / hot-reload boundary, which strips the
+        // lodash wrapper and turns this into `undefined.cancel()`.
+        if (typeof this.writeResponsiveStyle?.cancel === 'function') {
+            this.writeResponsiveStyle.cancel();
+        }
+    }
 
     async updateElementMetadata({
         oid,

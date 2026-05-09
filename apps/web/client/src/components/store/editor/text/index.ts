@@ -133,7 +133,15 @@ export class TextEditingManager {
         }
         this.targetDomEl = null;
         this.editorEngine.overlay.state.removeTextEditor();
-        await this.editorEngine.history.commitTransaction();
+        // `editorEngine.history` reaches into the active branch's
+        // HistoryManager. During teardown — or when the engine has been
+        // constructed but branches never finished initializing (e.g.,
+        // sandbox unreachable on first load) — there is no active branch
+        // and the getter throws. Skip the commit in that case; there's
+        // nothing pending to commit if no branch is wired up.
+        if (this.editorEngine.branches.hasActiveBranch) {
+            await this.editorEngine.history.commitTransaction();
+        }
         this.shouldNotStartEditing = false;
     }
 

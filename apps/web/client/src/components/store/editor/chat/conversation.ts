@@ -1,3 +1,4 @@
+import localforage from 'localforage';
 import { makeAutoObservable } from 'mobx';
 import { toast } from 'sonner';
 
@@ -5,6 +6,7 @@ import { type ChatConversation } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
 import { api } from '@/trpc/client';
+import { lastActiveConversationKey } from '@/utils/constants';
 
 interface CurrentConversation extends ChatConversation {
     messageCount: number;
@@ -21,12 +23,43 @@ export class ConversationManager {
 
     async applyConversations(conversations: ChatConversation[]) {
         this.conversations = conversations;
-        if (conversations.length > 0 && conversations[0]) {
-            const conversation = conversations[0];
-            await this.selectConversation(conversation.id);
-        } else {
+        if (conversations.length === 0) {
             await this.startNewConversation();
+            return;
         }
+
+        // Prefer the conversation the user most recently had open in this
+        // browser, so a system-side `updatedAt` bump (auto-titling, collaborator
+        // edits) doesn't shuffle them into a different thread on return.
+        const lastActiveId = await this.readLastActiveConversationId();
+        const restored = lastActiveId
+            ? conversations.find((c) => c.id === lastActiveId)
+            : undefined;
+
+        // conversations is non-empty (early-return above guards the empty case),
+        // so target is always defined here.
+        const target = (restored ?? conversations[0])!;
+        await this.selectConversation(target.id);
+    }
+
+    private async readLastActiveConversationId(): Promise<string | null> {
+        try {
+            return await localforage.getItem<string>(
+                lastActiveConversationKey(this.editorEngine.projectId),
+            );
+        } catch (error) {
+            console.error('Error reading last active conversation id', error);
+            return null;
+        }
+    }
+
+    private writeLastActiveConversationId(id: string) {
+        // Fire-and-forget: don't block selection on storage I/O.
+        void localforage
+            .setItem(lastActiveConversationKey(this.editorEngine.projectId), id)
+            .catch((error) => {
+                console.error('Error persisting last active conversation id', error);
+            });
     }
 
     async getConversations(projectId: string): Promise<ChatConversation[]> {
@@ -87,6 +120,7 @@ export class ConversationManager {
             ...match,
             messageCount: 0,
         };
+        this.writeLastActiveConversationId(id);
     }
 
     deleteConversation(id: string) {

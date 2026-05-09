@@ -1,5 +1,18 @@
 import { capitalizeFirstLetter } from '@weblab/utility';
 
+// navigator.platform is deprecated. Prefer userAgentData when present
+// and fall back to a userAgent sniff so platform detection still works
+// on browsers that have already removed the legacy property.
+function isMacPlatform(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const navWithUA = navigator as Navigator & {
+        userAgentData?: { platform?: string };
+    };
+    const platform =
+        navWithUA.userAgentData?.platform ?? navigator.platform ?? navigator.userAgent ?? '';
+    return platform.toUpperCase().includes('MAC');
+}
+
 export class Hotkey {
     // Modes
     static readonly SELECT = new Hotkey('v', 'Select');
@@ -9,13 +22,7 @@ export class Hotkey {
     static readonly COMMENT = new Hotkey('c', 'Comment');
     static readonly TOGGLE_COMMENTS = new Hotkey('shift+c', 'Toggle Comments');
     static readonly PREVIEW = new Hotkey('p', 'Preview');
-    // The `r`, `f`, and `d` keys all start a div insert. `r` is the canonical
-    // shortcut shown in the modal; `f` and `d` are aliases kept for muscle
-    // memory but labelled distinctly so users see they're not three different
-    // actions.
     static readonly INSERT_DIV = new Hotkey('r', 'Insert Div');
-    static readonly INSERT_DIV_F = new Hotkey('f', 'Insert Div (alt)');
-    static readonly INSERT_DIV_D = new Hotkey('d', 'Insert Div (alt)');
     static readonly INSERT_FLEX_DIV = new Hotkey('shift+f', 'Insert Flex Div');
     static readonly INSERT_BUTTON = new Hotkey('b', 'Insert Button');
     static readonly RELOAD_APP = new Hotkey('mod+r', 'Reload App');
@@ -47,15 +54,28 @@ export class Hotkey {
     static readonly REDO = new Hotkey('mod+shift+z', 'Redo');
     static readonly GROUP = new Hotkey('mod+g', 'Group');
     static readonly UNGROUP = new Hotkey('mod+shift+g', 'Unwrap parent');
-    static readonly OPEN_DEV_TOOL = new Hotkey('mod+shift+i', 'Open Devtool');
     static readonly ADD_AI_CHAT = new Hotkey('mod+shift+l', 'Add to AI chat');
     static readonly NEW_AI_CHAT = new Hotkey('mod+l', 'New AI Chat');
     static readonly CHAT_MODE_TOGGLE = new Hotkey('mod+period', 'Toggle Preview');
     static readonly MOVE_LAYER_UP = new Hotkey('shift+arrowup', 'Move Layer Up');
     static readonly MOVE_LAYER_DOWN = new Hotkey('shift+arrowdown', 'Move Layer Down');
+    static readonly BRING_FORWARD = new Hotkey('mod+]', 'Bring Forward');
+    static readonly SEND_BACKWARD = new Hotkey('mod+[', 'Send Backward');
     static readonly SHOW_HOTKEYS = new Hotkey('mod+shift+slash', 'Show Shortcuts');
-    static readonly OPEN_ELEMENT_PALETTE = new Hotkey('mod+k', 'Add element');
+    static readonly OPEN_COMMAND_PALETTE = new Hotkey('mod+k', 'Open Command Palette');
+    // Inline-edit on a selected canvas element. Was bound to `mod+k` and
+    // collided with the command palette — moved to `mod+shift+k` to keep
+    // both shortcuts working without one shadowing the other.
+    static readonly INLINE_EDIT_FROM_CANVAS = new Hotkey(
+        'mod+shift+k',
+        'Inline edit selected element',
+    );
+    static readonly OPEN_ELEMENT_PALETTE = new Hotkey('mod+e', 'Add element');
+    static readonly OPEN_FILE_FINDER = new Hotkey('mod+p', 'Quick Open File');
+    static readonly OPEN_PROJECT_SEARCH = new Hotkey('mod+shift+f', 'Project Search');
     static readonly SEARCH = new Hotkey('mod+f', 'Search');
+    static readonly OPEN_IN_IDE = new Hotkey('mod+shift+e', 'Open in IDE');
+    static readonly ZOOM_TO_SELECTION = new Hotkey('mod+shift+0', 'Zoom to Selection');
 
     // Text
     static readonly INSERT_TEXT = new Hotkey('t', 'Insert Text');
@@ -85,21 +105,7 @@ export class Hotkey {
     }
 
     get readableCommand() {
-        // navigator.platform is deprecated. Prefer userAgentData when present
-        // and fall back to a userAgent sniff so platform detection still works
-        // on browsers that have already removed the legacy property.
-        const isMac = (() => {
-            if (typeof navigator === 'undefined') return false;
-            const navWithUA = navigator as Navigator & {
-                userAgentData?: { platform?: string };
-            };
-            const platform =
-                navWithUA.userAgentData?.platform ??
-                navigator.platform ??
-                navigator.userAgent ??
-                '';
-            return platform.toUpperCase().includes('MAC');
-        })();
+        const isMac = isMacPlatform();
         return this.command
             .replace('mod', isMac ? '⌘' : 'Ctrl')
             .split('+')
@@ -146,8 +152,7 @@ export const DEFAULT_HOTKEYS: Record<string, Hotkey> = Object.fromEntries(
 
 /** Converts a command string like "mod+z" into a human-readable form like "⌘ Z" */
 export function makeReadableCommand(command: string): string {
-    const isMac =
-        typeof navigator !== 'undefined' && navigator.platform.toUpperCase().includes('MAC');
+    const isMac = isMacPlatform();
     return command
         .replace('mod', isMac ? '⌘' : 'Ctrl')
         .split('+')

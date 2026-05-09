@@ -9,8 +9,16 @@ import { type ImageMessageContext } from '@weblab/models/chat';
 import { api } from '@/trpc/client';
 import { parseRepoUrl } from '../editor/pages/helper';
 
+/**
+ * Phases the create-from-prompt flow goes through. Drives the loader the
+ * Create component renders right after submit so the user sees real progress
+ * instead of a blank-but-spinning button while sandbox forking happens.
+ */
+export type CreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
+
 export class CreateManager {
     error: string | null = null;
+    phase: CreatePhase = 'idle';
 
     constructor() {
         makeAutoObservable(this);
@@ -30,6 +38,11 @@ export class CreateManager {
 
     async startCreate(userId: string, prompt: string, images: ImageMessageContext[]) {
         this.error = null;
+        // Track the forked sandbox so we can release it (best-effort) if any
+        // step after `sandbox.fork` throws. Without this, the user pays for a
+        // CodeSandbox sandbox that has no project row, no `/projects` entry,
+        // and cannot be reached via `sandbox.delete` (which requires a branch).
+        let forkedSandboxId: string | null = null;
         try {
             if (!userId) {
                 console.error('No user ID found');
@@ -40,6 +53,7 @@ export class CreateManager {
                 tags: ['prompt', userId],
             };
 
+            this.phase = 'forking-sandbox';
             const [{ sandboxId, previewUrl }, projectName] = await Promise.all([
                 api.sandbox.fork.mutate({
                     sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
@@ -47,14 +61,22 @@ export class CreateManager {
                 }),
                 this.generateProjectName(prompt),
             ]);
+            forkedSandboxId = sandboxId;
+
+            this.phase = 'creating-project';
             const project = createDefaultProject({
                 overrides: {
                     name: projectName,
+                    // DEFAULT_NEW_PROJECT_TEMPLATE is a Next.js sandbox. Persisting
+                    // this lets the editor's preload-script injector pick the
+                    // Next.js path immediately on first load instead of falling
+                    // through to the framework-detection race that surfaced as
+                    // "No router config found for preload script injection".
+                    runtimeMetadata: { framework: 'nextjs' },
                 },
             });
             const newProject = await api.project.create.mutate({
                 project,
-                userId,
                 sandboxId,
                 sandboxUrl: previewUrl,
                 creationData: {
@@ -72,15 +94,41 @@ export class CreateManager {
                 },
             });
 
+            // Sandbox is now attached to a project — clear so the catch path
+            // does not try to delete it as an orphan.
+            forkedSandboxId = null;
+            this.phase = 'opening-editor';
             return newProject;
         } catch (error) {
             console.error(error);
             this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            this.phase = 'idle';
+            if (forkedSandboxId) {
+                await api.sandbox.deleteOrphan
+                    .mutate({ sandboxId: forkedSandboxId })
+                    .catch((cleanupErr) => {
+                        console.warn('[createManager] failed to clean up orphan sandbox', {
+                            sandboxId: forkedSandboxId,
+                            error:
+                                cleanupErr instanceof Error
+                                    ? cleanupErr.message
+                                    : String(cleanupErr),
+                        });
+                    });
+            }
+            // Re-throw so the caller can distinguish thrown errors from a
+            // legitimate `undefined` return (e.g. missing userId guard above).
+            throw error;
         }
+    }
+
+    resetPhase() {
+        this.phase = 'idle';
     }
 
     async startGitHubTemplate(userId: string, repoUrl: string) {
         this.error = null;
+        let forkedSandboxId: string | null = null;
         try {
             if (!userId) {
                 console.error('No user ID found');
@@ -102,6 +150,7 @@ export class CreateManager {
                 this.createSandboxFromGithub(repoUrl, branch),
                 this.generateProjectName(`Import from GitHub repository: ${repo}`),
             ]);
+            forkedSandboxId = sandboxId;
             const project = createDefaultProject({
                 overrides: {
                     name: projectName,
@@ -109,14 +158,27 @@ export class CreateManager {
             });
             const newProject = await api.project.create.mutate({
                 project,
-                userId,
                 sandboxId,
                 sandboxUrl: previewUrl,
             });
+            forkedSandboxId = null;
             return newProject;
         } catch (error) {
             console.error(error);
             this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            if (forkedSandboxId) {
+                await api.sandbox.deleteOrphan
+                    .mutate({ sandboxId: forkedSandboxId })
+                    .catch((cleanupErr) => {
+                        console.warn('[createManager] failed to clean up orphan sandbox', {
+                            sandboxId: forkedSandboxId,
+                            error:
+                                cleanupErr instanceof Error
+                                    ? cleanupErr.message
+                                    : String(cleanupErr),
+                        });
+                    });
+            }
         }
     }
 
@@ -149,6 +211,7 @@ export class CreateManager {
         framework?: FrameworkId;
     }) {
         this.error = null;
+        let forkedSandboxId: string | null = null;
         try {
             if (!input.userId) {
                 console.error('No user ID found');
@@ -179,6 +242,7 @@ export class CreateManager {
                     input.subpath,
                 );
             }
+            forkedSandboxId = sandboxResult.sandboxId;
 
             const project = createDefaultProject({
                 overrides: {
@@ -189,15 +253,29 @@ export class CreateManager {
                 },
             });
 
-            return await api.project.create.mutate({
+            const newProject = await api.project.create.mutate({
                 project,
-                userId: input.userId,
                 sandboxId: sandboxResult.sandboxId,
                 sandboxUrl: sandboxResult.previewUrl,
             });
+            forkedSandboxId = null;
+            return newProject;
         } catch (error) {
             console.error(error);
             this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            if (forkedSandboxId) {
+                await api.sandbox.deleteOrphan
+                    .mutate({ sandboxId: forkedSandboxId })
+                    .catch((cleanupErr) => {
+                        console.warn('[createManager] failed to clean up orphan sandbox', {
+                            sandboxId: forkedSandboxId,
+                            error:
+                                cleanupErr instanceof Error
+                                    ? cleanupErr.message
+                                    : String(cleanupErr),
+                        });
+                    });
+            }
         }
     }
 }

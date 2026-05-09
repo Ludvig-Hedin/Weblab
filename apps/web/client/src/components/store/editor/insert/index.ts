@@ -116,6 +116,26 @@ export class InsertManager {
                     },
                     textContent: null,
                 };
+            case InsertMode.INSERT_WEBLAB_LIST:
+                // CMS list marker: a regular <div> that the preview iframe
+                // clones once per CMS item at runtime. Source code stays
+                // runnable without our runtime — the marker attribute is the
+                // only thing the preload script keys off.
+                return {
+                    tagName: 'div',
+                    styles: {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                        padding: '16px',
+                        width: '320px',
+                        minHeight: '120px',
+                        borderRadius: '12px',
+                        border: '1px dashed #CBD5E1',
+                    },
+                    textContent: null,
+                    attributes: { 'data-weblab-list': '' },
+                };
             default:
                 throw new Error(`No element properties defined for mode: ${mode}`);
         }
@@ -740,6 +760,64 @@ export class InsertManager {
         };
 
         await this.editorEngine.action.run(action);
+    }
+
+    /**
+     * Single entrypoint for "drop on canvas/frame" — reads the dataTransfer
+     * payload (component / shadcn-block / image / element) and dispatches to the
+     * matching insertDropped*. Returns true if a drop was handled.
+     *
+     * Both the per-frame gesture screen and the canvas-level drop handler call
+     * this so the insert path is identical regardless of where the user
+     * actually released the pointer.
+     */
+    async insertFromDataTransfer(
+        frame: FrameData,
+        dropPosition: ElementPosition,
+        dataTransfer: DataTransfer,
+        altKey = false,
+    ): Promise<boolean> {
+        const componentData = dataTransfer.getData('application/weblab-component');
+        if (componentData) {
+            let data: ComponentInsertData;
+            try {
+                data = JSON.parse(componentData) as ComponentInsertData;
+            } catch {
+                console.error('[InsertManager] Failed to parse component drag data');
+                return false;
+            }
+            await this.insertDroppedComponent(frame, dropPosition, data);
+            return true;
+        }
+
+        const propertiesData = dataTransfer.getData('application/json');
+        if (!propertiesData) return false;
+
+        // The drag sources tag their payloads with a `type` discriminator
+        // ("image" / "shadcn-block") for non-element drops; raw element drops
+        // ship a DropElementProperties shape directly.
+        type DragPayload =
+            | (ImageContentData & { type: 'image' })
+            | { type: 'shadcn-block'; block: ShadcnBlockManifestItem }
+            | DropElementProperties;
+        let properties: DragPayload;
+        try {
+            properties = JSON.parse(propertiesData) as DragPayload;
+        } catch {
+            console.error('[InsertManager] Failed to parse element drag data');
+            return false;
+        }
+
+        if ('type' in properties && properties.type === 'image') {
+            await this.insertDroppedImage(frame, dropPosition, properties, altKey);
+            return true;
+        }
+        if ('type' in properties && properties.type === 'shadcn-block') {
+            await this.insertDroppedBlock(frame, dropPosition, properties.block);
+            return true;
+        }
+        await this.insertDroppedElement(frame, dropPosition, properties);
+        return true;
     }
 
     clear() {

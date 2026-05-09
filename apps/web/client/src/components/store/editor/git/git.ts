@@ -11,6 +11,7 @@ import {
     sanitizeCommitMessage,
     withSyncPaused,
 } from '@/utils/git';
+import { isShellStartupError } from '../sandbox/errors';
 
 const MAX_DIFF_FILE_BYTES = 500_000;
 
@@ -90,6 +91,14 @@ export class GitManager {
 
     /**
      * Ensure git config is set with default values if not already configured
+     *
+     * The first calls in this method race with the sandbox container's
+     * shell coming up. If the shell isn't ready yet, the provider
+     * surfaces "failed to exec in podman container" / "Shell with id …
+     * does not exist" errors. Those are transient — a short backoff is
+     * enough — but they used to dump a noisy stack trace on every
+     * fresh project. We retry the initial probe a few times, and only
+     * log loudly if every attempt fails.
      */
     async ensureGitConfig(): Promise<boolean> {
         try {
@@ -98,12 +107,11 @@ export class GitManager {
                 return false;
             }
 
-            // Check if user.name is set
-            const nameResult = await this.runCommand('git config user.name');
-            const emailResult = await this.runCommand('git config user.email');
-
-            const hasName = nameResult.success && nameResult.output.trim();
-            const hasEmail = emailResult.success && emailResult.output.trim();
+            const probe = await this.runGitConfigProbeWithRetry();
+            if (!probe) {
+                return false;
+            }
+            const { hasName, hasEmail } = probe;
 
             // If both are already set, no need to configure
             if (hasName && hasEmail) {
@@ -135,6 +143,54 @@ export class GitManager {
             console.error('Failed to ensure git config:', error);
             return false;
         }
+    }
+
+    /**
+     * Read user.name and user.email from git config, retrying briefly if
+     * the sandbox shell is still initializing. Returns null if every
+     * attempt failed for a non-shell-startup reason.
+     */
+    private async runGitConfigProbeWithRetry(): Promise<{
+        hasName: boolean;
+        hasEmail: boolean;
+    } | null> {
+        const MAX_ATTEMPTS = 4;
+        // 0ms, 500ms, 1s, 2s — total worst-case wait ~3.5s, which covers
+        // the typical CodeSandbox shell-warm-up window.
+        const BACKOFF_MS = [0, 500, 1000, 2000];
+
+        let lastError: string | null = null;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const delay = BACKOFF_MS[attempt] ?? 0;
+            if (delay > 0) {
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
+
+            // ignoreError stays false so we can tell apart two distinct
+            // failure modes via the .error string:
+            //   - "shell not up yet"  → retry
+            //   - "config key not set" → exit 1 from git itself, treated
+            //     as a successful probe with `hasName/hasEmail = false`.
+            const nameResult = await this.runCommand('git config user.name');
+            const emailResult = await this.runCommand('git config user.email');
+
+            const shellNotReady =
+                isShellStartupError(nameResult.error) || isShellStartupError(emailResult.error);
+
+            if (!shellNotReady) {
+                const hasName = nameResult.success && Boolean(nameResult.output.trim());
+                const hasEmail = emailResult.success && Boolean(emailResult.output.trim());
+                return { hasName, hasEmail };
+            }
+
+            lastError = nameResult.error || emailResult.error || lastError;
+        }
+
+        console.warn(
+            'Sandbox shell did not become ready in time for git config probe — skipping git setup for now.',
+            lastError,
+        );
+        return null;
     }
 
     /**

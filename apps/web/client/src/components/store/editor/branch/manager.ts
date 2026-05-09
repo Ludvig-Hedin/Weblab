@@ -83,6 +83,17 @@ export class BranchManager {
         );
     }
 
+    /**
+     * True only when a branch is selected AND its data is loaded. Use this
+     * in any teardown/cleanup path before reaching for branch-scoped
+     * managers (history, sandbox, etc.) — those getters throw, which is
+     * fine in normal flow but causes uncaught errors during unmount when
+     * branch init failed (e.g., sandbox unreachable on first load).
+     */
+    get hasActiveBranch(): boolean {
+        return this.currentBranchId !== null && this.branchMap.has(this.currentBranchId);
+    }
+
     get activeBranchData(): BranchData {
         if (!this.currentBranchId) {
             throw new Error(
@@ -270,17 +281,13 @@ export class BranchManager {
         }
 
         try {
-            const success = await api.branch.update.mutate({
+            await api.branch.update.mutate({
                 id: branchId,
                 ...updates,
             });
 
-            if (success) {
-                // Update local branch state
-                Object.assign(branchData.branch, updates);
-            } else {
-                throw new Error('Failed to update branch');
-            }
+            // Update local branch state
+            Object.assign(branchData.branch, updates);
         } catch (error) {
             console.error('Failed to update branch:', error);
             throw error;

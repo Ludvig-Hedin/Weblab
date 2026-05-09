@@ -114,10 +114,19 @@ export class ActionManager {
                 continue;
             }
 
-            // cloneDeep is used to avoid the issue of observable values can not pass through the webview
-            const domEl = await frameData.view.updateStyle(target.domId, cloneDeep(change));
+            // cloneDeep is used to avoid observable values failing to pass through the webview.
+            // We pass `target.oid` so the iframe can resolve its local domId from the source-AST
+            // oid when the parent's domId (the one from the frame the user clicked) doesn't exist
+            // locally — that's the cross-iframe sibling fan-out path.
+            const domEl = await frameData.view.updateStyle(
+                target.domId,
+                cloneDeep(change),
+                target.breakpoint,
+                target.oid ?? null,
+            );
             if (!domEl) {
-                console.error('Failed to update style');
+                // Sibling fan-out into a frame that hasn't booted yet, or oid not present here.
+                // Don't log — that gets noisy with 3+ frames and is not actionable.
                 continue;
             }
 
@@ -125,6 +134,45 @@ export class ActionManager {
         }
 
         this.refreshDomElement(domEls);
+
+        // After all iframe injections settle, schedule a debounced source-write
+        // for each unique (oid, property) the action touched. Source-write is
+        // the durable path; the iframe injection is the optimistic preview.
+        const seen = new Set<string>();
+        for (const target of targets) {
+            if (!target.oid) continue;
+            for (const property of Object.keys(target.change.updated)) {
+                const key = `${target.oid}::${property}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                this.scheduleSourceRebase(target.oid, property);
+            }
+        }
+    }
+
+    private rebaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+    private scheduleSourceRebase(oid: string, property: string) {
+        const key = `${oid}::${property}`;
+        const existing = this.rebaseTimers.get(key);
+        if (existing) clearTimeout(existing);
+        const timer = setTimeout(() => {
+            this.rebaseTimers.delete(key);
+            void this.runSourceRebase(oid, property).catch((error) => {
+                console.error('Source rebase failed', { oid, property, error });
+            });
+        }, 600);
+        this.rebaseTimers.set(key, timer);
+    }
+
+    private async runSourceRebase(oid: string, property: string) {
+        const map = this.editorEngine.style.breakpointMapFor(oid, property);
+        if (!map || Object.keys(map).length === 0) return;
+        await this.editorEngine.code.writeResponsiveStyle?.({
+            oid,
+            property,
+            valuesByBreakpoint: map,
+        });
     }
 
     debouncedRefreshDomElement(domEls: DomElement[]) {
@@ -283,5 +331,12 @@ export class ActionManager {
         }
     }
 
-    clear() {}
+    clear() {
+        // Cancel any pending source-rebase timers so they don't fire after
+        // the manager is torn down (e.g. on engine clear / route change).
+        for (const timer of this.rebaseTimers.values()) {
+            clearTimeout(timer);
+        }
+        this.rebaseTimers.clear();
+    }
 }

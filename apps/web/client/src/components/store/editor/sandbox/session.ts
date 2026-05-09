@@ -3,16 +3,21 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import type { Provider } from '@weblab/code-provider';
 import type { Branch } from '@weblab/models';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
+import { toast } from '@weblab/ui/sonner';
 
 import type { ErrorManager } from '../error';
 import type { CLISession, TerminalSession } from './terminal';
+import { isOnline } from '@/services/offline/online-status';
 import { api } from '@/trpc/client';
+import { isShellStartupError } from './errors';
+import { OfflineProvider } from './offline-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
 
 export class SessionManager {
     provider: Provider | null = null;
     isConnecting = false;
     connectionError: string | null = null;
+    isOffline = false;
     terminalSessions = new Map<string, CLISession>();
     activeTerminalSessionId = 'cli';
 
@@ -35,6 +40,20 @@ export class SessionManager {
             this.isConnecting = true;
             this.connectionError = null;
         });
+
+        // Offline path: skip the CodeSandbox VM boot entirely. ZenFS is the
+        // source of truth for files until reconnect; queued writes drain via
+        // the replay controller once we're online and a real provider is
+        // attached.
+        if (this.branch.runtime.type !== 'local' && !isOnline()) {
+            const offline = new OfflineProvider();
+            runInAction(() => {
+                this.provider = offline;
+                this.isOffline = true;
+                this.isConnecting = false;
+            });
+            return;
+        }
 
         const attemptConnection = async () => {
             const provider =
@@ -63,6 +82,7 @@ export class SessionManager {
 
             runInAction(() => {
                 this.provider = provider;
+                this.isOffline = false;
             });
             await this.createTerminalSessions(provider);
         };
@@ -170,8 +190,14 @@ export class SessionManager {
 
     async reconnect(sandboxId: string, userId?: string) {
         try {
+            // After a long idle period (e.g. tab put to sleep), the provider
+            // can be torn down and `this.provider` becomes null. Previously
+            // we returned early here, so `useStartProject`'s tab-reactivation
+            // call no-op'd and the iframe stayed silently dead until the user
+            // tried to edit. Fall through to `start()` so the session is
+            // re-established transparently.
             if (!this.provider) {
-                console.error('No provider found in reconnect');
+                await this.start(sandboxId, userId);
                 return;
             }
 
@@ -194,6 +220,12 @@ export class SessionManager {
             runInAction(() => {
                 this.isConnecting = false;
             });
+            toast.error('Sandbox reconnect failed', {
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : 'Your sandbox connection was lost and could not be restored. Try reloading the project.',
+            });
         }
     }
 
@@ -204,6 +236,29 @@ export class SessionManager {
         await this.provider.destroy();
         runInAction(() => {
             this.provider = null;
+        });
+        await this.start(sandboxId, userId);
+    }
+
+    /**
+     * Drop the offline-shim provider and re-run the cloud connection path.
+     * Called by the replay controller when the network comes back so that
+     * queued writes can be drained against a live CodeSandbox session.
+     */
+    async swapToOnline(sandboxId: string, userId?: string) {
+        if (!this.isOffline) return;
+        if (this.provider) {
+            try {
+                await this.provider.destroy();
+            } catch (err) {
+                console.warn('[SessionManager] swapToOnline: provider destroy failed', err);
+            }
+        }
+        runInAction(() => {
+            this.provider = null;
+            this.isOffline = false;
+            this.isConnecting = false;
+            this.connectionError = null;
         });
         await this.start(sandboxId, userId);
     }
@@ -245,11 +300,22 @@ export class SessionManager {
                 error: null,
             };
         } catch (error) {
-            console.error('Error running command:', error);
+            const message = error instanceof Error ? error.message : 'Unknown error occurred';
+            // Shell-not-ready errors are expected during sandbox
+            // cold-boot — the caller (e.g. GitManager.ensureGitConfig)
+            // already retries past them. Logging at error-level here
+            // misled users into thinking the sandbox was broken every
+            // time they opened a fresh project. Real failures keep the
+            // error log so genuine issues stay visible.
+            if (isShellStartupError(message)) {
+                console.debug('runCommand transient shell-startup error:', message);
+            } else {
+                console.error('Error running command:', error);
+            }
             return {
                 output: '',
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error occurred',
+                error: message,
             };
         }
     }

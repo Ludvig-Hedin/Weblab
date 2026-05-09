@@ -9,6 +9,7 @@ import { ActionManager } from './action';
 import { ApiManager } from './api';
 import { AstManager } from './ast';
 import { BranchManager } from './branch';
+import { BreakpointsManager } from './breakpoints';
 import { CanvasManager } from './canvas';
 import { ChatManager } from './chat';
 import { CodeManager } from './code';
@@ -62,6 +63,7 @@ export class EditorEngine {
 
     readonly state: StateManager = new StateManager();
     readonly canvas: CanvasManager = new CanvasManager(this);
+    readonly breakpoints: BreakpointsManager = new BreakpointsManager(this);
     readonly text: TextEditingManager = new TextEditingManager(this);
     readonly elements: ElementsManager = new ElementsManager(this);
     readonly overlay: OverlayManager = new OverlayManager(this);
@@ -131,6 +133,7 @@ export class EditorEngine {
         this.copy.clear();
         this.group.clear();
         this.canvas.clear();
+        this.breakpoints.clear();
         this.image.clear();
         this.theme.clear();
         this.font.clear();

@@ -8,6 +8,7 @@ import { type FileEntry } from '@weblab/file-system';
 
 import type { EditorEngine } from '../engine';
 import type { ErrorManager } from '../error';
+import { OfflineWriteWatcher } from '@/services/offline/write-queue-watcher';
 import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
 import { GitManager } from '../git';
 import { detectRouterConfig } from '../pages/helper';
@@ -32,8 +33,16 @@ export class SandboxManager {
     readonly gitManager: GitManager;
     private providerReactionDisposer?: () => void;
     private sync: CodeProviderSync | null = null;
+    private offlineWatcher: OfflineWriteWatcher | null = null;
     private preloadRetryTimeout: ReturnType<typeof setTimeout> | null = null;
     private preloadRetryCount = 0;
+    /**
+     * When true the provider reaction skips sync-engine init. Used during
+     * the offline → online swap so the durable write queue can be drained
+     * before `pullFromSandbox` runs; otherwise the pull would overwrite
+     * just-edited ZenFS files with stale CSB content.
+     */
+    private suppressSyncInit = false;
     preloadScriptState: PreloadScriptState = PreloadScriptState.NOT_INJECTED;
     routerConfig: RouterConfig | null = null;
 
@@ -62,9 +71,26 @@ export class SandboxManager {
             () => this.session.provider,
             async (provider) => {
                 if (provider) {
-                    if (this.branch.runtime.type === 'local') {
+                    // Offline path: skip the bidirectional sync engine. The
+                    // OfflineProvider would return empty file lists which
+                    // would wipe ZenFS via the initial `pullFromSandbox`
+                    // delete pass. Just rebuild the index so the file tree
+                    // shows whatever's already cached in ZenFS, and start
+                    // the offline write watcher so edits get queued for
+                    // replay on reconnect.
+                    if (this.session.isOffline) {
                         await this.fs.rebuildIndex();
+                        this.startOfflineWatcher();
+                    } else if (this.branch.runtime.type === 'local') {
+                        this.stopOfflineWatcher();
+                        await this.fs.rebuildIndex();
+                    } else if (this.suppressSyncInit) {
+                        // Replay-in-progress: don't run pullFromSandbox yet.
+                        // resumeSyncInit() will fire init manually once the
+                        // queue has drained.
+                        this.stopOfflineWatcher();
                     } else {
+                        this.stopOfflineWatcher();
                         await this.initializeSyncEngine(provider);
                     }
                     await this.gitManager.init();
@@ -89,6 +115,49 @@ export class SandboxManager {
         return this.routerConfig;
     }
 
+    /**
+     * Block the provider-reaction sync engine init. Call BEFORE swapping the
+     * offline shim for the cloud provider, drain the durable write queue,
+     * then call `resumeSyncInit()` to run the deferred `initializeSyncEngine`.
+     */
+    suppressSyncInitForReplay(): void {
+        this.suppressSyncInit = true;
+    }
+
+    /**
+     * Lift the suppress flag and run the deferred sync engine init against
+     * the current provider. Safe to call when no provider is attached — it
+     * becomes a no-op until one is.
+     */
+    async resumeSyncInit(): Promise<void> {
+        this.suppressSyncInit = false;
+        const provider = this.session.provider;
+        if (!provider) return;
+        if (this.session.isOffline) return;
+        if (this.branch.runtime.type === 'local') {
+            await this.fs.rebuildIndex();
+            return;
+        }
+        this.stopOfflineWatcher();
+        await this.initializeSyncEngine(provider);
+    }
+
+    private startOfflineWatcher() {
+        if (this.offlineWatcher) return;
+        this.offlineWatcher = new OfflineWriteWatcher(
+            this.fs,
+            this.branch.projectId,
+            this.branch.id,
+        );
+        this.offlineWatcher.start();
+    }
+
+    private stopOfflineWatcher() {
+        if (!this.offlineWatcher) return;
+        this.offlineWatcher.stop();
+        this.offlineWatcher = null;
+    }
+
     async initializeSyncEngine(provider: Provider) {
         if (this.sync) {
             this.sync.release();
@@ -105,6 +174,12 @@ export class SandboxManager {
     }
 
     private async ensurePreloadScriptExists(): Promise<void> {
+        // Sentinel for the common transient case: the sandbox file system
+        // hasn't synced yet so the App/Pages router directory doesn't show up
+        // on the first attempt. We retry quietly and only escalate to a real
+        // error once attempts are exhausted (~10s wall clock with the current
+        // retry settings) so the console isn't flooded during normal cold-boot.
+        const MISSING_ROUTER_CONFIG = '__missing_router_config__';
         try {
             if (this.preloadScriptState !== PreloadScriptState.NOT_INJECTED) {
                 return;
@@ -127,7 +202,7 @@ export class SandboxManager {
             } else {
                 const routerConfig = await this.getRouterConfig();
                 if (!routerConfig) {
-                    throw new Error('No router config found for preload script injection');
+                    throw new Error(MISSING_ROUTER_CONFIG);
                 }
                 await copyPreloadScriptToPublic(this.session.provider, routerConfig);
             }
@@ -140,7 +215,17 @@ export class SandboxManager {
                 }
             });
         } catch (error) {
-            console.error('[SandboxManager] Failed to ensure preload script exists:', error);
+            const isTransient = error instanceof Error && error.message === MISSING_ROUTER_CONFIG;
+            const willRetry = this.preloadRetryCount < MAX_PRELOAD_RETRY_ATTEMPTS;
+            if (isTransient && willRetry) {
+                // Sandbox files probably haven't synced yet. The reaction-driven
+                // retry below handles this — keep the console clean.
+                console.debug(
+                    '[SandboxManager] Router config not detected yet, retrying preload injection…',
+                );
+            } else {
+                console.error('[SandboxManager] Failed to ensure preload script exists:', error);
+            }
             runInAction(() => {
                 this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
             });
@@ -272,6 +357,7 @@ export class SandboxManager {
         this.providerReactionDisposer = undefined;
         this.sync?.release();
         this.sync = null;
+        this.stopOfflineWatcher();
         if (this.preloadRetryTimeout) {
             clearTimeout(this.preloadRetryTimeout);
             this.preloadRetryTimeout = null;

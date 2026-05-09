@@ -2,7 +2,9 @@ import { twMerge } from 'tailwind-merge';
 
 import type { CodeDiffRequest } from '@weblab/models/code';
 import type { StyleChange } from '@weblab/models/style';
+import type { BreakpointEntry } from '@weblab/parser';
 import { StyleChangeType } from '@weblab/models/style';
+import { rebaseToMobileFirst, removeUtilityClasses, tailwindPrefixForWidth } from '@weblab/parser';
 import { CssToTailwindTranslator, propertyMap } from '@weblab/utility';
 
 export function addTailwindToRequest(
@@ -59,3 +61,41 @@ export function createCSSRuleString(oid: string, styles: Record<string, StyleCha
         .join(' ');
     return `${oid} { ${cssString} }`;
 }
+
+/**
+ * Append a fully-rebased responsive className for a single property to a
+ * code-diff request. The caller already computed the rebased mobile-first
+ * emit set via `rebaseToMobileFirst`; this helper just translates each entry
+ * to a Tailwind class fragment, prepends its breakpoint prefix, and merges
+ * into the request's existing className. Stale variants for the same
+ * utility family are removed first so cleared overrides don't leave behind
+ * orphan `md:p-2`-style classes.
+ */
+export function addResponsiveTailwindToRequest(
+    request: CodeDiffRequest,
+    property: string,
+    breakpointEntries: BreakpointEntry[],
+): void {
+    const rebased = rebaseToMobileFirst(breakpointEntries);
+    if (rebased.length === 0) return;
+
+    const additions: string[] = [];
+    for (const entry of rebased) {
+        const styleChange: Record<string, StyleChange> = {
+            [property]: { type: StyleChangeType.Value, value: entry.value },
+        };
+        const classes = getTailwindClasses(request.oid, styleChange);
+        for (const cls of classes) {
+            additions.push(entry.tailwindPrefix ? `${entry.tailwindPrefix}${cls}` : cls);
+        }
+    }
+    if (additions.length === 0) return;
+
+    // Strip any stale responsive variants for this property family before merging.
+    // We don't have a reliable Tailwind utility prefix for every CSS property
+    // (translator output varies), so we use twMerge's existing conflict-resolution
+    // semantics — the additions go last so they win.
+    request.attributes.className = twMerge(request.attributes.className || '', additions.join(' '));
+}
+
+export { tailwindPrefixForWidth };
