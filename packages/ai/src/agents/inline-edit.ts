@@ -10,6 +10,7 @@ import {
 } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
+import { escapeXml } from './xml-escape';
 
 const SYSTEM_PROMPT = `You are an inline code editor. The user will give you a snippet of code and an instruction.
 
@@ -24,12 +25,12 @@ const USER_TEMPLATE = (params: {
     selection: string;
     after: string;
     instruction: string;
-}) => `<file path="${params.filePath}" language="${params.language}">
-<before>${params.before}</before>
-<selection>${params.selection}</selection>
-<after>${params.after}</after>
+}) => `<file path="${escapeXml(params.filePath)}" language="${escapeXml(params.language)}">
+<before>${escapeXml(params.before)}</before>
+<selection>${escapeXml(params.selection)}</selection>
+<after>${escapeXml(params.after)}</after>
 </file>
-<instruction>${params.instruction}</instruction>
+<instruction>${escapeXml(params.instruction)}</instruction>
 
 Rewrite the <selection> per the instruction. Output only the new selection text.`;
 
@@ -64,9 +65,12 @@ export const createInlineEditStream = ({
     projectId,
     traceId,
     abortSignal,
-}: InlineEditStreamArgs) => {
+}: InlineEditStreamArgs): ReturnType<typeof streamText> => {
     const selectedModel: ChatModel = model ?? DEFAULT_INLINE_EDIT_MODEL;
     const provider = getProviderFromModel(selectedModel);
+    if (provider !== LLMProvider.OLLAMA && provider !== LLMProvider.OPENROUTER) {
+        throw new Error(`inline-edit: unsupported provider "${provider}" for model "${selectedModel}"`);
+    }
     const modelConfig =
         provider === LLMProvider.OLLAMA
             ? initModel({

@@ -13,6 +13,9 @@ export interface TabCompleteContext {
     language: string;
     projectId: string;
     enabled: boolean;
+    /** Active chat model id (string-ChatModel) — passed through so the
+     * server uses the user's selected model instead of the route default. */
+    model?: string;
 }
 
 interface GhostSuggestion {
@@ -29,7 +32,7 @@ const suggestionAnnotation = Annotation.define<'tab-complete'>();
 
 const contextField = StateField.define<TabCompleteContext>({
     create() {
-        return { filePath: '', language: '', projectId: '', enabled: false };
+        return { filePath: '', language: '', projectId: '', enabled: false, model: undefined };
     },
     update(value, tr) {
         let next = value;
@@ -133,16 +136,22 @@ const tabCompleteKeymap = keymap.of([
 
 const DEBOUNCE_MS = 300;
 const MIN_PREFIX_CHARS_AFTER_NEWLINE = 2;
+// When the API responds with 429 (usage-limit), suspend further fetches for
+// this long so we don't burn quota / retry on every keystroke.
+const RATE_LIMIT_BACKOFF_MS = 30_000;
 
 const fetchPlugin = ViewPlugin.fromClass(
     class {
         timer: ReturnType<typeof setTimeout> | null = null;
         controller: AbortController | null = null;
+        rateLimitedUntil = 0;
 
         constructor(public view: EditorView) {}
 
         update(update: ViewUpdate) {
-            if (!update.docChanged && !update.selectionSet) return;
+            // Only fetch on actual edits — clicking around / arrow-keying is
+            // not a signal to spend tokens on a new completion.
+            if (!update.docChanged) return;
             // Don't trigger when an accept-suggestion transaction lands.
             if (
                 update.transactions.some(
@@ -157,6 +166,7 @@ const fetchPlugin = ViewPlugin.fromClass(
         scheduleFetch() {
             const ctx = this.view.state.field(contextField);
             if (!ctx.enabled) return;
+            if (Date.now() < this.rateLimitedUntil) return;
             if (this.timer) clearTimeout(this.timer);
             this.controller?.abort();
 
@@ -178,15 +188,18 @@ const fetchPlugin = ViewPlugin.fromClass(
             const charsBeforeOnLine = pos - line.from;
             const lineText = line.text.slice(0, charsBeforeOnLine);
 
-            // Skip whitespace-only lines, very short prefixes after newline,
-            // or when sitting in the middle of a word (let users finish typing).
+            // Skip whitespace-only lines and prefixes that are too short to
+            // give the model any signal. We intentionally allow completion in
+            // the middle of a word (Cursor does this) — the FIM model uses the
+            // suffix for context and produces a fitting middle.
             if (charsBeforeOnLine < MIN_PREFIX_CHARS_AFTER_NEWLINE) return;
             if (!lineText.trim()) return;
-            const charAfter = doc.sliceString(pos, pos + 1);
-            if (/\w/.test(charAfter)) return;
 
-            const PREFIX_CHARS = 4000;
-            const SUFFIX_CHARS = 2000;
+            // Smaller windows for FIM models — Codestral has 32k total context
+            // but quality drops fast past a few hundred lines. The big chunk
+            // around the cursor matters more than the file tails.
+            const PREFIX_CHARS = 1500;
+            const SUFFIX_CHARS = 600;
             const prefix = doc.sliceString(Math.max(0, pos - PREFIX_CHARS), pos);
             const suffix = doc.sliceString(pos, Math.min(doc.length, pos + SUFFIX_CHARS));
 
@@ -203,10 +216,18 @@ const fetchPlugin = ViewPlugin.fromClass(
                         projectId: ctx.projectId,
                         prefix,
                         suffix,
+                        ...(ctx.model ? { model: ctx.model } : {}),
                     }),
                     signal: ctrl.signal,
                 });
-                if (!res.ok) return;
+                if (!res.ok) {
+                    // 429 → over quota; back off so we stop retrying every
+                    // keystroke. Other non-2xx are treated as transient.
+                    if (res.status === 429) {
+                        this.rateLimitedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+                    }
+                    return;
+                }
                 const json = (await res.json()) as { completion?: string };
                 const completion = (json.completion ?? '').replace(/^```[\w-]*\n|\n```$/g, '');
                 if (!completion.trim()) return;
@@ -232,12 +253,14 @@ const fetchPlugin = ViewPlugin.fromClass(
 );
 
 export const setTabCompleteContext = (view: EditorView, ctx: Partial<TabCompleteContext>) => {
+    const current = view.state.field(contextField);
     view.dispatch({
         effects: setContextEffect.of({
-            filePath: ctx.filePath ?? view.state.field(contextField).filePath,
-            language: ctx.language ?? view.state.field(contextField).language,
-            projectId: ctx.projectId ?? view.state.field(contextField).projectId,
-            enabled: ctx.enabled ?? view.state.field(contextField).enabled,
+            filePath: ctx.filePath ?? current.filePath,
+            language: ctx.language ?? current.language,
+            projectId: ctx.projectId ?? current.projectId,
+            enabled: ctx.enabled ?? current.enabled,
+            model: ctx.model ?? current.model,
         }),
     });
 };

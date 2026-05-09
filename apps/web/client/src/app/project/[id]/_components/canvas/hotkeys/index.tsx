@@ -82,14 +82,18 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         getKey('CODE'),
     ]);
 
-    // Cmd+K on a selected canvas element opens the inline-edit prompt for the
-    // element's JSX in the code editor. Mirrors Cursor's Cmd+K UX.
+    // Cmd+Shift+K on a selected canvas element opens the inline-edit prompt
+    // for the element's JSX in the code editor. (Cmd+K is reserved for the
+    // global command palette.)
     useHotkeys(
-        'mod+k',
+        getKey('INLINE_EDIT_FROM_CANVAS'),
         () => {
+            // Only meaningful in DESIGN mode — in CODE mode the editor's own
+            // Mod-k binding handles inline edit on the current selection.
+            if (editorEngine.state.editorMode !== EditorMode.DESIGN) return;
             const selected = editorEngine.elements.selected[0];
             if (!selected) {
-                toast.info('Select an element first to use Cmd+K');
+                toast.info('Select an element first to inline-edit');
                 return;
             }
             const oid = selected.instanceId ?? selected.oid;
@@ -100,7 +104,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             void editorEngine.ide.openInlineEditFromCanvas(oid);
         },
         { preventDefault: true, enableOnFormTags: false, enableOnContentEditable: false },
-        [editorEngine],
+        [editorEngine, getKey('INLINE_EDIT_FROM_CANVAS')],
     );
     useHotkeys(
         getKey('ESCAPE'),
@@ -634,6 +638,14 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             enableOnContentEditable: true,
         },
         [getKey('SEND_BACKWARD')],
+    );
+
+    // Project-wide text search (cmd+shift+f). Opens the project search stub.
+    useHotkeys(
+        getKey('OPEN_PROJECT_SEARCH'),
+        () => window.dispatchEvent(new Event('open-project-search')),
+        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        [getKey('OPEN_PROJECT_SEARCH')],
     );
 
     return <>{children}</>;

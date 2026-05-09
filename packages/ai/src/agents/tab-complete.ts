@@ -10,8 +10,17 @@ import {
 } from '@weblab/models';
 
 import { initModel } from '../chat/providers';
+import { escapeXml } from './xml-escape';
 
-const SYSTEM_PROMPT = `You are a code completion engine.
+/** Codestral and Mistral models accept Mistral-style FIM tokens directly in the
+ * prompt. When the selected model is Codestral, we send those tokens; otherwise
+ * we fall back to a chat-style prompt that still works on GPT/Claude/etc. */
+const isCodestral = (model: string) => model.toLowerCase().includes('codestral');
+
+const buildFimPrompt = (prefix: string, suffix: string) =>
+    `[SUFFIX]${suffix}[PREFIX]${prefix}`;
+
+const SYSTEM_PROMPT = `You are a fill-in-the-middle code completion engine.
 
 Given the prefix and suffix of a file, output a single completion that should be inserted at the cursor (between prefix and suffix).
 
@@ -22,14 +31,14 @@ Rules:
 - If you have low confidence about what to write, output an empty string.
 - Do not repeat what's already in prefix or suffix.`;
 
-const USER_TEMPLATE = (params: {
+const CHAT_USER_TEMPLATE = (params: {
     filePath: string;
     language: string;
     prefix: string;
     suffix: string;
-}) => `<file path="${params.filePath}" language="${params.language}">
-<prefix>${params.prefix}</prefix>
-<suffix>${params.suffix}</suffix>
+}) => `<file path="${escapeXml(params.filePath)}" language="${escapeXml(params.language)}">
+<prefix>${escapeXml(params.prefix)}</prefix>
+<suffix>${escapeXml(params.suffix)}</suffix>
 </file>
 
 Complete at the cursor.`;
@@ -59,6 +68,9 @@ export const generateTabCompletion = async ({
 }: TabCompleteArgs): Promise<string> => {
     const selectedModel: ChatModel = model ?? DEFAULT_TAB_COMPLETE_MODEL;
     const provider = getProviderFromModel(selectedModel);
+    if (provider !== LLMProvider.OLLAMA && provider !== LLMProvider.OPENROUTER) {
+        throw new Error(`tab-complete: unsupported provider "${provider}" for model "${selectedModel}"`);
+    }
     const modelConfig =
         provider === LLMProvider.OLLAMA
             ? initModel({
@@ -71,11 +83,16 @@ export const generateTabCompletion = async ({
                   model: selectedModel as OPENROUTER_MODELS,
               });
 
+    // FIM-tuned models (Codestral) get raw FIM tokens with no system prompt;
+    // chat-tuned models get a structured XML prompt + system instructions.
+    const useFim = typeof selectedModel === 'string' && isCodestral(selectedModel);
     const { text } = await generateText({
         model: modelConfig.model,
         providerOptions: modelConfig.providerOptions,
-        system: SYSTEM_PROMPT,
-        prompt: USER_TEMPLATE({ filePath, language, prefix, suffix }),
+        system: useFim ? undefined : SYSTEM_PROMPT,
+        prompt: useFim
+            ? buildFimPrompt(prefix, suffix)
+            : CHAT_USER_TEMPLATE({ filePath, language, prefix, suffix }),
         // Hard cap — completions over ~120 tokens are almost never accepted.
         maxOutputTokens: 128,
         abortSignal,

@@ -1,7 +1,35 @@
 import { StateEffect, StateField } from '@codemirror/state';
-import { Decoration, EditorView, keymap } from '@codemirror/view';
+import { Decoration, EditorView, keymap, WidgetType } from '@codemirror/view';
 
 import type { DecorationSet } from '@codemirror/view';
+
+/** Renders the streaming preview as green ghost text immediately after the
+ * original (struck-through) selection. Lives only while a session is active. */
+class InlineEditPreviewWidget extends WidgetType {
+    constructor(
+        private readonly text: string,
+        private readonly streaming: boolean,
+    ) {
+        super();
+    }
+    eq(other: InlineEditPreviewWidget) {
+        return other.text === this.text && other.streaming === this.streaming;
+    }
+    toDOM() {
+        const container = document.createElement('span');
+        container.className = 'cm-inline-edit-preview';
+        if (this.streaming) container.classList.add('cm-inline-edit-preview-streaming');
+        const lines = this.text.split('\n');
+        lines.forEach((line, i) => {
+            if (i > 0) container.appendChild(document.createElement('br'));
+            container.appendChild(document.createTextNode(line));
+        });
+        return container;
+    }
+    ignoreEvent() {
+        return true;
+    }
+}
 
 /**
  * State for the floating Cmd+K inline-edit prompt.
@@ -69,10 +97,27 @@ export const inlineEditField = StateField.define<InlineEditSession | null>({
     provide: (f) =>
         EditorView.decorations.compute([f], (state) => {
             const session = state.field(f);
-            if (!session || session.from === session.to) return Decoration.none;
-            return Decoration.set([
-                Decoration.mark({ class: 'cm-inline-edit-target' }).range(session.from, session.to),
-            ]);
+            if (!session) return Decoration.none;
+            const ranges = [];
+            if (session.from < session.to) {
+                // Strike-through + red bg over the original selection while a
+                // preview is being generated or shown.
+                const cls = session.preview
+                    ? 'cm-inline-edit-target cm-inline-edit-target-replacing'
+                    : 'cm-inline-edit-target';
+                ranges.push(Decoration.mark({ class: cls }).range(session.from, session.to));
+            }
+            // Show streaming/preview text as a green inline widget right after
+            // the original. User sees what will replace before pressing Accept.
+            if (session.preview) {
+                ranges.push(
+                    Decoration.widget({
+                        widget: new InlineEditPreviewWidget(session.preview, session.streaming),
+                        side: 1,
+                    }).range(session.to),
+                );
+            }
+            return Decoration.set(ranges, true);
         }),
 });
 
@@ -118,5 +163,27 @@ export const inlineEditTheme = EditorView.theme({
         backgroundColor: 'rgba(63, 164, 255, 0.18)',
         outline: '1px solid rgba(63, 164, 255, 0.5)',
         borderRadius: '2px',
+    },
+    '.cm-inline-edit-target-replacing': {
+        backgroundColor: 'rgba(239, 68, 68, 0.18)',
+        outline: '1px solid rgba(239, 68, 68, 0.5)',
+        textDecoration: 'line-through',
+        textDecorationColor: 'rgba(239, 68, 68, 0.7)',
+    },
+    '.cm-inline-edit-preview': {
+        backgroundColor: 'rgba(26, 198, 156, 0.15)',
+        outline: '1px solid rgba(26, 198, 156, 0.5)',
+        borderRadius: '2px',
+        color: '#1AC69C',
+        whiteSpace: 'pre',
+        padding: '0 2px',
+    },
+    '.cm-inline-edit-preview-streaming::after': {
+        content: '"▍"',
+        opacity: 0.6,
+        animation: 'cm-inline-edit-blink 1s steps(2) infinite',
+    },
+    '@keyframes cm-inline-edit-blink': {
+        '50%': { opacity: 0 },
     },
 });
