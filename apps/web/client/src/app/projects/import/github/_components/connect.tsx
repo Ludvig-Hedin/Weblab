@@ -20,7 +20,7 @@ export const ConnectGithub = () => {
         if (hasInstallation) {
             return (
                 <div className="flex items-start gap-3 py-1">
-                    <Icons.Check className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+                    <Icons.Check className="text-foreground-success mt-0.5 h-5 w-5 shrink-0" />
                     <div>
                         <p className="font-medium">GitHub connected</p>
                         <p className="text-foreground-secondary">

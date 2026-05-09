@@ -8,13 +8,13 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
-import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 
@@ -36,7 +36,6 @@ export const ChatPanelDropdown = observer(
             },
         });
         const { data: userSettings } = api.user.settings.get.useQuery();
-        const editorEngine = useEditorEngine();
 
         const debouncedUpdateSettings = useMemo(
             () =>
@@ -74,49 +73,84 @@ export const ChatPanelDropdown = observer(
             [apiUtils.user.settings.get, debouncedUpdateSettings],
         );
 
+        const showSuggestions = userSettings?.chat.showSuggestions ?? false;
+        const showMiniChat = userSettings?.chat.showMiniChat ?? false;
+
         return (
             <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                     <div className="flex items-center">{children}</div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="min-w-[220px]">
+                <DropdownMenuContent align="end" className="min-w-[220px] rounded-md p-1">
                     <DropdownMenuItem
-                        className="flex items-center py-1.5"
+                        onClick={() => setIsChatHistoryOpen(!isChatHistoryOpen)}
+                        className="text-mini flex items-center rounded-sm px-2 py-1.5"
+                    >
+                        <Icons.CounterClockwiseClock className="mr-2 h-3.5 w-3.5" />
+                        {t(transKeys.editor.panels.edit.tabs.chat.controls.history)}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuLabel className="text-foreground-tertiary text-microPlus px-2 py-1 font-normal tracking-normal uppercase">
+                        Display
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem
+                        className="text-mini flex items-center justify-between rounded-sm px-2 py-1.5"
                         onClick={(e) => {
                             updateChatSettings(e, {
-                                showSuggestions: !userSettings?.chat.showSuggestions,
+                                showSuggestions: !showSuggestions,
                             });
                         }}
                     >
-                        <Icons.Check
+                        <span>
+                            {t(transKeys.editor.panels.edit.tabs.chat.settings.showSuggestions)}
+                        </span>
+                        <span
+                            aria-hidden
                             className={cn(
-                                'mr-2 h-4 w-4',
-                                userSettings?.chat.showSuggestions ? 'opacity-100' : 'opacity-0',
+                                'flex h-4 w-7 items-center rounded-full p-0.5 transition-colors',
+                                showSuggestions
+                                    ? 'bg-foreground-primary'
+                                    : 'bg-background-tertiary',
                             )}
-                        />
-                        {t(transKeys.editor.panels.edit.tabs.chat.settings.showSuggestions)}
+                        >
+                            <span
+                                className={cn(
+                                    'h-3 w-3 rounded-full transition-transform',
+                                    showSuggestions
+                                        ? 'bg-background translate-x-3'
+                                        : 'bg-foreground-tertiary translate-x-0',
+                                )}
+                            />
+                        </span>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
-                        className="flex items-center py-1.5"
+                        className="text-mini flex items-center justify-between rounded-sm px-2 py-1.5"
                         onClick={(e) => {
                             updateChatSettings(e, {
-                                showMiniChat: !userSettings?.chat.showMiniChat,
+                                showMiniChat: !showMiniChat,
                             });
                         }}
                     >
-                        <Icons.Check
+                        <span>
+                            {t(transKeys.editor.panels.edit.tabs.chat.settings.showMiniChat)}
+                        </span>
+                        <span
+                            aria-hidden
                             className={cn(
-                                'mr-2 h-4 w-4',
-                                userSettings?.chat.showMiniChat ? 'opacity-100' : 'opacity-0',
+                                'flex h-4 w-7 items-center rounded-full p-0.5 transition-colors',
+                                showMiniChat ? 'bg-foreground-primary' : 'bg-background-tertiary',
                             )}
-                        />
-                        {t(transKeys.editor.panels.edit.tabs.chat.settings.showMiniChat)}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setIsChatHistoryOpen(!isChatHistoryOpen)}>
-                        <Icons.CounterClockwiseClock className="mr-2 h-4 w-4" />
-                        {t(transKeys.editor.panels.edit.tabs.chat.controls.history)}
+                        >
+                            <span
+                                className={cn(
+                                    'h-3 w-3 rounded-full transition-transform',
+                                    showMiniChat
+                                        ? 'bg-background translate-x-3'
+                                        : 'bg-foreground-tertiary translate-x-0',
+                                )}
+                            />
+                        </span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

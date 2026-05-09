@@ -158,7 +158,7 @@ export const PropertyControl = observer(function PropertyControl({
                             className={cn(
                                 'h-1.5 w-1.5 rounded-full transition-colors',
                                 styleValue.isSet
-                                    ? 'bg-blue-400'
+                                    ? 'bg-foreground-brand'
                                     : 'bg-foreground-secondary/30 group-hover/control:bg-foreground-secondary/60',
                             )}
                         />

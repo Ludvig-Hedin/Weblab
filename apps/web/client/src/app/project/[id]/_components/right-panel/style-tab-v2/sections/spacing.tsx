@@ -32,7 +32,7 @@ function BoxField({ side, type, linked, onLink }: BoxFieldProps) {
                 if (linked) onLink(value);
                 else setter.set(value);
             }}
-            className={cn('w-12 text-center', styleValue.isSet && 'border-blue-400/40')}
+            className={cn('w-12 text-center', styleValue.isSet && 'border-foreground-brand/40')}
             aria-label={`${type} ${side}`}
         />
     );

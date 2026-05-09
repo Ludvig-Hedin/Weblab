@@ -54,15 +54,15 @@ export default function FigmaOAuthCallbackPage() {
     }, []);
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6">
+        <div className="from-background-primary via-background to-background-primary flex min-h-screen items-center justify-center bg-gradient-to-br p-6">
             <div className="w-full max-w-md">
                 <div className="mb-8 flex items-center justify-center gap-4">
-                    <div className="rounded-xl bg-gray-800 p-4">
-                        <Icons.WeblabLogo className="h-8 w-8 text-white" />
+                    <div className="bg-background-secondary rounded-xl p-4">
+                        <Icons.WeblabLogo className="text-foreground-primary h-8 w-8" />
                     </div>
-                    <Icons.DotsHorizontal className="h-8 w-8 text-gray-400" />
-                    <div className="rounded-xl bg-gray-800 p-4">
-                        <Icons.Figma className="h-8 w-8 text-white" />
+                    <Icons.DotsHorizontal className="text-foreground-tertiary h-8 w-8" />
+                    <div className="bg-background-secondary rounded-xl p-4">
+                        <Icons.Figma className="text-foreground-primary h-8 w-8" />
                     </div>
                 </div>
 
@@ -74,14 +74,14 @@ export default function FigmaOAuthCallbackPage() {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <Card className="border-gray-800 bg-gray-900 shadow-2xl">
+                        <Card className="border-border bg-background-primary shadow-2xl">
                             <CardContent className="p-8">
                                 <div className="flex flex-col items-center gap-4 text-center">
                                     {state === 'loading' && (
                                         <>
-                                            <div className="relative mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-800">
-                                                <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-white/30" />
-                                                <Icons.Figma className="h-8 w-8 text-white" />
+                                            <div className="bg-background-secondary relative mb-2 flex h-16 w-16 items-center justify-center rounded-full">
+                                                <div className="border-foreground-primary/30 absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-current" />
+                                                <Icons.Figma className="text-foreground-primary h-8 w-8" />
                                             </div>
                                             <CardTitle className="text-foreground-primary text-xl">
                                                 Connecting to Figma
@@ -99,7 +99,7 @@ export default function FigmaOAuthCallbackPage() {
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ duration: 0.3, ease: 'easeOut' }}
                                         >
-                                            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-green-500">
+                                            <div className="bg-foreground-success mb-2 flex h-16 w-16 items-center justify-center rounded-full">
                                                 <Icons.CheckCircled className="h-8 w-8 text-white" />
                                             </div>
                                             <CardTitle className="text-foreground-primary text-xl">
@@ -118,13 +118,13 @@ export default function FigmaOAuthCallbackPage() {
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ duration: 0.3, ease: 'easeOut' }}
                                         >
-                                            <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-red-500">
+                                            <div className="bg-destructive mb-2 flex h-16 w-16 items-center justify-center rounded-full">
                                                 <Icons.ExclamationTriangle className="h-8 w-8 text-white" />
                                             </div>
                                             <CardTitle className="text-foreground-primary text-xl">
                                                 Something went wrong
                                             </CardTitle>
-                                            <CardDescription className="max-w-sm text-gray-400">
+                                            <CardDescription className="text-foreground-tertiary max-w-sm">
                                                 {message}
                                             </CardDescription>
                                             <div className="mt-2 flex w-full flex-col gap-3">

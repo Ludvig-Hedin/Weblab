@@ -152,6 +152,7 @@ export const CommentPopover = observer(() => {
             setNewCommentText('');
         } catch (error) {
             console.error('Failed to create comment:', error);
+            toast.error('Failed to post comment');
         } finally {
             setIsSubmitting(false);
         }
@@ -163,6 +164,9 @@ export const CommentPopover = observer(() => {
         try {
             await editorEngine.comment.createReply(activeCommentId, replyText.trim());
             setReplyText('');
+        } catch (error) {
+            console.error('Failed to create reply:', error);
+            toast.error('Failed to post reply');
         } finally {
             setIsSubmitting(false);
         }
@@ -175,6 +179,9 @@ export const CommentPopover = observer(() => {
             await editorEngine.comment.updateComment(editingCommentId, editingText.trim());
             setEditingCommentId(null);
             setEditingText('');
+        } catch (error) {
+            console.error('Failed to update comment:', error);
+            toast.error('Failed to update comment');
         } finally {
             setIsSubmitting(false);
         }
@@ -247,7 +254,7 @@ export const CommentPopover = observer(() => {
                                                 value={editingText}
                                                 onChange={(e) => setEditingText(e.target.value)}
                                                 rows={3}
-                                                className="bg-background-secondary border-border text-foreground-primary text-mini w-full resize-none rounded-lg border px-2 py-1.5 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                className="bg-background-secondary border-border text-foreground-primary focus:ring-foreground/20 text-mini w-full resize-none rounded-2xl border px-2 py-1.5 focus:ring-1 focus:outline-none"
                                                 autoFocus
                                             />
                                             <div className="flex justify-end gap-1">
@@ -292,7 +299,7 @@ export const CommentPopover = observer(() => {
                                     className={cn(
                                         'flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors',
                                         activeComment.resolvedAt
-                                            ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25'
+                                            ? 'bg-foreground-success/15 text-foreground-success hover:bg-foreground-success/25'
                                             : 'bg-background-secondary text-foreground-tertiary hover:text-foreground-hover',
                                     )}
                                 >
@@ -335,7 +342,7 @@ export const CommentPopover = observer(() => {
                                                             }
                                                         }}
                                                         disabled={isDeleting}
-                                                        className="rounded-md bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400 transition-colors hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        className="bg-destructive/10 text-destructive hover:text-destructive/80 text-micro rounded-md px-2 py-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                                                     >
                                                         {isDeleting ? 'Deleting...' : 'Confirm'}
                                                     </button>
@@ -351,7 +358,7 @@ export const CommentPopover = observer(() => {
                                                     onClick={() =>
                                                         setConfirmDeleteId(activeComment.id)
                                                     }
-                                                    className="bg-background-secondary rounded-md px-2 py-0.5 text-[10px] text-red-400 transition-colors hover:text-red-300"
+                                                    className="bg-background-secondary text-destructive hover:text-destructive/80 text-micro rounded-md px-2 py-0.5 transition-colors"
                                                 >
                                                     Delete
                                                 </button>
@@ -386,7 +393,7 @@ export const CommentPopover = observer(() => {
                                                                         reply.id,
                                                                     )
                                                                 }
-                                                                className="text-foreground-tertiary text-[10px] transition-colors hover:text-red-400"
+                                                                className="text-foreground-tertiary hover:text-destructive text-micro transition-colors"
                                                             >
                                                                 <Icons.Trash className="h-3 w-3" />
                                                             </button>
@@ -417,7 +424,7 @@ export const CommentPopover = observer(() => {
                                     }}
                                     placeholder="Add a reply..."
                                     rows={2}
-                                    className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary focus:ring-foreground/20 text-mini flex-1 resize-none rounded-lg border px-2.5 py-1.5 focus:ring-1 focus:outline-none"
+                                    className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary focus:ring-foreground/20 text-mini flex-1 resize-none rounded-2xl border px-2.5 py-1.5 focus:ring-1 focus:outline-none"
                                 />
                                 <Button
                                     variant="default"

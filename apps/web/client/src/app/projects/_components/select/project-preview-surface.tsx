@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -38,13 +38,23 @@ const FallbackPreview = ({ projectName }: { projectName: string }) => {
 
 /**
  * Some hosts inject a consent/warning dialog when embedded in an iframe
- * (e.g. CodeSandbox preview domains). Skip the iframe for these and fall
- * back to the skeleton — the user can still open the full page by clicking.
+ * (e.g. CodeSandbox preview domains) and others actively refuse with
+ * `X-Frame-Options: DENY` (e.g. vercel.com marketing pages). Skip the
+ * iframe for these and fall back to the skeleton — the user can still
+ * open the full page by clicking.
+ *
+ * Exported so other surfaces (e.g. the templates detail page) can use the
+ * same logic instead of re-implementing it and drifting.
  */
-function isNonEmbeddable(url: string): boolean {
+export function isNonEmbeddable(url: string): boolean {
     try {
         const { hostname } = new URL(url);
-        return hostname.endsWith('.csb.app') || hostname.endsWith('.codesandbox.io');
+        return (
+            hostname.endsWith('.csb.app') ||
+            hostname.endsWith('.codesandbox.io') ||
+            hostname === 'vercel.com' ||
+            hostname.endsWith('.vercel.com')
+        );
     } catch {
         return false;
     }
@@ -60,6 +70,17 @@ export const ProjectPreviewSurface = ({
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeTimedOut, setIframeTimedOut] = useState(false);
     const [faviconFailed, setFaviconFailed] = useState(false);
+    // Lazy-load the iframe: only mount it once the card is near the viewport.
+    // Rendering N live <iframe>s on the projects page caused N simultaneous
+    // full-page loads of users' published sites — painful on mobile / slow
+    // networks. Default to false; flip to true on first intersection and stay
+    // true (don't toggle off) so scrolling away doesn't tear down the iframe
+    // and re-trigger a load. Falls back to true when IntersectionObserver
+    // isn't available (e.g. SSR, very old browsers) so we never break the UI.
+    const [isVisible, setIsVisible] = useState(
+        typeof window === 'undefined' || typeof IntersectionObserver === 'undefined',
+    );
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     const faviconUrl = siteUrl ? getFaviconUrl(siteUrl) : null;
 
@@ -70,27 +91,58 @@ export const ProjectPreviewSurface = ({
         setFaviconFailed(false);
     }, [imageUrl, siteUrl]);
 
+    useEffect(() => {
+        if (isVisible) return;
+        if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+            setIsVisible(true);
+            return;
+        }
+        const node = containerRef.current;
+        if (!node) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        setIsVisible(true);
+                        observer.disconnect();
+                        break;
+                    }
+                }
+            },
+            { rootMargin: '200px' },
+        );
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [isVisible]);
+
     // Give the iframe 6 s before giving up and showing the skeleton fallback.
     // Without this, cards with unresponsive or iframe-blocking preview URLs
-    // would display a blank white frame indefinitely.
+    // would display a blank white frame indefinitely. Only start the timer
+    // once we've decided to actually mount the iframe (i.e. the card is
+    // visible) — otherwise off-screen cards would "time out" before they
+    // ever attempted to load.
     useEffect(() => {
-        if (!siteUrl || imageUrl || iframeLoaded) return;
+        if (!siteUrl || imageUrl || iframeLoaded || !isVisible) return;
         const t = window.setTimeout(() => setIframeTimedOut(true), 6000);
         return () => window.clearTimeout(t);
-    }, [iframeLoaded, imageUrl, siteUrl]);
+    }, [iframeLoaded, imageUrl, siteUrl, isVisible]);
 
     const shouldRenderImage = Boolean(imageUrl && !imageFailed);
     const shouldRenderIframe = Boolean(
         !shouldRenderImage &&
             siteUrl &&
             !isNonEmbeddable(siteUrl) &&
+            isVisible &&
             (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
 
     return (
-        <div className={cn('relative overflow-hidden rounded-xl bg-[#1c1c1c]', className)}>
+        <div
+            ref={containerRef}
+            className={cn('bg-background-canvas relative overflow-hidden rounded-xl', className)}
+        >
             <FallbackPreview projectName={projectName} />
 
             {/* Screenshot */}

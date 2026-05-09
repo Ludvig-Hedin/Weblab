@@ -20,9 +20,9 @@ export const PageTreeRow = forwardRef<
                     'hover:text-foreground-primary hover:bg-background-weblab',
                 ],
                 attrs['aria-selected'] && [
-                    '!bg-blue-400 dark:!bg-blue-400',
+                    '!bg-foreground-brand dark:!bg-foreground-brand',
                     '!text-primary dark:!text-primary',
-                    '![&]:hover:bg-blue-400 dark:[&]:hover:bg-blue-400',
+                    '![&]:hover:bg-foreground-brand dark:[&]:hover:bg-foreground-brand',
                 ],
             )}
         >

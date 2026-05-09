@@ -206,9 +206,10 @@ export const TreeNode = memo(
                         'rounded-b': isParentSelected && parentGroupEnd(node),
                         'rounded-none': isParentSelected && node.nextSibling,
                         'bg-background-weblab': hovered,
-                        'bg-blue-400 dark:bg-blue-400/90': selected,
-                        'bg-blue-400/10 dark:bg-blue-400/10': isParentSelected,
-                        'bg-blue-400/20 dark:bg-blue-400/20': hovered && isParentSelected,
+                        'bg-foreground-brand dark:bg-foreground-brand/90': selected,
+                        'bg-foreground-brand/10 dark:bg-foreground-brand/10': isParentSelected,
+                        'bg-foreground-brand/20 dark:bg-foreground-brand/20':
+                            hovered && isParentSelected,
                         'text-foreground-primary': node.data.instanceId && selected,
                         'text-foreground-tertiary italic': node.data.instanceId && !selected,
                         'text-foreground-secondary italic':
@@ -219,7 +220,7 @@ export const TreeNode = memo(
                         'bg-foreground/10': hovered && isParentSelected?.data.instanceId,
                         'dark:text-primary text-foreground-primary':
                             (!node.data.instanceId && selected) || isWindowSelected,
-                        'bg-blue-400': isWindowSelected,
+                        'bg-foreground-brand': isWindowSelected,
                     }),
                 [hovered, selected, isParentSelected, isWindowSelected, parentGroupEnd, node],
             );
@@ -313,12 +314,7 @@ export const TreeNode = memo(
                                         iconClass={cn('mr-2 ml-1 h-3 w-3 flex-none', {
                                             'dark:fill-primary fill-white':
                                                 !node.data.instanceId && selected,
-                                            '[&_.letter]:!fill-blue-400/50 [&_.level]:!fill-blue-400 [&_path]:!fill-blue-400':
-                                                node.data.isInteractive &&
-                                                !node.data.instanceId &&
-                                                !selected &&
-                                                !isComponentAncestor(node),
-                                            'dark:[&_.letter]:!fill-blue-300/60 dark:[&_.level]:!fill-blue-300 dark:[&_path]:!fill-blue-300':
+                                            '[&_.letter]:!fill-foreground-brand/50 [&_.level]:!fill-foreground-brand [&_path]:!fill-foreground-brand':
                                                 node.data.isInteractive &&
                                                 !node.data.instanceId &&
                                                 !selected &&
@@ -405,7 +401,7 @@ export const TreeNode = memo(
                                                 className={cn(
                                                     selected
                                                         ? 'border-foreground/30 bg-foreground/10 text-foreground'
-                                                        : 'border-blue-400/30 bg-blue-400/10 text-blue-400',
+                                                        : 'border-foreground-brand/30 bg-foreground-brand/10 text-foreground-brand',
                                                 )}
                                             >
                                                 B

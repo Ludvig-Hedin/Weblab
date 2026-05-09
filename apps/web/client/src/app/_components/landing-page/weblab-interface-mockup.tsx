@@ -727,7 +727,7 @@ export function WeblabInterfaceMockup() {
                                                     !isComponent &&
                                                         !layer.isInstance &&
                                                         isSelected &&
-                                                        'dark:text-primary bg-[#109BFF] text-white dark:bg-[#109BFF]/90',
+                                                        'dark:text-primary bg-foreground-brand dark:bg-foreground-brand/90 text-white',
                                                     !isComponent &&
                                                         !layer.isInstance &&
                                                         isHovered &&

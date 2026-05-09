@@ -47,29 +47,22 @@ export const ChatModeToggle = observer(
                             variant="ghost"
                             size="sm"
                             disabled={disabled}
+                            aria-label={`Mode: ${getCurrentModeLabel()}`}
                             className={cn(
-                                'text-foreground-weblab group flex h-8 items-center gap-1.5 px-2',
+                                'text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary group text-mini flex h-7 items-center gap-1 rounded-md px-1.5 font-normal',
                                 disabled && 'cursor-not-allowed opacity-50',
                             )}
                         >
                             <Icon
                                 className={cn(
-                                    'h-4 w-4',
+                                    'h-3.5 w-3.5',
                                     disabled
                                         ? 'text-foreground-tertiary'
-                                        : chatMode === ChatType.ASK
-                                          ? 'text-blue-200'
-                                          : 'text-foreground-secondary group-hover:text-foreground',
+                                        : 'text-foreground-tertiary group-hover:text-foreground-primary',
                                 )}
                             />
-                            <span
-                                className={cn(
-                                    'text-mini font-medium',
-                                    chatMode === ChatType.ASK && 'text-blue-200',
-                                )}
-                            >
-                                {getCurrentModeLabel()}
-                            </span>
+                            <span>{getCurrentModeLabel()}</span>
+                            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                         </Button>
                     </DropdownMenuTrigger>
                 </HoverOnlyTooltip>

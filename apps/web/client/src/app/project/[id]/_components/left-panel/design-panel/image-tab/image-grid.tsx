@@ -44,7 +44,7 @@ export const ImageGrid = ({
         <div
             className={cn(
                 'flex-1 overflow-auto',
-                isDragging && 'cursor-copy bg-blue-400/20',
+                isDragging && 'bg-foreground-brand/20 cursor-copy',
                 'h-full',
             )}
             onDragEnter={handleDragEnter}

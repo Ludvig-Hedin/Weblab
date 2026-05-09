@@ -94,7 +94,7 @@ export const BrandTab = observer(() => {
                             : Array.from({ length: 12 }, (_, index) => (
                                   <div
                                       key={`loading-color-${index}`}
-                                      className="animate-shimmer h-full w-full bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300 bg-[length:200%_100%]"
+                                      className="animate-shimmer from-foreground-tertiary/30 via-foreground-tertiary/60 to-foreground-tertiary/30 h-full w-full bg-gradient-to-r bg-[length:200%_100%]"
                                   />
                               ))}
                     </div>

@@ -3,34 +3,29 @@
 import { observer } from 'mobx-react-lite';
 
 import { EditorMode } from '@weblab/models';
-import { ResizablePanel } from '@weblab/ui/resizable';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { CodeTab } from './code-tab';
 
+// CODE mode is now full-bleed: the parent container in main.tsx stretches us
+// to the AI panel's left edge, so the code editor fills everything except the
+// (resizable) right panel. No internal ResizablePanel here — the right
+// panel's left edge is the resize handle, like VS Code's editor/sidebar split.
 export const CodePanel = observer(() => {
     const editorEngine = useEditorEngine();
-    const editPanelWidth = 500;
 
     return (
         <div
             className={cn(
-                'transition-width bg-background-secondary border-border group/panel flex size-full overflow-hidden rounded-tr-xl border-t border-r duration-300',
+                'bg-background-canvas group/panel flex size-full overflow-hidden',
                 editorEngine.state.editorMode !== EditorMode.CODE && 'hidden',
             )}
         >
-            <ResizablePanel
-                side="left"
-                defaultWidth={editPanelWidth}
-                minWidth={240}
-                maxWidth={1440}
-            >
-                <CodeTab
-                    projectId={editorEngine.projectId}
-                    branchId={editorEngine.branches.activeBranch.id}
-                />
-            </ResizablePanel>
+            <CodeTab
+                projectId={editorEngine.projectId}
+                branchId={editorEngine.branches.activeBranch.id}
+            />
         </div>
     );
 });

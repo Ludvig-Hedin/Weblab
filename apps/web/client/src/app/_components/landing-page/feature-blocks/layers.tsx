@@ -112,7 +112,7 @@ function MockLayersTab() {
                                 !isComponent &&
                                     !layer.isInstance &&
                                     isSelected &&
-                                    'dark:text-primary bg-[#109BFF] text-white dark:bg-[#109BFF]/90',
+                                    'dark:text-primary bg-foreground-brand dark:bg-foreground-brand/90 text-white',
                                 !isComponent &&
                                     !layer.isInstance &&
                                     isHovered &&
@@ -175,7 +175,7 @@ export function LayersBlock() {
                             <Illustrations.LayersEndorphins className="w-56" />
                             <Illustrations.LayersInMotion className="absolute top-12 w-48" />
                         </div>
-                        <div className="absolute bottom-3 flex h-fit w-fit cursor-pointer flex-col items-center justify-start bg-[#00538F] p-2 transition-colors duration-300 hover:bg-red-600">
+                        <div className="hover:bg-destructive absolute bottom-3 flex h-fit w-fit cursor-pointer flex-col items-center justify-start bg-blue-700 p-2 transition-colors duration-300">
                             <Illustrations.LayersOrderNow className="w-18" />
                         </div>
                     </div>

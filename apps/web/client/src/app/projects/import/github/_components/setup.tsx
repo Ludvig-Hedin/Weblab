@@ -290,7 +290,7 @@ export const SetupGithub = () => {
                                                             </span>
                                                         </div>
                                                         {selectedRepo?.id === repo.id && (
-                                                            <Icons.Check className="ml-auto h-4 w-4 text-green-500" />
+                                                            <Icons.Check className="text-foreground-success ml-auto h-4 w-4" />
                                                         )}
                                                     </div>
                                                     {repo.description && (

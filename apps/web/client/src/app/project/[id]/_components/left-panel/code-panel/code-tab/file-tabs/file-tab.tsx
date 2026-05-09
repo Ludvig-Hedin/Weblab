@@ -26,40 +26,39 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
 
     return (
         <div
-            className="group relative h-full min-w-28 overflow-hidden pr-3 pl-3"
+            className={cn(
+                'group relative h-full min-w-28 overflow-hidden pr-3 pl-3',
+                // Active file tab fills with the bar-active token so the
+                // selected file reads as a distinct surface (matches how the
+                // right-panel tabs look).
+                isActive && 'bg-background-bar-active',
+            )}
             data-active={dataActive}
         >
-            <div className="bg-foreground/10 absolute top-1/2 right-0 h-[50%] w-[0.5px] -translate-y-1/2"></div>
+            <div className="bg-border-tab-divider absolute top-1/2 right-0 h-[50%] w-[0.5px] -translate-y-1/2"></div>
             <div className="relative flex h-full items-center overflow-hidden">
                 <button
                     className={cn(
                         'text-small flex h-full min-w-0 flex-1 items-center focus:outline-none',
                         isActive
                             ? isFileDirty
-                                ? 'text-blue-400'
+                                ? 'text-foreground-brand'
                                 : 'text-foreground'
                             : isFileDirty
-                              ? 'text-blue-400'
+                              ? 'text-foreground-brand'
                               : 'text-foreground-secondary/50',
                     )}
                     onClick={onClick}
                 >
                     <span className="min-w-0 truncate">{filename}</span>
                     {isFileDirty && (
-                        <span
-                            className={cn(
-                                'ml-1 flex-shrink-0',
-                                isActive ? 'text-blue-400' : 'text-blue-400',
-                            )}
-                        >
-                            ●
-                        </span>
+                        <span className={cn('ml-1 flex-shrink-0', 'text-foreground-brand')}>●</span>
                     )}
                     {isActive && (
                         <div
                             className={cn(
                                 'absolute bottom-0 left-0 h-[2px] w-full',
-                                isFileDirty ? 'bg-blue-400' : 'bg-foreground-hover',
+                                isFileDirty ? 'bg-foreground-brand' : 'bg-foreground-hover',
                             )}
                         ></div>
                     )}
@@ -67,10 +66,10 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                         <div className="bg-foreground-tertiary/50 absolute bottom-0 left-0 h-[2px] w-full opacity-0 group-hover:opacity-100"></div>
                     )}
                 </button>
-                <div className="group-hover:bg-background-primary absolute top-1/2 right-[-3px] z-10 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="group-hover:bg-background-bar-active absolute top-1/2 right-[-3px] z-10 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                         className={cn(
-                            'hover:text-foreground-hover hover:bg-secondary flex-shrink-0 cursor-pointer p-1.5 hover:rounded-md',
+                            'hover:text-foreground-hover hover:bg-background-bar-active flex-shrink-0 cursor-pointer p-1.5 hover:rounded-md',
                             isActive ? 'text-foreground-secondary' : 'text-foreground-primary',
                         )}
                         onClick={(e) => {

@@ -42,9 +42,9 @@ const getStatusBadge = (status: ToolUIPart['state'], showLabel = false) => {
         'input-streaming': <CircleIcon className="size-4" data-oid="4992b71bff" />,
         'input-available': <ClockIcon className="size-4 animate-pulse" data-oid="1eb05f14e5" />,
         'output-available': (
-            <CheckCircleIcon className="size-4 text-green-600" data-oid="3b4b470f02" />
+            <CheckCircleIcon className="size-4 text-foreground-success" data-oid="3b4b470f02" />
         ),
-        'output-error': <XCircleIcon className="size-4 text-red-600" data-oid="047c2c6a66" />,
+        'output-error': <XCircleIcon className="size-4 text-destructive" data-oid="047c2c6a66" />,
     } as const;
 
     return (

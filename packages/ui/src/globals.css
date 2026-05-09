@@ -193,6 +193,40 @@
     }
 }
 
+/*
+ * ──────────────────────────────────────────────────────────────────────────
+ * SEMANTIC STATUS TOKENS (success / warning)
+ *
+ * Use these instead of raw Tailwind palette utilities like `bg-green-500` or
+ * `text-yellow-300`. They give us a single switch to flip the entire app's
+ * semantic status colors (e.g., go from blue-aliased → real green/amber).
+ *
+ *   --foreground-success    icon / copy color for "added", "ok", "online", "resolved"
+ *   --background-success    surface tint for the same (alerts, badges, pills)
+ *   --background-success-secondary   slightly stronger tint when stacked
+ *   --border-success        outline / ring for success inputs
+ *
+ *   --foreground-warning    icon / copy color for "modified", "attention", "pending"
+ *   --background-warning    surface tint for the same
+ *   --background-warning-secondary
+ *   --border-warning
+ *
+ *   destructive / --destructive is the existing semantic for errors —
+ *   no parallel addition needed; just use `text-destructive`, `bg-destructive`.
+ *
+ * Default values currently alias to the blue palette (matches today's render
+ * because tokens.ts maps green/yellow/teal/amber → blue). To switch to real
+ * green/amber, edit only these eight lines per mode.
+ *
+ * Tailwind utilities exposed:
+ *   bg-background-success | bg-background-success-secondary
+ *   bg-background-warning | bg-background-warning-secondary
+ *   text-foreground-success | text-foreground-warning
+ *   border-success | border-warning
+ *   focus-visible:ring-success | focus-visible:ring-warning
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
 :root {
     --np-primary-card-background: #dbeafe; /* blue-100*/
     --np-primary-card-background-hover: #bfdbfe; /* blue-200*/
@@ -219,6 +253,10 @@
     --background-primary: 0 0% 100%; /* white */
     --background-secondary: 0 0% 95%; /* very light gray */
     --background-positive: 203 100% 94%; /* blue[100] */
+    --background-success: 203 100% 94%; /* blue[100] — semantic alias for "added/ok" */
+    --background-success-secondary: 206 100% 78%; /* blue[200] */
+    --background-warning: 206 100% 94%; /* blue[100] — semantic alias for "modified/attention" */
+    --background-warning-secondary: 206 100% 78%; /* blue[200] */
     --background-tertiary: 0 0% 90%; /* light gray */
     --background-toolbar-base: 0 0% 100%; /* white */
     --background-hover: 0 0% 95%; /* very light gray */
@@ -233,6 +271,8 @@
     --foreground-tertiary: 0 0% 33%; /* medium gray */
     --foreground-quadranary: 0 0% 47%; /* gray */
     --foreground-positive: 208 100% 36%; /* blue[600] */
+    --foreground-success: 208 100% 36%; /* blue[600] — semantic alias for "added/ok" */
+    --foreground-warning: 206 100% 35%; /* blue[600] — semantic alias for "modified/attention" */
     --foreground-hover: 0 0% 12%; /* very dark gray */
     --foreground-active: 0 0% 10%; /* black */
     --foreground-disabled: 0 0% 90%; /* light gray */
@@ -260,6 +300,20 @@
     --border: 0 0% 90%; /* light gray */
     --border-active: 0 0% 67%; /* medium gray */
     --border-hover: 0 0% 57%; /* gray */
+    --border-success: 206 100% 44%; /* blue[500] — semantic */
+    --border-warning: 206 100% 66%; /* blue[300] — semantic */
+
+    /* Canvas editor surfaces (light mode) — see docs in /design-system */
+    --background-canvas: 0 0% 92%; /* #EBEBEB — main canvas viewport */
+    --background-chrome: 0 0% 100%; /* #FFFFFF — top bar, side panels */
+    --background-bar: 0 0% 100%; /* #FFFFFF — bottom toolbar */
+    --background-bar-active: 0 0% 95%; /* #F1F1F1 — pressed/active toolbar button */
+    --background-tab-strip: 0 0% 95%; /* #F2F2F2 — tab list container */
+    --background-tab-active: 0 0% 100%; /* #FFFFFF — active tab fill */
+    --border-canvas: 0 0% 88%; /* ~#E0E0E0 — 1px frame around canvas */
+    --border-bar: 60 4% 94%; /* #EFEFEE — bottom toolbar border */
+    --border-tab-active: 0 0% 88%; /* ~#E0E0E0 — active tab border */
+    --border-tab-divider: 0 0% 86%; /* ~#DCDCDC — 1×14 vertical divider in tab strip */
 
     --muted: 0 0% 95%; /* very light gray */
     --muted-foreground: 0 0% 20%; /* dark gray */
@@ -465,13 +519,17 @@
     --np-secondary-icon-background: #AE4AFF; /* purple-500*/
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
-    --background: 20 14.3% 4.1%; /* shadcn */
+    --background: 240 2.6% 7.6%; /* #131314 */
     --background-weblab: 0 0% 10%; /* gray[900] */
     --background-brand: 206 100% 28%; /* blue[700] */
     --background-brand-secondary: 206 100% 44%; /* blue[500] */
     --background-primary: 0 0% 10%; /* gray[900] */
     --background-secondary: 0 0% 12%; /* gray[800] */
     --background-positive: 208 100% 16%; /* blue[900] */
+    --background-success: 208 100% 16%; /* blue[900] — semantic alias for "added/ok" */
+    --background-success-secondary: 206 100% 28%; /* blue[700] */
+    --background-warning: 206 100% 14%; /* blue[900] — semantic alias for "modified/attention" */
+    --background-warning-secondary: 206 100% 28%; /* blue[700] */
     --background-tertiary: 0 0% 20%; /* gray[700] */
     --background-toolbar-base: 0 0% 0% 0.85; /* black[85] */
     --background-hover: 0 0% 12%; /* gray[800] */
@@ -486,6 +544,8 @@
     --foreground-tertiary: 0 0% 57%; /* gray[300] */
     --foreground-quadranary: 0 0% 38%; /* gray[500] */
     --foreground-positive: 203 100% 78%; /* blue[200] */
+    --foreground-success: 206 100% 44%; /* blue[500] — semantic alias for "added/ok" */
+    --foreground-warning: 206 100% 66%; /* blue[300] — semantic alias for "modified/attention" */
     --foreground-hover: 0 0% 78%; /* gray[100] */
     --foreground-active: 0 0% 100%; /* gray[50] */
     --foreground-disabled: 0 0% 10%; /* gray[900] */
@@ -499,10 +559,10 @@
     --destructive: 0 72% 51%; /* red */
     --destructive-foreground: 0 0% 100%; /* white */
 
-    --card: 20 14.3% 4.1%; /* shadcn */
+    --card: 240 2.6% 7.6%; /* #131314 */
     --card-foreground: 60 9.1% 97.8%; /* shadcn */
 
-    --popover: 20 14.3% 4.1%; /* shadcn */
+    --popover: 240 2.6% 7.6%; /* #131314 */
     --popover-foreground: 60 9.1% 97.8%; /* shadcn */
 
     --icon: 0 0% 57%; /* gray[300] */
@@ -513,6 +573,20 @@
     --border: 0 0% 12%; /* gray[800] */
     --border-active: 0 0% 47%; /* gray[400] */
     --border-hover: 0 0% 38%; /* gray[500] */
+    --border-success: 206 100% 44%; /* blue[500] — semantic */
+    --border-warning: 206 100% 66%; /* blue[300] — semantic */
+
+    /* Canvas editor surfaces (dark mode) — see docs in /design-system */
+    --background-canvas: 0 0% 11%; /* #1B1B1B — main canvas viewport */
+    --background-chrome: 0 0% 7%; /* #121212 — top bar, side panels */
+    --background-bar: 0 0% 7%; /* #121212 — bottom toolbar */
+    --background-bar-active: 0 0% 18%; /* #2D2D2D — pressed/active toolbar button */
+    --background-tab-strip: 0 0% 15%; /* #262626 — tab list container */
+    --background-tab-active: 0 0% 22%; /* #383838 — active tab fill */
+    --border-canvas: 0 0% 13%; /* #212121 — 1px frame around canvas */
+    --border-bar: 0 0% 14%; /* #232323 — bottom toolbar border */
+    --border-tab-active: 0 0% 27%; /* #454545 — active tab border */
+    --border-tab-divider: 0 0% 24%; /* #3C3C3C — 1×14 vertical divider in tab strip */
 
     --muted: 12 6.5% 15.1%; /* shadcn */
     --muted-foreground: 24 5.4% 63.9%; /* shadcn */

@@ -100,9 +100,7 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className={cn(
-                                warning && 'border-yellow-300 focus-visible:ring-yellow-300',
-                            )}
+                            className={cn(warning && 'border-warning focus-visible:ring-warning')}
                             placeholder={placeholder}
                             disabled={isLoading}
                             onKeyDown={(e) => {
@@ -114,7 +112,7 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
                             onCompositionEnd={() => setIsComposing(false)}
                         />
                         {warning && (
-                            <p className="text-small flex items-center gap-2 text-yellow-300">
+                            <p className="text-small text-foreground-warning flex items-center gap-2">
                                 {warning}
                             </p>
                         )}

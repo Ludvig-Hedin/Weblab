@@ -54,20 +54,21 @@ export const CommentPins = observer(() => {
                             }}
                             title={comment.content}
                             className={cn(
-                                'flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 text-[11px] font-semibold text-white shadow-lg transition-all duration-150 hover:scale-110',
+                                'text-microPlus flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 font-semibold text-white shadow-lg transition-all duration-150 hover:scale-110',
                                 // Active state: white border ring
                                 isActive && 'scale-110 border-white',
-                                // Unread + not active: accent blue pulsing ring
-                                isUnread && !isActive && 'border-blue-400',
+                                // Unread + not active: accent brand ring
+                                isUnread && !isActive && 'border-foreground-brand',
                                 // Read + not active: no border
                                 !isUnread && !isActive && 'border-transparent',
+                                // Resolved = success token, otherwise brand
+                                isResolved ? 'bg-foreground-success' : 'bg-foreground-brand',
                             )}
                             style={{
-                                backgroundColor: isResolved ? '#22c55e' : '#3b82f6',
                                 // Unread glow
                                 boxShadow:
                                     isUnread && !isActive
-                                        ? '0 0 0 3px rgba(96, 165, 250, 0.45), 0 2px 8px rgba(0,0,0,0.3)'
+                                        ? '0 0 0 3px hsl(var(--foreground-brand) / 0.45), 0 2px 8px rgba(0,0,0,0.3)'
                                         : '0 2px 8px rgba(0,0,0,0.25)',
                             }}
                         >
@@ -77,7 +78,7 @@ export const CommentPins = observer(() => {
                         {/* Unread dot indicator */}
                         {isUnread && !isActive && (
                             <span
-                                className="border-background absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 bg-blue-400"
+                                className="border-background bg-foreground-brand absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2"
                                 style={{ transform: 'translate(25%, -25%)' }}
                             />
                         )}
@@ -95,8 +96,10 @@ export const CommentPins = observer(() => {
                         zIndex: 60,
                     }}
                 >
-                    <div className="flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 border-dashed border-blue-400 bg-blue-400/30 shadow-lg">
-                        <span className="text-lg leading-none font-bold text-blue-400">+</span>
+                    <div className="border-foreground-brand bg-foreground-brand/30 flex h-8 w-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full border-2 border-dashed shadow-lg">
+                        <span className="text-large text-foreground-brand leading-none font-bold">
+                            +
+                        </span>
                     </div>
                 </div>
             )}

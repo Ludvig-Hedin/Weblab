@@ -166,9 +166,9 @@ export const FileTreeNode = ({
             action: () => {
                 setShowDeleteDialog(true);
             },
-            icon: <Icons.Trash className="h-4 w-4 text-red-500" />,
+            icon: <Icons.Trash className="text-destructive h-4 w-4" />,
             separator: false,
-            className: 'text-red-500',
+            className: 'text-destructive',
         },
     ];
 
@@ -202,7 +202,7 @@ export const FileTreeNode = ({
                             onChange={(e) => setEditingName(e.target.value)}
                             onBlur={handleBlur}
                             onKeyDown={handleKeyDown}
-                            className="outline-rounded outline-border-primary truncate rounded-[1px] bg-transparent px-0 outline-2 outline-offset-2"
+                            className="outline-rounded outline-border-primary truncate rounded-xs bg-transparent px-0 outline-2 outline-offset-2"
                             onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
@@ -253,7 +253,7 @@ export const FileTreeNode = ({
                                 onDeleteFile(node.data.path);
                                 setShowDeleteDialog(false);
                             }}
-                            className="text-primary bg-red-600 hover:bg-red-700"
+                            className="bg-destructive text-primary-foreground hover:bg-destructive/80"
                         >
                             Delete
                         </AlertDialogAction>

@@ -93,6 +93,7 @@ const ToolCallDisplayComponent = ({
                 applied={applied}
                 isStream={isStream}
                 branchId={branchId}
+                showApply
             />
         );
     }
@@ -113,6 +114,7 @@ const ToolCallDisplayComponent = ({
                 applied={applied}
                 isStream={isStream}
                 branchId={branchId}
+                showApply
             />
         );
     }
@@ -195,7 +197,7 @@ const ToolCallDisplayComponent = ({
 
     if (toolName === TypecheckTool.toolName) {
         const result = toolPart.output as { success: boolean; error?: string } | null;
-        const error = stripAnsi(result?.error || '');
+        const error = stripAnsi(result?.error ?? '');
         return (
             <BashCodeDisplay
                 key={toolPart.toolCallId}

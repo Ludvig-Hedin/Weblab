@@ -24,7 +24,7 @@ export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
             <Button
                 type="button"
                 variant="outline"
-                className="cursor-pointer rounded-lg border-[0.5px] !border-gray-200 px-3 py-2"
+                className="!border-border cursor-pointer rounded-lg border-[0.5px] px-3 py-2"
                 onClick={async () => {
                     try {
                         await onCancel();
@@ -44,7 +44,7 @@ export const CancelButton = ({ onCancel }: CancelButtonProps = {}) => {
         <Button
             variant="outline"
             asChild
-            className="cursor-pointer rounded-lg border-[0.5px] !border-gray-200 px-3 py-2"
+            className="!border-border cursor-pointer rounded-lg border-[0.5px] px-3 py-2"
         >
             <Link href={Routes.HOME}>
                 <Icons.CrossL className="h-4 w-4" /> Cancel

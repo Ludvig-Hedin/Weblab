@@ -218,7 +218,8 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
                         style={style}
                         className={cn(
                             'hover:bg-background-hover group flex h-6 cursor-pointer items-center rounded pr-1',
-                            isActive && 'text-foreground-primary bg-blue-400 hover:bg-blue-400/90',
+                            isActive &&
+                                'text-foreground-primary bg-foreground-brand hover:bg-foreground-brand/90',
                         )}
                         onClick={handleClick}
                     >

@@ -112,7 +112,7 @@ function CornerInput({ property, label }: { property: string; label: string }) {
                 compact
                 value={styleValue.value}
                 onCommit={setter.set}
-                className={cn(styleValue.isSet && 'border-blue-400/40')}
+                className={cn(styleValue.isSet && 'border-foreground-brand/40')}
                 aria-label={`Radius ${label}`}
             />
         </div>

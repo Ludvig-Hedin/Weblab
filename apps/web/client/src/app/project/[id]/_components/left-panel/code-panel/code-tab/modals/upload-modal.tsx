@@ -171,7 +171,7 @@ export const UploadModal = ({
                                 isDragging
                                     ? 'border-primary bg-primary/5'
                                     : 'border-muted-foreground/25',
-                                selectedFiles && selectedFiles.length > 0 ? 'border-green-500' : '',
+                                selectedFiles && selectedFiles.length > 0 ? 'border-success' : '',
                             )}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
@@ -190,7 +190,7 @@ export const UploadModal = ({
                             <div className="text-center">
                                 {selectedFiles && selectedFiles.length > 0 ? (
                                     <div className="space-y-2">
-                                        <p className="text-small font-medium text-green-500">
+                                        <p className="text-small text-foreground-success font-medium">
                                             {selectedFiles.length} file
                                             {selectedFiles.length > 1 ? 's' : ''} selected
                                         </p>

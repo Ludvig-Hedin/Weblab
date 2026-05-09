@@ -9,6 +9,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { CreateManagerProvider } from '@/components/store/create';
 import { Routes } from '@/utils/constants';
+import { isNonEmbeddable } from '../../_components/select/project-preview-surface';
 import { ExternalTemplateActions } from '../../_components/templates/external-template-actions';
 import { ExternalTemplates } from '../../_components/templates/external-templates';
 import {
@@ -76,7 +77,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                         {template.tags.map((tag) => (
                                             <span
                                                 key={tag}
-                                                className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/80"
+                                                className="text-mini rounded-full bg-white/10 px-3 py-1 text-white/80"
                                             >
                                                 {tag}
                                             </span>
@@ -127,7 +128,9 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                         Live preview
                                     </p>
                                     <p className="text-foreground-tertiary text-xs">
-                                        If the embed is blocked, open the preview in a new tab.
+                                        {isNonEmbeddable(template.previewUrl)
+                                            ? "This template's preview can't be embedded — open it in a new tab."
+                                            : 'If the embed is blocked, open the preview in a new tab.'}
                                     </p>
                                 </div>
                                 <Button asChild variant="outline" size="sm">
@@ -137,13 +140,30 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                     </a>
                                 </Button>
                             </div>
-                            <iframe
-                                title={`${template.name} preview`}
-                                src={template.previewUrl}
-                                className="bg-background h-[620px] w-full"
-                                loading="lazy"
-                                referrerPolicy="no-referrer"
-                            />
+                            {isNonEmbeddable(template.previewUrl) ? (
+                                // Skip the iframe entirely for hosts that
+                                // refuse to be embedded (e.g. vercel.com
+                                // marketing pages). Embedding them would
+                                // produce a chrome-error page in the
+                                // iframe and a noisy console error every
+                                // time this template is opened.
+                                <div className="bg-background flex h-[320px] w-full flex-col items-center justify-center gap-3 px-6 text-center">
+                                    <Icons.ExternalLink className="text-foreground-tertiary h-5 w-5" />
+                                    <p className="text-foreground-tertiary max-w-sm text-xs leading-relaxed">
+                                        Live preview unavailable for this template. Use{' '}
+                                        <span className="text-foreground">Open preview</span> to
+                                        view it in a new tab.
+                                    </p>
+                                </div>
+                            ) : (
+                                <iframe
+                                    title={`${template.name} preview`}
+                                    src={template.previewUrl}
+                                    className="bg-background h-[620px] w-full"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                />
+                            )}
                         </div>
                     </section>
 
@@ -158,7 +178,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                                         key={highlight}
                                         className="text-foreground-secondary flex gap-3 text-sm leading-6"
                                     >
-                                        <Icons.CheckCircled className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-400" />
+                                        <Icons.CheckCircled className="text-foreground-success mt-0.5 h-4 w-4 flex-shrink-0" />
                                         {highlight}
                                     </li>
                                 ))}

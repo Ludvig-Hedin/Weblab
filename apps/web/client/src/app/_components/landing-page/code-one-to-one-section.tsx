@@ -82,7 +82,9 @@ export function CodeOneToOneSection() {
                                 onClick={() => setSelectedDiv(div.id)}
                                 style={{
                                     boxShadow:
-                                        selectedDiv === div.id ? '0 0 0 2px #3b82f6' : undefined,
+                                        selectedDiv === div.id
+                                            ? '0 0 0 2px hsl(var(--foreground-brand))'
+                                            : undefined,
                                 }}
                             >
                                 <span className="text-gray-800">{div.label}</span>

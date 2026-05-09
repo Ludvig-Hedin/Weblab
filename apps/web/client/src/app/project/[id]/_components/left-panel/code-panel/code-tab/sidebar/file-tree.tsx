@@ -186,7 +186,7 @@ export const FileTree = ({
     );
 
     return (
-        <div className="flex h-full w-56 flex-col border-r-[0.5px]">
+        <div className="bg-background-secondary border-border-bar flex h-full w-56 flex-col border-r">
             <FileTreeSearch
                 ref={inputRef}
                 searchQuery={searchQuery}

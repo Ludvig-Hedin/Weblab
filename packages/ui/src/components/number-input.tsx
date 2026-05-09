@@ -181,7 +181,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         return (
             <div
                 className={cn(
-                    'border-input bg-background focus-within:border-ring focus-within:ring-ring/40 flex h-7 min-w-0 items-center gap-1 rounded-md border px-2 text-sm shadow-xs transition-[color,box-shadow] focus-within:ring-[3px]',
+                    'border-input bg-background focus-within:border-ring focus-within:ring-ring/40 flex h-7 min-w-0 items-center gap-1 rounded-full border px-2 text-sm shadow-xs transition-[color,box-shadow] focus-within:ring-[3px]',
                     compact && 'h-6 px-1.5 text-xs',
                     className,
                 )}

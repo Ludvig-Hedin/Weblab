@@ -57,7 +57,7 @@ export function BranchList({
                         >
                             <div className="flex min-w-0 flex-1 items-center gap-2">
                                 {activeBranch.id === branch.id ? (
-                                    <Icons.Check className="h-4 w-4 text-green-600" />
+                                    <Icons.Check className="text-foreground-success h-4 w-4" />
                                 ) : (
                                     <Icons.Branch className="text-muted-foreground h-4 w-4" />
                                 )}

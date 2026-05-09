@@ -30,9 +30,9 @@ const STATUS_LABELS: Record<FileDiffStatus, string> = {
 };
 
 const STATUS_CLASSES: Record<FileDiffStatus, string> = {
-    added: 'bg-green-500/10 text-green-500 border-green-500/30',
-    modified: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-    deleted: 'bg-red-500/10 text-red-500 border-red-500/30',
+    added: 'bg-foreground-success/10 text-foreground-success border-foreground-success/30',
+    modified: 'bg-foreground-warning/10 text-foreground-warning border-foreground-warning/30',
+    deleted: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
 function countLines(value: string): number {
@@ -71,7 +71,7 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                         )}
                     </div>
                     <DialogDescription className="sr-only">
-                        Review uncommitted changes in your project
+                        Review unsaved changes in your project
                     </DialogDescription>
                 </DialogHeader>
 
@@ -79,12 +79,12 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                     {isLoading ? (
                         <div className="text-foreground-secondary flex items-center justify-center py-16">
                             <Icons.LoadingSpinner className="mr-2 h-5 w-5 animate-spin" />
-                            Loading diff…
+                            Loading changes…
                         </div>
                     ) : diffs.length === 0 ? (
                         <div className="text-foreground-secondary flex flex-col items-center justify-center py-16 text-center">
                             <Icons.Check className="mb-2 h-6 w-6" />
-                            <p className="text-small">No uncommitted changes</p>
+                            <p className="text-small">All changes saved</p>
                         </div>
                     ) : (
                         <Accordion type="multiple" className="w-full">
@@ -114,12 +114,12 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                                                 </span>
                                                 <span className="text-mini ml-auto flex shrink-0 items-center gap-2">
                                                     {added > 0 && (
-                                                        <span className="text-green-500">
+                                                        <span className="text-foreground-success">
                                                             +{added}
                                                         </span>
                                                     )}
                                                     {removed > 0 && (
-                                                        <span className="text-red-500">
+                                                        <span className="text-destructive">
                                                             -{removed}
                                                         </span>
                                                     )}

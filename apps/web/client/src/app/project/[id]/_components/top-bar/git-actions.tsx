@@ -253,8 +253,10 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                             )}
                             {diffStat && (
                                 <>
-                                    <span className="text-green-500">+{diffStat.added}</span>
-                                    <span className="text-red-500">-{diffStat.removed}</span>
+                                    <span className="text-foreground-success">
+                                        +{diffStat.added}
+                                    </span>
+                                    <span className="text-destructive">-{diffStat.removed}</span>
                                 </>
                             )}
                             {fileCount === null && diffStat === null && (

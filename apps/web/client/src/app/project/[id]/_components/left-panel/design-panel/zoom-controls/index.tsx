@@ -124,7 +124,7 @@ export const ZoomControls = observer(() => {
                         className="flex h-full w-full items-center justify-center"
                         asChild
                     >
-                        <button className="text-mini text-muted-foreground hover:bg-accent/50 hover:text-foreground flex h-10 w-10 items-center justify-center rounded-lg">
+                        <button className="text-mini text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground-primary flex h-10 w-10 items-center justify-center rounded-md">
                             <span>{Math.round(scale * 100)}%</span>
                         </button>
                     </PopoverTrigger>
@@ -142,12 +142,12 @@ export const ZoomControls = observer(() => {
                             handleCustomZoom(inputValue);
                         }
                     }}
-                    className={`text-smallPlus mb-1 h-6 rounded border p-1 text-left focus-visible:border-blue-400`}
+                    className="text-smallPlus border-border focus-visible:border-foreground-brand mb-1 h-6 rounded-md border p-1 text-left"
                     autoFocus
                 />
                 <button
                     onClick={() => handleZoom(1)}
-                    className="hover:bg-accent w-full rounded px-2 py-1.5 text-left"
+                    className="hover:bg-background-bar-active w-full rounded-md px-2 py-1.5 text-left"
                 >
                     <HotkeyLabel
                         className="text-mini w-full justify-between"
@@ -156,7 +156,7 @@ export const ZoomControls = observer(() => {
                 </button>
                 <button
                     onClick={() => handleZoom(-1)}
-                    className="hover:bg-accent w-full rounded px-2 py-1.5 text-left"
+                    className="hover:bg-background-bar-active w-full rounded-md px-2 py-1.5 text-left"
                 >
                     <HotkeyLabel
                         className="text-mini w-full justify-between"
@@ -165,7 +165,7 @@ export const ZoomControls = observer(() => {
                 </button>
                 <button
                     onClick={handleZoomToFit}
-                    className="hover:bg-accent w-full rounded px-2 py-1.5 text-left"
+                    className="hover:bg-background-bar-active w-full rounded-md px-2 py-1.5 text-left"
                 >
                     <HotkeyLabel
                         className="text-mini w-full justify-between"
@@ -174,13 +174,13 @@ export const ZoomControls = observer(() => {
                 </button>
                 <button
                     onClick={() => (editorEngine.canvas.scale = 1)}
-                    className="hover:bg-accent w-full rounded px-2 py-1.5 text-left"
+                    className="hover:bg-background-bar-active w-full rounded-md px-2 py-1.5 text-left"
                 >
                     <span className="text-mini flex-grow">{t(transKeys.editor.zoom.reset)}</span>
                 </button>
                 <button
                     onClick={() => (editorEngine.canvas.scale = 2)}
-                    className="hover:bg-accent w-full rounded px-2 py-1.5 text-left"
+                    className="hover:bg-background-bar-active w-full rounded-md px-2 py-1.5 text-left"
                 >
                     <span className="text-mini flex-grow">{t(transKeys.editor.zoom.double)}</span>
                 </button>

@@ -7,6 +7,7 @@ import { LeftPanelTabValue } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
+import { ResizablePanel } from '@weblab/ui/resizable';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
@@ -159,7 +160,7 @@ export const DesignPanel = observer(() => {
                     variant="ghost"
                     size="icon"
                     aria-label="Open left panel"
-                    className="border-border bg-background-secondary text-foreground-secondary hover:bg-background-tertiary hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-xl border border-l-0"
+                    className="border-border-bar bg-background-secondary text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-md border border-l-0"
                     onClick={() => setIsCollapsed(false)}
                 >
                     <Icons.ChevronRight className="h-4 w-4" />
@@ -168,10 +169,53 @@ export const DesignPanel = observer(() => {
         );
     }
 
+    const tabContent = (
+        <div className="bg-background-secondary relative flex h-full flex-col overflow-hidden">
+            {/* Pin / unpin control — visible at top-right of the open panel. */}
+            <div className="absolute top-2 right-2 z-10">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            aria-label={isLocked ? 'Unpin panel' : 'Pin panel'}
+                            aria-pressed={isLocked}
+                            onClick={() => editorEngine.state.setLeftPanelLocked(!isLocked)}
+                            className={cn(
+                                'flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-150',
+                                isLocked
+                                    ? 'bg-background-bar-active text-foreground-primary'
+                                    : 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active',
+                            )}
+                        >
+                            {isLocked ? (
+                                <Icons.BookmarkFilled className="h-3.5 w-3.5" />
+                            ) : (
+                                <Icons.Bookmark className="h-3.5 w-3.5" />
+                            )}
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" hideArrow>
+                        {isLocked ? 'Unpin panel' : 'Pin panel'}
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+            <div className="border-border-bar h-full overflow-auto border-r p-0">
+                {selectedTab === LeftPanelTabValue.INSERT && <InsertTab />}
+                {selectedTab === LeftPanelTabValue.COMPONENTS && <ComponentsTab />}
+                {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
+                {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
+                {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}
+                {selectedTab === LeftPanelTabValue.PAGES && <PagesTab />}
+                {selectedTab === LeftPanelTabValue.IMAGES && <ImagesTab />}
+                {selectedTab === LeftPanelTabValue.BRANCHES && <BranchesTab />}
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
             {/* Left sidebar with tabs */}
-            <div className="bg-background-secondary border-border flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
+            <div className="bg-background-secondary border-border-bar flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
                 {tabs.map((tab) => {
                     const label = getTabLabel(tab.value);
 
@@ -183,8 +227,8 @@ export const DesignPanel = observer(() => {
                                     className={cn(
                                         'flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150',
                                         selectedTab === tab.value && isLocked
-                                            ? 'bg-background-tertiary text-foreground-primary'
-                                            : 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-tertiary/60',
+                                            ? 'bg-background-bar-active text-foreground-primary'
+                                            : 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active',
                                         tab.disabled &&
                                             'hover:text-foreground-tertiary cursor-not-allowed opacity-40 hover:bg-transparent',
                                     )}
@@ -217,7 +261,7 @@ export const DesignPanel = observer(() => {
                         <TooltipTrigger asChild>
                             <button
                                 aria-label="Collapse left panel"
-                                className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-tertiary/60 flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
                                 onClick={() => setIsCollapsed(true)}
                             >
                                 <Icons.ChevronRight className="h-4 w-4 rotate-180" />
@@ -230,21 +274,21 @@ export const DesignPanel = observer(() => {
                 </div>
             </div>
 
-            {/* Content panel */}
+            {/* Content panel — resizable when pinned, fixed-width on hover preview. */}
             {editorEngine.state.leftPanelTab && (
                 <>
-                    <div className="bg-background-secondary w-[272px] flex-1">
-                        <div className="border-border h-full overflow-auto border-r p-0">
-                            {selectedTab === LeftPanelTabValue.INSERT && <InsertTab />}
-                            {selectedTab === LeftPanelTabValue.COMPONENTS && <ComponentsTab />}
-                            {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
-                            {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
-                            {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}
-                            {selectedTab === LeftPanelTabValue.PAGES && <PagesTab />}
-                            {selectedTab === LeftPanelTabValue.IMAGES && <ImagesTab />}
-                            {selectedTab === LeftPanelTabValue.BRANCHES && <BranchesTab />}
-                        </div>
-                    </div>
+                    {isLocked ? (
+                        <ResizablePanel
+                            side="left"
+                            defaultWidth={272}
+                            minWidth={240}
+                            maxWidth={560}
+                        >
+                            {tabContent}
+                        </ResizablePanel>
+                    ) : (
+                        <div className="w-[272px] flex-1">{tabContent}</div>
+                    )}
 
                     {/* Invisible padding area that maintains hover state */}
                     {!isLocked && <div className="h-full w-24" />}

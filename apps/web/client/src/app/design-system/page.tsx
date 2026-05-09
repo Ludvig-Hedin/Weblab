@@ -677,9 +677,31 @@ export default function DesignSystemPage() {
         { name: 'foreground-tertiary', cssVar: '--foreground-tertiary', value: '0 0% 57%' },
         { name: 'foreground-brand', cssVar: '--foreground-brand', value: '205 100% 53%' },
         { name: 'foreground-positive', cssVar: '--foreground-positive', value: '203 100% 78%' },
+        { name: 'foreground-success', cssVar: '--foreground-success', value: '206 100% 44%' },
+        { name: 'foreground-warning', cssVar: '--foreground-warning', value: '206 100% 66%' },
         { name: 'background-brand', cssVar: '--background-brand', value: '206 100% 28%' },
         { name: 'background-secondary', cssVar: '--background-secondary', value: '0 0% 12%' },
         { name: 'background-tertiary', cssVar: '--background-tertiary', value: '0 0% 20%' },
+        { name: 'background-success', cssVar: '--background-success', value: '208 100% 16%' },
+        { name: 'background-warning', cssVar: '--background-warning', value: '206 100% 14%' },
+        { name: 'border-success', cssVar: '--border-success', value: '206 100% 44%' },
+        { name: 'border-warning', cssVar: '--border-warning', value: '206 100% 66%' },
+    ];
+
+    // Canvas-editor surfaces. Values shown are the dark-mode defaults; the same
+    // names exist in light mode (see globals.css :root). Touched by the editor's
+    // canvas, top bar, side panels, bottom toolbar, and right-panel tab strip.
+    const canvasEditorTokens = [
+        { name: 'background-canvas', cssVar: '--background-canvas', value: '0 0% 11%' }, // #1B1B1B
+        { name: 'background-chrome', cssVar: '--background-chrome', value: '0 0% 7%' }, // #121212
+        { name: 'background-bar', cssVar: '--background-bar', value: '0 0% 7%' }, // #121212
+        { name: 'background-bar-active', cssVar: '--background-bar-active', value: '0 0% 18%' }, // #2D2D2D
+        { name: 'background-tab-strip', cssVar: '--background-tab-strip', value: '0 0% 15%' }, // #262626
+        { name: 'background-tab-active', cssVar: '--background-tab-active', value: '0 0% 22%' }, // #383838
+        { name: 'border-canvas', cssVar: '--border-canvas', value: '0 0% 13%' }, // #212121
+        { name: 'border-bar', cssVar: '--border-bar', value: '0 0% 14%' }, // #232323
+        { name: 'border-tab-active', cssVar: '--border-tab-active', value: '0 0% 27%' }, // #454545
+        { name: 'border-tab-divider', cssVar: '--border-tab-divider', value: '0 0% 24%' }, // #3C3C3C
     ];
 
     const palette = [
@@ -775,7 +797,7 @@ export default function DesignSystemPage() {
     const spacingData = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32];
 
     // Computed edited counts per section
-    const colorEditedCount = [...semanticTokens, ...foregroundTokens].filter(
+    const colorEditedCount = [...semanticTokens, ...foregroundTokens, ...canvasEditorTokens].filter(
         (t) => overrides[t.cssVar],
     ).length;
     const typoEditedCount = TYPOGRAPHY_ROWS.filter((r) =>
@@ -880,6 +902,93 @@ export default function DesignSystemPage() {
                                         onReset={resetToken}
                                     />
                                 ))}
+                            </div>
+
+                            <div className="border-border mt-6 grid gap-3 border-t pt-4">
+                                <p className="text-foreground-secondary text-small">
+                                    Semantic status tokens
+                                </p>
+                                <p className="text-foreground-tertiary text-mini">
+                                    Use <code>text-foreground-success</code>,{' '}
+                                    <code>bg-background-success</code>, <code>border-success</code>{' '}
+                                    for &quot;added / ok / online / resolved&quot;.{' '}
+                                    <code>text-foreground-warning</code>,{' '}
+                                    <code>bg-background-warning</code>, <code>border-warning</code>{' '}
+                                    for &quot;modified / attention / pending&quot;.{' '}
+                                    <code>text-destructive</code> / <code>bg-destructive</code> for
+                                    errors. Never use raw palette utilities like{' '}
+                                    <code>text-green-500</code> or <code>bg-yellow-300</code> in
+                                    chrome — they bypass the theme and can&apos;t be re-skinned in
+                                    one edit.
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    <span className="text-foreground-success bg-background-success/40 border-success/30 text-mini rounded-md border px-2 py-1">
+                                        Added · success
+                                    </span>
+                                    <span className="text-foreground-warning bg-background-warning/40 border-warning/30 text-mini rounded-md border px-2 py-1">
+                                        Modified · warning
+                                    </span>
+                                    <span className="text-destructive bg-destructive/10 border-destructive/30 text-mini rounded-md border px-2 py-1">
+                                        Deleted · destructive
+                                    </span>
+                                </div>
+                                <p className="text-foreground-tertiary text-mini">
+                                    Default values currently alias to the blue palette (matches
+                                    today&apos;s render because <code>tokens.ts</code> maps
+                                    green/yellow/teal/amber → blue). To switch to real green/amber,
+                                    edit the eight token lines in <code>:root</code> and{' '}
+                                    <code>.dark</code> — <em>do not</em> touch component code.
+                                </p>
+                            </div>
+                        </Section>
+
+                        <Section
+                            title="Canvas editor surfaces"
+                            tag="colors"
+                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/globals.css"
+                        >
+                            <p className="text-foreground-tertiary mb-3 text-xs">
+                                Tokens for the project editor chrome — canvas, side panels,
+                                top/bottom bars, and right-panel tab strip. Light-mode values are
+                                defined alongside dark-mode in <code>globals.css</code>.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                                {canvasEditorTokens.map((t) => (
+                                    <ColorSwatch
+                                        key={t.cssVar}
+                                        name={t.name}
+                                        cssVar={t.cssVar}
+                                        value={overrides[t.cssVar] ?? t.value}
+                                        isEdited={!!overrides[t.cssVar]}
+                                        onChange={setToken}
+                                        onReset={resetToken}
+                                    />
+                                ))}
+                            </div>
+                            <div className="text-foreground-tertiary mt-4 grid gap-1 text-xs">
+                                <p>
+                                    <strong className="text-foreground-secondary">canvas</strong> —
+                                    main viewport background. Bordered on the top/left/right by{' '}
+                                    <code>border-canvas</code> (1px) so the canvas reads as a
+                                    distinct surface inside the editor chrome.
+                                </p>
+                                <p>
+                                    <strong className="text-foreground-secondary">chrome</strong> —
+                                    nav/header, left sidebar, and right side panel share a single
+                                    full-height background.
+                                </p>
+                                <p>
+                                    <strong className="text-foreground-secondary">bar</strong> —
+                                    bottom toolbar (cursor / comments / zoom / sandbox / theme /
+                                    terminal). Active button uses <code>bar-active</code>.
+                                </p>
+                                <p>
+                                    <strong className="text-foreground-secondary">tab-strip</strong>{' '}
+                                    — right-panel tab list container. Active tab fills with{' '}
+                                    <code>tab-active</code> and is outlined by{' '}
+                                    <code>border-tab-active</code>. Tabs are separated by a 14px ×
+                                    1px <code>border-tab-divider</code> rule.
+                                </p>
                             </div>
                         </Section>
 

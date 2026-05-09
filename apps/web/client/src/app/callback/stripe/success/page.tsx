@@ -9,7 +9,7 @@ export default function Success() {
         <MessageScreen
             title="Subscription Activated!"
             message="Your subscription to Weblab has been activated. You can now close this page."
-            icon={<Icons.CheckCircled className="size-10 text-green-500" />}
+            icon={<Icons.CheckCircled className="text-foreground-success size-10" />}
         />
     );
 }

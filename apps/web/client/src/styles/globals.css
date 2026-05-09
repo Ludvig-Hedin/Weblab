@@ -46,5 +46,5 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
 /* TipTap mention chip */
 .ProseMirror .mention {
-    @apply bg-blue-500/10 text-blue-400 rounded px-1 py-0.5 text-sm font-medium;
+    @apply bg-foreground-brand/10 text-foreground-brand rounded px-1 py-0.5 text-mini font-medium;
 }

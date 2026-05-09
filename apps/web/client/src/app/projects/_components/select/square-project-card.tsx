@@ -9,15 +9,18 @@ import { timeAgo } from '@weblab/utility';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { EditAppButton } from '../edit-app';
+import { SettingsDropdown } from '../settings';
 
 export function SquareProjectCard({
     project,
     searchQuery = '',
     HighlightText,
+    refetch,
 }: {
     project: Project;
     searchQuery?: string;
     HighlightText?: React.ComponentType<{ text: string; searchQuery: string }>;
+    refetch: () => void;
 }) {
     const [img, setImg] = useState<string | null>(null);
     const router = useRouter();
@@ -45,7 +48,7 @@ export function SquareProjectCard({
     }, [project.metadata?.previewImg]);
 
     const lastUpdated = useMemo(
-        () => (project.metadata?.updatedAt ? timeAgo(project.metadata.updatedAt) : 'Unknown'),
+        () => (project.metadata?.updatedAt ? timeAgo(project.metadata.updatedAt) : null),
         [project.metadata?.updatedAt],
     );
 
@@ -73,9 +76,9 @@ export function SquareProjectCard({
                     />
                 ) : (
                     <>
-                        <div className="absolute inset-0 h-full w-full bg-gradient-to-t from-gray-800/40 via-gray-500/40 to-gray-400/40" />
+                        <div className="from-foreground/30 via-foreground/15 to-foreground/10 absolute inset-0 h-full w-full bg-gradient-to-t" />
                         <div
-                            className="absolute inset-0 rounded-lg border-[0.5px] border-gray-500/70"
+                            className="border-foreground-tertiary/70 absolute inset-0 rounded-lg border-[0.5px]"
                             style={{
                                 maskImage:
                                     'linear-gradient(to bottom, black 60%, transparent 100%)',
@@ -93,9 +96,12 @@ export function SquareProjectCard({
                         project={project}
                         onClick={(e) => {
                             e.stopPropagation();
-                            handleClick();
                         }}
                     />
+                </div>
+
+                <div className="absolute top-3 right-3 z-30 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <SettingsDropdown project={project} refetch={refetch} />
                 </div>
 
                 <div className="absolute right-0 bottom-0 left-0 z-10 p-3 transition-opacity duration-300 group-hover:opacity-50">
@@ -107,17 +113,8 @@ export function SquareProjectCard({
                         )}
                     </div>
                     <div className="mb-1 flex items-center text-xs text-white/70 drop-shadow-lg">
-                        <span>{lastUpdated} ago</span>
+                        {lastUpdated !== null && <span>{lastUpdated} ago</span>}
                     </div>
-                    {/* {project.metadata?.description && (
-                        <div className="text-white/70 text-xs line-clamp-1 drop-shadow-lg">
-                            {HighlightText ? (
-                                <HighlightText text={project.metadata.description} searchQuery={searchQuery} />
-                            ) : (
-                                project.metadata.description
-                            )}
-                        </div>
-                    )} */}
                 </div>
             </div>
         </div>

@@ -262,16 +262,7 @@ export default function ClaudeCodeWorkflowPage() {
                                 className="flex flex-col items-center text-center"
                                 {...getBlurAnimationProps()}
                             >
-                                <span
-                                    className="mb-6 rounded-full px-3 py-1 text-[10px] font-medium tracking-wider uppercase"
-                                    style={{
-                                        color: '#f97316',
-                                        borderColor: 'rgba(249, 115, 22, 0.5)',
-                                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                                        borderWidth: '1px',
-                                        borderStyle: 'solid',
-                                    }}
-                                >
+                                <span className="text-foreground-warning border-foreground-warning/50 bg-foreground-warning/10 text-microPlus mb-6 rounded-full border px-3 py-1 font-medium tracking-wider uppercase">
                                     Coming Soon
                                 </span>
                                 <h2 className="mb-6 max-w-2xl text-3xl leading-tight font-light text-balance md:text-5xl">

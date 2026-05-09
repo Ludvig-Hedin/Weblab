@@ -11,7 +11,7 @@ export const HelpButton = observer(() => {
         <button
             aria-label="Open help"
             title="Open help"
-            className="text-muted-foreground hover:bg-accent/50 hover:text-foreground flex h-10 w-10 items-center justify-center rounded-lg p-0"
+            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground-primary flex h-10 w-10 items-center justify-center rounded-md p-0"
             onClick={() => void openFeedbackWidget()}
         >
             <Icons.QuestionMarkCircled className="h-5 w-5" />

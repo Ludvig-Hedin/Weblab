@@ -27,7 +27,8 @@ export const ActionSection = () => {
                     variant="outline"
                     className={cn(
                         'w-full rounded-md p-3',
-                        !customDomain.publishedAt && 'bg-blue-400 text-white hover:bg-blue-400/80',
+                        !customDomain.publishedAt &&
+                            'bg-foreground-brand hover:bg-foreground-brand/80 text-white',
                     )}
                     disabled={isDeploying || isLoading}
                 >
@@ -38,7 +39,7 @@ export const ActionSection = () => {
             {failedOrCancelled && (
                 <div className="flex w-full flex-col gap-2">
                     {deployment?.error && (
-                        <p className="max-h-20 overflow-y-auto text-red-500">
+                        <p className="text-destructive max-h-20 overflow-y-auto">
                             {stripAnsi(deployment?.error)}
                         </p>
                     )}

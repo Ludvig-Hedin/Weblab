@@ -33,7 +33,7 @@ export const TriggerButton = observer(() => {
 
     if (isCompleted) {
         colorClasses =
-            'border-blue-400/60 bg-blue-400/90 hover:bg-blue-400 text-white hover:text-background';
+            'border-foreground-brand/60 bg-foreground-brand/90 hover:bg-foreground-brand text-white hover:text-background';
         text = editorEngine.history.length > 0 ? 'Update' : 'Live';
         icon = <Icons.Globe className="mr-1 h-4 w-4" />;
     } else if (isDeploying) {
@@ -41,7 +41,7 @@ export const TriggerButton = observer(() => {
         text = 'Publishing';
     } else if (isFailed) {
         colorClasses =
-            'border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-600 hover:border-red-500';
+            'border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-destructive hover:text-destructive hover:border-destructive';
         icon = <Icons.ExclamationTriangle className="mr-1 h-4 w-4" />;
     } else {
         colorClasses =

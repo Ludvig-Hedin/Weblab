@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -18,18 +18,28 @@ export default function GitHubInstallCallbackPage() {
     const searchParams = useSearchParams();
     const [state, setState] = useState<CallbackState>('loading');
     const [message, setMessage] = useState<string>('');
+    const [hasOpener, setHasOpener] = useState<boolean>(false);
+    const calledRef = useRef(false);
+
+    useEffect(() => {
+        // Determined client-side only — `window` is unavailable during SSR.
+        if (typeof window !== 'undefined') {
+            setHasOpener(Boolean(window.opener));
+        }
+    }, []);
 
     const handleInstallationCallback = api.github.handleInstallationCallbackUrl.useMutation();
 
     useEffect(() => {
+        // Guard against React Strict Mode double-invocation in development —
+        // the mutation is non-idempotent and a second fire produces a
+        // "State mismatch" error that conflicts with the success UI.
+        if (calledRef.current) return;
+        calledRef.current = true;
+
         const installationId = searchParams.get('installation_id');
         const setupAction = searchParams.get('setup_action');
         const stateParam = searchParams.get('state');
-
-        // Scrub sensitive params from browser history immediately after reading.
-        if (typeof window !== 'undefined') {
-            window.history.replaceState({}, '', window.location.pathname);
-        }
 
         if (!installationId) {
             setState('error');
@@ -49,7 +59,9 @@ export default function GitHubInstallCallbackPage() {
             return;
         }
 
-        // Call the TRPC mutation to handle the callback
+        // Call the TRPC mutation to handle the callback.
+        // Scrub sensitive params from the URL only after the request completes
+        // so that Next.js router history changes don't race with the in-flight fetch.
         handleInstallationCallback.mutate(
             {
                 installationId,
@@ -58,13 +70,11 @@ export default function GitHubInstallCallbackPage() {
             },
             {
                 onSuccess: () => {
+                    window.history.replaceState({}, '', window.location.pathname);
                     setState('success');
-                    setTimeout(() => {
-                        // Close the tab — it was opened by window.open() in the import flow.
-                        window.close();
-                    }, 5000);
                 },
                 onError: (error) => {
+                    window.history.replaceState({}, '', window.location.pathname);
                     setState('error');
                     setMessage(error.message);
                     console.error('GitHub App installation callback failed:', error);
@@ -72,6 +82,20 @@ export default function GitHubInstallCallbackPage() {
             },
         );
     }, []);
+
+    // Auto-close the tab only when this page was opened by window.open()
+    // (i.e. has an opener). Browsers block window.close() for tabs the user
+    // navigated to directly (email/Slack link), so in that case we render a
+    // manual "Continue to Weblab" button on the success screen instead.
+    useEffect(() => {
+        if (state !== 'success') return;
+        if (typeof window === 'undefined') return;
+        if (!hasOpener) return;
+        const t = setTimeout(() => {
+            window.close();
+        }, 5000);
+        return () => clearTimeout(t);
+    }, [state, hasOpener]);
 
     const StateContainer = ({
         indicatorColor,
@@ -103,7 +127,7 @@ export default function GitHubInstallCallbackPage() {
                         className={`relative h-16 w-16 rounded-full ${indicatorColor} mb-2 flex items-center justify-center`}
                     >
                         {indicatorAnimated && (
-                            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-white/30" />
+                            <div className="border-foreground-primary/30 absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-current" />
                         )}
                         <IndicatorIcon className="h-8 w-8 text-white" />
                     </div>
@@ -113,14 +137,14 @@ export default function GitHubInstallCallbackPage() {
                     className={`relative h-16 w-16 rounded-full ${indicatorColor} mb-2 flex items-center justify-center`}
                 >
                     {indicatorAnimated && (
-                        <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-white/30" />
+                        <div className="border-foreground-primary/30 absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-current" />
                     )}
                     <IndicatorIcon className="h-8 w-8 text-white" />
                 </div>
             )}
             <CardTitle className="text-foreground-primary text-xl">{title}</CardTitle>
             <CardDescription
-                className={`max-w-sm ${isError ? 'text-gray-400' : 'text-foreground-secondary/90'}`}
+                className={`max-w-sm ${isError ? 'text-foreground-tertiary' : 'text-foreground-secondary/90'}`}
             >
                 {description}
             </CardDescription>
@@ -129,16 +153,16 @@ export default function GitHubInstallCallbackPage() {
     );
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6">
+        <div className="from-background-primary via-background to-background-primary flex min-h-screen items-center justify-center bg-gradient-to-br p-6">
             <div className="w-full max-w-md">
                 {/* Header - Above Card */}
                 <div className="mb-8 flex items-center justify-center gap-4">
-                    <div className="rounded-xl bg-gray-800 p-4">
-                        <Icons.WeblabLogo className="h-8 w-8 text-white" />
+                    <div className="bg-background-secondary rounded-xl p-4">
+                        <Icons.WeblabLogo className="text-foreground-primary h-8 w-8" />
                     </div>
-                    <Icons.DotsHorizontal className="h-8 w-8 text-gray-400" />
-                    <div className="rounded-xl bg-gray-800 p-4">
-                        <Icons.GitHubLogo className="h-8 w-8 text-white" />
+                    <Icons.DotsHorizontal className="text-foreground-tertiary h-8 w-8" />
+                    <div className="bg-background-secondary rounded-xl p-4">
+                        <Icons.GitHubLogo className="text-foreground-primary h-8 w-8" />
                     </div>
                 </div>
 
@@ -150,13 +174,13 @@ export default function GitHubInstallCallbackPage() {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <Card className="border-gray-800 bg-gray-900 shadow-2xl">
+                        <Card className="border-border bg-background-primary shadow-2xl">
                             <CardContent className="p-8">
                                 <div className="flex flex-col items-center text-center">
                                     {/* Loading State */}
                                     {state === 'loading' && (
                                         <StateContainer
-                                            indicatorColor="bg-gray-800"
+                                            indicatorColor="bg-background-secondary"
                                             indicatorIcon={Icons.GitHubLogo}
                                             indicatorAnimated={true}
                                             title="Connecting to GitHub"
@@ -167,18 +191,37 @@ export default function GitHubInstallCallbackPage() {
                                     {/* Success State */}
                                     {state === 'success' && (
                                         <StateContainer
-                                            indicatorColor="bg-green-500"
+                                            indicatorColor="bg-foreground-success"
                                             indicatorIcon={Icons.CheckCircled}
                                             iconAnimated={true}
                                             title="GitHub connected!"
-                                            description="You can close this tab and return to Weblab."
+                                            description={
+                                                hasOpener
+                                                    ? 'You can close this tab and return to Weblab.'
+                                                    : 'Continue to Weblab to finish setting up your project.'
+                                            }
+                                            actions={
+                                                !hasOpener ? (
+                                                    <div className="flex w-full flex-col gap-3">
+                                                        <Button
+                                                            variant="default"
+                                                            onClick={() =>
+                                                                router.push(Routes.PROJECTS)
+                                                            }
+                                                            className="w-full"
+                                                        >
+                                                            Continue to Weblab
+                                                        </Button>
+                                                    </div>
+                                                ) : undefined
+                                            }
                                         />
                                     )}
 
                                     {/* Error State */}
                                     {state === 'error' && (
                                         <StateContainer
-                                            indicatorColor="bg-red-500"
+                                            indicatorColor="bg-destructive"
                                             indicatorIcon={Icons.ExclamationTriangle}
                                             iconAnimated={true}
                                             title="Something went wrong"

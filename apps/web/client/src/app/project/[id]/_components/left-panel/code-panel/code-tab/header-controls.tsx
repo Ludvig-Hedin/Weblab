@@ -59,7 +59,7 @@ export const CodeControls = ({
     };
 
     return (
-        <div className="border-border flex h-10 w-full flex-row items-center justify-between border-b p-1">
+        <div className="bg-background-secondary border-border-bar flex h-10 w-full flex-row items-center justify-between border-b p-1">
             <Button
                 variant="ghost"
                 size="icon"
@@ -134,17 +134,14 @@ export const CodeControls = ({
                                 'group mr-0.5 ml-1 h-fit w-fit cursor-pointer px-2 py-1',
                                 isDirty
                                     ? 'text-background-primary bg-foreground-primary hover:bg-foreground-primary/80'
-                                    : 'hover:bg-background-tertiary hover:text-foreground-primary',
+                                    : 'hover:bg-background-bar-active hover:text-foreground-primary',
                             )}
                         >
                             {isSaving ? (
                                 <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                             ) : (
                                 <Icons.Save
-                                    className={cn(
-                                        'h-4 w-4',
-                                        isDirty && 'text-blue-200 group-hover:text-blue-100',
-                                    )}
+                                    className={cn('h-4 w-4', isDirty && 'text-background-primary')}
                                 />
                             )}
                             <span className="text-small">{isSaving ? 'Saving...' : 'Save'}</span>

@@ -62,7 +62,7 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
                 <span
                     className={cn(
                         'border-background absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2',
-                        isOnline ? 'bg-green-500' : 'bg-muted-foreground/30',
+                        isOnline ? 'bg-foreground-success' : 'bg-muted-foreground/30',
                     )}
                 />
             </div>

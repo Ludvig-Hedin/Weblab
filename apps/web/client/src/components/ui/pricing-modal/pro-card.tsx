@@ -262,7 +262,7 @@ export const ProCard = ({
                     {creditsSelector}
                 </div>
                 {isPendingTierSelected && isPro && (
-                    <div className="text-small mt-2 text-balance text-amber-500">
+                    <div className="text-small text-foreground-warning mt-2 text-balance">
                         {t('pricing.scheduledPlanStart', {
                             date: scheduledPlanStartDate,
                         })}
@@ -314,7 +314,7 @@ export const ProCard = ({
                     </Button>
 
                     {isPendingTierSelected && isPro && (
-                        <div className="text-small text-balance text-amber-500">
+                        <div className="text-small text-foreground-warning text-balance">
                             {t('pricing.scheduledPlanStart', {
                                 date: scheduledPlanStartDate,
                             })}
