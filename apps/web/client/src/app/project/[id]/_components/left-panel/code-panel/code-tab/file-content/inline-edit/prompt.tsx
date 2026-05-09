@@ -59,9 +59,19 @@ export const InlineEditPrompt = ({
 
     const [promptPos, setPromptPos] = useState(getPromptPos);
 
+    // Reposition when session.from changes (e.g. lines inserted above selection).
+    useEffect(() => {
+        const pos = getPromptPos();
+        if (pos) setPromptPos(pos);
+    }, [getPromptPos]);
+
+    // Follow editor scroll — don't null out if anchor is off-screen; keep last pos.
     useEffect(() => {
         const scrollEl = editor.scrollDOM;
-        const onScroll = () => setPromptPos(getPromptPos());
+        const onScroll = () => {
+            const pos = getPromptPos();
+            if (pos) setPromptPos(pos);
+        };
         scrollEl.addEventListener('scroll', onScroll, { passive: true });
         return () => scrollEl.removeEventListener('scroll', onScroll);
     }, [editor, getPromptPos]);

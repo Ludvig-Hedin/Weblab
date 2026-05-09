@@ -91,8 +91,9 @@ export async function POST(req: NextRequest) {
             projectId: body.projectId,
             abortSignal: req.signal,
         });
-        // Meter after generation so failed requests don't count.
-        void incrementUsage(req);
+        // Meter after generation so aborted/failed requests don't count.
+        // Fire-and-forget: tab completions are best-effort; don't block the response.
+        void incrementUsage(req).catch(() => undefined);
         return new Response(JSON.stringify({ completion }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
