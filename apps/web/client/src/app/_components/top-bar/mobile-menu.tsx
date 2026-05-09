@@ -4,12 +4,7 @@ import { useEffect } from 'react';
 import * as Portal from '@radix-ui/react-portal';
 import { AnimatePresence, motion } from 'motion/react';
 
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@weblab/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { cn } from '@weblab/ui/utils';
 
 import { NAVIGATION_CATEGORIES } from '@/utils/constants/navigation';
@@ -86,7 +81,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                                 className="border-foreground/[0.08] border-b last:border-0"
                                             >
                                                 <AccordionTrigger className="py-4 hover:no-underline [&>svg]:hidden">
-                                                    <span className="text-foreground-primary text-[1.75rem] font-light leading-none tracking-tight">
+                                                    <span className="text-foreground-primary text-[1.75rem] leading-none font-light tracking-tight">
                                                         {category.label}
                                                     </span>
                                                 </AccordionTrigger>

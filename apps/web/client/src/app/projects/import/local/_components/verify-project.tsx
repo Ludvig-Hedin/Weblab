@@ -58,20 +58,20 @@ export const VerifyProject = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="flex w-full flex-row items-center gap-2 rounded-lg border border-amber-600 bg-amber-900 p-4"
+            className="border-warning bg-background-warning flex w-full flex-row items-center gap-2 rounded-lg border p-4"
         >
             <div className="flex w-full flex-col gap-2">
                 <div className="flex w-full flex-row items-center justify-between gap-3">
-                    <div className="rounded-md bg-amber-500 p-3">
+                    <div className="bg-foreground-warning rounded-md p-3">
                         <Icons.Directory className="h-5 w-5" />
                     </div>
                     <div className="flex w-full flex-col gap-1 break-all">
-                        <p className="text-regular text-amber-100">{projectData.name}</p>
-                        <p className="text-mini text-amber-200">{projectData.folderPath}</p>
+                        <p className="text-regular text-foreground-primary">{projectData.name}</p>
+                        <p className="text-mini text-foreground-warning">{projectData.folderPath}</p>
                     </div>
-                    <Icons.ExclamationTriangle className="h-5 w-5 text-amber-200" />
+                    <Icons.ExclamationTriangle className="text-foreground-warning h-5 w-5" />
                 </div>
-                <p className="text-sm text-amber-100">{`This folder doesn't look like a ${frameworkName} project`}</p>
+                <p className="text-small text-foreground-primary">{`This folder doesn't look like a ${frameworkName} project`}</p>
             </div>
         </motion.div>
     );

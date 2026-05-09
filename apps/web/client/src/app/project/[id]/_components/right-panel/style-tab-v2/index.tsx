@@ -13,6 +13,7 @@ import { useResetHotkey } from './hooks/use-reset-hotkey';
 import { useSectionState } from './hooks/use-section-state';
 import { BackgroundsSection } from './sections/backgrounds';
 import { BordersSection } from './sections/borders';
+import { ContentSection } from './sections/content';
 import { CustomPropertiesSection } from './sections/custom-properties';
 import { EffectsSection } from './sections/effects';
 import { ElementHeaderSection } from './sections/element-header';
@@ -25,7 +26,7 @@ import { TransformsSection } from './sections/transforms';
 import { TransitionsSection } from './sections/transitions';
 import { TypographySection } from './sections/typography';
 
-const DEFAULT_OPEN_SECTIONS = ['layout', 'spacing', 'size', 'typography'] as const;
+const DEFAULT_OPEN_SECTIONS = ['content', 'layout', 'spacing', 'size', 'typography'] as const;
 
 const TARGET_LABEL: Record<WriteTarget, string> = {
     tailwind: 'Tailwind',
@@ -85,6 +86,7 @@ export const StyleTabV2 = observer(function StyleTabV2() {
             <ElementHeaderSection />
             <WriteTargetToolbar />
             <Accordion type="multiple" value={open} onValueChange={setOpen} className="px-0">
+                <ContentSection />
                 <LayoutSection />
                 <SpacingSection />
                 <SizeSection />

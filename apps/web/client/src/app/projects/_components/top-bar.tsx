@@ -4,27 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
 import { Button } from '@weblab/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { cn } from '@weblab/ui/utils';
 
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
-import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
-import { useImportLocalProject } from '@/hooks/use-import-local-project';
-import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
-import { ProjectModeDialog } from './project-mode-dialog';
 
 // ─── Projects dropdown ───────────────────────────────────────────────────────
 
@@ -127,16 +116,10 @@ interface TopBarProps {
 }
 
 export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
-    const t = useTranslations();
     const router = useRouter();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [projectModeIntent, setProjectModeIntent] = useState<'create' | 'import' | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchContainerRef = useRef<HTMLDivElement>(null);
-
-    const { handleStartBlankProject, isCreatingProject } = useCreateBlankProject();
-    const { handleImportLocalProject, isImporting } = useImportLocalProject();
-    const isBusy = isCreatingProject || isImporting;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -162,16 +145,6 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
     }, [onSearchChange]);
-
-    const handleCloudModeSelect = () => {
-        const intent = projectModeIntent;
-        setProjectModeIntent(null);
-        if (intent === 'create') {
-            void handleStartBlankProject();
-        } else if (intent === 'import') {
-            void handleImportLocalProject();
-        }
-    };
 
     return (
         <div className="text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-4 p-4">
@@ -231,132 +204,20 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
 
             {/* Actions */}
             <div className="mt-0 flex items-center justify-end gap-3">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            className="h-8 cursor-pointer py-[0.4rem] text-sm focus:outline-none"
-                            variant="default"
-                            disabled={isBusy}
-                        >
-                            {isCreatingProject ? (
-                                <>
-                                    Creating... <Icons.LoadingSpinner className="animate-spin" />
-                                </>
-                            ) : isImporting ? (
-                                <>
-                                    {t(transKeys.projects.actions.importingLocalFolder)}{' '}
-                                    <Icons.LoadingSpinner className="animate-spin" />
-                                </>
-                            ) : (
-                                <>
-                                    Create <Icons.ChevronDown />
-                                </>
-                            )}
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent sideOffset={8} className="translate-x-[-12px]">
-                        <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
-                            onSelect={() => {
-                                router.push(Routes.NEW_PROJECT);
-                            }}
-                        >
-                            <Icons.Sparkles className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
-                            <p className="text-microPlus">Start with AI</p>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
-                            onSelect={() => setProjectModeIntent('create')}
-                            disabled={isCreatingProject}
-                        >
-                            {isCreatingProject ? (
-                                <Icons.LoadingSpinner className="text-foreground-secondary mr-1 h-4 w-4 animate-spin group-hover:text-blue-100" />
-                            ) : (
-                                <Icons.FilePlus className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
-                            )}
-                            {t(transKeys.projects.actions.blankProject)}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
-                            onSelect={() => setProjectModeIntent('import')}
-                            disabled={isBusy}
-                        >
-                            {isImporting ? (
-                                <Icons.LoadingSpinner className="text-foreground-secondary mr-1 h-4 w-4 animate-spin group-hover:text-blue-100" />
-                            ) : (
-                                <Icons.Directory className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
-                            )}
-                            <p className="text-microPlus">
-                                {t(transKeys.projects.actions.openLocalFolder)}
-                            </p>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
-                            onSelect={() => {
-                                router.push(Routes.IMPORT_PROJECT);
-                            }}
-                            disabled={isBusy}
-                        >
-                            <Icons.Upload className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
-                            <p className="text-microPlus">{t(transKeys.projects.actions.import)}</p>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
-                            onSelect={() => {
-                                router.push(Routes.IMPORT_GITHUB);
-                            }}
-                            disabled={isBusy}
-                        >
-                            <Icons.GitHubLogo className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-100" />
-                            <p className="text-microPlus">
-                                {t(transKeys.projects.actions.importFromGitHub)}
-                            </p>
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Single, unambiguous entry point. The full chooser
+                    (AI prompt, blank, GitHub, folder) lives at /projects/new
+                    so each option can carry a real description instead of
+                    cramming icons into a dropdown. */}
+                <Button
+                    className="h-8 cursor-pointer py-[0.4rem] text-sm focus:outline-none"
+                    variant="default"
+                    onClick={() => router.push(Routes.NEW_PROJECT)}
+                >
+                    <Icons.Plus className="h-4 w-4" />
+                    New project
+                </Button>
                 <CurrentUserAvatar className="h-8 w-8" />
             </div>
-            <ProjectModeDialog
-                open={projectModeIntent !== null}
-                intent={projectModeIntent ?? 'create'}
-                isBusy={isBusy}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setProjectModeIntent(null);
-                    }
-                }}
-                onCloudSelect={handleCloudModeSelect}
-            />
         </div>
     );
 };

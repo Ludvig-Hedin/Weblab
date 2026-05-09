@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import { Icons } from '@weblab/ui/icons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
@@ -65,6 +66,55 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
         return () => window.removeEventListener('toggle-terminal', handleToggle);
     }, []);
 
+    const sessionKeys = Array.from(allTerminalSessions.keys());
+
+    const switchToSessionByKey = (key: string) => {
+        const terminalData = allTerminalSessions.get(key);
+        if (!terminalData) return;
+        editorEngine.branches.switchToBranch(terminalData.branchId);
+        const sandbox = branches.getSandboxById(terminalData.branchId);
+        if (sandbox) {
+            sandbox.session.activeTerminalSessionId = terminalData.sessionId;
+        }
+    };
+
+    const cycleSession = (delta: 1 | -1) => {
+        if (terminalHidden || sessionKeys.length < 2) return;
+        const currentIndex = activeSessionId ? sessionKeys.indexOf(activeSessionId) : -1;
+        const base = currentIndex === -1 ? 0 : currentIndex;
+        const nextIndex = (base + delta + sessionKeys.length) % sessionKeys.length;
+        const nextKey = sessionKeys[nextIndex];
+        if (nextKey) switchToSessionByKey(nextKey);
+    };
+
+    useHotkeys(
+        'mod+shift+]',
+        (e) => {
+            e.preventDefault();
+            cycleSession(1);
+        },
+        {
+            enabled: !terminalHidden && sessionKeys.length > 1,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [terminalHidden, sessionKeys.join('|'), activeSessionId],
+    );
+
+    useHotkeys(
+        'mod+shift+[',
+        (e) => {
+            e.preventDefault();
+            cycleSession(-1);
+        },
+        {
+            enabled: !terminalHidden && sessionKeys.length > 1,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [terminalHidden, sessionKeys.join('|'), activeSessionId],
+    );
+
     return (
         <>
             {terminalHidden ? (
@@ -75,7 +125,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                         <TooltipTrigger asChild>
                             <button
                                 onClick={() => setTerminalHidden(!terminalHidden)}
-                                className="hover:text-foreground-hover text-foreground-tertiary hover:bg-accent/50 flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
+                                className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
                             >
                                 <Icons.Terminal />
                             </button>
@@ -103,7 +153,7 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                             <TooltipTrigger asChild>
                                 <button
                                     onClick={() => setTerminalHidden(!terminalHidden)}
-                                    className="hover:text-foreground-hover text-foreground-tertiary hover:bg-accent/50 flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
+                                    className="hover:text-foreground-hover text-foreground-tertiary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md border border-transparent"
                                 >
                                     <Icons.ChevronDown />
                                 </button>
@@ -170,7 +220,9 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
                     </Tabs>
                 ) : (
                     <div className="text-muted-foreground flex h-full items-center justify-center">
-                        <span className="text-small">No terminal sessions available</span>
+                        <span className="text-small">
+                            No terminal open. Start the app to open one.
+                        </span>
                     </div>
                 )}
             </div>

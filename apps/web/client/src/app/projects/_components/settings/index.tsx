@@ -16,6 +16,7 @@ import { Icons } from '@weblab/ui/icons';
 import { CloneProject } from './clone-project';
 import { CreateTemplate } from './create-template';
 import { DeleteProject } from './delete-project';
+import { OfflinePinToggle } from './offline-pin-toggle';
 import { RenameProject } from './rename-project';
 
 export function SettingsDropdown({ project, refetch }: { project: Project; refetch: () => void }) {
@@ -51,6 +52,7 @@ export function SettingsDropdown({ project, refetch }: { project: Project; refet
                 <RenameProject project={project} refetch={refetch} />
                 <CloneProject project={project} refetch={refetch} />
                 <CreateTemplate project={project} refetch={refetch} />
+                <OfflinePinToggle project={project} />
                 <DeleteProject project={project} refetch={refetch} />
             </DropdownMenuContent>
         </DropdownMenu>

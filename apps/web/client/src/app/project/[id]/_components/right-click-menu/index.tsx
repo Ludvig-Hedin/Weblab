@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { DomElement } from '@weblab/models';
 import { EditorAttributes } from '@weblab/constants';
@@ -18,6 +19,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { IDE } from '@/components/ide';
 import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
 
 interface RightClickMenuProps {
     children: React.ReactNode;
@@ -37,6 +39,7 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
     const editorEngine = useEditorEngine();
     const ide = IDE.fromType(DEFAULT_IDE);
     const rightClickCanvas = useRef({ x: 0, y: 0 });
+    const t = useTranslations();
 
     const captureRightClickPosition = (e: React.MouseEvent) => {
         const canvasTransformDiv = document.getElementById(EditorAttributes.CANVAS_CONTAINER_ID);
@@ -158,6 +161,17 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
         },
     ];
 
+    const buildCmsItems = (oid: string | null): MenuItem[] => [
+        {
+            label: t(transKeys.cms.bind.contextMenu),
+            action: () => {
+                if (oid) editorEngine.state.openCmsBindDialog(oid);
+            },
+            icon: <Icons.Cube className="mr-2 h-4 w-4" />,
+            disabled: !oid,
+        },
+    ];
+
     const getMenuItems = (): MenuItem[][] => {
         if (!editorEngine.elements.selected.length) {
             return [WINDOW_ITEMS, COMMENT_ITEMS];
@@ -186,7 +200,7 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
             ...TOOL_ITEMS,
         ].filter((item): item is MenuItem => item !== false);
 
-        return [updatedToolItems, GROUP_ITEMS, EDITING_ITEMS, COMMENT_ITEMS];
+        return [updatedToolItems, GROUP_ITEMS, EDITING_ITEMS, buildCmsItems(root), COMMENT_ITEMS];
     };
 
     const menuItems: MenuItem[][] = getMenuItems();

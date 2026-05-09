@@ -86,7 +86,7 @@ export const FigmaSelectFrames = () => {
                                                     {frame.width}×{frame.height}
                                                 </span>
                                                 {isSelected && (
-                                                    <Icons.Check className="h-4 w-4 shrink-0 text-green-500" />
+                                                    <Icons.Check className="text-foreground-success h-4 w-4 shrink-0" />
                                                 )}
                                             </div>
                                         </button>

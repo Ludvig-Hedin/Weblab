@@ -7,8 +7,8 @@ import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ImageMessageContext, User } from '@weblab/models';
-import { MessageContextType } from '@weblab/models';
+import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
+import { DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
@@ -21,9 +21,13 @@ import { AiPromptComposer } from '@/components/ai-prompt-composer';
 import {
     AI_PROMPT_CREATE_RESUME_PATH,
     loadAiPromptCreateDraft,
+    loadAiPromptCreateModel,
     removeAiPromptCreateDraft,
     saveAiPromptCreateDraft,
+    saveAiPromptCreateModel,
 } from '@/components/ai-prompt-composer/create-draft';
+import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
+import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateManager } from '@/components/store/create';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
@@ -32,7 +36,7 @@ export interface CreateSuggestion {
     prompt: string;
 }
 
-const MIN_PROMPT_LENGTH = 10;
+const MIN_PROMPT_LENGTH = 1;
 
 export const Create = observer(
     ({
@@ -64,10 +68,21 @@ export const Create = observer(
         const isInputInvalid = trimmedLength < MIN_PROMPT_LENGTH;
         const charactersRemaining = Math.max(0, MIN_PROMPT_LENGTH - trimmedLength);
         const [isComposing, setIsComposing] = useState(false);
+        const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
         const restoredDraftRef = useRef(false);
 
         const createProject = useCallback(
             async (prompt: string, images: ImageMessageContext[]) => {
+                // Idempotency guard: handleSubmit, the auto-submit useEffect,
+                // and the keydown handler can all reach this entry point. The
+                // button's `disabled` prop only protects the click path —
+                // without this guard, hitting Enter while the auto-submit is
+                // mid-flight (or vice-versa) would fire two parallel
+                // `startCreate` calls and create two projects.
+                if (isCreatingProject) {
+                    return;
+                }
+
                 if (!user?.id) {
                     await saveAiPromptCreateDraft(prompt, images);
                     await localforage.setItem(
@@ -82,37 +97,72 @@ export const Create = observer(
                 try {
                     const project = await createManager.startCreate(user?.id, prompt, images);
                     if (!project) {
-                        throw new Error('Failed to create project: No project returned');
+                        // Reaching this branch means the manager bailed early
+                        // (e.g. missing user id) without throwing. Don't
+                        // re-save the draft or surface a misleading toast.
+                        setIsCreatingProject(false);
+                        return;
                     }
                     await removeAiPromptCreateDraft();
                     router.push(`${Routes.PROJECT}/${project.id}`);
+                    // Intentionally leave isCreatingProject=true on the
+                    // success path. The new route unmounts the hero, which
+                    // tears down this component (and the overlay) when it
+                    // mounts. Resetting here would briefly flash the hero
+                    // back between router.push and the route transition,
+                    // making the loading feel broken.
                 } catch (error) {
                     console.error('Error creating project:', error);
                     await saveAiPromptCreateDraft(prompt, images);
-                    toast.error('Failed to create project', {
-                        description: error instanceof Error ? error.message : String(error),
-                    });
-                } finally {
+                    // Prefer the manager's structured error message when
+                    // present — it mirrors the inline <CreateError> banner so
+                    // the toast and the banner agree on root cause.
+                    const description =
+                        createManager.error ??
+                        (error instanceof Error ? error.message : String(error));
+                    toast.error('Failed to create project', { description });
                     setIsCreatingProject(false);
                 }
             },
-            [createManager, router, setIsAuthModalOpen, setIsCreatingProject, user?.id],
+            [
+                createManager,
+                isCreatingProject,
+                router,
+                setIsAuthModalOpen,
+                setIsCreatingProject,
+                user?.id,
+            ],
         );
 
         useEffect(() => {
             const getDraft = async () => {
                 try {
                     const draft = await loadAiPromptCreateDraft();
-                    if (!draft) return;
-                    setInputValue(draft.prompt ?? '');
-                    setSelectedImages(draft.images ?? []);
-                    restoredDraftRef.current = true;
+                    if (draft) {
+                        setInputValue(draft.prompt ?? '');
+                        setSelectedImages(draft.images ?? []);
+                        restoredDraftRef.current = true;
+                    }
+                    // Restore the picker selection independently — it may
+                    // exist without a draft (user changed model then refreshed
+                    // without typing anything).
+                    const restoredModel = await loadAiPromptCreateModel();
+                    if (restoredModel) {
+                        setSelectedModel(restoredModel as ChatModel);
+                    }
                 } catch (error) {
                     console.error('Error restoring draft:', error);
                 }
             };
             void getDraft();
         }, []);
+
+        // Persist the picker choice on every change so it survives reloads
+        // AND so the editor can pick it up on first chat-tab mount as the
+        // initial model (one-shot handoff cleared by the editor).
+        useEffect(() => {
+            void saveAiPromptCreateModel(selectedModel);
+        }, [selectedModel]);
 
         useEffect(() => {
             if (
@@ -270,8 +320,35 @@ export const Create = observer(
             });
         };
 
+        const phase = createManager.phase;
+        // Show the loader the instant submit fires so the user sees progress
+        // immediately instead of staring at a spinner inside the input box for
+        // the 5–30s sandbox-fork window. We deliberately don't gate this on
+        // `phase !== 'idle'` — there's a render between setIsCreatingProject
+        // and the manager's first phase write where phase is still idle, and
+        // the user would briefly see the hero with a button-spinner instead
+        // of the full-screen loader. The editor's own loader picks up after
+        // router.push and looks identical, so the handoff is seamless.
+        const showCreationOverlay = isCreatingProject;
+        const creationSteps = [
+            {
+                label: 'Preparing your workspace',
+                ready: phase === 'creating-project' || phase === 'opening-editor',
+            },
+            { label: 'Saving your project', ready: phase === 'opening-editor' },
+            { label: 'Opening editor', ready: false },
+        ];
+
         return (
             <div key={cardKey} className="flex w-full flex-col items-center gap-3">
+                {showCreationOverlay && (
+                    <ProjectCreationLoader
+                        overlay
+                        heading="Getting your site ready"
+                        caption="Your prompt is saved. The AI will start building as soon as the editor loads."
+                        steps={creationSteps}
+                    />
+                )}
                 <AiPromptComposer
                     value={inputValue}
                     onChange={(value) => {
@@ -322,18 +399,20 @@ export const Create = observer(
                         <div
                             className={cn(
                                 'text-foreground-tertiary px-0.5 pt-1 text-[11px] transition-opacity duration-150',
-                                inputValue.length > 0 && isInputInvalid
-                                    ? 'opacity-100'
-                                    : 'pointer-events-none h-0 opacity-0',
+                                'pointer-events-none h-0 opacity-0',
                             )}
                             aria-live="polite"
-                        >
-                            {charactersRemaining > 0
-                                ? `${charactersRemaining} more character${charactersRemaining === 1 ? '' : 's'} to start designing`
-                                : ''}
-                        </div>
+                        />
                     }
-                    submitTooltip={!user?.id && !isInputInvalid ? 'Sign in to design' : undefined}
+                    submitTooltip={!user?.id ? 'Sign in to start building' : undefined}
+                    leftControls={
+                        <ModelSelector
+                            value={selectedModel}
+                            onChange={setSelectedModel}
+                            localModels={[]}
+                            localModelsLoading={false}
+                        />
+                    }
                     suggestionsSlot={
                         suggestions && suggestions.length > 0 ? (
                             <div className="flex flex-wrap justify-center gap-2">

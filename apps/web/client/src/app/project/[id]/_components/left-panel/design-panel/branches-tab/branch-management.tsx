@@ -94,17 +94,13 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                 await editorEngine.branches.switchToBranch(targetBranch.id);
             }
 
-            const success = await api.branch.delete.mutate({
+            await api.branch.delete.mutate({
                 branchId: branch.id,
             });
 
-            if (success) {
-                editorEngine.branches.removeBranch(branch.id);
-                toast.success('Branch deleted successfully');
-                handleClose();
-            } else {
-                throw new Error('Failed to delete branch');
-            }
+            editorEngine.branches.removeBranch(branch.id);
+            toast.success('Branch deleted successfully');
+            handleClose();
         } catch (error) {
             console.error('Failed to delete branch:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to delete branch');
@@ -218,7 +214,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                                     <span>Deleting...</span>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2 text-red-400">
+                                <div className="text-destructive flex items-center gap-2">
                                     <Icons.Trash className="h-4 w-4" />
                                     <span>Delete</span>
                                 </div>

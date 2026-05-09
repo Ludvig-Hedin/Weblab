@@ -1,16 +1,26 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 import { SUPPORT_EMAIL } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons/index';
 
 import { api } from '@/trpc/server';
 import { Routes } from '@/utils/constants';
+import { createClient } from '@/utils/supabase/server';
+import { getReturnUrlQueryParam } from '@/utils/url';
 
 export default async function Layout({
     params,
     children,
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
+    const supabase = await createClient();
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+        redirect(`${Routes.LOGIN}?${getReturnUrlQueryParam(`/project/${projectId}`)}`);
+    }
     const hasAccess = await api.project.hasAccess({ projectId });
     if (!hasAccess) {
         return <NoAccess />;

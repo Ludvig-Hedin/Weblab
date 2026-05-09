@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
+import { EditorMode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
@@ -19,6 +20,7 @@ import { transKeys } from '@/i18n/keys';
 import { Members } from '../members';
 import { BranchDisplay } from './branch';
 import { DiffButton } from './diff';
+import { ConnectionChip } from './connection-chip';
 import { GitActionsButton } from './git-actions';
 import { ModeToggle } from './mode-toggle';
 import { ProjectBreadcrumb } from './project-breadcrumb';
@@ -45,34 +47,26 @@ export const TopBar = observer(() => {
         },
     ];
 
+    // Unified header button styling: 32px square ghost icon button with consistent
+    // foreground/hover treatment. Apply via className on Button so each consumer
+    // (undo/redo, history, diff, git, etc.) reads identically.
+    const headerIconBtnClass =
+        'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 h-8 w-8 rounded-md';
+
     return (
-        <div className="bg-background-secondary border-border flex h-10 flex-row items-center justify-center border-b p-0">
-            <div className="flex flex-grow basis-0 flex-row items-center justify-start">
+        <div className="bg-background-chrome border-border flex h-14 flex-row items-center justify-center border-b px-3">
+            <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1">
                 <ProjectBreadcrumb />
                 <span className="text-foreground-secondary/50 text-small">/</span>
                 <BranchDisplay />
+                <span className="ml-2">
+                    <ConnectionChip />
+                </span>
             </div>
             <ModeToggle />
-            <div className="mr-2 flex flex-grow basis-0 items-center justify-end gap-1.5">
-                <div className="group flex items-center">
-                    <div
-                        className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}
-                    >
-                        <Members onPopoverOpenChange={setIsMembersPopoverOpen} />
-                    </div>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <div className="flex items-center">
-                                <CurrentUserAvatar className="hover:border-foreground-primary size-8 cursor-pointer" />
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="mt-1" hideArrow>
-                            <p>Profile</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
+            <div className="flex flex-grow basis-0 items-center justify-end gap-1.5">
                 <motion.div
-                    className="-mr-1 hidden space-x-0 lg:block"
+                    className="hidden lg:flex lg:items-center"
                     layout
                     transition={{
                         type: 'spring',
@@ -88,7 +82,7 @@ export const TopBar = observer(() => {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8"
+                                        className={headerIconBtnClass}
                                         onClick={click}
                                         disabled={isDisabled}
                                     >
@@ -107,7 +101,7 @@ export const TopBar = observer(() => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8"
+                            className={headerIconBtnClass}
                             onClick={() => {
                                 stateManager.settingsTab = SettingsTabValue.VERSIONS;
                                 stateManager.isSettingsModalOpen = true;
@@ -122,6 +116,56 @@ export const TopBar = observer(() => {
                 </Tooltip>
                 <DiffButton />
                 <GitActionsButton />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={headerIconBtnClass}
+                            onClick={() => editorEngine.state.setEditorMode(EditorMode.CMS)}
+                            aria-label={t(transKeys.cms.topBar.tooltip)}
+                        >
+                            <Icons.Cube className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="mt-1" hideArrow>
+                        {t(transKeys.cms.topBar.tooltip)}
+                    </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            data-tour="preview-button"
+                            className={headerIconBtnClass}
+                            onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
+                            aria-label="Preview"
+                        >
+                            <Icons.Play className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="mt-1" hideArrow>
+                        <HotkeyLabel hotkey={Hotkey.PREVIEW} />
+                    </TooltipContent>
+                </Tooltip>
+                <div className="group flex items-center">
+                    <div
+                        className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}
+                    >
+                        <Members onPopoverOpenChange={setIsMembersPopoverOpen} />
+                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="flex items-center">
+                                <CurrentUserAvatar className="hover:border-foreground-primary size-8 cursor-pointer" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="mt-1" hideArrow>
+                            <p>Profile</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
                 <PublishButton />
             </div>
         </div>

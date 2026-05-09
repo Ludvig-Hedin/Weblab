@@ -8,10 +8,12 @@ import { EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import type { ElementPreset, PresetCategory } from './presets';
 import { useEditorEngine } from '@/components/store/editor';
+import { BlockPreview } from './block-preview';
 import { ELEMENT_PRESETS, PRESET_CATEGORIES } from './presets';
 
 type Mode = 'elements' | 'blocks';
@@ -110,26 +112,19 @@ export const InsertTab = observer(() => {
         return groups;
     }, [filteredBlocks]);
 
+    // Drag-only insert: starting a drag clears any stale "click-to-place"
+    // pending state and ensures we're back in DESIGN mode so the gesture
+    // screen accepts the drop. The canvas-level drop handler routes drops
+    // landing outside any frame to the nearest frame.
     const handlePresetDragStart = useCallback(
         (event: React.DragEvent<HTMLButtonElement>, properties: DropElementProperties) => {
             event.dataTransfer.setData('application/json', JSON.stringify(properties));
             event.dataTransfer.effectAllowed = 'copy';
             editorEngine.state.setPendingInsertElement(null);
             editorEngine.state.setPendingInsertBlock(null);
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
-        },
-        [editorEngine.state],
-    );
-
-    const handlePresetClick = useCallback(
-        (preset: ElementPreset) => {
-            if (preset.comingSoon) return;
-            editorEngine.state.setPendingInsertElement(preset.properties);
-            editorEngine.state.setPendingInsertBlock(null);
             editorEngine.state.setPendingInsertComponent(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
-            toast('Click on the canvas to place this element.');
         },
         [editorEngine.state],
     );
@@ -147,28 +142,19 @@ export const InsertTab = observer(() => {
             event.dataTransfer.effectAllowed = 'copy';
             editorEngine.state.setPendingInsertElement(null);
             editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
+            editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
         },
         [editorEngine.state],
     );
 
-    const handleBlockClick = useCallback(
-        (block: ShadcnBlockManifestItem) => {
-            if (!block.installed) {
-                toast.error('Block is not installed', {
-                    description: `Run bunx --bun shadcn@latest add @shadcnblocks/${block.registryName}`,
-                });
-                return;
-            }
-            editorEngine.state.setPendingInsertElement(null);
-            editorEngine.state.setPendingInsertBlock(block);
-            editorEngine.state.setPendingInsertComponent(null);
-            editorEngine.state.setInsertMode(null);
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
-            toast('Click on the canvas to place this block.');
-        },
-        [editorEngine.state],
-    );
+    /** Click-handling for non-installed blocks: surface the install command. */
+    const handleUninstalledBlockClick = useCallback((block: ShadcnBlockManifestItem) => {
+        toast.error('Block is not installed', {
+            description: `Run bunx --bun shadcn@latest add @shadcnblocks/${block.registryName}`,
+        });
+    }, []);
 
     useEffect(() => {
         setSearchQuery('');
@@ -244,7 +230,12 @@ export const InsertTab = observer(() => {
                                         onClick={() => toggleCategory(value)}
                                         aria-expanded={!isCollapsed}
                                     >
-                                        <span>{label}</span>
+                                        <span className="flex items-center gap-1.5">
+                                            {label}
+                                            <span className="text-muted-foreground text-[10px] font-normal">
+                                                {presets.length}
+                                            </span>
+                                        </span>
                                         <Icons.ChevronDown
                                             className={cn(
                                                 'text-muted-foreground h-3.5 w-3.5 transition-transform',
@@ -259,7 +250,6 @@ export const InsertTab = observer(() => {
                                                     key={preset.key}
                                                     preset={preset}
                                                     onDragStart={handlePresetDragStart}
-                                                    onClick={handlePresetClick}
                                                 />
                                             ))}
                                         </div>
@@ -287,7 +277,12 @@ export const InsertTab = observer(() => {
                                         onClick={() => toggleBlockCategory(value)}
                                         aria-expanded={!isCollapsed}
                                     >
-                                        <span>{label}</span>
+                                        <span className="flex items-center gap-1.5">
+                                            {label}
+                                            <span className="text-muted-foreground text-[10px] font-normal">
+                                                {blocks.length}
+                                            </span>
+                                        </span>
                                         <Icons.ChevronDown
                                             className={cn(
                                                 'text-muted-foreground h-3.5 w-3.5 transition-transform',
@@ -296,13 +291,13 @@ export const InsertTab = observer(() => {
                                         />
                                     </button>
                                     {!isCollapsed && (
-                                        <div className="grid grid-cols-2 gap-1.5">
+                                        <div className="grid grid-cols-2 gap-2">
                                             {blocks.map((block) => (
                                                 <BlockCard
                                                     key={block.registryName}
                                                     block={block}
                                                     onDragStart={handleBlockDragStart}
-                                                    onClick={handleBlockClick}
+                                                    onUninstalledClick={handleUninstalledBlockClick}
                                                 />
                                             ))}
                                         </div>
@@ -328,17 +323,20 @@ interface PresetCardProps {
         event: React.DragEvent<HTMLButtonElement>,
         properties: DropElementProperties,
     ) => void;
-    onClick: (preset: ElementPreset) => void;
 }
 
-const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
+// Drag-only card for an element preset. The previous click-to-place fallback
+// was removed because it was both confusing (the user had no signal what to do
+// next after clicking) and crash-prone in some frame states.
+const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
     const Icon = Icons[preset.icon] as React.ComponentType<{ className?: string }> | undefined;
     const disabled = Boolean(preset.comingSoon);
 
-    return (
+    const card = (
         <button
             type="button"
             draggable={!disabled}
+            aria-disabled={disabled}
             onDragStart={(event) => {
                 if (disabled) {
                     event.preventDefault();
@@ -346,13 +344,12 @@ const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
                 }
                 onDragStart(event, preset.properties);
             }}
-            onClick={() => onClick(preset)}
             disabled={disabled}
-            title={preset.description ?? preset.label}
             className={cn(
-                'group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors',
-                disabled &&
-                    'hover:bg-background-secondary/40 hover:border-border-primary/40 cursor-not-allowed opacity-40',
+                // Subtle background lifts each item out of the panel; hover deepens
+                // it. cursor-grab/grabbing is the universal "drag me" affordance.
+                'group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border p-2 transition-colors',
+                disabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
             )}
         >
             {Icon ? (
@@ -362,11 +359,28 @@ const PresetCard = ({ preset, onDragStart, onClick }: PresetCardProps) => {
             )}
             <span className="text-foreground-primary line-clamp-1 text-[11px]">{preset.label}</span>
             {disabled && (
-                <span className="bg-background-weblab/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
+                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
                     Soon
                 </span>
             )}
         </button>
+    );
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{card}</TooltipTrigger>
+            <TooltipContent side="right" hideArrow>
+                <span className="block font-medium">{preset.label}</span>
+                {preset.description && (
+                    <span className="text-muted-foreground block text-[10px]">
+                        {preset.description}
+                    </span>
+                )}
+                <span className="text-muted-foreground mt-0.5 block text-[10px]">
+                    {disabled ? 'Coming soon' : 'Drag to canvas to insert'}
+                </span>
+            </TooltipContent>
+        </Tooltip>
     );
 };
 
@@ -376,16 +390,20 @@ interface BlockCardProps {
         event: React.DragEvent<HTMLButtonElement>,
         block: ShadcnBlockManifestItem,
     ) => void;
-    onClick: (block: ShadcnBlockManifestItem) => void;
+    onUninstalledClick: (block: ShadcnBlockManifestItem) => void;
 }
 
-const BlockCard = ({ block, onDragStart, onClick }: BlockCardProps) => {
+// Block card with a category-aware preview thumbnail. Drag-only for installed
+// blocks; click on an uninstalled one surfaces the install command so the user
+// has a path forward instead of a silent no-op.
+const BlockCard = ({ block, onDragStart, onUninstalledClick }: BlockCardProps) => {
     const disabled = !block.installed;
 
-    return (
+    const card = (
         <button
             type="button"
             draggable={!disabled}
+            aria-disabled={disabled}
             onDragStart={(event) => {
                 if (disabled) {
                     event.preventDefault();
@@ -393,29 +411,41 @@ const BlockCard = ({ block, onDragStart, onClick }: BlockCardProps) => {
                 }
                 onDragStart(event, block);
             }}
-            onClick={() => onClick(block)}
-            disabled={disabled}
-            title={block.description}
+            onClick={() => {
+                if (disabled) onUninstalledClick(block);
+            }}
             className={cn(
-                'group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex min-h-24 flex-col items-start justify-between gap-2 rounded-lg border p-2 text-left transition-colors',
-                disabled &&
-                    'hover:bg-background-secondary/40 hover:border-border-primary/40 cursor-not-allowed opacity-40',
+                'group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border relative flex flex-col gap-2 overflow-hidden rounded-md border p-2 text-left transition-colors',
+                disabled ? 'cursor-help opacity-60' : 'cursor-grab active:cursor-grabbing',
             )}
         >
-            <div className="flex w-full items-center justify-between gap-2">
-                <Icons.LayoutMasonry className="text-foreground-primary h-4 w-4 shrink-0" />
-                <span className="text-muted-foreground truncate text-[10px]">
-                    {block.registryName}
-                </span>
-            </div>
-            <div className="flex flex-col gap-1">
+            <BlockPreview category={block.category} seed={block.registryName} />
+            <div className="flex flex-col gap-0.5">
                 <span className="text-foreground-primary line-clamp-1 text-[11px] font-medium">
                     {block.label}
                 </span>
-                <span className="text-muted-foreground line-clamp-2 text-[10px] leading-3">
+                <span className="text-muted-foreground line-clamp-1 text-[10px]">
                     {block.description}
                 </span>
             </div>
+            {disabled && (
+                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
+                    Install
+                </span>
+            )}
         </button>
+    );
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{card}</TooltipTrigger>
+            <TooltipContent side="right" hideArrow>
+                <span className="block font-medium">{block.label}</span>
+                <span className="text-muted-foreground block text-[10px]">{block.description}</span>
+                <span className="text-muted-foreground mt-0.5 block text-[10px]">
+                    {disabled ? 'Click to see install command' : 'Drag to canvas to insert'}
+                </span>
+            </TooltipContent>
+        </Tooltip>
     );
 };

@@ -192,7 +192,6 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
-                userId: user.id,
             });
 
             if (!project) throw new Error('Failed to create project');
@@ -260,7 +259,9 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
         } else if (sandboxCreated) {
-            // TODO: server-side cleanup of orphan sandbox
+            // TODO: If sandbox forking succeeds but project creation fails, the forked
+            // sandbox is leaked. A server-side cleanup job (or idempotent creation) is
+            // needed to handle this. Until then, creation errors may leave orphaned sandboxes.
             toast.message('Import cancelled', {
                 description: 'If a sandbox was created, it may take a moment to clean up.',
             });

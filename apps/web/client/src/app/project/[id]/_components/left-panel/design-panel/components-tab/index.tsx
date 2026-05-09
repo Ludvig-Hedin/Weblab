@@ -7,7 +7,6 @@ import type { ComponentInsertData, DropElementProperties } from '@weblab/models/
 import { EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
-import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import type { ComponentTemplate } from './templates';
@@ -52,18 +51,10 @@ export const ComponentsTab = observer(() => {
         [editorEngine.state],
     );
 
-    const handleTemplateClick = useCallback(
-        (template: ComponentTemplate) => {
-            editorEngine.state.setPendingInsertElement(template.properties);
-            editorEngine.state.setPendingInsertBlock(null);
-            editorEngine.state.setPendingInsertComponent(null);
-            editorEngine.state.setInsertMode(null);
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
-            toast('Click on the canvas to place this component.');
-        },
-        [editorEngine.state],
-    );
-
+    // Drag-only path: starting a drag clears any leftover pending-insert state
+    // and ensures we're in DESIGN mode so the gesture screen accepts the drop.
+    // Click-to-place was removed because the drag affordance is clearer and
+    // the click flow had several broken edge cases.
     const handleComponentDragStart = useCallback(
         (e: React.DragEvent<HTMLButtonElement>, data: ComponentInsertData) => {
             e.dataTransfer.setData('application/weblab-component', JSON.stringify(data));
@@ -71,19 +62,8 @@ export const ComponentsTab = observer(() => {
             editorEngine.state.setPendingInsertElement(null);
             editorEngine.state.setPendingInsertBlock(null);
             editorEngine.state.setPendingInsertComponent(null);
-            editorEngine.state.setEditorMode(EditorMode.DESIGN);
-        },
-        [editorEngine.state],
-    );
-
-    const handleComponentClick = useCallback(
-        (data: ComponentInsertData) => {
-            editorEngine.state.setPendingInsertComponent(data);
-            editorEngine.state.setPendingInsertElement(null);
-            editorEngine.state.setPendingInsertBlock(null);
             editorEngine.state.setInsertMode(null);
             editorEngine.state.setEditorMode(EditorMode.DESIGN);
-            toast('Click on the canvas to place this component.');
         },
         [editorEngine.state],
     );
@@ -137,7 +117,6 @@ export const ComponentsTab = observer(() => {
                                         key={`${comp.filePath}:${comp.componentName}`}
                                         data={comp}
                                         onDragStart={handleComponentDragStart}
-                                        onClick={handleComponentClick}
                                     />
                                 ))}
                             </div>
@@ -173,7 +152,6 @@ export const ComponentsTab = observer(() => {
                                                 key={template.key}
                                                 template={template}
                                                 onDragStart={handleTemplateDragStart}
-                                                onClick={handleTemplateClick}
                                             />
                                         ))}
                                     </div>
@@ -195,17 +173,15 @@ export const ComponentsTab = observer(() => {
 interface TemplateCardProps {
     template: ComponentTemplate;
     onDragStart: (e: React.DragEvent<HTMLButtonElement>, p: DropElementProperties) => void;
-    onClick: (t: ComponentTemplate) => void;
 }
 
-const TemplateCard = ({ template, onDragStart, onClick }: TemplateCardProps) => (
+const TemplateCard = ({ template, onDragStart }: TemplateCardProps) => (
     <button
         type="button"
         draggable
         onDragStart={(e) => onDragStart(e, template.properties)}
-        onClick={() => onClick(template)}
-        title={template.description}
-        className="group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary relative flex aspect-video flex-col items-center justify-center gap-1.5 rounded-lg border p-2 transition-colors"
+        title={`${template.label} — drag to canvas`}
+        className="group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border relative flex aspect-video cursor-grab flex-col items-center justify-center gap-1.5 rounded-md border p-2 transition-colors active:cursor-grabbing"
     >
         <Icons.Component className="text-foreground-primary h-5 w-5" />
         <span className="text-foreground-primary line-clamp-1 text-[11px]">{template.label}</span>

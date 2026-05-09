@@ -30,10 +30,9 @@ const multi = (description: string, hotkeys: readonly Hotkey[]): ModalEntry => (
     hotkeys,
 });
 
-// Canonical hotkey list. Aliases (INSERT_DIV_F, INSERT_DIV_D) are excluded —
-// only the canonical entry per action is shown. The two `MODE_*` pairs
-// (e.g. SELECT=v + MODE_DESIGN=mod+1) are merged into single rows so users
-// see both bindings without two near-identical entries.
+// Canonical hotkey list. The two `MODE_*` pairs (e.g. SELECT=v + MODE_DESIGN=mod+1)
+// are merged into single rows so users see both bindings without two
+// near-identical entries.
 const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
     {
         title: 'Modes',
@@ -49,9 +48,12 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
     {
         title: 'Navigation',
         entries: [
+            single(Hotkey.OPEN_COMMAND_PALETTE),
+            single(Hotkey.OPEN_FILE_FINDER),
             single(Hotkey.RELOAD_APP),
-            single(Hotkey.OPEN_DEV_TOOL),
+            single(Hotkey.OPEN_IN_IDE),
             single(Hotkey.SEARCH),
+            single(Hotkey.ZOOM_TO_SELECTION),
             single(Hotkey.ESCAPE),
         ],
     },
@@ -87,8 +89,8 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
     {
         title: 'Layers',
         entries: [
-            single(Hotkey.MOVE_LAYER_UP),
-            single(Hotkey.MOVE_LAYER_DOWN),
+            multi('Bring Forward', [Hotkey.BRING_FORWARD, Hotkey.MOVE_LAYER_UP]),
+            multi('Send Backward', [Hotkey.SEND_BACKWARD, Hotkey.MOVE_LAYER_DOWN]),
             single(Hotkey.GROUP),
             single(Hotkey.UNGROUP),
         ],
@@ -137,7 +139,15 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     },
     {
         title: 'Navigation',
-        keys: ['RELOAD_APP', 'OPEN_DEV_TOOL', 'SEARCH', 'ESCAPE'],
+        keys: [
+            'OPEN_COMMAND_PALETTE',
+            'OPEN_FILE_FINDER',
+            'RELOAD_APP',
+            'OPEN_IN_IDE',
+            'SEARCH',
+            'ZOOM_TO_SELECTION',
+            'ESCAPE',
+        ],
     },
     {
         title: 'Panels',
@@ -170,7 +180,14 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     },
     {
         title: 'Layers',
-        keys: ['MOVE_LAYER_UP', 'MOVE_LAYER_DOWN', 'GROUP', 'UNGROUP'],
+        keys: [
+            'BRING_FORWARD',
+            'MOVE_LAYER_UP',
+            'SEND_BACKWARD',
+            'MOVE_LAYER_DOWN',
+            'GROUP',
+            'UNGROUP',
+        ],
     },
     {
         title: 'Editor',

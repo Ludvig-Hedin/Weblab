@@ -88,7 +88,7 @@ export const CommentsTab = observer(() => {
             <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
                 {editorEngine.comment.isLoading && filtered.length === 0 ? (
                     <div className="text-foreground-tertiary text-mini flex flex-1 items-center justify-center">
-                        Loading...
+                        Loading comments…
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="text-foreground-tertiary text-mini flex flex-1 items-center justify-center">

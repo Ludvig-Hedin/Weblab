@@ -29,8 +29,8 @@ const STEPS: StepDef[] = [
     { phase: 'initialising', label: 'Looking up template', detail: 'Fetching template details…' },
     {
         phase: 'importing',
-        label: 'Importing repository',
-        detail: 'Cloning and building your sandbox — this takes about a minute…',
+        label: 'Setting up sandbox',
+        detail: 'Preparing your sandbox — this usually takes a few seconds to a minute…',
     },
     { phase: 'saving', label: 'Creating project', detail: 'Saving to your workspace…' },
     { phase: 'redirecting', label: 'Opening workspace', detail: 'Almost there…' },
@@ -175,7 +175,6 @@ function CreatingContent() {
                     {STEPS.map((step, i) => {
                         const isDone = currentStepIndex > i;
                         const isCurrent = currentStepIndex === i;
-                        const isPending = currentStepIndex < i;
 
                         return (
                             <li key={step.phase} className="flex items-start gap-3">
@@ -265,8 +264,8 @@ function CreatingContent() {
                         transition={{ delay: 4 }}
                         className="text-foreground/30 max-w-xs text-center text-xs"
                     >
-                        Importing from GitHub takes about a minute — we're cloning the repo and
-                        setting up your sandbox.
+                        Taking longer than usual — the sandbox may be cloning from GitHub. Typically
+                        finishes within a minute.
                     </motion.p>
                 )}
             </AnimatePresence>

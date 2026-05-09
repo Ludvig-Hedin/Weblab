@@ -54,6 +54,33 @@ export interface ExternalTemplate {
 
 export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
     {
+        id: 'static-html-starter',
+        name: 'Static HTML',
+        shortDescription: 'Plain HTML, CSS, and JavaScript — no build step, no framework.',
+        description:
+            'A minimal static site with an index.html, stylesheet, and script file. Use this when you want full control over your markup without a JavaScript framework or bundler — ideal for landing pages, portfolios, and quick prototypes.',
+        category: 'starter',
+        framework: 'static-html',
+        tags: ['HTML', 'CSS', 'JavaScript'],
+        sourceUrl: 'https://codesandbox.io/p/sandbox/html-qz83hv',
+        // Fast path forks sandboxId (~2 s). repoUrl is only reached if the
+        // CSB fork endpoint is unavailable — replace with the actual repo that
+        // backs sandboxId html-qz83hv once that is known.
+        repoUrl: 'https://github.com/h5bp/html5-boilerplate',
+        previewUrl: 'https://html-qz83hv.csb.app/',
+        branch: 'main',
+        sandboxId: 'html-qz83hv',
+        highlights: [
+            'Zero dependencies — no npm or bundler required',
+            'index.html, style.css, and app.js ready to edit',
+            'Instant live preview via static file server',
+        ],
+        bestFor:
+            'Landing pages, portfolios, prototypes, and any project that does not need React or a build step.',
+        accentClassName: 'text-orange-200',
+        gradientClassName: 'from-orange-950 via-amber-900 to-yellow-700',
+    },
+    {
         id: 'nextjs-boilerplate',
         name: 'Next.js Boilerplate',
         shortDescription: 'Vercel-maintained baseline for new Next.js apps.',
@@ -64,7 +91,12 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         sourceUrl: 'https://github.com/vercel/vercel/tree/main/examples/nextjs',
         repoUrl: 'https://github.com/vercel/vercel',
         subpath: 'examples/nextjs',
-        previewUrl: 'https://vercel.com/templates/next.js/nextjs-boilerplate',
+        // Vercel's marketing page (vercel.com/templates/...) refuses
+        // iframe embedding via X-Frame-Options, which used to surface as
+        // a chrome-error inside the templates detail page. The
+        // canonical *deployed* boilerplate is hosted on the standard
+        // *.vercel.app domain — no XFO, embeds cleanly.
+        previewUrl: 'https://nextjs-boilerplate.vercel.app/',
         branch: 'main',
         highlights: [
             'Minimal Next.js app structure',

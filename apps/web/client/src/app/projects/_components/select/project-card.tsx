@@ -104,15 +104,16 @@ export function ProjectCard({
                         </Link>
                     )}
 
-                    <button
-                        type="button"
+                    <div
+                        role="presentation"
                         className={cn(
-                            'absolute top-3 left-3 z-30 rounded-full border border-white/10 bg-black/50 p-1.5 backdrop-blur-md transition-opacity',
+                            'absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 p-1.5 backdrop-blur-md transition-opacity',
                             selectionMode || selected
                                 ? 'opacity-100'
                                 : 'opacity-0 group-hover/card:opacity-100',
                         )}
                         onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
                     >
                         <Checkbox
                             checked={selected}
@@ -120,7 +121,7 @@ export function ProjectCard({
                             aria-label={`Select ${project.name}`}
                             className="border-foreground/20 bg-foreground/5 data-[state=checked]:border-foreground/30 data-[state=checked]:bg-foreground data-[state=checked]:text-background rounded-full"
                         />
-                    </button>
+                    </div>
 
                     {!selectionMode && (
                         <>
@@ -209,8 +210,8 @@ export function ProjectCard({
                             </a>
                         ) : (
                             <div className="text-foreground-tertiary mt-1 flex items-center gap-2 text-xs">
-                                <Icons.ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                                <span className="truncate">No URL yet</span>
+                                <Icons.ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-40" />
+                                <span className="truncate">Not Published</span>
                             </div>
                         )}
                     </div>

@@ -79,14 +79,14 @@ export const PreviewDomainSection = observer(() => {
                     <h3 className="">Base Domain</h3>
                     {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
                         <div className="ml-auto flex items-center gap-2">
-                            <p className="text-green-300">Live</p>
+                            <p className="text-foreground-positive">Live</p>
                             <p>•</p>
                             <p>Updated {timeAgo(deployment.updatedAt)} ago</p>
                         </div>
                     )}
                     {deployment?.status === DeploymentStatus.FAILED && (
                         <div className="ml-auto flex items-center gap-2">
-                            <p className="text-red-500">Error</p>
+                            <p className="text-destructive">Error</p>
                         </div>
                     )}
                     {deployment?.status === DeploymentStatus.CANCELLED && (
@@ -135,7 +135,7 @@ export const PreviewDomainSection = observer(() => {
                 deployment?.status === DeploymentStatus.CANCELLED ? (
                     <div className="flex w-full flex-col gap-2">
                         {deployment?.error && (
-                            <p className="max-h-20 overflow-y-auto text-red-500">
+                            <p className="text-destructive max-h-20 overflow-y-auto">
                                 {stripAnsi(deployment?.error)}
                             </p>
                         )}

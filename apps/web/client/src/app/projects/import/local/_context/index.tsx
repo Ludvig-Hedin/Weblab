@@ -203,7 +203,6 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
-                userId: user.id,
             });
             if (!project) {
                 setError('Project setup finished, but the project could not be created.');

@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
+import { OfflineProjectsList } from './_components/offline-projects-list';
 import { SelectProject } from './_components/select';
 import { TopBar } from './_components/top-bar';
 
@@ -13,7 +14,8 @@ const Page = observer(() => {
     return (
         <div className="flex h-screen w-screen flex-col">
             <TopBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-            <div className="flex h-full w-full justify-center overflow-x-visible overflow-y-auto">
+            <div className="flex h-full w-full flex-col items-center gap-4 overflow-x-visible overflow-y-auto py-4">
+                <OfflineProjectsList />
                 <SelectProject
                     externalSearchQuery={searchQuery}
                     onClearSearch={() => setSearchQuery('')}

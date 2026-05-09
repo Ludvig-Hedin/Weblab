@@ -101,7 +101,7 @@ export const ColorNameInput = ({
                     onKeyDown={handleKeyDown}
                     onBlur={() => onBlur?.(inputValue)}
                     className={`text-small w-full rounded-md border font-normal ${
-                        error ? 'border-red-500' : 'border-foreground/10'
+                        error ? 'border-destructive' : 'border-foreground/10'
                     } bg-background-secondary px-2 py-1 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                     placeholder="Enter color name"
                     autoFocus={autoFocus}
@@ -109,7 +109,10 @@ export const ColorNameInput = ({
                 />
             </TooltipTrigger>
             <TooltipPortal>
-                <TooltipContent side="top" className="max-w-xs bg-red-500 text-white">
+                <TooltipContent
+                    side="top"
+                    className="bg-destructive text-destructive-foreground max-w-xs"
+                >
                     {error}
                 </TooltipContent>
             </TooltipPortal>

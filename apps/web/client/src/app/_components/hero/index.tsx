@@ -1,24 +1,50 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
-import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
+import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
 import { Create } from './create';
 import { CreateError } from './create-error';
-import { DownloadButton } from './download-button';
 import { HighDemand } from './high-demand';
-import { Import } from './import';
+import { ImportGitHub } from './import';
+import { OpenLocalFolder } from './open-local-folder';
+import { StartBlank } from './start-blank';
 import { UnicornBackground } from './unicorn-background';
+
+function GetStarted() {
+    const router = useRouter();
+    const { data: user } = api.user.get.useQuery();
+    const { setIsAuthModalOpen } = useAuthContext();
+
+    const handleClick = () => {
+        if (!user?.id) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+        router.push(Routes.NEW_PROJECT);
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
+        >
+            <Icons.ArrowRight className="h-4 w-4" />
+            Get started
+        </button>
+    );
+}
 
 export function Hero() {
     const { data: user } = api.user.get.useQuery();
-    const { setIsAuthModalOpen } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
     return (
@@ -34,12 +60,11 @@ export function Hero() {
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        AI visual website builder
-                        <br />
+                        AI visual website builder <br />
                         <span
                             className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.1] sm:text-[4.6rem] sm:leading-[1.0]`}
                         >
-                            for React teams
+                            for builders
                         </span>
                     </motion.h1>
                     <motion.p
@@ -49,8 +74,8 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Design with your real components on an infinite canvas. Keep the Cursor for
-                        Designers speed, but ship production pull requests instead of prototypes.
+                        Design with your real components on an infinite canvas. Ship
+                        production-ready websites instead of prototypes.
                     </motion.p>
                     <HighDemand />
                     <CreateError />
@@ -69,39 +94,32 @@ export function Hero() {
                         variant="hero"
                     />
                 </motion.div>
-                <div className="pointer-events-auto relative z-20 flex flex-row flex-wrap items-center justify-center gap-4">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
-                    >
-                        <DownloadButton />
-                    </motion.div>
-                    {!user?.id && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.6, ease: 'easeOut' }}
+                <motion.div
+                    className="pointer-events-auto relative z-20 flex flex-row flex-wrap items-center justify-center gap-6 text-sm"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
+                >
+                    {user?.id ? (
+                        <Link
+                            href={Routes.PROJECTS}
+                            className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                         >
-                            <Button
-                                variant="outline"
-                                className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10"
-                                onClick={() => setIsAuthModalOpen(true)}
-                            >
-                                <Icons.Person className="h-4 w-4" />
-                                Sign in
-                            </Button>
-                        </motion.div>
+                            <Icons.ArrowRight className="h-4 w-4" />
+                            Continue to your projects
+                        </Link>
+                    ) : (
+                        <>
+                            <GetStarted />
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <ImportGitHub />
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <OpenLocalFolder />
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <StartBlank />
+                        </>
                     )}
-                    <motion.div
-                        className="text-foreground-secondary flex items-center gap-4 text-sm"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.65, ease: 'easeOut' }}
-                    >
-                        <Import />
-                    </motion.div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

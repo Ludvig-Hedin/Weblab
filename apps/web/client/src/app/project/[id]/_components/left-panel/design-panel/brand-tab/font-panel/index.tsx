@@ -194,7 +194,7 @@ const FontPanel = observer(() => {
                                 ) : !fontManager.fonts.length ? (
                                     <div className="border-default my-2 flex h-20 items-center justify-center rounded-lg border-2 border-dashed">
                                         <span className="text-muted-foreground text-small">
-                                            No fonts added
+                                            No fonts added yet
                                         </span>
                                     </div>
                                 ) : (
@@ -273,7 +273,7 @@ const FontPanel = observer(() => {
                             ) : (
                                 <div className="my-2 flex h-20 items-center justify-center">
                                     <span className="text-muted-foreground text-small">
-                                        No results were found
+                                        No fonts found. Try a different search.
                                     </span>
                                 </div>
                             )}
@@ -289,7 +289,7 @@ const FontPanel = observer(() => {
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
                                         <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                        <span>Loading...</span>
+                                        <span>Loading fonts…</span>
                                     </div>
                                 ) : (
                                     'Load more fonts'

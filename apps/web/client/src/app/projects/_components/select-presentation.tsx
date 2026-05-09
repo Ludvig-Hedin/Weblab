@@ -11,7 +11,7 @@ import { Carousel } from './carousel';
 import { HighlightText } from './select/highlight-text';
 import { MasonryLayout } from './select/masonry-layout';
 import { ProjectCardPresentation } from './select/project-card-presentation';
-import { SquareProjectCardPresentation } from './select/square-project-card-presentation';
+import { SquareProjectCard } from './select/square-project-card';
 import { Templates } from './templates';
 import { TemplateModalPresentation } from './templates/template-modal-presentation';
 
@@ -345,12 +345,11 @@ export const SelectProjectPresentation = ({
                                             }}
                                             layout
                                         >
-                                            <SquareProjectCardPresentation
+                                            <SquareProjectCard
                                                 project={project}
-                                                imageUrl={getImageUrl(project)}
                                                 searchQuery={debouncedSearchQuery}
                                                 HighlightText={HighlightText}
-                                                onClick={onProjectClick}
+                                                refetch={onRefetch ?? (() => undefined)}
                                             />
                                         </motion.div>
                                     )),

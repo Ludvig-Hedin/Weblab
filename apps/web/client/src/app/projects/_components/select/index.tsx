@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import { STORAGE_BUCKETS, Tags } from '@weblab/constants';
+import { Alert, AlertDescription, AlertTitle } from '@weblab/ui/alert';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -32,12 +33,11 @@ import type { ProjectFolder, ProjectListItem } from './project-card-utils';
 import type { CreateSuggestion } from '@/app/_components/hero/create';
 import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
-import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
-import { ProjectModeDialog } from '../project-mode-dialog';
+import { ProjectChooserCards } from '../project-chooser-cards';
 import { Templates } from '../templates';
 import { StaticTemplates } from '../templates/static-templates';
 import { TemplateModal } from '../templates/template-modal';
@@ -166,6 +166,63 @@ function getStaticTemplateMatches(templateProjects: Project[]): Map<StaticTempla
     return matches;
 }
 
+/**
+ * Surfaces "you tried to import a local folder before signing in" intent so
+ * the user can resume that flow with a fresh click — which is the user gesture
+ * the File System Access API needs in order to call `showDirectoryPicker()`.
+ *
+ * The banner is only rendered when a pending intent exists, and disappears as
+ * soon as the user either picks a folder, dismisses, or clears the flag from
+ * the hook (e.g. after a successful import).
+ */
+function PendingLocalImportBanner({
+    onChooseFolder,
+    onDismiss,
+    isImporting,
+}: {
+    onChooseFolder: () => void;
+    onDismiss: () => void;
+    isImporting: boolean;
+}) {
+    return (
+        <Alert className="border-foreground/10 bg-foreground/4 mb-6 backdrop-blur-xl">
+            <Icons.Directory className="h-4 w-4" />
+            <AlertTitle>Welcome back — pick the folder you wanted to import?</AlertTitle>
+            <AlertDescription>
+                <span>
+                    You tried to open a local folder before signing in. Browsers only allow that
+                    picker right after a click, so click below to continue.
+                </span>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
+                        onClick={onChooseFolder}
+                        disabled={isImporting}
+                    >
+                        {isImporting ? (
+                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Icons.Directory className="h-4 w-4" />
+                        )}
+                        Choose folder
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-foreground-tertiary hover:text-foreground"
+                        onClick={onDismiss}
+                        disabled={isImporting}
+                    >
+                        Not now
+                    </Button>
+                </div>
+            </AlertDescription>
+        </Alert>
+    );
+}
+
 export const SelectProject = ({
     externalSearchQuery,
     onClearSearch,
@@ -179,13 +236,20 @@ export const SelectProject = ({
     const { data: fetchedProjects, isLoading, refetch } = api.project.list.useQuery();
     const { mutateAsync: removeTag } = api.project.removeTag.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
-    const { handleStartBlankProject, isCreatingProject } = useCreateBlankProject();
-    const { handleImportLocalProject, isImporting } = useImportLocalProject();
-    const [isAiCreating, setIsAiCreating] = useState(false);
+    const {
+        handleImportLocalProject,
+        isImporting: isImportingLocal,
+        hasPendingLocalImport,
+        clearPendingLocalImport,
+    } = useImportLocalProject();
 
-    const [internalQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-    const searchQuery = externalSearchQuery ?? internalQuery;
+    const searchQuery = externalSearchQuery ?? '';
+
+    // Drives the full-screen ProjectCreationLoader inside <Create> while
+    // the sandbox forks (5–30s). Without real state the overlay never
+    // mounts and first-time users think the page hung.
+    const [isCreatingProject, setIsCreatingProject] = useState(false);
 
     const [filesSortBy, setFilesSortBy] = useState<'Alphabetical' | 'Date created' | 'Last viewed'>(
         'Last viewed',
@@ -195,7 +259,6 @@ export const SelectProject = ({
     const [starredTemplates, setStarredTemplates] = useState<Set<string>>(new Set());
     const [folders, setFolders] = useState<ProjectFolder[]>([]);
     const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
-    const [projectModeIntent, setProjectModeIntent] = useState<'create' | 'import' | null>(null);
     const [openFolderId, setOpenFolderId] = useState<string | null>(null);
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
@@ -460,6 +523,13 @@ export const SelectProject = ({
             } else {
                 next.delete(projectId);
             }
+            // Auto-enter selection mode when the first card checkbox is clicked,
+            // and auto-exit when the last item is unchecked.
+            if (next.size > 0 && !selectionMode) {
+                setSelectionMode(true);
+            } else if (next.size === 0) {
+                setSelectionMode(false);
+            }
             return next;
         });
     };
@@ -552,16 +622,6 @@ export const SelectProject = ({
         }
     };
 
-    const handleCloudModeSelect = () => {
-        const intent = projectModeIntent;
-        setProjectModeIntent(null);
-        if (intent === 'create') {
-            void handleStartBlankProject();
-        } else if (intent === 'import') {
-            void handleImportLocalProject();
-        }
-    };
-
     if (isLoading) {
         return (
             <div className="flex h-screen w-screen flex-col items-center justify-center">
@@ -577,67 +637,37 @@ export const SelectProject = ({
         return (
             <CreateManagerProvider>
                 <div className="mx-auto flex h-full w-full max-w-6xl flex-col items-center gap-12 px-6 py-16">
-                    <div className="flex w-full flex-col items-center gap-6 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="text-foreground text-3xl font-normal tracking-tight">
-                                You have no projects
-                            </div>
-                            <div className="text-foreground-tertiary text-md">
-                                Start by describing what you want to build
-                            </div>
+                    {hasPendingLocalImport && (
+                        <div className="w-full">
+                            <PendingLocalImportBanner
+                                onChooseFolder={() => void handleImportLocalProject()}
+                                onDismiss={() => void clearPendingLocalImport()}
+                                isImporting={isImportingLocal}
+                            />
                         </div>
+                    )}
+
+                    <div className="flex w-full flex-col items-center gap-3 text-center">
+                        <div className="text-foreground text-3xl font-normal tracking-tight">
+                            Start your first project
+                        </div>
+                        <div className="text-foreground-tertiary max-w-md text-sm leading-relaxed">
+                            Describe what you want to build and the AI will generate it, or pick
+                            another starting point below.
+                        </div>
+                    </div>
+
+                    <div className="w-full">
                         <Create
                             cardKey={0}
-                            isCreatingProject={isAiCreating}
-                            setIsCreatingProject={setIsAiCreating}
+                            isCreatingProject={isCreatingProject}
+                            setIsCreatingProject={setIsCreatingProject}
                             user={user ?? null}
                             suggestions={PROJECT_SUGGESTIONS}
                         />
-                        <div className="flex w-[600px] max-w-full items-center gap-3">
-                            <div className="bg-foreground/10 h-px flex-1" />
-                            <span className="text-foreground-tertiary text-xs tracking-[0.2em] uppercase">
-                                or
-                            </span>
-                            <div className="bg-foreground/10 h-px flex-1" />
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-2">
-                            <Button
-                                onClick={() => setProjectModeIntent('create')}
-                                disabled={isCreatingProject || isImporting || isAiCreating}
-                                variant="outline"
-                                className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                            >
-                                {isCreatingProject ? (
-                                    <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Icons.Plus className="h-4 w-4" />
-                                )}
-                                Create project
-                            </Button>
-                            <Button
-                                onClick={() => setProjectModeIntent('import')}
-                                disabled={isCreatingProject || isImporting || isAiCreating}
-                                variant="outline"
-                                className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                            >
-                                {isImporting ? (
-                                    <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Icons.Directory className="h-4 w-4" />
-                                )}
-                                Import folder
-                            </Button>
-                            <Button
-                                onClick={() => router.push(Routes.IMPORT_GITHUB)}
-                                disabled={isCreatingProject || isImporting || isAiCreating}
-                                variant="outline"
-                                className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                            >
-                                <Icons.GitHubLogo className="h-4 w-4" />
-                                Import from GitHub
-                            </Button>
-                        </div>
                     </div>
+
+                    <ProjectChooserCards />
 
                     {shouldShowTemplate && (
                         <div className="w-full">
@@ -655,22 +685,11 @@ export const SelectProject = ({
                         <div className="w-full">
                             <StaticTemplates
                                 onUseTemplate={handleStaticTemplateClick}
-                                isCreating={isCreatingProject}
+                                isCreating={false}
                                 availableTemplateIds={availableStaticTemplateIds}
                             />
                         </div>
                     )}
-                    <ProjectModeDialog
-                        open={projectModeIntent !== null}
-                        intent={projectModeIntent ?? 'create'}
-                        isBusy={isCreatingProject || isImporting}
-                        onOpenChange={(open) => {
-                            if (!open) {
-                                setProjectModeIntent(null);
-                            }
-                        }}
-                        onCloudSelect={handleCloudModeSelect}
-                    />
                 </div>
             </CreateManagerProvider>
         );
@@ -687,6 +706,14 @@ export const SelectProject = ({
             }}
         >
             <div className="mx-auto w-full max-w-6xl">
+                {hasPendingLocalImport && (
+                    <PendingLocalImportBanner
+                        onChooseFolder={() => void handleImportLocalProject()}
+                        onDismiss={() => void clearPendingLocalImport()}
+                        isImporting={isImportingLocal}
+                    />
+                )}
+
                 <div className="mb-6 flex flex-col gap-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div>
@@ -969,7 +996,7 @@ export const SelectProject = ({
                 {availableStaticTemplateIds.size > 0 && (
                     <StaticTemplates
                         onUseTemplate={handleStaticTemplateClick}
-                        isCreating={isCreatingProject}
+                        isCreating={false}
                         availableTemplateIds={availableStaticTemplateIds}
                     />
                 )}
@@ -980,18 +1007,6 @@ export const SelectProject = ({
                 onOpenChange={setShowCreateFolderDialog}
                 onCreateFolder={handleCreateFolder}
                 existingNames={folders.map((folder) => folder.name)}
-            />
-
-            <ProjectModeDialog
-                open={projectModeIntent !== null}
-                intent={projectModeIntent ?? 'create'}
-                isBusy={isCreatingProject || isImporting}
-                onOpenChange={(open) => {
-                    if (!open) {
-                        setProjectModeIntent(null);
-                    }
-                }}
-                onCloudSelect={handleCloudModeSelect}
             />
 
             <AlertDialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>

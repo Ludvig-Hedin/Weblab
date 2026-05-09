@@ -30,7 +30,9 @@ export function UnicornBackground() {
                 const h = window.innerHeight;
                 const x = w / 2 + Math.sin(t) * w * 0.35;
                 const y = h / 2 + Math.sin(t * 0.71) * h * 0.25;
-                container.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }));
+                container.dispatchEvent(
+                    new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }),
+                );
                 rafId = requestAnimationFrame(tick);
             };
             rafId = requestAnimationFrame(tick);

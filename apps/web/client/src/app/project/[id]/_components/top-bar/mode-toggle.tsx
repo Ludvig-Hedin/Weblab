@@ -24,10 +24,6 @@ const MODE_TOGGLE_ITEMS: {
         mode: EditorMode.CODE,
         hotkey: Hotkey.CODE,
     },
-    {
-        mode: EditorMode.PREVIEW,
-        hotkey: Hotkey.PREVIEW,
-    },
 ];
 
 export const ModeToggle = observer(() => {
@@ -36,9 +32,6 @@ export const ModeToggle = observer(() => {
     const mode = editorEngine.state.editorMode;
 
     const getXPosition = () => {
-        if (mode === EditorMode.PREVIEW) {
-            return '200%';
-        }
         if (mode === EditorMode.CODE) {
             return '100%';
         }
@@ -87,7 +80,7 @@ export const ModeToggle = observer(() => {
                 className="bg-foreground absolute -top-1 h-0.5"
                 initial={false}
                 animate={{
-                    width: '33.333%',
+                    width: '50%',
                     x: getXPosition(),
                 }}
                 transition={{

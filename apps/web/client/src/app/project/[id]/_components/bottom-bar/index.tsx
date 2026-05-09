@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { PreviewThemeToggle } from './preview-theme-toggle';
 import { TerminalArea } from './terminal-area';
 
 const MIN_SCALE = 0.1;
@@ -122,7 +123,7 @@ export const BottomBar = observer(() => {
     }, [zoomInputValue, editorEngine.canvas]);
 
     return (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+        <div className="mb-4">
             <AnimatePresence mode="wait">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -130,7 +131,7 @@ export const BottomBar = observer(() => {
                         opacity: shouldShow ? 1 : 0,
                         y: shouldShow ? 0 : 20,
                     }}
-                    className="border-border bg-background-primary flex flex-col rounded-full border p-1 px-1.5 shadow-xl"
+                    className="border-border-bar bg-background-bar flex flex-col rounded-lg border p-1 shadow-xl"
                     transition={{
                         type: 'spring',
                         bounce: 0.1,
@@ -155,10 +156,10 @@ export const BottomBar = observer(() => {
                                             }
                                             aria-label={item.hotkey.description}
                                             className={cn(
-                                                'flex h-9 w-9 items-center justify-center rounded-full border border-transparent transition-all duration-150 ease-in-out',
+                                                'flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-all duration-150 ease-in-out',
                                                 editorEngine.state.editorMode === item.mode
-                                                    ? 'bg-background-tertiary/50 text-foreground-primary'
-                                                    : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50',
+                                                    ? 'bg-background-bar-active text-foreground-primary'
+                                                    : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active',
                                             )}
                                         >
                                             <item.icon />
@@ -171,7 +172,7 @@ export const BottomBar = observer(() => {
                             ))}
                         </div>
 
-                        <div className="bg-border/60 mx-0.5 h-5 w-px" />
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
 
                         {/* Zoom controls */}
                         <div className="flex items-center gap-0">
@@ -182,7 +183,7 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale / ZOOM_FACTOR,
                                     );
                                 }}
-                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-7 w-6 items-center justify-center rounded-full transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-6 items-center justify-center rounded-md transition-all duration-150"
                                 aria-label="Zoom out"
                             >
                                 <Icons.Minus className="h-3 w-3" />
@@ -226,12 +227,17 @@ export const BottomBar = observer(() => {
                                         editorEngine.canvas.scale * ZOOM_FACTOR,
                                     );
                                 }}
-                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-7 w-6 items-center justify-center rounded-full transition-all duration-150"
+                                className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active flex h-7 w-6 items-center justify-center rounded-md transition-all duration-150"
                                 aria-label="Zoom in"
                             >
                                 <Icons.Plus className="h-3 w-3" />
                             </button>
                         </div>
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Theme toggle for the previewed site (light / dark / system). */}
+                        <PreviewThemeToggle />
                     </TerminalArea>
                 </motion.div>
             </AnimatePresence>

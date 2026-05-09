@@ -9,30 +9,27 @@ import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { useAuthContext } from '../../auth/auth-context';
 
-export function Import() {
+export function ImportGitHub() {
     const router = useRouter();
     const { data: user } = api.user.get.useQuery();
     const { setIsAuthModalOpen } = useAuthContext();
 
-    const handleImportProject = () => {
+    const handleClick = () => {
         if (!user?.id) {
-            // Store the return URL and open auth modal
-            localforage.setItem(LocalForageKeys.RETURN_URL, Routes.IMPORT_PROJECT);
+            localforage.setItem(LocalForageKeys.RETURN_URL, Routes.IMPORT_GITHUB);
             setIsAuthModalOpen(true);
             return;
         }
-
-        // Navigate to import project flow
-        router.push(Routes.IMPORT_PROJECT);
+        router.push(Routes.IMPORT_GITHUB);
     };
 
     return (
         <button
-            onClick={handleImportProject}
+            onClick={handleClick}
             className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
         >
-            <Icons.Upload className="h-4 w-4" />
-            Import a Next.js App
+            <Icons.GitHubLogo className="h-4 w-4" />
+            Import from GitHub
         </button>
     );
 }

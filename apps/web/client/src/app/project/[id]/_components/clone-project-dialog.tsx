@@ -128,7 +128,7 @@ export const CloneProjectDialog = observer(
                     <AlertDialogHeader>
                         <AlertDialogTitle>Clone Project</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Create a copy of this project with all branches and settings preserved.
+                            Create a copy of this project with all settings preserved.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="flex w-full flex-col gap-2">
@@ -142,7 +142,7 @@ export const CloneProjectDialog = observer(
                         />
                         <p
                             className={cn(
-                                'text-mini text-red-500 transition-opacity',
+                                'text-mini text-destructive transition-opacity',
                                 isCloneProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                             )}
                         >

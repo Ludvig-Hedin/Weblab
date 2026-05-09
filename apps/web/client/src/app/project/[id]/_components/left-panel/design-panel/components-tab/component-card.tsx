@@ -4,17 +4,15 @@ import { Icons } from '@weblab/ui/icons';
 interface ComponentCardProps {
     data: ComponentInsertData;
     onDragStart: (e: React.DragEvent<HTMLButtonElement>, data: ComponentInsertData) => void;
-    onClick: (data: ComponentInsertData) => void;
 }
 
-export const ComponentCard = ({ data, onDragStart, onClick }: ComponentCardProps) => (
+export const ComponentCard = ({ data, onDragStart }: ComponentCardProps) => (
     <button
         type="button"
         draggable
         onDragStart={(e) => onDragStart(e, data)}
-        onClick={() => onClick(data)}
-        title={data.filePath}
-        className="group bg-background-secondary/40 hover:bg-background-weblab border-border-primary/40 hover:border-border-primary flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors"
+        title={`${data.componentName} — drag to canvas`}
+        className="group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border flex w-full cursor-grab items-center gap-2 rounded-md border p-2 text-left transition-colors active:cursor-grabbing"
     >
         <Icons.Component className="text-foreground-primary h-4 w-4 flex-shrink-0" />
         <div className="flex min-w-0 flex-col gap-0.5">

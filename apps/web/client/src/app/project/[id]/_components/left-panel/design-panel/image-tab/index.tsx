@@ -121,7 +121,7 @@ export const ImagesTab = observer(() => {
 
     if (error) {
         return (
-            <div className="text-small flex h-full w-full items-center justify-center text-red-500">
+            <div className="text-small text-destructive flex h-full w-full items-center justify-center">
                 Error: {error.message}
             </div>
         );

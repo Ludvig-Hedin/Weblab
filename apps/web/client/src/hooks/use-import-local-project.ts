@@ -43,12 +43,21 @@ export function useImportLocalProject() {
     const { data: user } = api.user.get.useQuery();
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS);
     const isImporting = progress.phase !== 'idle' && progress.phase !== 'done';
 
     const handleImportLocalProject = async () => {
+        // Idempotency: this function is called both from the button
+        // click and from the post-auth resume effect below. Without this
+        // guard a click-then-auth-then-resume sequence could trigger
+        // two parallel imports.
+        if (isImporting) {
+            return;
+        }
+
         if (!isFsAccessSupported()) {
             toast.error('Local folder access not supported', {
                 description: 'Use a Chromium-based browser like Chrome, Edge, or Arc.',
@@ -67,6 +76,10 @@ export function useImportLocalProject() {
 
         setProgress({ filesUploaded: 0, phase: 'picking' });
         let provider: Provider | null = null;
+        // Track the forked sandbox so we can release it (best-effort) on any
+        // failure between fork and project.create — large-folder rejections,
+        // upload errors, sandbox provisioning hiccups all leak otherwise.
+        let forkedSandboxId: string | null = null;
 
         try {
             const folderHandle = await pickDirectory({ mode: 'read' });
@@ -74,6 +87,11 @@ export function useImportLocalProject() {
                 setProgress(INITIAL_PROGRESS);
                 return;
             }
+
+            // The user has now actually picked a folder while signed in, so any
+            // banner-prompt the projects page may be showing is no longer relevant.
+            await localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT);
+            setHasPendingLocalImport(false);
 
             const folderName = folderHandle.name || 'Local Project';
 
@@ -86,6 +104,7 @@ export function useImportLocalProject() {
                     tags: ['local-import', user.id],
                 },
             });
+            forkedSandboxId = sandboxId;
 
             // 2. Connect a client to that sandbox so we can write files.
             setProgress({ filesUploaded: 0, phase: 'connecting' });
@@ -147,8 +166,11 @@ export function useImportLocalProject() {
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
-                userId: user.id,
             });
+
+            // Sandbox is now owned by the new project; the catch path must
+            // not delete it.
+            forkedSandboxId = null;
 
             setProgress({ filesUploaded, phase: 'done' });
             if (newProject) {
@@ -159,6 +181,22 @@ export function useImportLocalProject() {
             const message = error instanceof Error ? error.message : String(error);
             toast.error('Failed to import folder', { description: message });
             setProgress(INITIAL_PROGRESS);
+            if (forkedSandboxId) {
+                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch(
+                    (cleanupErr) => {
+                        console.warn(
+                            '[useImportLocalProject] failed to clean up orphan sandbox',
+                            {
+                                sandboxId: forkedSandboxId,
+                                error:
+                                    cleanupErr instanceof Error
+                                        ? cleanupErr.message
+                                        : String(cleanupErr),
+                            },
+                        );
+                    },
+                );
+            }
         } finally {
             // Disconnect the temporary upload client; the editor will spin up
             // its own session when the user lands there.
@@ -172,27 +210,44 @@ export function useImportLocalProject() {
         }
     };
 
-    // After a successful sign-in redirect, re-open the folder picker if the user
-    // had clicked "Import folder to cloud" while unauthenticated.
+    // Surface whether the user attempted "Import folder to cloud" while signed out.
+    // The picker itself can't be auto-invoked here — `showDirectoryPicker()` requires
+    // a fresh user gesture, and a `useEffect` running after auth-redirect doesn't
+    // count. Consumers (e.g. the `/projects` empty state) read this flag and render
+    // a banner whose button click *is* a fresh gesture, then call
+    // `handleImportLocalProject()` from there.
+    const [hasPendingLocalImport, setHasPendingLocalImport] = useState(false);
+
     useEffect(() => {
-        if (!user?.id) return;
-        const resume = async () => {
+        if (!user?.id) {
+            setHasPendingLocalImport(false);
+            return;
+        }
+        let cancelled = false;
+        void (async () => {
             const pending = await localforage.getItem<boolean>(
                 LocalForageKeys.PENDING_LOCAL_IMPORT,
             );
-            if (!pending) return;
-            await localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT);
-            void handleImportLocalProject();
+            if (!cancelled) {
+                setHasPendingLocalImport(Boolean(pending));
+            }
+        })();
+        return () => {
+            cancelled = true;
         };
-        void resume();
-        // handleImportLocalProject is recreated each render; user?.id is the real trigger.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id]);
+
+    const clearPendingLocalImport = async () => {
+        setHasPendingLocalImport(false);
+        await localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT);
+    };
 
     return {
         handleImportLocalProject,
         isImporting,
         progress,
         isFsAccessSupported: isFsAccessSupported(),
+        hasPendingLocalImport,
+        clearPendingLocalImport,
     };
 }

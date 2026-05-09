@@ -56,7 +56,6 @@ export const useRepositoryImport = () => {
                         name: selectedRepo.name ?? 'New project',
                         description: selectedRepo.description || 'Imported from GitHub',
                     },
-                    userId: user.id,
                     sandboxId,
                     sandboxUrl: previewUrl,
                 },

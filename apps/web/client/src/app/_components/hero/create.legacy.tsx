@@ -420,7 +420,7 @@ export const Create = observer(
                                 ? `${charactersRemaining} more character${charactersRemaining === 1 ? '' : 's'} to start designing`
                                 : ''}
                         </div>
-                        <div className="flex w-full flex-row items-center justify-between px-0 pt-2 pb-2">
+                        <div className="flex w-full flex-row items-center justify-between px-2 pt-2 pb-2">
                             <div className="flex flex-row justify-start gap-1.5">
                                 <Tooltip
                                     open={imageTooltipOpen && !isHandlingFile}

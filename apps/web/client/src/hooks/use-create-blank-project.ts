@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { toast } from 'sonner';
 
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
+import type { FrameworkId } from '@weblab/framework';
+import { getFrameworkAdapter } from '@weblab/framework';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
@@ -18,47 +19,89 @@ function buildBlankProjectName(): string {
     return `New Project · ${month} ${day}`;
 }
 
+export type BlankCreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
+
 export function useCreateBlankProject() {
     const { data: user } = api.user.get.useQuery();
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
-    const [isCreatingProject, setIsCreatingProject] = useState(false);
+    const [phase, setPhase] = useState<BlankCreatePhase>('idle');
+    const isCreatingProject = phase !== 'idle';
 
-    const handleStartBlankProject = async () => {
+    const handleStartBlankProject = async (framework: FrameworkId = 'nextjs') => {
+        // Idempotency: the button's `disabled` prop is the primary
+        // guard, but this hook is also called programmatically (toast
+        // "Retry" action below). A second call while the first is
+        // still in-flight would fork a second sandbox and create a
+        // duplicate project, so bail early here too.
+        if (isCreatingProject) {
+            return;
+        }
+
         if (!user?.id) {
-            // Store the return URL and open auth modal
             await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
             setIsAuthModalOpen(true);
             return;
         }
 
-        setIsCreatingProject(true);
+        setPhase('forking-sandbox');
+        // Track the forked sandbox so we can release it (best-effort) if any
+        // step after `forkSandbox` throws. Without this the user pays for a
+        // sandbox that has no project row.
+        let forkedSandboxId: string | null = null;
         try {
+            const adapter = getFrameworkAdapter(framework);
+            const sandbox = {
+                id: adapter.template.codesandboxId,
+                port: adapter.template.port,
+            };
+
             const { sandboxId, previewUrl } = await forkSandbox({
-                sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
+                sandbox,
                 config: {
                     title: `Blank project - ${user.id}`,
                     tags: ['blank', user.id],
                 },
             });
+            forkedSandboxId = sandboxId;
 
+            setPhase('creating-project');
             const newProject = await createProject({
                 project: {
                     name: buildBlankProjectName(),
                     description: 'Your new blank project',
                     tags: ['blank'],
+                    runtimeMetadata: { framework },
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
-                userId: user.id,
             });
 
+            forkedSandboxId = null;
             if (newProject) {
+                setPhase('opening-editor');
                 router.push(`${Routes.PROJECT}/${newProject.id}`);
+                // Leave the phase at 'opening-editor' so the overlay stays
+                // up until the new route mounts. Resetting here would flash
+                // the hero back in for the duration of the navigation.
+                return;
             }
+            setPhase('idle');
         } catch (error) {
+            if (forkedSandboxId) {
+                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch((cleanupErr) => {
+                    console.warn('[useCreateBlankProject] failed to clean up orphan sandbox', {
+                        sandboxId: forkedSandboxId,
+                        error:
+                            cleanupErr instanceof Error
+                                ? cleanupErr.message
+                                : String(cleanupErr),
+                    });
+                });
+            }
             console.error('Error creating blank project:', error);
             const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -68,7 +111,7 @@ export function useCreateBlankProject() {
                         'Please try again in a few moments. Our servers may be experiencing high load.',
                     action: {
                         label: 'Retry',
-                        onClick: () => void handleStartBlankProject(),
+                        onClick: () => void handleStartBlankProject(framework),
                     },
                 });
             } else {
@@ -76,10 +119,9 @@ export function useCreateBlankProject() {
                     description: errorMessage,
                 });
             }
-        } finally {
-            setIsCreatingProject(false);
+            setPhase('idle');
         }
     };
 
-    return { handleStartBlankProject, isCreatingProject };
+    return { handleStartBlankProject, isCreatingProject, phase };
 }

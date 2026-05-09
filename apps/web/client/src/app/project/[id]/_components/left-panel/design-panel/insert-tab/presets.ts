@@ -666,6 +666,28 @@ export const ELEMENT_PRESETS: ElementPreset[] = [
         },
     },
     {
+        key: 'cms-list',
+        label: 'CMS List',
+        description: 'Repeats once per CMS item',
+        icon: 'ListBullet',
+        category: 'advanced',
+        properties: {
+            tagName: 'div',
+            textContent: null,
+            styles: {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                padding: '16px',
+                width: '320px',
+                minHeight: '120px',
+                borderRadius: '12px',
+                border: '1px dashed #CBD5E1',
+            },
+            attributes: { 'data-weblab-list': '' },
+        },
+    },
+    {
         key: 'code-embed',
         label: 'Code Embed',
         description: 'Custom HTML/JS',

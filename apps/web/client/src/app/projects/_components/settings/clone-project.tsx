@@ -81,23 +81,26 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                 className="text-foreground-active hover:!bg-background-weblab hover:!text-foreground-active gap-2"
             >
                 <Icons.Copy className="h-4 w-4" />
-                Clone Project
+                {t(transKeys.projects.actions.cloneProject)}
             </DropdownMenuItem>
 
             <AlertDialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Clone Project</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            {t(transKeys.projects.dialogs.clone.title)}
+                        </AlertDialogTitle>
                     </AlertDialogHeader>
                     <div className="flex w-full flex-col gap-2">
-                        <Label htmlFor="clone-name">Project Name</Label>
+                        <Label htmlFor="clone-name">
+                            {t(transKeys.projects.dialogs.clone.label)}
+                        </Label>
                         <Input
                             id="clone-name"
-                            minLength={0}
                             type="text"
-                            placeholder="Enter name for cloned project"
+                            placeholder={t(transKeys.projects.dialogs.clone.placeholder)}
                             value={cloneProjectName || ''}
-                            onInput={(e) => setCloneProjectName(e.currentTarget.value)}
+                            onChange={(e) => setCloneProjectName(e.target.value)}
                         />
                         <p
                             className={cn(
@@ -105,7 +108,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                                 isCloneProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                             )}
                         >
-                            Project name can't be empty
+                            {t(transKeys.projects.dialogs.clone.error)}
                         </p>
                     </div>
                     <AlertDialogFooter>
@@ -124,10 +127,10 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                             {isCloningProject ? (
                                 <>
                                     <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                    Cloning...
+                                    Cloning…
                                 </>
                             ) : (
-                                'Clone'
+                                t(transKeys.projects.actions.clone)
                             )}
                         </Button>
                     </AlertDialogFooter>

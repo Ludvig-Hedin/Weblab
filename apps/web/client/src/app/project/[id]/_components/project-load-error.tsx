@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
+import { useOptionalEditorEngine } from '@/components/store/editor';
+import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 type Variant = 'invalid-id' | 'not-found' | 'unauthorized' | 'unknown';
@@ -45,44 +49,94 @@ const COPY: Record<
     },
 };
 
-export const ProjectLoadError = ({ variant, message }: { variant: Variant; message?: string }) => {
-    const router = useRouter();
-    const copy = COPY[variant];
+export const ProjectLoadError = observer(
+    ({ variant, message }: { variant: Variant; message?: string }) => {
+        const router = useRouter();
+        const copy = COPY[variant];
+        // `ProjectLoadError` can render BEFORE `EditorEngineProvider` mounts
+        // (e.g. from `page.tsx` for `not-found`/`unauthorized`), so we must
+        // use the optional variant to avoid throwing in that path.
+        const editorEngine = useOptionalEditorEngine();
+        // Only fetch the user when we actually have an engine — otherwise
+        // there's no sandbox session to reconnect and the query is wasted.
+        const { data: user } = api.user.get.useQuery(undefined, {
+            enabled: !!editorEngine,
+        });
+        const [isRetrying, setIsRetrying] = useState(false);
 
-    const handlePrimary = () => {
-        switch (copy.primaryAction) {
-            case 'home':
-                router.push(Routes.PROJECTS);
-                return;
-            case 'login':
-                router.push(Routes.LOGIN);
-                return;
-            case 'retry':
+        const handleRetry = async () => {
+            // No engine available → fall back to a plain server refresh.
+            // This is the path taken when the error was thrown from the
+            // page Server Component before providers mounted.
+            if (!editorEngine) {
                 router.refresh();
                 return;
-        }
-    };
+            }
 
-    return (
-        <div className="bg-background flex h-screen w-screen items-center justify-center">
-            <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
-                <Icons.ExclamationTriangle className="text-foreground-primary h-8 w-8" />
-                <h1 className="text-title3 font-medium">{copy.title}</h1>
-                <p className="text-foreground-secondary text-small">{copy.description}</p>
-                {message && variant === 'unknown' && (
-                    <pre className="text-foreground-tertiary bg-background-secondary text-mini max-w-full rounded-md px-3 py-2 break-words whitespace-pre-wrap">
-                        {message}
-                    </pre>
-                )}
-                <div className="mt-2 flex items-center gap-2">
-                    <Button onClick={handlePrimary}>{copy.primaryLabel}</Button>
-                    {copy.primaryAction !== 'home' && (
-                        <Button variant="ghost" onClick={() => router.push(Routes.PROJECTS)}>
-                            Go to projects
-                        </Button>
+            setIsRetrying(true);
+            try {
+                // The failed sandbox state lives in MobX. `reconnect` falls
+                // through to `start()` when `provider` is null (see #24), so
+                // it is safe to call unconditionally. On success, MobX state
+                // clears reactively and `Main` swaps back to the editor UI.
+                await editorEngine.activeSandbox.session.reconnect(
+                    editorEngine.projectId,
+                    user?.id,
+                );
+            } catch (error) {
+                console.error('ProjectLoadError retry failed', error);
+                // Last-ditch fallback: refresh the route. Won't fix a stuck
+                // MobX session on its own, but at least re-runs the page's
+                // server-side load and may surface a different error state.
+                router.refresh();
+            } finally {
+                setIsRetrying(false);
+            }
+        };
+
+        const handlePrimary = () => {
+            switch (copy.primaryAction) {
+                case 'home':
+                    router.push(Routes.PROJECTS);
+                    return;
+                case 'login':
+                    router.push(Routes.LOGIN);
+                    return;
+                case 'retry':
+                    void handleRetry();
+                    return;
+            }
+        };
+
+        const isRetryAction = copy.primaryAction === 'retry';
+
+        return (
+            <div className="bg-background flex h-screen w-screen items-center justify-center">
+                <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
+                    <Icons.ExclamationTriangle className="text-foreground-primary h-8 w-8" />
+                    <h1 className="text-title3 font-medium">{copy.title}</h1>
+                    <p className="text-foreground-secondary text-small">{copy.description}</p>
+                    {message && variant === 'unknown' && (
+                        <pre className="text-foreground-tertiary bg-background-secondary text-mini max-w-full rounded-md px-3 py-2 break-words whitespace-pre-wrap">
+                            {message}
+                        </pre>
                     )}
+                    <div className="mt-2 flex items-center gap-2">
+                        <Button onClick={handlePrimary} disabled={isRetryAction && isRetrying}>
+                            {isRetryAction && isRetrying ? 'Retrying…' : copy.primaryLabel}
+                        </Button>
+                        {copy.primaryAction !== 'home' && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => router.push(Routes.PROJECTS)}
+                                disabled={isRetryAction && isRetrying}
+                            >
+                                Go to projects
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
-    );
-};
+        );
+    },
+);

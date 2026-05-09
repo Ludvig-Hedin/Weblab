@@ -24,7 +24,7 @@ interface ExternalTemplatesProps {
 export function ExternalTemplates({
     templates,
     title = 'Starter templates',
-    description = 'Start from a proven Next.js template — preview live, or open the details for source and related options.',
+    description = 'Start from a proven template — preview live, or open the details for source and related options.',
 }: ExternalTemplatesProps) {
     // Fetched once here so each card doesn't instantiate its own hook subscription.
     const { data: user } = api.user.get.useQuery();

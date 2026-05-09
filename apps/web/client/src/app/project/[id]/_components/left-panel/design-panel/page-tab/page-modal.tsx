@@ -160,9 +160,7 @@ export function PageModal({
                             onChange={(e) => {
                                 setPageName(e.target.value.toLowerCase());
                             }}
-                            className={cn(
-                                warning && 'border-yellow-300 focus-visible:ring-yellow-300',
-                            )}
+                            className={cn(warning && 'border-warning focus-visible:ring-warning')}
                             placeholder={
                                 itemType === 'folder'
                                     ? 'marketing or blog'
@@ -178,7 +176,7 @@ export function PageModal({
                             onCompositionEnd={() => setIsComposing(false)}
                         />
                         {warning && (
-                            <p className="text-small flex items-center gap-2 text-yellow-300">
+                            <p className="text-small text-foreground-warning flex items-center gap-2">
                                 {warning}
                             </p>
                         )}

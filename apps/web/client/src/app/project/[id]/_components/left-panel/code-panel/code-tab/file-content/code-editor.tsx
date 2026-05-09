@@ -11,6 +11,7 @@ import type { BinaryEditorFile, EditorFile } from '../shared/types';
 import type { InlineEditSession } from './inline-edit';
 import type { ViewUpdate } from '@codemirror/view';
 import { useEditorEngine } from '@/components/store/editor';
+import { api } from '@/trpc/react';
 import {
     getBasicSetup,
     getExtensions,
@@ -55,6 +56,10 @@ export const CodeEditor = observer(
     }: CodeEditorProps) => {
         const editorEngine = useEditorEngine();
         const { tabAutocomplete: tabAutocompleteEnabled } = useAiFeatureFlags();
+        // Read the user's preferred chat model so tab-complete uses it
+        // instead of falling back to the route's server-side default.
+        const { data: userSettings } = api.user.settings.get.useQuery();
+        const tabCompleteModel = userSettings?.chat.defaultModel as string | undefined;
         const [currentSelection, setCurrentSelection] = useState<{
             from: number;
             to: number;
@@ -154,6 +159,7 @@ export const CodeEditor = observer(
                 language,
                 projectId: editorEngine.projectId,
                 enabled: file.type === 'text' && tabAutocompleteEnabled,
+                model: tabCompleteModel,
             });
 
             if (navigationTarget && isActive) {
@@ -178,12 +184,23 @@ export const CodeEditor = observer(
         };
 
         // Flip the tab-complete flag live if the user toggles it in settings while
-        // the editor is mounted.
+        // the editor is mounted. `editorViewsRef` is a stable ref — the body
+        // reads `.current`, so the ref's identity isn't a meaningful dep.
         useEffect(() => {
             const editor = editorViewsRef.current?.get(file.path);
             if (!editor) return;
             setTabCompleteEnabled(editor, file.type === 'text' && tabAutocompleteEnabled);
-        }, [tabAutocompleteEnabled, file.path, file.type, editorViewsRef]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [tabAutocompleteEnabled, file.path, file.type]);
+
+        // Re-seed the tab-complete model whenever the user changes their
+        // default chat model in settings, so completions follow their pick.
+        useEffect(() => {
+            const editor = editorViewsRef.current?.get(file.path);
+            if (!editor || !tabCompleteModel) return;
+            setTabCompleteContext(editor, { model: tabCompleteModel });
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [tabCompleteModel, file.path]);
 
         // Designer Cmd+K bridge: if a pending inline-edit request was set from the
         // canvas, open the prompt at the navigated range once the file is here.
@@ -237,7 +254,8 @@ export const CodeEditor = observer(
                 .filter((loc): loc is NonNullable<typeof loc> => loc !== null)
                 .filter((loc) => pathMatches(loc.filePath, file.path));
             setEditorErrors(editor, locations);
-        }, [allErrors, file.path, file.type, editorViewsRef]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [allErrors, file.path, file.type]);
 
         useEffect(() => {
             // Reset last navigation when target is cleared or file changes

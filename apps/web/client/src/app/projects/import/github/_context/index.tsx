@@ -166,7 +166,9 @@ export const ImportGithubProjectProvider: React.FC<ImportGithubProjectProviderPr
         abortController.current = null;
 
         if (wasImporting) {
-            // TODO: server-side cleanup of orphan sandbox
+            // TODO: If sandbox forking succeeds but project creation fails, the forked
+            // sandbox is leaked. A server-side cleanup job (or idempotent creation) is
+            // needed to handle this. Until then, creation errors may leave orphaned sandboxes.
             toast.message('GitHub import cancelled', {
                 description: 'If a sandbox was created, it may take a moment to clean up.',
             });

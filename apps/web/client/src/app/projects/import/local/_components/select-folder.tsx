@@ -452,7 +452,7 @@ export const NewSelectFolder = () => {
                         } as React.InputHTMLAttributes<HTMLInputElement>)}
                     />
                     {error && (
-                        <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                        <div className="border-destructive/40 bg-destructive/10 text-destructive text-small rounded-md border px-3 py-2">
                             {error}
                         </div>
                     )}
@@ -462,23 +462,23 @@ export const NewSelectFolder = () => {
 
         const statusConfig = {
             valid: {
-                bgColor: 'bg-purple-900',
-                borderColor: 'border-purple-600',
-                iconBgColor: 'bg-purple-500',
-                textColor: 'text-purple-100',
-                subTextColor: 'text-purple-200',
+                bgColor: 'bg-background-success',
+                borderColor: 'border-success',
+                iconBgColor: 'bg-foreground-success',
+                textColor: 'text-foreground-primary',
+                subTextColor: 'text-foreground-success',
                 icon: (
-                    <Icons.CheckCircled className="h-5 w-5 text-purple-200 transition-opacity duration-200 group-hover:opacity-0" />
+                    <Icons.CheckCircled className="text-foreground-success h-5 w-5 transition-opacity duration-200 group-hover:opacity-0" />
                 ),
                 showError: false,
             },
             invalid: {
-                bgColor: 'bg-amber-900',
-                borderColor: 'border-amber-600',
-                iconBgColor: 'bg-amber-500',
-                textColor: 'text-amber-100',
-                subTextColor: 'text-amber-200',
-                icon: <Icons.ExclamationTriangle className="h-5 w-5 text-amber-200" />,
+                bgColor: 'bg-background-warning',
+                borderColor: 'border-warning',
+                iconBgColor: 'bg-foreground-warning',
+                textColor: 'text-foreground-primary',
+                subTextColor: 'text-foreground-warning',
+                icon: <Icons.ExclamationTriangle className="text-foreground-warning h-5 w-5" />,
                 showError: true,
             },
         };
@@ -525,7 +525,7 @@ export const NewSelectFolder = () => {
                         onClick={reset}
                     >
                         <Icons.MinusCircled
-                            className={`h-5 w-5 ${validation?.isValid ? 'text-purple-200' : 'text-amber-200'}`}
+                            className={`h-5 w-5 ${validation?.isValid ? 'text-foreground-success' : 'text-foreground-warning'}`}
                         />
                     </Button>
                 </motion.div>

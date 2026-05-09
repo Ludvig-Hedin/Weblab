@@ -92,7 +92,10 @@ export function ProjectModeDialog({
                         </div>
                     </button>
 
-                    <div className="border-foreground/8 bg-foreground/3 flex min-h-44 flex-col justify-between rounded-lg border p-4 text-left opacity-75">
+                    <div
+                        className="border-foreground/8 bg-foreground/3 flex min-h-44 cursor-not-allowed flex-col justify-between rounded-lg border p-4 text-left opacity-75"
+                        aria-disabled="true"
+                    >
                         <div className="space-y-3">
                             <div className="border-foreground/10 bg-background flex h-9 w-9 items-center justify-center rounded-full border">
                                 <Icons.Directory className="h-4 w-4" />
@@ -111,7 +114,12 @@ export function ProjectModeDialog({
                                 </div>
                             </div>
                         </div>
-                        <Button variant="outline" size="sm" asChild className="mt-4 w-fit">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                            className="pointer-events-auto mt-4 w-fit"
+                        >
                             <a href={ExternalRoutes.DOWNLOAD_PAGE} target="_blank" rel="noreferrer">
                                 Download app
                             </a>

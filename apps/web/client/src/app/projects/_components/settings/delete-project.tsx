@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
 import {
@@ -25,9 +26,16 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const handleDeleteProject = async () => {
-        await deleteProject({ id: project.id });
-        setShowDeleteDialog(false);
-        refetch();
+        try {
+            await deleteProject({ id: project.id });
+            setShowDeleteDialog(false);
+            refetch();
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            toast.error('Failed to delete project', {
+                description: error instanceof Error ? error.message : 'Unknown error',
+            });
+        }
     };
 
     return (
@@ -61,7 +69,7 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
                             className="rounded-md text-sm"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteProject();
+                                void handleDeleteProject();
                             }}
                         >
                             {t(transKeys.projects.actions.delete)}

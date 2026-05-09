@@ -260,7 +260,7 @@ export const ImageItem = ({
                                         e.stopPropagation();
                                         setShowDeleteDialog(true);
                                     }}
-                                    className="flex items-center gap-2 text-red-500 hover:text-red-600 focus:text-red-600"
+                                    className="text-destructive hover:text-destructive focus:text-destructive flex items-center gap-2"
                                 >
                                     <Icons.Trash className="h-3 w-3" />
                                     Delete

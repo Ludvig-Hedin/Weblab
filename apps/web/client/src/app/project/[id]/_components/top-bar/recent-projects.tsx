@@ -38,6 +38,14 @@ export const RecentProjectsMenu = observer(() => {
         router.push(`${Routes.PROJECT}/${projectId}`);
     };
 
+    const handleProjectHover = (projectId: string) => {
+        try {
+            router.prefetch(`${Routes.PROJECT}/${projectId}`);
+        } catch {
+            // Silently ignore prefetch errors — they shouldn't block UX.
+        }
+    };
+
     if (isLoadingProjects) {
         return (
             <DropdownMenuSub>
@@ -51,7 +59,7 @@ export const RecentProjectsMenu = observer(() => {
                     <DropdownMenuItem disabled>
                         <div className="center flex flex-row items-center">
                             <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                            Loading...
+                            Loading projects…
                         </div>
                     </DropdownMenuItem>
                 </DropdownMenuSubContent>
@@ -103,6 +111,8 @@ export const RecentProjectsMenu = observer(() => {
                     <DropdownMenuItem
                         key={project.id}
                         onClick={() => handleProjectClick(project.id)}
+                        onMouseEnter={() => handleProjectHover(project.id)}
+                        onFocus={() => handleProjectHover(project.id)}
                         disabled={loadingProjectId === project.id}
                         className="cursor-pointer"
                     >

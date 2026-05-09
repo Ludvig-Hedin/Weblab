@@ -5,10 +5,10 @@ import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
-import { Icons } from '@weblab/ui/icons';
 import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { SettingsModalWithProjects } from '@/components/ui/settings-modal/with-project';
@@ -16,18 +16,27 @@ import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
+import { CmsWorkspace } from './cms-workspace';
+import { BindDialog as CmsBindDialog } from './cms-workspace/bind-dialog';
+import { CmsDataPusher } from './cms-workspace/data-pusher';
+import { CommandPalette } from './command-palette';
 import { EditorBar } from './editor-bar';
 import { ElementPalette } from './element-palette';
+import { FileFinder } from './file-finder';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { LeftPanel } from './left-panel';
 import { MobileLayout } from './mobile-layout';
+import { OfflineBanner } from './offline-banner';
+import { OnboardingTour } from './onboarding-tour';
+import { PreviewOverlay } from './preview-overlay';
 import { ProjectLoadError } from './project-load-error';
+import { ProjectSearch } from './project-search';
 import { RightPanel } from './right-panel';
 import { TopBar } from './top-bar';
 
 export const Main = observer(() => {
     const editorEngine = useEditorEngine();
-    const { isProjectReady, error, readyState } = useStartProject();
+    const { isProjectReady, error, readyState, hasPendingCreation } = useStartProject();
     const leftPanelRef = useRef<HTMLDivElement | null>(null);
     const rightPanelRef = useRef<HTMLDivElement | null>(null);
     const { toolbarLeft, toolbarRight, editorBarAvailableWidth } = usePanelMeasurements(
@@ -72,42 +81,30 @@ export const Main = observer(() => {
     }
 
     if (!isProjectReady) {
-        const steps: { label: string; ready: boolean }[] = [
-            { label: 'Starting workspace', ready: readyState.sandbox },
-            { label: 'Preparing canvas', ready: readyState.canvas },
-            { label: 'Restoring chat', ready: readyState.conversations },
-        ];
+        const heading = hasPendingCreation
+            ? 'Getting ready to build your site'
+            : 'Setting up your editor';
+        const steps = hasPendingCreation
+            ? [
+                  { label: 'Starting your sandbox', ready: readyState.sandbox },
+                  { label: 'Preparing the canvas', ready: readyState.canvas },
+                  { label: 'Loading the AI chat', ready: readyState.conversations },
+              ]
+            : [
+                  { label: 'Starting workspace', ready: readyState.sandbox },
+                  { label: 'Preparing canvas', ready: readyState.canvas },
+                  { label: 'Restoring chat', ready: readyState.conversations },
+              ];
         return (
-            <div className="bg-background flex h-screen w-screen items-center justify-center">
-                <div className="flex min-w-[260px] flex-col items-center gap-5">
-                    <div className="flex items-center gap-2.5">
-                        <Icons.LoadingSpinner className="text-foreground-primary h-5 w-5 animate-spin" />
-                        <div className="text-title3 text-foreground-primary">
-                            Setting up your editor
-                        </div>
-                    </div>
-                    <ul className="text-foreground-tertiary text-small flex w-full flex-col gap-1.5">
-                        {steps.map((step) => (
-                            <li key={step.label} className="flex items-center gap-2">
-                                {step.ready ? (
-                                    <Icons.CheckCircled className="text-foreground-positive h-4 w-4" />
-                                ) : (
-                                    <Icons.LoadingSpinner className="text-foreground-quadranary h-4 w-4 animate-spin" />
-                                )}
-                                <span
-                                    className={
-                                        step.ready
-                                            ? 'text-foreground-primary'
-                                            : 'text-foreground-tertiary'
-                                    }
-                                >
-                                    {step.label}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
+            <ProjectCreationLoader
+                heading={heading}
+                caption={
+                    hasPendingCreation
+                        ? 'We saved your prompt. The AI will start writing as soon as the editor is ready.'
+                        : undefined
+                }
+                steps={steps}
+            />
         );
     }
 
@@ -119,26 +116,50 @@ export const Main = observer(() => {
                 <SubscriptionModal />
                 <KeyboardShortcutsModal />
                 <ElementPalette />
+                <CommandPalette />
+                <FileFinder />
+                <ProjectSearch />
             </TooltipProvider>
         );
     }
 
+    const isPreview = editorEngine.state.editorMode === EditorMode.PREVIEW;
+    // CODE mode is full-bleed: stretch the left-panel container to the AI
+    // panel's left edge so the code editor takes the full viewport width minus
+    // the (resizable, collapsible) right panel — VS-Code-like split.
+    const isCode = editorEngine.state.editorMode === EditorMode.CODE;
+    const isCms = editorEngine.state.editorMode === EditorMode.CMS;
+
     return (
         <TooltipProvider>
+            {/* First-run tour. Suppressed during the prompt-driven creation
+                flow — the user is busy watching the AI scaffold their site,
+                not in a normal editor session yet. */}
+            <OnboardingTour suppressed={hasPendingCreation} />
             <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
                 <Canvas />
 
-                <div className="absolute top-0 w-full">
+                {/* Editor chrome — hidden only in full-screen preview mode.
+                    In CMS mode the top bar stays visible so users can navigate
+                    back to Design via the mode toggle. */}
+                <div className={cn('absolute top-0 w-full', isPreview && 'hidden')}>
                     <TopBar />
                 </div>
 
                 {/* Left Panel */}
-                <div ref={leftPanelRef} className="absolute top-10 left-0 z-50 h-[calc(100%-40px)]">
+                <div
+                    ref={leftPanelRef}
+                    className={cn(
+                        'absolute top-14 left-0 z-50 h-[calc(100%-49px)]',
+                        (isPreview || isCms) && 'hidden',
+                    )}
+                    style={isCode ? { right: toolbarRight } : undefined}
+                >
                     <LeftPanel />
                 </div>
                 {/* EditorBar anchored between panels */}
                 <div
-                    className="absolute top-10 z-49"
+                    className={cn('absolute top-14 z-49', (isPreview || isCms) && 'hidden')}
                     style={{
                         left: toolbarLeft,
                         right: toolbarRight,
@@ -158,20 +179,54 @@ export const Main = observer(() => {
                 {/* Right Panel */}
                 <div
                     ref={rightPanelRef}
+                    data-tour="chat-panel"
                     className={cn(
-                        'absolute top-10 right-0 z-50 h-[calc(100%-40px)]',
-                        editorEngine.state.editorMode === EditorMode.PREVIEW && 'hidden',
+                        'absolute top-14 right-0 z-50 h-[calc(100%-49px)]',
+                        (isPreview || isCms) && 'hidden',
                     )}
                 >
                     <RightPanel />
                 </div>
 
-                <BottomBar />
+                {/* BottomBar — anchored between the side panels so it stays
+                    visually centered within the canvas area as panels resize. */}
+                <div
+                    className={cn(
+                        'pointer-events-none absolute bottom-0 z-40 flex justify-center',
+                        (isPreview || isCms) && 'hidden',
+                    )}
+                    style={{ left: toolbarLeft, right: toolbarRight }}
+                >
+                    <div className="pointer-events-auto">
+                        <BottomBar />
+                    </div>
+                </div>
+
+                {/* Full-viewport preview overlay — covers all editor chrome
+                    when in PREVIEW mode (the chrome is also hidden via the
+                    isPreview guards above so background interactions can't
+                    leak through). */}
+                {isPreview && <PreviewOverlay />}
+
+                {/* Offline / sync banner. Visible only when the editor session
+                    is offline or there are queued/dead-letter writes. */}
+                <div className="pointer-events-none absolute top-16 right-4 z-50 max-w-xs">
+                    <OfflineBanner />
+                </div>
+
+                {/* CMS workspace — sits below the top bar (top-14) and replaces
+                    the canvas/side panels while in CMS mode. */}
+                {isCms && <CmsWorkspace />}
             </div>
             <SettingsModalWithProjects />
             <SubscriptionModal />
             <KeyboardShortcutsModal />
             <ElementPalette />
+            <CommandPalette />
+            <FileFinder />
+            <ProjectSearch />
+            <CmsBindDialog />
+            <CmsDataPusher />
         </TooltipProvider>
     );
 });

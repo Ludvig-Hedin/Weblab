@@ -22,14 +22,14 @@ export const DomainSection = () => {
                 <h3 className="">Custom Domain</h3>
                 {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
                     <div className="ml-auto flex items-center gap-2">
-                        <p className="text-green-300">Live</p>
+                        <p className="text-foreground-positive">Live</p>
                         <p>•</p>
                         <p>Updated {timeAgo(deployment.updatedAt)} ago</p>
                     </div>
                 )}
                 {deployment?.status === DeploymentStatus.FAILED && (
                     <div className="ml-auto flex items-center gap-2">
-                        <p className="text-red-500">Error</p>
+                        <p className="text-destructive">Error</p>
                     </div>
                 )}
                 {deployment?.status === DeploymentStatus.CANCELLED && (
