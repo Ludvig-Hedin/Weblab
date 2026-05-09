@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -43,6 +43,29 @@ export const InlineEditPrompt = ({
     const abortRef = useRef<AbortController | null>(null);
     const [instruction, setInstruction] = useState(session.instruction);
 
+    const getPromptPos = useCallback(() => {
+        try {
+            const coords = editor.coordsAtPos(session.from);
+            if (!coords) return null;
+            const editorRect = editor.dom.getBoundingClientRect();
+            return {
+                top: Math.max(8, coords.top - editorRect.top - 56),
+                left: Math.max(12, coords.left - editorRect.left),
+            };
+        } catch {
+            return null;
+        }
+    }, [editor, session.from]);
+
+    const [promptPos, setPromptPos] = useState(getPromptPos);
+
+    useEffect(() => {
+        const scrollEl = editor.scrollDOM;
+        const onScroll = () => setPromptPos(getPromptPos());
+        scrollEl.addEventListener('scroll', onScroll, { passive: true });
+        return () => scrollEl.removeEventListener('scroll', onScroll);
+    }, [editor, getPromptPos]);
+
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
@@ -73,62 +96,79 @@ export const InlineEditPrompt = ({
             }),
         });
 
-        try {
-            const res = await fetch('/api/ai/inline-edit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filePath,
-                    language,
-                    before,
-                    selection: session.original,
-                    after,
-                    instruction: trimmed,
-                    projectId,
-                }),
-                signal: ctrl.signal,
-            });
+        const body = JSON.stringify({
+            filePath,
+            language,
+            before,
+            selection: session.original,
+            after,
+            instruction: trimmed,
+            projectId,
+        });
 
-            if (!res.ok || !res.body) {
-                const errMsg = await res
-                    .json()
-                    .then((j) => j.error)
-                    .catch(() => 'Request failed');
+        let lastErr: string | null = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            if (ctrl.signal.aborted) return;
+            if (attempt > 0) {
+                // Brief pause before the one allowed retry.
+                await new Promise((r) => setTimeout(r, 500));
+                if (ctrl.signal.aborted) return;
                 editor.dispatch({
-                    effects: updateInlineEditEffect.of({
-                        streaming: false,
-                        error: errMsg ?? 'Request failed',
-                    }),
+                    effects: updateInlineEditEffect.of({ streaming: true, error: null, preview: '' }),
+                });
+            }
+            try {
+                const res = await fetch('/api/ai/inline-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body,
+                    signal: ctrl.signal,
+                });
+
+                if (!res.ok || !res.body) {
+                    const errMsg = await res
+                        .json()
+                        .then((j: { error?: string }) => j.error)
+                        .catch(() => 'Request failed');
+                    // Don't retry on auth / rate-limit errors.
+                    if (res.status === 401 || res.status === 429) {
+                        editor.dispatch({
+                            effects: updateInlineEditEffect.of({
+                                streaming: false,
+                                error: errMsg ?? 'Request failed',
+                            }),
+                        });
+                        return;
+                    }
+                    lastErr = errMsg ?? 'Request failed';
+                    continue;
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    editor.dispatch({
+                        effects: updateInlineEditEffect.of({ preview: buffer }),
+                    });
+                }
+                editor.dispatch({
+                    effects: updateInlineEditEffect.of({ streaming: false }),
                 });
                 return;
+            } catch (err) {
+                if (ctrl.signal.aborted) return;
+                lastErr = err instanceof Error ? err.message : String(err);
             }
-
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            // Stream into the preview, but stay tolerant of the model emitting
-            // accidental ```markdown fences — strip them at apply time.
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                editor.dispatch({
-                    effects: updateInlineEditEffect.of({ preview: buffer }),
-                });
-            }
-            editor.dispatch({
-                effects: updateInlineEditEffect.of({ streaming: false }),
-            });
-        } catch (err) {
-            if (ctrl.signal.aborted) return;
-            editor.dispatch({
-                effects: updateInlineEditEffect.of({
-                    streaming: false,
-                    error: err instanceof Error ? err.message : String(err),
-                }),
-            });
         }
+
+        editor.dispatch({
+            effects: updateInlineEditEffect.of({ streaming: false, error: lastErr ?? 'Request failed' }),
+        });
     };
 
     const accept = () => {
@@ -140,27 +180,12 @@ export const InlineEditPrompt = ({
         onApply(cleaned);
     };
 
-    const getPromptRect = () => {
-        try {
-            const startCoords = editor.coordsAtPos(session.from);
-            if (!startCoords) return null;
-            const editorRect = editor.dom.getBoundingClientRect();
-            return {
-                top: startCoords.top - editorRect.top,
-                left: startCoords.left - editorRect.left,
-            };
-        } catch {
-            return null;
-        }
-    };
-
-    const rect = getPromptRect();
-    if (!rect) return null;
+    if (!promptPos) return null;
 
     const style: React.CSSProperties = {
         position: 'absolute',
-        top: Math.max(8, rect.top - 56),
-        left: Math.max(12, rect.left),
+        top: promptPos.top,
+        left: promptPos.left,
         zIndex: 1000,
         pointerEvents: 'auto',
         width: 'min(560px, calc(100% - 24px))',

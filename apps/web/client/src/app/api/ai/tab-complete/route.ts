@@ -3,7 +3,7 @@ import { type NextRequest } from 'next/server';
 import type { ChatModel } from '@weblab/models';
 import { generateTabCompletion, inferProviderFromModelId } from '@weblab/ai';
 
-import { checkMessageLimit, getSupabaseUser } from '../../chat/helpers';
+import { checkMessageLimit, getSupabaseUser, incrementUsage } from '../../chat/helpers';
 
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
@@ -42,8 +42,11 @@ export async function POST(req: NextRequest) {
 
     const usageCheck = await checkMessageLimit(req);
     if (usageCheck.exceeded) {
-        return new Response(JSON.stringify({ completion: '' }), {
-            status: 200,
+        // 429 lets the extension distinguish "no completion suggested" (200,
+        // empty body) from "rate-limited / over quota" so it can back off
+        // instead of retrying every keystroke.
+        return new Response(JSON.stringify({ error: 'usage_limit', code: 'usage_limit' }), {
+            status: 429,
             headers: { 'Content-Type': 'application/json' },
         });
     }
@@ -88,6 +91,8 @@ export async function POST(req: NextRequest) {
             projectId: body.projectId,
             abortSignal: req.signal,
         });
+        // Meter after generation so failed requests don't count.
+        void incrementUsage(req);
         return new Response(JSON.stringify({ completion }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

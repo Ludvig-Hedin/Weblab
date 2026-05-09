@@ -42,6 +42,31 @@ describe('parseErrorLocation', () => {
         expect(r!.message.length).toBeGreaterThan(0);
         expect(r!.message.length).toBeLessThanOrEqual(240);
     });
+
+    it('parses Node.js stack-trace at (path:line:col) form', () => {
+        const r = parseErrorLocation(
+            make('Error: oops\n    at Object.render (/app/src/components/foo.tsx:42:7)\n    at Module._compile'),
+        );
+        expect(r?.filePath).toBe('/app/src/components/foo.tsx');
+        expect(r?.line).toBe(42);
+        expect(r?.column).toBe(7);
+    });
+
+    it('parses ESLint default reporter multi-line form', () => {
+        const r = parseErrorLocation(
+            make('/app/src/bar.ts\n  12:5  error  no-unused-vars'),
+        );
+        expect(r?.filePath).toBe('/app/src/bar.ts');
+        expect(r?.line).toBe(12);
+        expect(r?.column).toBe(5);
+    });
+
+    it('parses absolute path:line:col (Vite/esbuild style)', () => {
+        const r = parseErrorLocation(make('/Users/dev/project/src/index.tsx:8:3: error: bad syntax'));
+        expect(r?.filePath).toBe('/Users/dev/project/src/index.tsx');
+        expect(r?.line).toBe(8);
+        expect(r?.column).toBe(3);
+    });
 });
 
 describe('pathMatches', () => {

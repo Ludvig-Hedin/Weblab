@@ -16,13 +16,19 @@ export interface FileErrorLocation {
 // Match common compiler/runtime error formats:
 //   path/to/file.tsx(12,5): error TS2322: ...
 //   ./src/foo.tsx:12:5
-//   at /Users/.../file.ts:12:5
+//   at /Users/.../file.ts:12:5 (Node.js stack trace)
+//   at Object.render (/app/src/foo.tsx:12:5) (Node.js stack trace in parens)
 //   Type error: ./src/foo.ts:12:5
+//   /path/to/file.ts\n  12:5  error  ... (ESLint default reporter)
 const LOCATION_PATTERNS: RegExp[] = [
     // file.ts(line,col)
     /([./\w@-][^\s():]+\.(?:tsx?|jsx?|css|html|json|md))\((\d+),(\d+)\)/,
+    // Node stack trace: at ... (path:line:col) — parenthesised absolute path
+    /\bat\s+(?:\S+\s+)?\(([./\w@-][^\s():]+\.(?:tsx?|jsx?|css|html|json|md)):(\d+):(\d+)\)/,
     // file.ts:line:col
     /([./\w@-][^\s:]+\.(?:tsx?|jsx?|css|html|json|md)):(\d+):(\d+)/,
+    // ESLint default: path on its own line, next line starts with "  line:col  error|warning"
+    /([./\w@-][^\s:]+\.(?:tsx?|jsx?|css|html|json|md))\n\s+(\d+):(\d+)\s+(?:error|warning)/,
     // file.ts:line
     /([./\w@-][^\s:]+\.(?:tsx?|jsx?|css|html|json|md)):(\d+)\b/,
 ];
