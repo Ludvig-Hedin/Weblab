@@ -18,6 +18,32 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-09 — AbortSignal forwarded through the full chat pipeline
+
+Decision: `createRootAgentStream` accepts an optional `abortSignal` param passed down to `streamText`; `/api/chat` passes `req.signal`.
+Context: When users navigate away or cancel a generation, the HTTP connection closes but `streamText` kept calling the LLM until the `stopWhen` step limit. Wasted tokens and money.
+Alternatives considered: Middleware-level abort interceptor (added complexity, same effect).
+Rationale: Minimal surface change — one optional param; AI SDK `streamText` natively respects `AbortSignal`.
+Status: Active
+
+## 2026-05-09 — CMS adapter SSRF guard via DNS + IP blocklist
+
+Decision: `cms/adapters/index.ts` resolves user-supplied CMS base URLs via DNS before fetching; blocks loopback, private RFC-1918, link-local, and cloud metadata IPs.
+Context: CMS "connect to your CMS" accepts arbitrary URLs — a classic SSRF vector to reach cloud metadata (169.254.169.254) or internal services.
+Alternatives considered: Allowlist approach (too restrictive for customer-managed CMS deployments).
+Rationale: Denylist private IP ranges; DNS resolution catches hostname-based bypasses (e.g., `internal.co` resolving to 10.x.x.x).
+Status: Active
+
+## 2026-05-09 — Invitation router role-based authorization
+
+Decision: `invitationRouter.list` requires project membership via `verifyProjectAccess`. Invite/delete procedures require OWNER/ADMIN role via `requireProjectRole`. Non-owners cannot grant OWNER role.
+Context: Prior code had no auth checks on list — any authenticated user could enumerate all project invitations given a projectId. Invite/delete had no role gating.
+Alternatives considered: Middleware-level project membership check (deferred — tRPC middleware must be wired per-router).
+Rationale: Direct checks at the procedure level are explicit and auditable; `requireProjectRole` is reusable within the same router.
+Status: Active
+
+---
+
 ## 2026-05-09 — Repo-scoped agent memory in `docs/agent-memory/`
 
 Decision: Persistent agent memory lives in a committed `docs/agent-memory/`

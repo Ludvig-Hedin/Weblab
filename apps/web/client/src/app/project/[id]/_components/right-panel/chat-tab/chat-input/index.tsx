@@ -29,6 +29,7 @@ import type {
 } from '@/components/ai-prompt-composer/types';
 import type { Editor } from '@tiptap/react';
 import { AiPromptComposer } from '@/components/ai-prompt-composer';
+import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
 import { transKeys } from '@/i18n/keys';
@@ -39,7 +40,6 @@ import { Suggestions } from '../suggestions';
 import { ActionButtons } from './action-buttons';
 import { ChatContextWindow } from './chat-context';
 import { ChatModeToggle } from './chat-mode-toggle';
-import { ModelSelector } from './model-selector';
 import { QueueItems } from './queue-items';
 
 interface ChatInputProps {
@@ -87,10 +87,27 @@ export const ChatInput = observer(
         );
         const lastSuggestionSignatureRef = useRef<string | null>(null);
         const fileListCacheRef = useRef<{ items: MentionItem[]; timestamp: number } | null>(null);
+        // Index into userMessageHistory for Up/Down-arrow prompt recall. -1 = not navigating.
+        const historyIndexRef = useRef<number>(-1);
         const lastUsageMessage = useMemo(
             () => messages.findLast((msg) => msg.metadata?.usage),
             [messages],
         );
+
+        // Most-recent-first list of past USER message texts for Up/Down-arrow recall.
+        const userMessageHistory = useMemo(() => {
+            const out: string[] = [];
+            for (let i = messages.length - 1; i >= 0; i--) {
+                const msg = messages[i];
+                if (msg?.role !== 'user') continue;
+                const text = msg.parts
+                    .map((part) => (part.type === 'text' ? part.text : ''))
+                    .join('')
+                    .trim();
+                if (text.length > 0) out.push(text);
+            }
+            return out;
+        }, [messages]);
         const { mutate: generateSuggestions, isPending: isGeneratingSuggestions } =
             api.chat.suggestions.generate.useMutation({
                 onSuccess: (nextSuggestions) => {
@@ -198,13 +215,14 @@ export const ChatInput = observer(
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Tab') {
-                e.preventDefault();
-                e.stopPropagation();
-
                 const handled = suggestionRef.current?.handleTabNavigation(e.shiftKey);
-                if (!handled) {
-                    editorRef.current?.commands.focus();
+                if (handled) {
+                    // Suggestions handled the Tab — block default focus traversal.
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
+                // Otherwise let the browser move focus to the next focusable element.
+                return;
             } else if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -217,7 +235,63 @@ export const ChatInput = observer(
                 if (!inputEmpty) {
                     void sendMessage();
                 }
+                return;
             }
+
+            // Prompt history navigation (issue #34).
+            // Only act when the editor is empty (initial Up) or already navigating history.
+            if (e.key === 'ArrowUp') {
+                const navigatingHistory = historyIndexRef.current >= 0;
+                if (!navigatingHistory && !inputEmpty) {
+                    // Editor has user-typed content — let caret move normally.
+                    return;
+                }
+                if (userMessageHistory.length === 0) {
+                    // Nothing to recall — let caret move normally.
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                const nextIndex = Math.min(
+                    historyIndexRef.current + 1,
+                    userMessageHistory.length - 1,
+                );
+                historyIndexRef.current = nextIndex;
+                const recalled = userMessageHistory[nextIndex] ?? '';
+                setInputValue(recalled);
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                if (historyIndexRef.current < 0) {
+                    // Not navigating history — let caret move normally.
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                const nextIndex = historyIndexRef.current - 1;
+                historyIndexRef.current = nextIndex;
+                if (nextIndex < 0) {
+                    setInputValue('');
+                } else {
+                    setInputValue(userMessageHistory[nextIndex] ?? '');
+                }
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                if (historyIndexRef.current >= 0 || !inputEmpty) {
+                    // Clear and reset history navigation state.
+                    historyIndexRef.current = -1;
+                    setInputValue('');
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
+
+            // Any other key (typing, backspace, etc.) ends history navigation.
+            historyIndexRef.current = -1;
         };
 
         async function sendMessage() {
@@ -586,7 +660,7 @@ export const ChatInput = observer(
                 surfaceClassName="focus-within:border-border"
                 submitDisabled={inputEmpty}
                 disabled={false}
-                showStopButton={isStreaming && inputEmpty}
+                showStopButton={isStreaming}
                 onStop={onStop}
                 showMicButton
                 onTranscript={(text) => setInputValue((prev) => (prev ? `${prev} ${text}` : text))}

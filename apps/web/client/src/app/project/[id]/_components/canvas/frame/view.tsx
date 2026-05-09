@@ -68,7 +68,17 @@ interface FrameViewProps extends IframeHTMLAttributes<HTMLIFrameElement> {
     onConnectionSuccess: () => void;
     penpalTimeoutMs?: number;
     isInDragSelection?: boolean;
+    /**
+     * Number of penpal handshakes that have already failed for this
+     * frame. Used to gate console logging: the first cold-boot timeout
+     * is expected (sandbox dev server is still starting) and should
+     * not log as an error. Once we've definitively failed multiple
+     * times, the same error is worth surfacing for debugging.
+     */
+    connectionFailureCount?: number;
 }
+
+const PENPAL_LOG_FAILURE_THRESHOLD = 2;
 
 export const FrameComponent = observer(
     forwardRef<IFrameView, FrameViewProps>(
@@ -80,6 +90,7 @@ export const FrameComponent = observer(
                 onConnectionSuccess,
                 penpalTimeoutMs = 5000,
                 isInDragSelection = false,
+                connectionFailureCount = 0,
                 ...restProps
             },
             ref,
@@ -90,7 +101,7 @@ export const FrameComponent = observer(
             const zoomLevel = useRef(1);
             const isConnecting = useRef(false);
             const connectionRef = useRef<ReturnType<typeof connect> | null>(null);
-            const [penpalChild, setPenpalChild] = useState<PenpalChildMethods | null>(null);
+            const [penpalChild, setPenpalChild] = useState<PromisifiedPendpalChildMethods | null>(null);
             const isSelected = editorEngine.frames.isSelected(frame.id);
             const isActiveBranch = editorEngine.branches.activeBranch.id === frame.branchId;
 
@@ -138,9 +149,25 @@ export const FrameComponent = observer(
                         connectionRef.current = null;
                     }
 
+                    // SECURITY: only accept postMessage traffic from the iframe's
+                    // own origin. With `'*'` any window holding a reference to
+                    // this one (e.g. a popup we opened) could complete the
+                    // Penpal handshake and pollute MobX layer-tree state.
+                    let allowedOrigin: string | undefined;
+                    try {
+                        allowedOrigin = new URL(frame.url).origin;
+                    } catch {
+                        // Malformed frame URL — bail out before attaching a messenger
+                        // that would otherwise default to a permissive policy.
+                        console.error(
+                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Invalid frame URL: ${frame.url}`,
+                        );
+                        onConnectionFailed();
+                        return;
+                    }
                     const messenger = new WindowMessenger({
                         remoteWindow: iframeRef.current.contentWindow,
-                        allowedOrigins: ['*'],
+                        allowedOrigins: [allowedOrigin],
                     });
 
                     const connection = connect({
@@ -159,6 +186,9 @@ export const FrameComponent = observer(
                                 rootNode: any;
                             }) => {
                                 editorEngine.frameEvent.handleDomProcessed(frame.id, data);
+                            },
+                            onContentResized: ({ height }: { width: number; height: number }) => {
+                                editorEngine.frames.setContentHeight(frame.id, height);
                             },
                         } satisfies PenpalParentMethods,
                     });
@@ -190,21 +220,54 @@ export const FrameComponent = observer(
                                 return;
                             }
 
-                            console.log(
-                                `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Penpal connection set`,
-                            );
-
+                            // Drop the noisy success log — it fires every
+                            // time a frame loads and adds nothing for
+                            // debugging. Failures still log below.
                             const remote = child as unknown as PenpalChildMethods;
-                            setPenpalChild(remote);
-                            void Promise.allSettled([
-                                remote.setFrameId(frame.id),
-                                remote.setBranchId(frame.branchId),
-                                remote.handleBodyReady(),
-                                remote.processDom(),
-                            ]);
-
-                            // Notify parent of successful connection
+                            const promised = remote as unknown as PromisifiedPendpalChildMethods;
+                            setPenpalChild(promised);
+                            // Mark the connection successful up-front so the
+                            // "trouble connecting" UI hides; below we still
+                            // inspect the post-connect calls and retry
+                            // `processDom` on rejection — without that retry
+                            // the layer tree is empty and selection silently
+                            // dies on first paint (HMR mid-handshake is the
+                            // common trigger).
                             onConnectionSuccess();
+                            void Promise.allSettled([
+                                promised.setFrameId(frame.id),
+                                promised.setBranchId(frame.branchId),
+                                promised.handleBodyReady(),
+                                promised.processDom(),
+                            ]).then((results) => {
+                                const processDomResult = results[3];
+                                if (
+                                    processDomResult &&
+                                    processDomResult.status === 'rejected' &&
+                                    connectionRef.current === connection
+                                ) {
+                                    console.warn(
+                                        `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDom() rejected on first connect, retrying`,
+                                        processDomResult.reason,
+                                    );
+                                    requestAnimationFrame(() => {
+                                        if (connectionRef.current !== connection) return;
+                                        // Penpal-promisified methods are not
+                                        // typed as Promise on the raw
+                                        // PenpalChildMethods interface, so
+                                        // wrap with Promise.resolve to attach
+                                        // a catch handler safely.
+                                        Promise.resolve(promised.processDom()).catch(
+                                            (err: unknown) => {
+                                                console.warn(
+                                                    `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDom() retry failed`,
+                                                    err,
+                                                );
+                                            },
+                                        );
+                                    });
+                                }
+                            });
                         })
                         .catch((error) => {
                             if (timeoutId) {
@@ -215,10 +278,19 @@ export const FrameComponent = observer(
                             if (connectionRef.current === connection) {
                                 connectionRef.current = null;
                             }
-                            console.error(
-                                `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Failed to setup penpal connection:`,
-                                error,
-                            );
+                            // First-attempt timeouts are expected during
+                            // sandbox cold-boot — the dev server inside
+                            // the container takes 10–15s to start, and
+                            // the retry loop in useFrameReload already
+                            // handles them. Only surface the error after
+                            // we've definitively failed enough times for
+                            // it to be useful debugging signal.
+                            if (connectionFailureCount >= PENPAL_LOG_FAILURE_THRESHOLD) {
+                                console.warn(
+                                    `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Failed to setup penpal connection:`,
+                                    error,
+                                );
+                            }
                             onConnectionFailed();
                         });
                 } catch (error) {
@@ -230,7 +302,7 @@ export const FrameComponent = observer(
 
             const promisifyMethod = <T extends (...args: any[]) => any>(
                 method: T | undefined,
-            ): ((...args: Parameters<T>) => Promise<ReturnType<T>>) => {
+            ): ((...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>) => {
                 return async (...args: Parameters<T>) => {
                     try {
                         if (!method) throw new Error('Method not initialized');
@@ -253,6 +325,7 @@ export const FrameComponent = observer(
                     processDom: promisifyMethod(penpalChild?.processDom),
                     getElementAtLoc: promisifyMethod(penpalChild?.getElementAtLoc),
                     getElementByDomId: promisifyMethod(penpalChild?.getElementByDomId),
+                    getElementByOid: promisifyMethod(penpalChild?.getElementByOid),
                     setFrameId: promisifyMethod(penpalChild?.setFrameId),
                     setBranchId: promisifyMethod(penpalChild?.setBranchId),
                     getElementIndex: promisifyMethod(penpalChild?.getElementIndex),
@@ -291,6 +364,9 @@ export const FrameComponent = observer(
                     handleBodyReady: promisifyMethod(penpalChild?.handleBodyReady),
                     captureScreenshot: promisifyMethod(penpalChild?.captureScreenshot),
                     buildLayerTree: promisifyMethod(penpalChild?.buildLayerTree),
+                    setCapabilities: promisifyMethod(penpalChild?.setCapabilities),
+                    setCmsData: promisifyMethod(penpalChild?.setCmsData),
+                    findListAncestorOid: promisifyMethod(penpalChild?.findListAncestorOid),
                 };
             }, [penpalChild]);
 
@@ -354,8 +430,13 @@ export const FrameComponent = observer(
                     }
                     setPenpalChild(null);
                     isConnecting.current = false;
+                    // Drop the dead view from the manager so callers iterating
+                    // `frames.getAll()` don't keep hitting a destroyed penpal
+                    // channel after a sandbox restart. The next mount
+                    // re-attaches a fresh view via registerView.
+                    editorEngine.frames.deregisterView(frame.id);
                 };
-            }, [frame.id]);
+            }, [frame.id, editorEngine.frames]);
 
             return (
                 <WebPreview>
@@ -364,14 +445,28 @@ export const FrameComponent = observer(
                         id={frame.id}
                         className={cn(
                             'outline outline-4 backdrop-blur-sm transition',
-                            isActiveBranch && 'outline-teal-400',
+                            isActiveBranch && 'outline-foreground-brand',
                             isActiveBranch && !isSelected && 'outline-dashed',
-                            !isActiveBranch && isInDragSelection && 'outline-teal-500',
+                            !isActiveBranch && isInDragSelection && 'outline-foreground-brand',
                         )}
                         src={frame.url}
                         sandbox="allow-modals allow-forms allow-same-origin allow-scripts allow-popups allow-downloads"
                         allow="geolocation; microphone; camera; midi; encrypted-media"
-                        style={{ width: frame.dimension.width, height: frame.dimension.height }}
+                        style={(() => {
+                            // Width drives the viewport (so Tailwind / @media respond
+                            // to the breakpoint). Height auto-fits the page content
+                            // reported by the iframe via onContentResized so each
+                            // breakpoint shows the WHOLE page, not a clipped viewport.
+                            const width = frame.breakpoint?.width ?? frame.dimension.width;
+                            const reported = editorEngine.frames.get(frame.id)?.contentHeight;
+                            const MIN_HEIGHT = 360;
+                            const MAX_HEIGHT = 50_000; // safety cap for runaway pages
+                            const height = Math.min(
+                                MAX_HEIGHT,
+                                Math.max(MIN_HEIGHT, reported ?? frame.dimension.height),
+                            );
+                            return { width, height };
+                        })()}
                         onLoad={setupPenpalConnection}
                         onError={() => {
                             // Notify the restart-sandbox button so it can

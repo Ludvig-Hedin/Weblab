@@ -6,9 +6,12 @@ import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import type { FrameData } from '@/components/store/editor/frames';
 import { useEditorEngine } from '@/components/store/editor';
+import { getRelativeMousePositionToFrameView } from '@/components/store/editor/overlay/utils';
 import { Frames } from './frames';
 import { HotkeysArea } from './hotkeys';
 import { Overlay } from './overlay';
@@ -209,8 +212,13 @@ export const Canvas = observer(() => {
 
     const handleWheel = useCallback(
         (event: WheelEvent) => {
-            // This is a workaround to prevent the canvas from scrolling when textarea in Chat with AI is focused.
-            if (event.target instanceof HTMLTextAreaElement) {
+            const t = event.target;
+            if (
+                t instanceof HTMLTextAreaElement ||
+                t instanceof HTMLInputElement ||
+                t instanceof HTMLSelectElement ||
+                (t instanceof HTMLElement && t.isContentEditable)
+            ) {
                 return;
             }
             editorEngine.state.canvasScrolling = true;
@@ -301,17 +309,132 @@ export const Canvas = observer(() => {
         }
     }, [isDragSelecting, dragSelectStart, dragSelectEnd, position, scale, editorEngine]);
 
+    // ── Canvas-level drag/drop ──────────────────────────────────────────
+    // The per-frame GestureScreen already handles drops over a frame. But
+    // dropping on the canvas background (between/around frames) used to do
+    // nothing — there's no frame element under the cursor. Pick the nearest
+    // ready frame and route the drop there so the user gets a working insert
+    // wherever they release the pointer.
+    const [isDropping, setIsDropping] = useState(false);
+
+    const pickNearestFrameToPoint = useCallback(
+        (clientX: number, clientY: number): FrameData | null => {
+            const candidates = editorEngine.frames
+                .getAll()
+                .filter((data): data is FrameData => !!data?.view);
+            if (candidates.length === 0) return null;
+            let best: FrameData | null = null;
+            let bestDistance = Number.POSITIVE_INFINITY;
+            for (const data of candidates) {
+                const cx = data.frame.position.x + data.frame.dimension.width / 2;
+                const cy = data.frame.position.y + data.frame.dimension.height / 2;
+                // Frames are positioned in canvas space; project the cursor too.
+                const rect = containerRef.current?.getBoundingClientRect();
+                if (!rect) continue;
+                const canvasX = (clientX - rect.left - position.x) / scale;
+                const canvasY = (clientY - rect.top - position.y) / scale;
+                const dx = canvasX - cx;
+                const dy = canvasY - cy;
+                const d = dx * dx + dy * dy;
+                if (d < bestDistance) {
+                    bestDistance = d;
+                    best = data;
+                }
+            }
+            return best;
+        },
+        [editorEngine.frames, position.x, position.y, scale],
+    );
+
+    const handleCanvasDragOver = useCallback(
+        (event: React.DragEvent<HTMLDivElement>) => {
+            // Only act on canvas-level drops (frame's GestureScreen stops propagation
+            // when the cursor is over a real frame, so this fires only on bg).
+            if (!event.dataTransfer.types.includes('application/json')) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            if (!isDropping) setIsDropping(true);
+        },
+        [isDropping],
+    );
+
+    const handleCanvasDrop = useCallback(
+        async (event: React.DragEvent<HTMLDivElement>) => {
+            event.preventDefault();
+            setIsDropping(false);
+
+            const target = pickNearestFrameToPoint(event.clientX, event.clientY);
+            if (!target?.view) {
+                toast.error('No website frame to drop into', {
+                    description: 'Open a frame on the canvas first.',
+                });
+                return;
+            }
+
+            try {
+                // Resolve a sensible drop coordinate inside the target frame —
+                // either the projected canvas point if the cursor is actually
+                // inside the frame's rect, or the frame center as a fallback.
+                const rect = containerRef.current?.getBoundingClientRect();
+                const dropPos = (() => {
+                    if (!rect) {
+                        return {
+                            x: target.frame.dimension.width / 2,
+                            y: target.frame.dimension.height / 2,
+                        };
+                    }
+                    try {
+                        return getRelativeMousePositionToFrameView(event, target.view);
+                    } catch {
+                        return {
+                            x: target.frame.dimension.width / 2,
+                            y: target.frame.dimension.height / 2,
+                        };
+                    }
+                })();
+
+                const handled = await editorEngine.insert.insertFromDataTransfer(
+                    target,
+                    dropPos,
+                    event.dataTransfer,
+                    event.altKey,
+                );
+                if (handled) {
+                    editorEngine.state.setEditorMode(EditorMode.DESIGN);
+                    editorEngine.state.setInsertMode(null);
+                }
+            } catch (error) {
+                console.error('Canvas drop failed:', error);
+                toast.error('Failed to insert', {
+                    description: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
+        },
+        [editorEngine.insert, editorEngine.state, pickNearestFrameToPoint],
+    );
+
     return (
         <HotkeysArea>
             <div
                 ref={containerRef}
+                data-tour="canvas"
                 className={cn(
-                    'bg-background-weblab relative flex flex-grow overflow-hidden',
+                    'bg-background-canvas relative flex flex-grow overflow-hidden',
+                    // Borders frame the canvas inside the editor chrome — they would
+                    // be visually wrong in full-screen preview where the canvas IS
+                    // the page, so suppress them in PREVIEW mode.
+                    editorEngine.state.editorMode !== EditorMode.PREVIEW &&
+                        'border-border-canvas border-t border-r border-l',
                     editorEngine.state.editorMode === EditorMode.COMMENT && 'cursor-crosshair',
                 )}
                 onMouseDown={handleCanvasMouseDown}
                 onMouseMove={handleCanvasMouseMove}
                 onMouseUp={handleCanvasMouseUp}
+                onDragOver={handleCanvasDragOver}
+                onDragLeave={() => setIsDropping(false)}
+                onDrop={(event) => {
+                    void handleCanvasDrop(event);
+                }}
                 onMouseLeave={(e) => {
                     // Hide our cursor from remote users when the pointer exits the canvas
                     editorEngine.presence.clearCursor();
@@ -343,6 +466,16 @@ export const Canvas = observer(() => {
                         clampPosition(position, scale)
                     }
                 />
+                {isDropping && (
+                    <div
+                        aria-hidden="true"
+                        className="border-foreground-brand/60 bg-foreground-brand/5 pointer-events-none absolute inset-2 z-30 flex items-start justify-center rounded-md border-2 border-dashed"
+                    >
+                        <span className="bg-foreground-brand text-background mt-3 rounded-md px-2 py-1 text-xs font-medium">
+                            Drop to insert into nearest frame
+                        </span>
+                    </div>
+                )}
             </div>
         </HotkeysArea>
     );

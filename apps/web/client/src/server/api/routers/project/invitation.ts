@@ -4,6 +4,7 @@ import { and, eq, ilike, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
+import type { DrizzleDb } from '@weblab/db';
 import {
     authUsers,
     createDefaultUserCanvas,
@@ -20,6 +21,26 @@ import { isFreeEmail } from '@weblab/utility';
 
 import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from './helper';
+
+async function requireProjectRole(
+    db: Pick<DrizzleDb, 'query'>,
+    userId: string,
+    projectId: string,
+    allowed: ProjectRole[],
+): Promise<ProjectRole> {
+    const membership = await db.query.userProjects.findFirst({
+        where: and(eq(userProjects.userId, userId), eq(userProjects.projectId, projectId)),
+    });
+    const role = membership?.role as ProjectRole | undefined;
+    if (!role || !allowed.includes(role)) {
+        throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Insufficient project role',
+        });
+    }
+    return role;
+}
 
 export const invitationRouter = createTRPCRouter({
     get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
@@ -44,8 +65,15 @@ export const invitationRouter = createTRPCRouter({
             });
         }
 
+        // Only the intended invitee can read the raw token. All other
+        // authenticated callers receive a token-stripped view.
+        const isInvitee =
+            !!ctx.user.email &&
+            invitation.inviteeEmail.toLowerCase() === ctx.user.email.toLowerCase();
+
         return {
             ...invitation,
+            token: isInvitee ? invitation.token : null,
             // @ts-expect-error - Drizzle is not typed correctly
             inviter: fromDbUser(invitation.inviter),
         };
@@ -88,6 +116,7 @@ export const invitationRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const invitations = await ctx.db.query.projectInvitations.findMany({
                 where: eq(projectInvitations.projectId, input.projectId),
             });
@@ -109,6 +138,21 @@ export const invitationRouter = createTRPCRouter({
                     message: 'You must be logged in to invite a user',
                 });
             }
+            // Only project admins/owners may invite. Editors and viewers may not.
+            const callerRole = await requireProjectRole(ctx.db, ctx.user.id, input.projectId, [
+                ProjectRole.OWNER,
+                ProjectRole.ADMIN,
+            ]);
+
+            // Non-owners may not grant the OWNER role.
+            const requestedRole = input.role as ProjectRole;
+            if (requestedRole === ProjectRole.OWNER && callerRole !== ProjectRole.OWNER) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only owners can invite as OWNER',
+                });
+            }
+
             const inviter = await ctx.db.query.users.findFirst({
                 where: eq(users.id, ctx.user.id),
             });
@@ -232,6 +276,20 @@ export const invitationRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ id: z.string() }))
         .mutation(async ({ ctx, input }) => {
+            const invitation = await ctx.db.query.projectInvitations.findFirst({
+                where: eq(projectInvitations.id, input.id),
+            });
+            if (!invitation) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Invitation not found',
+                });
+            }
+            // Only project admins/owners may rescind invitations.
+            await requireProjectRole(ctx.db, ctx.user.id, invitation.projectId, [
+                ProjectRole.OWNER,
+                ProjectRole.ADMIN,
+            ]);
             await ctx.db.delete(projectInvitations).where(eq(projectInvitations.id, input.id));
 
             return true;

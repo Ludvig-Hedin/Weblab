@@ -4,7 +4,7 @@ import type { PenpalChildMethods as PenpalChildMethodsType } from '@weblab/web-p
 export type PromisifiedPendpalChildMethods = {
     [K in keyof PenpalChildMethods]: (
         ...args: Parameters<PenpalChildMethods[K]>
-    ) => Promise<ReturnType<PenpalChildMethods[K]>>;
+    ) => Promise<Awaited<ReturnType<PenpalChildMethods[K]>>>;
 };
 
 export type PenpalChildMethods = PenpalChildMethodsType;

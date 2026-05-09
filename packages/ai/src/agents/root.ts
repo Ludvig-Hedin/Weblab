@@ -33,6 +33,7 @@ export const createRootAgentStream = ({
     ollamaBaseUrl,
     memories,
     framework,
+    abortSignal,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -49,10 +50,12 @@ export const createRootAgentStream = ({
      * (React) variant is used, matching pre-multi-framework behavior.
      */
     framework?: FrameworkId | null;
+    abortSignal?: AbortSignal;
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
     const systemPrompt = getSystemPromptFromType(chatType, memories, framework);
     const toolSet = getToolSetFromType(chatType);
+    const provider = getProviderFromModel(model);
     return streamText({
         providerOptions: modelConfig.providerOptions,
         messages: convertToStreamMessages(messages),
@@ -60,8 +63,9 @@ export const createRootAgentStream = ({
         system: systemPrompt,
         tools: toolSet,
         headers: modelConfig.headers,
+        abortSignal,
         stopWhen: stepCountIs(8),
-        experimental_repairToolCall: repairToolCall,
+        experimental_repairToolCall: createRepairToolCall(provider),
         experimental_transform: smoothStream(),
         experimental_telemetry: {
             isEnabled: true,
@@ -114,6 +118,29 @@ const getModelFromType = (
                 model: selectedModel as OPENROUTER_MODELS,
             });
     }
+};
+
+/**
+ * Tool-call repair factory. Repair always uses OpenRouter's Claude Haiku as a
+ * structured-output helper, which means it requires `OPENROUTER_API_KEY`. Local
+ * Ollama users may not have that key configured; for those sessions we skip
+ * repair entirely so a malformed tool call surfaces as a normal SDK error
+ * instead of crashing the request with "OPENROUTER_API_KEY must be set".
+ */
+export const createRepairToolCall = (provider: LLMProvider) => {
+    if (provider === LLMProvider.OLLAMA) {
+        // Skip repair for local-only sessions — the SDK will fall through to
+        // its default error path and surface the malformed call to the model
+        // for self-correction.
+        return undefined;
+    }
+    if (!process.env.OPENROUTER_API_KEY) {
+        // Repair would crash on first invocation; better to skip it entirely
+        // and let the SDK propagate the original parameter error.
+        console.warn('[repairToolCall] OPENROUTER_API_KEY not set, skipping tool-call repair');
+        return undefined;
+    }
+    return repairToolCall;
 };
 
 export const repairToolCall = async ({

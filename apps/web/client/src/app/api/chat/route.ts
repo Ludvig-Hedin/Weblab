@@ -5,6 +5,7 @@ import type { ChatMessage, ChatMetadata, ChatModel, ProjectFrameworkId } from '@
 import {
     addMemoriesFromConversation,
     createRootAgentStream,
+    extractInstructionText,
     inferProviderFromModelId,
     searchMemories,
 } from '@weblab/ai';
@@ -114,14 +115,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     const { messages, chatType, conversationId, projectId } = body;
 
     // Launch memory search concurrently with model validation so it doesn't add latency.
-    // Uses the last user message text as the search query.
+    // Extract only the <instruction> text from the hydrated user message — the parts
+    // also contain large XML context blobs (file contents, highlights, errors) that
+    // would produce terrible semantic search results if sent verbatim to Mem0.
     const lastUserMessageForMemory = messages.findLast((m) => m.role === 'user');
-    const memoryQueryText = (lastUserMessageForMemory?.parts ?? [])
+    const rawQueryText = (lastUserMessageForMemory?.parts ?? [])
         .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
         .map((p) => p.text)
         .join(' ');
+    const memoryQueryText = rawQueryText ? extractInstructionText(rawQueryText) : '';
     const memoriesPromise = memoryQueryText
-        ? searchMemories(memoryQueryText, userId, projectId)
+        ? searchMemories(memoryQueryText, userId)
         : Promise.resolve([]);
     // Fetch the project's framework concurrently with memories so the system
     // prompt can be calibrated to the actual stack (Next.js vs static HTML).
@@ -168,6 +172,18 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         usageRecordId: string | undefined;
         rateLimitId: string | undefined;
     } | null = null;
+    // Guards against double-refund when both onFinish (abort) and onError
+    // fire for the same request.
+    let usageRefunded = false;
+    const refundUsageOnce = async (reason: string) => {
+        if (!usageRecord || usageRefunded) return;
+        usageRefunded = true;
+        try {
+            await decrementUsage(req, usageRecord);
+        } catch (err) {
+            console.warn(`[chat] failed to refund usage (${reason})`, err);
+        }
+    };
 
     try {
         const lastUserMessage = messages.findLast((message) => message.role === 'user');
@@ -191,6 +207,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
             memories,
             framework,
+            abortSignal: req.signal,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
@@ -205,7 +222,26 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     usage: part.type === 'finish-step' ? part.usage : undefined,
                 } satisfies ChatMetadata;
             },
-            onFinish: async ({ messages: finalMessages }) => {
+            onFinish: async ({ messages: finalMessages, isAborted, responseMessage }) => {
+                const responseHasContent =
+                    Array.isArray(responseMessage?.parts) &&
+                    responseMessage.parts.some(
+                        (p) =>
+                            (p.type === 'text' && p.text.length > 0) ||
+                            p.type.startsWith('tool-') ||
+                            p.type === 'reasoning' ||
+                            p.type === 'file',
+                    );
+
+                // If the stream aborted before any meaningful content was
+                // produced, do NOT replace the conversation: the existing
+                // history is the source of truth and a wholesale replace would
+                // wipe it. Refund usage in the same case.
+                if (isAborted || !responseHasContent) {
+                    await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
+                    return;
+                }
+
                 const messagesToStore = finalMessages
                     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
                     .map((msg) => toDbMessage(msg, conversationId));
@@ -221,14 +257,18 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     console.warn('[mem0] Failed to store memories:', err);
                 });
             },
-            onError: errorHandler,
+            onError: (error) => {
+                // Mid-stream errors (provider 5xx, network drop) should refund
+                // the usage that was incremented up-front. errorHandler still
+                // formats the error string for the client.
+                void refundUsageOnce('stream_error');
+                return errorHandler(error);
+            },
         });
     } catch (error) {
         console.error('Error in streamResponse setup', error);
         // If there was an error setting up the stream and we incremented usage, revert it
-        if (usageRecord) {
-            await decrementUsage(req, usageRecord);
-        }
+        await refundUsageOnce('setup_error');
         throw error;
     }
 };

@@ -12,6 +12,8 @@ import type {
 } from '@weblab/models';
 import { ChatType, CmsTabValue, EditorMode } from '@weblab/models';
 
+export type PreviewTheme = 'system' | 'light' | 'dark';
+
 export class StateManager {
     private _canvasScrolling = false;
     hotkeysOpen = false;
@@ -20,6 +22,8 @@ export class StateManager {
     leftPanelLocked = false;
     canvasPanning = false;
     isDragSelecting = false;
+    /** Theme override broadcast to the previewed site (iframe). */
+    previewTheme: PreviewTheme = 'system';
 
     editorMode: EditorMode = EditorMode.DESIGN;
     insertMode: InsertMode | null = null;
@@ -39,8 +43,14 @@ export class StateManager {
     cmsEditingItemId: string | null = null;
     cmsCreateCollectionOpen = false;
     cmsBindDialogOpen = false;
+    /** When the bind dialog is open, the oid of the element being bound. */
     cmsBindTargetOid: string | null = null;
+    /** v4: editor-picked "current item" for PAGE_ITEM_FIELD bindings. The
+     *  data pusher resolves this id against the snapshot and pushes the
+     *  matching item as `currentItem` in the CMS payload. URL-based
+     *  resolution arrives in v4.1. */
     cmsCurrentItemId: string | null = null;
+    /** v4: routing dialog open flag (set/clear collection-page mapping). */
     cmsRoutingDialogOpen = false;
 
     constructor() {
@@ -73,6 +83,10 @@ export class StateManager {
 
     setLeftPanelLocked(locked: boolean) {
         this.leftPanelLocked = locked;
+    }
+
+    setPreviewTheme(theme: PreviewTheme) {
+        this.previewTheme = theme;
     }
 
     setHotkeysOpen(open: boolean) {
@@ -116,10 +130,12 @@ export class StateManager {
     }
 
     setCmsSelectedCollectionId(id: string | null) {
-        this.cmsSelectedCollectionId = id;
+        // Selecting a different collection closes any open item editor.
+        // Compare BEFORE the assignment — otherwise the check is a no-op.
         if (id !== this.cmsSelectedCollectionId) {
             this.cmsEditingItemId = null;
         }
+        this.cmsSelectedCollectionId = id;
     }
 
     setCmsEditingItemId(id: string | null) {

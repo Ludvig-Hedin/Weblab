@@ -16,6 +16,25 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-09 — Production QA audit: security hardening + UX fixes
+
+Author: Claude (agent)
+Area: `apps/web/client` (chat API, chat input, canvas, invitation router), `packages/ai`, `packages/penpal`
+
+Summary: Multi-batch production QA audit. Fixed invitation router missing authorization on list/delete, token leakage on get (stripped for non-invitees), role escalation guard on invite. Added SSRF guard on CMS adapter URLs via DNS resolution + IP blocklist. Fixed abort signal not being forwarded to `streamText` (wasted GPU tokens on cancelled requests). Fixed stop button hidden when input has content. Fixed canvas wheel handler not bypassing contenteditable elements. Fixed Penpal `PromisifiedPendpalChildMethods` type double-wrapping via `Awaited<ReturnType<...>>`. Fixed `setCmsSelectedCollectionId` compare-before-assign logic bug.
+
+Files:
+- `apps/web/client/src/server/api/routers/project/invitation.ts`
+- `apps/web/client/src/server/api/routers/cms/adapters/index.ts`
+- `apps/web/client/src/app/api/chat/route.ts`
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-input/index.tsx`
+- `apps/web/client/src/app/project/[id]/_components/canvas/index.tsx`
+- `apps/web/client/src/components/store/editor/state/index.ts`
+- `packages/ai/src/agents/root.ts`
+- `packages/penpal/src/child.ts`
+
+---
+
 ## 2026-05-09 — Semantic status tokens (success / warning) + chrome de-hardcoding
 
 Author: Claude (agent)
