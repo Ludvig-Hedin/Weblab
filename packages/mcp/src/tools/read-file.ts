@@ -1,14 +1,20 @@
 import { readFile } from 'fs/promises';
 import { z } from 'zod';
 
+import { ensureWithinProjectRoot } from './_path.js';
+
 export const readFileSchema = z.object({
     file_path: z.string().min(1).describe('Absolute path to the file to read'),
     offset: z.number().optional().describe('Line number to start reading from (1-based)'),
     limit: z.number().optional().describe('Maximum number of lines to return'),
 });
 
-export async function handleReadFile(args: z.infer<typeof readFileSchema>): Promise<string> {
-    const raw = await readFile(args.file_path, 'utf8').catch((err: NodeJS.ErrnoException) => {
+export async function handleReadFile(
+    args: z.infer<typeof readFileSchema>,
+    projectRoot?: string,
+): Promise<string> {
+    const safe = ensureWithinProjectRoot(args.file_path, projectRoot);
+    const raw = await readFile(safe, 'utf8').catch((err: NodeJS.ErrnoException) => {
         throw new Error(`Cannot read ${args.file_path}: ${err.message}`);
     });
 

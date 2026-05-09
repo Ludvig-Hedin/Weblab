@@ -2,6 +2,8 @@ import { readdir, stat } from 'fs/promises';
 import { join, relative as pathRelative } from 'path';
 import { z } from 'zod';
 
+import { ensureWithinProjectRoot } from './_path.js';
+
 export const globSchema = z.object({
     pattern: z.string().min(1).describe('Simple glob pattern, e.g. "**/*.ts" or "src/**/*.tsx"'),
     root: z.string().describe('Absolute root directory to search from'),
@@ -44,9 +46,13 @@ async function walk(
     }
 }
 
-export async function handleGlob(args: z.infer<typeof globSchema>): Promise<string> {
+export async function handleGlob(
+    args: z.infer<typeof globSchema>,
+    projectRoot?: string,
+): Promise<string> {
+    const safeRoot = ensureWithinProjectRoot(args.root, projectRoot);
     const ignore = new Set(['node_modules', '.git', '.next', 'dist']);
     const results: string[] = [];
-    await walk(args.root, args.root, args.pattern, ignore, results, args.max_results ?? 100);
+    await walk(safeRoot, safeRoot, args.pattern, ignore, results, args.max_results ?? 100);
     return results.length > 0 ? results.join('\n') : '(no matches)';
 }

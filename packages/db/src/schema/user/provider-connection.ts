@@ -11,10 +11,24 @@ import { users } from './user';
  * Weblab's shared API key.
  *
  * `accessToken` and `refreshToken` are encrypted at rest by the route handlers
- * via `@weblab/encryption` before insert; never store plaintext here.
+ * via `@/server/utils/provider-tokens` (AES-256-GCM) before insert. Never
+ * store plaintext here.
  *
  * Migration is managed via `bun db:gen` (maintainer-only). Do not edit
  * existing migrations to backfill — issue a new migration if shape changes.
+ *
+ * TODO(rls): `enableRLS()` is on but no policies are defined here. The tRPC
+ * `provider.connectionsList` / `connectionsDelete` procedures and the chat
+ * route's bearer lookup all run with the service role (`db` from
+ * `@weblab/db/src/client`), so RLS isn't currently enforced. If we ever
+ * expose this table to PostgREST or a user-scoped Supabase client, add:
+ *
+ *     CREATE POLICY "user_provider_connections_owner"
+ *     ON user_provider_connections
+ *     FOR ALL
+ *     USING (user_id = auth.uid());
+ *
+ * — and confirm cascading deletes still work under that policy.
  */
 export const userProviderConnections = pgTable(
     'user_provider_connections',

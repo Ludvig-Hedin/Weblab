@@ -36,6 +36,26 @@ export enum EditorAttributes {
     DATA_WEBLAB_EDITING_TEXT = 'data-weblab-editing-text',
     DATA_WEBLAB_DYNAMIC_TYPE = 'data-weblab-dynamic-type',
     DATA_WEBLAB_CORE_ELEMENT_TYPE = 'data-weblab-core-element-type',
+
+    // Legacy aliases — projects edited under the previous "Onlook" branding may
+    // still carry these attribute names in their committed JSX or live DOM.
+    // Runtime filters and the inserted-element detection paths must continue to
+    // recognize them so element selection, ignore, and oid regeneration keep
+    // working on historical projects.
+    DATA_ONLOOK_IGNORE = 'data-onlook-ignore',
+    DATA_ONLOOK_INSERTED = 'data-onlook-inserted',
+    DATA_ONLOOK_EDITING_TEXT = 'data-onlook-editing-text',
+    DATA_ONLOOK_DRAGGING = 'data-onlook-dragging',
+}
+
+export const WEBLAB_DATA_ATTRIBUTE_PREFIX = 'data-weblab-';
+export const LEGACY_DATA_ATTRIBUTE_PREFIX = 'data-onlook-';
+
+export function isWeblabDataAttribute(attributeName: string): boolean {
+    return (
+        attributeName.startsWith(WEBLAB_DATA_ATTRIBUTE_PREFIX) ||
+        attributeName.startsWith(LEGACY_DATA_ATTRIBUTE_PREFIX)
+    );
 }
 
 export const DefaultSettings = {
@@ -76,6 +96,10 @@ export const DefaultSettings = {
         autoApplyCode: true,
         expandCodeBlocks: false,
         maxImages: 5,
+        enableInlineEdit: true,
+        enableTabAutocomplete: false,
+        enableErrorFix: true,
+        enableDesignerInlineEdit: true,
     },
     APPEARANCE_SETTINGS: {
         theme: 'system' as const,

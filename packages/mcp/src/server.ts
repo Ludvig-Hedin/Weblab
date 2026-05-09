@@ -25,7 +25,9 @@ server.registerTool(
             'Read a file from the filesystem with optional line offset and limit. Returns content with line numbers.',
         inputSchema: readFileSchema,
     },
-    async (args) => ({ content: [{ type: 'text' as const, text: await handleReadFile(args) }] }),
+    async (args) => ({
+        content: [{ type: 'text' as const, text: await handleReadFile(args, projectRoot) }],
+    }),
 );
 
 server.registerTool(
@@ -35,7 +37,9 @@ server.registerTool(
             'List the immediate contents of a directory (non-recursive), sorted with directories first.',
         inputSchema: listFilesSchema,
     },
-    async (args) => ({ content: [{ type: 'text' as const, text: await handleListFiles(args) }] }),
+    async (args) => ({
+        content: [{ type: 'text' as const, text: await handleListFiles(args, projectRoot) }],
+    }),
 );
 
 server.registerTool(
@@ -45,7 +49,9 @@ server.registerTool(
             'Search for a regex pattern across a file or directory tree. Returns matching lines with file:line.',
         inputSchema: grepSchema,
     },
-    async (args) => ({ content: [{ type: 'text' as const, text: await handleGrep(args) }] }),
+    async (args) => ({
+        content: [{ type: 'text' as const, text: await handleGrep(args, projectRoot) }],
+    }),
 );
 
 server.registerTool(
@@ -55,7 +61,9 @@ server.registerTool(
             'Find files matching a glob pattern (e.g. "**/*.ts", "src/**/*.tsx") under a root directory.',
         inputSchema: globSchema,
     },
-    async (args) => ({ content: [{ type: 'text' as const, text: await handleGlob(args) }] }),
+    async (args) => ({
+        content: [{ type: 'text' as const, text: await handleGlob(args, projectRoot) }],
+    }),
 );
 
 server.registerTool(
@@ -92,7 +100,7 @@ server.registerTool(
         inputSchema: searchReplaceSchema,
     },
     async (args) => ({
-        content: [{ type: 'text' as const, text: await handleSearchReplace(args) }],
+        content: [{ type: 'text' as const, text: await handleSearchReplace(args, projectRoot) }],
     }),
 );
 

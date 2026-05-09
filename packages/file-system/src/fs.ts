@@ -27,6 +27,22 @@ export class FileSystem {
         return this.basePath;
     }
 
+    /**
+     * SECURITY: resolve `inputPath` against `basePath` and refuse anything
+     * that escapes the base. Without this, callers can pass values like
+     * `../../etc/passwd` and `path.join` will happily walk out of basePath
+     * (e.g. `path.join('/proj/main', '../../etc/passwd') === '/etc/passwd'`).
+     * Used by every method that touches the underlying ZenFS to enforce
+     * containment of the project root.
+     */
+    private resolveSafe(inputPath: string): string {
+        const full = path.resolve(this.basePath, inputPath.replace(/^\/+/, ''));
+        if (full === this.basePath || full.startsWith(this.basePath + path.sep)) {
+            return full;
+        }
+        throw new Error(`Path escapes basePath: ${inputPath}`);
+    }
+
     async initialize(): Promise<void> {
         if (this.isInitialized) {
             return;
@@ -83,7 +99,7 @@ export class FileSystem {
     async createFile(inputPath: string, content = ''): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
 
         // Ensure parent directory exists
         const dir = path.dirname(fullPath);
@@ -102,7 +118,7 @@ export class FileSystem {
         if (!this.fs) throw new Error('File system not initialized');
 
         try {
-            const fullPath = path.join(this.basePath, inputPath);
+            const fullPath = this.resolveSafe(inputPath);
             await this.fs.promises.stat(fullPath);
             return true;
         } catch (error) {
@@ -116,7 +132,7 @@ export class FileSystem {
     async readFile(inputPath: string): Promise<string | Uint8Array> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
 
         // Need to read as buffer first and check content to ensure it's not binary before converting to string
         const buffer = await this.fs.promises.readFile(fullPath);
@@ -130,7 +146,7 @@ export class FileSystem {
     async writeFile(inputPath: string, content: string | Uint8Array): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
 
         // Ensure parent directory exists
         const dir = path.dirname(fullPath);
@@ -157,7 +173,7 @@ export class FileSystem {
     async deleteFile(inputPath: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
 
         // Check if it's a directory to use recursive deletion
         try {
@@ -176,8 +192,8 @@ export class FileSystem {
     async moveFile(from: string, to: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fromPath = path.join(this.basePath, from);
-        const toPath = path.join(this.basePath, to);
+        const fromPath = this.resolveSafe(from);
+        const toPath = this.resolveSafe(to);
 
         // Ensure destination directory exists
         const toDir = path.dirname(toPath);
@@ -198,14 +214,14 @@ export class FileSystem {
     async createDirectory(inputPath: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         await this.fs.promises.mkdir(fullPath, { recursive: true });
     }
 
     async readDirectory(inputPath = '/'): Promise<FileEntry[]> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
 
         const readDirRecursive = async (dirPath: string): Promise<FileEntry[]> => {
             try {
@@ -254,7 +270,7 @@ export class FileSystem {
     async deleteDirectory(inputPath: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         console.log('Deleting directory', fullPath);
         await this.fs.promises.rm(fullPath, { recursive: true });
     }
@@ -262,8 +278,8 @@ export class FileSystem {
     async moveDirectory(from: string, to: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fromPath = path.join(this.basePath, from);
-        const toPath = path.join(this.basePath, to);
+        const fromPath = this.resolveSafe(from);
+        const toPath = this.resolveSafe(to);
 
         // Ensure destination parent exists
         const toDir = path.dirname(toPath);
@@ -277,8 +293,8 @@ export class FileSystem {
     async copyDirectory(from: string, to: string): Promise<void> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fromPath = path.join(this.basePath, from);
-        const toPath = path.join(this.basePath, to);
+        const fromPath = this.resolveSafe(from);
+        const toPath = this.resolveSafe(to);
 
         const copyRecursive = async (src: string, dest: string): Promise<void> => {
             const stats = await this.fs!.promises.stat(src);
@@ -302,7 +318,7 @@ export class FileSystem {
     watchFile(inputPath: string, callback: (event: FileChangeEvent) => void) {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         const timeoutKey = `watch-file:${inputPath}`;
 
         const watcher = this.fs.watch(fullPath, async (eventType, filename) => {
@@ -390,7 +406,7 @@ export class FileSystem {
                 }
 
                 const timeout = setTimeout(async () => {
-                    const fullPath = path.join(this.basePath, filePath);
+                    const fullPath = this.resolveSafe(filePath);
 
                     // For rename events, check if the file exists to determine the actual event type
                     if (eventType === 'rename') {
@@ -462,7 +478,7 @@ export class FileSystem {
             }
         };
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         setupWatchersRecursive(fullPath);
 
         // Return cleanup function
@@ -474,14 +490,14 @@ export class FileSystem {
     async exists(inputPath: string): Promise<boolean> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         return await this.fs.promises.exists(fullPath);
     }
 
     async getInfo(inputPath: string): Promise<FileInfo> {
         if (!this.fs) throw new Error('File system not initialized');
 
-        const fullPath = path.join(this.basePath, inputPath);
+        const fullPath = this.resolveSafe(inputPath);
         const stats = await this.fs.promises.stat(fullPath);
         const name = path.basename(inputPath);
 

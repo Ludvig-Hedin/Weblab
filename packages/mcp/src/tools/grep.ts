@@ -2,6 +2,8 @@ import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { z } from 'zod';
 
+import { ensureWithinProjectRoot } from './_path.js';
+
 export const grepSchema = z.object({
     pattern: z.string().min(1).describe('Regular expression to search for'),
     path: z.string().describe('File or directory to search in'),
@@ -46,7 +48,11 @@ async function walk(
     }
 }
 
-export async function handleGrep(args: z.infer<typeof grepSchema>): Promise<string> {
+export async function handleGrep(
+    args: z.infer<typeof grepSchema>,
+    projectRoot?: string,
+): Promise<string> {
+    const safePath = ensureWithinProjectRoot(args.path, projectRoot);
     const flags = args.ignore_case ? 'i' : '';
     let regex: RegExp;
     try {
@@ -58,13 +64,13 @@ export async function handleGrep(args: z.infer<typeof grepSchema>): Promise<stri
     const ignore = new Set(['node_modules', '.git', '.next', 'dist']);
     const results: string[] = [];
 
-    const s = await stat(args.path).catch(() => null);
+    const s = await stat(safePath).catch(() => null);
     if (!s) throw new Error(`Path not found: ${args.path}`);
 
     if (s.isDirectory()) {
-        await walk(args.path, args.include, ignore, results, regex, args.max_results ?? 50);
+        await walk(safePath, args.include, ignore, results, regex, args.max_results ?? 50);
     } else {
-        await searchFile(args.path, regex, args.max_results ?? 50, results);
+        await searchFile(safePath, regex, args.max_results ?? 50, results);
     }
 
     return results.length > 0 ? results.join('\n') : '(no matches)';

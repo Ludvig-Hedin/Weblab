@@ -1,6 +1,8 @@
 import { readFile, writeFile } from 'fs/promises';
 import { z } from 'zod';
 
+import { ensureWithinProjectRoot } from './_path.js';
+
 export const searchReplaceSchema = z.object({
     file_path: z.string().min(1).describe('Absolute path to the file to edit'),
     old_string: z.string().min(1).describe('Exact string to find (must be unique in the file)'),
@@ -14,8 +16,10 @@ export const searchReplaceSchema = z.object({
 
 export async function handleSearchReplace(
     args: z.infer<typeof searchReplaceSchema>,
+    projectRoot?: string,
 ): Promise<string> {
-    const content = await readFile(args.file_path, 'utf8').catch((err: NodeJS.ErrnoException) => {
+    const safe = ensureWithinProjectRoot(args.file_path, projectRoot);
+    const content = await readFile(safe, 'utf8').catch((err: NodeJS.ErrnoException) => {
         throw new Error(`Cannot read ${args.file_path}: ${err.message}`);
     });
 
@@ -36,6 +40,6 @@ export async function handleSearchReplace(
         ? content.split(args.old_string).join(args.new_string)
         : content.replace(args.old_string, () => args.new_string);
 
-    await writeFile(args.file_path, updated, 'utf8');
+    await writeFile(safe, updated, 'utf8');
     return `Replaced ${args.replace_all ? count : 1} occurrence(s) in ${args.file_path}`;
 }

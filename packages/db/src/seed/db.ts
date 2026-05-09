@@ -16,8 +16,8 @@ import {
     branches,
     canvases,
     conversations,
+    createDefaultBreakpointGroup,
     createDefaultCanvas,
-    createDefaultFrame,
     createDefaultUserCanvas,
     deployments,
     frames,
@@ -123,7 +123,7 @@ const branch3 = {
 } satisfies Branch;
 
 const canvas0 = createDefaultCanvas(project0.id);
-const frame0 = createDefaultFrame({
+const frameGroup0 = createDefaultBreakpointGroup({
     canvasId: canvas0.id,
     branchId: branch0.id,
     url: 'http://localhost:8084',
@@ -131,7 +131,7 @@ const frame0 = createDefaultFrame({
 const userCanvas0 = createDefaultUserCanvas(user0.id, canvas0.id);
 
 const canvas1 = createDefaultCanvas(project1.id);
-const frame1 = createDefaultFrame({
+const frameGroup1 = createDefaultBreakpointGroup({
     canvasId: canvas1.id,
     branchId: branch2.id,
     url: 'http://localhost:8084',
@@ -330,7 +330,7 @@ export const seedDb = async () => {
         ]);
         await tx.insert(canvases).values([canvas0, canvas1]);
         await tx.insert(userCanvases).values([userCanvas0, userCanvas1]);
-        await tx.insert(frames).values([frame0, frame1]);
+        await tx.insert(frames).values([...frameGroup0, ...frameGroup1]);
         await tx.insert(conversations).values([conversation0]);
         await tx.insert(messages).values([message0, message1, message2, message3, message4]);
     });
