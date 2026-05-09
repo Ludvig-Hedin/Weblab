@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import { EMBEDDED_SKILLS } from '@weblab/ai';
+import { EMBEDDED_SKILLS } from '@weblab/ai/client';
 import {
     AlertDialog,
     AlertDialogAction,

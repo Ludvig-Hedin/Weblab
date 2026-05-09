@@ -14,9 +14,8 @@ export function SWRegister() {
         // the offline path locally without a full prod build. Set the env
         // var to "false" in production to opt out.
         const enabledByEnv = env.NEXT_PUBLIC_ENABLE_SW;
-        const isProd = env.NODE_ENV === 'production';
-        const enabled =
-            enabledByEnv === 'true' ? true : enabledByEnv === 'false' ? false : isProd;
+        const isProd = process.env.NODE_ENV === 'production';
+        const enabled = enabledByEnv === 'true' ? true : enabledByEnv === 'false' ? false : isProd;
         if (!enabled) return;
 
         const onLoad = () => {
