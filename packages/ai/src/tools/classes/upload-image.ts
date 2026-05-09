@@ -11,6 +11,19 @@ import { Icons } from '@weblab/ui/icons';
 import { ClientTool } from '../models/client';
 import { BRANCH_ID_SCHEMA } from '../shared/type';
 
+/**
+ * Normalize a project-relative directory path supplied by the LLM. Strips
+ * leading slashes, collapses `..` segments so an attacker-supplied
+ * `../../etc` cannot escape the project root, and falls back to `public`
+ * when the result is empty.
+ */
+function sanitizeProjectRelativePath(input: string): string {
+    const stripped = input.replace(/^\/+/, '').replace(/\\/g, '/');
+    const parts = stripped.split('/').filter((p) => p.length > 0 && p !== '.' && p !== '..');
+    const joined = parts.join('/');
+    return joined.length > 0 ? joined : 'public';
+}
+
 export class UploadImageTool extends ClientTool {
     static readonly toolName = 'upload_image';
     static readonly description =
@@ -111,7 +124,9 @@ export class UploadImageTool extends ClientTool {
         const filename = args.filename
             ? `${args.filename}.${extension}`
             : `${uuidv4()}.${extension}`;
-        const destinationPath = args.destination_path?.trim() || 'public';
+        const destinationPath = sanitizeProjectRelativePath(
+            args.destination_path?.trim() || 'public',
+        );
         const fullPath = `${destinationPath}/${filename}`;
 
         // Extract base64 data from the content (remove data URL prefix if present)

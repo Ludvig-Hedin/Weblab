@@ -87,6 +87,44 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-084 | open (2026-05-09) — GitHub install callback history scrubbing only on success/error |
 | CR-085 | open (2026-05-09) — Sign-out hard-navigates even if `signOut()` throws |
 | CR-086 | open (2026-05-09) — responsive parser tests miss `!important`, arbitrary, pseudo edge cases |
+| CR-101 | false-positive (2026-05-09 verify) — fragment stays same-origin, no real redirect bypass |
+| CR-102 | false-positive (2026-05-09 verify) — drift only; existing checks correct |
+| CR-103 | open (2026-05-09) — `/login/verify` email persists in sessionStorage across tab restore |
+| CR-104 | open (2026-05-09) — `/login?missing=email` exposes flow-state info |
+| CR-105 | open (2026-05-09) — `NEXT_PUBLIC_SHOW_DEV_LOGIN` default flip undocumented |
+| CR-106 | auto-fixed (2026-05-09) — CSP `connect-src` localhost gated to non-prod |
+| CR-107 | open (2026-05-09) — middleware catch-all matcher runs `updateSession` everywhere |
+| CR-108 | open (2026-05-09) — desktop preload origin built without URL parsing |
+| CR-109 | open (2026-05-09) — desktop `ALLOWED_IPC_ORIGINS` localhost not prod-gated |
+| CR-110 | open (2026-05-09) — `project/offline.listPinned` may skip membership check |
+| CR-111 | open (2026-05-09) — `cms.source.ensureDefaultWeblabSource` post-insert refetch race |
+| CR-112 | open (2026-05-09) — migration 0024 drops author FKs but never re-adds them |
+| CR-113 | open (2026-05-09) — `user_provider_connections` cascade-delete tokens with no audit |
+| CR-114 | open (2026-05-09) — `cms.field.reorderFields` N+1 inside transaction |
+| CR-115 | open (2026-05-09) — migration 0025 flips `rate_limits` FK to RESTRICT — orphan blocker |
+| CR-116 | open (2026-05-09) — shared apex domain hijack via `ensureUserOwnsDomain` |
+| CR-117 | false-positive (2026-05-09 verify) — last-owner guard fires inside the transaction regardless of self-leave |
+| CR-118 | open (2026-05-09) — `verifySandboxAccess` only called in one mutation |
+| CR-119 | open (2026-05-09) — `branch.update` silently strips disallowed keys |
+| CR-120 | open (2026-05-09) — `unpublish` deployment status fire-and-forget on throw |
+| CR-121 | open (2026-05-09) — realtime topic_membership EXISTS subquery N*M |
+| CR-122 | auto-fixed (2026-05-09) — `is_preview_image_owner` now pins `search_path = public, storage, pg_temp` |
+| CR-123 | open (2026-05-09) — sandbox terminal AbortController/listener leak on success |
+| CR-124 | open (2026-05-09) — `swapToOnline` inconsistent state on `start()` throw |
+| CR-125 | open (2026-05-09) — `reconnect`/`swapToOnline` double-init race |
+| CR-126 | false-positive (2026-05-09 verify) — `clear()` already `await`s `provider.destroy()` inside `if (this.provider)` |
+| CR-127 | false-positive (2026-05-09 verify) — `clear()` already optional-chains via `typeof ... === 'function'` |
+| CR-128 | false-positive (2026-05-09 verify) — `cancelled` flag already gates `setSnapshotHtml` after the await |
+| CR-129 | auto-fixed (2026-05-09) — `immediateReload` now cancels in-flight `handleConnectionFailed` debounce |
+| CR-130 | open (2026-05-09) — `frames/manager.deregisterView` triggers excess re-renders |
+| CR-131 | open (2026-05-09) — `ai-cli/claude.ts` switched stdin → argv (length cap risk) |
+| CR-132 | auto-fixed (2026-05-09) — `upload_image.destination_path` now stripped of leading `/`, `..`, and backslashes |
+| CR-133 | auto-fixed (2026-05-09) — `isBlockedIp` default-denies on empty IPv4-mapped suffix |
+| CR-134 | auto-fixed (2026-05-09) — tab-complete metering failures now logged with explicit prefix |
+| CR-135 | false-positive (2026-05-09 verify) — `breakpointFromDb` already falls back to `DEFAULT_BREAKPOINT.width` |
+| CR-136 | open (2026-05-09) — DNS-TOCTOU SSRF guard documented but unverified |
+| CR-137 | open (2026-05-09) — hardcoded UI strings bypass next-intl (i18n debt) |
+| CR-138 | auto-fixed (2026-05-09) — `auth/callback` now signs out + redirects when `data.user.id` is missing |
 
 ---
 
@@ -1320,7 +1358,7 @@ Auto-fixed during this pass:
 - **Risk:** medium
 - **Summary:** The new inline-edit-from-canvas binding (line ~60) and the command-palette dispatch (line ~313) both bind `mod+k`. Behavior is non-deterministic; opening the palette ALSO triggers the "Select an element first" toast.
 - **Suggested approach:** Pick one chord per command. Suggest Cmd+K → command palette (matches every IDE/Linear/Slack), Cmd+E → inline-edit (or Cmd+I), and update the `Hotkey` constants + this file together. Add an integration test that asserts no two `Hotkey` entries share a `command` string.
-- **Status:** open
+- **Status:** auto-fixed — added `Hotkey.INLINE_EDIT_FROM_CANVAS = 'mod+shift+k'`; the canvas binding in `hotkeys/index.tsx` now uses `getKey('INLINE_EDIT_FROM_CANVAS')`. `mod+k` is reserved for the global command palette only.
 
 ---
 
@@ -1332,7 +1370,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** The extension POSTs to `/api/ai/tab-complete` without a `model` field. The route falls back to its server-side default. The user's choice in the model dropdown therefore has no effect on completions.
 - **Suggested approach:** Plumb the active model id through `setTabCompleteContext()` (already used to seed file/project context), include it in the POST body, and let the route validate against the allowlist.
-- **Status:** open
+- **Status:** auto-fixed — added `model?: string` to `TabCompleteContext` (extension), included in the POST body when set, and wired `code-editor.tsx` to read `userSettings.chat.defaultModel` via `api.user.settings.get` and re-seed the extension whenever it changes.
 
 ---
 
@@ -1344,7 +1382,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** When the user hits a usage cap, the route returns `200 OK` with `{ completion: '' }`. The CodeMirror extension treats that as "no suggestion" and silently retries on next keystroke, masking the real reason and burning budget pings.
 - **Suggested approach:** Return `429` (rate-limited) or `402` (payment required) with a structured `{ error: 'usage_limit', resetAt }` body. Have the extension cache the failure for ~30s before re-trying, and surface a one-time toast.
-- **Status:** open
+- **Status:** auto-fixed — route now returns `429` with `{ error: 'usage_limit', code: 'usage_limit' }`; extension stores `rateLimitedUntil = Date.now() + 30s` on 429 and `scheduleFetch()` short-circuits while it's in the future.
 
 ---
 
@@ -1368,7 +1406,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** `finalRedirect = returnUrl ?? Routes.HOME` does not exclude the current route. Combined with the displayName-looks-like-email auto-redirect, two failure modes can self-loop until the user closes the tab.
 - **Suggested approach:** `if (returnUrl === Routes.PROFILE_SETUP) finalRedirect = Routes.HOME;` plus a hard cap (e.g. session-storage counter that bails to HOME after 2 redirects).
-- **Status:** open
+- **Status:** auto-fixed — `finalRedirect` now treats both `Routes.HOME` and `Routes.PROFILE_SETUP` as fallback-to-`Routes.PROJECTS`, breaking the loop. Hard counter cap left for follow-up.
 
 ---
 
@@ -1380,7 +1418,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** `sendEmailOtp(email)` runs on the raw input; the verify-page lookup uses `email.trim().toLowerCase()`.
 - **Suggested approach:** Normalize once at the entry point (`const normalized = email.trim().toLowerCase()`) and use the same value for the OTP send and the verify-page query string.
-- **Status:** open
+- **Status:** auto-fixed — `handleSendCode` now computes `const normalizedEmail = email.trim().toLowerCase()` once and uses it for both the `sendEmailOtp` call and the `sessionStorage` write the verify page reads back.
 
 ---
 
@@ -1392,7 +1430,7 @@ Auto-fixed during this pass:
 - **Risk:** low/medium
 - **Summary:** Effects depend on `editorViewsRef` (a stable React ref — should not be in deps) and on `allErrors` (recomputed on every render via getter). `view.tsx` depends on `editorEngine.frames` (a MobX manager — reference is stable but observable mutation can blur the difference; the effect re-fires on every frame change in the manager).
 - **Suggested approach:** Drop refs from deps; memoize `allErrors` via `useMemo` keyed on a stable signature; depend on `frame.id` instead of `editorEngine.frames`. Add an eslint `react-hooks/exhaustive-deps` review pass.
-- **Status:** open
+- **Status:** partial auto-fix — removed the stable `editorViewsRef` from the three `code-editor.tsx` effects' dep arrays (with `eslint-disable-next-line` for the lint rule). The `view.tsx` MobX-manager dep and the `allErrors`-recomputed-each-render concern remain — both need a memo keyed on a stable signature; left for follow-up.
 
 ---
 
@@ -1416,7 +1454,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** `breakpoints.activeId` can be undefined while the store hydrates. The component renders the override pill anyway.
 - **Suggested approach:** `if (!breakpointId) return <>{children}</>;` early-return. Update the type of `isOverriddenAt`'s third arg to non-optional and adjust callers.
-- **Status:** open
+- **Status:** false-positive — the file already guards with `!!breakpointId &&` before `isOverriddenAt` (the `overridden` boolean), and the click handler short-circuits on `!overridden`. No runtime hole. Tightening the type signature is still worthwhile but is a separate refactor.
 
 ---
 
@@ -1428,7 +1466,7 @@ Auto-fixed during this pass:
 - **Risk:** low/medium
 - **Summary:** `{ ...existing.values, ...input.values }` then `schema.parse()` — but if the parse uses `.passthrough()` (likely, since field schemas are dynamic), unknown keys survive.
 - **Suggested approach:** Build the merged object from the *current* field set, not from the union: `for (const f of fields) merged[f.key] = input.values[f.key] ?? existing.values[f.key]`. Drop everything else. Add a unit test that proves a removed field key disappears after one update cycle.
-- **Status:** open
+- **Status:** false-positive — `buildItemValuesSchema()` calls `z.object(shape).strip()` (`packages/.../cms/values.ts:31`), so `schema.parse({ ...existing.values, ...input.values })` already drops keys that aren't in the current field set. Stale fields cannot persist. A follow-up unit test would still document the contract, but no code change is required.
 
 ---
 
@@ -1452,7 +1490,7 @@ Auto-fixed during this pass:
 - **Risk:** low
 - **Summary:** The web dialog only `.trim()`s before passing the model name to the bridge. Any malformed string is rejected by the desktop validator, but the user feedback is generic ("invalid_model_name") with no clue about the format.
 - **Suggested approach:** Mirror the regex on the web side and disable the "Pull" button until it matches; surface a precise error ("must match `^[A-Za-z0-9][A-Za-z0-9._:/@-]*$`").
-- **Status:** open
+- **Status:** auto-fixed — added a mirrored `SAFE_OLLAMA_MODEL` regex in `pull-model-dialog.tsx`, disable the custom Pull button until the trimmed input matches, surface a precise error message, and short-circuit `pull()` before the IPC round-trip if the regex fails.
 
 ---
 
@@ -1464,4 +1502,390 @@ Auto-fixed during this pass:
 - **Risk:** —
 - **Summary:** The last 3 commits (`0d1c7087`, `e1c9384e`, `ccb4e390`) move the desktop adapters from `shell:true` to `shell:false`, validate model ids against `SAFE_MODEL_ID` / `SAFE_OLLAMA_MODEL`, resolve binaries on `PATH` ourselves to avoid Windows shell-interpolation, and add a single-fire terminal guard for double-error/close. The transport wrapper mirrors the same guard. Review found no obvious gaps; flag for follow-up only if Windows path resolution fails on `\` separators (PATHEXT split is correct for `;`).
 - **Status:** noted (no action)
+
+---
+
+# 2026-05-09 — Full local review (251 files / +7541 / −3145 + 8 unpushed commits)
+
+Branch: `main` @ HEAD `678de9bb`, 8 unpushed commits ahead of `origin/main`. Six parallel reviewers (security, tRPC+migrations, editor stores, AI/parser/preload, app routes/UI, unpushed commits). No auto-fixes applied this run — every finding below requires verification or behavior-changing logic. Per CLAUDE.md, child observers imported from a `'use client'` boundary do **not** require their own directive — sub-agent flags on `hero/create-error.tsx`, `right-click-menu/index.tsx`, and `canvas/frame/{index,resize-handles,gesture}.tsx` are **false positives** (verified: parents are client). Penpal/preload `postMessage` origin validation was already fixed to fail-closed (`['*']` → `[]` with explicit allowlist check) — no action.
+
+## CR-101 — OAuth callback open-redirect via URL fragment (`/projects#evil.com`)
+
+- **Area:** [apps/web/client/src/app/api/auth/providers/[provider]/callback/route.ts](apps/web/client/src/app/api/auth/providers/[provider]/callback/route.ts) (~line 282); duplicated in [apps/web/client/src/app/api/auth/providers/[provider]/start/route.ts](apps/web/client/src/app/api/auth/providers/[provider]/start/route.ts)
+- **Type:** security
+- **Impact:** user-facing — phishing pivot via crafted OAuth `next` param
+- **Risk:** medium
+- **Summary:** Open-redirect guards use `startsWith('/') && !startsWith('//')` but do not reject fragments or schemed paths embedded after a slash. Path like `/projects#evil.com` passes; client-side router/JS that parses the location can still treat the fragment as the navigation target.
+- **Suggested approach:** Centralize a single `isSafeReturnPath(p)` helper that uses `new URL(p, origin)` and rejects anything where `url.origin !== requestOrigin` or `url.protocol !== 'https:'/'http:'`. Use it in both callback and start. Reject hashes that contain `://` or `.` followed by host-like patterns when paranoid.
+- **Status:** open
+
+## CR-102 — Auth redirect validation duplicated across callback and start routes
+
+- **Area:** callback/route.ts:277-284, start/route.ts (corresponding block)
+- **Type:** refactor / drift risk
+- **Impact:** internal — copy-paste validation invites future regression where one diverges
+- **Risk:** low
+- **Summary:** Same `startsWith('/') && !startsWith('//')` check exists in two places.
+- **Suggested approach:** Extract to `src/utils/auth/safe-return-path.ts`; export a single function. Add unit tests for the bypass cases (`//evil`, `/x#evil.com`, `/x?next=//evil`, `https://evil`, etc.).
+- **Status:** open
+
+## CR-103 — `/login/verify` keeps email in `sessionStorage` across tab restore
+
+- **Area:** [apps/web/client/src/app/login/verify/page.tsx](apps/web/client/src/app/login/verify/page.tsx) (~line 759)
+- **Type:** privacy / security (defense-in-depth)
+- **Impact:** user-facing — local attacker on shared device sees prior user's email if browser restores session
+- **Risk:** low
+- **Summary:** `sessionStorage` is preserved by browsers that opt into "Continue where you left off" tab restoration. Email used as the verify-page key is readable on restore.
+- **Suggested approach:** Clear the entry on successful verify, on `beforeunload`, and on component unmount. Consider moving to a short-lived signed cookie scoped to the verify flow.
+- **Status:** open
+
+## CR-104 — `/login?missing=email` query exposes flow-state info
+
+- **Area:** [apps/web/client/src/app/login/verify/page.tsx](apps/web/client/src/app/login/verify/page.tsx) (~line 776)
+- **Type:** info-disclosure (low)
+- **Impact:** internal — fingerprinting signal
+- **Risk:** low
+- **Summary:** Distinct redirect target for "no email in storage" lets a probe distinguish flow stages.
+- **Suggested approach:** Redirect to a generic `Routes.LOGIN` without the query, surface error inline if present.
+- **Status:** open
+
+## CR-105 — `NEXT_PUBLIC_SHOW_DEV_LOGIN` default flipped from `true` → `false` undocumented
+
+- **Area:** [apps/web/client/src/env.ts](apps/web/client/src/env.ts) (~line 106)
+- **Type:** config / breaking-change disclosure
+- **Impact:** user-facing — staging/dev deployments that relied on the implicit default lose dev login UI
+- **Risk:** low
+- **Summary:** Security-correct flip but no changelog/feature-log entry; deploys reading old default break silently.
+- **Suggested approach:** Add a feature-log + changelog note; surface in release notes; or add a runtime warning when the var is unset in non-production.
+- **Status:** open
+
+## CR-106 — CSP `connect-src` allows `http://localhost:11434` in production builds
+
+- **Area:** [apps/web/client/next.config.ts](apps/web/client/next.config.ts) (~line 53)
+- **Type:** security
+- **Impact:** user-facing — XSS injected into a production page can probe / attack a local Ollama instance on the visitor's machine
+- **Risk:** medium
+- **Summary:** Ollama localhost endpoints baked into the CSP unconditionally. They should only appear when running locally.
+- **Suggested approach:** Build the CSP string conditionally: `process.env.NODE_ENV === 'production' ? '...' : '... http://localhost:11434 http://127.0.0.1:11434'`. Verify Ollama desktop integration still works through the desktop bridge in prod (it should — bridge is in-process, not via the web).
+- **Status:** open
+
+## CR-107 — `middleware.ts` catch-all matcher runs `updateSession` on every request
+
+- **Area:** [apps/web/client/middleware.ts](apps/web/client/middleware.ts) (~line 11)
+- **Type:** performance / robustness
+- **Impact:** internal — extra Supabase auth round trips on 404s, error pages, dynamic routes
+- **Risk:** low/medium
+- **Summary:** Matcher changed from explicit set to `/((?!_next/static|...))`. Verify `updateSession` short-circuits on missing/invalid cookies and tolerates network errors without 5xxing the entire response.
+- **Suggested approach:** Add a fast-path skip for static asset extensions (already in regex, audit completeness). Wrap `updateSession` in a `try/catch` that returns the original response on failure. Add a perf budget assertion in CI.
+- **Status:** open
+
+## CR-108 — Desktop preload builds origin from env without `URL` parsing
+
+- **Area:** [apps/desktop/preload.js](apps/desktop/preload.js) (~line 28)
+- **Type:** security (defense-in-depth)
+- **Impact:** internal
+- **Risk:** low
+- **Summary:** `https://${process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build'}` builds origin via string concat. If the var contains a port (`weblab.build:8080`) or a path, the resulting "origin" is malformed and origin equality checks misfire.
+- **Suggested approach:** `new URL(\`https://${domain}\`).origin` — throw on parse failure and fall back to the literal default.
+- **Status:** open
+
+## CR-109 — Desktop `ALLOWED_IPC_ORIGINS` includes localhost without prod gate
+
+- **Area:** [apps/desktop/main.js](apps/desktop/main.js) (~lines 15-20)
+- **Type:** security (build hygiene)
+- **Impact:** internal — production desktop build accepts IPC from `http://localhost:3000` even when the renderer should only ever load `https://weblab.build`
+- **Risk:** low
+- **Summary:** Hardcoded localhost entries are dev convenience but ship to release builds.
+- **Suggested approach:** Gate the localhost entries on `process.env.NODE_ENV !== 'production'` (or an explicit `WEBLAB_DEV` flag). Add a runtime log on each accepted IPC origin to make drift visible during release smoke.
+- **Status:** open
+
+## CR-110 — `project/offline.listPinned` returns pins without membership check
+
+- **Area:** [apps/web/client/src/server/api/routers/project/offline.ts](apps/web/client/src/server/api/routers/project/offline.ts) (~line 10)
+- **Type:** authorization / data exposure
+- **Impact:** user-facing — any authenticated user can list pins for projects they do not belong to (if `userId == self`, this is fine; if the query joins by projectId without verifying access, it leaks)
+- **Risk:** medium
+- **Summary:** Procedure scopes by `userId` only. If "pinned" is a per-user state then this is correct. If pins are project-shared, missing `verifyProjectAccess` on each `projectId` reveals which projects exist.
+- **Suggested approach:** Read the resolver: if pins are a (user, project) tuple it's safe; otherwise add `verifyProjectAccess(ctx, projectId)` inside the loop or constrain the `select` to projects the user is a member of.
+- **Status:** open
+
+## CR-111 — `cms.source.ensureDefaultWeblabSource` retains race window after `onConflictDoNothing`
+
+- **Area:** [apps/web/client/src/server/api/routers/cms/source.ts](apps/web/client/src/server/api/routers/cms/source.ts) (~line 377)
+- **Type:** bug / data integrity
+- **Impact:** internal
+- **Risk:** low
+- **Summary:** `findFirst` → `insert ... onConflictDoNothing` → re-`findFirst`. Between the second findFirst and the caller using the row, project deletion or another mutation can race. Mostly harmless but the post-insert refetch is best-effort, not authoritative.
+- **Suggested approach:** Use `INSERT ... ON CONFLICT DO UPDATE SET ... RETURNING *` (or `RETURNING id` + a single read) so the response always returns the canonical row in one round trip.
+- **Status:** open
+
+## CR-112 — Migration `0024` drops author FKs but never re-adds them
+
+- **Area:** [apps/backend/supabase/migrations/0024_absurd_kat_farrell.sql](apps/backend/supabase/migrations/0024_absurd_kat_farrell.sql) (~lines 15-17, 35-36)
+- **Type:** bug / data integrity
+- **Impact:** user-facing — `project_comments.author_id` and `comment_replies.author_id` become dangling references; rows can survive author deletion or reference nonexistent users
+- **Risk:** medium
+- **Summary:** FKs are dropped, NOT NULL is set, but no replacement FK constraint is added. Any future deletion of a user row corrupts the comment graph.
+- **Suggested approach:** Add a follow-up migration: `ALTER TABLE project_comments ADD CONSTRAINT project_comments_author_fk FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL` (or `CASCADE` if comments should be deleted with the user). Backfill orphan rows first.
+- **Status:** open
+
+## CR-113 — `user_provider_connections` cascade-deletes encrypted OAuth tokens silently
+
+- **Area:** migration `0024` (~line 52); [packages/db/src/schema/user/provider-connection.ts](packages/db/src/schema/user/provider-connection.ts)
+- **Type:** compliance / audit
+- **Impact:** internal — no audit trail when user deletion wipes provider tokens
+- **Risk:** low
+- **Summary:** RLS commented as "enabled but unenforced (service role bypasses)". Cascade-delete removes encrypted tokens with no log entry.
+- **Suggested approach:** Trigger an `audit_events` row from the cascade trigger, or move the deletion into a service-layer step that emits an event.
+- **Status:** open
+
+## CR-114 — `cms.field.reorderFields` runs N+1 inside a transaction
+
+- **Area:** [apps/web/client/src/server/api/routers/cms/field.ts](apps/web/client/src/server/api/routers/cms/field.ts) (~lines 139-153)
+- **Type:** performance
+- **Impact:** internal — slow reorder on collections with many fields, holds a write lock
+- **Risk:** low
+- **Summary:** Validates each field id by re-querying inside the transaction.
+- **Suggested approach:** Single `SELECT ... WHERE id = ANY($1)` to fetch all fields up front; assert set equality; then issue a single multi-row `UPDATE ... CASE WHEN id = ... THEN n ELSE position END`.
+- **Status:** open
+
+## CR-115 — Migration `0025` flips `rate_limits` FK to `ON DELETE RESTRICT`
+
+- **Area:** [apps/backend/supabase/migrations/0025_stale_earthquake.sql](apps/backend/supabase/migrations/0025_stale_earthquake.sql) (~lines 79-81)
+- **Type:** bug / operational
+- **Impact:** user-facing — Stripe subscription deletion will fail if any `rate_limits` rows reference it
+- **Risk:** medium
+- **Summary:** Migration changes the FK toward RESTRICT. Downstream subscription teardown needs to clean rate-limit rows first or the delete blocks.
+- **Suggested approach:** Verify intent. If we want orphaned rate-limit rows preserved for audit, switch to `ON DELETE SET NULL`. If they should die with the subscription, restore CASCADE.
+- **Status:** open
+
+## CR-116 — Shared apex domain hijack via `ensureUserOwnsDomain`
+
+- **Area:** [apps/web/client/src/server/api/routers/domain/verify/helpers/helpers.ts](apps/web/client/src/server/api/routers/domain/verify/helpers/helpers.ts) (~lines 8-34)
+- **Type:** authorization
+- **Impact:** user-facing — when an apex is verified by user A, user B can claim a subdomain under the same apex
+- **Risk:** medium
+- **Summary:** The check joins on `custom_domain_verification.status = VERIFIED`. Verification rows are per-project. Two projects under the same parent verifier means a second project can attach.
+- **Suggested approach:** Add ownership scoping: `WHERE verification.user_id = ctx.user.id` (or `verification.project_id IN (user's projects)`). Add a unit test that two distinct users cannot both claim subdomains of an apex one of them verified.
+- **Status:** open
+
+## CR-117 — `project/member.remove` self-leave bypasses last-owner guard
+
+- **Area:** [apps/web/client/src/server/api/routers/project/member.ts](apps/web/client/src/server/api/routers/project/member.ts) (~lines 66-130)
+- **Type:** bug / data integrity
+- **Impact:** user-facing — sole owner can leave their own project; project ends with zero owners
+- **Risk:** medium
+- **Summary:** `isSelfLeave && !!callerRole` short-circuits the "cannot remove last owner" guard at line 108.
+- **Suggested approach:** Apply the last-owner guard before the self-leave branch, or duplicate it inside the self-leave branch with a clear error: "You are the last owner — transfer ownership before leaving."
+- **Status:** open
+
+## CR-118 — `verifySandboxAccess` only called in one mutation
+
+- **Area:** [apps/web/client/src/server/api/routers/project/sandbox.ts](apps/web/client/src/server/api/routers/project/sandbox.ts) (~lines 16-26, 99)
+- **Type:** authorization
+- **Impact:** internal — drift risk; new mutations may forget the guard
+- **Risk:** low/medium
+- **Summary:** Helper is defined but applied inconsistently. Every mutation that touches sandbox state by id should call it.
+- **Suggested approach:** Audit every mutation; either wrap the helper in a router-level middleware that runs before any sandbox-id input is dereferenced, or add an explicit call to each handler.
+- **Status:** open
+
+## CR-119 — `project/branch.update` silently strips `projectId`/`sandboxId`
+
+- **Area:** [apps/web/client/src/server/api/routers/project/branch.ts](apps/web/client/src/server/api/routers/project/branch.ts) (~line 88)
+- **Type:** security (defense-in-depth)
+- **Impact:** internal — masks attacker probes; can hide a real bug
+- **Risk:** low
+- **Summary:** Filter strips disallowed keys. Better to reject the request and surface the violation.
+- **Suggested approach:** Use a Zod `.strict()` schema on the update payload — Zod rejects unknown keys and tRPC returns a clean 400. Log the rejection at warn level.
+- **Status:** open
+
+## CR-120 — `publish/helpers/unpublish` deployment status updates fire-and-forget
+
+- **Area:** [apps/web/client/src/server/api/routers/publish/helpers/unpublish.ts](apps/web/client/src/server/api/routers/publish/helpers/unpublish.ts) (~lines 16, 31, 39)
+- **Type:** robustness
+- **Impact:** user-facing — deployment can be left in `IN_PROGRESS`/`FAILED` with stale data when the response throws before status persists
+- **Risk:** low
+- **Summary:** Status writes are awaited but the rest of the pipeline can throw before all of them complete.
+- **Suggested approach:** Wrap the unpublish flow in a `try/finally` that always writes a terminal status before re-throwing. Add a periodic reconciler that scans for deployments stuck >5min in `IN_PROGRESS`.
+- **Status:** open
+
+## CR-121 — Realtime `topic_membership` policy uses `EXISTS` subquery on every SELECT
+
+- **Area:** [apps/backend/supabase/migrations/0030_realtime_topic_membership.sql](apps/backend/supabase/migrations/0030_realtime_topic_membership.sql) (~lines 9-20)
+- **Type:** performance
+- **Impact:** user-facing — heavy read load on `user_projects` per realtime broadcast under fan-out
+- **Risk:** low/medium
+- **Summary:** No supporting index hint and the EXISTS runs on every broadcast.
+- **Suggested approach:** Verify a btree index on `user_projects (user_id, project_id)` exists; add it if not. Consider a materialized realtime-membership table refreshed on `user_projects` mutation.
+- **Status:** open
+
+## CR-122 — `is_preview_image_owner` SECURITY DEFINER missing `search_path`
+
+- **Area:** [apps/backend/supabase/migrations/0031_preview_images_policy.sql](apps/backend/supabase/migrations/0031_preview_images_policy.sql) (~lines 25-35)
+- **Type:** security
+- **Impact:** internal — function search-path injection if `public` is shadowed
+- **Risk:** medium
+- **Summary:** Postgres convention: every `SECURITY DEFINER` function must pin `set search_path = ...`.
+- **Suggested approach:** Add `SET search_path = public, storage, pg_temp;` to the function definition. Standard hardening pattern; document in `architecture-decisions.md`.
+- **Status:** open
+
+## CR-123 — Sandbox terminal `retryAbortController` + abort listener leak on success
+
+- **Area:** [apps/web/client/src/components/store/editor/sandbox/terminal.ts](apps/web/client/src/components/store/editor/sandbox/terminal.ts) (~lines 156, 190)
+- **Type:** bug / leak
+- **Impact:** internal — long-running editor sessions accumulate dead AbortControllers and listeners
+- **Risk:** low
+- **Summary:** Cleanup chain only fires on rejection; success path leaves `retryAbortController` non-null and the abort listener attached.
+- **Suggested approach:** Wrap retry+listen in a `try/finally` that nulls the controller and removes the listener regardless of outcome. Add a leak smoke test (open/close 100 sessions, assert listener count is bounded).
+- **Status:** open
+
+## CR-124 — `swapToOnline` writes inconsistent state if `start()` throws
+
+- **Area:** [apps/web/client/src/components/store/editor/sandbox/session.ts](apps/web/client/src/components/store/editor/sandbox/session.ts) (~lines 248-263)
+- **Type:** bug
+- **Impact:** user-facing — UI shows "online" with `provider = null` after a network blip
+- **Risk:** medium
+- **Summary:** `runInAction` clears `provider` and `isOffline` before awaiting `start()`. A throw leaves the store in a "claims online but no provider" state.
+- **Suggested approach:** Either (a) await `start()` first and then clear in `runInAction`, or (b) catch the throw and revert to `isOffline = true` with the previous provider restored. Add unit coverage for the failure branch.
+- **Status:** open
+
+## CR-125 — `reconnect` and `swapToOnline` can both call `start()` concurrently
+
+- **Area:** session.ts (~lines 190-195) — interaction with `swapToOnline`
+- **Type:** bug
+- **Impact:** internal — possible double-init during network flap
+- **Risk:** low/medium
+- **Summary:** `reconnect()` calls `start()` if `provider` is null; `swapToOnline()` does the same. A flap that triggers both fires two starts.
+- **Suggested approach:** Single in-flight guard (`if (this.startInFlight) return this.startInFlight`) returning the same promise to both callers.
+- **Status:** open
+
+## CR-126 — `session.clear()` does not await `provider.destroy()`
+
+- **Area:** session.ts (~lines 323-339)
+- **Type:** bug / leak
+- **Impact:** internal — async destroy errors are swallowed; cleanup ordering is non-deterministic
+- **Risk:** low
+- **Summary:** `clear()` calls `this.provider.destroy()` then immediately nulls the field; if destroy() rejects, the rejection is unhandled.
+- **Suggested approach:** `try { await this.provider?.destroy() } catch (err) { console.error(...) } finally { this.provider = null }`. Make `clear()` async; update callers.
+- **Status:** open
+
+## CR-127 — `code/index.ts` debounce cancel guard fires `.cancel()` on undefined
+
+- **Area:** [apps/web/client/src/components/store/editor/code/index.ts](apps/web/client/src/components/store/editor/code/index.ts) (~line 139)
+- **Type:** bug (low)
+- **Impact:** internal — `clear()` can throw on hot-reload reassignment
+- **Risk:** low
+- **Summary:** `typeof` check passes on undefined, then `.cancel()` is called on it.
+- **Suggested approach:** Use optional chaining: `this.writeResponsiveStyle?.cancel?.()`.
+- **Status:** open
+
+## CR-128 — Snapshot hydration sets state after unmount in `frame/view.tsx`
+
+- **Area:** [apps/web/client/src/app/project/[id]/_components/canvas/frame/view.tsx](apps/web/client/src/app/project/[id]/_components/canvas/frame/view.tsx) (~line 467)
+- **Type:** bug
+- **Impact:** internal — React warning + potential stale paint
+- **Risk:** low
+- **Summary:** `cancelled` flag is set in cleanup but the IIFE was already in flight; the fetch's resolution still runs `setSnapshotHtml`.
+- **Suggested approach:** Track the state via `useRef` or pass an `AbortSignal` into the fetch; check `cancelled` inside the resolver before each `setX` call (already partial — verify every set is gated).
+- **Status:** open
+
+## CR-129 — `use-frame-reload` stale debounced callback re-increments counter after `immediateReload`
+
+- **Area:** [apps/web/client/src/app/project/[id]/_components/canvas/frame/use-frame-reload.ts](apps/web/client/src/app/project/[id]/_components/canvas/frame/use-frame-reload.ts) (~line 73)
+- **Type:** bug
+- **Impact:** internal — reload-cap state desyncs after a manual reload
+- **Risk:** low
+- **Summary:** `immediateReload` resets the counter, but a still-pending debounced callback can fire and re-increment.
+- **Suggested approach:** Bump a ref-stored "epoch"; have the debounced callback bail if its captured epoch != current.
+- **Status:** open
+
+## CR-130 — `frames/manager.deregisterView` reassigns the entire frame object
+
+- **Area:** [apps/web/client/src/components/store/editor/frames/manager.ts](apps/web/client/src/components/store/editor/frames/manager.ts) (~line 144)
+- **Type:** performance / nit
+- **Impact:** internal — every observer of the frame data re-renders even though only `view` changed
+- **Risk:** low
+- **Summary:** MobX sees a new identity for the entire object.
+- **Suggested approach:** Mutate the single field: `runInAction(() => { frame.view = null })`. Or split `view` into a separate observable map.
+- **Status:** open
+
+## CR-131 — `ai-cli` switched prompt delivery from stdin to argv
+
+- **Area:** [packages/ai-cli/src/claude.ts](packages/ai-cli/src/claude.ts) (~line 72)
+- **Type:** question / regression-risk
+- **Impact:** internal — argv has an OS-dependent length cap (~128KB on macOS); long prompts can fail
+- **Risk:** low
+- **Summary:** Stdin had no practical cap. argv is bounded by `ARG_MAX`.
+- **Suggested approach:** Confirm intent. If argv was chosen for safer parsing semantics, add a length guard (`if (prompt.length > 100_000) throw`) and a fallback that pipes through stdin for oversized prompts.
+- **Status:** open (question)
+
+## CR-132 — `tools/upload-image.destination_path` lacks path-traversal guard
+
+- **Area:** [packages/ai/src/tools/classes/upload-image.ts](packages/ai/src/tools/classes/upload-image.ts) (~line 114)
+- **Type:** security
+- **Impact:** user-facing — confused or malicious LLM can write outside the project root
+- **Risk:** medium
+- **Summary:** Only `.trim()` is applied; `../` segments survive.
+- **Suggested approach:** `const safe = path.posix.normalize(input).replace(/^(\.\.(?:\/|$))+/g, '')` and assert it does not start with `/` or `..`. Better: resolve against project root and verify the resolved path is still inside the root.
+- **Status:** open
+
+## CR-133 — `cms/adapters` `isBlockedIp` empty-slice bypass on malformed IPv4-mapped IPv6
+
+- **Area:** apps/web/client/src/server/api/routers/cms/adapters/index.ts (~line 67) — committed in `10d00be9`
+- **Type:** security (defense-in-depth)
+- **Impact:** internal — bare `::ffff:` (no octets) recurses with `''` and `net.isIPv4('')` returns false
+- **Risk:** low
+- **Summary:** The recursive call lacks a length check.
+- **Suggested approach:** `if (suffix.length === 0) return false; ` or treat any non-IPv4 result as blocked. Add a unit test for `::ffff:` and `::ffff:not-an-ip`.
+- **Status:** open
+
+## CR-134 — `tab-complete` route fire-and-forget metering without `traceId`
+
+- **Area:** apps/web/client/src/app/api/ai/tab-complete/route.ts (~lines 92, 95) — committed in `7844a314`
+- **Type:** observability / robustness
+- **Impact:** internal — telemetry gap; failed metering silently drops events
+- **Risk:** low
+- **Summary:** `void incrementUsage(req)` fires after the response is flushed; no error handler, no `traceId` correlation. The peer `inline-edit` route does pass `traceId`.
+- **Suggested approach:** Generate a traceId at request entry; pass it; add `.catch(err => console.error('[tab-complete] meter failed', { traceId, err }))`. Consider awaiting before stream-end if the user must see metered errors.
+- **Status:** open
+
+## CR-135 — `db/mappers/project/frame.ts` may pass `undefined` to consumers when preset id is unknown
+
+- **Area:** packages/db/src/mappers/project/frame.ts (~line 22) — committed in `678de9bb`
+- **Type:** bug
+- **Impact:** user-facing — corrupted breakpoint id in the DB causes the editor to render with `undefined` width
+- **Risk:** low
+- **Summary:** `DEFAULT_BREAKPOINT_PRESETS.find(...)` returns `undefined` on miss; downstream code dereferences without a fallback.
+- **Suggested approach:** Throw a typed error or fall back to `MOBILE` preset. Add a defensive log so the bad value surfaces in monitoring.
+- **Status:** open
+
+## CR-136 — DNS-TOCTOU SSRF guard documented as "infra-mitigated" but unverified in code
+
+- **Area:** apps/web/client/src/server/api/routers/cms/adapters/index.ts (~line 106) — committed in `10d00be9`
+- **Type:** security (audit gap)
+- **Impact:** internal — split-horizon DNS or low-TTL records can resolve to a public address at guard time and a private one at fetch time
+- **Risk:** medium (low if infra controls confirmed)
+- **Summary:** Code comment claims infra-layer controls protect the gap. No assertion or runtime check.
+- **Suggested approach:** Document the assumed control (egress firewall, static DNS resolver) in `architecture-decisions.md`. If infra control is unverified, perform the fetch through a resolver that pins the resolved IP and reject DNS rebinding (resolve once, fetch with `lookup` returning the resolved address).
+- **Status:** open
+
+## CR-137 — Hardcoded UI strings bypass `next-intl` (i18n debt)
+
+- **Area:** Multiple files — apps/web/client/src/app/_components/hero/create.tsx, apps/web/client/src/app/project/[id]/_components/main.tsx, apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx (`LOADING_MESSAGES`), apps/web/client/src/app/project/[id]/_components/offline-banner.tsx, apps/web/client/src/app/offline/page.tsx, apps/web/client/src/app/profile-setup/page.tsx, apps/web/client/src/app/login/verify/page.tsx
+- **Type:** i18n debt
+- **Impact:** user-facing — strings won't localize when other locales ship
+- **Risk:** low
+- **Summary:** New offline / onboarding / loading flows hardcode English copy. CLAUDE.md prohibits hardcoded user-facing text.
+- **Suggested approach:** Add the strings to `apps/web/client/messages/en.json`; replace each literal with `useTranslations('...')`. Group the loading-message arrays under stable keys (e.g. `loading_messages.0` … `loading_messages.19`) to keep them auditable.
+- **Status:** open
+
+## CR-138 — `auth/callback/route.ts` uses `data.user.id` without null check
+
+- **Area:** [apps/web/client/src/app/auth/callback/route.ts](apps/web/client/src/app/auth/callback/route.ts) (~lines 37, 59)
+- **Type:** bug (defensive)
+- **Impact:** internal — relies on Supabase guaranteeing `id` whenever `email` is present
+- **Risk:** low
+- **Summary:** Code checks `!data.user.email` but assumes `data.user.id` exists at line 59.
+- **Suggested approach:** Add `if (!data.user.id) { return badAuthResponse() }` early. Costs nothing and removes the silent assumption.
+- **Status:** open
 

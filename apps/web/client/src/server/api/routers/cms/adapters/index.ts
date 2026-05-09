@@ -81,8 +81,12 @@ function isBlockedIp(ip: string): boolean {
         if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // ULA
         if (lower.startsWith('fe80:')) return true; // link-local
         if (lower.startsWith('::ffff:')) {
-            // IPv4-mapped IPv6
-            return isBlockedIp(lower.slice('::ffff:'.length));
+            // IPv4-mapped IPv6 — recurse on the embedded v4 octets, but
+            // default-deny on the malformed `::ffff:` (no octets) form so a
+            // recursive call into `net.isIPv4('')` cannot quietly pass.
+            const suffix = lower.slice('::ffff:'.length);
+            if (suffix.length === 0) return true;
+            return isBlockedIp(suffix);
         }
         return false;
     }

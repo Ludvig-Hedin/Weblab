@@ -92,8 +92,12 @@ export async function POST(req: NextRequest) {
             abortSignal: req.signal,
         });
         // Meter after generation so aborted/failed requests don't count.
-        // Fire-and-forget: tab completions are best-effort; don't block the response.
-        void incrementUsage(req).catch(() => undefined);
+        // Fire-and-forget: tab completions are best-effort; don't block the
+        // response. Log metering failures so silent telemetry drift is at
+        // least visible in server logs.
+        void incrementUsage(req).catch((err) => {
+            console.error('[tab-complete] meter increment failed', err);
+        });
         return new Response(JSON.stringify({ completion }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

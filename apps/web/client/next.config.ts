@@ -24,6 +24,14 @@ const nextConfig: NextConfig = {
                         value: 'nosniff',
                     },
                     {
+                        key: 'X-Frame-Options',
+                        value: 'SAMEORIGIN',
+                    },
+                    {
+                        key: 'X-DNS-Prefetch-Control',
+                        value: 'on',
+                    },
+                    {
                         key: 'Referrer-Policy',
                         value: 'strict-origin-when-cross-origin',
                     },
@@ -42,12 +50,32 @@ const nextConfig: NextConfig = {
                             "font-src 'self' data: https:",
                             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
                             "style-src 'self' 'unsafe-inline' https:",
-                            "connect-src 'self' https: wss:",
+                            // Local Ollama is a development convenience only. In production we
+                            // must not advertise that any visitor's localhost is reachable from
+                            // this origin — XSS injected into a prod page could otherwise probe
+                            // / attack the user's local Ollama instance.
+                            process.env.NODE_ENV === 'production'
+                                ? "connect-src 'self' https: wss:"
+                                : "connect-src 'self' https: wss: http://localhost:11434 http://127.0.0.1:11434",
                             "frame-src 'self' https:",
                             "media-src 'self' blob: https:",
                             "worker-src 'self' blob:",
                         ].join('; '),
                     },
+                ],
+            },
+            {
+                source: '/sw.js',
+                headers: [
+                    { key: 'Service-Worker-Allowed', value: '/' },
+                    { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+                    { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+                ],
+            },
+            {
+                source: '/manifest.webmanifest',
+                headers: [
+                    { key: 'Content-Type', value: 'application/manifest+json; charset=utf-8' },
                 ],
             },
         ];
