@@ -16,6 +16,52 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-09 — Editor selection state persistence (frame, breakpoint, element)
+
+Author: Claude (agent)
+Area: `apps/web/client` — project editor (`src/app/project/[id]/_hooks`, `src/services/editor`)
+
+Summary: Reloading the editor previously dropped the user's selection state (which frame was active, which breakpoint, which element was selected). Now persisted per-project to `localStorage` and restored on `isProjectReady`. Frame restored via `frames.select`; breakpoint applied after so explicit switches win; element restore polls `view.getElementByOid(oid, false)` until the iframe view is ready or a 5s deadline elapses, then gives up silently. Re-persistence runs through MobX `reaction`s with a single debounced flush — concurrent updates merge into one `pendingPatch` to avoid the lost-write race that an ad-hoc `setTimeout` per reaction would create. Restore is keyed by `projectId` (not a boolean ref), so navigating project → project re-arms cleanly. In-flight async element lookups check a `cancelled` flag before mutating editor state to prevent post-unmount `click` calls.
+
+Files:
+- `apps/web/client/src/services/editor/state-persistence.ts` (existed; unchanged contract)
+- `apps/web/client/src/services/editor/state-persistence.test.ts` (new — 13 tests, `bun:test`)
+- `apps/web/client/src/app/project/[id]/_hooks/use-editor-state-persistence.tsx` (new)
+- `apps/web/client/src/app/project/[id]/_components/main.tsx` (wired hook)
+- `apps/web/client/src/lib/changelog-entries.ts` (v1.6 entry)
+- `apps/web/client/src/server/api/routers/user/user.ts` (cleaned typecheck/lint blockers in dirty tree: `avatarUrl` `string | null` coercion, dropped wrong `await` on void `trackEvent`, narrowed `user_metadata` cast to drop `any` chain)
+
+Validation: `bun typecheck` green, `bun x eslint --max-warnings 0` clean for touched files, `bun test src/services/editor/state-persistence.test.ts` 13/13 pass.
+
+Caveat: clicking the restored element triggers BreakpointsManager's auto-flip to that frame's breakpoint, overriding any explicitly-saved breakpoint when both apply. Treated as acceptable — the element is the more specific signal.
+
+Links:
+- Changelog: v1.6 in `changelog-entries.ts`
+
+---
+
+## 2026-05-09 — Product explainer video: planning + HyperFrames implementation
+
+Author: Claude (agent)
+Area: `apps/web/product-video/` (new), `docs/`
+
+Summary: Planned and implemented the homepage product explainer. Plan doc covers positioning, format, five storyboards, asset plan, and HyperFrames implementation strategy (`docs/product-video-plan.md`). Built the chosen storyboard A — "From prompt to polished site" — as a deterministic HyperFrames composition: 75s, 1920×1080, 10 scene sub-comps + captions overlay, brand-faithful product UI recreations using real Weblab tokens (`#131314` bg, `#3d8bfd` accent, Inter, 16px radius). Renders byte-deterministically to a 2.6 MB MP4 via `npx hyperframes render`. Voiceover not generated (no ElevenLabs key in env) — script in `voiceover-script.md`, captions ship without audio. Lint passes 0-error; 210 cosmetic selector warnings + 250 small-label contrast warnings documented as known limitations. Real screen recordings deferred — substituted with stylized HTML/CSS recreations per plan §6.
+
+Files:
+- `docs/product-video-plan.md`
+- `docs/product-video-implementation-notes.md`
+- `apps/web/product-video/index.html`
+- `apps/web/product-video/design.md`
+- `apps/web/product-video/voiceover-script.md`
+- `apps/web/product-video/compositions/scene-{01..10}-*.html`
+- `apps/web/product-video/compositions/captions.html`
+- `apps/web/product-video/assets/brand/{logo,symbol,wordmark}.svg`
+- `apps/web/product-video/out/weblab-explainer-v1.mp4`
+
+Links: render path `apps/web/product-video/out/weblab-explainer-v1.mp4`
+
+---
+
 ## 2026-05-09 — Production QA audit: security hardening + UX fixes
 
 Author: Claude (agent)

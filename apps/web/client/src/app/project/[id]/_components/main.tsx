@@ -12,6 +12,7 @@ import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { SettingsModalWithProjects } from '@/components/ui/settings-modal/with-project';
+import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
@@ -37,6 +38,7 @@ import { TopBar } from './top-bar';
 export const Main = observer(() => {
     const editorEngine = useEditorEngine();
     const { isProjectReady, error, readyState, hasPendingCreation } = useStartProject();
+    useEditorStatePersistence(editorEngine.projectId, editorEngine, isProjectReady);
     const leftPanelRef = useRef<HTMLDivElement | null>(null);
     const rightPanelRef = useRef<HTMLDivElement | null>(null);
     const { toolbarLeft, toolbarRight, editorBarAvailableWidth } = usePanelMeasurements(

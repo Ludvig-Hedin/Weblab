@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v1-6-restore-editor-session',
+        version: '1.6',
+        title: 'Restore Where You Left Off',
+        description:
+            'Reload or come back later — the editor reopens with your last frame, breakpoint, and selected element already in place. No hunting through the canvas to pick up where you stopped.',
+        date: '2026-05-09',
+        tags: ['Editor', 'UX', 'Persistence'],
+    },
+    {
         slug: 'v1-5-ai-component-generation',
         version: '1.5',
         title: 'AI Component Generation',
