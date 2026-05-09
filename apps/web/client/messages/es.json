@@ -130,7 +130,27 @@
             "and": "y",
             "tos": "Términos de Servicio"
         },
-        "version": "Versión {version}"
+        "version": "Versión {version}",
+        "error": {
+            "backToLogin": "Volver al inicio de sesión",
+            "getHelp": "Obtener ayuda",
+            "authCode": {
+                "eyebrow": "Error de autenticación",
+                "title": "No pudimos completar el inicio de sesión",
+                "body": "Algo salió mal al iniciar sesión. Esto puede suceder si el enlace expiró o se cerró la ventana demasiado pronto. Por favor, inténtalo de nuevo — si el problema persiste, contacta al soporte.",
+                "goHome": "Ir al inicio",
+                "errorCodeLabel": "Código de error"
+            },
+            "login": {
+                "eyebrow": "Error de inicio de sesión",
+                "title": "Algo salió mal",
+                "body": "Se produjo un error inesperado al iniciar sesión. Por favor, inténtalo de nuevo.",
+                "tryAgain": "Intentar de nuevo",
+                "errorDetailsLabel": "Referencia de error",
+                "copyErrorDetails": "Copiar detalles del error",
+                "copied": "Copiado"
+            }
+        }
     },
     "pricing": {
         "plans": {
