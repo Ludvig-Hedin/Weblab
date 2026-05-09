@@ -22,6 +22,12 @@ export const frames = pgTable('frames', {
     width: numeric('width').notNull(),
     height: numeric('height').notNull(),
 
+    // breakpoint group
+    groupId: text('group_id'),
+    breakpointId: text('breakpoint_id'),
+    breakpointName: text('breakpoint_name'),
+    breakpointOrder: numeric('breakpoint_order'),
+
     // deprecated
     type: text('type'),
 }).enableRLS();

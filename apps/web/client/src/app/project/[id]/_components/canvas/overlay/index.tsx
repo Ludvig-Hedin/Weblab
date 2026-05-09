@@ -10,6 +10,7 @@ import { useEditorEngine } from '@/components/store/editor';
 import { CommentPins } from './comment-pins';
 import { CommentPopover } from './comment-popover';
 import { OverlayButtons } from './elements/buttons';
+import { CmsPill } from './elements/cms-pill';
 import { MeasurementOverlay } from './elements/measurement';
 import { ClickRect } from './elements/rect/click';
 import { HoverRect } from './elements/rect/hover';
@@ -68,6 +69,7 @@ export const Overlay = observer(() => {
                 />
             )}
             {overlayState.clickRects.length > 0 && <OverlayButtons />}
+            {overlayState.clickRects.length > 0 && <CmsPill />}
             <SnapGuidelines />
             <CommentPins />
             <CommentPopover />

@@ -10,6 +10,8 @@ import {
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 
+import { OverrideAffordance } from './override-affordance';
+
 interface InputRangeProps {
     value: number;
     icon?: keyof typeof Icons;
@@ -17,6 +19,12 @@ interface InputRangeProps {
     min?: number;
     max?: number;
     step?: number;
+    /**
+     * CSS property this control edits. When set, the rendered input is wrapped
+     * in an OverrideAffordance — a subtle blue background + alt-click to reset
+     * the override at the active breakpoint.
+     */
+    cssProperty?: string;
     onChange?: (value: number) => void;
     onUnitChange?: (unit: string) => void;
 }
@@ -28,6 +36,7 @@ export const InputRange = ({
     min = 0,
     max = 500,
     step = 1,
+    cssProperty,
     onChange,
     onUnitChange,
 }: InputRangeProps) => {
@@ -113,7 +122,7 @@ export const InputRange = ({
         document.removeEventListener('mouseup', handleMouseUp);
     };
 
-    return (
+    const body = (
         <div className="flex items-center gap-2">
             <div className="flex flex-1 items-center gap-2">
                 <input
@@ -131,7 +140,7 @@ export const InputRange = ({
                     onMouseDown={handleMouseDown}
                     className="bg-background-tertiary/50 [&::-webkit-slider-runnable-track]:bg-background-tertiary/50 [&::-moz-range-track]:bg-background-tertiary/50 [&::-webkit-slider-thumb]:bg-foreground hover:[&::-webkit-slider-thumb]:bg-foreground/90 [&::-moz-range-thumb]:bg-foreground hover:[&::-moz-range-thumb]:bg-foreground/90 [&::-ms-thumb]:bg-foreground hover:[&::-ms-thumb]:bg-foreground/90 relative h-3 flex-1 cursor-pointer appearance-none rounded-full [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 active:[&::-moz-range-thumb]:cursor-grabbing [&::-moz-range-track]:h-3 [&::-moz-range-track]:rounded-full [&::-ms-thumb]:h-4 [&::-ms-thumb]:w-4 [&::-ms-thumb]:cursor-grab [&::-ms-thumb]:appearance-none [&::-ms-thumb]:rounded-full active:[&::-ms-thumb]:cursor-grabbing [&::-webkit-slider-runnable-track]:h-3 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:mt-[-2px] [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full active:[&::-webkit-slider-thumb]:cursor-grabbing"
                 />
-                <div className="bg-background-tertiary/50 flex h-[36px] items-center justify-between rounded-md px-3">
+                <div className="bg-background-tertiary/50 flex h-[36px] items-center justify-between rounded-full px-3">
                     <input
                         type="text"
                         inputMode="decimal"
@@ -162,5 +171,11 @@ export const InputRange = ({
                 </div>
             </div>
         </div>
+    );
+
+    return cssProperty ? (
+        <OverrideAffordance property={cssProperty}>{body}</OverrideAffordance>
+    ) : (
+        body
     );
 };

@@ -5,6 +5,8 @@ export * from './layout';
 export * from './move';
 export * from './next-config';
 export * from './remove';
+export * from './responsive-classes';
+export * from './responsive-rebase';
 export * from './style';
 export * from './text';
 export * from './transform';

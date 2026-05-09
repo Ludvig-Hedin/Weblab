@@ -93,15 +93,15 @@ export const OverlayChatInput = observer(
                             aria-label="Chat message input"
                             ref={textareaRef}
                             className={cn(
-                                '!text-mini w-full resize-none rounded-lg !border-[0.5px] break-words shadow-none focus-visible:!ring-0',
+                                '!text-mini w-full resize-none rounded-2xl !border-[0.5px] break-words shadow-none focus-visible:!ring-0',
                                 'transition-all duration-150 ease-in-out',
                                 'pr-10 backdrop-blur-lg',
                                 inputState.value.trim().length >= DIMENSIONS.minCharsToSubmit
                                     ? '!pl-2'
                                     : '!pl-8',
                                 '!bg-background-secondary/75 text-foreground-primary !border-background-secondary/75',
-                                'max-h-[80px] caret-blue-400',
-                                'selection:bg-blue-400/30 selection:text-blue-400',
+                                'caret-foreground-brand max-h-[80px]',
+                                'selection:bg-foreground-brand/30 selection:text-foreground-brand',
                                 '!min-h-0',
                             )}
                             value={inputState.value}
@@ -158,7 +158,7 @@ export const OverlayChatInput = observer(
                                 onClick={handleSubmit}
                                 className={cn(
                                     'absolute right-0.5 bottom-0.5 h-7 w-7',
-                                    'bg-foreground-primary hover:bg-foreground-hover text-white',
+                                    'bg-foreground-primary hover:bg-foreground-hover text-background',
                                 )}
                                 disabled={inputState.isSubmitting}
                             >

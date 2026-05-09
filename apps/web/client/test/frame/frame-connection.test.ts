@@ -52,13 +52,43 @@ describe('isFrameBridgeReady', () => {
 });
 
 describe('shouldUnlockCodeSandboxPreview', () => {
-    test('returns true for disconnected CodeSandbox previews', () => {
+    test('returns true once a disconnected CodeSandbox preview has failed enough times', () => {
         expect(
             shouldUnlockCodeSandboxPreview({
                 isCodeSandboxFrame: true,
                 isPenpalConnected: false,
+                connectionFailureCount: 2,
+                isFirstCreation: false,
             }),
         ).toBe(true);
+    });
+
+    test('returns false during the initial connection attempt', () => {
+        // Even though the frame is a disconnected CodeSandbox preview, no
+        // handshake has failed yet — auto-unlocking here would flip every
+        // freshly-loaded project into PREVIEW for the cold-boot window.
+        expect(
+            shouldUnlockCodeSandboxPreview({
+                isCodeSandboxFrame: true,
+                isPenpalConnected: false,
+                connectionFailureCount: 0,
+                isFirstCreation: false,
+            }),
+        ).toBe(false);
+    });
+
+    test('returns false during a fresh project creation', () => {
+        // The AI is still writing the first version; the user is meant
+        // to wait in DESIGN mode behind the loader rather than land on
+        // a half-built preview.
+        expect(
+            shouldUnlockCodeSandboxPreview({
+                isCodeSandboxFrame: true,
+                isPenpalConnected: false,
+                connectionFailureCount: 5,
+                isFirstCreation: true,
+            }),
+        ).toBe(false);
     });
 
     test('returns false once the CodeSandbox preview bridge is connected', () => {
@@ -66,6 +96,8 @@ describe('shouldUnlockCodeSandboxPreview', () => {
             shouldUnlockCodeSandboxPreview({
                 isCodeSandboxFrame: true,
                 isPenpalConnected: true,
+                connectionFailureCount: 0,
+                isFirstCreation: false,
             }),
         ).toBe(false);
     });
@@ -75,6 +107,8 @@ describe('shouldUnlockCodeSandboxPreview', () => {
             shouldUnlockCodeSandboxPreview({
                 isCodeSandboxFrame: false,
                 isPenpalConnected: false,
+                connectionFailureCount: 5,
+                isFirstCreation: false,
             }),
         ).toBe(false);
     });

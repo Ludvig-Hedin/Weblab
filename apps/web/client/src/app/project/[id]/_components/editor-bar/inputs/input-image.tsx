@@ -272,7 +272,7 @@ export const InputImage = observer(() => {
                             </Button>
 
                             {uploadError && (
-                                <div className="text-mini mt-1 px-1 text-red-500">
+                                <div className="text-mini text-destructive mt-1 px-1">
                                     {uploadError}
                                 </div>
                             )}
@@ -281,7 +281,7 @@ export const InputImage = observer(() => {
                                 <Button
                                     onClick={removeBackground}
                                     variant="outline"
-                                    className="w-full justify-start gap-2 border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                                    className="border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 w-full justify-start gap-2"
                                     disabled={isUploading}
                                 >
                                     <div className="flex items-center gap-2">

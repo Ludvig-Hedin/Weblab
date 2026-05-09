@@ -13,6 +13,15 @@ export const injectPreloadScript = (ast: T.File): T.File => {
         return ast;
     }
 
+    // If a previous injection (e.g. across sandbox restarts or a buggy older
+    // build) left more than one preload <Script> tag, prune the extras before
+    // we (re-)inject. Without this, two copies of the bundle load in the
+    // iframe and any top-level identifier in the minified code collides with
+    // itself ("Identifier 'X' has already been declared").
+    if (scriptCount > 1) {
+        removeAllPreloadScripts(ast);
+    }
+
     removeDeprecatedPreloadScripts(ast);
 
     let scriptInjected = false;
@@ -249,6 +258,31 @@ export function removeDeprecatedPreloadScripts(ast: T.File): void {
                 DEPRECATED_PRELOAD_SCRIPT_SRCS.some((deprecatedSrc) => src.value === deprecatedSrc)
             ) {
                 console.log('removing deprecated script', src.value);
+                path.remove();
+            }
+        },
+    });
+}
+
+// Strip every weblab preload <Script src=WEBLAB_PRELOAD_SCRIPT_SRC> tag from
+// the AST. Used when we detect more than one already injected (which would
+// load the bundle twice in the iframe and trigger duplicate top-level
+// identifier errors). The caller re-injects a single fresh tag afterwards.
+export function removeAllPreloadScripts(ast: T.File): void {
+    traverse(ast, {
+        JSXElement(path) {
+            const isScript = t.isJSXIdentifier(path.node.openingElement.name, { name: 'Script' });
+            if (!isScript) return;
+
+            const srcAttr = path.node.openingElement.attributes.find(
+                (attr) =>
+                    t.isJSXAttribute(attr) &&
+                    t.isJSXIdentifier(attr.name, { name: 'src' }) &&
+                    t.isStringLiteral(attr.value),
+            ) as T.JSXAttribute | undefined;
+
+            const src = srcAttr?.value;
+            if (src && t.isStringLiteral(src) && src.value === WEBLAB_PRELOAD_SCRIPT_SRC) {
                 path.remove();
             }
         },

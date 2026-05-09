@@ -2,8 +2,8 @@ import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import { v4 as uuid } from 'uuid';
 
-import { toDbFrame, toDbPartialFrame } from '@weblab/db';
-import { type Frame } from '@weblab/models';
+import { DEFAULT_BREAKPOINT_PRESETS, GROUP_GUTTER, toDbFrame, toDbPartialFrame } from '@weblab/db';
+import { type Frame, type FrameBreakpoint } from '@weblab/models';
 import { calculateNonOverlappingPosition } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
@@ -16,6 +16,8 @@ export interface FrameData {
     frame: Frame;
     view: IFrameView | null;
     selected: boolean;
+    /** Live page content height reported from the iframe (drives auto-height). */
+    contentHeight: number | null;
 }
 
 export class FramesManager {
@@ -64,6 +66,7 @@ export class FramesManager {
                 frame,
                 view: existing?.view ?? null,
                 selected: existing?.selected ?? (isInitialApply && index === 0),
+                contentHeight: existing?.contentHeight ?? null,
             });
         });
     }
@@ -86,19 +89,58 @@ export class FramesManager {
         );
     }
 
+    getByGroupId(groupId: string): FrameData[] {
+        return Array.from(this._frameIdToData.values())
+            .filter((w) => w.frame.groupId === groupId)
+            .sort((a, b) => a.frame.breakpoint.order - b.frame.breakpoint.order);
+    }
+
+    getSiblingsOf(frameId: string): FrameData[] {
+        const data = this.get(frameId);
+        if (!data) return [];
+        return this.getByGroupId(data.frame.groupId);
+    }
+
     get(id: string): FrameData | null {
         return this._frameIdToData.get(id) ?? null;
     }
 
+    setContentHeight(frameId: string, height: number) {
+        const data = this._frameIdToData.get(frameId);
+        if (data && data.contentHeight !== height) {
+            this._frameIdToData.set(frameId, { ...data, contentHeight: height });
+        }
+    }
+
     registerView(frame: Frame, view: IFrameView) {
         const isSelected = this.isSelected(frame.id);
-        this._frameIdToData.set(frame.id, { frame, view, selected: isSelected });
+        const existing = this._frameIdToData.get(frame.id);
+        this._frameIdToData.set(frame.id, {
+            frame,
+            view,
+            selected: isSelected,
+            contentHeight: existing?.contentHeight ?? null,
+        });
         const framePathname = new URL(view.src).pathname;
         this._navigation.registerFrame(frame.id, framePathname);
     }
 
     deregister(frame: Frame) {
         this._frameIdToData.delete(frame.id);
+    }
+
+    /**
+     * Clear the live `view` reference for a frame without dropping the entry.
+     * Used by FrameComponent's unmount/sandbox-restart cleanup so the frame
+     * stays in the canvas while ensuring no caller can keep calling penpal
+     * methods on a destroyed channel. The next `registerView` call (when the
+     * iframe re-mounts) repopulates the view and preserves contentHeight.
+     */
+    deregisterView(frameId: string) {
+        const data = this._frameIdToData.get(frameId);
+        if (data && data.view !== null) {
+            this._frameIdToData.set(frameId, { ...data, view: null });
+        }
     }
 
     deregisterAll() {
@@ -119,6 +161,10 @@ export class FramesManager {
             for (const frame of frames) {
                 this.updateFrameSelection(frame.id, !this.isSelected(frame.id));
             }
+        }
+        if (frames.length > 0) {
+            const last = frames[frames.length - 1]!;
+            this.editorEngine.breakpoints?.setActive(last.breakpoint.id);
         }
         this.notify();
     }
@@ -167,6 +213,17 @@ export class FramesManager {
         frameData.view.reload();
     }
 
+    /**
+     * Reloads every frame in the same breakpoint group as `id`. Useful when an
+     * action affects all responsive views at once (e.g. source-write).
+     */
+    reloadGroup(id: string) {
+        const siblings = this.getSiblingsOf(id);
+        for (const sib of siblings) {
+            sib.view?.reload();
+        }
+    }
+
     // Navigation history methods
     async goBack(frameId: string): Promise<void> {
         const previousPath = this._navigation.goBack(frameId);
@@ -198,7 +255,13 @@ export class FramesManager {
                 return;
             }
 
-            await this.updateAndSaveToStorage(frameId, { url: `${baseUrl}${path}` });
+            // Group siblings should follow the navigation so all breakpoints stay in sync.
+            const siblings = this.getSiblingsOf(frameId);
+            for (const sib of siblings) {
+                await this.updateAndSaveToStorage(sib.frame.id, {
+                    url: `${baseUrl}${path}`,
+                });
+            }
 
             this.editorEngine.pages.setActivePath(frameId, path);
 
@@ -206,7 +269,6 @@ export class FramesManager {
                 path,
             });
 
-            // Add to navigation history
             if (addToHistory) {
                 this._navigation.addToHistory(frameId, path);
             }
@@ -222,14 +284,14 @@ export class FramesManager {
             return;
         }
 
-        const success = await api.frame.delete.mutate({
-            frameId: frameData.frame.id,
-        });
-
-        if (success) {
+        try {
+            await api.frame.delete.mutate({
+                frameId: frameData.frame.id,
+            });
             this.disposeFrame(frameData.frame.id);
-        } else {
-            console.error('Failed to delete frame');
+            this.repackGroup(frameData.frame.groupId);
+        } catch (error) {
+            console.error('Failed to delete frame', error);
         }
     }
 
@@ -237,7 +299,12 @@ export class FramesManager {
         const success = await api.frame.create.mutate(toDbFrame(roundDimensions(frame)));
 
         if (success) {
-            this._frameIdToData.set(frame.id, { frame, view: null, selected: false });
+            this._frameIdToData.set(frame.id, {
+                frame,
+                view: null,
+                selected: false,
+                contentHeight: null,
+            });
         } else {
             console.error('Failed to create frame');
         }
@@ -251,11 +318,13 @@ export class FramesManager {
         }
 
         const frame = frameData.frame;
-        const allFrames = this.getAll().map((frameData) => frameData.frame);
+        const allFrames = this.getAll().map((f) => f.frame);
 
+        // Duplicating a frame creates a new standalone group anchored at its own coords.
         const proposedFrame: Frame = {
             ...frame,
             id: uuid(),
+            groupId: uuid(),
             position: {
                 x: frame.position.x + frame.dimension.width + 100,
                 y: frame.position.y,
@@ -269,6 +338,63 @@ export class FramesManager {
         };
 
         await this.create(newFrame);
+    }
+
+    /**
+     * Add a new breakpoint frame to an existing group, sized to the given preset
+     * or custom width. Position is computed by repacking; URL & branch are inherited
+     * from the group's first frame.
+     */
+    async addBreakpoint(
+        groupId: string,
+        breakpoint: { id: string; name: string; width: number; height?: number },
+    ) {
+        const siblings = this.getByGroupId(groupId);
+        const first = siblings[0];
+        if (!first) {
+            console.error('Cannot add breakpoint to empty group', groupId);
+            return;
+        }
+        const order = siblings.reduce((m, s) => Math.max(m, s.frame.breakpoint.order), -1) + 1;
+        const newBreakpoint: FrameBreakpoint = {
+            id: breakpoint.id,
+            name: breakpoint.name,
+            width: breakpoint.width,
+            order,
+        };
+        const seedHeight = breakpoint.height ?? first.frame.dimension.height;
+        const newFrame: Frame = {
+            id: uuid(),
+            branchId: first.frame.branchId,
+            canvasId: first.frame.canvasId,
+            url: first.frame.url,
+            groupId,
+            breakpoint: newBreakpoint,
+            position: { x: 0, y: first.frame.position.y },
+            dimension: { width: breakpoint.width, height: seedHeight },
+        };
+        await this.create(newFrame);
+        this.repackGroup(groupId);
+    }
+
+    /**
+     * Recompute sibling positions in a group: pack left-to-right with `GROUP_GUTTER`,
+     * preserving the leftmost frame's `position`. Persists to storage.
+     */
+    repackGroup(groupId: string) {
+        const siblings = this.getByGroupId(groupId);
+        if (siblings.length === 0) return;
+        const anchor = siblings[0]!.frame.position;
+        let cursorX = anchor.x;
+        for (const sib of siblings) {
+            const width = sib.frame.breakpoint.width || sib.frame.dimension.width;
+            if (sib.frame.position.x !== cursorX || sib.frame.position.y !== anchor.y) {
+                void this.updateAndSaveToStorage(sib.frame.id, {
+                    position: { x: cursorX, y: anchor.y },
+                });
+            }
+            cursorX += width + GROUP_GUTTER;
+        }
     }
 
     async updateAndSaveToStorage(frameId: string, frame: Partial<Frame>) {
@@ -289,14 +415,10 @@ export class FramesManager {
     async undebouncedSaveToStorage(frameId: string, frame: Partial<Frame>) {
         try {
             const frameToUpdate = toDbPartialFrame(frame);
-            const success = await api.frame.update.mutate({
+            await api.frame.update.mutate({
                 ...frameToUpdate,
                 id: frameId,
             });
-
-            if (!success) {
-                console.error('Failed to update frame');
-            }
         } catch (error) {
             console.error('Failed to update frame', error);
         }
@@ -306,20 +428,23 @@ export class FramesManager {
         const selectedFrames = this.selected;
 
         if (selectedFrames.length > 0) {
-            // Check if any selected frame is the last frame in its branch
             for (const selectedFrame of selectedFrames) {
                 const branchId = selectedFrame.frame.branchId;
                 const framesInBranch = this.getAll().filter(
                     (frameData) => frameData.frame.branchId === branchId,
                 );
                 if (framesInBranch.length <= 1) {
-                    return false; // Cannot delete if this is the last frame in the branch
+                    return false;
+                }
+                const groupId = selectedFrame.frame.groupId;
+                const groupSize = this.getByGroupId(groupId).length;
+                if (groupSize <= 1) {
+                    return false;
                 }
             }
             return true;
         }
 
-        // Fallback to checking total frames if none are selected
         return this.getAll().length > 1;
     }
 
@@ -347,5 +472,12 @@ export class FramesManager {
         for (const frame of this.selected) {
             await this.delete(frame.frame.id);
         }
+    }
+
+    /**
+     * Default-breakpoint helpers exposed for migration / UI.
+     */
+    static get defaultPresets() {
+        return DEFAULT_BREAKPOINT_PRESETS;
     }
 }

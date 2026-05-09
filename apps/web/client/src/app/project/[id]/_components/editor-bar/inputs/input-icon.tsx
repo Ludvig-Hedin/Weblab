@@ -40,7 +40,7 @@ export const InputIcon = ({ value, unit = 'px', icon, onChange, onUnitChange }: 
             {IconComponent && (
                 <IconComponent className="text-muted-foreground h-5 min-h-5 w-5 min-w-5" />
             )}
-            <div className="bg-background-tertiary/50 flex h-[36px] w-full items-center justify-between rounded-md px-3">
+            <div className="bg-background-tertiary/50 flex h-[36px] w-full items-center justify-between rounded-full px-3">
                 <input
                     type="text"
                     inputMode="decimal"

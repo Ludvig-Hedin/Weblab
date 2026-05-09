@@ -16,6 +16,12 @@ import { WebPreview, WebPreviewBody } from '@weblab/ui/ai-elements';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { useOnlineStatus } from '@/services/offline/online-status';
+import {
+    getPreviewSnapshot,
+    inlinePreloadIntoSnapshot,
+    savePreviewSnapshot,
+} from '@/services/offline/preview-snapshot';
 
 export type IFrameView = HTMLIFrameElement & {
     isPenpalReady: () => boolean;
@@ -101,9 +107,14 @@ export const FrameComponent = observer(
             const zoomLevel = useRef(1);
             const isConnecting = useRef(false);
             const connectionRef = useRef<ReturnType<typeof connect> | null>(null);
-            const [penpalChild, setPenpalChild] = useState<PromisifiedPendpalChildMethods | null>(null);
+            const [penpalChild, setPenpalChild] = useState<PromisifiedPendpalChildMethods | null>(
+                null,
+            );
             const isSelected = editorEngine.frames.isSelected(frame.id);
             const isActiveBranch = editorEngine.branches.activeBranch.id === frame.branchId;
+            const online = useOnlineStatus();
+            const [snapshotHtml, setSnapshotHtml] = useState<string | null>(null);
+            const useSnapshot = !online && !!snapshotHtml;
 
             const setupPenpalConnection = () => {
                 try {
@@ -153,21 +164,31 @@ export const FrameComponent = observer(
                     // own origin. With `'*'` any window holding a reference to
                     // this one (e.g. a popup we opened) could complete the
                     // Penpal handshake and pollute MobX layer-tree state.
-                    let allowedOrigin: string | undefined;
-                    try {
-                        allowedOrigin = new URL(frame.url).origin;
-                    } catch {
-                        // Malformed frame URL — bail out before attaching a messenger
-                        // that would otherwise default to a permissive policy.
-                        console.error(
-                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Invalid frame URL: ${frame.url}`,
-                        );
-                        onConnectionFailed();
-                        return;
+                    //
+                    // Offline / srcdoc carve-out: when we're rendering a
+                    // frozen snapshot via `srcdoc` the iframe origin is
+                    // opaque (`null`). Restrict the allow-list to that
+                    // exact value so we keep the security property without
+                    // falling back to a wildcard.
+                    let allowedOrigins: string[];
+                    if (useSnapshot) {
+                        allowedOrigins = ['null'];
+                    } else {
+                        try {
+                            allowedOrigins = [new URL(frame.url).origin];
+                        } catch {
+                            // Malformed frame URL — bail out before attaching a messenger
+                            // that would otherwise default to a permissive policy.
+                            console.error(
+                                `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Invalid frame URL: ${frame.url}`,
+                            );
+                            onConnectionFailed();
+                            return;
+                        }
                     }
                     const messenger = new WindowMessenger({
                         remoteWindow: iframeRef.current.contentWindow,
-                        allowedOrigins: [allowedOrigin],
+                        allowedOrigins,
                     });
 
                     const connection = connect({
@@ -242,8 +263,7 @@ export const FrameComponent = observer(
                             ]).then((results) => {
                                 const processDomResult = results[3];
                                 if (
-                                    processDomResult &&
-                                    processDomResult.status === 'rejected' &&
+                                    processDomResult?.status === 'rejected' &&
                                     connectionRef.current === connection
                                 ) {
                                     console.warn(
@@ -367,6 +387,9 @@ export const FrameComponent = observer(
                     setCapabilities: promisifyMethod(penpalChild?.setCapabilities),
                     setCmsData: promisifyMethod(penpalChild?.setCmsData),
                     findListAncestorOid: promisifyMethod(penpalChild?.findListAncestorOid),
+                    serializeDocumentForOffline: promisifyMethod(
+                        penpalChild?.serializeDocumentForOffline,
+                    ),
                 };
             }, [penpalChild]);
 
@@ -438,6 +461,61 @@ export const FrameComponent = observer(
                 };
             }, [frame.id, editorEngine.frames]);
 
+            // Hydrate the cached HTML snapshot for this frame on mount so an
+            // offline boot has something to render in `srcdoc`. Updates when
+            // the user toggles online/offline.
+            useEffect(() => {
+                let cancelled = false;
+                void (async () => {
+                    const snap = await getPreviewSnapshot(
+                        editorEngine.projectId,
+                        frame.branchId,
+                        frame.id,
+                    );
+                    if (!cancelled) setSnapshotHtml(snap?.html ?? null);
+                })();
+                return () => {
+                    cancelled = true;
+                };
+            }, [editorEngine.projectId, frame.branchId, frame.id, online]);
+
+            // Capture a frozen snapshot ~3s after each successful penpal
+            // handshake while online. Stored in IndexedDB so the next
+            // offline boot of this project can render it via `srcdoc`.
+            useEffect(() => {
+                if (!online) return;
+                if (!penpalChild) return;
+                const childWithSnapshot = penpalChild as PromisifiedPendpalChildMethods & {
+                    serializeDocumentForOffline?: () => Promise<{
+                        html: string;
+                        baseUrl: string;
+                    } | null>;
+                };
+                if (typeof childWithSnapshot.serializeDocumentForOffline !== 'function') {
+                    return;
+                }
+                const timer = setTimeout(async () => {
+                    try {
+                        const result = await childWithSnapshot.serializeDocumentForOffline?.();
+                        if (!result?.html) return;
+                        // Inline the parent-origin preload bundle so the
+                        // srcdoc iframe boots a penpal child and the editor's
+                        // visual edits keep flowing offline.
+                        const augmented = await inlinePreloadIntoSnapshot(result.html);
+                        await savePreviewSnapshot(
+                            editorEngine.projectId,
+                            frame.branchId,
+                            frame.id,
+                            augmented,
+                            result.baseUrl,
+                        );
+                    } catch (err) {
+                        console.debug('[offline] snapshot capture failed', err);
+                    }
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, [online, penpalChild, editorEngine.projectId, frame.branchId, frame.id]);
+
             return (
                 <WebPreview>
                     <WebPreviewBody
@@ -449,7 +527,14 @@ export const FrameComponent = observer(
                             isActiveBranch && !isSelected && 'outline-dashed',
                             !isActiveBranch && isInDragSelection && 'outline-foreground-brand',
                         )}
-                        src={frame.url}
+                        // Offline + frozen snapshot: render the cached HTML via
+                        // `srcdoc` so the user still sees their site. Penpal
+                        // setup is skipped in that case (no live JS), but the
+                        // visual fidelity is preserved and the editor's
+                        // overlay-based selection still works on the static DOM.
+                        {...(useSnapshot
+                            ? { srcDoc: snapshotHtml ?? undefined }
+                            : { src: frame.url })}
                         sandbox="allow-modals allow-forms allow-same-origin allow-scripts allow-popups allow-downloads"
                         allow="geolocation; microphone; camera; midi; encrypted-media"
                         style={(() => {
@@ -467,7 +552,12 @@ export const FrameComponent = observer(
                             );
                             return { width, height };
                         })()}
-                        onLoad={setupPenpalConnection}
+                        onLoad={() => {
+                            // In srcdoc mode the snapshot HTML has the
+                            // preload bundle inlined (see inlinePreloadIntoSnapshot)
+                            // so penpal should boot just like a normal frame.
+                            setupPenpalConnection();
+                        }}
                         onError={() => {
                             // Notify the restart-sandbox button so it can
                             // surface the warning state and let the user trigger

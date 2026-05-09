@@ -7,86 +7,56 @@ import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 
-enum HandleType {
-    Right = 'right',
-    Bottom = 'bottom',
-}
-
+/**
+ * Width-only resize handle for breakpoint frames.
+ *
+ * Height is auto-driven by the iframe's reported content size (Framer-style:
+ * each breakpoint shows the WHOLE page). Resizing width changes the
+ * frame's `breakpoint.width`, so dragging Desktop from 1200 → 800 redefines
+ * what "Desktop" means for that group. The breakpoint name and override
+ * scope follow it; auto-rename across media-query thresholds is intentional
+ * NOT done here — the user gets a "drifted from preset" hint in the top bar
+ * instead so renames stay user-driven.
+ */
 export const ResizeHandles = observer(
     ({ frame, setIsResizing }: { frame: Frame; setIsResizing: (isResizing: boolean) => void }) => {
         const editorEngine = useEditorEngine();
-        const lockedPreset = false;
 
-        const startResize = (e: MouseEvent, types: HandleType[]) => {
+        const startResize = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
             setIsResizing(true);
 
             const startX = e.clientX;
-            const startY = e.clientY;
-            const startWidth = frame.dimension.width;
-            const startHeight = frame.dimension.height;
-            const aspectRatio = startHeight > 0 ? startWidth / startHeight : 1;
+            const startWidth = frame.breakpoint?.width ?? frame.dimension.width;
+            const minWidth = parseInt(DefaultSettings.MIN_DIMENSIONS.width);
 
-            const resize = (e: globalThis.MouseEvent) => {
+            const resize = (ev: globalThis.MouseEvent) => {
                 const scale = editorEngine.canvas.scale;
-                const widthDelta = types.includes(HandleType.Right)
-                    ? (e.clientX - startX) / scale
-                    : 0;
-                const heightDelta = types.includes(HandleType.Bottom)
-                    ? (e.clientY - startY) / scale
-                    : 0;
-
-                let newWidth = startWidth + widthDelta;
-                let newHeight = startHeight + heightDelta;
-
-                const minWidth = parseInt(DefaultSettings.MIN_DIMENSIONS.width);
-                const minHeight = parseInt(DefaultSettings.MIN_DIMENSIONS.height);
-
-                // Hold Shift while dragging to lock the aspect ratio.
-                const aspectRatioLocked = e.shiftKey;
-
-                if (aspectRatioLocked) {
-                    if (types.includes(HandleType.Right) && !types.includes(HandleType.Bottom)) {
-                        newHeight = newWidth / aspectRatio;
-                    } else if (
-                        !types.includes(HandleType.Right) &&
-                        types.includes(HandleType.Bottom)
-                    ) {
-                        newWidth = newHeight * aspectRatio;
-                    } else {
-                        if (Math.abs(widthDelta) > Math.abs(heightDelta)) {
-                            newHeight = newWidth / aspectRatio;
-                        } else {
-                            newWidth = newHeight * aspectRatio;
-                        }
-                    }
-
-                    if (newWidth < minWidth) {
-                        newWidth = minWidth;
-                        newHeight = newWidth / aspectRatio;
-                    }
-                    if (newHeight < minHeight) {
-                        newHeight = minHeight;
-                        newWidth = newHeight * aspectRatio;
-                    }
-                } else {
-                    newWidth = Math.max(newWidth, minWidth);
-                    newHeight = Math.max(newHeight, minHeight);
-                }
+                const widthDelta = (ev.clientX - startX) / scale;
+                const newWidth = Math.max(minWidth, Math.round(startWidth + widthDelta));
 
                 editorEngine.frames.updateAndSaveToStorage(frame.id, {
-                    dimension: { width: Math.round(newWidth), height: Math.round(newHeight) },
+                    dimension: {
+                        width: newWidth,
+                        height: frame.dimension.height,
+                    },
+                    breakpoint: {
+                        ...frame.breakpoint,
+                        width: newWidth,
+                    },
                 });
                 editorEngine.overlay.undebouncedRefresh();
             };
 
-            const stopResize = (e: globalThis.MouseEvent) => {
-                e.preventDefault();
-                e.stopPropagation();
+            const stopResize = (ev: globalThis.MouseEvent) => {
+                ev.preventDefault();
+                ev.stopPropagation();
                 setIsResizing(false);
                 window.removeEventListener('mousemove', resize);
                 window.removeEventListener('mouseup', stopResize);
+                // Repack siblings to the right of this frame after the drag settles.
+                editorEngine.frames.repackGroup(frame.groupId);
             };
 
             window.addEventListener('mousemove', resize);
@@ -94,38 +64,16 @@ export const ResizeHandles = observer(
         };
 
         return (
-            <div
-                className={cn(
-                    'visible absolute inset-0 min-w-0 opacity-40 transition hover:opacity-60',
-                    lockedPreset && 'hover:opacity-40',
-                )}
-            >
-                <div
-                    className={cn(
-                        'absolute -bottom-10 flex h-10 w-full items-center justify-center',
-                        lockedPreset ? 'cursor-not-allowed' : 'cursor-s-resize',
-                    )}
-                    onMouseDown={(e) => startResize(e, [HandleType.Bottom])}
-                >
-                    <div className="bg-foreground-primary/80 h-1 w-48 rounded"></div>
-                </div>
+            <div className="visible absolute inset-0 min-w-0 opacity-40 transition hover:opacity-60">
                 <div
                     className={cn(
                         'absolute -right-10 flex h-full w-10 items-center justify-center',
-                        lockedPreset ? 'cursor-not-allowed' : 'cursor-e-resize',
+                        'cursor-e-resize',
                     )}
-                    onMouseDown={(e) => startResize(e, [HandleType.Right])}
+                    onMouseDown={(e) => startResize(e)}
+                    title="Drag to change this breakpoint's width"
                 >
                     <div className="bg-foreground-primary/80 h-48 w-1 rounded"></div>
-                </div>
-                <div
-                    className={cn(
-                        'absolute -right-10 -bottom-10 flex h-10 w-10 items-center justify-center',
-                        lockedPreset ? 'cursor-not-allowed' : 'cursor-se-resize',
-                    )}
-                    onMouseDown={(e) => startResize(e, [HandleType.Right, HandleType.Bottom])}
-                >
-                    <div className="bg-foreground-primary/80 h-2 w-2 rounded"></div>
                 </div>
             </div>
         );
