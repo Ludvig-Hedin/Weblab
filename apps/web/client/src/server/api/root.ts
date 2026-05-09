@@ -16,6 +16,7 @@ import {
     publishRouter,
     sandboxRouter,
     settingsRouter,
+    skillsRouter,
     subscriptionRouter,
     usageRouter,
     userCanvasRouter,
@@ -51,6 +52,7 @@ export const appRouter = createTRPCRouter({
     usage: usageRouter,
     publish: publishRouter,
     forward: editorForwardRouter,
+    skills: skillsRouter,
 });
 
 // export type definition of API

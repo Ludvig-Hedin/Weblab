@@ -46,14 +46,14 @@ export default function FeaturesPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Features Summary">
-                    <h1>Weblab Features: Design with Your Real Components</h1>
+                    <h2>Weblab Features: Design with Your Real Components</h2>
                     <p>
                         Weblab is a visual design canvas that connects to your existing codebase.
                         Design with your real components on an infinite canvas. AI is constrained to
                         your design system — no brand drift, no throwaway code. Changes become
                         mergeable pull requests.
                     </p>
-                    <h2>Key Features</h2>
+                    <h3>Key Features</h3>
                     <ul>
                         <li>
                             Your Real Components — design with the buttons, cards, and layouts your

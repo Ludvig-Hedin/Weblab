@@ -73,7 +73,7 @@ function VibeCodingHero() {
                 >
                     Vibe Coding for Teams
                 </motion.p>
-                <motion.p
+                <motion.h1
                     className="text-center text-4xl !leading-[1] leading-tight font-light text-balance md:text-6xl"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
@@ -81,7 +81,7 @@ function VibeCodingHero() {
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
                     Vibe coding has a collaboration problem
-                </motion.p>
+                </motion.h1>
                 <motion.p
                     className="text-foreground-secondary mx-auto max-w-xl text-center text-lg"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
@@ -131,7 +131,7 @@ export default function VibeCodingWorkflowPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Vibe Coding Workflow Summary">
-                    <h1>Vibe Coding for Teams: Add Collaboration to Your AI Coding Workflow</h1>
+                    <h2>Vibe Coding for Teams: Add Collaboration to Your AI Coding Workflow</h2>
                     <p>
                         Vibe coding — describing what you want and letting AI generate the code — is
                         powerful but has a collaboration problem. Most AI coding tools are solo
@@ -139,14 +139,14 @@ export default function VibeCodingWorkflowPage() {
                         real-time, or ensure outputs match your design system. {APP_NAME} solves
                         this.
                     </p>
-                    <h2>The Problem with Solo Vibe Coding</h2>
+                    <h3>The Problem with Solo Vibe Coding</h3>
                     <ul>
                         <li>Solo workflow — hard to share work-in-progress with teammates</li>
                         <li>Throwaway code — doesn't use your real components</li>
                         <li>Brand drift — AI generates generic HTML/CSS, not your design system</li>
                         <li>No handoff path — "now how do I share this?" becomes a blocker</li>
                     </ul>
-                    <h2>{APP_NAME} Makes Vibe Coding Work for Teams</h2>
+                    <h3>{APP_NAME} Makes Vibe Coding Work for Teams</h3>
                     <ul>
                         <li>Visual canvas — see and arrange AI-generated UIs spatially</li>
                         <li>Your real components — AI constrained to your design system</li>

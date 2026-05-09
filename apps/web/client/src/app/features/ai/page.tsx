@@ -46,14 +46,14 @@ export default function AiFeaturesPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="AI Features Summary">
-                    <h1>Weblab AI Visual Editor: Build UIs with AI Using Your Design System</h1>
+                    <h2>Weblab AI Visual Editor: Build UIs with AI Using Your Design System</h2>
                     <p>
                         Weblab is an AI-powered visual editor that builds frontend UIs using your
                         real React, Vue, or Angular components. Unlike generic AI code generators,
                         Weblab constrains AI to your design system — your buttons, cards, and
                         layouts. Changes become mergeable PRs, not throwaway prototypes.
                     </p>
-                    <h2>Key AI Features</h2>
+                    <h3>Key AI Features</h3>
                     <ul>
                         <li>
                             AI constrained to your design system — no brand drift, no off-brand

@@ -26,6 +26,7 @@ import { ProjectTab } from './project';
 import { ShortcutsTab } from './shortcuts-tab';
 import { SiteTab } from './site';
 import { PageTab } from './site/page';
+import { SkillsTab } from './skills-tab';
 import { SubscriptionTab } from './subscription-tab';
 import { VersionsTab } from './versions';
 
@@ -88,6 +89,11 @@ export const SettingsModalWithProjects = observer(() => {
             label: SettingsTabValue.AI,
             icon: <Icons.Sparkles className="mr-2 h-4 w-4" />,
             component: <AITab />,
+        },
+        {
+            label: SettingsTabValue.SKILLS,
+            icon: <Icons.Brand className="mr-2 h-4 w-4" />,
+            component: <SkillsTab projectId={editorEngine.projectId} />,
         },
         {
             label: SettingsTabValue.SHORTCUTS,

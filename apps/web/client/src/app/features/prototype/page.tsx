@@ -36,7 +36,7 @@ function PrototypeFeaturesHero() {
                 >
                     AI Prototype Generator
                 </motion.p>
-                <motion.p
+                <motion.h1
                     className="text-center text-4xl !leading-[1] leading-tight font-light text-balance md:text-6xl"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
@@ -44,7 +44,7 @@ function PrototypeFeaturesHero() {
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
                     From Idea to Interactive Prototype in Minutes
-                </motion.p>
+                </motion.h1>
                 <motion.p
                     className="text-foreground-secondary mx-auto max-w-xl text-center text-lg"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
@@ -301,16 +301,16 @@ export default function PrototypeFeaturesPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="AI Prototype Generator Summary">
-                    <h1>
+                    <h2>
                         Weblab AI Prototype Generator: From Idea to Interactive Prototype in Minutes
-                    </h1>
+                    </h2>
                     <p>
                         Weblab generates functional React prototypes with real interactions,
                         databases, and working features — not static mockups. Perfect for product
                         managers and designers who need rapid prototyping tools that generate
                         production-ready code.
                     </p>
-                    <h2>Key Prototyping Features</h2>
+                    <h3>Key Prototyping Features</h3>
                     <ul>
                         <li>AI-powered prototype generation from natural language</li>
                         <li>
@@ -324,7 +324,7 @@ export default function PrototypeFeaturesPage() {
                         <li>Version history and rollback</li>
                         <li>Team sharing and real-time collaboration</li>
                     </ul>
-                    <h2>Use Cases</h2>
+                    <h3>Use Cases</h3>
                     <ul>
                         <li>Rapid product validation with working prototypes</li>
                         <li>User testing with interactive applications</li>

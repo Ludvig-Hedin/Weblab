@@ -49,22 +49,22 @@ export default function AboutPage() {
         <WebsiteLayout showFooter={true}>
             {/* AI-Friendly Summary Section */}
             <section className="sr-only" aria-label="About Weblab Summary">
-                <h1>About Weblab: The Visual Editor for React</h1>
+                <h2>About Weblab: The Visual Editor for React</h2>
                 <p>
                     Weblab was founded to obliterate the divide between creativity and
                     implementation. We're building a bridge between designers and developers — a
                     visual editor that works with your real React components. AI is constrained to
                     your design system. Changes become mergeable pull requests.
                 </p>
-                <h2>Company Facts</h2>
+                <h3>Company Facts</h3>
                 <ul>
                     <li>Based in Sweden</li>
                 </ul>
-                <h2>Founder</h2>
+                <h3>Founder</h3>
                 <ul>
                     <li>Ludvig Hedin — Founder.</li>
                 </ul>
-                <h2>Our Values</h2>
+                <h3>Our Values</h3>
                 <ul>
                     <li>
                         Speed — Setting an olympic pace, relentlessness, strategy through execution.
@@ -85,14 +85,14 @@ export default function AboutPage() {
                 {/* Hero Section */}
                 <section className="text-foreground-primary bg-black py-64">
                     <div className="mx-auto max-w-6xl px-8">
-                        <motion.h2
+                        <motion.h1
                             className="mb-8 text-left text-6xl !leading-[1]"
                             {...getBlurAnimationProps()}
                         >
                             Design deserves
                             <br />
                             better tools
-                        </motion.h2>
+                        </motion.h1>
 
                         <motion.div className="max-w-lg text-left" {...getBlurAnimationProps(0.2)}>
                             <p className="md:text-large text-foreground-secondary max-w-lg text-left text-lg font-light text-balance md:max-w-none">

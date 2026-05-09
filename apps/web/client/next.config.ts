@@ -86,6 +86,11 @@ const nextConfig: NextConfig = {
             // Two rules: an explicit '/' rule (Next's named-param `:path` does
             // not match the empty path) and a wildcard rule for everything else
             // that the negative-lookahead allows.
+            //
+            // Vary: Cookie ensures shared caches (Cloudflare, browsers) key the
+            // cached HTML by Cookie header. Anonymous visitors share one cached
+            // copy; visitors with a session cookie get an origin response. This
+            // prevents serving authenticated-state HTML to anonymous users.
             {
                 source: '/',
                 headers: [
@@ -93,6 +98,7 @@ const nextConfig: NextConfig = {
                         key: 'Cache-Control',
                         value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
                     },
+                    { key: 'Vary', value: 'Cookie, Accept-Encoding' },
                 ],
             },
             {
@@ -103,6 +109,7 @@ const nextConfig: NextConfig = {
                         key: 'Cache-Control',
                         value: 'public, max-age=0, s-maxage=600, stale-while-revalidate=86400',
                     },
+                    { key: 'Vary', value: 'Cookie, Accept-Encoding' },
                 ],
             },
         ];

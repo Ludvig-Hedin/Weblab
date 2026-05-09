@@ -64,9 +64,9 @@ export default function ClaudeCodeWorkflowPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Claude Code Workflow Summary">
-                    <h1>
+                    <h2>
                         Claude Code for Designers: Add a Visual Canvas to Your AI Coding Workflow
-                    </h1>
+                    </h2>
                     <p>
                         Claude Code is amazing for building — but designers need to see, arrange,
                         and refine visually.
@@ -74,14 +74,14 @@ export default function ClaudeCodeWorkflowPage() {
                         infinite canvas, ship PRs. Together, they give you a complete design-to-code
                         workflow.
                     </p>
-                    <h2>The Challenge with Claude Code Alone</h2>
+                    <h3>The Challenge with Claude Code Alone</h3>
                     <ul>
                         <li>Terminal-based — not a visual environment designers are used to</li>
                         <li>Solo workflow — hard to share work-in-progress with teammates</li>
                         <li>AI drift — raw AI generation doesn't know your design system</li>
                         <li>No canvas — can't spatially arrange ideas or see the full picture</li>
                     </ul>
-                    <h2>{APP_NAME} Solves This</h2>
+                    <h3>{APP_NAME} Solves This</h3>
                     <ul>
                         <li>
                             Infinite canvas — visual environment with real code running underneath
@@ -97,7 +97,7 @@ export default function ClaudeCodeWorkflowPage() {
                         <li>PR output — changes become real pull requests engineers can review</li>
                         <li>AI constrained — outputs match your design system, no drift</li>
                     </ul>
-                    <h2>Coming Soon: {APP_NAME} MCP for Claude Code</h2>
+                    <h3>Coming Soon: {APP_NAME} MCP for Claude Code</h3>
                     <p>
                         Use /weblab directly in Claude Code to open your UI in a visual canvas,
                         iterate with your design system, and push changes back — all without leaving

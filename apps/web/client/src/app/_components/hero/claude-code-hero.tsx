@@ -23,7 +23,7 @@ export function ClaudeCodeHero() {
                 >
                     Workflows
                 </motion.p>
-                <motion.p
+                <motion.h1
                     className="text-center text-4xl !leading-[1.1] leading-tight font-light text-balance md:text-6xl"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
@@ -31,7 +31,7 @@ export function ClaudeCodeHero() {
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
                     Claude Code for Designers
-                </motion.p>
+                </motion.h1>
                 <motion.h2
                     className="text-foreground-secondary mx-auto max-w-xl text-center text-lg text-balance"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}

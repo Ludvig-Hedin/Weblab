@@ -1,5 +1,6 @@
 import { type NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 
 import type { ChatMessage, ChatMetadata, ChatModel, ProjectFrameworkId } from '@weblab/models';
 import {
@@ -50,6 +51,15 @@ function isValidChatModel(model: string): boolean {
     const name = model.slice('ollama/'.length);
     return name.length > 0 && OLLAMA_NAME_RE.test(name);
 }
+
+const ChatRequestBodySchema = z.object({
+    messages: z.array(z.any()).min(1),
+    chatType: z.nativeEnum(ChatType),
+    conversationId: z.string().min(1),
+    projectId: z.string().min(1),
+    model: z.string().optional(),
+    ollamaBaseUrl: z.string().optional(),
+});
 
 export async function POST(req: NextRequest) {
     try {
@@ -105,15 +115,36 @@ export async function POST(req: NextRequest) {
 }
 
 export const streamResponse = async (req: NextRequest, userId: string) => {
-    const body = (await req.json()) as {
-        messages: ChatMessage[];
-        chatType: ChatType;
-        conversationId: string;
-        projectId: string;
+    let parsedBody: z.infer<typeof ChatRequestBodySchema>;
+    try {
+        parsedBody = ChatRequestBodySchema.parse(await req.json());
+    } catch (err) {
+        return new Response(
+            JSON.stringify({
+                error: err instanceof Error ? err.message : 'Invalid request body',
+                code: 400,
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } },
+        );
+    }
+    const messages = parsedBody.messages as ChatMessage[];
+    const { chatType, conversationId, projectId } = parsedBody;
+    const body = parsedBody as Omit<z.infer<typeof ChatRequestBodySchema>, 'model'> & {
         model?: ChatModel;
-        ollamaBaseUrl?: string;
     };
-    const { messages, chatType, conversationId, projectId } = body;
+
+    // Verify project access BEFORE any work or usage increment. The
+    // serverToolContext below trusts projectId to scope server-side tools, so
+    // this check is the contract that makes that trust safe.
+    try {
+        await api.project.get({ projectId });
+    } catch (err) {
+        console.warn('[chat] project access denied', err);
+        return new Response(JSON.stringify({ error: 'Forbidden', code: 403 }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
 
     // Launch memory search concurrently with model validation so it doesn't add latency.
     // Extract only the <instruction> text from the hydrated user message — the parts
@@ -130,8 +161,8 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         : Promise.resolve([]);
     // Fetch the project's framework concurrently with memories so the system
     // prompt can be calibrated to the actual stack (Next.js vs static HTML).
-    // Failures are non-fatal — we fall back to the React/Next.js prompt, which
-    // matches pre-multi-framework behavior.
+    // Project access is already verified above; the framework lookup tolerates
+    // failure (falls back to the React/Next.js prompt).
     const frameworkPromise: Promise<ProjectFrameworkId | null> = api.project
         .get({ projectId })
         .then((p) => p?.metadata.runtime?.framework ?? null)
@@ -196,7 +227,11 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         }
         // Await memories, framework, and skills — all kicked off concurrently
         // with model validation above. Each defaults safely on failure.
-        const skillsPromise = loadSkillSummaries().catch((err) => {
+        const skillsPromise = loadSkillSummaries({
+            userId,
+            projectId,
+            trpcCaller: api,
+        }).catch((err) => {
             console.warn('[chat] failed to load Agent Skills, continuing without them', err);
             return [];
         });

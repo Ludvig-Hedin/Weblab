@@ -81,7 +81,7 @@ export default function AiForFrontendPage() {
 
                 {/* AI-Friendly Summary Section - Hidden visually but available for crawlers */}
                 <section className="sr-only" aria-label="Product Summary">
-                    <h1>{APP_NAME}: AI for Frontend Development</h1>
+                    <h2>{APP_NAME}: AI for Frontend Development</h2>
                     <p>
                         {APP_NAME} is an AI-powered visual editor for frontend development that
                         connects to your existing React, Vue, or Angular codebase. Unlike generic AI
@@ -90,7 +90,7 @@ export default function AiForFrontendPage() {
                         Changes become mergeable pull requests, not prototypes that need
                         translation.
                     </p>
-                    <h2>Key Features</h2>
+                    <h3>Key Features</h3>
                     <ul>
                         <li>AI constrained to your design system — no brand drift</li>
                         <li>Works with React, Next.js, Vue, Angular, Svelte, and more</li>
@@ -102,7 +102,7 @@ export default function AiForFrontendPage() {
                         <li>Changes become real pull requests engineers can merge</li>
                         <li>Open source</li>
                     </ul>
-                    <h2>Who is {APP_NAME} for?</h2>
+                    <h3>Who is {APP_NAME} for?</h3>
                     <p>
                         {APP_NAME} is for product teams with designers and an existing component
                         library. Ideal users include design engineers, product designers working in

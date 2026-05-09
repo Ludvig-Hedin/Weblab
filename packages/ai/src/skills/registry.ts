@@ -2,14 +2,39 @@ import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-import type { SkillInfo, SkillSummary } from './types';
+import type { SkillInfo, SkillScope, SkillSummary } from './types';
 import { EMBEDDED_SKILLS } from './embedded';
 
 declare global {
-    var __weblabSkillsCache: { skills: SkillInfo[]; expiresAt: number } | undefined;
+    var __weblabSkillsCache: Map<string, { skills: SkillInfo[]; expiresAt: number }> | undefined;
 }
 
 const SKILLS_CACHE_TTL_MS = 60 * 1000;
+const SKILLS_CACHE_MAX = 200;
+
+const cacheByScope: Map<string, { skills: SkillInfo[]; expiresAt: number }> = (() => {
+    if (globalThis.__weblabSkillsCache) return globalThis.__weblabSkillsCache;
+    const fresh = new Map<string, { skills: SkillInfo[]; expiresAt: number }>();
+    globalThis.__weblabSkillsCache = fresh;
+    return fresh;
+})();
+
+function scopeCacheKey(scope: SkillScope | undefined): string {
+    if (!scope?.userId) return 'local-only';
+    return `${scope.userId}:${scope.projectId ?? 'global'}`;
+}
+
+function evictExpired() {
+    const now = Date.now();
+    for (const [key, entry] of cacheByScope) {
+        if (entry.expiresAt < now) cacheByScope.delete(key);
+    }
+    while (cacheByScope.size > SKILLS_CACHE_MAX) {
+        const oldest = cacheByScope.keys().next().value;
+        if (!oldest) break;
+        cacheByScope.delete(oldest);
+    }
+}
 
 /**
  * Walk up from `process.cwd()` looking for a parent directory that contains
@@ -92,47 +117,110 @@ async function loadFromFilesystem(): Promise<SkillInfo[] | null> {
     return Promise.all(skillFiles.map((f) => readSkillFile(f.path, f.name)));
 }
 
+interface DbSkillRow {
+    id: string;
+    userId: string;
+    projectId: string | null;
+    name: string;
+    description: string;
+    content: string;
+    enabled: boolean;
+}
+
+interface SkillsCallerLike {
+    skills: {
+        list: {
+            query: (input: {
+                projectId?: string;
+                scope?: 'all' | 'global' | 'project';
+            }) => Promise<DbSkillRow[]>;
+        };
+    };
+}
+
+async function loadFromDb(scope: SkillScope): Promise<SkillInfo[]> {
+    if (!scope.userId || !scope.trpcCaller) return [];
+    try {
+        const caller = scope.trpcCaller as SkillsCallerLike;
+        const rows = await caller.skills.list.query({
+            ...(scope.projectId ? { projectId: scope.projectId } : {}),
+            scope: 'all',
+        });
+        return rows
+            .filter((r) => r.enabled)
+            .map((r) => ({
+                name: r.name,
+                description: r.description,
+                content: r.content,
+                location: `<db>/${r.projectId ?? 'global'}/${r.name}`,
+            }));
+    } catch (err) {
+        console.warn('[skills] failed to load DB skills, continuing without them', err);
+        return [];
+    }
+}
+
+/**
+ * Merge skills from multiple sources by `name`. Higher-priority sources
+ * (later in the input list) override same-named entries from earlier
+ * sources. The final array is sorted by name.
+ */
+function mergeByName(...sources: SkillInfo[][]): SkillInfo[] {
+    const byName = new Map<string, SkillInfo>();
+    for (const source of sources) {
+        for (const skill of source) {
+            byName.set(skill.name, skill);
+        }
+    }
+    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /**
  * Discover Agent Skills.
  *
- * Resolution order:
- *  1. Filesystem walk above `process.cwd()` for a `skills/` directory.
- *     Used during local development so editing a SKILL.md is picked up
- *     on the next chat turn without re-running codegen.
- *  2. Compiled-in `EMBEDDED_SKILLS` produced by `bun run generate:skills`.
- *     This is the production fallback — Railway / any host that doesn't
- *     ship `skills/` outside the app bundle still gets the full set.
+ * Resolution order (highest-priority overrides same-named lower-priority):
+ *  1. DB skill scoped to (userId, projectId) — when scope.projectId set.
+ *  2. DB skill scoped to (userId, project_id IS NULL) — user-global.
+ *  3. Filesystem walk above process.cwd() — dev hot-iteration.
+ *  4. EMBEDDED_SKILLS — built-in baseline, always present.
  *
- * Cached on globalThis with a 60s TTL so production chats don't re-walk
- * the filesystem on every turn.
+ * Cached on globalThis with a 60 s TTL keyed by user/project so concurrent
+ * users don't poison each other's cache.
  */
-export async function loadSkills(): Promise<SkillInfo[]> {
-    const cached = globalThis.__weblabSkillsCache;
-    if (cached && cached.expiresAt > Date.now()) {
+export async function loadSkills(scope?: SkillScope): Promise<SkillInfo[]> {
+    const key = scopeCacheKey(scope);
+    const now = Date.now();
+    const cached = cacheByScope.get(key);
+    if (cached && cached.expiresAt > now) {
         return cached.skills;
     }
 
-    const fromFs = await loadFromFilesystem().catch(() => null);
-    const skills = fromFs ?? (EMBEDDED_SKILLS as SkillInfo[]);
-    globalThis.__weblabSkillsCache = {
-        skills,
-        expiresAt: Date.now() + SKILLS_CACHE_TTL_MS,
-    };
+    const fromFs = (await loadFromFilesystem().catch(() => null)) ?? [];
+    const fromDb = scope ? await loadFromDb(scope) : [];
+
+    // Split DB rows so project rows beat user-global rows on name collisions.
+    const dbGlobal = fromDb.filter((s) => s.location.startsWith('<db>/global/'));
+    const dbProject = fromDb.filter((s) => !s.location.startsWith('<db>/global/'));
+
+    const skills = mergeByName(EMBEDDED_SKILLS as SkillInfo[], fromFs, dbGlobal, dbProject);
+
+    evictExpired();
+    cacheByScope.set(key, { skills, expiresAt: now + SKILLS_CACHE_TTL_MS });
     return skills;
 }
 
 /** Test/dev helper to force a re-scan on the next call. */
 export function invalidateSkillsCache(): void {
-    globalThis.__weblabSkillsCache = undefined;
+    cacheByScope.clear();
 }
 
-export async function loadSkillSummaries(): Promise<SkillSummary[]> {
-    const skills = await loadSkills();
+export async function loadSkillSummaries(scope?: SkillScope): Promise<SkillSummary[]> {
+    const skills = await loadSkills(scope);
     return skills.map(({ name, description }) => ({ name, description }));
 }
 
-export async function loadSkillByName(name: string): Promise<SkillInfo | null> {
-    const skills = await loadSkills();
+export async function loadSkillByName(name: string, scope?: SkillScope): Promise<SkillInfo | null> {
+    const skills = await loadSkills(scope);
     return skills.find((s) => s.name === name) ?? null;
 }
 

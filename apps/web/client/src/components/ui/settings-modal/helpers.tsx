@@ -5,6 +5,7 @@ export enum SettingsTabValue {
     LANGUAGE = 'language',
     EDITOR = 'editor',
     AI = 'ai',
+    SKILLS = 'skills',
     SHORTCUTS = 'shortcuts',
     GITHUB = 'github',
     GIT = 'git',

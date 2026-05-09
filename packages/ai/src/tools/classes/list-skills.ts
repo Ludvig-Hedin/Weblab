@@ -16,8 +16,12 @@ export class ListSkillsTool extends ServerTool {
     static readonly provider = 'local';
     static readonly requiresProject = false;
 
-    static async execute(_input: object, _ctx: ServerToolContext) {
-        const summaries = await loadSkillSummaries();
+    static async execute(_input: object, ctx: ServerToolContext) {
+        const summaries = await loadSkillSummaries({
+            userId: ctx.userId,
+            projectId: ctx.projectId,
+            trpcCaller: ctx.trpcCaller,
+        });
         return { skills: summaries };
     }
 

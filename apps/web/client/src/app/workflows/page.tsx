@@ -60,17 +60,17 @@ export default function WorkflowsPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Workflows Summary">
-                    <h1>
+                    <h2>
                         {APP_NAME} Workflows: Integrate with Claude Code, Cursor, and AI Coding
                         Tools
-                    </h1>
+                    </h2>
                     <p>
                         {APP_NAME} adds a visual design layer to your AI coding workflow. Connect{' '}
                         {APP_NAME} to the tools you already use — Claude Code, Cursor, and more.
                         Design visually with your real components, collaborate with your team in
                         real-time, and ship changes as mergeable pull requests.
                     </p>
-                    <h2>Available Integrations</h2>
+                    <h3>Available Integrations</h3>
                     <ul>
                         <li>
                             Claude Code — The visual canvas your AI workflow is missing. Claude Code
@@ -83,7 +83,7 @@ export default function WorkflowsPage() {
                         <li>Cursor — Visual design layer for Cursor users (coming soon)</li>
                         <li>Codex — Visual design layer for OpenAI Codex users (coming soon)</li>
                     </ul>
-                    <h2>Key Benefits</h2>
+                    <h3>Key Benefits</h3>
                     <ul>
                         <li>
                             Visual canvas for AI-generated UIs — see and arrange your code spatially
@@ -114,7 +114,7 @@ export default function WorkflowsPage() {
                         >
                             Workflows
                         </motion.p>
-                        <motion.p
+                        <motion.h1
                             className="text-center text-4xl !leading-[1.1] leading-tight font-light text-balance md:text-6xl"
                             initial={{ opacity: 0, filter: 'blur(4px)' }}
                             animate={{ opacity: 1, filter: 'blur(0px)' }}
@@ -122,7 +122,7 @@ export default function WorkflowsPage() {
                             style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                         >
                             {APP_NAME} fits into your stack
-                        </motion.p>
+                        </motion.h1>
                         <motion.h2
                             className="text-foreground-secondary mx-auto max-w-xl text-center text-lg text-balance"
                             initial={{ opacity: 0, filter: 'blur(4px)' }}

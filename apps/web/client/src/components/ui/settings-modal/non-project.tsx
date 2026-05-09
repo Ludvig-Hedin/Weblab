@@ -18,6 +18,7 @@ import { GitHubTab } from './github-tab';
 import { SettingsTabValue } from './helpers';
 import { LanguageTab } from './language-tab';
 import { ShortcutsTab } from './shortcuts-tab';
+import { SkillsTab } from './skills-tab';
 import { SubscriptionTab } from './subscription-tab';
 
 export const NonProjectSettingsModal = observer(() => {
@@ -48,6 +49,11 @@ export const NonProjectSettingsModal = observer(() => {
             label: SettingsTabValue.AI,
             icon: <Icons.Sparkles className="mr-2 h-4 w-4" />,
             component: <AITab />,
+        },
+        {
+            label: SettingsTabValue.SKILLS,
+            icon: <Icons.Brand className="mr-2 h-4 w-4" />,
+            component: <SkillsTab />,
         },
         {
             label: SettingsTabValue.SHORTCUTS,

@@ -23,9 +23,13 @@ export class ReadSkillTool extends ServerTool {
     static readonly provider = 'local';
     static readonly requiresProject = false;
 
-    static async execute(input: object, _ctx: ServerToolContext) {
+    static async execute(input: object, ctx: ServerToolContext) {
         const args = ReadSkillTool.parameters.parse(input);
-        const skill = await loadSkillByName(args.name);
+        const skill = await loadSkillByName(args.name, {
+            userId: ctx.userId,
+            projectId: ctx.projectId,
+            trpcCaller: ctx.trpcCaller,
+        });
         if (!skill) {
             throw new Error(`Skill "${args.name}" not found. Call list_skills first.`);
         }

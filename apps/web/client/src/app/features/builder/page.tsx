@@ -48,14 +48,14 @@ export default function BuilderFeaturesPage() {
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
                 <section className="sr-only" aria-label="Visual Builder Summary">
-                    <h1>{APP_NAME} Visual Builder: Design with Your Real React Components</h1>
+                    <h2>{APP_NAME} Visual Builder: Design with Your Real React Components</h2>
                     <p>
                         {APP_NAME} is a visual builder that works with your existing codebase.
                         Design with your real React, Vue, or Angular components on an infinite
                         canvas. What you design IS the code — changes become mergeable pull
                         requests, not static mockups.
                     </p>
-                    <h2>Key Builder Features</h2>
+                    <h3>Key Builder Features</h3>
                     <ul>
                         <li>Infinite canvas for visual design with real code underneath</li>
                         <li>Works with your existing codebase — no rebuild required</li>

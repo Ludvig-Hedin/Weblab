@@ -13,6 +13,7 @@ export * from './github';
 export * from './project';
 export * from './provider';
 export * from './publish';
+export * from './skill';
 export * from './subscription';
 export * from './usage';
 export * from './user';

@@ -13,6 +13,24 @@ export interface SkillSummary {
 export interface SkillInfo extends SkillSummary {
     /** Full markdown body (after frontmatter is stripped). */
     content: string;
-    /** Absolute path to the SKILL.md on disk. */
+    /** Where the skill came from. Filesystem paths for fs skills, sentinels
+     *  like `<embedded>/...` or `<db>/...` for the other sources. */
     location: string;
+}
+
+/**
+ * Per-request scope passed to `loadSkills` so the loader can fetch DB-backed
+ * user/project skills in addition to the always-on filesystem + embedded
+ * sources. When `userId` is omitted the loader stays local-only (matches
+ * the pre-DB behavior so non-chat callers keep working).
+ *
+ * `trpcCaller` is the per-request authenticated tRPC caller (typeof
+ * `api` from `@/trpc/server`). Typed as `unknown` here because packages/ai
+ * cannot depend on the web app's AppRouter type — the loader narrows at
+ * the use site.
+ */
+export interface SkillScope {
+    userId?: string;
+    projectId?: string | null;
+    trpcCaller?: unknown;
 }

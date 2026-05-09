@@ -5,6 +5,7 @@ export * from './comment';
 export * from './domain';
 export * from './feedback';
 export * from './project';
+export * from './skill';
 export * from './subscription';
 export * from './supabase';
 export * from './user';

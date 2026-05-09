@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 interface ContactLinkProps {
     user: string;
@@ -11,40 +11,58 @@ interface ContactLinkProps {
 }
 
 /**
- * Renders an email contact link without ever placing a static `mailto:`
- * substring in the SSR HTML. Cloudflare's "Email Address Obfuscation"
- * Scrape Shield rewrites any `mailto:user@host` it detects to
- * `/cdn-cgi/l/email-protection`, which 404s on this zone.
+ * Renders a contact "link" without ever placing a static `mailto:`
+ * substring or plain `user@domain` pair in the SSR HTML. Cloudflare's
+ * "Email Address Obfuscation" Scrape Shield rewrites any `mailto:user@host`
+ * (and adjacent plain emails) it detects to `/cdn-cgi/l/email-protection`,
+ * which 404s on this zone.
  *
- * SSR markup: <a href="#" data-mu data-md>Contact</a> (no `mailto:`).
- * After hydration: real `mailto:` href is wired up and click is native.
- * Pre-hydration click: handler builds the address at runtime and navigates.
+ * Implementation notes:
+ *  - Renders a `<button>` styled as a link rather than an `<a href="#">`,
+ *    so a pre-hydration native click is a no-op (no scroll-to-top).
+ *  - The user/domain parts are base64-encoded at render time and shipped
+ *    as `data-u` / `data-d`, which Cloudflare's email regex does not
+ *    recognise as an email and which casual scrapers do not parse.
+ *  - The `mailto:` literal is built at click time from concatenated
+ *    fragments, so it never appears in the static HTML payload.
  */
 export function ContactLink({ user, domain, className, title, children }: ContactLinkProps) {
-    const [href, setHref] = useState<string | undefined>(undefined);
+    // Base64-encode at render time. atob/btoa exist on the server during SSR
+    // via Node 16+; safe in both environments.
+    const encodedUser = encode(user);
+    const encodedDomain = encode(domain);
 
-    useEffect(() => {
-        setHref(`${'mai' + 'lto:'}${user}${'@'}${domain}`);
-    }, [user, domain]);
+    const onClick = useCallback(() => {
+        const u = decode(encodedUser);
+        const d = decode(encodedDomain);
+        const scheme = 'mai' + 'lto' + ':';
+        window.location.href = `${scheme}${u}${'@'}${d}`;
+    }, [encodedUser, encodedDomain]);
 
     return (
-        <a
-            href={href ?? '#contact'}
-            data-mu={user}
-            data-md={domain}
-            onClick={(e) => {
-                if (!href) {
-                    e.preventDefault();
-                    const target = e.currentTarget;
-                    const u = target.getAttribute('data-mu') ?? user;
-                    const d = target.getAttribute('data-md') ?? domain;
-                    window.location.href = `${'mai' + 'lto:'}${u}${'@'}${d}`;
-                }
-            }}
+        <button
+            type="button"
+            data-u={encodedUser}
+            data-d={encodedDomain}
+            onClick={onClick}
             className={className}
             title={title}
         >
             {children}
-        </a>
+        </button>
     );
+}
+
+function encode(value: string): string {
+    if (typeof globalThis.btoa === 'function') {
+        return globalThis.btoa(value);
+    }
+    return Buffer.from(value, 'utf-8').toString('base64');
+}
+
+function decode(value: string): string {
+    if (typeof globalThis.atob === 'function') {
+        return globalThis.atob(value);
+    }
+    return Buffer.from(value, 'base64').toString('utf-8');
 }
