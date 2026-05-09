@@ -68,7 +68,10 @@ Prerequisite for the AI tool system rollout (registry, image gen/edit, server-si
 
 ### Agent Skills
 
-- **No `skills/` directory at the repo root** (verified — `ls skills` → `No such file or directory`).
+- **`skills/` directory now exists at the repo root** with starter skills: seo, frontend-design, accessibility, performance.
+- **Production loading is zero-config**: a build-time codegen (`bun run generate:skills` from `packages/ai`) scans `skills/*/SKILL.md` and emits `packages/ai/src/skills/embedded.ts`. Wired into `apps/web/client`'s `prebuild` script so Railway picks it up automatically.
+- **Dev hot-iteration**: `loadSkills()` first walks up from cwd looking for a `skills/` dir (catches edits without regen); falls through to `EMBEDDED_SKILLS` when nothing is found.
+- **No env vars** required to enable Agent Skills.
 - Reference impl: `reference/t3code/apps/server/src/skills/SkillService.ts` (uses the Effect runtime — adapt parser/discovery, do not copy).
 
 ## What is missing
