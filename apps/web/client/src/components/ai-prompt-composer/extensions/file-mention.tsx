@@ -5,8 +5,7 @@ import Mention from '@tiptap/extension-mention';
 import { ReactRenderer } from '@tiptap/react';
 
 import type { MentionConfig, MentionItem } from '../types';
-import { MentionList } from '../mention-list';
-import type { MentionListRef } from '../mention-list';
+import { MentionList, type MentionListRef } from '../mention-list';
 
 export function buildFileMentionExtension(config: MentionConfig) {
     return Mention.configure({
@@ -21,10 +20,10 @@ export function buildFileMentionExtension(config: MentionConfig) {
         },
         deleteTriggerWithBackspace: true,
         suggestion: {
-            items: ({ query }) => config.searchFiles(query),
+            items: ({ query }) => config.searchFiles(query).catch(() => []),
             render: () => {
-                let component: ReactRenderer<MentionListRef>;
-                let popupEl: HTMLDivElement;
+                let component: ReactRenderer<MentionListRef> | undefined;
+                let popupEl: HTMLDivElement | undefined;
 
                 return {
                     onStart(props) {
@@ -50,6 +49,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     },
 
                     onUpdate(props) {
+                        if (!component || !popupEl) return;
                         component.updateProps({
                             items: props.items as MentionItem[],
                             command: (item: MentionItem) => {
@@ -63,6 +63,7 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     },
 
                     onKeyDown(props) {
+                        if (!component || !popupEl) return false;
                         if (props.event.key === 'Escape') {
                             popupEl.style.display = 'none';
                             return true;
@@ -71,8 +72,8 @@ export function buildFileMentionExtension(config: MentionConfig) {
                     },
 
                     onExit() {
-                        popupEl.remove();
-                        component.destroy();
+                        popupEl?.remove();
+                        component?.destroy();
                     },
                 };
             },
@@ -90,6 +91,6 @@ function positionPopup(el: HTMLDivElement, rect: DOMRect) {
     } else {
         el.style.top = `${rect.top + window.scrollY - popupHeight - 4}px`;
     }
-    el.style.left = `${Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - 256))}px`;
+    el.style.left = `${Math.max(8, Math.min(rect.left + window.scrollX, window.innerWidth - (el.offsetWidth || 240)))}px`;
     el.style.position = 'absolute';
 }
