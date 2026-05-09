@@ -5,7 +5,9 @@ import { type z } from 'zod';
 
 import type { WebSearchResult } from '@weblab/models';
 import {
+    EditImageTool,
     FuzzyEditFileTool,
+    GenerateImageTool,
     SearchReplaceEditTool,
     SearchReplaceMultiEditFileTool,
     TerminalCommandTool,
@@ -17,6 +19,7 @@ import {
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { CollapsibleCodeBlock } from '../../code-display/collapsible-code-block';
 import { SearchSourcesDisplay } from '../../code-display/search-sources-display';
+import { ToolCallImageResult } from './tool-call-image-result';
 import { ToolCallSimple } from './tool-call-simple';
 
 const ToolCallDisplayComponent = ({
@@ -31,6 +34,16 @@ const ToolCallDisplayComponent = ({
     applied: boolean;
 }) => {
     const toolName = toolPart.type.split('-')[1];
+
+    if (toolName === GenerateImageTool.toolName || toolName === EditImageTool.toolName) {
+        return (
+            <ToolCallImageResult
+                key={toolPart.toolCallId}
+                toolPart={toolPart}
+                loading={isStream && toolPart.state !== 'output-available'}
+            />
+        );
+    }
 
     if (toolName === TerminalCommandTool.toolName) {
         const args = toolPart.input as z.infer<typeof TerminalCommandTool.parameters> | null;

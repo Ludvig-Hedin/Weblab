@@ -11,6 +11,7 @@ export class WeblabInstructionsTool extends ClientTool {
     static readonly description = 'Get Weblab-specific instructions and guidelines';
     static readonly parameters = z.object({});
     static readonly icon = Icons.WeblabLogo;
+    static readonly category = 'project';
 
     async handle(
         _input: z.infer<typeof WeblabInstructionsTool.parameters>,

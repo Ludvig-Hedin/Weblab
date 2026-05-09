@@ -32,6 +32,7 @@ export class UploadImageTool extends ClientTool {
         branchId: BRANCH_ID_SCHEMA,
     });
     static readonly icon = Icons.Image;
+    static readonly category = 'images';
 
     async handle(
         args: z.infer<typeof UploadImageTool.parameters>,

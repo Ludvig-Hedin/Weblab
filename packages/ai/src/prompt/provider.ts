@@ -11,6 +11,7 @@ import {
 import { MessageContextType } from '@weblab/models';
 
 import type { MemorySearchResult } from '../memory/types';
+import type { SkillSummary } from '../skills/types';
 import {
     AgentRuleContext,
     BranchContext,
@@ -36,7 +37,11 @@ export interface HydrateMessageOptions {
     lastAssistantMessageIndex: number;
 }
 
-export function getSystemPrompt(memories?: MemorySearchResult[], framework?: FrameworkId | null) {
+export function getSystemPrompt(
+    memories?: MemorySearchResult[],
+    framework?: FrameworkId | null,
+    skills?: SkillSummary[],
+) {
     let prompt = '';
     prompt += wrapXml('role', getSystemPromptForFramework(framework));
     if (frameworkSupportsShadcn(framework)) {
@@ -44,6 +49,7 @@ export function getSystemPrompt(memories?: MemorySearchResult[], framework?: Fra
     }
     prompt += wrapXml('shell', SHELL_PROMPT);
     prompt += buildMemoriesPrompt(memories);
+    prompt += buildSkillsPrompt(skills);
     return prompt;
 }
 
@@ -71,8 +77,9 @@ function getShadcnBlockCatalogPrompt() {
 export function getCreatePageSystemPrompt(
     memories?: MemorySearchResult[],
     framework?: FrameworkId | null,
+    skills?: SkillSummary[],
 ) {
-    let prompt = getSystemPrompt(memories, framework) + '\n\n';
+    let prompt = getSystemPrompt(memories, framework, skills) + '\n\n';
     prompt += wrapXml('create-system-prompt', CREATE_NEW_PAGE_SYSTEM_PROMPT);
     return prompt;
 }
@@ -86,6 +93,7 @@ export function getSuggestionSystemPrompt() {
 export function getAskModeSystemPrompt(
     memories?: MemorySearchResult[],
     framework?: FrameworkId | null,
+    skills?: SkillSummary[],
 ) {
     let prompt = '';
     if (framework === 'static-html') {
@@ -97,6 +105,7 @@ export function getAskModeSystemPrompt(
         prompt += wrapXml('role', ASK_MODE_SYSTEM_PROMPT);
     }
     prompt += buildMemoriesPrompt(memories);
+    prompt += buildSkillsPrompt(skills);
     return prompt;
 }
 
@@ -108,6 +117,21 @@ function buildMemoriesPrompt(memories: MemorySearchResult[] | undefined): string
     if (!memories || memories.length === 0) return '';
     const bullets = memories.map((m) => `- ${m.memory}`).join('\n');
     return wrapXml('user-memories', bullets);
+}
+
+/**
+ * Lists discovered Agent Skills as `name — description` bullets wrapped in
+ * <available-skills>. The model reads list_skills for full-name lookup and
+ * read_skill for the body — keep the index lean.
+ */
+function buildSkillsPrompt(skills: SkillSummary[] | undefined): string {
+    if (!skills || skills.length === 0) return '';
+    const bullets = skills
+        .map((s) => `- ${s.name}${s.description ? ` — ${s.description}` : ''}`)
+        .join('\n');
+    const intro =
+        'These Agent Skills are available in this repository. Use read_skill to fetch a skill body when relevant.';
+    return wrapXml('available-skills', `${intro}\n${bullets}`);
 }
 
 export function getExampleConversation(

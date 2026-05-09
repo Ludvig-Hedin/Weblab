@@ -6,15 +6,34 @@ export interface ToolIcon {
     className?: string;
 }
 
+export type ToolCategory = 'project' | 'files' | 'images' | 'web' | 'skills' | 'settings';
+
+export type ToolProvider =
+    | 'local'
+    | 'openai'
+    | 'anthropic'
+    | 'openrouter'
+    | 'firecrawl'
+    | 'exa'
+    | 'placeholder';
+
+export type ToolExecutionSite = 'client' | 'server';
+
 export abstract class BaseTool {
     static readonly toolName: string;
     static readonly description: string;
     static readonly parameters: z.ZodSchema;
     static readonly icon: ComponentType<ToolIcon>;
 
-    /**
-     * Get the AI SDK tool definition
-     */
+    static readonly outputSchema: z.ZodSchema | undefined = undefined;
+    static readonly category: ToolCategory = 'files';
+    static readonly provider: ToolProvider = 'local';
+    static readonly requiresProject: boolean = true;
+    static readonly requiresAuth: boolean = true;
+    static readonly requiresNetwork: boolean = false;
+    static readonly visibleToUser: boolean = true;
+    static readonly executionSite: ToolExecutionSite = 'client';
+
     static getAITool() {
         return tool({
             description: this.description,
@@ -22,10 +41,7 @@ export abstract class BaseTool {
         });
     }
 
-    /**
-     * Generate a dynamic label for the tool call based on input parameters
-     */
-    static getLabel(input?: unknown): string {
+    static getLabel(_input?: unknown): string {
         return this.toolName;
     }
 }

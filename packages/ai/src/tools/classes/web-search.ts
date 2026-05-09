@@ -15,6 +15,9 @@ export class WebSearchTool extends ClientTool {
         blocked_domains: z.array(z.string()).optional().describe('Exclude these domains'),
     });
     static readonly icon = Icons.MagnifyingGlass;
+    static readonly category = 'web';
+    static readonly provider = 'exa';
+    static readonly requiresNetwork = true;
 
     async handle(
         args: z.infer<typeof WebSearchTool.parameters>,

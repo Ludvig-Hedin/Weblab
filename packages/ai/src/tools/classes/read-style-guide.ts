@@ -10,6 +10,7 @@ export class ReadStyleGuideTool extends ClientTool {
     static readonly description = 'Read the project style guide and coding conventions';
     static readonly parameters = z.object({});
     static readonly icon = Icons.Brand;
+    static readonly category = 'project';
 
     async handle(
         _params: unknown,

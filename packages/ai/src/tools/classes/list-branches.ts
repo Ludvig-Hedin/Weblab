@@ -12,6 +12,7 @@ export class ListBranchesTool extends ClientTool {
     static readonly description = 'List all available branches in the project';
     static readonly parameters = z.object({});
     static readonly icon = Icons.Branch;
+    static readonly category = 'project';
 
     async handle(
         _params: unknown,

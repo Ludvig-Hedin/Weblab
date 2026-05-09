@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import type { ChatMessage } from '@weblab/models';
+import { EditImageTool, GenerateImageTool } from '@weblab/ai';
 import { Reasoning, ReasoningContent, ReasoningTrigger, Response } from '@weblab/ui/ai-elements';
 import { cn } from '@weblab/ui/utils';
 
@@ -60,12 +61,24 @@ const splitShellBlocks = (text: string): Segment[] => {
 
 type Part = ChatMessage['parts'][number];
 
+/** Tool calls whose result is media the user must see. We render them
+ *  outside the collapsible "Worked for Xs" group so the auto-collapse on
+ *  stream-finish doesn't hide the actual deliverable. */
+const ALWAYS_VISIBLE_TOOLS = new Set([
+    GenerateImageTool.toolName,
+    EditImageTool.toolName,
+]);
+
 /** A part is an "action" if it's something the model did rather than said —
  *  i.e. a tool call or a reasoning step. Consecutive actions are grouped
- *  together into a single collapsible disclosure. */
+ *  together into a single collapsible disclosure. Image-result tools are
+ *  excluded so the image stays visible without a click. */
 const isActionPart = (part: Part | undefined): boolean => {
     if (!part) return false;
-    return part.type === 'reasoning' || part.type.startsWith('tool-');
+    if (part.type === 'reasoning') return true;
+    if (!part.type.startsWith('tool-')) return false;
+    const toolName = part.type.split('-')[1] ?? '';
+    return !ALWAYS_VISIBLE_TOOLS.has(toolName);
 };
 
 const MessageContentComponent = ({
@@ -218,6 +231,24 @@ const MessageContentComponent = ({
                 </ActionsGroup>,
             );
             groupCounter += 1;
+            continue;
+        }
+
+        // Tool parts that aren't action-grouped (image results) render
+        // standalone so their output stays visible.
+        if (part.type.startsWith('tool-')) {
+            const toolPart = part as ToolUIPart;
+            const isLoadingThisTool = isStream && i === lastIncompleteToolIndex;
+            rendered.push(
+                <ToolCallDisplay
+                    messageId={messageId}
+                    toolPart={toolPart}
+                    key={toolPart.toolCallId}
+                    isStream={isLoadingThisTool}
+                    applied={applied}
+                />,
+            );
+            i += 1;
             continue;
         }
 

@@ -38,6 +38,9 @@ export class ScrapeUrlTool extends ClientTool {
             .describe('Time in milliseconds to wait for the page to load before scraping.'),
     });
     static readonly icon = Icons.Globe;
+    static readonly category = 'web';
+    static readonly provider = 'firecrawl';
+    static readonly requiresNetwork = true;
 
     async handle(
         args: z.infer<typeof ScrapeUrlTool.parameters>,

@@ -12,6 +12,8 @@ import {
 } from '@weblab/models';
 
 import type { MemorySearchResult } from '../memory/types';
+import type { SkillSummary } from '../skills/types';
+import type { ServerToolContext } from '../tools/server-context';
 import type { ToolCall } from '@ai-sdk/provider-utils';
 import {
     convertToStreamMessages,
@@ -34,6 +36,8 @@ export const createRootAgentStream = ({
     memories,
     framework,
     abortSignal,
+    serverToolContext,
+    skills,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -51,10 +55,18 @@ export const createRootAgentStream = ({
      */
     framework?: FrameworkId | null;
     abortSignal?: AbortSignal;
+    /**
+     * Per-request server tool context. When provided, ServerTool subclasses
+     * (image-gen, server-side web tools, settings) execute in-stream on the
+     * server. Without it, only ClientTools are invoked (browser-side).
+     */
+    serverToolContext?: ServerToolContext;
+    /** Discovered Agent Skills (name + description) injected into the system prompt. */
+    skills?: SkillSummary[];
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
-    const systemPrompt = getSystemPromptFromType(chatType, memories, framework);
-    const toolSet = getToolSetFromType(chatType);
+    const systemPrompt = getSystemPromptFromType(chatType, memories, framework, skills);
+    const toolSet = getToolSetFromType(chatType, { serverContext: serverToolContext });
     const provider = getProviderFromModel(model);
     return streamText({
         providerOptions: modelConfig.providerOptions,
@@ -86,15 +98,16 @@ const getSystemPromptFromType = (
     chatType: ChatType,
     memories: MemorySearchResult[],
     framework?: FrameworkId | null,
+    skills?: SkillSummary[],
 ): string => {
     switch (chatType) {
         case ChatType.CREATE:
-            return getCreatePageSystemPrompt(memories, framework);
+            return getCreatePageSystemPrompt(memories, framework, skills);
         case ChatType.ASK:
-            return getAskModeSystemPrompt(memories, framework);
+            return getAskModeSystemPrompt(memories, framework, skills);
         case ChatType.EDIT:
         default:
-            return getSystemPrompt(memories, framework);
+            return getSystemPrompt(memories, framework, skills);
     }
 };
 

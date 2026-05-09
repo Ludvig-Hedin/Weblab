@@ -12,6 +12,7 @@ export * from './element/';
 export * from './font/';
 export * from './hosting/';
 export * from './ide/';
+export * from './image/';
 export * from './llm/';
 export * from './next/';
 export * from './pages/';

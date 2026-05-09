@@ -7,6 +7,7 @@ import {
     createRootAgentStream,
     extractInstructionText,
     inferProviderFromModelId,
+    loadSkillSummaries,
     searchMemories,
 } from '@weblab/ai';
 import { toDbMessage } from '@weblab/db';
@@ -193,9 +194,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         if (chatType === ChatType.EDIT && !isLocalModel) {
             usageRecord = await incrementUsage(req, traceId);
         }
-        // Await memories and framework — both kicked off concurrently with
-        // model validation above. Both default safely on failure.
-        const [memories, framework] = await Promise.all([memoriesPromise, frameworkPromise]);
+        // Await memories, framework, and skills — all kicked off concurrently
+        // with model validation above. Each defaults safely on failure.
+        const skillsPromise = loadSkillSummaries().catch((err) => {
+            console.warn('[chat] failed to load Agent Skills, continuing without them', err);
+            return [];
+        });
+        const [memories, framework, skills] = await Promise.all([
+            memoriesPromise,
+            frameworkPromise,
+            skillsPromise,
+        ]);
         const stream = createRootAgentStream({
             chatType,
             conversationId,
@@ -207,7 +216,15 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
             memories,
             framework,
+            skills,
             abortSignal: req.signal,
+            serverToolContext: {
+                userId,
+                projectId,
+                conversationId,
+                trpcCaller: api,
+                messages,
+            },
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
