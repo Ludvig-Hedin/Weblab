@@ -16,7 +16,7 @@
     },
     "type": "module",
     "scripts": {
-        "dev": "next dev --turbo",
+        "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; next dev --turbo --port 3000",
         "lint": "eslint . --max-warnings 0",
         "format": "eslint --fix .",
         "typecheck": "tsc --noEmit",
