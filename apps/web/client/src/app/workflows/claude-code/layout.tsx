@@ -2,6 +2,14 @@ import { type Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Workflows', path: '/workflows' },
+    { name: 'Claude Code', path: '/workflows/claude-code' },
+]);
+
 export const metadata: Metadata = {
     title: `Claude Code for Designers: Add a Visual Canvas to Your Workflow | ${APP_NAME}`,
     description: `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
@@ -105,6 +113,10 @@ export default function ClaudeCodeLayout({ children }: { children: React.ReactNo
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

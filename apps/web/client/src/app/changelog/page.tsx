@@ -4,7 +4,13 @@ import { format, isValid, parseISO } from 'date-fns';
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 import { WebsiteLayout } from '@/app/_components/website-layout';
+import { breadcrumbSchema } from '@/app/seo';
 import { CHANGELOG_ENTRIES } from '@/lib/changelog-entries';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Changelog', path: '/changelog' },
+]);
 
 export const metadata: Metadata = {
     title: `Changelog | ${APP_NAME}`,
@@ -27,6 +33,10 @@ function formatEntryDate(date: string): string {
 export default function ChangelogPage() {
     return (
         <WebsiteLayout showFooter>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+            />
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-24 md:px-8 md:pt-32">
                 <header className="mb-16">
                     <p className="text-foreground-tertiary mb-2 text-xs font-medium tracking-widest uppercase">

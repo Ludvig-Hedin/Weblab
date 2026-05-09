@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'FAQ', path: '/faq' },
+]);
+
 export const metadata: Metadata = {
     title: `FAQ | ${APP_NAME} - AI-Powered Visual Editor for Frontend Development`,
     description: `Frequently asked questions about ${APP_NAME}, the AI-powered visual editor for frontend development. Learn about supported frameworks (React, Vue, Angular), component libraries (shadcn/ui, Material UI), AI features, pricing, and how ${APP_NAME} differs from other design tools.`,
@@ -46,5 +53,13 @@ export const metadata: Metadata = {
 };
 
 export default function FAQLayout({ children }: { children: React.ReactNode }) {
-    return children;
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+            />
+            {children}
+        </>
+    );
 }

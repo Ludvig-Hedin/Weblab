@@ -2,6 +2,14 @@ import { type Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Workflows', path: '/workflows' },
+    { name: 'Vibe Coding', path: '/workflows/vibe-coding' },
+]);
+
 export const metadata: Metadata = {
     title: `Vibe Coding for Teams: Add Collaboration to Your AI Workflow | ${APP_NAME}`,
     description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.`,
@@ -103,6 +111,10 @@ export default function VibeCodingLayout({ children }: { children: React.ReactNo
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

@@ -1,9 +1,17 @@
 import type { Metadata } from 'next';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Features', path: '/features' },
+    { name: 'AI for Frontend', path: '/features/ai-for-frontend' },
+]);
+
 export const metadata: Metadata = {
-    title: 'AI for Frontend Development | Visual AI Editor for React, Vue, Angular | Weblab',
+    title: 'AI for Frontend Development | Visual AI Editor for React | Weblab',
     description:
-        'Weblab is an AI-powered visual editor that builds frontend UIs using your real React, Vue, or Angular components. Unlike generic AI code generators, Weblab constrains AI to your design system — your buttons, cards, and layouts. Changes become mergeable PRs, not throwaway prototypes. Works with Tailwind, shadcn/ui, Material UI, and more.',
+        'Weblab is an AI visual editor for React, Vue, and Angular teams. AI is constrained to your real components and design system, so changes ship as mergeable PRs.',
     keywords: [
         // Primary keywords
         'AI for frontend',
@@ -103,12 +111,6 @@ const jsonLd = {
         'Real-time collaboration',
         'Open source',
     ],
-    aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        ratingCount: '24000',
-        bestRating: '5',
-    },
 };
 
 export default function AiForFrontendLayout({ children }: { children: React.ReactNode }) {
@@ -117,6 +119,10 @@ export default function AiForFrontendLayout({ children }: { children: React.Reac
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

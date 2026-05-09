@@ -1,4 +1,254 @@
 {
+    "cms": {
+        "topBar": {
+            "tooltip": "CMS"
+        },
+        "workspace": {
+            "closeCms": "Close CMS",
+            "tabs": {
+                "collections": "Collections",
+                "fields": "Fields",
+                "sources": "Sources"
+            }
+        },
+        "collections": {
+            "sidebarTitle": "Collections",
+            "addCollection": "Add collection",
+            "loading": "Loading…",
+            "emptySidebar": "No collections yet.",
+            "newCollection": "New collection",
+            "hint": "Select a collection to view its items.",
+            "create": {
+                "title": "New collection",
+                "description": "Collections group items that share a structure — e.g. blog posts, docs, team members.",
+                "name": "Name",
+                "namePlaceholder": "Blog posts",
+                "slug": "Slug",
+                "slugPlaceholder": "blog-posts",
+                "slugHelp": "Used in URLs and bindings. Lowercase letters, numbers, and dashes.",
+                "descriptionLabel": "Description (optional)",
+                "cancel": "Cancel",
+                "create": "Create",
+                "success": "Collection created",
+                "nameRequired": "Collection name is required",
+                "failed": "Failed to create collection"
+            }
+        },
+        "items": {
+            "count": "{count, plural, =1 {# item} other {# items}}",
+            "editFields": "Edit fields",
+            "newItem": "New item",
+            "addFieldsFirst": "Add at least one field to this collection first",
+            "columnTitle": "Title",
+            "columnSlug": "Slug",
+            "columnStatus": "Status",
+            "columnUpdated": "Updated",
+            "untitled": "Untitled",
+            "noFieldsTitle": "No fields yet",
+            "noFieldsBody": "Add fields to this collection so items have something to fill in.",
+            "addFields": "Add fields",
+            "noItemsTitle": "No items yet",
+            "noItemsBody": "Add your first item — it'll appear here."
+        },
+        "itemEditor": {
+            "headerNew": "New {name} item",
+            "headerEdit": "Edit item",
+            "slug": "Slug",
+            "slugAuto": "auto",
+            "cancel": "Cancel",
+            "saveDraft": "Save draft",
+            "publish": "Publish",
+            "successCreated": "Item created",
+            "successUpdated": "Item updated",
+            "failed": "Failed to save item"
+        },
+        "fields": {
+            "needCollection": "Select a collection from the Collections tab to edit its fields.",
+            "back": "Back",
+            "title": "{name} — Fields",
+            "addField": "Add field",
+            "emptyTitle": "No fields yet",
+            "emptyBody": "Add fields to define the shape of items in this collection — Title, Slug, Date, Image, and so on.",
+            "requiredSuffix": "required",
+            "addDialog": {
+                "title": "Add field",
+                "name": "Name",
+                "namePlaceholder": "Title",
+                "key": "Key",
+                "keyHelp": "Used in bindings — e.g. {example}.",
+                "type": "Type",
+                "help": "Help text (optional)",
+                "required": "Required",
+                "cancel": "Cancel",
+                "add": "Add field",
+                "success": "Field added",
+                "nameRequired": "Field name is required",
+                "failed": "Failed to add field"
+            },
+            "types": {
+                "text": "Text",
+                "rich_text": "Rich text",
+                "number": "Number",
+                "boolean": "Toggle",
+                "date": "Date",
+                "image": "Image",
+                "slug": "Slug",
+                "option": "Option",
+                "reference": "Reference"
+            }
+        },
+        "sources": {
+            "title": "Sources",
+            "connectSource": "Connect source",
+            "connectSourceTooltip": "External sources coming soon",
+            "empty": "No sources yet. Add a collection to seed the default Weblab CMS source.",
+            "weblab": "Weblab CMS",
+            "payload": "Payload",
+            "strapi": "Strapi",
+            "rest": "Generic REST",
+            "mapButton": "Map",
+            "refresh": "Refresh",
+            "refreshing": "Refreshing…",
+            "refreshDonePrefix": "Synced",
+            "refreshDoneSuffix": "items",
+            "refreshFailed": "Refresh failed",
+            "deleteConfirm": "Disconnect this source? Collections that reference it will need a new source first.",
+            "deleted": "Source disconnected",
+            "deleteFailed": "Could not disconnect source",
+            "connect": {
+                "title": "Connect a CMS source",
+                "description": "Bring content from an external CMS into Weblab. Items sync into your project and behave like native ones.",
+                "nameLabel": "Display name",
+                "namePlaceholder": "Marketing CMS",
+                "nameRequired": "Give the source a display name",
+                "baseUrl": "Base URL",
+                "apiKey": "API key",
+                "apiToken": "API token",
+                "payloadUsersSlug": "Users collection slug",
+                "payloadCollections": "Collection slugs",
+                "payloadCollectionsHelp": "Comma-separated. Leave blank to discover automatically.",
+                "strapiTypes": "Content type plural names",
+                "strapiTypesHelp": "Comma-separated, e.g. blog-posts,authors.",
+                "restApiKey": "API key",
+                "restEndpoints": "Endpoints",
+                "restEndpointsHelp": "JSON array of {name,path}. Each entry maps to a Weblab collection.",
+                "testButton": "Test connection",
+                "testOk": "Connection works",
+                "testFailed": "Connection failed",
+                "testFirst": "Test the connection before saving",
+                "saveButton": "Save and continue",
+                "cancel": "Cancel",
+                "created": "Source connected",
+                "failed": "Could not save source"
+            },
+            "map": {
+                "title": "Map remote collections",
+                "description": "Pick how each remote collection should map onto Weblab.",
+                "loading": "Discovering remote collections…",
+                "empty": "No collections discovered. Check the source's settings and try again.",
+                "createNew": "Create new: {name}",
+                "skip": "Skip for now",
+                "inferredFields": "fields inferred",
+                "confirm": "Confirm and sync",
+                "cancel": "Cancel",
+                "nothingToMap": "Pick at least one collection to map",
+                "success": "Collections mapped and synced",
+                "failed": "Mapping failed"
+            }
+        },
+        "bind": {
+            "contextMenu": "Bind to CMS…",
+            "title": "Bind to CMS",
+            "description": "Replace this element's content with a value from your CMS at preview time.",
+            "collection": "Collection",
+            "collectionEmpty": "No collections yet",
+            "collectionPick": "Choose a collection",
+            "field": "Field",
+            "fieldPickFirst": "Pick a collection first",
+            "fieldEmpty": "This collection has no fields",
+            "fieldPick": "Choose a field",
+            "sourceLabel": "Source",
+            "sourceItem": "Specific item",
+            "sourceFirst": "First item in collection",
+            "sourcePage": "Current item from page",
+            "sourcePageDisabled": "Set up a detail page for this collection first",
+            "item": "Item",
+            "itemEmpty": "This collection has no items yet",
+            "itemPick": "Choose an item",
+            "cancel": "Cancel",
+            "bind": "Bind",
+            "update": "Update",
+            "remove": "Remove binding",
+            "successSaved": "Binding saved",
+            "successRemoved": "Binding removed",
+            "failed": "Failed to save binding",
+            "removeFailed": "Failed to remove binding",
+            "pickAll": "Pick a collection and field",
+            "pickItem": "Pick an item or switch to \"First matching item\"",
+            "repeat": {
+                "title": "Configure list",
+                "description": "This element will repeat once per item in the collection.",
+                "collection": "Collection",
+                "sortField": "Sort by",
+                "sortNone": "Default order",
+                "sortDirection": "Direction",
+                "sortAsc": "Ascending",
+                "sortDesc": "Descending",
+                "limit": "Limit",
+                "limitPlaceholder": "All items",
+                "limitHelp": "Leave blank to show every item.",
+                "pickCollection": "Pick a collection for this list",
+                "invalidLimit": "Limit must be a whole number greater than zero"
+            },
+            "current": {
+                "title": "Bind to current item",
+                "description": "This element is inside a list. Pick which field of the current item to show.",
+                "inheritedCollectionPrefix": "Items come from",
+                "inheritedUnknown": "The parent list's collection is not configured yet.",
+                "parentNotConfigured": "Configure the parent list's collection first, then come back to bind this element.",
+                "pickField": "Pick a field"
+            }
+        },
+        "list": {
+            "contentSection": "Content"
+        },
+        "filters": {
+            "title": "Filters",
+            "add": "Add filter",
+            "remove": "Remove filter",
+            "empty": "No filters. List shows every item.",
+            "fieldPlaceholder": "Pick a field",
+            "opEq": "is",
+            "opNeq": "is not",
+            "opBefore": "before",
+            "opAfter": "after",
+            "opContains": "contains",
+            "opStartsWith": "starts with",
+            "opIsSet": "is set",
+            "opIsUnset": "is empty"
+        },
+        "routing": {
+            "title": "Detail page",
+            "openButton": "Routing",
+            "noneTitle": "No detail page yet",
+            "noneBody": "Mark a page (like /blog/[slug]) as the detail page for this collection so individual items can have their own URL.",
+            "currentBody": "Items in this collection are shown on {path}, matched by the {field} field.",
+            "pagePathLabel": "Page path",
+            "pagePathPlaceholder": "/blog/[slug]",
+            "pagePathHelp": "Use brackets for dynamic segments, e.g. /blog/[slug].",
+            "matchFieldLabel": "Match field",
+            "matchFieldHelp": "The field whose value fills the dynamic segment.",
+            "save": "Save",
+            "remove": "Remove",
+            "saved": "Detail page saved",
+            "removed": "Detail page removed",
+            "saveFailed": "Could not save detail page",
+            "removeFailed": "Could not remove detail page",
+            "pickFieldFirst": "Add a field to this collection before mapping a detail page",
+            "previewItemLabel": "Preview as",
+            "previewItemPlaceholder": "Pick an item to preview"
+        }
+    },
     "projects": {
         "create": {
             "settings": {
@@ -15,7 +265,7 @@
                 "load": "Load Existing Project"
             },
             "loading": {
-                "title": "Setting up your new Weblab app...",
+                "title": "Setting up your new project…",
                 "description": "This may take a few seconds",
                 "cancel": "Cancel"
             },
@@ -69,8 +319,8 @@
         },
         "dialogs": {
             "delete": {
-                "title": "Are you sure you want to delete this project?",
-                "description": "This action cannot be undone. This will permanently delete your project and remove all associated data.",
+                "title": "Delete this project?",
+                "description": "This permanently removes your project and all its data.",
                 "moveToTrash": "Also move folder to trash"
             },
             "rename": {
@@ -100,13 +350,13 @@
     "welcome": {
         "title": "Welcome to Weblab",
         "titleReturn": "Welcome back to Weblab",
-        "description": "A next-generation visual code editor that lets designers and product managers craft web experiences with AI.",
+        "description": "Design and ship production websites with AI — no dev handoff required.",
         "alpha": "Alpha",
         "login": {
-            "github": "Login with GitHub",
-            "google": "Login with Google",
+            "github": "Sign in with GitHub",
+            "google": "Sign in with Google",
             "lastUsed": "You used this last time",
-            "loginToEdit": "Login to Edit",
+            "loginToEdit": "Sign in to edit",
             "shareProjects": "No credit card required • Get a site in seconds",
             "email": "Continue with email",
             "emailPlaceholder": "your@email.com",
@@ -137,7 +387,7 @@
             "basic": {
                 "name": "Basic",
                 "price": "$0/month",
-                "description": "Prototype and experiment in code with ease.",
+                "description": "Explore and experiment — no credit card required.",
                 "features": [
                     "Visual code editor access",
                     "Unlimited projects",
@@ -149,7 +399,7 @@
             "pro": {
                 "name": "Pro",
                 "price": "$20/month",
-                "description": "Creativity – unconstrained. Build stunning sites with AI.",
+                "description": "Build and ship stunning sites with AI, unconstrained.",
                 "features": [
                     "Visual code editor access",
                     "Unlimited projects",
@@ -163,7 +413,7 @@
             "launch": {
                 "name": "Launch",
                 "price": "$50/month",
-                "description": "Perfect for startups and growing teams",
+                "description": "Perfect for startups and growing teams.",
                 "features": [
                     "Unlimited daily messages",
                     "Priority support",
@@ -174,7 +424,7 @@
             "scale": {
                 "name": "Scale",
                 "price": "$100/month",
-                "description": "Enterprise-grade features for large teams",
+                "description": "Enterprise-grade features for large teams.",
                 "features": [
                     "Everything in Launch plan",
                     "Dedicated account manager",
@@ -227,7 +477,7 @@
             }
         },
         "footer": {
-            "unusedMessages": "Unused chat messages will roll over to the next month."
+            "unusedMessages": "Unused messages carry over each month."
         }
     },
     "usage": {
@@ -400,7 +650,7 @@
             "startDesigning": {
                 "prefix": "Press ",
                 "action": "Play",
-                "suffix": " to start designing your App"
+                "suffix": " to start designing your app"
             },
             "playButton": "Play",
             "waitingForApp": "Waiting for the App to start..."

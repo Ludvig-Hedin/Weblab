@@ -2,8 +2,16 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Features', path: '/features' },
+    { name: 'Prototype', path: '/features/prototype' },
+]);
+
 export const metadata: Metadata = {
-    title: 'AI Prototype Generator | Create Functional React Prototypes | ${APP_NAME}',
+    title: `AI Prototype Generator | Create Functional React Prototypes | ${APP_NAME}`,
     description: `${APP_NAME} generates functional React prototypes with real interactions — not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.`,
     keywords: [
         // Primary keywords
@@ -31,7 +39,7 @@ export const metadata: Metadata = {
         'rapid product iteration',
     ],
     openGraph: {
-        title: 'AI Prototype Generator | ${APP_NAME}',
+        title: `AI Prototype Generator | ${APP_NAME}`,
         description:
             'Create functional React prototypes with real interactions in minutes. Not static mockups — working applications.',
         type: 'website',
@@ -48,7 +56,7 @@ export const metadata: Metadata = {
     },
     /* twitter: {
         card: 'summary_large_image',
-        title: 'AI Prototype Generator | ${APP_NAME}',
+        title: `AI Prototype Generator | ${APP_NAME}`,
         description:
             'Create functional React prototypes with real interactions in minutes. Not static mockups — working applications.',
         images: ['/favicon.ico'],
@@ -100,6 +108,10 @@ export default function PrototypeFeaturesLayout({ children }: { children: React.
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Pricing', path: '/pricing' },
+]);
+
 const description = `${APP_NAME} pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Free tier available, transparent paid plans for growing teams.`;
 
 export const metadata: Metadata = {
@@ -48,5 +55,13 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-    return children;
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+            />
+            {children}
+        </>
+    );
 }

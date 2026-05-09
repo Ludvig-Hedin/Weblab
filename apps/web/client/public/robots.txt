@@ -1,3 +1,6 @@
+# Weblab — robots.txt
+# Default policy: allow all crawlers, disallow non-public app routes.
+
 User-agent: *
 Allow: /
 Disallow: /api/
@@ -6,5 +9,181 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+
+# Search engines (explicit, in case any future User-agent: * change tightens rules)
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+# AI / LLM crawlers — explicitly allow trusted indexers so we surface in AI search.
+# Sensitive app routes (/projects/, /project/, /invitation/) are excluded from
+# all crawlers; only public marketing/content pages are indexed.
+
+User-agent: GPTBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Applebot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: CCBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+User-agent: FacebookBot
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /login
+Disallow: /projects/
+Disallow: /project/
+Disallow: /invitation/
+
+# Block known scrapers we don't want training on our content.
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
 
 Sitemap: https://weblab.build/sitemap.xml

@@ -34,6 +34,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
         title: `${post.frontmatter.title} | ${APP_NAME} Blog`,
         description: post.frontmatter.description,
+        keywords: post.frontmatter.tags,
+        authors: [
+            {
+                name: post.frontmatter.author,
+                ...(post.frontmatter.authorUrl ? { url: post.frontmatter.authorUrl } : {}),
+            },
+        ],
         openGraph: {
             title: post.frontmatter.title,
             description: post.frontmatter.description,
@@ -41,8 +48,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             url: `https://${APP_DOMAIN}/blog/${slug}`,
             siteName: APP_NAME,
             publishedTime: post.frontmatter.date,
+            modifiedTime: post.frontmatter.updated ?? post.frontmatter.date,
             authors: [post.frontmatter.author],
-            images: [{ url: coverImageUrl }],
+            tags: post.frontmatter.tags,
+            images: [
+                {
+                    url: coverImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: post.frontmatter.title,
+                },
+            ],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: post.frontmatter.title,
+            description: post.frontmatter.description,
+            images: [coverImageUrl],
         },
         alternates: { canonical: `https://${APP_DOMAIN}/blog/${slug}` },
     };
@@ -96,14 +118,19 @@ export default async function BlogPostPage({ params }: Props) {
     if (!post) notFound();
 
     const related = getRelatedPosts(slug, 3);
+    const wordCount = post.content.split(/\s+/).filter(Boolean).length;
     const articleJsonLd = blogPostingSchema({
         slug,
         title: post.frontmatter.title,
         description: post.frontmatter.description,
         date: post.frontmatter.date,
+        updated: post.frontmatter.updated,
         author: post.frontmatter.author,
         authorImage: post.frontmatter.authorImage,
+        authorUrl: post.frontmatter.authorUrl,
         coverImage: post.frontmatter.coverImage,
+        keywords: post.frontmatter.tags,
+        wordCount,
     });
     const breadcrumbsJsonLd = breadcrumbSchema([
         { name: 'Home', path: '/' },

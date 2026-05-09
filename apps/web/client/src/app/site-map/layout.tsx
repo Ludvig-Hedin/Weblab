@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Sitemap', path: '/site-map' },
+]);
+
 export const metadata: Metadata = {
     title: `Sitemap | ${APP_NAME}`,
     description: `Complete sitemap for ${APP_NAME}.com — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.`,
@@ -77,6 +84,10 @@ export default function SitemapLayout({ children }: { children: React.ReactNode 
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

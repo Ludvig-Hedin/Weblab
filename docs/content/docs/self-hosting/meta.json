@@ -6,6 +6,7 @@
         "cloud-deployment",
         "external-services",
         "oauth-setup",
+        "cms-sources",
         "admin-dashboard"
     ]
 }

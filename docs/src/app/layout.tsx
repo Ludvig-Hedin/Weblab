@@ -5,7 +5,6 @@ import { source } from '@/lib/source';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Geist } from 'next/font/google';
-import Script from 'next/script';
 import type { ReactNode } from 'react';
 import RB2BLoader from '@/components/rb2b-loader';
 import { APP_DOMAIN, APP_NAME } from '@/lib/site';
@@ -50,12 +49,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     return (
         <html lang="en" className={geist.variable} suppressHydrationWarning>
             <body className="flex flex-col min-h-screen">
-                {isProduction && (
-                    <>
-                        <Script src="https://z.weblab.build/cdn-cgi/zaraz/i.js" strategy="lazyOnload" />
-                        <RB2BLoader />
-                    </>
-                )}
+                {isProduction && <RB2BLoader />}
                 <RootProvider>
                     <DocsLayout tree={source.pageTree} {...docsOptions}>
                         {children}

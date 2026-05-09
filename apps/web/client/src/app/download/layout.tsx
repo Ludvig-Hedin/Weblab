@@ -2,6 +2,13 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { breadcrumbSchema } from '../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Download', path: '/download' },
+]);
+
 export const metadata: Metadata = {
     title: `Download ${APP_NAME} | Mac, Windows, Linux & iOS`,
     description: `Get the ${APP_NAME} desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.`,
@@ -22,5 +29,13 @@ export const metadata: Metadata = {
 };
 
 export default function DownloadLayout({ children }: { children: React.ReactNode }) {
-    return <>{children}</>;
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+            />
+            {children}
+        </>
+    );
 }

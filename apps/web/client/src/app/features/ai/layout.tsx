@@ -1,5 +1,13 @@
 import type { Metadata } from 'next';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Features', path: '/features' },
+    { name: 'AI Visual Editor', path: '/features/ai' },
+]);
+
 export const metadata: Metadata = {
     title: 'AI Visual Editor | Build UIs with AI Using Your Design System | Weblab',
     description:
@@ -101,6 +109,10 @@ export default function AiFeaturesLayout({ children }: { children: React.ReactNo
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>

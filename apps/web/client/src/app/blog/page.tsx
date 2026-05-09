@@ -7,8 +7,14 @@ import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import type { BlogPostMeta } from '@/lib/blog';
 import { ChangelogGrid } from '@/app/_components/changelog-grid';
 import { WebsiteLayout } from '@/app/_components/website-layout';
+import { absoluteUrl, breadcrumbSchema } from '@/app/seo';
 import { getAllPosts } from '@/lib/blog';
 import { ExternalRoutes, Routes } from '@/utils/constants';
+
+const blogBreadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Blog', path: '/blog' },
+]);
 
 export const metadata: Metadata = {
     title: `Blog | ${APP_NAME}`,
@@ -83,8 +89,35 @@ export default function BlogPage() {
     const posts = getAllPosts();
     const [featured, ...rest] = posts;
 
+    const blogJsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: `${APP_NAME} Blog`,
+        url: `https://${APP_DOMAIN}/blog`,
+        description: `News, product updates, and insights from the ${APP_NAME} team.`,
+        publisher: { '@id': `https://${APP_DOMAIN}/#organization` },
+        blogPost: posts.map((post) => ({
+            '@type': 'BlogPosting',
+            headline: post.frontmatter.title,
+            description: post.frontmatter.description,
+            datePublished: post.frontmatter.date,
+            dateModified: post.frontmatter.date,
+            url: `https://${APP_DOMAIN}/blog/${post.slug}`,
+            image: absoluteUrl(post.frontmatter.coverImage),
+            author: { '@type': 'Person', name: post.frontmatter.author },
+        })),
+    };
+
     return (
         <WebsiteLayout showFooter>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(blogBreadcrumbsJsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(blogJsonLd) }}
+            />
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-20 md:px-8 md:pt-32">
                 <header className="mb-8">
                     <p className="text-foreground-tertiary mb-1.5 text-xs font-medium tracking-widest uppercase">

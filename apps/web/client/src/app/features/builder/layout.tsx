@@ -1,5 +1,13 @@
 import type { Metadata } from 'next';
 
+import { breadcrumbSchema } from '../../seo';
+
+const breadcrumbsJsonLd = breadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Features', path: '/features' },
+    { name: 'Visual Builder', path: '/features/builder' },
+]);
+
 export const metadata: Metadata = {
     title: 'Visual Builder | Design with Your Real React Components | Weblab',
     description:
@@ -98,6 +106,10 @@ export default function BuilderFeaturesLayout({ children }: { children: React.Re
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
             />
             {children}
         </>
