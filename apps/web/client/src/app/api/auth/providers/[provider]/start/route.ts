@@ -6,6 +6,19 @@ import { getOAuthConfig, isProviderConfigured, parseProvider } from '../../_lib/
 import { deriveChallenge, generateState, generateVerifier } from '../../_lib/pkce';
 
 /**
+ * True iff `value` is a same-origin path safe to use as a post-OAuth redirect.
+ * Rejects absolute URLs (`https://…`), protocol-relative URLs (`//evil.com`),
+ * and anything that doesn't start with a single `/`. A raw `/` is allowed
+ * because that's the project root.
+ */
+function isSameOriginPath(value: string | null): boolean {
+    if (!value) return false;
+    if (!value.startsWith('/')) return false;
+    if (value.startsWith('//')) return false;
+    return true;
+}
+
+/**
  * Begin an OAuth flow with one of the supported CLI providers. Generates a
  * PKCE verifier, drops it (plus the original `redirectTo`) in HTTP-only
  * cookies, then redirects to the provider's authorization endpoint. The
@@ -25,7 +38,12 @@ export async function GET(
     const supabase = await createClient();
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
-        return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
+        // This route is reached via top-level navigation (e.g. settings link),
+        // so a JSON 401 leaves the user staring at a raw error page with no
+        // way back. Redirect to login with a returnUrl so they can recover.
+        const loginUrl = new URL('/login', request.nextUrl.origin);
+        loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname + request.nextUrl.search);
+        return NextResponse.redirect(loginUrl.toString());
     }
 
     if (!isProviderConfigured(provider)) {
@@ -46,7 +64,14 @@ export async function GET(
     const verifier = generateVerifier();
     const challenge = deriveChallenge(verifier);
     const state = generateState();
-    const redirectTo = request.nextUrl.searchParams.get('redirectTo') ?? '/projects';
+    // SECURITY: only accept same-origin paths. An attacker who can lure the
+    // user to /api/auth/providers/<p>/start?redirectTo=https://evil.com would
+    // otherwise plant the value in a httpOnly cookie that the callback then
+    // resolves with `new URL(redirectTo, origin)`. `new URL('https://evil',
+    // origin)` returns the absolute URL — the callback's redirect would
+    // happily 302 cross-origin. Restrict to root-relative paths.
+    const rawRedirect = request.nextUrl.searchParams.get('redirectTo');
+    const redirectTo = isSameOriginPath(rawRedirect) ? rawRedirect! : '/projects';
 
     const callbackUrl = new URL(`/api/auth/providers/${provider}/callback`, request.nextUrl.origin);
 

@@ -64,7 +64,13 @@ export async function GET(
     const cookieJar = request.cookies;
     const verifier = cookieJar.get(`provider_oauth_verifier_${provider}`)?.value;
     const stateCookie = cookieJar.get(`provider_oauth_state_${provider}`)?.value;
-    const redirectTo = cookieJar.get(`provider_oauth_redirect_${provider}`)?.value ?? '/projects';
+    // Defense in depth: the start route only sets same-origin paths, but a
+    // tampered cookie or a future regression must not become an open redirect.
+    const cookieRedirect = cookieJar.get(`provider_oauth_redirect_${provider}`)?.value;
+    const redirectTo =
+        cookieRedirect && cookieRedirect.startsWith('/') && !cookieRedirect.startsWith('//')
+            ? cookieRedirect
+            : '/projects';
 
     const finalRedirect = (queryError?: string) => {
         const target = new URL(redirectTo, request.nextUrl.origin);

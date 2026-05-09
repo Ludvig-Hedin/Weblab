@@ -18,14 +18,24 @@ import { sendEmailOtp, verifyEmailOtp } from '../actions';
 const RESEND_COOLDOWN = 60;
 const RESEND_COOLDOWN_MS = RESEND_COOLDOWN * 1000;
 
+// Must match the key written by /login/page.tsx. The email is passed via
+// sessionStorage rather than the URL so it doesn't leak into browser history,
+// the Referer header, or analytics tools.
+const LOGIN_EMAIL_KEY = 'weblab-login-email';
+
 export default function VerifyPage() {
     const t = useTranslations();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const email = searchParams.get('email') ?? '';
     const returnUrl = searchParams.get(LocalForageKeys.RETURN_URL);
     const sentAtParam = searchParams.get('sentAt');
     const sentAt = sentAtParam ? Number(sentAtParam) : null;
+
+    // Email is read from sessionStorage on mount (see effect below). Until
+    // then it's null so we don't accidentally try to verify with an empty
+    // string. After mount it's either the stored email or '' (which triggers
+    // the redirect back to /login?missing=email).
+    const [email, setEmail] = useState<string | null>(null);
 
     // Compute initial cooldown from `sentAt` query param. If absent or stale,
     // default to ready-to-resend (0). Avoids showing a misleading 60-second
@@ -44,11 +54,22 @@ export default function VerifyPage() {
     const [isResending, setIsResending] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // On mount, hydrate the email from sessionStorage. If absent (user opened
+    // /login/verify directly, refreshed in a new tab, or sessionStorage threw),
+    // bounce back to /login with a hint so we can show a friendly message.
     useEffect(() => {
-        if (!email) {
-            router.replace(Routes.LOGIN);
+        let stored: string | null = null;
+        try {
+            stored = sessionStorage.getItem(LOGIN_EMAIL_KEY);
+        } catch {
+            stored = null;
         }
-    }, [email, router]);
+        if (!stored) {
+            router.replace(`${Routes.LOGIN}?missing=email`);
+            return;
+        }
+        setEmail(stored);
+    }, [router]);
 
     useEffect(() => {
         if (initialCountdown <= 0) return;
@@ -70,6 +91,7 @@ export default function VerifyPage() {
 
     async function handleVerify(value: string) {
         if (value.length !== 6 || isVerifying) return;
+        if (!email) return;
         setIsVerifying(true);
         setError(null);
         const result = await verifyEmailOtp(email, value);
@@ -79,13 +101,25 @@ export default function VerifyPage() {
             setOtp('');
             return;
         }
+        // Verification succeeded — drop the stashed email so it can't be
+        // picked up by a later visitor of this tab.
+        try {
+            sessionStorage.removeItem(LOGIN_EMAIL_KEY);
+        } catch {
+            // ignore — best-effort cleanup
+        }
         // Use shared sanitizeReturnUrl so behavior matches OAuth callback path.
         const safe = sanitizeReturnUrl(returnUrl);
-        if (returnUrl && safe !== Routes.HOME) {
-            router.push(safe);
-        } else {
-            router.push(result.redirectTo ?? Routes.AUTH_REDIRECT);
-        }
+        // OTP-signup users are inserted with empty firstName/lastName (the
+        // server can't infer a name from email alone). Route them through
+        // /profile-setup so they can pick a display name; the page itself
+        // short-circuits to `returnUrl` for returning users that already
+        // have a name on record.
+        const finalReturnUrl =
+            returnUrl && safe !== Routes.HOME ? safe : (result.redirectTo ?? Routes.AUTH_REDIRECT);
+        const params = new URLSearchParams();
+        params.set('returnUrl', finalReturnUrl);
+        router.push(`${Routes.PROFILE_SETUP}?${params.toString()}`);
     }
 
     function handleOtpChange(value: string) {
@@ -97,6 +131,7 @@ export default function VerifyPage() {
 
     async function handleResend() {
         if (resendCountdown > 0 || isResending) return;
+        if (!email) return;
         setIsResending(true);
         setError(null);
         try {
@@ -121,6 +156,13 @@ export default function VerifyPage() {
         } finally {
             setIsResending(false);
         }
+    }
+
+    // While we hydrate the email from sessionStorage on mount, avoid rendering
+    // a description that interpolates an empty string. The mount effect either
+    // sets the email or redirects, so this null state is brief.
+    if (email === null) {
+        return null;
     }
 
     return (

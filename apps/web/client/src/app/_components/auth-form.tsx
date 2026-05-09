@@ -1,0 +1,186 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+
+import { SignInMethod } from '@weblab/models/auth';
+import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
+import { Input } from '@weblab/ui/input';
+
+import { sendEmailOtp } from '@/app/login/actions';
+import { env } from '@/env';
+import { transKeys } from '@/i18n/keys';
+import { LocalForageKeys, Routes } from '@/utils/constants';
+import { DevLoginButton, LoginButton } from './login-button';
+
+// Per-tab key used to hand the email off to the verify page without putting
+// PII (the user's plaintext email) in the URL — which would otherwise leak
+// into browser history, the Referer header, and analytics tools.
+//
+// Must match the key read by /login/verify/page.tsx.
+const LOGIN_EMAIL_KEY = 'weblab-login-email';
+
+const AUTH_PROVIDERS = new Set(
+    (env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '')
+        .split(',')
+        .map((p) => p.trim().toLowerCase())
+        .filter(Boolean),
+);
+
+interface AuthFormProps {
+    /** Return URL to forward through OAuth / OTP flows. */
+    returnUrl?: string | null;
+    /** Optional initial email error (e.g. when redirected back with `missing=email`). */
+    initialEmailError?: string | null;
+    /**
+     * Called right before navigating to the verify page after sending an OTP.
+     * Lets surfaces like the auth modal close themselves before navigation.
+     */
+    onBeforeNavigate?: () => void;
+    /** Optional className forwarded to the provider button wrapper. */
+    providerButtonClassName?: string;
+    /** Layout for OAuth provider buttons. Defaults to vertical stack. */
+    providerLayout?: 'stack' | 'row';
+}
+
+/**
+ * Shared auth form rendering env-gated OAuth provider buttons + email OTP entry.
+ * Used by both the standalone /login page and the in-app AuthModal so they
+ * stay feature-equivalent and respect `NEXT_PUBLIC_AUTH_PROVIDERS`.
+ */
+export function AuthForm({
+    returnUrl = null,
+    initialEmailError = null,
+    onBeforeNavigate,
+    providerButtonClassName,
+    providerLayout = 'row',
+}: AuthFormProps) {
+    const t = useTranslations();
+    const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [isEmailLoading, setIsEmailLoading] = useState(false);
+    const [emailError, setEmailError] = useState<string | null>(initialEmailError);
+
+    const showGithub = AUTH_PROVIDERS.has('github');
+    const showGoogle = AUTH_PROVIDERS.has('google');
+    const showDevLogin = env.NEXT_PUBLIC_SHOW_DEV_LOGIN;
+    const hasAnyProvider = showGithub || showGoogle || showDevLogin;
+
+    async function handleSendCode(e: React.FormEvent) {
+        e.preventDefault();
+        // Normalize once at the entry point so the OTP send and the verify-
+        // page lookup operate on the same string. Pasted emails commonly
+        // pick up trailing whitespace or a stray uppercase domain.
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!normalizedEmail) return;
+        setIsEmailLoading(true);
+        setEmailError(null);
+        try {
+            const result = await sendEmailOtp(normalizedEmail);
+            if (result.error) {
+                setEmailError(result.error);
+                return;
+            }
+            // Stash the email in sessionStorage so we don't have to put it in
+            // the URL. sessionStorage is per-tab, so the verify page (opened
+            // via router.push in the same tab) can read it back.
+            try {
+                sessionStorage.setItem(LOGIN_EMAIL_KEY, normalizedEmail);
+            } catch {
+                // sessionStorage can throw in private mode or when over quota.
+                // The verify page handles a missing email by redirecting back
+                // to /login?missing=email, so this fallback is acceptable.
+            }
+            const params = new URLSearchParams();
+            if (returnUrl) params.set(LocalForageKeys.RETURN_URL, returnUrl);
+            // Stamp the time the OTP was sent so the verify page can compute
+            // an accurate resend cooldown rather than restarting it on mount.
+            params.set('sentAt', String(Date.now()));
+            // Let the surface (e.g. modal) close itself before we navigate away.
+            onBeforeNavigate?.();
+            router.push(`${Routes.LOGIN_VERIFY}?${params.toString()}`);
+        } catch {
+            setEmailError('Something went wrong. Please try again.');
+        } finally {
+            setIsEmailLoading(false);
+        }
+    }
+
+    return (
+        <div className="flex flex-col space-y-4">
+            {hasAnyProvider && (
+                <div
+                    className={
+                        providerLayout === 'row'
+                            ? 'flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2'
+                            : 'flex flex-col space-y-2'
+                    }
+                >
+                    {showGithub && (
+                        <LoginButton
+                            className={providerButtonClassName}
+                            returnUrl={returnUrl}
+                            method={SignInMethod.GITHUB}
+                            icon={<Icons.GitHubLogo className="mr-2 h-4 w-4" />}
+                            translationKey="github"
+                            providerName="GitHub"
+                        />
+                    )}
+                    {showGoogle && (
+                        <LoginButton
+                            className={providerButtonClassName}
+                            returnUrl={returnUrl}
+                            method={SignInMethod.GOOGLE}
+                            icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="mr-2 h-4 w-4" />}
+                            translationKey="google"
+                            providerName="Google"
+                        />
+                    )}
+                    {showDevLogin && (
+                        <DevLoginButton className={providerButtonClassName} returnUrl={returnUrl} />
+                    )}
+                </div>
+            )}
+            {hasAnyProvider && (
+                <div className="flex items-center gap-3">
+                    <div className="bg-border h-px flex-1" />
+                    <span className="text-small text-foreground-tertiary">or</span>
+                    <div className="bg-border h-px flex-1" />
+                </div>
+            )}
+            <form
+                onSubmit={(event) => {
+                    void handleSendCode(event);
+                }}
+                className="space-y-2"
+            >
+                <Input
+                    type="email"
+                    placeholder={t(transKeys.welcome.login.emailPlaceholder)}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isEmailLoading}
+                    required
+                />
+                {emailError && <p className="text-small text-red-500">{emailError}</p>}
+                <Button
+                    type="submit"
+                    variant="outline"
+                    className="w-full"
+                    disabled={isEmailLoading || !email}
+                >
+                    {isEmailLoading ? (
+                        <>
+                            <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
+                            {t(transKeys.welcome.login.sending)}
+                        </>
+                    ) : (
+                        t(transKeys.welcome.login.email)
+                    )}
+                </Button>
+            </form>
+        </div>
+    );
+}

@@ -1,6 +1,7 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 
-import { SignInMethod } from '@weblab/models/auth';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -10,12 +11,10 @@ import {
     AlertDialogTitle,
 } from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
-import { Icons } from '@weblab/ui/icons';
 
-import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { useAuthContext } from '../auth/auth-context';
-import { DevLoginButton, LoginButton } from './login-button';
+import { AuthForm } from './auth-form';
 
 export function AuthModal() {
     const { setIsAuthModalOpen, isAuthModalOpen } = useAuthContext();
@@ -32,25 +31,11 @@ export function AuthModal() {
                         {t(transKeys.welcome.login.shareProjects)}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="flex flex-col space-y-2">
-                    <LoginButton
-                        className="!bg-card"
-                        method={SignInMethod.GITHUB}
-                        icon={<Icons.GitHubLogo className="mr-2 h-4 w-4" />}
-                        translationKey="github"
-                        providerName="GitHub"
-                    />
-                    <LoginButton
-                        className="!bg-card"
-                        method={SignInMethod.GOOGLE}
-                        icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="mr-2 h-4 w-4" />}
-                        translationKey="google"
-                        providerName="Google"
-                    />
-                    {env.NEXT_PUBLIC_SHOW_DEV_LOGIN && (
-                        <DevLoginButton className="!bg-card" returnUrl={null} />
-                    )}
-                </div>
+                <AuthForm
+                    providerLayout="stack"
+                    providerButtonClassName="!bg-card"
+                    onBeforeNavigate={() => setIsAuthModalOpen(false)}
+                />
                 <AlertDialogFooter className="flex w-full !justify-center">
                     <Button variant={'ghost'} onClick={() => setIsAuthModalOpen(false)}>
                         {t(transKeys.projects.actions.close)}

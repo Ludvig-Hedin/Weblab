@@ -31,11 +31,13 @@ export async function login(
     }
     const redirectTo = callbackUrl.toString();
 
-    // If already session, redirect
+    // If the user is already signed in, skip the OAuth round-trip and redirect.
+    // Use getUser() (verified via Supabase Auth) rather than getSession() which
+    // decodes a forgeable cookie.
     const {
-        data: { session },
-    } = await supabase.auth.getSession();
-    if (session) {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
         redirect(
             sanitizedReturnUrl !== Routes.HOME
                 ? `${Routes.AUTH_REDIRECT}?returnUrl=${encodeURIComponent(sanitizedReturnUrl)}`
@@ -68,6 +70,9 @@ export async function login(
 }
 
 export async function devLogin() {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('Dev login is disabled in production');
+    }
     if (!env.NEXT_PUBLIC_SHOW_DEV_LOGIN) {
         throw new Error('Dev login is disabled in this environment');
     }
@@ -115,9 +120,9 @@ export async function devLogin() {
     });
 
     if (error) {
-        if (process.env.NODE_ENV !== 'production') {
-            console.error('Error signing in with password:', error);
-        }
+        // devLogin guards `NODE_ENV === 'production'` at the top; this branch
+        // only runs in non-prod environments so logging is always safe.
+        console.error('Error signing in with password:', error);
         if (error.message === 'fetch failed') {
             throw new Error(localBackendHint);
         }
