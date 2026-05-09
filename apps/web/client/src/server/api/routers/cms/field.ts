@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { DrizzleDb } from '@weblab/db';
@@ -139,6 +139,8 @@ export const cmsFieldRouter = createTRPCRouter({
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             await assertCollectionInProject(ctx.db, input.projectId, input.collectionId);
             await ctx.db.transaction(async (tx) => {
+                // CR-114: fetch all fields in one query, then do one bulk UPDATE
+                // instead of N per-field updates.
                 const existing = await tx.query.cmsFields.findMany({
                     where: eq(cmsFields.collectionId, input.collectionId),
                     columns: { id: true },
@@ -152,18 +154,23 @@ export const cmsFieldRouter = createTRPCRouter({
                         });
                     }
                 }
-                for (let i = 0; i < input.orderedFieldIds.length; i++) {
-                    const id = input.orderedFieldIds[i]!;
-                    await tx
-                        .update(cmsFields)
-                        .set({ order: i, updatedAt: new Date() })
-                        .where(
-                            and(
-                                eq(cmsFields.id, id),
-                                eq(cmsFields.collectionId, input.collectionId),
-                            ),
-                        );
-                }
+                if (input.orderedFieldIds.length === 0) return;
+
+                // Build a single CASE expression: CASE WHEN id = $1 THEN $2 … END
+                const whenClauses = input.orderedFieldIds.map(
+                    (id, i) => sql`WHEN ${cmsFields.id} = ${id}::uuid THEN ${i}`,
+                );
+                const orderExpr = sql`CASE ${sql.join(whenClauses, sql` `)} ELSE ${cmsFields.order} END`;
+
+                await tx
+                    .update(cmsFields)
+                    .set({ order: orderExpr as unknown as number, updatedAt: new Date() })
+                    .where(
+                        and(
+                            inArray(cmsFields.id, input.orderedFieldIds),
+                            eq(cmsFields.collectionId, input.collectionId),
+                        ),
+                    );
             });
             return { success: true };
         }),

@@ -25,8 +25,11 @@ export const userRouter = createTRPCRouter({
                   firstName: user.firstName ?? firstName,
                   lastName: user.lastName ?? lastName,
                   displayName: user.displayName ?? displayName,
-                  email: user.email ?? authUser.email,
-                  avatarUrl: user.avatarUrl ?? authUser.user_metadata.avatarUrl,
+                  email: user.email ?? authUser.email ?? null,
+                  avatarUrl:
+                      user.avatarUrl ??
+                      (authUser.user_metadata.avatar_url as string | undefined) ??
+                      null,
               })
             : null;
         return userData;
@@ -71,7 +74,10 @@ export const userRouter = createTRPCRouter({
                 lastName: input.lastName ?? lastName,
                 displayName: input.displayName ?? displayName,
                 email: input.email ?? authUser.email,
-                avatarUrl: input.avatarUrl ?? authUser.user_metadata.avatarUrl,
+                avatarUrl:
+                    input.avatarUrl ??
+                    (authUser.user_metadata.avatar_url as string | undefined) ??
+                    null,
             };
 
             const [user] = await ctx.db
@@ -87,7 +93,7 @@ export const userRouter = createTRPCRouter({
                 .returning();
 
             if (!existingUser) {
-                await trackEvent({
+                trackEvent({
                     distinctId: authUser.id,
                     event: 'user_first_signup',
                     properties: {
@@ -140,14 +146,15 @@ export const userRouter = createTRPCRouter({
 });
 
 function getUserName(authUser: SupabaseUser) {
+    const meta = authUser.user_metadata as Record<string, string | undefined>;
     const displayName: string | undefined =
-        authUser.user_metadata.name ??
-        authUser.user_metadata.display_name ??
-        authUser.user_metadata.full_name ??
-        authUser.user_metadata.first_name ??
-        authUser.user_metadata.last_name ??
-        authUser.user_metadata.given_name ??
-        authUser.user_metadata.family_name;
+        meta.name ??
+        meta.display_name ??
+        meta.full_name ??
+        meta.first_name ??
+        meta.last_name ??
+        meta.given_name ??
+        meta.family_name;
     const { firstName, lastName } = extractNames(displayName ?? '');
     return {
         displayName: displayName ?? '',

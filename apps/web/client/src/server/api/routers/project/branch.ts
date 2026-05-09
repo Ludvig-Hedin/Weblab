@@ -83,37 +83,40 @@ export const branchRouter = createTRPCRouter({
             });
         }
     }),
-    update: protectedProcedure.input(branchUpdateSchema).mutation(async ({ ctx, input }) => {
-        const existing = await ctx.db.query.branches.findFirst({
-            where: eq(branches.id, input.id),
-        });
-        if (!existing) {
-            throw new TRPCError({
-                code: 'NOT_FOUND',
-                message: 'Branch not found',
+    update: protectedProcedure
+        // Omit server-immutable fields at the schema level — Zod rejects any
+        // caller that passes them rather than silently stripping (CR-119).
+        .input(branchUpdateSchema.omit({ projectId: true, sandboxId: true }))
+        .mutation(async ({ ctx, input }) => {
+            const existing = await ctx.db.query.branches.findFirst({
+                where: eq(branches.id, input.id),
             });
-        }
-        await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+            if (!existing) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Branch not found',
+                });
+            }
+            await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
 
-        // Strip server-immutable fields from the update set; the project and
-        // sandbox associations are not user-mutable through this procedure.
-        const { projectId: _projectId, sandboxId: _sandboxId, id: _id, ...rest } = input;
+            // Destructure id for the WHERE clause; spread the rest into SET.
+            const { id, ...rest } = input;
 
-        try {
-            await ctx.db
-                .update(branches)
-                .set({ ...rest, updatedAt: new Date() })
-                .where(eq(branches.id, input.id));
-            return true;
-        } catch (error) {
-            console.error('Error updating branch', error);
-            throw new TRPCError({
-                code: 'INTERNAL_SERVER_ERROR',
-                message: 'Failed to update branch',
-                cause: error,
-            });
-        }
-    }),
+            try {
+                await ctx.db
+                    .update(branches)
+                    .set({ ...rest, updatedAt: new Date() })
+                    .where(eq(branches.id, id));
+                return true;
+            } catch (error) {
+                console.error('Error updating branch', error);
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to update branch',
+                    cause: error,
+                });
+            }
+        }),
     delete: protectedProcedure
         .input(
             z.object({

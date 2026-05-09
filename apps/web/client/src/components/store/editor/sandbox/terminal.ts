@@ -159,13 +159,18 @@ export class CLISessionImpl implements CLISession {
                 if (err instanceof Error && err.message === 'Task is not running') {
                     console.log('[CLISession] Dev task not running — restarting dev server…');
                     await task.run();
+                    // CR-123: always null the controller in finally so it is
+                    // released promptly on both success and failure paths.
                     this.retryAbortController = new AbortController();
-                    output = await this.openTaskWithRetry(
-                        task,
-                        30_000,
-                        this.retryAbortController.signal,
-                    );
-                    this.retryAbortController = null;
+                    try {
+                        output = await this.openTaskWithRetry(
+                            task,
+                            30_000,
+                            this.retryAbortController.signal,
+                        );
+                    } finally {
+                        this.retryAbortController = null;
+                    }
                 } else {
                     throw err;
                 }

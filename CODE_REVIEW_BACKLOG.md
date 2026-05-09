@@ -89,35 +89,35 @@ chat input, comments, projects/select, stores, tRPC, desktop release workflow.
 | CR-086 | open (2026-05-09) — responsive parser tests miss `!important`, arbitrary, pseudo edge cases |
 | CR-101 | false-positive (2026-05-09 verify) — fragment stays same-origin, no real redirect bypass |
 | CR-102 | false-positive (2026-05-09 verify) — drift only; existing checks correct |
-| CR-103 | open (2026-05-09) — `/login/verify` email persists in sessionStorage across tab restore |
-| CR-104 | open (2026-05-09) — `/login?missing=email` exposes flow-state info |
+| CR-103 | fixed (2026-05-09) — added `beforeunload` listener + unmount cleanup to clear `LOGIN_EMAIL_KEY` |
+| CR-104 | fixed (2026-05-09) — redirect now goes to plain `Routes.LOGIN` without `?missing=email` query |
 | CR-105 | open (2026-05-09) — `NEXT_PUBLIC_SHOW_DEV_LOGIN` default flip undocumented |
 | CR-106 | auto-fixed (2026-05-09) — CSP `connect-src` localhost gated to non-prod |
 | CR-107 | open (2026-05-09) — middleware catch-all matcher runs `updateSession` everywhere |
-| CR-108 | open (2026-05-09) — desktop preload origin built without URL parsing |
-| CR-109 | open (2026-05-09) — desktop `ALLOWED_IPC_ORIGINS` localhost not prod-gated |
+| CR-108 | fixed (2026-05-09) — preload `NEXT_PUBLIC_APP_DOMAIN` now wrapped in `new URL(...).origin` with fallback |
+| CR-109 | fixed (2026-05-09) — localhost entries in `ALLOWED_IPC_ORIGINS` gated to `NODE_ENV !== 'production'` |
 | CR-110 | open (2026-05-09) — `project/offline.listPinned` may skip membership check |
-| CR-111 | open (2026-05-09) — `cms.source.ensureDefaultWeblabSource` post-insert refetch race |
+| CR-111 | blocked-on-CR-074 (2026-05-09) — no unique constraint on (project_id, type); onConflictDoNothing never fires for duplicates; fix requires CR-074 migration first |
 | CR-112 | open (2026-05-09) — migration 0024 drops author FKs but never re-adds them |
 | CR-113 | open (2026-05-09) — `user_provider_connections` cascade-delete tokens with no audit |
-| CR-114 | open (2026-05-09) — `cms.field.reorderFields` N+1 inside transaction |
+| CR-114 | fixed (2026-05-09) — replaced N per-field UPDATEs with single bulk UPDATE using CASE expression; import `inArray, sql` added |
 | CR-115 | open (2026-05-09) — migration 0025 flips `rate_limits` FK to RESTRICT — orphan blocker |
 | CR-116 | open (2026-05-09) — shared apex domain hijack via `ensureUserOwnsDomain` |
 | CR-117 | false-positive (2026-05-09 verify) — last-owner guard fires inside the transaction regardless of self-leave |
-| CR-118 | open (2026-05-09) — `verifySandboxAccess` only called in one mutation |
+| CR-118 | fixed (2026-05-09) — added verifySandboxAccess to `list` (query) and `fork` (mutation); deleteOrphan intentionally exempt (orphan semantics) |
 | CR-119 | open (2026-05-09) — `branch.update` silently strips disallowed keys |
-| CR-120 | open (2026-05-09) — `unpublish` deployment status fire-and-forget on throw |
+| CR-120 | fixed (2026-05-09) — added .catch() on updateDeployment(FAILED) so original error always re-throws even if status write fails |
 | CR-121 | open (2026-05-09) — realtime topic_membership EXISTS subquery N*M |
 | CR-122 | auto-fixed (2026-05-09) — `is_preview_image_owner` now pins `search_path = public, storage, pg_temp` |
-| CR-123 | open (2026-05-09) — sandbox terminal AbortController/listener leak on success |
-| CR-124 | open (2026-05-09) — `swapToOnline` inconsistent state on `start()` throw |
+| CR-123 | fixed (2026-05-09) — wrapped openTaskWithRetry in try/finally to null retryAbortController on both success and failure paths |
+| CR-124 | fixed (2026-05-09) — catch start() throw and restore isOffline=true; UI never shows "online" with no live provider |
 | CR-125 | open (2026-05-09) — `reconnect`/`swapToOnline` double-init race |
 | CR-126 | false-positive (2026-05-09 verify) — `clear()` already `await`s `provider.destroy()` inside `if (this.provider)` |
 | CR-127 | false-positive (2026-05-09 verify) — `clear()` already optional-chains via `typeof ... === 'function'` |
 | CR-128 | false-positive (2026-05-09 verify) — `cancelled` flag already gates `setSnapshotHtml` after the await |
 | CR-129 | auto-fixed (2026-05-09) — `immediateReload` now cancels in-flight `handleConnectionFailed` debounce |
-| CR-130 | open (2026-05-09) — `frames/manager.deregisterView` triggers excess re-renders |
-| CR-131 | open (2026-05-09) — `ai-cli/claude.ts` switched stdin → argv (length cap risk) |
+| CR-130 | deferred (2026-05-09) — fix requires `FrameData` values to be `observable.object()`; multi-site change; deferred to dedicated MobX refactor |
+| CR-131 | fixed (2026-05-09) — reverted to stdin pipe (matches desktop mirror, eliminates OS ARG_MAX cap) |
 | CR-132 | auto-fixed (2026-05-09) — `upload_image.destination_path` now stripped of leading `/`, `..`, and backslashes |
 | CR-133 | auto-fixed (2026-05-09) — `isBlockedIp` default-denies on empty IPv4-mapped suffix |
 | CR-134 | auto-fixed (2026-05-09) — tab-complete metering failures now logged with explicit prefix |
@@ -1617,7 +1617,8 @@ Branch: `main` @ HEAD `678de9bb`, 8 unpushed commits ahead of `origin/main`. Six
 - **Risk:** low
 - **Summary:** `findFirst` → `insert ... onConflictDoNothing` → re-`findFirst`. Between the second findFirst and the caller using the row, project deletion or another mutation can race. Mostly harmless but the post-insert refetch is best-effort, not authoritative.
 - **Suggested approach:** Use `INSERT ... ON CONFLICT DO UPDATE SET ... RETURNING *` (or `RETURNING id` + a single read) so the response always returns the canonical row in one round trip.
-- **Status:** open
+- **Note (2026-05-09):** `cmsSources` has no unique constraint on `(project_id, type)`. `onConflictDoNothing()` only fires for primary-key (UUID) conflicts — essentially never for the race scenario. The upsert fix requires CR-074 (add unique index on cms_source.project_id + type WHERE type='weblab') to land first. This CR is blocked until that migration ships.
+- **Status:** blocked-on-CR-074
 
 ## CR-112 — Migration `0024` drops author FKs but never re-adds them
 

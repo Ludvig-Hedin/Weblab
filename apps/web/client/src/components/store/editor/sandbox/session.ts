@@ -260,7 +260,16 @@ export class SessionManager {
             this.isConnecting = false;
             this.connectionError = null;
         });
-        await this.start(sandboxId, userId);
+        try {
+            await this.start(sandboxId, userId);
+        } catch (err) {
+            // CR-124: start() failed after all retries — revert to offline so
+            // the UI never shows "online" with no live provider underneath.
+            runInAction(() => {
+                this.isOffline = true;
+            });
+            throw err;
+        }
     }
 
     async ping() {

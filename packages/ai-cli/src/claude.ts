@@ -66,10 +66,11 @@ export class ClaudeAdapter implements CliAdapter {
         const { streamId, model, messages, workingDirectory } = request;
         const prompt = buildPrompt(messages);
 
-        // Claude Code CLI: `-p "<prompt>"` takes the prompt as the next
-        // positional argument; `--output-format stream-json` requires
-        // `--verbose`. See apps/desktop/cli/claude.js for the runtime mirror.
-        const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
+        // CR-131: pass prompt via stdin rather than as an argv value to avoid
+        // OS ARG_MAX limits (~128KB on Linux). The desktop runtime mirror in
+        // apps/desktop/cli/claude.js already uses stdin — this aligns the two.
+        // `-p` with no following value tells Claude Code to read from stdin.
+        const args = ['-p', '--output-format', 'stream-json', '--verbose'];
         if (model) {
             args.push('--model', model);
         }
@@ -77,9 +78,9 @@ export class ClaudeAdapter implements CliAdapter {
         let child: ReturnType<typeof spawn>;
         try {
             child = spawn('claude', args, {
-                stdio: ['ignore', 'pipe', 'pipe'],
+                stdio: ['pipe', 'pipe', 'pipe'],
                 cwd: workingDirectory,
-                shell: process.platform === 'win32',
+                shell: false,
             });
         } catch (cause) {
             emit({
@@ -91,6 +92,12 @@ export class ClaudeAdapter implements CliAdapter {
                 },
             });
             return;
+        }
+
+        // Write prompt to stdin then close so Claude Code reads it as the `-p` input.
+        if (child.stdin) {
+            child.stdin.write(prompt);
+            child.stdin.end();
         }
 
         const onAbort = () => {

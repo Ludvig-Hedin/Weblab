@@ -123,15 +123,19 @@ export const sandboxRouter = createTRPCRouter({
                 await provider.destroy().catch(() => {});
             }
         }),
-    list: protectedProcedure.input(z.object({ sandboxId: z.string() })).query(async ({ input }) => {
-        const provider = await getProvider({ sandboxId: input.sandboxId });
-        const res = await provider.listProjects({});
-        // TODO future iteration of code provider abstraction will need this code to be refactored
-        if ('projects' in res) {
-            return res.projects;
-        }
-        return [];
-    }),
+    list: protectedProcedure
+        .input(z.object({ sandboxId: z.string() }))
+        .query(async ({ input, ctx }) => {
+            // CR-118: verify caller owns the sandbox before listing its projects.
+            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const res = await provider.listProjects({});
+            // TODO future iteration of code provider abstraction will need this code to be refactored
+            if ('projects' in res) {
+                return res.projects;
+            }
+            return [];
+        }),
     fork: protectedProcedure
         .input(
             z.object({
@@ -147,7 +151,9 @@ export const sandboxRouter = createTRPCRouter({
                     .optional(),
             }),
         )
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
+            // CR-118: verify caller owns the source sandbox before forking it.
+            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandbox.id);
             const MAX_RETRY_ATTEMPTS = 3;
             let lastError: Error | null = null;
 
