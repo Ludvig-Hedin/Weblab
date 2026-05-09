@@ -10,12 +10,14 @@ export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434';
 export enum OPENROUTER_MODELS {
     // Generate object does not work for Anthropic models https://github.com/OpenRouterTeam/ai-sdk-provider/issues/165
     OPEN_AI_GPT_5_5 = 'openai/gpt-5.5',
+    OPEN_AI_GPT_5_4_MINI = 'openai/gpt-5.4-mini',
     GEMINI_3_PRO_PREVIEW = 'google/gemini-3-pro-preview',
     CLAUDE_OPUS_4_7 = 'anthropic/claude-opus-4.7',
     CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku',
     KIMI_K2_6 = 'moonshotai/kimi-k2.6',
     GLM_5_1 = 'zai/glm-5.1',
     DEEPSEEK_V4_PRO = 'deepseek/deepseek-v4-pro',
+    MISTRAL_CODESTRAL = 'mistralai/codestral-2501',
 }
 
 // Template literal type for Ollama model IDs (e.g. "ollama/llama3.2")
@@ -51,13 +53,22 @@ export type ModelConfig = {
 
 export const MODEL_MAX_TOKENS: Record<string, number> = {
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 400000,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI]: 400000,
     [OPENROUTER_MODELS.GEMINI_3_PRO_PREVIEW]: 1048576,
     [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: 200000,
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: 200000,
     [OPENROUTER_MODELS.KIMI_K2_6]: 1000000,
     [OPENROUTER_MODELS.GLM_5_1]: 1000000,
     [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: 1000000,
+    [OPENROUTER_MODELS.MISTRAL_CODESTRAL]: 32768,
 };
+
+/**
+ * Defaults for Cursor-style in-editor AI surfaces.
+ * Both keyed off OpenRouter so users only need OPENROUTER_API_KEY set.
+ */
+export const DEFAULT_INLINE_EDIT_MODEL: OPENROUTER_MODELS = OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI;
+export const DEFAULT_TAB_COMPLETE_MODEL: OPENROUTER_MODELS = OPENROUTER_MODELS.MISTRAL_CODESTRAL;
 
 /** Fallback context window for local models not present in MODEL_MAX_TOKENS */
 const OLLAMA_DEFAULT_MAX_TOKENS = 32768;

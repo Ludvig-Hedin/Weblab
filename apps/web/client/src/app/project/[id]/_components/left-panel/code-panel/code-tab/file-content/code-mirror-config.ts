@@ -22,6 +22,9 @@ import { tags } from '@lezer/highlight';
 import { debounce } from 'lodash';
 
 import type { DecorationSet } from '@codemirror/view';
+import { errorFixExtensions } from './error-fix';
+import { inlineEditField, inlineEditKeymap, inlineEditTheme } from './inline-edit';
+import { tabCompleteExtensions } from './tab-complete';
 
 // Custom colors for CodeMirror
 const customColors = {
@@ -395,6 +398,15 @@ export const getBasicSetup = (saveFile: () => void) => {
                 },
             },
         ]),
+
+        // Cmd+K inline edit + error-fix gutter + Tab autocomplete extensions.
+        // Order matters: inlineEditKeymap is placed before the default keymap
+        // so Mod-k and Escape are captured before any other handler.
+        inlineEditField,
+        inlineEditTheme,
+        inlineEditKeymap,
+        ...errorFixExtensions(),
+        ...tabCompleteExtensions(),
 
         customDarkTheme,
         syntaxHighlighting(customDarkHighlightStyle),

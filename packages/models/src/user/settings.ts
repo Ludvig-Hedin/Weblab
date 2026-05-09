@@ -40,6 +40,18 @@ export interface ChatSettings extends AIBehaviorSettings {
 export interface AISettings extends AIBehaviorSettings {
     defaultModel: string;
     maxImages: number;
+    /** Cmd+K inline edit on a code selection. */
+    enableInlineEdit?: boolean;
+    /** Tab/ghost-text autocomplete in the code editor. Off by default — opt-in. */
+    enableTabAutocomplete?: boolean;
+    /** One-click "Fix with AI" affordance on errors. */
+    enableErrorFix?: boolean;
+    /** Cmd+K on a selected element in the canvas designer. */
+    enableDesignerInlineEdit?: boolean;
+    /** Optional override for the inline-edit / fix model (defaults to GPT-5.4 mini). */
+    inlineEditModel?: string;
+    /** Optional override for the tab-complete model (defaults to Codestral). */
+    tabCompleteModel?: string;
 }
 
 export interface EditorSettings {
