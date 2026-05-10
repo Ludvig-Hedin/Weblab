@@ -132,13 +132,36 @@ export function tailwindClassFor(property: string, value: string): string | null
  *   → "bg-red-500"
  */
 export function removeUtilityClasses(className: string, utility: string): string {
-    if (!utility) return className;
     const tokens = className.split(/\s+/).filter(Boolean);
+    const isDisplay = utility === '';
+    const displayTokens = new Set([
+        'block',
+        'inline-block',
+        'inline',
+        'flex',
+        'inline-flex',
+        'grid',
+        'inline-grid',
+        'hidden',
+        'contents',
+        'table',
+        'inline-table',
+        'table-row',
+        'table-cell',
+        'flow-root',
+        'list-item',
+    ]);
     const prefixed = `${utility}-`;
     const kept = tokens.filter((token) => {
-        const colonIdx = token.lastIndexOf(':');
-        const bare = colonIdx >= 0 ? token.slice(colonIdx + 1) : token;
-        if (bare === utility) return false; // e.g. "block" when utility===''
+        // Strip variant prefixes (e.g. `md:`, `lg:hover:`) but only outside
+        // arbitrary-value brackets — `[display:grid]` contains a `:` that is
+        // part of the value, not a variant separator.
+        const bracketIdx = token.indexOf('[');
+        const variantSegment = bracketIdx === -1 ? token : token.slice(0, bracketIdx);
+        const variantColonIdx = variantSegment.lastIndexOf(':');
+        const bare = variantColonIdx >= 0 ? token.slice(variantColonIdx + 1) : token;
+        if (isDisplay) return !displayTokens.has(bare) && !bare.startsWith('[display:');
+        if (bare === utility) return false;
         return !bare.startsWith(prefixed);
     });
     return kept.join(' ');

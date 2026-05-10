@@ -120,9 +120,7 @@ async function assertSafeOutboundUrl(rawUrl: string): Promise<URL> {
     }
     for (const addr of addresses) {
         if (isBlockedIp(addr.address)) {
-            throw new RemoteAdapterError(
-                `Refusing to connect to internal address ${addr.address}`,
-            );
+            throw new RemoteAdapterError(`Refusing to connect to internal address ${addr.address}`);
         }
     }
     return url;
@@ -154,10 +152,7 @@ export async function fetchWithTimeout(
         // also don't want to silently surface a 3xx body to the caller as
         // success. Adapters should treat any 3xx as a configuration error.
         if (res.status >= 300 && res.status < 400) {
-            throw new RemoteAdapterError(
-                `Refusing to follow redirect from ${url}`,
-                res.status,
-            );
+            throw new RemoteAdapterError(`Refusing to follow redirect from ${url}`, res.status);
         }
         return res;
     } finally {

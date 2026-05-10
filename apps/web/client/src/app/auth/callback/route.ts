@@ -121,6 +121,9 @@ export async function GET(request: Request) {
                 status: error.status,
                 name: error.name,
             });
+            return NextResponse.redirect(
+                `${origin}/auth/auth-code-error?reason=oauth_${error.code ?? 'exchange_failed'}`,
+            );
         } catch (error) {
             console.error('Error handling auth callback', {
                 error: error instanceof Error ? error.message : String(error),
@@ -132,9 +135,12 @@ export async function GET(request: Request) {
             } catch {
                 /* swallow — already in the error path */
             }
+            return NextResponse.redirect(
+                `${origin}/auth/auth-code-error?reason=callback_exception`,
+            );
         }
     }
 
     // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+    return NextResponse.redirect(`${origin}/auth/auth-code-error?reason=missing_code`);
 }

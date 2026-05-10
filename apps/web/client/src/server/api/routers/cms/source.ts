@@ -159,7 +159,12 @@ export const cmsSourceRouter = createTRPCRouter({
             const [updated] = await ctx.db
                 .update(cmsSources)
                 .set(patch)
-                .where(and(eq(cmsSources.id, input.sourceId), eq(cmsSources.projectId, input.projectId)))
+                .where(
+                    and(
+                        eq(cmsSources.id, input.sourceId),
+                        eq(cmsSources.projectId, input.projectId),
+                    ),
+                )
                 .returning();
             if (!updated) throw new Error('Source not found');
             const { credentials: _credentials, ...rest } = updated;

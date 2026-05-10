@@ -7,9 +7,9 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 
 import { getCachedProject } from '@/services/offline/project-cache';
+import { ProjectProviders } from '../providers';
 import { Main } from './main';
 import { ProjectLoadError } from './project-load-error';
-import { ProjectProviders } from '../providers';
 
 const STALE_CACHE_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 

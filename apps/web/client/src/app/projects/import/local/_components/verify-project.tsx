@@ -67,7 +67,9 @@ export const VerifyProject = () => {
                     </div>
                     <div className="flex w-full flex-col gap-1 break-all">
                         <p className="text-regular text-foreground-primary">{projectData.name}</p>
-                        <p className="text-mini text-foreground-warning">{projectData.folderPath}</p>
+                        <p className="text-mini text-foreground-warning">
+                            {projectData.folderPath}
+                        </p>
                     </div>
                     <Icons.ExclamationTriangle className="text-foreground-warning h-5 w-5" />
                 </div>

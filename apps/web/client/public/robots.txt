@@ -9,6 +9,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 # Search engines (explicit, in case any future User-agent: * change tightens rules)
 
@@ -20,6 +22,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Bingbot
 Allow: /
@@ -29,6 +33,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: DuckDuckBot
 Allow: /
@@ -38,6 +44,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 # AI / LLM crawlers — explicitly allow trusted indexers so we surface in AI search.
 # Sensitive app routes (/projects/, /project/, /invitation/) are excluded from
@@ -51,6 +59,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: ChatGPT-User
 Allow: /
@@ -60,6 +70,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: OAI-SearchBot
 Allow: /
@@ -69,6 +81,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: ClaudeBot
 Allow: /
@@ -78,6 +92,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: anthropic-ai
 Allow: /
@@ -87,6 +103,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Claude-Web
 Allow: /
@@ -96,6 +114,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: PerplexityBot
 Allow: /
@@ -105,6 +125,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Perplexity-User
 Allow: /
@@ -114,6 +136,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Applebot
 Allow: /
@@ -123,6 +147,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Applebot-Extended
 Allow: /
@@ -132,6 +158,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Google-Extended
 Allow: /
@@ -141,6 +169,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: CCBot
 Allow: /
@@ -150,6 +180,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: cohere-ai
 Allow: /
@@ -159,6 +191,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: Meta-ExternalAgent
 Allow: /
@@ -168,6 +202,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 User-agent: FacebookBot
 Allow: /
@@ -177,6 +213,8 @@ Disallow: /login
 Disallow: /projects/
 Disallow: /project/
 Disallow: /invitation/
+Disallow: /design-system
+Disallow: /design-system/
 
 # Block known scrapers we don't want training on our content.
 

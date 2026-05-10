@@ -43,9 +43,10 @@ export class OllamaWebTransport implements ChatTransport<UIMessage> {
         }
 
         const ollamaMessages = options.messages.map((m) => ({
-            role: m.role === 'user' || m.role === 'assistant' || m.role === 'system'
-                ? m.role
-                : 'user',
+            role:
+                m.role === 'user' || m.role === 'assistant' || m.role === 'system'
+                    ? m.role
+                    : 'user',
             content: flattenContent(m),
         }));
 

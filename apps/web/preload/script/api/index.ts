@@ -1,6 +1,6 @@
 import type { ProcessDomResult } from './dom';
 import { findListAncestorOid, setCmsData } from './cms';
-import { buildLayerTree, processDom } from './dom';
+import { buildLayerTree, processDom, processDomNow } from './dom';
 import {
     getChildrenCount,
     getElementAtLoc,
@@ -59,6 +59,7 @@ function withTryCatch<T extends (...args: any[]) => any>(fn: T): T {
 const rawMethods = {
     // Misc
     processDom,
+    processDomNow,
     setFrameId,
     setBranchId,
     getComputedStyleByDomId,

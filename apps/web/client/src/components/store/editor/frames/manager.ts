@@ -121,7 +121,15 @@ export class FramesManager {
             selected: isSelected,
             contentHeight: existing?.contentHeight ?? null,
         });
-        const framePathname = new URL(view.src).pathname;
+        // `view.src` may be empty (offline `srcdoc` mode) or otherwise unparseable
+        // — fall back to '/' so the navigation manager still gets a valid entry
+        // and we don't crash the iframe registration.
+        let framePathname = '/';
+        try {
+            if (view.src) framePathname = new URL(view.src).pathname;
+        } catch (err) {
+            console.warn('Invalid frame URL on register', view.src, err);
+        }
         this._navigation.registerFrame(frame.id, framePathname);
     }
 

@@ -16,10 +16,7 @@ import { toast } from '@weblab/ui/sonner';
 import { useEditorEngine } from '@/components/store/editor';
 import { ensureBreakpointSiblings } from '@/components/store/editor/frames';
 import { useOnlineStatus } from '@/services/offline/online-status';
-import {
-    cacheProjectExtras,
-    getCachedProject,
-} from '@/services/offline/project-cache';
+import { cacheProjectExtras, getCachedProject } from '@/services/offline/project-cache';
 import { replayQueue } from '@/services/offline/replay-controller';
 import { api } from '@/trpc/react';
 import { useTabActive } from '../_hooks/use-tab-active';
@@ -133,7 +130,13 @@ export const useStartProject = () => {
         return () => {
             cancelled = true;
         };
-    }, [online, editorEngine.projectId, editorEngine.canvas, editorEngine.frames, editorEngine.chat.conversation]);
+    }, [
+        online,
+        editorEngine.projectId,
+        editorEngine.canvas,
+        editorEngine.frames,
+        editorEngine.chat.conversation,
+    ]);
 
     // Online: persist canvas/frames/conversations into the offline cache so
     // the next offline boot has a fully populated editor.

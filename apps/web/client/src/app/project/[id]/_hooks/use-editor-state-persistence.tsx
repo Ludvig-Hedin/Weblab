@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { reaction } from 'mobx';
 
 import type { BreakpointId } from '@weblab/models';
+import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '@/components/store/editor/engine';
 import type { EditorPersistedState } from '@/services/editor/state-persistence';
@@ -93,6 +94,31 @@ export function useEditorStatePersistence(
         const oid = persisted.selectedElementOid;
         const elementFrameId = persisted.selectedElementFrameId;
         if (!oid || !elementFrameId) {
+            return () => {
+                cancelled = true;
+                stopPolling();
+            };
+        }
+
+        // If the saved frame is no longer in the project (e.g. user deleted
+        // the page server-side between sessions), polling for it would burn
+        // 5s in silence and leave the user wondering why their selection
+        // didn't restore. Detect missing-frame up-front and surface a toast
+        // so the loss is visible.
+        const allFrames = editorEngine.frames.getAll();
+        const savedFrameStillExists = allFrames.some((f) => f.frame.id === elementFrameId);
+        if (!savedFrameStillExists) {
+            toast.info('Last selection unavailable', {
+                description:
+                    "The element you had selected is in a frame that no longer exists. We've cleared it so you can pick something new.",
+            });
+            // Drop the stale element pointer so the next persist won't try
+            // to restore it again. The frame/breakpoint slots above are
+            // still useful and remain untouched.
+            patchEditorState(projectId, {
+                selectedElementOid: undefined,
+                selectedElementFrameId: undefined,
+            });
             return () => {
                 cancelled = true;
                 stopPolling();

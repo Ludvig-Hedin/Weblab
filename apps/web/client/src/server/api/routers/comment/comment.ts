@@ -7,7 +7,7 @@ import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { verifyProjectAccess } from '../project/helper';
 import { sanitiseAuthorName } from './helpers';
 
-export const commentRouter = createTRPCRouter({
+export const commentCrudRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {

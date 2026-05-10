@@ -13,17 +13,16 @@ import { createClient } from '@/utils/supabase/server';
  * the cached entry's owning userId matches the requesting user. We 404
  * instead of 403 so the existence of an id is not leaked to other users.
  */
-export async function GET(
-    _req: NextRequest,
-    { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     if (!id || typeof id !== 'string') {
         return new Response('Bad request', { status: 400 });
     }
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
         return new Response('Unauthorized', { status: 401 });
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
 import { Button } from '@weblab/ui/button';
@@ -10,6 +11,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 
+import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { sanitizeReturnUrl } from '@/utils/url';
@@ -29,6 +31,7 @@ import { sanitizeReturnUrl } from '@/utils/url';
  *   - "Skip for now" routes to `returnUrl` without saving.
  */
 export default function ProfileSetupPage() {
+    const t = useTranslations();
     const router = useRouter();
     const searchParams = useSearchParams();
     const apiUtils = api.useUtils();
@@ -56,7 +59,7 @@ export default function ProfileSetupPage() {
             router.push(finalRedirect);
         },
         onError: (error) => {
-            setError(error.message || 'Failed to save profile. Please try again.');
+            setError(error.message || t(transKeys.welcome.profileSetup.errorSaveFailed));
         },
     });
 
@@ -72,7 +75,13 @@ export default function ProfileSetupPage() {
     // address as their display name everywhere is exactly the bug we're
     // fixing. Empty firstName + lastName is the other shape this can take.
     useEffect(() => {
-        if (isLoadingUser || !user) return;
+        if (isLoadingUser) return;
+        if (!user) {
+            // api.user.get returned null (e.g. session present but no public.users row).
+            // Don't sit on the spinner — let the form render so the user can fill it in.
+            setHasCheckedProfile(true);
+            return;
+        }
         const hasName =
             (user.firstName && user.firstName.trim().length > 0) ||
             (user.lastName && user.lastName.trim().length > 0);
@@ -92,7 +101,7 @@ export default function ProfileSetupPage() {
         const trimmedFirst = firstName.trim();
         const trimmedLast = lastName.trim();
         if (!trimmedFirst) {
-            setError('Please enter your first name.');
+            setError(t(transKeys.welcome.profileSetup.errorFirstNameRequired));
             return;
         }
         setError(null);
@@ -131,15 +140,17 @@ export default function ProfileSetupPage() {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="space-y-4">
-                        <h1 className="text-title1 leading-tight">What should we call you?</h1>
+                        <h1 className="text-title1 leading-tight">
+                            {t(transKeys.welcome.profileSetup.title)}
+                        </h1>
                         <p className="text-foreground-weblab text-regular">
-                            Tell us your name so Weblab can address you properly across the app.
+                            {t(transKeys.welcome.profileSetup.description)}
                         </p>
                     </div>
                     <div className="space-y-4">
                         <div className="space-y-1.5">
                             <Label htmlFor="profile-setup-first-name" className="text-small">
-                                First name
+                                {t(transKeys.welcome.profileSetup.firstName)}
                             </Label>
                             <Input
                                 id="profile-setup-first-name"
@@ -148,15 +159,17 @@ export default function ProfileSetupPage() {
                                 autoFocus
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
-                                placeholder="Ada"
+                                placeholder={t(transKeys.welcome.profileSetup.firstNamePlaceholder)}
                                 disabled={isSaving}
                                 required
                             />
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="profile-setup-last-name" className="text-small">
-                                Last name{' '}
-                                <span className="text-foreground-tertiary text-xs">(optional)</span>
+                                {t(transKeys.welcome.profileSetup.lastName)}{' '}
+                                <span className="text-foreground-tertiary text-xs">
+                                    {t(transKeys.welcome.profileSetup.optional)}
+                                </span>
                             </Label>
                             <Input
                                 id="profile-setup-last-name"
@@ -164,7 +177,7 @@ export default function ProfileSetupPage() {
                                 autoComplete="family-name"
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
-                                placeholder="Lovelace"
+                                placeholder={t(transKeys.welcome.profileSetup.lastNamePlaceholder)}
                                 disabled={isSaving}
                             />
                         </div>
@@ -179,10 +192,10 @@ export default function ProfileSetupPage() {
                                 {isSaving ? (
                                     <>
                                         <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                                        Saving...
+                                        {t(transKeys.welcome.profileSetup.saving)}
                                     </>
                                 ) : (
-                                    'Continue'
+                                    t(transKeys.welcome.profileSetup.continue)
                                 )}
                             </Button>
                             <Button
@@ -192,7 +205,7 @@ export default function ProfileSetupPage() {
                                 onClick={handleSkip}
                                 disabled={isSaving}
                             >
-                                Skip for now
+                                {t(transKeys.welcome.profileSetup.skip)}
                             </Button>
                         </div>
                     </div>

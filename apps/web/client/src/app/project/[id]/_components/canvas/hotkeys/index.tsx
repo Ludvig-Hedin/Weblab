@@ -511,7 +511,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         [getKey('NEW_AI_CHAT')],
     );
     useHotkeys(
-        getKey('CHAT_MODE_TOGGLE'),
+        getKey('TOGGLE_DESIGN_PREVIEW'),
         () => {
             // Toggle between design and preview mode
             if (editorEngine.state.editorMode === EditorMode.PREVIEW) {
@@ -521,7 +521,7 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             }
         },
         { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
-        [getKey('CHAT_MODE_TOGGLE')],
+        [getKey('TOGGLE_DESIGN_PREVIEW')],
     );
 
     // Move

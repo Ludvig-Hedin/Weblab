@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 
 // Reload timing constants
@@ -59,6 +59,12 @@ export function useFrameReload() {
         }
     };
 
+    // Stable ref to the latest scheduleReload so the memoized debounced
+    // failure handler can call the current implementation without itself
+    // being recreated each render (which would defeat lodash's debounce
+    // — every render would mint a fresh, un-pending function).
+    const scheduleReloadRef = useRef<() => void>(() => {});
+
     const immediateReload = () => {
         clearScheduledReload();
         // Cancel any in-flight debounced failure callback so a stale
@@ -96,13 +102,26 @@ export function useFrameReload() {
         }, reloadDelay);
     };
 
-    const handleConnectionFailed = debounce(
-        () => {
-            setIsPenpalConnected(false);
-            scheduleReload();
-        },
-        1000,
-        { leading: true },
+    // Keep the ref pointing at the latest scheduleReload closure so the
+    // debounced handler — which is intentionally created once — always
+    // invokes the current implementation.
+    scheduleReloadRef.current = scheduleReload;
+
+    // Created once per hook lifetime. Recreating the debounced fn each
+    // render produced a new pending timer per render and meant `cancel()`
+    // calls during cleanup/success only cancelled the latest one,
+    // leaking older timers that could still fire stale state updates.
+    const handleConnectionFailed = useMemo(
+        () =>
+            debounce(
+                () => {
+                    setIsPenpalConnected(false);
+                    scheduleReloadRef.current();
+                },
+                1000,
+                { leading: true },
+            ),
+        [],
     );
 
     const handleConnectionSuccess = () => {
@@ -156,7 +175,7 @@ export function useFrameReload() {
             clearScheduledReload();
             clearBootTimer();
         };
-    }, []);
+    }, [handleConnectionFailed]);
 
     return {
         reloadKey,

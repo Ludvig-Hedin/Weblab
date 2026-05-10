@@ -1,7 +1,7 @@
 'use client';
 
-import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -68,7 +68,7 @@ export const ConnectionChip = observer(() => {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-background-tertiary/40 px-2 py-0.5 text-[10px] font-medium">
+                <span className="bg-background-tertiary/40 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium">
                     <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
                     <span className={labelClass}>{label}</span>
                 </span>

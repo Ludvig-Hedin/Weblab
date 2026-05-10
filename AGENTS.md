@@ -89,18 +89,52 @@ Deep dives:
 
 ### Validation, Migrations, and Config Changes
 
-- Never leave the app in a broken state with known errors. Before ending work,
-  run the relevant validation for the files touched, such as typecheck, lint,
-  tests, build checks, or targeted scripts.
-- If a change requires database migrations, config updates, env changes, setup
-  steps, or generated artifacts, either run the required local migration/config
-  command yourself or clearly tell the project owner exactly what they must run
-  manually.
-- When migration or config commands cannot be run safely in the current
-  environment, document the blocker, the exact command or file change still
-  needed, and the expected impact if it is skipped.
+#### Default: Run it yourself
+
+**Always run required commands.** Do not instruct the project owner to run
+something you can run. This includes:
+
+- `bun typecheck` — after any TypeScript change
+- `bun lint` — after any code change
+- `bun test [file]` — after touching logic that has tests
+- `bun db:push` — after any Drizzle schema change
+- `bun db:migrate` — after adding a migration file
+- `bun db:seed` — if seed data changed
+- `bun install` / `bun add <pkg>` — after adding a dependency
+- `bun format` — after bulk edits
+
+Run these proactively. If a command fails, fix the root cause and re-run — do
+not silence errors.
+
+#### Only leave for the project owner when genuinely blocked
+
+Only hand off a step when one of these hard blockers applies:
+
+| Blocker | Example |
+|---------|---------|
+| Missing required env var not in `.env.local` | `STRIPE_SECRET_KEY` at runtime |
+| Requires login / OAuth browser flow | Supabase dashboard, OAuth consent |
+| Targets production or shared infrastructure | Prod DB migration, prod secret rotation |
+| Interactive TTY prompt that cannot be automated | Confirmation prompts in `db:reset` |
+| External service credential or manual click | Vercel dashboard toggle, Railway env var |
+
+#### When you cannot run a command
+
+State the blocker **explicitly and immediately** at the end of your response:
+
+```
+⚠️ MANUAL STEP REQUIRED
+Command : bun db:migrate
+Reason  : Requires production DB credentials not present locally.
+Impact  : New `user_sessions` table missing in prod — auth will fail.
+```
+
+Never bury this in a paragraph. Never say "you may want to run…". Be direct:
+what to run, why you couldn't, what breaks if skipped.
+
 - Do not mark a task complete until the app has been validated enough to confirm
   it is not left with avoidable runtime, build, type, lint, or config errors.
+- Never leave the app in a known broken state.
 
 ### Documentation Discipline
 
@@ -290,9 +324,6 @@ The living design system lives at **`/design-system`** (source: `apps/web/client
 
 ### Notes
 
-- Unit tests can be run with `bun test`
-- Run type checking with `bun run typecheck`
-- Apply database updates to local dev with `bun run db:push`
-- Refrain from running the dev server
-- DO NOT run `db:gen`. This is reserved for the maintainer.
-- DO NOT use any type unless necessary
+- DO NOT run the dev server in automation contexts.
+- DO NOT run `db:gen` — reserved for the maintainer.
+- DO NOT use `any` type unless necessary.

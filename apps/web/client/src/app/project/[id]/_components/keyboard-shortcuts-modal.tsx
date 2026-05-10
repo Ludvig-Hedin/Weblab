@@ -115,7 +115,7 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
         entries: [
             single(Hotkey.ADD_AI_CHAT),
             single(Hotkey.NEW_AI_CHAT),
-            single(Hotkey.CHAT_MODE_TOGGLE),
+            single(Hotkey.TOGGLE_DESIGN_PREVIEW),
             single(Hotkey.OPEN_MODEL_PICKER),
         ],
     },
@@ -206,7 +206,7 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     },
     {
         title: 'AI',
-        keys: ['ADD_AI_CHAT', 'NEW_AI_CHAT', 'CHAT_MODE_TOGGLE', 'OPEN_MODEL_PICKER'],
+        keys: ['ADD_AI_CHAT', 'NEW_AI_CHAT', 'TOGGLE_DESIGN_PREVIEW', 'OPEN_MODEL_PICKER'],
     },
 ];
 

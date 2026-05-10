@@ -20,9 +20,19 @@ const Page = () => {
     const backgroundUrl = useGetBackground('create');
 
     useEffect(() => {
-        setShouldResumeCreate(
-            new URLSearchParams(window.location.search).get('resumeCreate') === '1',
-        );
+        const params = new URLSearchParams(window.location.search);
+        const shouldResume = params.get('resumeCreate') === '1';
+        setShouldResumeCreate(shouldResume);
+        // Strip the param so a browser back/refresh after this mount cannot
+        // re-fire auto-submit and create a duplicate project. Only mutate
+        // history when the param was actually present so we never push a
+        // pointless replaceState entry.
+        if (shouldResume) {
+            params.delete('resumeCreate');
+            const search = params.toString();
+            const newUrl = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+            window.history.replaceState(null, '', newUrl);
+        }
     }, []);
 
     return (

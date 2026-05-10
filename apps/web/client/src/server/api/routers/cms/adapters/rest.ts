@@ -116,7 +116,9 @@ export const restAdapter: CmsSourceAdapter = {
         return Promise.all(
             endpoints.map(async (endpoint): Promise<RemoteCollection> => {
                 try {
-                    const normalizedPath = endpoint.path.startsWith('/') ? endpoint.path : `/${endpoint.path}`;
+                    const normalizedPath = endpoint.path.startsWith('/')
+                        ? endpoint.path
+                        : `/${endpoint.path}`;
                     const url = `${creds.baseUrl.replace(/\/$/, '')}${normalizedPath}`;
                     const res = await fetchWithTimeout(url, {
                         headers: authHeaders(creds),

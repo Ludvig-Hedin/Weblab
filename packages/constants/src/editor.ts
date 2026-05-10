@@ -45,7 +45,6 @@ export enum EditorAttributes {
     DATA_ONLOOK_IGNORE = 'data-onlook-ignore',
     DATA_ONLOOK_INSERTED = 'data-onlook-inserted',
     DATA_ONLOOK_EDITING_TEXT = 'data-onlook-editing-text',
-    DATA_ONLOOK_DRAGGING = 'data-onlook-dragging',
 }
 
 export const WEBLAB_DATA_ATTRIBUTE_PREFIX = 'data-weblab-';

@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import type { Canvas, UserCanvas } from '@weblab/db';
+import type { ProjectFrameworkId } from '@weblab/models';
 import { initModel } from '@weblab/ai';
 import { getSandboxPreviewUrl, STORAGE_BUCKETS } from '@weblab/constants';
 import {
@@ -374,17 +375,42 @@ export const projectRouter = createTRPCRouter({
                 rootPath: z.string().trim().min(1),
                 devCommand: z.string().trim().min(1).default('bun run dev'),
                 port: z.number().int().min(1).max(65535).default(3000),
+                framework: z
+                    .enum([
+                        'nextjs',
+                        'vite-react',
+                        'remix',
+                        'astro',
+                        'tanstack-start',
+                        'static-html',
+                    ])
+                    .optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             return await ctx.db.transaction(async (tx) => {
                 const previewUrl = `http://localhost:${input.port}`;
+                const framework: ProjectFrameworkId = input.framework ?? 'nextjs';
                 const [newProject] = await tx
                     .insert(projects)
                     .values({
                         name: input.name,
                         description: input.description ?? 'Local project',
                         tags: ['local'],
+                        // Without these, the editor pipeline boots a local
+                        // project as a cloud project and tries to fetch a
+                        // sandbox URL that doesn't exist. Persist the local
+                        // runtime + framework so downstream code branches
+                        // correctly on first read.
+                        storageMode: 'local',
+                        runtimeMetadata: {
+                            framework,
+                            local: {
+                                rootPath: input.rootPath,
+                                devCommand: input.devCommand,
+                                port: input.port,
+                            },
+                        },
                     })
                     .returning();
                 if (!newProject) {

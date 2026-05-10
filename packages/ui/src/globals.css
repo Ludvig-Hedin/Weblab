@@ -624,6 +624,7 @@
 }
 
 @theme inline {
+    /* Sidebar */
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -632,6 +633,33 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    /* Foreground tokens — enables opacity modifiers (e.g. text-foreground-primary/50) */
+    --color-foreground: hsl(var(--foreground));
+    --color-foreground-primary: hsl(var(--foreground-primary));
+    --color-foreground-secondary: hsl(var(--foreground-secondary));
+    --color-foreground-tertiary: hsl(var(--foreground-tertiary));
+    --color-foreground-quadranary: hsl(var(--foreground-quadranary));
+    --color-foreground-brand: hsl(var(--foreground-brand));
+    --color-foreground-weblab: hsl(var(--foreground-weblab));
+    --color-foreground-positive: hsl(var(--foreground-positive));
+    --color-foreground-success: hsl(var(--foreground-success));
+    --color-foreground-warning: hsl(var(--foreground-warning));
+    --color-foreground-hover: hsl(var(--foreground-hover));
+    --color-foreground-active: hsl(var(--foreground-active));
+    --color-foreground-disabled: hsl(var(--foreground-disabled));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+
+    /* Background tokens — enables opacity modifiers (e.g. bg-background-secondary/50) */
+    --color-background: hsl(var(--background));
+    --color-background-primary: hsl(var(--background-primary));
+    --color-background-secondary: hsl(var(--background-secondary));
+    --color-background-tertiary: hsl(var(--background-tertiary));
+    --color-background-weblab: hsl(var(--background-weblab));
+    --color-background-tab-strip: hsl(var(--background-tab-strip));
+    --color-background-success: hsl(var(--background-success));
+    --color-background-warning: hsl(var(--background-warning));
+    --color-background-brand: hsl(var(--background-brand));
 
     /* Radius scale — anchored to --radius (1rem) */
     --radius-xs: 0.25rem;

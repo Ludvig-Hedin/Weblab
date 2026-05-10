@@ -239,4 +239,3 @@ class OfflineTask extends ProviderTask {
         return NOOP;
     }
 }
-

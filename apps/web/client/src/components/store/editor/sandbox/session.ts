@@ -265,8 +265,15 @@ export class SessionManager {
         } catch (err) {
             // CR-124: start() failed after all retries — revert to offline so
             // the UI never shows "online" with no live provider underneath.
+            // Re-attach an OfflineProvider so the invariant
+            // `isOffline === true ⇒ provider !== null` holds; otherwise
+            // `useStartProject`'s readiness gate (which keys off
+            // `session.provider`) drops the editor back into its loading
+            // shell instead of returning to the offline experience.
             runInAction(() => {
+                this.provider = new OfflineProvider();
                 this.isOffline = true;
+                this.isConnecting = false;
             });
             throw err;
         }

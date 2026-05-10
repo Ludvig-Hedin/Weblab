@@ -75,6 +75,9 @@ export const createRootAgentStream = ({
         system: systemPrompt,
         tools: toolSet,
         headers: modelConfig.headers,
+        // Without this, streamText silently uses the SDK default cap (~4k),
+        // which truncates long responses on models with a much larger window.
+        maxOutputTokens: modelConfig.maxOutputTokens,
         abortSignal,
         stopWhen: stepCountIs(8),
         experimental_repairToolCall: createRepairToolCall(provider),

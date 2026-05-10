@@ -95,10 +95,48 @@ Deep dives:
 
 ## Validation, Migrations, and Config Changes
 
-- Never leave the app in a broken state with known errors. Before ending work, run the relevant validation for the files touched, such as typecheck, lint, tests, build checks, or targeted scripts.
-- If a change requires database migrations, config updates, env changes, setup steps, or generated artifacts, either run the required local migration/config command yourself or clearly tell the project owner exactly what they must run manually.
-- When migration or config commands cannot be run safely in the current environment, document the blocker, the exact command or file change still needed, and the expected impact if it is skipped.
+### Default: Run it yourself
+
+**Always run required commands.** Do not ask the project owner to run something you can run. This includes:
+
+- `bun typecheck` — after any TypeScript change
+- `bun lint` — after any code change
+- `bun test [file]` — after touching logic with tests
+- `bun db:push` — after any Drizzle schema change
+- `bun db:migrate` — after adding a migration file
+- `bun db:seed` — if seed data changed
+- `bun install` / `bun add <pkg>` — after adding a dependency
+- `bun format` — after bulk edits to normalize style
+
+Run these proactively, not only when asked. If a command fails, fix the root cause and re-run.
+
+### Only leave for the project owner when genuinely blocked
+
+You **must not** hand off a task to the owner unless one of these hard blockers applies:
+
+| Blocker | Example |
+|---------|---------|
+| Missing required env var not in `.env.local` | `STRIPE_SECRET_KEY` needed at runtime |
+| Requires login / OAuth browser flow | Supabase dashboard action, OAuth consent |
+| Targets production or shared infrastructure | Prod DB migration, prod secret rotation |
+| Interactive TTY prompt that cannot be automated | `bun db:reset` if it asks for confirmation |
+| External service credential or manual click | Vercel dashboard toggle, Railway env var |
+
+### When you cannot run a command
+
+State the blocker **explicitly and immediately** at the end of your turn:
+
+```
+⚠️ MANUAL STEP REQUIRED
+Command : bun db:migrate
+Reason  : Requires production DB credentials not present locally.
+Impact  : New `user_sessions` table will be missing in prod — auth will fail.
+```
+
+Never bury this in a paragraph. Never say "you may want to run…". Be direct: what to run, why you couldn't, what breaks if skipped.
+
 - Do not mark a task complete until the app has been validated enough to confirm it is not left with avoidable runtime, build, type, lint, or config errors.
+- Never leave the app in a known broken state.
 
 ## Documentation Discipline (for Agents)
 

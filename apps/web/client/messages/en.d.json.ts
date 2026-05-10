@@ -318,7 +318,13 @@ declare const messages: {
             "importingLocalFolder": "Uploading files…",
             "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
             "recentProjects": "Recent Projects",
-            "importFromGitHub": "Import from GitHub"
+            "importFromGitHub": "Import from GitHub",
+            "preparingWorkspace": "Preparing your workspace",
+            "creatingProject": "Creating your project",
+            "openingEditor": "Opening editor",
+            "creatingBlankProject": "Creating your blank project",
+            "creatingBlankProjectCaption": "This usually takes 10–20 seconds.",
+            "startBlankProject": "Start blank project"
         },
         "dialogs": {
             "delete": {
@@ -382,6 +388,20 @@ declare const messages: {
             "privacy": "Privacy Policy",
             "and": "and",
             "tos": "Terms of Service"
+        },
+        "profileSetup": {
+            "title": "What should we call you?",
+            "description": "Tell us your name so Weblab can address you properly across the app.",
+            "firstName": "First name",
+            "lastName": "Last name",
+            "optional": "(optional)",
+            "firstNamePlaceholder": "Ada",
+            "lastNamePlaceholder": "Lovelace",
+            "errorFirstNameRequired": "Please enter your first name.",
+            "errorSaveFailed": "Failed to save profile. Please try again.",
+            "saving": "Saving...",
+            "continue": "Continue",
+            "skip": "Skip for now"
         },
         "version": "Version {version}"
     },

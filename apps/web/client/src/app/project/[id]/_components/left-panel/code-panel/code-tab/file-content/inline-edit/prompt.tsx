@@ -124,7 +124,11 @@ export const InlineEditPrompt = ({
                 await new Promise((r) => setTimeout(r, 500));
                 if (ctrl.signal.aborted) return;
                 editor.dispatch({
-                    effects: updateInlineEditEffect.of({ streaming: true, error: null, preview: '' }),
+                    effects: updateInlineEditEffect.of({
+                        streaming: true,
+                        error: null,
+                        preview: '',
+                    }),
                 });
             }
             try {
@@ -177,7 +181,10 @@ export const InlineEditPrompt = ({
         }
 
         editor.dispatch({
-            effects: updateInlineEditEffect.of({ streaming: false, error: lastErr ?? 'Request failed' }),
+            effects: updateInlineEditEffect.of({
+                streaming: false,
+                error: lastErr ?? 'Request failed',
+            }),
         });
     };
 

@@ -96,9 +96,7 @@ export function useCreateBlankProject() {
                     console.warn('[useCreateBlankProject] failed to clean up orphan sandbox', {
                         sandboxId: forkedSandboxId,
                         error:
-                            cleanupErr instanceof Error
-                                ? cleanupErr.message
-                                : String(cleanupErr),
+                            cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
                     });
                 });
             }

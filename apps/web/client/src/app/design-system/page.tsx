@@ -857,7 +857,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Semantic tokens"
                             tag="colors"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/globals.css"
+                            filePath="packages/ui/src/globals.css"
                             editedCount={colorEditedCount}
                             controls={
                                 colorEditedCount > 0 ? (
@@ -888,7 +888,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Foreground & background tokens"
                             tag="colors"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/globals.css"
+                            filePath="packages/ui/src/globals.css"
                         >
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                 {foregroundTokens.map((t) => (
@@ -945,7 +945,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Canvas editor surfaces"
                             tag="colors"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/globals.css"
+                            filePath="packages/ui/src/globals.css"
                         >
                             <p className="text-foreground-tertiary mb-3 text-xs">
                                 Tokens for the project editor chrome — canvas, side panels,
@@ -1027,7 +1027,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="App type scale"
                             tag="typography"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/globals.css"
+                            filePath="packages/ui/src/globals.css"
                             editedCount={typoEditedCount}
                             controls={
                                 <p className="text-foreground-tertiary text-xs">
@@ -1253,7 +1253,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Variants"
                             tag="buttons"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/button.tsx"
+                            filePath="packages/ui/src/components/button.tsx"
                         >
                             <div className="flex flex-wrap items-center gap-3">
                                 <Button variant="default">Default</Button>
@@ -1323,7 +1323,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Badge variants"
                             tag="badges"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/badge.tsx"
+                            filePath="packages/ui/src/components/badge.tsx"
                         >
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge>Default</Badge>
@@ -1352,7 +1352,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Avatar"
                             tag="avatars"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/avatar.tsx"
+                            filePath="packages/ui/src/components/avatar.tsx"
                         >
                             <div className="flex items-end gap-4">
                                 {[
@@ -1393,7 +1393,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Form inputs"
                             tag="inputs"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/input.tsx"
+                            filePath="packages/ui/src/components/input.tsx"
                         >
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="space-y-2">
@@ -1439,7 +1439,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Checkbox"
                             tag="controls"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/checkbox.tsx"
+                            filePath="packages/ui/src/components/checkbox.tsx"
                         >
                             <div className="flex flex-wrap gap-6">
                                 {[
@@ -1522,7 +1522,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Progress"
                             tag="progress"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/progress.tsx"
+                            filePath="packages/ui/src/components/progress.tsx"
                         >
                             <div className="w-full max-w-md space-y-4">
                                 <Progress value={20} />
@@ -1535,7 +1535,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Slider"
                             tag="progress"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/slider.tsx"
+                            filePath="packages/ui/src/components/slider.tsx"
                         >
                             <div className="w-full max-w-md space-y-6">
                                 <div className="space-y-2">
@@ -1562,7 +1562,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Alert"
                             tag="feedback"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/alert.tsx"
+                            filePath="packages/ui/src/components/alert.tsx"
                         >
                             <div className="w-full max-w-xl space-y-3">
                                 <Alert>
@@ -1619,7 +1619,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Card"
                             tag="cards"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/card.tsx"
+                            filePath="packages/ui/src/components/card.tsx"
                         >
                             <div className="flex flex-wrap gap-4">
                                 <Card className="w-64">
@@ -1690,7 +1690,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Tabs"
                             tag="tabs"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/tabs.tsx"
+                            filePath="packages/ui/src/components/tabs.tsx"
                         >
                             <Tabs defaultValue="overview" className="w-full max-w-lg">
                                 <TabsList>
@@ -1730,7 +1730,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Accordion"
                             tag="accordions"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/accordion.tsx"
+                            filePath="packages/ui/src/components/accordion.tsx"
                         >
                             <Accordion type="single" collapsible className="w-full max-w-lg">
                                 <AccordionItem value="q1">
@@ -1945,7 +1945,7 @@ export default function DesignSystemPage() {
                         <Section
                             title="Skeleton"
                             tag="skeleton"
-                            filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/skeleton.tsx"
+                            filePath="packages/ui/src/components/skeleton.tsx"
                         >
                             <div className="flex flex-wrap gap-8">
                                 <div className="flex flex-col gap-2">
@@ -1991,7 +1991,7 @@ export default function DesignSystemPage() {
                     <Section
                         title="Brand"
                         tag="brand"
-                        filePath="/Users/ludvighedin/Programming/personal/AB/coder-new/onlook/packages/ui/src/components/brand.tsx"
+                        filePath="packages/ui/src/components/brand.tsx"
                     >
                         <div className="flex flex-wrap items-center gap-8">
                             <div className="flex flex-col gap-2">

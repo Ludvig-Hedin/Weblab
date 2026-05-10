@@ -1,7 +1,6 @@
 import localforage from 'localforage';
 
-import type { Branch, Canvas, Frame, Project } from '@weblab/models';
-import type { ChatConversation } from '@weblab/models';
+import type { Branch, Canvas, ChatConversation, Frame, Project } from '@weblab/models';
 
 import { LocalForageKeys } from '@/utils/constants';
 
@@ -151,9 +150,7 @@ export async function precacheNavigationUrls(urls: string[]): Promise<void> {
         // Fallback: hit each URL so the browser HTTP cache at least has a
         // recent copy, even if the SW route isn't active.
         await Promise.all(
-            urls.map((url) =>
-                fetch(url, { credentials: 'include' }).catch(() => undefined),
-            ),
+            urls.map((url) => fetch(url, { credentials: 'include' }).catch(() => undefined)),
         );
     } catch (err) {
         console.warn('[offline] precacheNavigationUrls failed', err);

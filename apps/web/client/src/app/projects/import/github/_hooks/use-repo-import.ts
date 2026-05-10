@@ -37,6 +37,10 @@ export const useRepositoryImport = () => {
         setIsImporting(true);
         setError(null);
 
+        // Track the forked sandbox so we can release it if project.create fails
+        // mid-flight — otherwise the orphan keeps consuming sandbox quota
+        // (matches the blank-create flow in components/store/create/manager.ts).
+        let forkedSandboxId: string | null = null;
         try {
             checkAborted();
             const { sandboxId, previewUrl } = await clientApi.sandbox.createFromGitHub.mutate(
@@ -48,6 +52,7 @@ export const useRepositoryImport = () => {
                     signal,
                 },
             );
+            forkedSandboxId = sandboxId;
             checkAborted();
 
             const project = await clientApi.project.create.mutate(
@@ -68,9 +73,21 @@ export const useRepositoryImport = () => {
                 throw new Error('Failed to create project');
             }
 
+            // Project owns the sandbox now — clear the cleanup token.
+            forkedSandboxId = null;
             checkAborted();
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (error) {
+            if (forkedSandboxId) {
+                await clientApi.sandbox.deleteOrphan
+                    .mutate({ sandboxId: forkedSandboxId })
+                    .catch((cleanupError) => {
+                        console.warn('[useRepositoryImport] orphan sandbox cleanup failed', {
+                            sandboxId: forkedSandboxId,
+                            cleanupError,
+                        });
+                    });
+            }
             if (error instanceof DOMException && error.name === 'AbortError') {
                 return;
             }

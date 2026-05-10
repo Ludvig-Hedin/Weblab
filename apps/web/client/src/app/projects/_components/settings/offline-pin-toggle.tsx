@@ -48,9 +48,7 @@ export function OfflinePinToggle({ project }: { project: Project }) {
                 const result = branches ? { data: branches } : await fetchBranches();
                 const branchList = result.data ?? [];
                 if (branchList.length === 0) {
-                    toast.warning(
-                        `${project.name} pinned. Open it once online to finish caching.`,
-                    );
+                    toast.warning(`${project.name} pinned. Open it once online to finish caching.`);
                 } else {
                     await cacheProject(project, branchList);
                 }

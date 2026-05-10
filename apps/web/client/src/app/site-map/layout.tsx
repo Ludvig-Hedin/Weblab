@@ -11,10 +11,10 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 
 export const metadata: Metadata = {
     title: `Sitemap | ${APP_NAME}`,
-    description: `Complete sitemap for ${APP_NAME}.com — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.`,
+    description: `Complete sitemap for ${APP_DOMAIN} — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.`,
     openGraph: {
         title: `Sitemap | ${APP_NAME}`,
-        description: `Complete sitemap for ${APP_NAME}.com. Browse all pages including features, workflows, and resources.`,
+        description: `Complete sitemap for ${APP_DOMAIN}. Browse all pages including features, workflows, and resources.`,
         type: 'website',
         url: `https://${APP_DOMAIN}/site-map`,
         siteName: APP_NAME,
@@ -33,7 +33,7 @@ const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${APP_NAME} Sitemap`,
-    description: `Complete sitemap for ${APP_NAME}.com — the AI-powered visual editor for frontend development.`,
+    description: `Complete sitemap for ${APP_DOMAIN} — the AI-powered visual editor for frontend development.`,
     url: `https://${APP_DOMAIN}/site-map`,
     mainEntity: {
         '@type': 'ItemList',

@@ -42,6 +42,15 @@ function processDomDebounced(root: HTMLElement = document.body): ProcessDomResul
 
 export const processDom = debounce(processDomDebounced, 500);
 
+/**
+ * Immediate, non-debounced variant for explicit external callers (parent
+ * frame on first connect, deterministic boot sequences). The mutation
+ * observer keeps using the debounced `processDom` to coalesce bursty DOM
+ * churn — but the parent's first call must not be delayed 500ms or it
+ * silently times out and the layer tree never lands.
+ */
+export const processDomNow = processDomDebounced;
+
 // Filter conditions for nodes to reject in layer tree
 const FILTER_CONDITIONS = [
     (element: HTMLElement) => {

@@ -64,8 +64,6 @@ export class ReplaceImageInElementTool extends ClientTool {
             : uuidv4();
         const filename = `${safeFilenameBase}.${extension}`;
         const destination = sanitizeProjectPath(args.destination_path, 'public');
-        const assetPath = `${destination}/${filename}`;
-        await sandbox.writeFile(assetPath, bytes);
 
         // Only files under public/ are served at the site root by Next.js.
         // Refuse other destinations rather than emit a broken src attribute.
@@ -74,6 +72,8 @@ export class ReplaceImageInElementTool extends ClientTool {
                 `replace_image_in_element only supports destinations under public/ (got "${destination}"). Save the file there so Next.js can serve it as /<filename>.`,
             );
         }
+        const assetPath = `${destination}/${filename}`;
+        await sandbox.writeFile(assetPath, bytes);
         const assetUrl = `/${assetPath.slice('public/'.length)}`;
 
         return {

@@ -182,20 +182,13 @@ export function useImportLocalProject() {
             toast.error('Failed to import folder', { description: message });
             setProgress(INITIAL_PROGRESS);
             if (forkedSandboxId) {
-                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch(
-                    (cleanupErr) => {
-                        console.warn(
-                            '[useImportLocalProject] failed to clean up orphan sandbox',
-                            {
-                                sandboxId: forkedSandboxId,
-                                error:
-                                    cleanupErr instanceof Error
-                                        ? cleanupErr.message
-                                        : String(cleanupErr),
-                            },
-                        );
-                    },
-                );
+                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch((cleanupErr) => {
+                    console.warn('[useImportLocalProject] failed to clean up orphan sandbox', {
+                        sandboxId: forkedSandboxId,
+                        error:
+                            cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
+                    });
+                });
             }
         } finally {
             // Disconnect the temporary upload client; the editor will spin up

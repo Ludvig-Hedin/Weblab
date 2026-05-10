@@ -10,15 +10,16 @@ import { Separator } from '@weblab/ui/separator';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 
+import type { CachedProjectRecord } from '@/services/offline/project-cache';
 import { useEditorEngine } from '@/components/store/editor';
 import {
     cacheProject,
-    type CachedProjectRecord,
     evictCachedProject,
     getCachedProject,
     precacheNavigationUrls,
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
+import { api } from '@/trpc/react';
 
 function formatRelative(ms: number): string {
     const diff = Date.now() - ms;
@@ -30,7 +31,6 @@ function formatRelative(ms: number): string {
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
 }
-import { api } from '@/trpc/react';
 
 export const ProjectTab = observer(() => {
     const editorEngine = useEditorEngine();
@@ -79,10 +79,7 @@ export const ProjectTab = observer(() => {
                 // Seed the service worker's navigation cache with this
                 // project's URL so the first offline visit doesn't fall
                 // through to /offline. Safe no-op if SW isn't installed.
-                await precacheNavigationUrls([
-                    `/project/${editorEngine.projectId}`,
-                    '/projects',
-                ]);
+                await precacheNavigationUrls([`/project/${editorEngine.projectId}`, '/projects']);
                 toast.success('Project marked as available offline.');
             } else {
                 await unpinOffline({ projectId: editorEngine.projectId });

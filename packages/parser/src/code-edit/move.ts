@@ -33,7 +33,11 @@ export function moveElementInNode(path: NodePath<T.JSXElement>, element: CodeMov
     const targetChildIndex = children.indexOf(targetChild);
     const originalIndex = children.indexOf(elementToMove);
 
-    // Move to new location
+    // Move to new location. NOTE: real-world JSX `children` arrays are
+    // interleaved with JSXText whitespace nodes, so inserting at
+    // `targetChildIndex` after a removal lands the element AFTER the target —
+    // which is the desired behavior for "move to higher index". Do not add a
+    // -1 adjustment here; that breaks forward moves on every realistic AST.
     children.splice(originalIndex, 1);
     children.splice(targetChildIndex, 0, elementToMove);
 }

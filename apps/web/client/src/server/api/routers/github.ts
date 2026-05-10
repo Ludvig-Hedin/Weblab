@@ -1,7 +1,7 @@
+import crypto from 'node:crypto';
 import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import crypto from 'node:crypto';
 
 import type { DrizzleDb } from '@weblab/db';
 import { users } from '@weblab/db';

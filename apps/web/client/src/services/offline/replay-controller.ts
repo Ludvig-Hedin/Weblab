@@ -2,8 +2,8 @@
 
 import type { Provider } from '@weblab/code-provider';
 
-import { hashContent } from '@/services/sync-engine/sync-engine';
 import type { QueueRecord } from './write-queue';
+import { hashContent } from '@/services/sync-engine/sync-engine';
 import {
     bumpAttempt,
     getQueueContent,

@@ -65,11 +65,33 @@ export default function VerifyPage() {
             stored = null;
         }
         if (!stored) {
-            router.replace(`${Routes.LOGIN}?missing=email`);
+            // Redirect without a query param — the param would expose flow-state
+            // info via URL (CR-104). The login page shows a generic "re-enter
+            // your email" message for users who land here without a stored email.
+            router.replace(Routes.LOGIN);
             return;
         }
         setEmail(stored);
     }, [router]);
+
+    // CR-103: Clear the stashed email on unmount and on beforeunload so it
+    // doesn't persist in browsers that restore sessionStorage across tab
+    // restores ("Continue where you left off"). On-success cleanup already
+    // fires in handleVerify; this is the defence-in-depth path.
+    useEffect(() => {
+        const clearEmail = () => {
+            try {
+                sessionStorage.removeItem(LOGIN_EMAIL_KEY);
+            } catch {
+                // ignore — best-effort
+            }
+        };
+        window.addEventListener('beforeunload', clearEmail);
+        return () => {
+            window.removeEventListener('beforeunload', clearEmail);
+            clearEmail();
+        };
+    }, []);
 
     useEffect(() => {
         if (initialCountdown <= 0) return;

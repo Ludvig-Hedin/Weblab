@@ -43,9 +43,7 @@ export function ProjectSearch() {
         >
             <CommandInput placeholder="Search across files…" autoFocus disabled />
             <CommandList>
-                <CommandEmpty>
-                    Project-wide text search is not yet available.
-                </CommandEmpty>
+                <CommandEmpty>Project-wide text search is not yet available.</CommandEmpty>
                 <CommandGroup heading="Alternative">
                     <CommandItem onSelect={openFileFinder}>
                         <Icons.MagnifyingGlass />

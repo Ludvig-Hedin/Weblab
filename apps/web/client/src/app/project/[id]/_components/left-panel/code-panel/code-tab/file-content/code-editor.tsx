@@ -59,7 +59,7 @@ export const CodeEditor = observer(
         // Read the user's preferred chat model so tab-complete uses it
         // instead of falling back to the route's server-side default.
         const { data: userSettings } = api.user.settings.get.useQuery();
-        const tabCompleteModel = userSettings?.chat.defaultModel as string | undefined;
+        const tabCompleteModel = userSettings?.chat.defaultModel;
         const [currentSelection, setCurrentSelection] = useState<{
             from: number;
             to: number;

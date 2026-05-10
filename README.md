@@ -10,7 +10,7 @@
     <br />
   </p>
     <br />
-    <a href="https://youtu.be/RSX_3EaO5eU?feature=shared">View Demo</a>
+    <!-- <a href="">View Demo</a> -->
     ·
     <a href="https://github.com/Ludvig-Hedin/Weblab/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·

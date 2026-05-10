@@ -154,10 +154,20 @@ export const FrameComponent = observer(
                     }
                     isConnecting.current = true;
 
-                    // Destroy any existing connection
+                    // Destroy any existing connection AND drop the proxy.
+                    // In-place iframe reloads (HMR, src changes that don't
+                    // remount the React tree) re-enter setupPenpalConnection
+                    // without an unmount, so the previous `penpalChild`
+                    // proxy stays referenced by `remoteMethods`. In-flight
+                    // calls (processDom, updateStyle, etc.) would then
+                    // resolve against the destroyed channel and silently
+                    // no-op, leaving the layer tree desynced. Clearing
+                    // here forces consumers onto the safe-fallback proxy
+                    // until the new handshake completes.
                     if (connectionRef.current) {
                         connectionRef.current.destroy();
                         connectionRef.current = null;
+                        setPenpalChild(null);
                     }
 
                     // SECURITY: only accept postMessage traffic from the iframe's
@@ -259,16 +269,27 @@ export const FrameComponent = observer(
                                 promised.setFrameId(frame.id),
                                 promised.setBranchId(frame.branchId),
                                 promised.handleBodyReady(),
-                                promised.processDom(),
+                                // Use the immediate (non-debounced) variant on
+                                // first connect — the debounced `processDom`
+                                // coalesces a 500ms window and routinely
+                                // resolves to `undefined` here, leaving the
+                                // layer tree empty until the next mutation.
+                                promised.processDomNow(),
                             ]).then((results) => {
                                 const processDomResult = results[3];
+                                const fulfilledButEmpty =
+                                    processDomResult?.status === 'fulfilled' &&
+                                    !processDomResult.value;
                                 if (
-                                    processDomResult?.status === 'rejected' &&
+                                    (processDomResult?.status === 'rejected' ||
+                                        fulfilledButEmpty) &&
                                     connectionRef.current === connection
                                 ) {
                                     console.warn(
-                                        `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDom() rejected on first connect, retrying`,
-                                        processDomResult.reason,
+                                        `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDomNow() failed on first connect, retrying`,
+                                        processDomResult?.status === 'rejected'
+                                            ? processDomResult.reason
+                                            : 'returned null',
                                     );
                                     requestAnimationFrame(() => {
                                         if (connectionRef.current !== connection) return;
@@ -277,10 +298,10 @@ export const FrameComponent = observer(
                                         // PenpalChildMethods interface, so
                                         // wrap with Promise.resolve to attach
                                         // a catch handler safely.
-                                        Promise.resolve(promised.processDom()).catch(
+                                        Promise.resolve(promised.processDomNow()).catch(
                                             (err: unknown) => {
                                                 console.warn(
-                                                    `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDom() retry failed`,
+                                                    `${PENPAL_PARENT_CHANNEL} (${frame.id}) - processDomNow() retry failed`,
                                                     err,
                                                 );
                                             },
@@ -343,6 +364,7 @@ export const FrameComponent = observer(
 
                 return {
                     processDom: promisifyMethod(penpalChild?.processDom),
+                    processDomNow: promisifyMethod(penpalChild?.processDomNow),
                     getElementAtLoc: promisifyMethod(penpalChild?.getElementAtLoc),
                     getElementByDomId: promisifyMethod(penpalChild?.getElementByDomId),
                     getElementByOid: promisifyMethod(penpalChild?.getElementByOid),

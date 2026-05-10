@@ -1,23 +1,27 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import { Icons } from '@weblab/ui/icons/index';
 
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
+import { transKeys } from '@/i18n/keys';
 
 export function StartBlank() {
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
+    const t = useTranslations();
 
     const creationSteps = [
         {
-            label: 'Preparing your workspace',
+            label: t(transKeys.projects.actions.preparingWorkspace),
             ready: phase === 'creating-project' || phase === 'opening-editor',
         },
         {
-            label: 'Creating your project',
+            label: t(transKeys.projects.actions.creatingProject),
             ready: phase === 'opening-editor',
         },
-        { label: 'Opening editor', ready: false },
+        { label: t(transKeys.projects.actions.openingEditor), ready: false },
     ];
 
     return (
@@ -30,8 +34,8 @@ export function StartBlank() {
             {isCreatingProject && (
                 <ProjectCreationLoader
                     overlay
-                    heading="Creating your blank project"
-                    caption="This usually takes 10–20 seconds."
+                    heading={t(transKeys.projects.actions.creatingBlankProject)}
+                    caption={t(transKeys.projects.actions.creatingBlankProjectCaption)}
                     steps={creationSteps}
                 />
             )}
@@ -45,7 +49,7 @@ export function StartBlank() {
                 ) : (
                     <Icons.File className="h-4 w-4" />
                 )}
-                Start blank project
+                {t(transKeys.projects.actions.startBlankProject)}
             </button>
         </>
     );

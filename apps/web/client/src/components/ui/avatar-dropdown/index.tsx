@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import localforage from 'localforage';
 import { useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
@@ -17,7 +18,7 @@ import { getInitials } from '@weblab/utility';
 import { useStateManager } from '@/components/store/state';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
+import { LocalForageKeys, Routes } from '@/utils/constants';
 import { createClient } from '@/utils/supabase/client';
 import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { SettingsTabValue } from '../settings-modal/helpers';
@@ -39,6 +40,24 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         stateManager.isSubscriptionModalOpen = false;
         // Clear analytics/feedback identities before signing out
         void resetTelemetry();
+        // Clear user-scoped offline state so the next sign-in (potentially a
+        // different account) doesn't inherit the previous user's cached
+        // projects, pending imports, or return-url. lastSignInMethod is
+        // intentionally preserved (UX hint for the login screen).
+        try {
+            const projectCache = localforage.createInstance({
+                name: 'weblab',
+                storeName: 'projects-cache',
+            });
+            await Promise.allSettled([
+                localforage.removeItem(LocalForageKeys.RETURN_URL),
+                localforage.removeItem(LocalForageKeys.PENDING_LOCAL_IMPORT),
+                localforage.removeItem(LocalForageKeys.LAST_OPENED_PROJECT_ID),
+                projectCache.clear(),
+            ]);
+        } catch (err) {
+            console.warn('[avatar-dropdown] failed to clear offline state on sign-out', err);
+        }
         await supabase.auth.signOut();
         // Hard-navigate to /login. A soft router.push would keep the
         // React Query cache (incl. user.get) populated, leaving the navbar

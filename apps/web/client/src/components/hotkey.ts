@@ -56,7 +56,12 @@ export class Hotkey {
     static readonly UNGROUP = new Hotkey('mod+shift+g', 'Unwrap parent');
     static readonly ADD_AI_CHAT = new Hotkey('mod+shift+l', 'Add to AI chat');
     static readonly NEW_AI_CHAT = new Hotkey('mod+l', 'New AI Chat');
-    static readonly CHAT_MODE_TOGGLE = new Hotkey('mod+period', 'Toggle Preview');
+    // Toggles editor mode between DESIGN and PREVIEW. Was named
+    // CHAT_MODE_TOGGLE which suggested it flipped chat ASK/EDIT — that
+    // was a misnomer; the handler in canvas/hotkeys/index.tsx flips
+    // editorMode. Renamed to match behavior so the help modal /
+    // settings rebinder don't lie to the user.
+    static readonly TOGGLE_DESIGN_PREVIEW = new Hotkey('mod+period', 'Toggle Design / Preview');
     static readonly MOVE_LAYER_UP = new Hotkey('shift+arrowup', 'Move Layer Up');
     static readonly MOVE_LAYER_DOWN = new Hotkey('shift+arrowdown', 'Move Layer Down');
     static readonly BRING_FORWARD = new Hotkey('mod+]', 'Bring Forward');

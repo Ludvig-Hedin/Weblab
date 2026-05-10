@@ -59,7 +59,9 @@ function makeId(): string {
     const ts = Date.now().toString(36).padStart(9, '0');
     const bytes = new Uint8Array(6);
     crypto.getRandomValues(bytes);
-    const rand = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').slice(0, 8);
+    const rand = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, 8);
     return `${ts}-${rand}`;
 }
 
@@ -87,22 +89,21 @@ export async function enqueue(
     // with rapid auto-saves bloats the queue (and the blob store) by orders
     // of magnitude. We only coalesce within the same project + branch.
     if (record.op === 'write' || record.op === 'delete' || record.op === 'mkdir') {
-        await supersedePriorRecords(
-            record.projectId,
-            record.branchId,
-            record.path,
-            ['write', 'mkdir', 'delete'],
-        );
+        await supersedePriorRecords(record.projectId, record.branchId, record.path, [
+            'write',
+            'mkdir',
+            'delete',
+        ]);
     } else if (record.op === 'rename' && record.oldPath) {
         // A rename invalidates any pending edits to the OLD path — once the
         // file moves, those writes were targeting a path that no longer
         // exists. Pending writes to the NEW path are kept.
-        await supersedePriorRecords(
-            record.projectId,
-            record.branchId,
-            record.oldPath,
-            ['write', 'mkdir', 'delete', 'rename'],
-        );
+        await supersedePriorRecords(record.projectId, record.branchId, record.oldPath, [
+            'write',
+            'mkdir',
+            'delete',
+            'rename',
+        ]);
     }
 
     if (record.content !== undefined) {
@@ -294,7 +295,7 @@ export async function getConflictDepth(projectId?: string): Promise<number> {
     if (!projectId) return store.length();
     let count = 0;
     await store.iterate<ConflictRecord, void>((rec) => {
-        if (rec && rec.projectId === projectId) count++;
+        if (rec?.projectId === projectId) count++;
     });
     return count;
 }

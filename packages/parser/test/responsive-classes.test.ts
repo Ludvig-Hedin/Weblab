@@ -36,8 +36,24 @@ describe('removeUtilityClasses', () => {
         expect(removeUtilityClasses('p-4 m-2', 'p')).toBe('m-2');
     });
 
-    test('empty utility is a no-op', () => {
+    test('empty utility (display) preserves non-display tokens', () => {
         expect(removeUtilityClasses('p-4 bg-red-500', '')).toBe('p-4 bg-red-500');
+    });
+
+    test('empty utility strips bare display tokens (block, flex)', () => {
+        expect(removeUtilityClasses('block flex md:hidden p-4', '')).toBe('p-4');
+    });
+
+    test('empty utility strips a single display token', () => {
+        expect(removeUtilityClasses('block', '')).toBe('');
+    });
+
+    test('empty utility strips arbitrary [display:...] utilities', () => {
+        expect(removeUtilityClasses('[display:grid] p-4', '')).toBe('p-4');
+    });
+
+    test('removes both base and responsive padding tokens', () => {
+        expect(removeUtilityClasses('p-4 md:p-8', 'p')).toBe('');
     });
 });
 

@@ -114,7 +114,13 @@ export const strapiAdapter: CmsSourceAdapter = {
             // v4 has `attributes`; v5 flattens. Strip system fields (id,
             // createdAt, updatedAt, publishedAt) from v5 values so they
             // don't duplicate what's already in RemoteItem.id.
-            const STRAPI_SYSTEM_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'publishedAt', 'documentId']);
+            const STRAPI_SYSTEM_FIELDS = new Set([
+                'id',
+                'createdAt',
+                'updatedAt',
+                'publishedAt',
+                'documentId',
+            ]);
             const values = entry.attributes
                 ? entry.attributes
                 : Object.fromEntries(

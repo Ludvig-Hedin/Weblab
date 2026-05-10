@@ -1,31 +1,23 @@
 'use client';
 
-import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@weblab/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@weblab/ui/dialog';
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 
+import type { ConflictRecord, DeadLetterRecord, QueueRecord } from '@/services/offline/write-queue';
 import { useEditorEngine } from '@/components/store/editor';
 import { pingOnlineStatus, useOnlineStatus } from '@/services/offline/online-status';
 import { replayQueue } from '@/services/offline/replay-controller';
 import {
     clearDeadLetter,
-    type ConflictRecord,
-    type DeadLetterRecord,
     dismissConflict,
     listConflicts,
     listDeadLetter,
     listQueueForProject,
-    type QueueRecord,
     retryDeadLetterRecord,
 } from '@/services/offline/write-queue';
 
@@ -136,8 +128,8 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
 
                 <div className="flex items-center justify-between text-xs">
                     <div className="text-muted-foreground">
-                        {online ? 'Online' : 'Offline'} · {pending.length} pending ·{' '}
-                        {dead.length} dead-letter · {conflicts.length} conflict
+                        {online ? 'Online' : 'Offline'} · {pending.length} pending · {dead.length}{' '}
+                        dead-letter · {conflicts.length} conflict
                         {conflicts.length === 1 ? '' : 's'}
                     </div>
                     <Button
@@ -154,14 +146,12 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                 <section className="mt-4">
                     <h3 className="text-sm font-medium">Pending writes</h3>
                     {pending.length === 0 ? (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                            No queued changes.
-                        </p>
+                        <p className="text-muted-foreground mt-1 text-xs">No queued changes.</p>
                     ) : (
                         <ul className="border-border/50 mt-2 max-h-64 divide-y overflow-y-auto rounded-md border text-xs">
                             {pending.map((r) => (
                                 <li key={r.id} className="flex justify-between gap-3 px-3 py-1.5">
-                                    <span className="font-mono text-foreground/80 truncate">
+                                    <span className="text-foreground/80 truncate font-mono">
                                         {r.op} · {r.path}
                                     </span>
                                     <span className="text-muted-foreground shrink-0">
@@ -177,7 +167,11 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-medium">Dead letter</h3>
                         {dead.length > 0 && (
-                            <Button size="sm" variant="ghost" onClick={() => void handleClearDead()}>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => void handleClearDead()}
+                            >
                                 Clear all
                             </Button>
                         )}
@@ -189,12 +183,9 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                     ) : (
                         <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
                             {dead.map((r) => (
-                                <li
-                                    key={r.id}
-                                    className="flex flex-col gap-1 px-3 py-2"
-                                >
+                                <li key={r.id} className="flex flex-col gap-1 px-3 py-2">
                                     <div className="flex justify-between gap-3">
-                                        <span className="font-mono text-foreground/80 truncate">
+                                        <span className="text-foreground/80 truncate font-mono">
                                             {r.op} · {r.path}
                                         </span>
                                         <Button
@@ -229,7 +220,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                             {conflicts.map((c) => (
                                 <li key={c.id} className="flex flex-col gap-1 px-3 py-2">
                                     <div className="flex justify-between gap-3">
-                                        <span className="font-mono text-foreground/80 truncate">
+                                        <span className="text-foreground/80 truncate font-mono">
                                             {c.path}
                                         </span>
                                         <Button
@@ -250,7 +241,7 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                                         <summary className="cursor-pointer">
                                             Show remote version
                                         </summary>
-                                        <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto whitespace-pre-wrap break-words p-2 text-[10px]">
+                                        <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-[10px] break-words whitespace-pre-wrap">
                                             {typeof c.remoteContent === 'string'
                                                 ? c.remoteContent
                                                 : '[binary content]'}
