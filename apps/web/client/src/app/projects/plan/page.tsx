@@ -1,30 +1,29 @@
 'use client';
 
+import type { ToolUIPart } from 'ai';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { ToolUIPart } from 'ai';
 import { type z } from 'zod';
 
 import { AskUserQuestionTool, PlanCompleteTool } from '@weblab/ai/client';
-import { ChatType } from '@weblab/models';
+import { Response } from '@weblab/ui/ai-elements';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { Response } from '@weblab/ui/ai-elements';
 
 import { PlanApprovalCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-approval-card';
 import { PlanQuestionCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-question-card';
-import { useCreateManager } from '@/components/store/create';
+import { CreateManagerProvider, useCreateManager } from '@/components/store/create';
 import { api } from '@/trpc/react';
 import { usePlanChat } from './use-plan-chat';
 
-export default function PlanPage() {
+function PlanPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const prompt = searchParams.get('prompt') ?? '';
     const { data: user } = api.user.get.useQuery();
     const createManager = useCreateManager();
 
-    const { messages, isStreaming, stop, addToolResult } = usePlanChat();
+    const { messages, isStreaming, stop, sendMessage } = usePlanChat();
     const [sentInitial, setSentInitial] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [isCreating, setIsCreating] = useState(false);
@@ -35,13 +34,19 @@ export default function PlanPage() {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Send the initial prompt once
+    // Send the initial prompt once on mount
     useEffect(() => {
         if (sentInitial || !prompt) return;
         setSentInitial(true);
-        // Trigger the first message by mutating the chat
-        // We rely on the chat hook's `useChat` append mechanism
-    }, [sentInitial, prompt]);
+        void sendMessage({ text: prompt });
+    }, [sentInitial, prompt, sendMessage]);
+
+    const handleSendFollowUp = () => {
+        const text = inputValue.trim();
+        if (!text || isStreaming) return;
+        setInputValue('');
+        void sendMessage({ text });
+    };
 
     const handleBuildNow = async () => {
         if (!user?.id || isCreating) return;
@@ -62,16 +67,30 @@ export default function PlanPage() {
             {/* Header */}
             <div className="border-border-primary flex items-center gap-2 border-b px-4 py-3">
                 <Icons.Plan className="text-foreground-tertiary h-4 w-4" />
-                <span className="text-foreground-primary text-sm font-medium">Planning session</span>
+                <span className="text-foreground-primary text-sm font-medium">
+                    Planning session
+                </span>
                 {isStreaming && (
                     <Icons.LoadingSpinner className="text-foreground-tertiary ml-1 h-3.5 w-3.5 animate-spin" />
                 )}
                 <div className="ml-auto flex gap-2">
+                    {isStreaming && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                void stop();
+                            }}
+                            className="text-foreground-tertiary text-mini h-7"
+                        >
+                            Stop
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => router.back()}
-                        className="text-foreground-tertiary h-7 text-mini"
+                        className="text-foreground-tertiary text-mini h-7"
                     >
                         Cancel
                     </Button>
@@ -99,7 +118,10 @@ export default function PlanPage() {
                                     {(message.parts ?? []).map((part, idx) => {
                                         if (part.type === 'text') {
                                             return (
-                                                <div key={idx} className="text-foreground-primary text-sm">
+                                                <div
+                                                    key={idx}
+                                                    className="text-foreground-primary text-sm"
+                                                >
                                                     <Response>{part.text}</Response>
                                                 </div>
                                             );
@@ -135,7 +157,9 @@ export default function PlanPage() {
                                                             isStreaming &&
                                                             toolPart.state !== 'output-available'
                                                         }
-                                                        onBuildNow={handleBuildNow}
+                                                        onBuildNow={() => {
+                                                            void handleBuildNow();
+                                                        }}
                                                     />
                                                 );
                                             }
@@ -170,7 +194,7 @@ export default function PlanPage() {
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
-                                    // TODO: send follow-up message
+                                    handleSendFollowUp();
                                 }
                             }}
                         />
@@ -178,6 +202,7 @@ export default function PlanPage() {
                             size="icon"
                             variant="ghost"
                             disabled={isStreaming || !inputValue.trim()}
+                            onClick={handleSendFollowUp}
                             className="h-7 w-7 shrink-0"
                         >
                             <Icons.ArrowRight className="h-4 w-4" />
@@ -186,5 +211,13 @@ export default function PlanPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function PlanPage() {
+    return (
+        <CreateManagerProvider>
+            <PlanPageInner />
+        </CreateManagerProvider>
     );
 }

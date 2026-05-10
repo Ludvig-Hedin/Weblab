@@ -31,7 +31,7 @@ export function usePlanChat() {
         [conversationId],
     );
 
-    const { addToolResult, messages, status, stop } = useAiChat<ChatMessage>({
+    const { addToolResult, sendMessage, messages, status, stop } = useAiChat<ChatMessage>({
         id: conversationId,
         sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
         transport: transport as unknown as DefaultChatTransport<ChatMessage>,
@@ -57,5 +57,5 @@ export function usePlanChat() {
 
     const isStreaming = status === 'streaming' || status === 'submitted' || isExecutingToolCall;
 
-    return { messages, isStreaming, stop, conversationId, addToolResult };
+    return { messages, isStreaming, stop, conversationId, addToolResult, sendMessage };
 }
