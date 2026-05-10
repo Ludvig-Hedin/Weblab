@@ -21,9 +21,7 @@ export async function applyCodeChangeWithMorph(
     if (!apiKey) {
         throw new Error('MORPH_API_KEY is not set');
     }
-    // eslint-disable-next-line no-new-func
-    const serverImport = new Function('p', 'return import(p)');
-    const { default: OpenAI } = await serverImport('openai');
+    const { default: OpenAI } = await import('openai');
     const client = new OpenAI({
         apiKey,
         baseURL: 'https://api.morphllm.com/v1',

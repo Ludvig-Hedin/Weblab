@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import type { FrameworkId } from '@weblab/framework';
 import { Icons } from '@weblab/ui/icons';
@@ -11,6 +12,7 @@ import { cn } from '@weblab/ui/utils';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
+import { transKeys } from '@/i18n/keys';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { FrameworkSelectDialog } from './framework-select-dialog';
 
@@ -71,6 +73,7 @@ export function ProjectChooserCards({
     showDesktopFooter = true,
 }: ProjectChooserCardsProps) {
     const router = useRouter();
+    const t = useTranslations();
     const [showFrameworkDialog, setShowFrameworkDialog] = useState(false);
 
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
@@ -80,14 +83,14 @@ export function ProjectChooserCards({
 
     const creationSteps = [
         {
-            label: 'Forking sandbox',
+            label: t(transKeys.projects.actions.preparingWorkspace),
             ready: phase === 'creating-project' || phase === 'opening-editor',
         },
         {
-            label: 'Creating project',
+            label: t(transKeys.projects.actions.creatingProject),
             ready: phase === 'opening-editor',
         },
-        { label: 'Opening editor', ready: false },
+        { label: t(transKeys.projects.actions.openingEditor), ready: false },
     ];
 
     return (
@@ -95,8 +98,8 @@ export function ProjectChooserCards({
             {isCreatingProject && (
                 <ProjectCreationLoader
                     overlay
-                    heading="Creating your blank project"
-                    caption="Spinning up a fresh sandbox. This usually takes 10–20 seconds."
+                    heading={t(transKeys.projects.actions.creatingBlankProject)}
+                    caption={t(transKeys.projects.actions.creatingBlankProjectCaption)}
                     steps={creationSteps}
                 />
             )}

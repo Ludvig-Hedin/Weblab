@@ -8,7 +8,12 @@ import {
     createCodeProviderClient,
     getStaticCodeProvider,
 } from '@weblab/code-provider';
-import { APP_NAME, DEFAULT_NEW_PROJECT_TEMPLATE, getSandboxPreviewUrl } from '@weblab/constants';
+import {
+    APP_NAME,
+    DEFAULT_NEW_PROJECT_TEMPLATE,
+    getSandboxPreviewUrl,
+    PUBLIC_TEMPLATE_SANDBOX_IDS,
+} from '@weblab/constants';
 import { branches } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
@@ -157,7 +162,13 @@ export const sandboxRouter = createTRPCRouter({
         )
         .mutation(async ({ input, ctx }) => {
             // CR-118: verify caller owns the source sandbox before forking it.
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandbox.id);
+            // Exception: canonical public templates (the BLANK seed + pre-seeded
+            // external templates) are intentionally fork-anyone — they have no
+            // `branches` row, so the ownership lookup would always reject them
+            // and break new-project creation.
+            if (!PUBLIC_TEMPLATE_SANDBOX_IDS.has(input.sandbox.id)) {
+                await verifySandboxAccess(ctx.db, ctx.user.id, input.sandbox.id);
+            }
             const MAX_RETRY_ATTEMPTS = 3;
             let lastError: Error | null = null;
 

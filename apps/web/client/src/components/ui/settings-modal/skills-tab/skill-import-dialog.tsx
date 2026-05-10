@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -37,6 +39,7 @@ export function SkillImportDialog({
     onOpenChange: (open: boolean) => void;
     projectId: string | null;
 }) {
+    const t = useTranslations('editor.settings.skillImportDialog');
     const [mode, setMode] = useState<'url' | 'paste'>('url');
     const [url, setUrl] = useState('');
     const [rawContent, setRawContent] = useState('');
@@ -69,7 +72,7 @@ export function SkillImportDialog({
                 contentLength: res.contentLength,
             });
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to read skill');
+            toast.error(err instanceof Error ? err.message : t('toastReadFailed'));
         }
     };
 
@@ -82,11 +85,11 @@ export function SkillImportDialog({
                 description: parsed.description,
                 content: parsed.content,
             });
-            toast.success(`Imported "${res.skill.name}"`);
+            toast.success(t('toastImported', { name: res.skill.name }));
             await apiUtils.skills.list.invalidate();
             onOpenChange(false);
         } catch (err) {
-            toast.error(err instanceof Error ? err.message : 'Failed to import skill');
+            toast.error(err instanceof Error ? err.message : t('toastImportFailed'));
         }
     };
 
@@ -98,43 +101,37 @@ export function SkillImportDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Import skill</DialogTitle>
-                    <DialogDescription>
-                        Bring in a skill from a remote URL or paste its SKILL.md content. We parse
-                        the frontmatter, show a preview, and only save once you confirm.
-                    </DialogDescription>
+                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogDescription>{t('description')}</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
                     <Tabs value={mode} onValueChange={(v) => setMode(v as 'url' | 'paste')}>
                         <TabsList className="w-full">
                             <TabsTrigger value="url" className="flex-1">
-                                From URL
+                                {t('tabs.url')}
                             </TabsTrigger>
                             <TabsTrigger value="paste" className="flex-1">
-                                Paste content
+                                {t('tabs.paste')}
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="url" className="space-y-2 pt-3">
-                            <Label htmlFor="import-url">SKILL.md URL</Label>
+                            <Label htmlFor="import-url">{t('urlLabel')}</Label>
                             <Input
                                 id="import-url"
                                 value={url}
                                 onChange={(e) => setUrl(e.target.value)}
-                                placeholder="https://raw.githubusercontent.com/.../SKILL.md"
+                                placeholder={t('urlPlaceholder')}
                             />
-                            <p className="text-muted-foreground text-mini">
-                                Allowed hosts: raw.githubusercontent.com,
-                                gist.githubusercontent.com, agentskills.io.
-                            </p>
+                            <p className="text-muted-foreground text-mini">{t('urlHint')}</p>
                         </TabsContent>
                         <TabsContent value="paste" className="space-y-2 pt-3">
-                            <Label htmlFor="import-raw">SKILL.md content</Label>
+                            <Label htmlFor="import-raw">{t('pasteLabel')}</Label>
                             <Textarea
                                 id="import-raw"
                                 value={rawContent}
                                 onChange={(e) => setRawContent(e.target.value)}
-                                placeholder={`---\nname: my-skill\ndescription: Trigger description\n---\n\nBody…`}
+                                placeholder={t('pastePlaceholder')}
                                 rows={10}
                                 className="text-mini font-mono"
                             />
@@ -149,22 +146,26 @@ export function SkillImportDialog({
                         }}
                         disabled={!canFetch || previewImport.isPending}
                     >
-                        {previewImport.isPending ? 'Reading…' : 'Preview'}
+                        {previewImport.isPending ? t('previewing') : t('preview')}
                     </Button>
 
                     {parsed ? (
                         <div className="bg-background-secondary/40 border-border/40 space-y-2 rounded-md border p-3">
                             <div>
-                                <p className="text-muted-foreground text-mini">Name</p>
+                                <p className="text-muted-foreground text-mini">
+                                    {t('previewSection.name')}
+                                </p>
                                 <p className="text-small font-medium">{parsed.name}</p>
                             </div>
                             <div>
-                                <p className="text-muted-foreground text-mini">Description</p>
+                                <p className="text-muted-foreground text-mini">
+                                    {t('previewSection.description')}
+                                </p>
                                 <p className="text-mini">{parsed.description || '—'}</p>
                             </div>
                             <div>
                                 <p className="text-muted-foreground text-mini">
-                                    Body ({parsed.contentLength} chars)
+                                    {t('previewSection.body', { count: String(parsed.contentLength) })}
                                 </p>
                                 <pre className="bg-background text-mini mt-1 max-h-32 overflow-auto rounded p-2 whitespace-pre-wrap">
                                     {parsed.contentPreview}
@@ -175,7 +176,7 @@ export function SkillImportDialog({
                             </div>
                             {projectId ? (
                                 <div className="pt-2">
-                                    <Label htmlFor="import-scope">Save to</Label>
+                                    <Label htmlFor="import-scope">{t('scopeLabel')}</Label>
                                     <Select
                                         value={scope}
                                         onValueChange={(v) => setScope(v as 'global' | 'project')}
@@ -184,8 +185,12 @@ export function SkillImportDialog({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="global">Global</SelectItem>
-                                            <SelectItem value="project">This project</SelectItem>
+                                            <SelectItem value="global">
+                                                {t('scopeGlobal')}
+                                            </SelectItem>
+                                            <SelectItem value="project">
+                                                {t('scopeProject')}
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -196,7 +201,7 @@ export function SkillImportDialog({
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         onClick={() => {
@@ -204,7 +209,7 @@ export function SkillImportDialog({
                         }}
                         disabled={!parsed || commitImport.isPending}
                     >
-                        {commitImport.isPending ? 'Importing…' : 'Import skill'}
+                        {commitImport.isPending ? t('importing') : t('import')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

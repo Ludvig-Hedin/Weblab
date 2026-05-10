@@ -332,11 +332,11 @@ export const Create = observer(
         const showCreationOverlay = isCreatingProject;
         const creationSteps = [
             {
-                label: 'Preparing your workspace',
+                label: 'Setting up your workspace',
                 ready: phase === 'creating-project' || phase === 'opening-editor',
             },
             { label: 'Saving your project', ready: phase === 'opening-editor' },
-            { label: 'Opening editor', ready: false },
+            { label: 'Opening the editor', ready: false },
         ];
 
         return (

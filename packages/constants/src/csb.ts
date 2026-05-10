@@ -21,6 +21,17 @@ export const SandboxTemplates: Record<Templates, SandboxTemplate> = {
 // its bundled Next.js server that returns a JSON error for every request.
 export const DEFAULT_NEW_PROJECT_TEMPLATE = SandboxTemplates[Templates.BLANK];
 
+// Public sandbox IDs that any signed-in user is allowed to fork. These are
+// canonical templates (the BLANK seed plus pre-seeded external templates
+// referenced from the templates page); they have no `branches` row, so the
+// owner-based IDOR check used elsewhere would reject them. Keep this in sync
+// with EXTERNAL_TEMPLATES whenever a template gains a `sandboxId`.
+export const PUBLIC_TEMPLATE_SANDBOX_IDS = new Set<string>([
+    SandboxTemplates[Templates.BLANK].id,
+    SandboxTemplates[Templates.EMPTY_NEXTJS].id,
+    'html-qz83hv', // static-html-starter (apps/web/client/.../template-data.ts)
+]);
+
 export const CSB_PREVIEW_TASK_NAME = 'dev';
 export const CSB_DOMAIN = 'csb.app';
 

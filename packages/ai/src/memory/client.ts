@@ -13,10 +13,7 @@ export async function getMemoryClient(): Promise<MemoryClient> {
     if (!apiKey) {
         throw new Error('MEM0_API_KEY is not set');
     }
-    // eslint-disable-next-line no-new-func
-    const serverImport = new Function('p', 'return import(p)');
-    const { default: MemoryClientCtor } = await serverImport('mem0ai');
-    const client = new MemoryClientCtor({ apiKey }) as MemoryClient;
-    _client = client;
-    return client;
+    const { default: MemoryClientCtor } = await import('mem0ai');
+    _client = new MemoryClientCtor({ apiKey });
+    return _client;
 }

@@ -134,6 +134,11 @@ export const CmsDataPusher = observer(() => {
         for (const data of editorEngine.frames.getAll()) {
             const view = data.view;
             if (!view) continue;
+            // Before the penpal handshake completes, `view` exposes only the
+            // sync iframe methods — `setCmsData` is wired via `remoteMethods`
+            // and is missing during the ~10–15s sandbox cold-boot window.
+            // Skip silently; the 2s interval re-pushes once penpal connects.
+            if (typeof view.setCmsData !== 'function') continue;
             const payload = buildFramePayload(view.src);
             if (payload) void view.setCmsData(payload);
         }

@@ -70,9 +70,7 @@ export class EditImageTool extends ServerTool {
 
         const sourceB64 = source.content.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
         const sourceBytes = Buffer.from(sourceB64, 'base64');
-        // eslint-disable-next-line no-new-func
-        const serverImport = new Function('p', 'return import(p)');
-        const { default: OpenAI, toFile } = await serverImport('openai');
+        const { default: OpenAI, toFile } = await import('openai');
         const sourceFile = await toFile(
             sourceBytes,
             `source.${extensionFromMime(source.mimeType)}`,

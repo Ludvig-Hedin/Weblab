@@ -216,7 +216,15 @@
       // LOCKUP — punch and hold
       tl.fromTo('#lockup', { opacity: 0, scale: 0.9, filter: 'blur(10px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.55, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, 25.4);
 
+      // AUDIO — schedule all clips
+      document.querySelectorAll('audio.clip').forEach(function (audio) {
+        const start = parseFloat(audio.getAttribute('data-start') || '0');
+        const vol = parseFloat(audio.getAttribute('data-volume') || '1');
+        audio.volume = vol;
+        tl.call(function () { audio.currentTime = 0; audio.play(); }, [], start);
+      });
+
       window.__timelines['main'] = tl;
-    </script>
+</script>
   </body>
 </html>

@@ -56,3 +56,18 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
     font-size: 0.6875rem;
     font-weight: 500;
 }
+
+/* Indeterminate progress bar used by project-creation-loader.
+   A 35% width segment slides across the track with eased timing,
+   conveying activity for operations whose duration is unknown
+   (e.g. sandbox provisioning). Respects reduced-motion. */
+@keyframes weblab-indeterminate {
+    0%   { transform: translateX(-110%); }
+    50%  { transform: translateX(50%); }
+    100% { transform: translateX(220%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .animate-weblab-indeterminate {
+        animation: none !important;
+    }
+}
