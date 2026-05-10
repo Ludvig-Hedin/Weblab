@@ -2,8 +2,9 @@
 
 import type { Provider } from '@weblab/code-provider';
 
-import type { QueueRecord } from './write-queue';
+import { OfflineProvider } from '@/components/store/editor/sandbox/offline-provider';
 import { hashContent } from '@/services/sync-engine/sync-engine';
+import type { QueueRecord } from './write-queue';
 import {
     bumpAttempt,
     getQueueContent,
@@ -13,6 +14,15 @@ import {
     QUEUE_MAX_ATTEMPTS,
     removeRecord,
 } from './write-queue';
+
+export class OfflineProviderReplayError extends Error {
+    constructor() {
+        super(
+            'replayQueue called against an OfflineProvider — refusing to drain records into a no-op provider.',
+        );
+        this.name = 'OfflineProviderReplayError';
+    }
+}
 
 export interface ReplayResult {
     drained: number;
@@ -35,6 +45,16 @@ export async function replayQueue(
     projectId: string,
     onProgress?: (record: QueueRecord, remaining: number) => void,
 ): Promise<ReplayResult> {
+    // Guard: an OfflineProvider's writeFile/deleteFiles return success no-ops.
+    // Draining records against it would silently delete every queued write
+    // from IndexedDB. This can happen if a network flicker between
+    // `swapToOnline()` and the replay invocation pushes `start()` back into
+    // the offline path — the caller expects a real provider but got the
+    // shim. Refuse loudly so the queue stays intact and the next reconnect
+    // attempt can drain it for real.
+    if (provider instanceof OfflineProvider) {
+        throw new OfflineProviderReplayError();
+    }
     const records = await listQueueForProject(projectId);
     let drained = 0;
     let failed = 0;

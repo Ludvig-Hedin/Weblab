@@ -75,6 +75,14 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
                 toast.error('Sandbox not connected yet. Wait a moment and retry.');
                 return;
             }
+            if (sandbox.session.isOffline) {
+                // Replay against the offline shim would silently drain the
+                // queue (writeFile is a no-op). Defer and tell the user.
+                toast.error(
+                    'Sandbox is still in offline mode. Reload the project to reconnect, then sync.',
+                );
+                return;
+            }
             // Pause sync engine init for the same reason the auto reconnect
             // path does (see SandboxManager.suppressSyncInitForReplay): a
             // concurrent `pullFromSandbox` would race the manual replay and

@@ -10,38 +10,90 @@
  * static DOM via the parent ↔ child bridge.
  */
 
-const HEAVY_TAGS = new Set([
-    'SCRIPT',
-    'NEXT-ROUTE-ANNOUNCER',
-    'NOSCRIPT',
-]);
+const HEAVY_TAGS = new Set(['SCRIPT', 'NEXT-ROUTE-ANNOUNCER', 'NOSCRIPT']);
 
 // Only inline properties that meaningfully affect visual fidelity offline.
 // Inlining all 200+ computed properties per element bloats the snapshot 10–100x.
 const ESSENTIAL_PROPS = new Set([
-    'display', 'visibility', 'opacity',
-    'position', 'top', 'right', 'bottom', 'left', 'z-index',
-    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-    'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-    'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-    'border', 'border-width', 'border-style', 'border-color', 'border-radius',
-    'box-sizing', 'overflow', 'overflow-x', 'overflow-y',
-    'flex', 'flex-direction', 'flex-wrap', 'flex-grow', 'flex-shrink', 'flex-basis',
-    'align-items', 'align-self', 'justify-content', 'justify-self', 'gap',
-    'grid-template-columns', 'grid-template-rows', 'grid-column', 'grid-row',
-    'color', 'background', 'background-color', 'background-image',
-    'font-size', 'font-family', 'font-weight', 'font-style', 'line-height',
-    'text-align', 'text-decoration', 'text-transform', 'letter-spacing',
-    'box-shadow', 'transform', 'cursor',
+    'display',
+    'visibility',
+    'opacity',
+    'position',
+    'top',
+    'right',
+    'bottom',
+    'left',
+    'z-index',
+    'width',
+    'height',
+    'min-width',
+    'min-height',
+    'max-width',
+    'max-height',
+    'margin',
+    'margin-top',
+    'margin-right',
+    'margin-bottom',
+    'margin-left',
+    'padding',
+    'padding-top',
+    'padding-right',
+    'padding-bottom',
+    'padding-left',
+    'border',
+    'border-width',
+    'border-style',
+    'border-color',
+    'border-radius',
+    'box-sizing',
+    'overflow',
+    'overflow-x',
+    'overflow-y',
+    'flex',
+    'flex-direction',
+    'flex-wrap',
+    'flex-grow',
+    'flex-shrink',
+    'flex-basis',
+    'align-items',
+    'align-self',
+    'justify-content',
+    'justify-self',
+    'gap',
+    'grid-template-columns',
+    'grid-template-rows',
+    'grid-column',
+    'grid-row',
+    'color',
+    'background',
+    'background-color',
+    'background-image',
+    'font-size',
+    'font-family',
+    'font-weight',
+    'font-style',
+    'line-height',
+    'text-align',
+    'text-decoration',
+    'text-transform',
+    'letter-spacing',
+    'box-shadow',
+    'transform',
+    'cursor',
 ]);
 
-function inlineComputedStyles(root: Element): void {
-    const treeWalker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-    let current: Node | null = treeWalker.currentNode;
-    while (current) {
-        if (current instanceof HTMLElement) {
+// Walk live and clone trees in lockstep. getComputedStyle only returns
+// meaningful values on connected nodes — a detached clone yields CSS initial
+// values, which silently destroys visual fidelity.
+function inlineComputedStylesLockstep(liveRoot: Element, cloneRoot: Element): void {
+    const liveWalker = document.createTreeWalker(liveRoot, NodeFilter.SHOW_ELEMENT);
+    const cloneWalker = document.createTreeWalker(cloneRoot, NodeFilter.SHOW_ELEMENT);
+    let liveNode: Node | null = liveWalker.currentNode;
+    let cloneNode: Node | null = cloneWalker.currentNode;
+    while (liveNode && cloneNode) {
+        if (liveNode instanceof HTMLElement && cloneNode instanceof HTMLElement) {
             try {
-                const computed = window.getComputedStyle(current);
+                const computed = window.getComputedStyle(liveNode);
                 const declarations: string[] = [];
                 for (const prop of ESSENTIAL_PROPS) {
                     const value = computed.getPropertyValue(prop);
@@ -51,17 +103,20 @@ function inlineComputedStyles(root: Element): void {
                 if (declarations.length > 0) {
                     // Preserve any existing inline styles — they may carry
                     // critical dynamic values set by JS at runtime.
-                    const existing = current.getAttribute('style');
-                    current.setAttribute(
+                    const existing = cloneNode.getAttribute('style');
+                    cloneNode.setAttribute(
                         'style',
-                        existing ? `${declarations.join('; ')}; ${existing}` : declarations.join('; '),
+                        existing
+                            ? `${declarations.join('; ')}; ${existing}`
+                            : declarations.join('; '),
                     );
                 }
             } catch {
                 /* skip elements where computed style is unavailable */
             }
         }
-        current = treeWalker.nextNode();
+        liveNode = liveWalker.nextNode();
+        cloneNode = cloneWalker.nextNode();
     }
 }
 
@@ -84,8 +139,10 @@ export function serializeDocumentForOffline(): {
     const baseUrl = window.location.origin;
     const cloned = document.documentElement.cloneNode(true) as HTMLElement;
 
+    // Inline styles BEFORE stripping scripts so live and clone trees stay
+    // structurally aligned during the lockstep walk.
+    inlineComputedStylesLockstep(document.documentElement, cloned);
     stripScripts(cloned);
-    inlineComputedStyles(cloned);
 
     // Ensure relative URLs resolve against the live dev-server origin so
     // referenced images/links keep working when the network is back.

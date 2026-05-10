@@ -62,8 +62,12 @@ async function heartbeat(opts: { allowFlipUp?: boolean } = {}): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), HEARTBEAT_TIMEOUT_MS);
     try {
+        // GET, not HEAD: Next.js Route Handlers don't always auto-route
+        // HEAD to a GET handler (older releases return 405 → we'd flip
+        // the user offline incorrectly). Body is tiny ({ ok: true }) so
+        // GET is effectively free.
         const response = await fetch(HEALTH_URL, {
-            method: 'HEAD',
+            method: 'GET',
             cache: 'no-store',
             signal: controller.signal,
             credentials: 'omit',

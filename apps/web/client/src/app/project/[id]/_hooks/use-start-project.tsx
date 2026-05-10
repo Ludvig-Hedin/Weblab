@@ -177,6 +177,16 @@ export const useStartProject = () => {
                     await sandbox.resumeSyncInit();
                     return;
                 }
+                // Network may have flickered between swap and replay,
+                // pushing `start()` back into its offline path. Bail
+                // before replayQueue tries to drain records into the
+                // OfflineProvider's no-op writeFile (which would silently
+                // delete every queued edit). The next online transition
+                // re-fires this effect and tries again.
+                if (sandbox.session.isOffline) {
+                    await sandbox.resumeSyncInit();
+                    return;
+                }
                 const result = await replayQueue(sandbox.session.provider, editorEngine.projectId);
                 // Only run the bidirectional sync engine after the queue is
                 // drained — at this point the cloud filesystem reflects the
