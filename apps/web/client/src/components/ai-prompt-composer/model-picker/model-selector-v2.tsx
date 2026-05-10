@@ -27,15 +27,23 @@ import { useProviderStatuses } from './use-provider-statuses';
 
 function ProviderIcon({ name, className }: { name: string; className?: string }) {
     const Icon = (Icons as Record<string, React.ComponentType<{ className?: string }>>)[name];
-    if (!Icon) return <Icons.Cube className={className} />;
+    if (\!Icon) return <Icons.Cube className={className} />;
     return <Icon className={className} />;
 }
 
-function statusActionLabel(status: ProviderStatus): string | null {
-    if (status.kind === 'install') return 'Install';
-    if (status.kind === 'sign-in') return 'Sign in';
-    if (status.kind === 'desktop-only') return 'Desktop only';
-    return null;
+function StatusPill({ status }: { status: ProviderStatus }) {
+    if (status.kind === 'ready' || status.kind === 'loading') return null;
+    const label =
+        status.kind === 'install'
+            ? 'Install'
+            : status.kind === 'sign-in'
+              ? 'Sign in'
+              : 'Desktop only';
+    return (
+        <span className="text-foreground-tertiary ml-auto pl-2 text-[10px] font-normal whitespace-nowrap">
+            {label}
+        </span>
+    );
 }
 
 function modelsForEntry(
@@ -82,7 +90,7 @@ export const ModelSelectorV2 = ({
         onSuccess: () => refresh(),
     });
     const hasCliBridge =
-        typeof window !== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
+        typeof window \!== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
 
     useEffect(() => {
         const handleOpen = () => setIsOpen(true);
@@ -90,23 +98,22 @@ export const ModelSelectorV2 = ({
         return () => window.removeEventListener('open-model-selector', handleOpen);
     }, []);
 
-    // Surface OAuth callback errors. The callback redirects back to the page
-    // that started the flow with `?provider_oauth_error=<code>` on failure.
-    // Show it as a toast and strip the param so it doesn't re-fire on the
-    // next router push or refresh.
+    // Surface OAuth callback errors. Keyed messages cover the common failure
+    // codes; unknown codes get a generic line so we never echo raw env-var
+    // names back to the user.
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const url = new URL(window.location.href);
         const errorCode = url.searchParams.get('provider_oauth_error');
-        if (!errorCode) return;
+        if (\!errorCode) return;
         const friendly =
             errorCode === 'token_exchange_failed'
-                ? 'Sign-in failed during token exchange.'
+                ? 'Sign-in failed during token exchange. Try again.'
                 : errorCode === 'provider_not_configured'
-                  ? 'This provider has no OAuth credentials configured on the server yet.'
+                  ? "This provider isn't available yet. We'll enable it soon."
                   : errorCode === 'invalid_callback'
                     ? 'Sign-in callback was invalid. Try again.'
-                    : `Sign-in failed: ${errorCode}`;
+                    : 'Sign-in failed. Try again in a moment.';
         toast.error('Provider sign-in failed', { description: friendly });
         url.searchParams.delete('provider_oauth_error');
         window.history.replaceState({}, '', url.toString());
@@ -118,13 +125,26 @@ export const ModelSelectorV2 = ({
     );
 
     const cloud = PROVIDER_MANIFEST.find((e) => e.kind === 'openrouter');
-    const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind !== 'openrouter');
+    const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind \!== 'openrouter');
 
     const selectedId = value as string;
 
     const handleSelectModel = (id: string) => {
         onChange(id as ChatModel);
         setIsOpen(false);
+    };
+
+    // Open the setup dialog AFTER the popover finishes closing so Radix's
+    // focus traps don't fight: closing popover yields focus, then the dialog
+    // claims it. Without the rAF, the dialog can fail to mount visibly.
+    const openSetup = (entry: ProviderManifestEntry) => {
+        setIsOpen(false);
+        requestAnimationFrame(() => setSetupEntry(entry));
+    };
+
+    const openPullDialog = () => {
+        setIsOpen(false);
+        requestAnimationFrame(() => setPullDialogOpen(true));
     };
 
     const handleDisconnect = (entry: ProviderManifestEntry) => {
@@ -144,51 +164,63 @@ export const ModelSelectorV2 = ({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary text-xs h-8 gap-1.5 px-2"
+                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1.5 px-2 text-xs"
                 >
                     <Icons.ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    <span className="max-w-[80px] truncate @[260px]:max-w-[160px] ">
+                    <span className="max-w-[80px] truncate @[260px]:max-w-[160px]">
                         {currentLabel}
                     </span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-72 overflow-hidden p-0">
+            <PopoverContent
+                align="start"
+                sideOffset={6}
+                className="border-border/60 bg-background w-72 overflow-hidden rounded-lg p-0 shadow-xl"
+            >
                 <Command
-                    // Search both the visible label and the underlying model id
-                    // so a user can type "sonnet" or "claude-3-5-sonnet" and
-                    // both resolve. cmdk does substring + token matching.
+                    className="bg-transparent"
                     filter={(itemValue, search) => {
-                        if (!search) return 1;
+                        if (\!search) return 1;
                         const haystack = itemValue.toLowerCase();
                         const needle = search.toLowerCase();
                         if (haystack.includes(needle)) return 1;
-                        // Token match: every search term must appear somewhere.
                         const tokens = needle.split(/\s+/).filter(Boolean);
                         return tokens.every((t) => haystack.includes(t)) ? 0.5 : 0;
                     }}
                 >
-                    <CommandInput placeholder="Search models…" autoFocus />
-                    <CommandList className="max-h-[360px]">
-                        <CommandEmpty>No models found.</CommandEmpty>
+                    <CommandInput
+                        placeholder="Search models…"
+                        autoFocus
+                        className="h-9 text-xs"
+                    />
+                    <CommandList className="max-h-[360px] py-1">
+                        <CommandEmpty className="text-foreground-tertiary px-3 py-4 text-center text-xs">
+                            No models found.
+                        </CommandEmpty>
 
                         {cloud && cloud.models.length > 0 && (
-                            <CommandGroup heading="Cloud models">
+                            <CommandGroup
+                                heading="Cloud"
+                                className="[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
+                            >
                                 {cloud.models.map((option) => (
                                     <CommandItem
                                         key={`openrouter:${option.id}`}
                                         value={`${option.label} ${option.id} openrouter cloud`}
                                         onSelect={() => handleSelectModel(option.id)}
                                         className={cn(
-                                            'flex flex-col items-start gap-0.5 px-3 py-2',
-                                            option.id === selectedId && 'bg-background-weblab',
+                                            'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
+                                            option.id === selectedId &&
+                                                'bg-background-secondary',
                                         )}
                                     >
-                                        <span className="text-small font-medium">
+                                        <Icons.Sparkles className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
+                                        <span className="text-foreground-primary truncate font-medium">
                                             {option.label}
                                         </span>
-                                        <span className="text-foreground-tertiary text-mini">
-                                            {option.id}
-                                        </span>
+                                        {option.id === selectedId && (
+                                            <Icons.Check className="text-foreground-secondary ml-auto h-3.5 w-3.5 shrink-0" />
+                                        )}
                                     </CommandItem>
                                 ))}
                             </CommandGroup>
@@ -196,82 +228,110 @@ export const ModelSelectorV2 = ({
 
                         {subProviders.map((entry) => {
                             const status = statuses[entry.kind];
-                            const actionLabel = statusActionLabel(status);
                             const ready = status.kind === 'ready';
                             const loading = status.kind === 'loading';
                             const models = ready ? modelsForEntry(entry, status) : [];
 
-                            // Provider not ready: show a single actionable row
-                            // that opens the setup dialog (or is disabled for
-                            // desktop-only / loading).
-                            if (!ready) {
-                                if (loading) {
-                                    return (
-                                        <CommandGroup key={entry.kind} heading={entry.label}>
-                                            <CommandItem
-                                                disabled
-                                                value={`${entry.label} loading`}
-                                                className="text-mini px-3 py-2"
-                                            >
-                                                <ProviderIcon
-                                                    name={entry.icon}
-                                                    className="mr-2 h-4 w-4 shrink-0"
-                                                />
-                                                Detecting…
-                                            </CommandItem>
-                                        </CommandGroup>
-                                    );
-                                }
-                                if (status.kind === 'desktop-only') {
-                                    return (
-                                        <CommandGroup key={entry.kind} heading={entry.label}>
-                                            <CommandItem
-                                                disabled
-                                                value={`${entry.label} desktop`}
-                                                className="text-mini px-3 py-2 opacity-60"
-                                            >
-                                                <ProviderIcon
-                                                    name={entry.icon}
-                                                    className="mr-2 h-4 w-4 shrink-0"
-                                                />
-                                                Available in the Weblab desktop app
-                                            </CommandItem>
-                                        </CommandGroup>
-                                    );
-                                }
-                                // install / sign-in
+                            const groupClass =
+                                '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
+
+                            const heading = (
+                                <span className="flex items-center gap-1.5">
+                                    <ProviderIcon
+                                        name={entry.icon}
+                                        className="h-3 w-3 shrink-0"
+                                    />
+                                    {entry.label}
+                                </span>
+                            );
+
+                            if (loading) {
                                 return (
-                                    <CommandGroup key={entry.kind} heading={entry.label}>
+                                    <CommandGroup
+                                        key={entry.kind}
+                                        heading={entry.label}
+                                        className={groupClass}
+                                    >
                                         <CommandItem
-                                            value={`${entry.label} ${actionLabel ?? ''}`}
-                                            onSelect={() => {
-                                                setSetupEntry(entry);
-                                                setIsOpen(false);
-                                            }}
-                                            className="text-mini px-3 py-2"
+                                            disabled
+                                            value={`${entry.label} loading`}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                         >
                                             <ProviderIcon
                                                 name={entry.icon}
-                                                className="mr-2 h-4 w-4 shrink-0"
+                                                className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
                                             />
-                                            <span className="text-small font-medium">
-                                                {actionLabel === 'Install'
-                                                    ? `Install ${entry.label}…`
-                                                    : `Sign in to ${entry.label}…`}
+                                            <span className="text-foreground-tertiary">
+                                                Detecting…
                                             </span>
                                         </CommandItem>
                                     </CommandGroup>
                                 );
                             }
+                            if (status.kind === 'desktop-only') {
+                                return (
+                                    <CommandGroup
+                                        key={entry.kind}
+                                        heading={entry.label}
+                                        className={groupClass}
+                                    >
+                                        <CommandItem
+                                            disabled
+                                            value={`${entry.label} desktop`}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs opacity-60"
+                                        >
+                                            <ProviderIcon
+                                                name={entry.icon}
+                                                className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <span className="text-foreground-secondary truncate">
+                                                Available in the Weblab desktop app
+                                            </span>
+                                        </CommandItem>
+                                    </CommandGroup>
+                                );
+                            }
+                            if (status.kind === 'install' || status.kind === 'sign-in') {
+                                const action =
+                                    status.kind === 'install'
+                                        ? `Install ${entry.label}…`
+                                        : `Sign in to ${entry.label}…`;
+                                return (
+                                    <CommandGroup
+                                        key={entry.kind}
+                                        heading={entry.label}
+                                        className={groupClass}
+                                    >
+                                        <CommandItem
+                                            value={`${entry.label} ${action}`}
+                                            onSelect={() => openSetup(entry)}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                        >
+                                            <ProviderIcon
+                                                name={entry.icon}
+                                                className="text-foreground-secondary h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <span className="text-foreground-primary truncate">
+                                                {action}
+                                            </span>
+                                            <StatusPill status={status} />
+                                        </CommandItem>
+                                    </CommandGroup>
+                                );
+                            }
 
-                            // Ready provider: flat list of its models.
+                            // Ready
                             return (
-                                <CommandGroup key={entry.kind} heading={entry.label}>
+                                <CommandGroup
+                                    key={entry.kind}
+                                    heading={entry.label}
+                                    className={groupClass}
+                                >
                                     {models.length === 0 ? (
                                         <CommandItem
                                             disabled
                                             value={`${entry.label} empty`}
-                                            className="text-mini px-3 py-2"
+                                            className="text-foreground-tertiary rounded-md px-2 py-1.5 text-xs"
                                         >
                                             No models available
                                         </CommandItem>
@@ -282,16 +342,21 @@ export const ModelSelectorV2 = ({
                                                 value={`${m.label} ${m.id} ${entry.label}`}
                                                 onSelect={() => handleSelectModel(m.id)}
                                                 className={cn(
-                                                    'flex flex-col items-start gap-0.5 px-3 py-2',
-                                                    m.id === selectedId && 'bg-background-weblab',
+                                                    'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                    m.id === selectedId &&
+                                                        'bg-background-secondary',
                                                 )}
                                             >
-                                                <span className="text-small font-medium">
+                                                <ProviderIcon
+                                                    name={entry.icon}
+                                                    className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                                                />
+                                                <span className="text-foreground-primary truncate font-medium">
                                                     {m.label}
                                                 </span>
-                                                <span className="text-foreground-tertiary text-mini">
-                                                    {m.id}
-                                                </span>
+                                                {m.id === selectedId && (
+                                                    <Icons.Check className="text-foreground-secondary ml-auto h-3.5 w-3.5 shrink-0" />
+                                                )}
                                             </CommandItem>
                                         ))
                                     )}
@@ -300,48 +365,32 @@ export const ModelSelectorV2 = ({
                                         <>
                                             <CommandItem
                                                 value={`${entry.label} pull model`}
-                                                onSelect={() => {
-                                                    setPullDialogOpen(true);
-                                                    setIsOpen(false);
-                                                }}
-                                                className="text-mini px-3 py-2"
+                                                onSelect={openPullDialog}
+                                                className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                             >
-                                                Pull model…
+                                                <Icons.Plus className="h-3.5 w-3.5 shrink-0" />
+                                                <span>Pull model…</span>
                                             </CommandItem>
                                             <CommandItem
                                                 value={`${entry.label} quit ollama`}
                                                 onSelect={() => {
                                                     void window.weblabNative?.cli?.ollamaQuit?.();
                                                 }}
-                                                className="text-mini px-3 py-2"
+                                                className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                             >
-                                                Quit Ollama
+                                                <Icons.Stop className="h-3.5 w-3.5 shrink-0" />
+                                                <span>Quit Ollama</span>
                                             </CommandItem>
                                         </>
                                     )}
 
-                                    {/* Disconnect surfaces only when the user signed in via web OAuth
-                                        (no desktop bridge AND a webOAuth provider). It calls the tRPC
-                                        mutation that deletes the stored connection and triggers a
-                                        status refresh. */}
-                                    {entry.webOAuth && !hasCliBridge && (
+                                    {entry.webOAuth && \!hasCliBridge && (
                                         <CommandItem
                                             value={`${entry.label} disconnect`}
                                             onSelect={() => handleDisconnect(entry)}
-                                            className="text-mini px-3 py-2"
+                                            className="text-foreground-tertiary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                         >
-                                            Disconnect {entry.label}
-                                        </CommandItem>
-                                    )}
-
-                                    {entry.supportsCustomModel && (
-                                        <CommandItem
-                                            disabled
-                                            value={`${entry.label} custom model`}
-                                            className="text-mini px-3 py-2"
-                                            title="Coming in a follow-up"
-                                        >
-                                            Custom model…
+                                            <span>Disconnect {entry.label}</span>
                                         </CommandItem>
                                     )}
                                 </CommandGroup>
@@ -356,18 +405,13 @@ export const ModelSelectorV2 = ({
                 <ProviderSetupDialog
                     entry={setupEntry}
                     status={statuses[setupEntry.kind]}
-                    open={setupEntry !== null}
+                    open={setupEntry \!== null}
                     onOpenChange={(open) => {
-                        if (!open) setSetupEntry(null);
+                        if (\!open) setSetupEntry(null);
                     }}
                     onRecheck={refresh}
                 />
             )}
-            {/* Pull dialog only mounts when the desktop bridge is present.
-                On hosted web the menu item that opens it is already gated by
-                the Ollama submenu's status, but if a self-hosted setup somehow
-                makes Ollama 'ready' on web, we still don't want a dialog that
-                immediately fails — better to never offer it. */}
             {hasCliBridge && (
                 <PullModelDialog open={pullDialogOpen} onOpenChange={setPullDialogOpen} />
             )}
