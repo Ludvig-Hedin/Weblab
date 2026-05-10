@@ -295,7 +295,7 @@ export function DirectEditingInteractive() {
     }, [draggedElement, dragOffset]);
 
     return (
-        <div className="bg-background-weblab/80 h-100 w-full overflow-hidden rounded-lg">
+        <div className="h-100 w-full overflow-hidden rounded-lg">
             <div className="canvas-container relative top-60 left-1/2 h-100 w-90 -translate-x-1/2 -translate-y-1/2 transform rounded-lg bg-[#0A484D] text-[#F0EFE3]">
                 <div className="flex h-8 w-full flex-row items-center justify-between border-b border-[#F0EFE3]/50 px-2">
                     <div className="flex flex-row items-center gap-1 select-none">

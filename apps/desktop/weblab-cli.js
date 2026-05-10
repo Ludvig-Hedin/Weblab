@@ -94,7 +94,7 @@ function isFromAllowedOrigin(event, allowedOrigins) {
         const senderUrl =
             (event.senderFrame && event.senderFrame.url) ||
             (event.sender && event.sender.getURL && event.sender.getURL());
-        if (\!senderUrl) return false;
+        if (!senderUrl) return false;
         return allowedOrigins.has(new URL(senderUrl).origin);
     } catch {
         return false;
@@ -108,7 +108,7 @@ function isFromAllowedOrigin(event, allowedOrigins) {
  */
 async function pullOllamaModel(pullId, modelName, getWebContents) {
     return new Promise((resolve) => {
-        if (\!SAFE_OLLAMA_MODEL.test(modelName)) {
+        if (!SAFE_OLLAMA_MODEL.test(modelName)) {
             return resolve({ ok: false, error: 'invalid_model_name' });
         }
         let child;
@@ -124,7 +124,7 @@ async function pullOllamaModel(pullId, modelName, getWebContents) {
 
         const sendProgress = (line) => {
             const wc = getWebContents();
-            if (\!wc) return;
+            if (!wc) return;
             try {
                 wc.send('weblab-cli:ollama-pull-progress', { pullId, line });
             } catch {
@@ -211,27 +211,27 @@ async function quitOllama() {
 
 function registerIpcHandlers({ allowedOrigins, getWebContents }) {
     ipcMain.handle('weblab-cli:provider-status', async (event) => {
-        if (\!isFromAllowedOrigin(event, allowedOrigins)) return null;
+        if (!isFromAllowedOrigin(event, allowedOrigins)) return null;
         return getProviderStatuses();
     });
 
     ipcMain.handle('weblab-cli:ollama-pull', async (event, payload) => {
-        if (\!isFromAllowedOrigin(event, allowedOrigins)) {
+        if (!isFromAllowedOrigin(event, allowedOrigins)) {
             return { ok: false, error: 'origin_mismatch' };
         }
         const modelName = (payload && payload.model) || '';
         const pullId = (payload && payload.pullId) || '';
-        if (typeof modelName \!== 'string' || modelName.length === 0) {
+        if (typeof modelName !== 'string' || modelName.length === 0) {
             return { ok: false, error: 'invalid_model_name' };
         }
-        if (typeof pullId \!== 'string' || pullId.length === 0) {
+        if (typeof pullId !== 'string' || pullId.length === 0) {
             return { ok: false, error: 'invalid_pull_id' };
         }
         return pullOllamaModel(pullId, modelName, getWebContents);
     });
 
     ipcMain.handle('weblab-cli:ollama-quit', async (event) => {
-        if (\!isFromAllowedOrigin(event, allowedOrigins)) {
+        if (!isFromAllowedOrigin(event, allowedOrigins)) {
             return { ok: false, error: 'origin_mismatch' };
         }
         return quitOllama();

@@ -11,6 +11,8 @@ import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
+import { JustShippedStrip } from '../landing-page/just-shipped-strip';
+import { CloneWebsite } from './clone-website';
 import { Create } from './create';
 import { HighDemand } from './high-demand';
 import { ImportGitHub } from './import';
@@ -59,11 +61,11 @@ export function Hero() {
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        AI visual website builder <br />
+                        Design on your real codebase. <br />
                         <span
                             className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.1] sm:text-[4.6rem] sm:leading-[1.0]`}
                         >
-                            for builders
+                            Ship a real PR.
                         </span>
                     </motion.h1>
                     <motion.p
@@ -73,10 +75,11 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Design with your real components on an infinite canvas. Ship
-                        production-ready websites instead of prototypes.
+                        Open your real React or Next.js project, edit visually with AI, and push
+                        to GitHub. Open source. Pairs with Claude Code.
                     </motion.p>
                     <HighDemand />
+                    <JustShippedStrip />
                 </div>
                 <motion.div
                     className="pointer-events-auto relative z-20 flex w-full justify-center px-4"
@@ -119,6 +122,8 @@ export function Hero() {
                     ) : (
                         <>
                             <GetStarted />
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <CloneWebsite />
                             <span className="text-foreground-secondary/30 select-none">·</span>
                             <ImportGitHub />
                             <span className="text-foreground-secondary/30 select-none">·</span>

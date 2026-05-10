@@ -54,11 +54,13 @@ export default function AboutPage() {
                     Weblab was founded to obliterate the divide between creativity and
                     implementation. We're building a bridge between designers and developers — a
                     visual editor that works with your real React components. AI is constrained to
-                    your design system. Changes become mergeable pull requests.
+                    your design system. Changes become mergeable pull requests. Weblab is open
+                    source under Apache 2.0.
                 </p>
                 <h3>Company Facts</h3>
                 <ul>
                     <li>Based in Sweden</li>
+                    <li>Open source — Apache 2.0 licensed, public GitHub repository</li>
                 </ul>
                 <h3>Founder</h3>
                 <ul>

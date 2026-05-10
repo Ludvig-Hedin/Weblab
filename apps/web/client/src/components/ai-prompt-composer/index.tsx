@@ -80,12 +80,12 @@ function getVariantClasses(variant: NonNullable<AiPromptComposerProps['variant']
     switch (variant) {
         case 'hero':
             return {
-                root: 'w-[540px] max-w-[calc(100vw-32px)]',
-                surface: 'shadow-2xl shadow-black/20 backdrop-blur-xl',
-                textarea: 'min-h-[44px] pt-4 text-base',
-                button: 'h-10 w-10',
-                icon: 'h-5 w-5',
-                footer: 'px-2 pt-2 pb-2',
+                root: 'w-full max-w-[580px]',
+                surface: 'shadow-xl shadow-black/15 backdrop-blur-xl',
+                textarea: 'min-h-[40px] pt-3 text-sm',
+                button: 'h-8 w-8',
+                icon: 'h-4 w-4',
+                footer: 'px-2 pt-1.5 pb-1.5',
             };
         case 'create':
             return {
@@ -292,7 +292,7 @@ export function AiPromptComposer({
                 onDrop={(event) => void handleDrop(event)}
             >
                 {notice}
-                <div className="flex w-full flex-col px-2 pt-1.5">
+                <div className="flex w-full flex-col">
                     {topSlot}
                     {inlineSlot}
                     <TipTapEditor

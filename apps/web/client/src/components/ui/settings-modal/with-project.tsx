@@ -60,6 +60,15 @@ export const SettingsModalWithProjects = observer(() => {
     const stateManager = useStateManager();
     const pagesManager = editorEngine.pages;
 
+    useEffect(() => {
+        if (!stateManager.isSettingsModalOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') stateManager.isSettingsModalOpen = false;
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [stateManager, stateManager.isSettingsModalOpen]);
+
     const flattenPages = useMemo(() => {
         return pagesManager.flatPages;
     }, [pagesManager.flatPages]);
@@ -212,14 +221,17 @@ export const SettingsModalWithProjects = observer(() => {
                                 {/* Main content */}
                                 <div className="flex min-h-0 flex-1 overflow-hidden">
                                     {/* Left navigation - fixed width */}
-                                    <div className="flex flex-col overflow-y-scroll select-none">
-                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
-                                            <p className="text-muted-foreground text-smallPlus mt-2 mb-0.5 ml-2.5">
+                                    <div className="bg-background-secondary flex flex-col overflow-y-scroll select-none">
+                                        <div className="w-48 shrink-0 space-y-1 p-5">
+                                            <p className="text-mini text-foreground-tertiary mt-2 mb-0.5 ml-2.5">
                                                 Project
                                             </p>
-                                            <div className="text-muted-foreground/80 mb-3 ml-2.5 flex items-center gap-1.5">
+                                            <div className="text-foreground-tertiary mb-3 ml-2.5 flex items-center gap-1.5">
                                                 <Icons.Branch className="min-h-3 min-w-3" />
-                                                <span className="text-small max-w-30 truncate">
+                                                <span
+                                                    className="text-mini max-w-30 truncate"
+                                                    title={editorEngine.branches.activeBranch.name}
+                                                >
                                                     {editorEngine.branches.activeBranch.name}
                                                 </span>
                                             </div>
@@ -245,8 +257,8 @@ export const SettingsModalWithProjects = observer(() => {
                                         <Separator />
                                         {pagesTabs.length > 0 && (
                                             <>
-                                                <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
-                                                    <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
+                                                <div className="w-48 shrink-0 space-y-1 p-5">
+                                                    <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
                                                         Pages Settings
                                                     </p>
                                                     {pagesTabs.map((tab) => (

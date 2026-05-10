@@ -17,7 +17,7 @@ import { AuthButton } from './user';
 const LINKS = [
     {
         href: Routes.HOME,
-        child: <BrandLogo className="h-4" />,
+        child: <BrandLogo className="h-5" />,
     },
 ];
 

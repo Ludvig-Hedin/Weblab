@@ -368,17 +368,17 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
     );
 
     return (
-        <div className="text-sm">
+        <div className="text-regular">
             <div className="flex flex-col gap-2 p-6">
                 <div className="flex items-center gap-3">
-                    <h2 className="text-lg">Page Settings</h2>
+                    <h2 className="text-largePlus">Page Settings</h2>
                     {!isPublished && (
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" disabled>
+                        <Button variant="outline" size="sm" className="text-mini h-7 px-2" disabled>
                             Unpublished
                         </Button>
                     )}
                     {isDraft && (
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" disabled>
+                        <Button variant="outline" size="sm" className="text-mini h-7 px-2" disabled>
                             Draft
                         </Button>
                     )}
@@ -389,7 +389,7 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                     <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
                         <div className="text-foreground-secondary flex items-center gap-3">
                             <Icons.LoadingSpinner className="h-5 w-5 animate-spin" />
-                            <span className="text-sm">Fetching metadata...</span>
+                            <span className="text-regular">Fetching metadata...</span>
                         </div>
                     </div>
                 ) : (

@@ -161,8 +161,8 @@ export const AITab = observer(() => {
         return (
             <div className="flex items-center justify-between gap-4">
                 <label htmlFor={id} className="cursor-pointer">
-                    <p className="text-sm font-medium">{label}</p>
-                    <p className="text-muted-foreground text-sm">{description}</p>
+                    <p className="text-regularPlus">{label}</p>
+                    <p className="text-regular text-foreground-tertiary">{description}</p>
                 </label>
                 <Switch
                     id={id}
@@ -174,7 +174,7 @@ export const AITab = observer(() => {
     };
 
     const SaveStatus = () => (
-        <span className="text-xs">
+        <span className="text-mini">
             {isSaving ? (
                 <span className="text-foreground-tertiary">Saving…</span>
             ) : (
@@ -189,20 +189,20 @@ export const AITab = observer(() => {
     );
 
     return (
-        <div className="flex flex-col gap-8 p-6">
+        <div className="flex flex-col gap-16 p-6">
             {/* Default model */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-base font-medium">Default model</h2>
-                        <p className="text-muted-foreground text-sm">
+                        <h2 className="text-largePlus">Default model</h2>
+                        <p className="text-regular text-foreground-tertiary">
                             Pre-selected when you open a new chat.
                         </p>
                     </div>
                     <SaveStatus />
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-xs">Model</Label>
+                    <Label className="text-mini">Model</Label>
                     <Select
                         value={ai?.defaultModel ?? DEFAULT_CHAT_MODEL}
                         onValueChange={(v) => patch({ defaultModel: v })}
@@ -233,11 +233,11 @@ export const AITab = observer(() => {
             </section>
 
             {/* Local models (Ollama) */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <h2 className="text-base font-medium">Local models</h2>
-                        <p className="text-muted-foreground text-sm">
+                        <h2 className="text-largePlus">Local models</h2>
+                        <p className="text-regular text-foreground-tertiary">
                             Use locally-running models via Ollama.
                         </p>
                     </div>
@@ -245,10 +245,10 @@ export const AITab = observer(() => {
                 </div>
                 <div className="space-y-3">
                     <div className="space-y-1.5">
-                        <Label className="text-xs">Ollama server URL</Label>
+                        <Label className="text-mini">Ollama server URL</Label>
                         <div className="flex items-center gap-2">
                             <Input
-                                className="w-64 text-sm"
+                                className="text-small w-64"
                                 value={ollamaUrlInput}
                                 onChange={(e) => setOllamaUrlInput(e.target.value)}
                                 onBlur={handleOllamaUrlBlur}
@@ -274,13 +274,13 @@ export const AITab = observer(() => {
                             className={cn(
                                 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
                                 localModelsLoading
-                                    ? 'animate-pulse bg-amber-500'
+                                    ? 'bg-foreground-warning animate-pulse'
                                     : localModels.length > 0
-                                      ? 'bg-emerald-500'
+                                      ? 'bg-foreground-success'
                                       : 'bg-foreground-tertiary/40',
                             )}
                         />
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-mini text-foreground-tertiary">
                             {localModelsLoading
                                 ? 'Looking for Ollama…'
                                 : localModels.length > 0
@@ -290,7 +290,7 @@ export const AITab = observer(() => {
                                     : 'No local models detected. Make sure Ollama is running.'}
                         </p>
                     </div>
-                    <p className="text-muted-foreground/80 text-[11px] leading-snug">
+                    <p className="text-micro text-foreground-tertiary leading-snug">
                         Detection probes Ollama from the Weblab server, not your browser. On hosted
                         deployments only models reachable from the server are visible — when running
                         self-hosted or in dev, the server probes your own machine&apos;s localhost.
@@ -299,9 +299,9 @@ export const AITab = observer(() => {
             </section>
 
             {/* Chat behaviour */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-base font-medium">Chat behaviour</h2>
+                    <h2 className="text-largePlus">Chat behaviour</h2>
                     <SaveStatus />
                 </div>
                 <div className="space-y-3">

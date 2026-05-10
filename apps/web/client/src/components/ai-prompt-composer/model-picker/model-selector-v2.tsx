@@ -214,11 +214,11 @@ export const ModelSelectorV2 = ({
                     variant="ghost"
                     size="sm"
                     aria-label={`Model: ${currentLabel}`}
-                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1.5 px-2 text-xs"
+                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1 px-2 text-xs"
                 >
                     <ProviderIcon
                         name={currentIconName}
-                        className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                        className="text-foreground-tertiary h-3.5 w-3.5 shrink-0 hide hidden"
                     />
                     <span
                         title={currentLabel}
@@ -226,7 +226,7 @@ export const ModelSelectorV2 = ({
                     >
                         {currentLabel}
                     </span>
-                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
+                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-2.5 shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent

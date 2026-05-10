@@ -198,14 +198,31 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
     const urlValid = URL_PATTERN.test(url.trim());
     const submitting = isCloning || isCompressing;
 
-    const creationSteps = [
-        { label: 'Reading the source page', ready: phase !== 'idle' && phase !== 'scraping-url' },
-        {
-            label: 'Setting up your workspace',
-            ready: phase === 'creating-project' || phase === 'opening-editor',
-        },
-        { label: 'Opening the editor', ready: phase === 'opening-editor' },
-    ];
+    // Step list differs per tab: the URL flow runs Firecrawl first
+    // (`scraping-url` phase), the screenshot flow skips that phase entirely
+    // and goes idle → forking-sandbox. Showing "Reading the source page" as
+    // completed on the screenshot path was misleading — no page is read
+    // when a screenshot is supplied.
+    const creationSteps =
+        activeTab === 'url'
+            ? [
+                  {
+                      label: 'Reading the source page',
+                      ready: phase !== 'idle' && phase !== 'scraping-url',
+                  },
+                  {
+                      label: 'Setting up your workspace',
+                      ready: phase === 'creating-project' || phase === 'opening-editor',
+                  },
+                  { label: 'Opening the editor', ready: phase === 'opening-editor' },
+              ]
+            : [
+                  {
+                      label: 'Setting up your workspace',
+                      ready: phase === 'creating-project' || phase === 'opening-editor',
+                  },
+                  { label: 'Opening the editor', ready: phase === 'opening-editor' },
+              ];
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>

@@ -40,9 +40,9 @@ export const SubscriptionCancelModal = ({
                         Keep Subscription
                     </Button>
                     <Button
-                        variant="outline"
+                        variant="destructive"
                         onClick={onConfirmCancel}
-                        className="order-1 border-red-200 text-red-200 hover:border-red-100 hover:bg-red-500/10 hover:text-red-100 sm:order-2"
+                        className="order-1 sm:order-2"
                     >
                         Cancel Subscription
                     </Button>

@@ -103,7 +103,23 @@ export function useCreateBlankProject() {
             console.error('Error creating blank project:', error);
             const errorMessage = error instanceof Error ? error.message : String(error);
 
-            if (errorMessage.includes('502') || errorMessage.includes('sandbox')) {
+            // Transient triggers, in order:
+            //   - upstream gateway errors (502/503/504) bubbling up from CSB,
+            //   - the sandbox.fork retry-exhaustion message format
+            //     ("Failed to create sandbox after N attempts: ..."),
+            //   - generic timeout / temporarily unavailable phrasing.
+            // Crucially this does NOT include the bare substring "sandbox",
+            // which used to match permanent failures like quota/billing
+            // errors and surfaced a misleading Retry CTA.
+            const lower = errorMessage.toLowerCase();
+            const isTransient =
+                /\b50[234]\b/.test(errorMessage) ||
+                /failed to create sandbox after \d+ attempts?/i.test(errorMessage) ||
+                lower.includes('temporarily unavailable') ||
+                lower.includes('timeout') ||
+                lower.includes('timed out');
+
+            if (isTransient) {
                 toast.error('Sandbox service temporarily unavailable', {
                     description:
                         'Please try again in a few moments. Our servers may be experiencing high load.',

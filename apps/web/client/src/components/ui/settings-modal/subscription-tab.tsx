@@ -140,9 +140,9 @@ export const SubscriptionTab = observer(() => {
                                                 : handleCancelSubscription();
                                         }}
                                         disabled={isLoadingPortal}
-                                        className="group cursor-pointer text-red-200 hover:text-red-100"
+                                        className="group text-destructive hover:text-destructive cursor-pointer"
                                     >
-                                        <Icons.CrossS className="mr-2 h-4 w-4 text-red-200 group-hover:text-red-100" />
+                                        <Icons.CrossS className="text-destructive group-hover:text-destructive mr-2 h-4 w-4" />
                                         {subscription?.scheduledChange?.scheduledAction ===
                                         ScheduledSubscriptionAction.CANCELLATION
                                             ? 'Reactivate subscription'

@@ -58,13 +58,13 @@ export const AccountTab = observer(() => {
     };
 
     return (
-        <div className="flex flex-col gap-8 p-6">
+        <div className="flex flex-col gap-16 p-6">
             {/* Profile */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div className="flex items-center gap-2">
-                    <h2 className="text-base font-medium">Profile</h2>
+                    <h2 className="text-largePlus">Profile</h2>
                     {provider && (
-                        <Badge variant="secondary" className="text-xs capitalize">
+                        <Badge variant="secondary" className="text-mini capitalize">
                             {isGoogle ? 'Google' : provider}
                         </Badge>
                     )}
@@ -73,17 +73,17 @@ export const AccountTab = observer(() => {
                 <div className="flex items-center gap-4">
                     <Avatar className="h-14 w-14">
                         {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={initials} />}
-                        <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+                        <AvatarFallback className="text-largePlus">{initials}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="text-sm font-medium">
+                        <p className="text-regularPlus">
                             {user?.displayName ?? user?.firstName ?? '—'}
                         </p>
-                        <p className="text-muted-foreground text-xs">{user?.email}</p>
+                        <p className="text-mini text-foreground-tertiary">{user?.email}</p>
                         {/* Bug fix #29: Avatar upload UI removed for now — keep it read-only
                             and let it sync from the auth provider until we ship a proper
                             storage-backed upload flow. */}
-                        <p className="text-muted-foreground mt-1 text-xs">
+                        <p className="text-mini text-foreground-tertiary mt-1">
                             Avatar will sync from your authentication provider.
                         </p>
                     </div>
@@ -91,42 +91,42 @@ export const AccountTab = observer(() => {
 
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                        <Label className="text-xs">First name</Label>
+                        <Label className="text-mini">First name</Label>
                         <Input
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="First name"
-                            className="h-8 text-sm"
+                            placeholder="Jane"
+                            className="text-small h-8"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label className="text-xs">Last name</Label>
+                        <Label className="text-mini">Last name</Label>
                         <Input
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Last name"
-                            className="h-8 text-sm"
+                            placeholder="Doe"
+                            className="text-small h-8"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label className="text-xs">Display name</Label>
+                    <Label className="text-mini">Display name</Label>
                     <Input
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Display name"
-                        className="h-8 text-sm"
+                        placeholder="jane.doe"
+                        className="text-small h-8"
                     />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label className="text-xs">Email</Label>
-                    <Input value={user?.email ?? ''} readOnly disabled className="h-8 text-sm" />
+                    <Label className="text-mini">Email</Label>
+                    <Input value={user?.email ?? ''} readOnly disabled className="text-small h-8" />
                     {/* Bug fix #28: Replace the dead-end "Email cannot be changed." line with
                         a clear escape hatch (mailto support) until we wire up Supabase's
                         verified-email-change flow. */}
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-mini text-foreground-tertiary">
                         {isGoogle ? (
                             'Email is managed by your Google account.'
                         ) : (

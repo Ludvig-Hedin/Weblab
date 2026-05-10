@@ -160,7 +160,7 @@ export const MetadataForm = ({
     };
 
     return (
-        <div className="flex h-full flex-col text-sm">
+        <div className="text-regular flex h-full flex-col">
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 pb-24">
                 {renderTitle()}
 
@@ -202,9 +202,9 @@ export const MetadataForm = ({
                 <div className="flex flex-col gap-2">
                     <h2 className="text-regular text-foreground-weblab">Search Engine Preview</h2>
                     <div className="bg-background/50 flex flex-col gap-1.5 rounded-md border p-4">
-                        <p className="text-miniPlus text-blue-500">{projectUrl}</p>
+                        <p className="text-miniPlus text-foreground-brand">{projectUrl}</p>
                         <h3 className="text-regular">{title || DEFAULT_TITLE}</h3>
-                        <p className="text-muted-foreground line-clamp-2 text-sm">
+                        <p className="text-regular text-foreground-tertiary line-clamp-2">
                             {description || DEFAULT_DESCRIPTION}
                         </p>
                     </div>

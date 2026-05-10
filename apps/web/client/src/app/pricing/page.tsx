@@ -42,8 +42,9 @@ const HIGHLIGHTED_FEATURES = [
     },
     {
         icon: 'Sparkles',
-        title: 'Unlimited AI Chat',
-        description: 'Get instant help and generate code with unlimited AI-powered assistance',
+        title: 'Pick your model — or bring your own key',
+        description:
+            'Claude Opus 4.7, Sonnet 4.6, Haiku 4.5, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4, Mistral Codestral, or your local Ollama. Dial reasoning from Fast to Deep.',
     },
     {
         icon: 'GitHubLogo',

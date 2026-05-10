@@ -2,7 +2,7 @@ import { Versions } from './versions';
 
 export const VersionsTab = () => {
     return (
-        <div className="relative flex h-full flex-col text-sm">
+        <div className="text-regular relative flex h-full flex-col">
             <Versions />
         </div>
     );

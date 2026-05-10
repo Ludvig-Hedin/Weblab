@@ -88,9 +88,9 @@ export const Versions = observer(() => {
     };
 
     return (
-        <div className="flex flex-col text-sm">
+        <div className="text-regular flex flex-col">
             <div className="flex flex-row items-center justify-center gap-3 px-6 py-6">
-                <h2 className="text-lg">Backup Versions</h2>
+                <h2 className="text-largePlus">Backup Versions</h2>
 
                 {isLoadingCommits && <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />}
 
@@ -115,7 +115,7 @@ export const Versions = observer(() => {
                 {gitManager && (
                     <Button
                         variant="outline"
-                        className="bg-background-secondary rounded text-sm font-normal"
+                        className="bg-background-secondary text-regular rounded-xs font-normal"
                         onClick={handleNewBackup}
                         disabled={isLoadingCommits || isCreatingBackup}
                     >
@@ -136,7 +136,7 @@ export const Versions = observer(() => {
                         {groupedCommits &&
                             Object.entries(groupedCommits).map(([date, dateCommits]) => (
                                 <AccordionItem key={date} value={date}>
-                                    <AccordionTrigger className="text-muted-foreground px-6 py-4 text-base font-normal">
+                                    <AccordionTrigger className="text-foreground-tertiary text-large px-6 py-4 font-normal">
                                         {date}
                                     </AccordionTrigger>
                                     <AccordionContent>

@@ -3,9 +3,9 @@ import { cn } from '@weblab/ui/utils';
 export type SkillScopeLabel = 'built-in' | 'global' | 'project';
 
 const STYLES: Record<SkillScopeLabel, string> = {
-    'built-in': 'bg-muted text-muted-foreground border-border/40',
-    global: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-    project: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+    'built-in': 'bg-muted text-foreground-tertiary border-border',
+    global: 'bg-background-success/40 text-foreground-success border-success',
+    project: 'bg-background-warning/40 text-foreground-warning border-warning',
 };
 
 const TEXT: Record<SkillScopeLabel, string> = {

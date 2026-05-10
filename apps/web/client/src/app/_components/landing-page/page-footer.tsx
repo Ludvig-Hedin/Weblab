@@ -23,7 +23,7 @@ export function Footer() {
                     <BrandWordmark className="text-foreground-primary h-5 w-24" />
                 </div>
                 {/* Center: Links */}
-                <div className="flex flex-1 flex-col justify-center gap-12 md:flex-row md:gap-12">
+                <div className="flex flex-1 flex-col justify-end gap-12 md:flex-row md:gap-12">
                     <div>
                         <h3 className="text-regularPlus text-foreground-primary mb-4">Company</h3>
                         <ul className="text-regular flex flex-col gap-4">

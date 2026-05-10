@@ -28,16 +28,16 @@ export const LanguageTab = observer(() => {
     };
 
     return (
-        <div className="flex flex-col gap-8 p-6">
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+        <div className="flex flex-col gap-16 p-6">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Language</h2>
-                    <p className="text-muted-foreground text-sm">
+                    <h2 className="text-largePlus">Language</h2>
+                    <p className="text-regular text-foreground-tertiary">
                         Choose the language for the app UI.
                     </p>
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-xs">Display language</Label>
+                    <Label className="text-mini">Display language</Label>
                     <Select value={currentLocale} onValueChange={handleChange}>
                         <SelectTrigger className="w-60">
                             <SelectValue />
@@ -51,7 +51,7 @@ export const LanguageTab = observer(() => {
                         </SelectContent>
                     </Select>
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-mini text-foreground-tertiary">
                     Language change takes effect on the next page load.
                 </p>
             </section>

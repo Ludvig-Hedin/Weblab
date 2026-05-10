@@ -198,7 +198,7 @@ export const VersionRow = observer(
                             size="sm"
                             className="bg-background-secondary gap-2"
                         >
-                            <Icons.Check className="h-4 w-4 text-green-500" />
+                            <Icons.Check className="text-foreground-success h-4 w-4" />
                             <span className="text-muted-foreground">Restored</span>
                         </Button>
                     ) : (

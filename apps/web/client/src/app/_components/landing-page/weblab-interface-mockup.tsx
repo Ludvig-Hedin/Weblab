@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
@@ -8,7 +8,403 @@ import { cn } from '@weblab/ui/utils';
 
 import { DesignMockup, DesignMockupMobile } from './design-mockup/design-mockup';
 
-// Notes Component for Villainstagram
+type TabId =
+    | 'insert'
+    | 'components'
+    | 'layers'
+    | 'search'
+    | 'brand'
+    | 'pages'
+    | 'images'
+    | 'branches';
+type ModeId = 'design' | 'styles' | 'code' | 'preview';
+type RightTabId = 'style' | 'chat' | 'comments';
+type PreviewTheme = 'light' | 'dark';
+
+const MODES: { id: ModeId; label: string }[] = [
+    { id: 'design', label: 'Design' },
+    { id: 'styles', label: 'Styles' },
+    { id: 'code', label: 'Code' },
+    { id: 'preview', label: 'Preview' },
+];
+
+function ModeToggle({
+    activeMode,
+    onChange,
+}: {
+    activeMode: ModeId;
+    onChange: (m: ModeId) => void;
+}) {
+    const activeIndex = MODES.findIndex((m) => m.id === activeMode);
+    return (
+        <div className="flex justify-center">
+            <div className="relative">
+                <div className="flex h-6 items-center font-normal">
+                    {MODES.map((m) => (
+                        <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => onChange(m.id)}
+                            className={cn(
+                                'cursor-pointer bg-transparent px-3 py-1 text-[12px] whitespace-nowrap transition-colors duration-150 ease-in-out',
+                                m.id === activeMode
+                                    ? 'text-foreground-primary'
+                                    : 'text-foreground-secondary hover:text-foreground-primary',
+                            )}
+                        >
+                            {m.label}
+                        </button>
+                    ))}
+                </div>
+                <div
+                    className="bg-foreground absolute -top-1 h-0.5 transition-all duration-200 ease-out"
+                    style={{
+                        width: `${100 / MODES.length}%`,
+                        left: `${(activeIndex * 100) / MODES.length}%`,
+                    }}
+                />
+            </div>
+        </div>
+    );
+}
+
+const TAB_DEFS: { id: TabId; label: string; icon: keyof typeof Icons }[] = [
+    { id: 'insert', label: 'Insert', icon: 'Plus' },
+    { id: 'components', label: 'Components', icon: 'Component' },
+    { id: 'layers', label: 'Layers', icon: 'Layers' },
+    { id: 'search', label: 'Search', icon: 'MagnifyingGlass' },
+    { id: 'brand', label: 'Brand', icon: 'Brand' },
+    { id: 'pages', label: 'Pages', icon: 'File' },
+    { id: 'images', label: 'Images', icon: 'Image' },
+    { id: 'branches', label: 'Branches', icon: 'Branch' },
+];
+
+const RIGHT_TABS: { id: RightTabId; label: string; icon: keyof typeof Icons }[] = [
+    { id: 'style', label: 'Styles', icon: 'Layout' },
+    { id: 'chat', label: 'Chat', icon: 'Sparkles' },
+    { id: 'comments', label: 'Comments', icon: 'ChatBubble' },
+];
+
+const BRANCHES = [
+    { id: 'main', name: 'main', active: true, ahead: 0, behind: 0 },
+    { id: 'pricing', name: 'feature/pricing', active: false, ahead: 2, behind: 0 },
+    { id: 'cms', name: 'feature/cms', active: false, ahead: 0, behind: 3 },
+];
+
+const PRESET_SENTENCE = 'Add a pricing section with 3 tiers';
+
+type ChatStep =
+    | { kind: 'user'; text: string }
+    | { kind: 'reasoning'; text: string }
+    | { kind: 'tool'; tool: 'create_file' | 'edit_file'; file: string; detail: string }
+    | { kind: 'ai'; text: string };
+
+const CHAT_SCRIPT: ChatStep[] = [
+    { kind: 'user', text: PRESET_SENTENCE },
+    { kind: 'reasoning', text: "I'll create a Pricing component and add it to the homepage." },
+    { kind: 'tool', tool: 'create_file', file: 'Pricing.tsx', detail: 'new file' },
+    { kind: 'tool', tool: 'edit_file', file: 'Home.tsx', detail: '1 edit' },
+    {
+        kind: 'ai',
+        text: 'Done. Added a Pricing section with Starter, Pro, and Enterprise tiers below the hero.',
+    },
+];
+
+const STEP_DELAYS_MS = [600, 1700, 2900, 4100, 5300];
+const LOOP_RESTART_MS = 13_000;
+
+interface MockLayer {
+    id: string;
+    name: string;
+    tagName: string;
+    level: number;
+    isInstance: boolean;
+}
+
+const INITIAL_LAYERS: MockLayer[] = [
+    { id: 'root', name: 'Home Page', tagName: 'DIV', level: 0, isInstance: false },
+    { id: 'nav', name: 'Top Navigation', tagName: 'COMPONENT', level: 1, isInstance: false },
+    { id: 'hero', name: 'Hero', tagName: 'COMPONENT', level: 1, isInstance: false },
+    { id: 'grid', name: 'Image Grid', tagName: 'DIV', level: 1, isInstance: false },
+    { id: 'card-1', name: 'Image Card 1', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'card-2', name: 'Image Card 2', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'card-3', name: 'Image Card 3', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'card-4', name: 'Image Card 4', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'card-5', name: 'Image Card 5', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'card-6', name: 'Image Card 6', tagName: 'COMPONENT', level: 2, isInstance: false },
+    { id: 'footer', name: 'Footer', tagName: 'COMPONENT', level: 1, isInstance: false },
+];
+
+const PAGES = [
+    { id: 'home', name: 'Home', active: true },
+    { id: 'about', name: 'About', active: false },
+    { id: 'pricing', name: 'Pricing', active: false, badge: 'new' as const },
+];
+
+const COMPONENT_CHIPS = ['Button', 'Card', 'Hero', 'Nav', 'Pricing', 'Footer'];
+
+const RESTYLE_COLORS = [
+    { id: 'teal', className: 'border-teal-300', swatch: 'bg-teal-300' },
+    { id: 'brand', className: 'border-foreground-brand', swatch: 'bg-foreground-brand' },
+    { id: 'amber', className: 'border-amber-400', swatch: 'bg-amber-400' },
+] as const;
+
+function StylesModePanel() {
+    return (
+        <div className="bg-background-canvas absolute inset-0 top-10 z-[5] flex">
+            <div className="flex flex-1 items-start justify-center gap-12 px-6 pt-12">
+                <div className="border-border bg-background-chrome flex w-72 flex-col gap-3 rounded-lg border p-3 shadow-xl">
+                    <div className="border-border flex items-center justify-between border-b pb-2">
+                        <span className="text-foreground text-xs font-medium">Hero</span>
+                        <span className="text-foreground-tertiary text-[10px]">COMPONENT</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                            Typography
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                                <span className="text-foreground-tertiary">Font</span>
+                                <span className="text-foreground">Inter</span>
+                            </div>
+                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                                <span className="text-foreground-tertiary">Size</span>
+                                <span className="text-foreground">48</span>
+                            </div>
+                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                                <span className="text-foreground-tertiary">Weight</span>
+                                <span className="text-foreground">300</span>
+                            </div>
+                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                                <span className="text-foreground-tertiary">Track</span>
+                                <span className="text-foreground">-0.02</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                            Color
+                        </div>
+                        <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
+                            <div className="bg-foreground ring-border h-3.5 w-3.5 rounded-full ring-1" />
+                            <span className="text-foreground font-mono">#FFFFFF</span>
+                            <span className="text-foreground-tertiary ml-auto">100%</span>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                            Spacing
+                        </div>
+                        <div className="grid grid-cols-4 gap-1">
+                            {['T 64', 'R 32', 'B 64', 'L 32'].map((s) => (
+                                <div
+                                    key={s}
+                                    className="border-border bg-background-secondary/60 rounded px-1.5 py-1 text-center text-[10px]"
+                                >
+                                    <span className="text-foreground-tertiary mr-1">
+                                        {s.split(' ')[0]}
+                                    </span>
+                                    <span className="text-foreground">{s.split(' ')[1]}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                            Effects
+                        </div>
+                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                            <span className="text-foreground-tertiary">Radius</span>
+                            <span className="text-foreground">12</span>
+                        </div>
+                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                            <span className="text-foreground-tertiary">Shadow</span>
+                            <span className="text-foreground">lg</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="border-border bg-background-chrome relative aspect-[4/3] w-96 overflow-hidden rounded-lg border shadow-xl">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8">
+                        <div className="text-foreground text-3xl leading-tight font-light tracking-tight">
+                            Selected element
+                        </div>
+                        <div className="text-foreground-secondary text-sm">
+                            Edit any property on the left
+                        </div>
+                    </div>
+                    <div className="border-foreground-brand pointer-events-none absolute inset-4 rounded-md border-2" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const CODE_LINES = [
+    {
+        tokens: [
+            { t: 'export default function ', c: 'kw' },
+            { t: 'Hero', c: 'fn' },
+            { t: '() {', c: 'p' },
+        ],
+    },
+    {
+        tokens: [
+            { t: '  return ', c: 'kw' },
+            { t: '(', c: 'p' },
+        ],
+    },
+    {
+        tokens: [
+            { t: '    <', c: 'p' },
+            { t: 'section', c: 'tag' },
+            { t: ' className=', c: 'attr' },
+            { t: '"py-32"', c: 'str' },
+            { t: '>', c: 'p' },
+        ],
+    },
+    {
+        tokens: [
+            { t: '      <', c: 'p' },
+            { t: 'h1', c: 'tag' },
+            { t: ' className=', c: 'attr' },
+            { t: '"text-6xl font-light"', c: 'str' },
+            { t: '>', c: 'p' },
+        ],
+    },
+    { tokens: [{ t: '        AI visual website builder', c: 'text' }] },
+    {
+        tokens: [
+            { t: '      </', c: 'p' },
+            { t: 'h1', c: 'tag' },
+            { t: '>', c: 'p' },
+        ],
+    },
+    {
+        tokens: [
+            { t: '      <', c: 'p' },
+            { t: 'Pricing', c: 'comp' },
+            { t: ' tiers=', c: 'attr' },
+            { t: '{', c: 'p' },
+            { t: '3', c: 'num' },
+            { t: '} />', c: 'p' },
+        ],
+    },
+    {
+        tokens: [
+            { t: '    </', c: 'p' },
+            { t: 'section', c: 'tag' },
+            { t: '>', c: 'p' },
+        ],
+    },
+    { tokens: [{ t: '  )', c: 'p' }] },
+    { tokens: [{ t: '}', c: 'p' }] },
+];
+
+const TOKEN_COLOR: Record<string, string> = {
+    kw: 'text-purple-300',
+    fn: 'text-amber-200',
+    tag: 'text-rose-300',
+    attr: 'text-foreground-secondary',
+    str: 'text-emerald-300',
+    text: 'text-foreground',
+    comp: 'text-sky-300',
+    num: 'text-amber-300',
+    p: 'text-foreground-tertiary',
+};
+
+function CodeModePanel() {
+    return (
+        <div className="bg-background-canvas absolute inset-0 top-10 z-[5] flex">
+            <div className="border-border bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
+                <div className="text-foreground-tertiary mb-1 px-1 text-[10px] tracking-wider uppercase">
+                    Explorer
+                </div>
+                {[
+                    { name: 'app/', open: true },
+                    { name: '  page.tsx', indent: 1 },
+                    { name: '  layout.tsx', indent: 1 },
+                    { name: 'components/', open: true, indent: 0 },
+                    { name: '  Hero.tsx', indent: 1, active: true },
+                    { name: '  Pricing.tsx', indent: 1, badge: 'new' },
+                    { name: '  Footer.tsx', indent: 1 },
+                ].map((f) => (
+                    <div
+                        key={f.name}
+                        className={cn(
+                            'flex items-center gap-1.5 rounded px-1.5 py-0.5',
+                            f.active
+                                ? 'bg-background-bar-active text-foreground'
+                                : 'text-foreground-secondary hover:bg-background-secondary',
+                        )}
+                    >
+                        <span className="truncate font-mono">{f.name}</span>
+                        {f.badge && (
+                            <span className="bg-foreground-brand/20 text-foreground-brand ml-auto rounded-sm px-1 text-[9px] font-medium uppercase">
+                                {f.badge}
+                            </span>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div className="bg-background-canvas flex flex-1 flex-col">
+                <div className="border-border bg-background-chrome flex h-8 items-center gap-2 border-b px-3 text-[11px]">
+                    <Icons.File className="text-foreground-secondary h-3 w-3" />
+                    <span className="text-foreground font-mono">Hero.tsx</span>
+                    <span className="text-foreground-tertiary">·</span>
+                    <span className="text-foreground-tertiary">unsaved</span>
+                </div>
+                <div className="font-mono text-[11px] leading-[1.6]">
+                    {CODE_LINES.map((line, i) => (
+                        <div
+                            key={i}
+                            className="hover:bg-background-secondary/40 flex items-baseline gap-3 px-3"
+                        >
+                            <span className="text-foreground-tertiary w-5 shrink-0 text-right text-[10px]">
+                                {i + 1}
+                            </span>
+                            <div className="min-w-0 whitespace-pre">
+                                {line.tokens.map((tok, j) => (
+                                    <span
+                                        key={j}
+                                        className={TOKEN_COLOR[tok.c] ?? 'text-foreground'}
+                                    >
+                                        {tok.t}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PreviewModePanel() {
+    return (
+        <div className="bg-background-canvas absolute inset-0 z-30 flex items-start justify-center pt-16">
+            <div className="border-border bg-background-chrome relative w-[80%] max-w-3xl overflow-hidden rounded-lg border shadow-2xl">
+                <div className="border-border bg-background-bar/80 flex h-7 items-center gap-2 border-b px-3">
+                    <div className="flex gap-1.5">
+                        <div className="h-2.5 w-2.5 rounded-full bg-rose-400/60" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-amber-300/60" />
+                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+                    </div>
+                    <div className="border-border bg-background-secondary/60 mx-2 flex h-4 flex-1 items-center gap-1.5 rounded-sm border-[0.5px] px-2">
+                        <Icons.LockClosed className="text-foreground-tertiary h-2.5 w-2.5" />
+                        <span className="text-foreground-tertiary truncate text-[10px]">
+                            villainterest.weblab.app
+                        </span>
+                    </div>
+                </div>
+                <div className="bg-background-canvas relative aspect-[16/10] overflow-hidden">
+                    <DesignMockup />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function NotesComponent() {
     const notes = [
         'Implement evil pin creation (mwahaha)',
@@ -20,7 +416,7 @@ function NotesComponent() {
     ];
 
     return (
-        <div className="border-foreground-secondary/20 mt-10 h-fit w-96 min-w-64 rounded-lg border bg-black/80 p-3 backdrop-blur-sm">
+        <div className="border-border bg-background-chrome mt-10 h-fit w-96 min-w-64 rounded-lg border p-3 backdrop-blur-sm">
             <div className="mb-1 flex items-center gap-2">
                 <h3 className="text-foreground-secondary font-mono text-xs">
                     Villainterest - Product Notes
@@ -29,9 +425,14 @@ function NotesComponent() {
             <div className="space-y-2">
                 {notes.map((note, index) => (
                     <div key={index} className="flex items-start gap-2 text-[10px]">
-                        <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500"></div>
+                        <div className="bg-foreground-tertiary mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full"></div>
                         <span
-                            className={`font-mono leading-relaxed ${index < 3 ? 'text-gray-500 line-through' : 'text-gray-300'}`}
+                            className={cn(
+                                'font-mono leading-relaxed',
+                                index < 3
+                                    ? 'text-foreground-tertiary line-through'
+                                    : 'text-foreground-secondary',
+                            )}
                         >
                             {note}
                         </span>
@@ -42,577 +443,410 @@ function NotesComponent() {
     );
 }
 
-// --- Chat mockup code from AiChatPreviewBlock ---
-const chatMessages = [
-    {
-        sender: 'user',
-        type: 'text',
-        text: 'The masonry layout is breaking on mobile - can you fix the responsive columns?',
-    },
-    {
-        sender: 'ai',
-        type: 'text',
-        text: "I see the issue! The CSS columns aren't adapting properly to smaller screens. Let me update the responsive breakpoints and add proper mobile optimization.",
-    },
-    {
-        sender: 'ai',
-        type: 'tool',
-        tool: 'Generate code',
-        toolName: 'generateCode',
-        args: { component: 'ImageGrid', fix: 'mobile-responsive' },
-    },
-];
-const PRESET_SENTENCE = 'Add a villain verification badge system';
 function UserMessage({ text }: { text: string }) {
     return (
-        <div className="group relative flex w-full flex-row justify-end px-2">
-            <div className="bg-background-secondary text-foreground-secondary relative ml-8 flex w-[80%] flex-col rounded-lg rounded-br-none border-[0.5px] p-2 shadow-sm">
-                <div className="text-xs font-light">{text ?? ''}</div>
+        <div className="flex w-full flex-row justify-end px-2">
+            <div className="bg-background-secondary text-foreground-secondary border-border ml-8 flex w-[80%] flex-col rounded-lg rounded-br-none border-[0.5px] p-2 shadow-sm">
+                <div className="text-xs font-light">{text}</div>
             </div>
         </div>
     );
 }
+
 function AiMessage({ text }: { text: string }) {
     return (
-        <div className="group relative flex w-full flex-row justify-start px-2">
-            <div className="text-foreground-primary relative mr-8 flex w-[90%] flex-col rounded-lg rounded-bl-none bg-none p-1 shadow-sm">
-                <div className="mt-1 text-xs leading-4.5 font-light">{text ?? ''}</div>
+        <div className="flex w-full flex-row justify-start px-2">
+            <div className="text-foreground-primary mr-8 flex w-[90%] flex-col rounded-lg rounded-bl-none p-1">
+                <div className="mt-1 text-xs leading-4.5 font-light">{text}</div>
             </div>
         </div>
     );
 }
-function ToolCallDisplay({ toolName }: { toolName: string }) {
+
+function ReasoningMessage({ text, active }: { text: string; active: boolean }) {
+    return (
+        <div className="flex w-full flex-row justify-start px-2">
+            <div className="text-foreground-secondary flex items-start gap-1.5 px-1">
+                {active ? (
+                    <Icons.LoadingSpinner className="mt-0.5 h-3 w-3 shrink-0 animate-spin" />
+                ) : (
+                    <Icons.Check className="text-foreground-tertiary mt-0.5 h-3 w-3 shrink-0" />
+                )}
+                <span
+                    className={cn(
+                        'text-[11px] leading-snug font-light',
+                        active &&
+                            'animate-shimmer bg-gradient-to-r from-[hsl(var(--foreground-secondary))] via-[hsl(var(--foreground))] to-[hsl(var(--foreground-secondary))] bg-[length:200%_100%] bg-clip-text text-transparent',
+                    )}
+                >
+                    {text}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function ToolCallCard({
+    tool,
+    file,
+    detail,
+    active,
+}: {
+    tool: 'create_file' | 'edit_file';
+    file: string;
+    detail: string;
+    active: boolean;
+}) {
     return (
         <div className="px-2">
-            <div className="relative rounded-lg border bg-black/40 backdrop-blur-lg">
-                <div className="text-foreground-secondary flex items-center justify-between py-2 pl-3 transition-colors">
-                    <div className="flex items-center gap-2">
-                        <Icons.LoadingSpinner className="text-foreground-secondary h-4 w-4 animate-spin" />
-                        <span className="animate-shimmer pointer-events-none bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-xs text-transparent drop-shadow-[0_0_14px_rgba(255,255,255,1)] filter select-none">
-                            Website.tsx
+            <div className="border-border bg-background-secondary/60 relative rounded-md border backdrop-blur">
+                <div className="text-foreground-secondary flex items-center justify-between px-2 py-1.5">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                        {active ? (
+                            <Icons.LoadingSpinner className="h-3 w-3 shrink-0 animate-spin" />
+                        ) : (
+                            <Icons.Check className="text-foreground-brand h-3 w-3 shrink-0" />
+                        )}
+                        <span className="text-foreground-tertiary text-[10px] font-medium tracking-wide uppercase">
+                            {tool === 'create_file' ? 'Create' : 'Edit'}
+                        </span>
+                        <span className="text-foreground-primary truncate font-mono text-[11px]">
+                            {file}
                         </span>
                     </div>
-                    <Icons.ChevronDown className="text-foreground-tertiary mr-2 h-4 w-4" />
+                    <span className="text-foreground-tertiary text-[10px]">
+                        {active ? '…' : detail}
+                    </span>
                 </div>
             </div>
         </div>
     );
 }
-// --- End chat mockup code ---
+
+function usePrefersReducedMotion() {
+    const [reduced, setReduced] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        setReduced(mq.matches);
+        const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
+    return reduced;
+}
+
+function ScriptedChat() {
+    const reduced = usePrefersReducedMotion();
+    const [visible, setVisible] = useState(reduced ? CHAT_SCRIPT.length : 0);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (reduced) {
+            setVisible(CHAT_SCRIPT.length);
+            return;
+        }
+
+        let stepTimers: ReturnType<typeof setTimeout>[] = [];
+        let loopTimer: ReturnType<typeof setTimeout>;
+
+        const play = () => {
+            setVisible(0);
+            stepTimers = STEP_DELAYS_MS.map((delay, i) =>
+                setTimeout(() => setVisible(i + 1), delay),
+            );
+            loopTimer = setTimeout(play, LOOP_RESTART_MS);
+        };
+
+        play();
+        return () => {
+            stepTimers.forEach(clearTimeout);
+            clearTimeout(loopTimer);
+        };
+    }, [reduced]);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [visible]);
+
+    return (
+        <div
+            ref={scrollRef}
+            className="flex flex-1 flex-col gap-2 overflow-y-auto py-3"
+            style={{ scrollbarWidth: 'none' }}
+        >
+            {CHAT_SCRIPT.slice(0, visible).map((step, idx) => {
+                const isLast = idx === visible - 1;
+                if (step.kind === 'user') return <UserMessage key={idx} text={step.text} />;
+                if (step.kind === 'ai') return <AiMessage key={idx} text={step.text} />;
+                if (step.kind === 'reasoning')
+                    return <ReasoningMessage key={idx} text={step.text} active={isLast} />;
+                return (
+                    <ToolCallCard
+                        key={idx}
+                        tool={step.tool}
+                        file={step.file}
+                        detail={step.detail}
+                        active={isLast}
+                    />
+                );
+            })}
+        </div>
+    );
+}
 
 export function WeblabInterfaceMockup() {
     const [isVisible, setIsVisible] = useState(false);
-
-    // Trigger animation after a delay to match jumbotron text timing
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsVisible(true);
-        }, 1200); // Delay to allow jumbotron text to animate first
-
+    useEffect(() => {
+        const timer = setTimeout(() => setIsVisible(true), 1200);
         return () => clearTimeout(timer);
     }, []);
 
-    // For the mockup, the chat input is static (not interactive)
-    const displayedText = PRESET_SENTENCE;
-    const currentIndex = PRESET_SENTENCE.length;
+    const [activeTab, setActiveTab] = useState<TabId>('layers');
+    const [activeMode, setActiveMode] = useState<ModeId>('design');
+    const [layers, setLayers] = useState<MockLayer[]>(INITIAL_LAYERS);
+    const [hoveredLayer, setHoveredLayer] = useState<string | null>(null);
+    const [selectedLayer, setSelectedLayer] = useState<string>('card-1');
+    const [dragIndex, setDragIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-    // Mock data for layers panel
-    const mockLayers = [
-        {
-            id: '1',
-            name: 'Design Mockup Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 0,
-            isInstance: false,
-        },
-        {
-            id: '1.1',
-            name: 'Top Navigation Bar',
-            tagName: 'COMPONENT',
-            selected: false,
-            level: 1,
-            isInstance: false,
-        },
-        { id: '1.1.1', name: 'Logo', tagName: 'DIV', selected: false, level: 2, isInstance: false },
-        {
-            id: '1.1.2',
-            name: 'Search Bar',
-            tagName: 'DIV',
-            selected: false,
-            level: 2,
-            isInstance: false,
-        },
-        {
-            id: '1.1.2.1',
-            name: 'Search Text',
-            tagName: 'SPAN',
-            selected: false,
-            level: 3,
-            isInstance: false,
-        },
-        {
-            id: '1.1.2.2',
-            name: 'Clear Button',
-            tagName: 'DIV',
-            selected: false,
-            level: 3,
-            isInstance: false,
-        },
-        {
-            id: '1.1.3',
-            name: 'User Button',
-            tagName: 'DIV',
-            selected: false,
-            level: 2,
-            isInstance: false,
-        },
-        {
-            id: '1.2',
-            name: 'Main Content',
-            tagName: 'DIV',
-            selected: false,
-            level: 1,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1',
-            name: 'Left Sidebar',
-            tagName: 'DIV',
-            selected: false,
-            level: 2,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.1',
-            name: 'Navigation Icons',
-            tagName: 'DIV',
-            selected: false,
-            level: 3,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.1.1',
-            name: 'Magnifying Glass',
-            tagName: 'SVG',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.1.2',
-            name: 'Sparkles',
-            tagName: 'SVG',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.1.3',
-            name: 'Chat Bubble',
-            tagName: 'SVG',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.1.4',
-            name: 'Person',
-            tagName: 'SVG',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.1.2',
-            name: 'Settings Icon',
-            tagName: 'DIV',
-            selected: false,
-            level: 3,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2',
-            name: 'Image Grid',
-            tagName: 'DIV',
-            selected: false,
-            level: 2,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1',
-            name: 'Image Columns',
-            tagName: 'DIV',
-            selected: false,
-            level: 3,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.1',
-            name: 'Image Card 1',
-            tagName: 'COMPONENT',
-            selected: true,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.1.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.1.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.1.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.1.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.2',
-            name: 'Image Card 2',
-            tagName: 'COMPONENT',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.2.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.2.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.2.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.2.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.3',
-            name: 'Image Card 3',
-            tagName: 'COMPONENT',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.3.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.3.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.3.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.3.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.4',
-            name: 'Image Card 4',
-            tagName: 'COMPONENT',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.4.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.4.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.4.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.4.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.5',
-            name: 'Image Card 5',
-            tagName: 'DIV',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.5.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.5.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.5.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.5.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.6',
-            name: 'Image Card 6',
-            tagName: 'DIV',
-            selected: false,
-            level: 4,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.6.1',
-            name: 'Image Container',
-            tagName: 'DIV',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.6.1.1',
-            name: 'Background Overlay',
-            tagName: 'DIV',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.6.1.2',
-            name: 'Image',
-            tagName: 'IMG',
-            selected: false,
-            level: 6,
-            isInstance: false,
-        },
-        {
-            id: '1.2.2.1.6.2',
-            name: 'Caption',
-            tagName: 'P',
-            selected: false,
-            level: 5,
-            isInstance: false,
-        },
-    ];
-    const [hoveredId, setHoveredId] = useState<string | null>(null);
-    const [selectedId, setSelectedId] = useState<string>('1.2.2.1.1');
-    const [layersPanelOpen, setLayersPanelOpen] = useState(true);
+    const [canvasSelected, setCanvasSelected] = useState<'home' | 'mobile' | null>('home');
+    const [restyleColor, setRestyleColor] = useState<(typeof RESTYLE_COLORS)[number]['id']>('teal');
+    const [showSaved, setShowSaved] = useState(false);
+    const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const triggerSaved = useCallback(() => {
+        setShowSaved(true);
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setShowSaved(false), 1400);
+    }, []);
 
-    // Canvas panning state
+    const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'live'>('live');
+    const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const handlePublish = useCallback(() => {
+        if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+        setPublishState('publishing');
+        publishTimerRef.current = setTimeout(() => setPublishState('live'), 1200);
+    }, []);
+    useEffect(() => {
+        return () => {
+            if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+            if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+        };
+    }, []);
+
     const [isPanning, setIsPanning] = useState(false);
-    const [panOffset, setPanOffset] = useState({ x: 60, y: -30 }); // Center on first mockup (accounting for layers panel)
+    const [panOffset, setPanOffset] = useState({ x: 60, y: -30 });
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
 
-    // Handle mouse down on canvas
     const handleMouseDown = (e: React.MouseEvent) => {
+        if ((e.target as HTMLElement).closest('[data-canvas-element]')) return;
+        if ((e.target as HTMLElement).closest('[data-restyle-pill]')) return;
         setIsPanning(true);
         setLastMousePos({ x: e.clientX, y: e.clientY });
     };
-
-    // Handle mouse move for panning
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isPanning) return;
-
         const deltaX = e.clientX - lastMousePos.x;
         const deltaY = e.clientY - lastMousePos.y;
-
-        // Constrain panning to larger bounds for infinite canvas feel (±600px from center)
-        const newX = Math.max(-600, Math.min(600, panOffset.x + deltaX));
-        const newY = Math.max(-400, Math.min(400, panOffset.y + deltaY));
-
-        setPanOffset({ x: newX, y: newY });
+        setPanOffset({
+            x: Math.max(-600, Math.min(600, panOffset.x + deltaX)),
+            y: Math.max(-400, Math.min(400, panOffset.y + deltaY)),
+        });
         setLastMousePos({ x: e.clientX, y: e.clientY });
     };
+    const handleMouseUp = () => setIsPanning(false);
 
-    // Handle mouse up
-    const handleMouseUp = () => {
-        setIsPanning(false);
+    const onLayerDragStart = (index: number) => (e: React.DragEvent) => {
+        setDragIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        if (e.dataTransfer.setDragImage) {
+            const empty = document.createElement('div');
+            e.dataTransfer.setDragImage(empty, 0, 0);
+        }
     };
+    const onLayerDragOver = (index: number) => (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (dragOverIndex !== index) setDragOverIndex(index);
+    };
+    const onLayerDrop = (index: number) => (e: React.DragEvent) => {
+        e.preventDefault();
+        if (dragIndex === null || dragIndex === index) {
+            setDragIndex(null);
+            setDragOverIndex(null);
+            return;
+        }
+        setLayers((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(dragIndex, 1);
+            if (!moved) return prev;
+            next.splice(index, 0, moved);
+            return next;
+        });
+        setDragIndex(null);
+        setDragOverIndex(null);
+    };
+    const onLayerDragEnd = useCallback(() => {
+        setDragIndex(null);
+        setDragOverIndex(null);
+    }, []);
 
-    // Handle mouse leave
-    const handleMouseLeave = () => {
-        setIsPanning(false);
-    };
+    const selectedRestyle = RESTYLE_COLORS.find((c) => c.id === restyleColor) ?? RESTYLE_COLORS[0];
+    const homeBorderClass = canvasSelected === 'home' ? selectedRestyle.className : 'border-border';
 
     return (
         <div
             className={cn(
-                'bg-background-weblab relative mx-auto -mt-10 aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-xl border border-neutral-800 shadow-2xl transition-all duration-1000 ease-out select-none',
+                'bg-background-canvas border-border relative mx-auto -mt-10 aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-xl border shadow-2xl transition-all duration-1000 ease-out select-none',
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
             )}
         >
+            {/* Mode-swapped canvas content */}
+            {activeMode === 'styles' && <StylesModePanel />}
+            {activeMode === 'code' && <CodeModePanel />}
+            {activeMode === 'preview' && <PreviewModePanel />}
+            {/* Canvas content (behind chrome) — Design mode */}
             <div
-                className="pointer-events-none absolute inset-0 right-36 z-0 mt-30 flex items-start justify-center gap-12 select-none"
+                className={cn(
+                    'pointer-events-none absolute inset-0 right-36 z-0 mt-30 flex items-start justify-center gap-12 select-none',
+                    activeMode !== 'design' && 'hidden',
+                )}
                 style={{
                     transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
                     transition: isPanning ? 'none' : 'transform 0.1s ease-out',
                 }}
             >
                 <NotesComponent />
-                <div className="relative flex flex-col items-center rounded-sm border-1 border-teal-300 shadow-xl shadow-black/50">
+                <div
+                    data-canvas-element
+                    className={cn(
+                        'pointer-events-auto relative flex flex-col items-center rounded-sm border shadow-xl shadow-black/50 transition-colors',
+                        homeBorderClass,
+                    )}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => setCanvasSelected('home')}
+                >
                     <div className="absolute -top-7 left-1/2 z-50 flex h-6 w-full -translate-x-1/2 flex-row items-center gap-2.5 rounded-lg px-1 text-xs backdrop-blur-lg">
-                        <div className="flex flex-1 flex-row items-center gap-1.5 overflow-hidden text-[12px] text-ellipsis whitespace-nowrap text-teal-300">
-                            Home
-                            <Icons.ChevronDown className="mb-0.5 h-4 w-4 text-teal-400" />
-                        </div>
-                        <button
-                            className="flex h-3 w-3 cursor-pointer items-center justify-center"
-                            tabIndex={-1}
-                            style={{ pointerEvents: 'none' }}
+                        <div
+                            className={cn(
+                                'flex flex-1 flex-row items-center gap-1.5 overflow-hidden text-[12px] text-ellipsis whitespace-nowrap',
+                                canvasSelected === 'home'
+                                    ? 'text-teal-300'
+                                    : 'text-foreground-secondary',
+                            )}
                         >
-                            <Icons.DotsHorizontal className="h-3.5 w-3.5 text-teal-300" />
-                        </button>
+                            Home
+                            <Icons.ChevronDown
+                                className={cn(
+                                    'mb-0.5 h-4 w-4',
+                                    canvasSelected === 'home'
+                                        ? 'text-teal-400'
+                                        : 'text-foreground-secondary',
+                                )}
+                            />
+                        </div>
                     </div>
+                    {canvasSelected === 'home' && (
+                        <div
+                            data-restyle-pill
+                            className="border-border bg-background-chrome absolute -top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <span className="text-foreground-tertiary px-1.5 text-[10px] font-medium tracking-wide uppercase">
+                                Border
+                            </span>
+                            {RESTYLE_COLORS.map((c) => (
+                                <button
+                                    key={c.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRestyleColor(c.id);
+                                        triggerSaved();
+                                    }}
+                                    className={cn(
+                                        'h-4 w-4 rounded-full ring-1 transition-all',
+                                        c.swatch,
+                                        restyleColor === c.id
+                                            ? 'ring-foreground scale-110'
+                                            : 'ring-border',
+                                    )}
+                                    aria-label={`Set border to ${c.id}`}
+                                />
+                            ))}
+                            <span
+                                className={cn(
+                                    'text-foreground-brand ml-1 flex items-center gap-1 px-1.5 text-[10px] font-medium transition-opacity duration-200',
+                                    showSaved ? 'opacity-100' : 'opacity-0',
+                                )}
+                            >
+                                <Icons.Check className="h-3 w-3" />
+                                Saved
+                            </span>
+                        </div>
+                    )}
                     <DesignMockup />
                 </div>
-                <div className="border-foreground-border relative ml-8 flex flex-col items-center rounded-sm border-[0.5px] shadow-xl shadow-black/50">
+                <div
+                    data-canvas-element
+                    className={cn(
+                        'pointer-events-auto relative ml-8 flex flex-col items-center rounded-sm border-[0.5px] shadow-xl shadow-black/50 transition-colors',
+                        canvasSelected === 'mobile' ? selectedRestyle.className : 'border-border',
+                    )}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => setCanvasSelected('mobile')}
+                >
                     <div className="absolute -top-7 left-1/2 z-50 flex h-6 w-full -translate-x-1/2 flex-row items-center gap-2.5 rounded-lg px-1 text-xs backdrop-blur-lg">
                         <div className="text-foreground-secondary flex flex-1 flex-row items-center gap-1.5 overflow-hidden text-[12px] text-ellipsis whitespace-nowrap">
                             Home
                             <Icons.ChevronDown className="text-foreground-secondary mb-0.5 h-4 w-4" />
                         </div>
-                        <button
-                            className="flex h-3 w-3 cursor-pointer items-center justify-center"
-                            tabIndex={-1}
-                            style={{ pointerEvents: 'none' }}
-                        >
-                            <Icons.DotsHorizontal className="text-foreground-secondary h-3.5 w-3.5" />
-                        </button>
                     </div>
                     <DesignMockupMobile />
                 </div>
             </div>
+
             {/* Top Bar */}
-            <div className="relative z-10 grid h-10 grid-cols-3 items-center px-2.5">
-                {/* Left: Logo + Project Name + Chevron */}
+            <div className="border-border bg-background-chrome
+             relative z-10 grid h-10 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
                 <div className="flex min-w-0 items-center gap-1">
                     <Icons.WeblabLogo className="h-5 w-5 shrink-0" />
                     <span className="text-foreground-secondary ml-1 max-w-[100px] truncate text-xs">
                         Villainterest
                     </span>
-                    <Icons.ChevronDown className="ml-0.5 h-4 w-4 text-neutral-400" />
+                    <Icons.ChevronDown className="text-foreground-tertiary ml-0.5 h-4 w-4" />
                 </div>
-                {/* Center: Design/Preview toggle */}
-                <div className="flex justify-center">
-                    <div className="relative">
-                        <div className="mt-1 flex h-6 items-center gap-0 font-normal">
-                            <button className="text-foreground-primary cursor-pointer bg-transparent px-4 py-1 text-[12px] whitespace-nowrap transition-all duration-150 ease-in-out">
-                                Design
-                            </button>
-                            <button className="text-foreground-secondary cursor-pointer bg-transparent px-4 py-1 text-[12px] whitespace-nowrap transition-all duration-150 ease-in-out hover:text-neutral-300">
-                                Preview
-                            </button>
-                        </div>
-                        <div className="absolute -top-1 h-0.5 w-1/2 bg-white" />
-                    </div>
-                </div>
-                {/* Right: Undo/Redo, Live, Avatar */}
+                <ModeToggle activeMode={activeMode} onChange={setActiveMode} />
                 <div className="flex items-center justify-end gap-1.5">
-                    <button className="rounded p-1 hover:bg-neutral-800">
+                    <button className="hover:bg-background-secondary rounded p-1">
                         <Icons.Reset className="text-foreground-secondary h-4 w-4" />
                     </button>
-                    <button className="rounded p-1 hover:bg-neutral-800">
+                    <button className="hover:bg-background-secondary rounded p-1">
                         <Icons.Reset className="text-foreground-secondary h-4 w-4 scale-x-[-1]" />
                     </button>
-                    <button className="ml-2 flex flex-row items-center gap-1.5 rounded border-[1px] border-teal-200 bg-teal-900 px-2.5 py-1 text-xs text-teal-200">
-                        <Icons.Globe className="h-3.5 w-3.5" />
-                        Live
+                    <button
+                        onClick={handlePublish}
+                        type="button"
+                        className={cn(
+                            'ml-2 flex flex-row items-center gap-1.5 rounded border-[1px] px-2.5 py-1 text-xs transition-colors',
+                            publishState === 'publishing'
+                                ? 'border-amber-300/60 bg-amber-300/10 text-amber-200'
+                                : 'border-teal-200 bg-teal-900/40 text-teal-200 hover:bg-teal-900/60',
+                        )}
+                    >
+                        {publishState === 'publishing' ? (
+                            <>
+                                <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
+                                Publishing
+                            </>
+                        ) : (
+                            <>
+                                <Icons.Globe className="h-3.5 w-3.5" />
+                                Live
+                            </>
+                        )}
                     </button>
-                    <div className="mt-0.5 ml-1 flex h-7.5 w-7.5 items-center justify-center rounded-full bg-neutral-700 text-xs text-white">
+                    <div className="bg-background-tertiary text-foreground mt-0.5 ml-1 flex h-7.5 w-7.5 items-center justify-center rounded-full text-xs">
                         <img
                             src="/assets/profile-picture.png"
                             alt="Profile Picture"
@@ -621,135 +855,120 @@ export function WeblabInterfaceMockup() {
                     </div>
                 </div>
             </div>
+
             {/* Main Content */}
             <div className="relative flex h-[calc(100%-2.5rem)]">
                 {/* Sidebar */}
-                <div className="bg-background-weblab/80 mr-[-4] flex h-full w-14 flex-col items-center justify-between px-2 backdrop-blur-xl">
-                    <div className="flex flex-col items-center gap-5 py-4">
-                        {/* Active: Layers */}
-                        <div
-                            className="bg-background-tertiary/50 border-foreground-primary/20 hover:bg-background-tertiary/70 flex cursor-pointer flex-col items-center gap-0.5 rounded-md border-[0.5px] px-2 py-1.5 ring-1 ring-white/5 transition-colors"
-                            onClick={() => setLayersPanelOpen(!layersPanelOpen)}
-                        >
-                            <Icons.Layers className="text-foreground-primary h-4.5 w-4.5" />
-                            <p className="text-foreground-primary text-[10px]">Layers</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <Icons.Brand className="text-foreground-secondary h-4.5 w-4.5" />
-                            <p className="text-foreground-secondary text-[10px]">Brand</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <Icons.File className="text-foreground-secondary h-4.5 w-4.5" />
-                            <p className="text-foreground-secondary text-[10px]">Pages</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <Icons.Image className="text-foreground-secondary h-4.5 w-4.5" />
-                            <p className="text-foreground-secondary text-[10px]">Assets</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <Icons.Component className="text-foreground-secondary h-4.5 w-4.5" />
-                            <p className="text-foreground-secondary text-[10px]">Elements</p>
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                            <Icons.ViewGrid className="text-foreground-secondary h-4.5 w-4.5" />
-                            <p className="text-foreground-secondary text-[10px]">Apps</p>
-                        </div>
+                <div className="bg-background-bar/80 flex h-full w-10 flex-col items-center justify-between py-2 backdrop-blur-xl">
+                    <div className="flex flex-col items-center gap-1.5">
+                        {TAB_DEFS.map((tab) => {
+                            const Icon = Icons[tab.icon];
+                            const active = tab.id === activeTab;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id)}
+                                    aria-label={tab.label}
+                                    className={cn(
+                                        'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors',
+                                        active
+                                            ? 'bg-background-bar-active text-foreground'
+                                            : 'hover:bg-background-secondary/60 text-foreground-secondary',
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                </button>
+                            );
+                        })}
                     </div>
-                    <div className="mb-6 flex w-full flex-row items-center justify-center">
-                        <Icons.QuestionMarkCircled className="text-foreground-secondary h-4.5 w-4.5" />
+                    <div className="flex w-full flex-row items-center justify-center pb-2">
+                        <Icons.QuestionMarkCircled className="text-foreground-secondary h-4 w-4" />
                     </div>
                 </div>
-                {/* Floating bottom toolbar (absolute, does not affect layout) */}
-                <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2">
-                    <div className="border-border pointer-events-auto flex flex-col overflow-hidden rounded-lg border-[0.5px] bg-black/60 p-1 px-1 drop-shadow-xl backdrop-blur backdrop-blur-2xl">
-                        <div className="flex flex-row gap-0.5">
-                            {/* Selected icon */}
-                            <div className="bg-background-tertiary/50 text-foreground-primary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.CursorArrow className="text-foreground-primary h-4 w-4" />
-                            </div>
-                            {/* Unselected icons */}
-                            <div className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Hand className="text-foreground-tertiary h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Square className="text-foreground-tertiary h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Text className="text-foreground-tertiary h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-tertiary/50 flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Terminal className="text-foreground-tertiary h-4 w-4" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {/* Layers Side Panel (mini mockup) */}
-                {layersPanelOpen && (
-                    <div className="h-full w-52 px-1 pt-1">
-                        <div className="border-foreground-primary/20 flex h-[98%] w-full flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/60 backdrop-blur-2xl">
-                            <div className="w-full overflow-hidden p-2">
-                                <div className="flex w-full flex-col gap-0.5">
-                                    {mockLayers.map((layer) => {
-                                        const isComponent = layer.tagName === 'COMPONENT';
-                                        const isSelected = selectedId === layer.id;
-                                        const isHovered = hoveredId === layer.id;
 
+                {/* Floating bottom toolbar — Design mode only */}
+                <div
+                    className={cn(
+                        'pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2',
+                        activeMode !== 'design' && 'hidden',
+                    )}
+                >
+                    <div className="border-border bg-background-chrome pointer-events-auto flex flex-col overflow-hidden rounded-lg border-[0.5px] p-1 drop-shadow-xl backdrop-blur-2xl">
+                        <div className="flex flex-row gap-0.5">
+                            <div className="bg-background-bar-active text-foreground flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
+                                <Icons.CursorArrow className="h-4 w-4" />
+                            </div>
+                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
+                                <Icons.Hand className="h-4 w-4" />
+                            </div>
+                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
+                                <Icons.Square className="h-4 w-4" />
+                            </div>
+                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
+                                <Icons.Text className="h-4 w-4" />
+                            </div>
+                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
+                                <Icons.Terminal className="h-4 w-4" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Expanded Panel */}
+                <div className="h-full w-52">
+                    <div className="bg-background-chrome border-r flex h-full w-full flex-col items-stretch overflow-hidden border-[0.5px] backdrop-blur-2xl">
+                        <div className="border-border flex items-center justify-between border-b px-2 py-1.5">
+                            <span className="text-foreground text-[11px] font-medium">
+                                {TAB_DEFS.find((t) => t.id === activeTab)?.label}
+                            </span>
+                            <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-1.5">
+                            {activeTab === 'layers' && (
+                                <div className="flex flex-col gap-0.5">
+                                    {layers.map((layer, index) => {
+                                        const isSelected = selectedLayer === layer.id;
+                                        const isHovered = hoveredLayer === layer.id;
+                                        const isComponent = layer.tagName === 'COMPONENT';
+                                        const isDragging = dragIndex === index;
+                                        const isDragOver =
+                                            dragOverIndex === index && dragIndex !== null;
                                         return (
                                             <div
                                                 key={layer.id}
+                                                draggable
+                                                onDragStart={onLayerDragStart(index)}
+                                                onDragOver={onLayerDragOver(index)}
+                                                onDrop={onLayerDrop(index)}
+                                                onDragEnd={onLayerDragEnd}
+                                                onMouseEnter={() => setHoveredLayer(layer.id)}
+                                                onMouseLeave={() => setHoveredLayer(null)}
+                                                onClick={() => setSelectedLayer(layer.id)}
                                                 className={cn(
-                                                    'flex h-5.25 cursor-pointer items-center px-1.5 text-xs transition-colors select-none',
-                                                    // Component styling
-                                                    isComponent &&
-                                                        !layer.isInstance &&
+                                                    'flex h-5.5 cursor-grab items-center rounded px-1.5 text-xs transition-colors select-none active:cursor-grabbing',
+                                                    isSelected &&
+                                                        'bg-foreground-brand/90 text-white',
+                                                    !isSelected &&
+                                                        isHovered &&
+                                                        'bg-background-secondary text-foreground',
+                                                    !isSelected &&
                                                         !isHovered &&
-                                                        'text-purple-600 dark:text-purple-300',
-                                                    isComponent &&
-                                                        !layer.isInstance &&
-                                                        isHovered &&
-                                                        'bg-purple-800/50 text-purple-500 dark:text-purple-200',
-                                                    isComponent &&
-                                                        !layer.isInstance &&
-                                                        isSelected &&
-                                                        'dark:text-primary bg-purple-500 text-white dark:bg-purple-500/90',
-                                                    // Instance styling
-                                                    layer.isInstance &&
-                                                        isSelected &&
-                                                        'bg-purple-700/70 text-purple-100 dark:bg-purple-500/50 dark:text-purple-100',
-                                                    layer.isInstance &&
-                                                        !isSelected &&
-                                                        'text-purple-500 dark:text-purple-300',
-                                                    layer.isInstance &&
-                                                        !isSelected &&
-                                                        isHovered &&
-                                                        'bg-purple-400/30 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200',
-                                                    // Regular selection styling
-                                                    !isComponent &&
-                                                        !layer.isInstance &&
-                                                        isSelected &&
-                                                        'dark:text-primary bg-foreground-brand dark:bg-foreground-brand/90 text-white',
-                                                    !isComponent &&
-                                                        !layer.isInstance &&
-                                                        isHovered &&
-                                                        !isSelected &&
-                                                        'bg-background-weblab text-foreground-weblab',
-                                                    !isComponent &&
-                                                        !layer.isInstance &&
-                                                        !isSelected &&
+                                                        isComponent &&
+                                                        'text-purple-300',
+                                                    !isSelected &&
                                                         !isHovered &&
-                                                        'text-foreground-weblab',
-                                                    // Rounded corners
-                                                    isHovered && !isSelected && 'rounded',
-                                                    isSelected && 'rounded',
+                                                        !isComponent &&
+                                                        'text-foreground-secondary',
+                                                    isDragging && 'opacity-40',
+                                                    isDragOver &&
+                                                        'border-foreground-brand border-t',
                                                 )}
-                                                onMouseEnter={() => setHoveredId(layer.id)}
-                                                onMouseLeave={() => setHoveredId(null)}
-                                                onClick={() => setSelectedId(layer.id)}
                                                 style={{ userSelect: 'none' }}
                                             >
-                                                <div style={{ width: `${layer.level * 16}px` }} />
+                                                <div style={{ width: `${layer.level * 12}px` }} />
                                                 <NodeIcon
-                                                    iconClass="w-3.5 h-3.5 mr-1.5"
+                                                    iconClass="w-3 h-3 mr-1.5 shrink-0"
                                                     tagName={layer.tagName}
                                                 />
                                                 <span className="truncate">{layer.name}</span>
@@ -757,92 +976,163 @@ export function WeblabInterfaceMockup() {
                                         );
                                     })}
                                 </div>
-                            </div>
+                            )}
+                            {activeTab === 'pages' && (
+                                <div className="flex flex-col gap-1">
+                                    {PAGES.map((p) => (
+                                        <div
+                                            key={p.id}
+                                            className={cn(
+                                                'flex h-6 cursor-pointer items-center justify-between rounded px-2 text-xs transition-colors',
+                                                p.active
+                                                    ? 'bg-background-bar-active text-foreground'
+                                                    : 'text-foreground-secondary hover:bg-background-secondary',
+                                            )}
+                                        >
+                                            <span className="flex items-center gap-1.5">
+                                                <Icons.File className="h-3 w-3" />
+                                                {p.name}
+                                            </span>
+                                            {p.badge && (
+                                                <span className="bg-foreground-brand/20 text-foreground-brand rounded-sm px-1 text-[9px] font-medium uppercase">
+                                                    {p.badge}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {activeTab === 'components' && (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {COMPONENT_CHIPS.map((c) => (
+                                        <button
+                                            key={c}
+                                            className="bg-background-secondary/60 hover:bg-background-secondary border-border text-foreground-secondary hover:text-foreground flex aspect-square flex-col items-center justify-center gap-1 rounded-md border-[0.5px] p-1 text-[10px] transition-colors"
+                                        >
+                                            <Icons.Component className="h-3.5 w-3.5" />
+                                            {c}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {activeTab === 'insert' && (
+                                <div className="flex flex-col gap-1">
+                                    {['Frame', 'Text', 'Image', 'Button'].map((label) => (
+                                        <button
+                                            key={label}
+                                            className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex h-6 items-center gap-2 rounded px-2 text-xs"
+                                        >
+                                            <Icons.Plus className="h-3 w-3" />
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {activeTab === 'search' && (
+                                <div className="flex flex-col gap-1.5 p-1">
+                                    <div className="border-border bg-background-secondary/40 flex h-6 items-center gap-1.5 rounded-md border px-2">
+                                        <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+                                        <span className="text-foreground-tertiary text-[11px]">
+                                            Search elements…
+                                        </span>
+                                    </div>
+                                    <p className="text-foreground-tertiary px-1 text-[10px]">
+                                        Type to find any layer.
+                                    </p>
+                                </div>
+                            )}
+                            {activeTab === 'brand' && (
+                                <div className="flex flex-col gap-2 p-1">
+                                    <div className="flex items-center gap-1.5">
+                                        {[
+                                            'bg-foreground',
+                                            'bg-foreground-brand',
+                                            'bg-teal-400',
+                                            'bg-amber-400',
+                                            'bg-rose-400',
+                                        ].map((c) => (
+                                            <div
+                                                key={c}
+                                                className={cn(
+                                                    'ring-border h-5 w-5 rounded-full ring-1',
+                                                    c,
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p className="text-foreground-secondary text-[11px]">Brand</p>
+                                </div>
+                            )}
+                            {activeTab === 'images' && (
+                                <div className="grid grid-cols-3 gap-1">
+                                    {Array.from({ length: 9 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="bg-background-secondary/60 border-border aspect-square rounded-sm border-[0.5px]"
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
-                {/* Canvas Area - Panning enabled */}
+                </div>
+
+                {/* Canvas */}
                 <div
                     className="relative flex flex-1 cursor-grab flex-col items-center justify-start active:cursor-grabbing"
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
+                    onMouseLeave={handleMouseUp}
                 />
-                <div className="border-foreground-border relative flex w-64 flex-col justify-end rounded-tl-xl border-t border-l bg-black/70 p-0 backdrop-blur-2xl">
+
+                {/* Right Chat Panel — hidden in Preview */}
+                <div
+                    className={cn(
+                        'bg-background-chrome border-border relative flex w-64 flex-col border-t border-l p-0 backdrop-blur-2xl',
+                        activeMode === 'preview' && 'hidden',
+                    )}
+                >
                     <div className="absolute inset-0 flex flex-col">
-                        <div className="border-foreground-border z-20 flex h-9 items-center justify-between border-b px-0.5">
-                            {/* Tabs */}
-                            <div className="flex items-center">
-                                <button className="text-foreground-primary flex flex-row items-center gap-1 rounded px-2 py-1 text-xs font-semibold">
-                                    <Icons.Sparkles className="h-4 w-4" />
-                                    Chat
-                                </button>
-                                <button className="text-foreground-secondary hover:text-foreground-primary flex flex-row items-center gap-1 rounded px-2 py-1 text-xs">
-                                    <Icons.Code className="h-4 w-4" />
-                                    Code
-                                </button>
-                            </div>
-                            <div className="border-foreground-border z-20 flex h-9 items-center justify-between border-b px-0.5">
-                                <button className="text-foreground-secondary hover:text-foreground-primary flex flex-row items-center gap-1 rounded px-2 py-1 text-xs">
-                                    <Icons.Plus className="text-foreground-secondary h-3.5 w-3.5" />
-                                </button>
-                            </div>
+                        <div className="border-border z-20 flex h-9 items-center justify-between border-b px-2">
+                            <button className="text-foreground flex flex-row items-center gap-1.5 rounded text-xs font-semibold">
+                                <Icons.Sparkles className="h-4 w-4" />
+                                Chat
+                            </button>
+                            <button className="hover:bg-background-secondary text-foreground-secondary rounded p-1">
+                                <Icons.Plus className="h-3.5 w-3.5" />
+                            </button>
                         </div>
-                        <div className="flex flex-1 flex-col justify-end">
-                            <div className="space-y-2 py-2 pt-24">
-                                {chatMessages.map((msg, idx) => {
-                                    if (msg.type === 'text' && msg.sender === 'user') {
-                                        return <UserMessage key={idx} text={msg.text ?? ''} />;
-                                    }
-                                    if (msg.type === 'text' && msg.sender === 'ai') {
-                                        return <AiMessage key={idx} text={msg.text ?? ''} />;
-                                    }
-                                    if (msg.type === 'tool') {
-                                        return (
-                                            <ToolCallDisplay
-                                                key={idx}
-                                                toolName={msg.toolName ?? ''}
-                                            />
-                                        );
-                                    }
-                                    return null;
-                                })}
-                            </div>
-                            <div className="border-foreground-primary/10 flex flex-col items-start gap-1 border-t px-2.5 py-2">
-                                <textarea
-                                    value={displayedText}
-                                    readOnly
-                                    className="text-foreground-primary placeholder-foreground-tertiary mb-5 h-20 w-full flex-1 resize-none rounded-lg bg-transparent px-0.5 pt-2 text-xs outline-none"
-                                    placeholder="Type a message..."
-                                    rows={3}
-                                    maxLength={PRESET_SENTENCE.length}
+                        <ScriptedChat />
+                        <div className="border-border bg-background-chrome flex flex-col items-start gap-1 border-t px-2.5 py-2">
+                            <textarea
+                                value={PRESET_SENTENCE}
+                                readOnly
+                                className="text-foreground-primary placeholder-foreground-tertiary mb-3 h-14 w-full flex-1 resize-none rounded-lg bg-transparent px-0.5 pt-1 text-xs outline-none"
+                                rows={2}
+                                disabled
+                            />
+                            <div className="flex w-full flex-row items-center justify-between gap-2">
+                                <button
+                                    className="flex flex-row items-center gap-2 rounded-lg px-1 py-1.5"
                                     disabled
-                                />
-                                <div className="flex w-full flex-row items-center justify-between gap-2">
+                                >
+                                    <Icons.Build className="text-foreground-tertiary h-4 w-4" />
+                                    <p className="text-foreground-secondary text-xs">Build</p>
+                                </button>
+                                <div className="flex flex-row gap-1">
                                     <button
-                                        className="flex flex-row items-center gap-2 rounded-lg px-1 py-2"
+                                        className="hover:bg-background-secondary rounded-lg px-2 py-1.5"
                                         disabled
                                     >
-                                        <Icons.Build className="text-foreground-tertiary/50 h-4 w-4" />
-                                        <p className="text-foreground-secondary/50 text-xs">
-                                            Build
-                                        </p>
+                                        <Icons.Image className="text-foreground-tertiary h-4 w-4" />
                                     </button>
-                                    <div className="flex flex-row gap-1">
-                                        <button
-                                            className="bg-background-secondary/0 hover:bg-background-secondary group cursor-copy rounded-lg px-2 py-2"
-                                            disabled
-                                        >
-                                            <Icons.Image className="text-foreground-tertiary/50 group-hover:text-foreground-primary h-4 w-4" />
-                                        </button>
-                                        <button
-                                            className={`cursor-pointer rounded-full px-2 py-2 ${currentIndex === PRESET_SENTENCE.length ? 'bg-foreground-primary' : 'bg-foreground-weblab'}`}
-                                            disabled
-                                        >
-                                            <Icons.ArrowRight className="text-background-secondary h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
+                                    <button
+                                        className="bg-foreground cursor-pointer rounded-full px-2 py-1.5"
+                                        disabled
+                                    >
+                                        <Icons.ArrowRight className="text-background h-3.5 w-3.5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>

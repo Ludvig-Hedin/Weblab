@@ -184,10 +184,10 @@ export const ProjectTab = observer(() => {
     };
 
     return (
-        <div className="flex h-full flex-col text-sm">
+        <div className="text-regular flex h-full flex-col">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6 pb-24">
                 <div className="flex flex-col gap-4">
-                    <h2 className="text-lg">Metadata</h2>
+                    <h2 className="text-largePlus">Metadata</h2>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <p className="text-muted-foreground">Name</p>
@@ -205,7 +205,7 @@ export const ProjectTab = observer(() => {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <h2 className="text-lg">Offline</h2>
+                        <h2 className="text-largePlus">Offline</h2>
                         <p className="text-small text-foreground-secondary">
                             Cache this project so you can open and edit it without a network
                             connection. Edits queue locally and sync when you reconnect.
@@ -221,7 +221,7 @@ export const ProjectTab = observer(() => {
                             }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="text-mini flex items-center justify-between">
                         <p className="text-muted-foreground">Last cached</p>
                         <p className="text-foreground-secondary">
                             {cachedRecord
@@ -229,7 +229,7 @@ export const ProjectTab = observer(() => {
                                 : 'Not yet cached'}
                         </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="text-mini flex items-center justify-between">
                         <p className="text-muted-foreground">Frames cached</p>
                         <p className="text-foreground-secondary">
                             {cachedRecord?.frames?.length
@@ -242,7 +242,7 @@ export const ProjectTab = observer(() => {
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <h2 className="text-lg">Commands</h2>
+                        <h2 className="text-largePlus">Commands</h2>
                         <p className="text-small text-foreground-secondary">
                             {"Only update these if you know what you're doing!"}
                         </p>

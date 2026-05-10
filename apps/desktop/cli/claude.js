@@ -29,7 +29,7 @@ function resolveOnPath(name) {
         ? (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';')
         : [''];
     for (const dir of dirs) {
-        if (\!dir) continue;
+        if (!dir) continue;
         for (const ext of exts) {
             const candidate = join(dir, `${name}${ext}`);
             try {
@@ -43,7 +43,7 @@ function resolveOnPath(name) {
 }
 
 function buildPrompt(messages) {
-    if (\!messages || messages.length === 0) return '';
+    if (!messages || messages.length === 0) return '';
     return messages
         .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
         .join('\n\n');
@@ -51,7 +51,7 @@ function buildPrompt(messages) {
 
 function parseLine(line) {
     const trimmed = line.trim();
-    if (\!trimmed) return null;
+    if (!trimmed) return null;
     try {
         return JSON.parse(trimmed);
     } catch {
@@ -72,7 +72,7 @@ async function startStream({ request, emit, signal }) {
         emit(event);
     };
 
-    if (model && \!SAFE_MODEL_ID.test(model)) {
+    if (model && !SAFE_MODEL_ID.test(model)) {
         emitTerminal({
             streamId,
             kind: 'error',
@@ -82,7 +82,7 @@ async function startStream({ request, emit, signal }) {
     }
 
     const claudeBinary = resolveOnPath('claude');
-    if (\!claudeBinary) {
+    if (!claudeBinary) {
         emitTerminal({
             streamId,
             kind: 'error',
@@ -145,12 +145,12 @@ async function startStream({ request, emit, signal }) {
     const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
     rl.on('line', (line) => {
         const parsed = parseLine(line);
-        if (\!parsed) return;
+        if (!parsed) return;
         if (parsed.type === 'assistant') {
             const content = (parsed.message && parsed.message.content) || [];
             for (const block of content) {
                 if (block.type === 'text' && typeof block.text === 'string') {
-                    if (\!textOpened) {
+                    if (!textOpened) {
                         textOpened = true;
                         emit({
                             streamId,

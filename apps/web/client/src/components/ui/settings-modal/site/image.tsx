@@ -120,7 +120,7 @@ const ImagePicker = forwardRef<
     );
 
     return (
-        <div className="flex flex-col gap-2 p-2 text-xs">
+        <div className="text-mini flex flex-col gap-2 p-2">
             <div
                 className={`group bg-background-secondary flex h-32 w-60 items-center justify-center rounded p-4 ${isDragging ? 'border-primary border-2 border-dashed' : ''}`}
                 onDragOver={handleDragOver}

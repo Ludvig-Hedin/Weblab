@@ -76,12 +76,7 @@ export const UserDeleteSection = observer(() => {
                         Permanently delete your account and all associated data
                     </p>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeleteAccount}
-                    className="border-red-200 text-red-200 hover:border-red-100 hover:bg-red-500/10 hover:text-red-100"
-                >
+                <Button variant="destructive" size="sm" onClick={handleDeleteAccount}>
                     Delete
                 </Button>
             </div>
@@ -94,7 +89,7 @@ export const UserDeleteSection = observer(() => {
                         <DialogDescription asChild className="pt-2">
                             <div className="space-y-2">
                                 <p>Deleting your account will:</p>
-                                <div className="space-y-1 text-sm">
+                                <div className="text-regular space-y-1">
                                     <div className="flex items-start gap-2">
                                         <span className="mt-0.5">•</span>
                                         <span>
@@ -175,9 +170,10 @@ export const UserDeleteSection = observer(() => {
                             Cancel
                         </Button>
                         <Button
+                            variant="destructive"
                             onClick={handleDeleteConfirm}
                             disabled={!canProceedWithDelete}
-                            className="disabled:bg-muted disabled:text-muted-foreground order-1 bg-red-600 text-white hover:bg-red-700 sm:order-2"
+                            className="order-1 sm:order-2"
                         >
                             {canProceedWithDelete ? 'Delete Account' : 'Locked'}
                         </Button>
@@ -208,8 +204,9 @@ export const UserDeleteSection = observer(() => {
                             Cancel
                         </Button>
                         <Button
+                            variant="destructive"
                             onClick={handleFinalDeleteAccount}
-                            className="order-1 bg-red-600 text-white hover:bg-red-700 sm:order-2"
+                            className="order-1 sm:order-2"
                         >
                             Yes, Delete My Account
                         </Button>

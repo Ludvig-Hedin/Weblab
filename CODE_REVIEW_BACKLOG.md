@@ -1926,7 +1926,7 @@ the `project.create` / `sandbox.fork` / `project.fork` tRPC routers, the
 `/projects/creating` and `/projects/new` pages, and the consumption side
 in `useStartProject`.
 
-### Auto-fixed (1 issue)
+### Auto-fixed (6 issues)
 
 - `apps/web/client/src/server/api/routers/project/fork.ts:78,99-110,193` —
   `fork` mutation lost the source project's framework metadata and used a
@@ -1940,66 +1940,40 @@ in `useStartProject`.
   downgraded to the Next.js framework-detection race and the sandbox
   preview 404'd on port 3000.
 
-### Needs human review (5 issues)
+### Auto-fixed in follow-up pass (5 issues, all originally flagged for review)
 
-- `apps/web/client/src/hooks/use-import-local-project.ts:117` — The
-  `getSession` callback wired into `createCodeProviderClient` calls
-  `apiClient.sandbox.start.mutate({ sandboxId })`, but `sandbox.start`
-  invokes `verifySandboxAccess` (added by CR-118), which fails with
-  `NOT_FOUND` because the freshly forked sandbox has no `branches` row
-  yet — `project.create` runs only after the upload finishes. The local
-  folder import path is broken end-to-end on every machine that ran the
-  CR-118 patch.
-  - Risk: high (entire local-import feature non-functional; orphan
-    sandbox cleanup fires on every attempt)
-  - Suggested fix: introduce a `sandbox.startOrphan` (or similar) tRPC
-    procedure that authenticates the caller but does not require a
-    branch row — analogous to `sandbox.deleteOrphan`. Switch the
-    `getSession` callback in `useImportLocalProject` to that endpoint.
-
-- `apps/web/client/src/hooks/use-create-blank-project.ts:106` —
-  `errorMessage.includes('502') || errorMessage.includes('sandbox')`
-  is too loose. Any error message containing the substring "sandbox"
-  (rate-limit copy, invalid template id, billing failure, "sandbox
-  quota exceeded", etc.) hits the misleading "Sandbox service
-  temporarily unavailable" toast with a Retry button instead of the
-  actual cause.
-  - Risk: medium (UX/diagnosability — users will mash Retry on a
-    permanent failure)
-  - Suggested fix: match against TRPC error codes (e.g. status 502/503
-    on the underlying error, or a typed code field) rather than free-text
-    substrings, and reserve the retry toast for transient failures only.
-
-- `apps/web/client/src/components/store/create/manager.ts:180-184` —
-  When `startGitHubTemplate` detects a private repo it sets
-  `this.error` and returns `undefined`. Callers cannot distinguish
-  this from "success returning no project" without consulting
-  `this.error`, which the auth-failure path also writes. Inconsistent
-  with `startCreate` which throws a typed sentinel
-  (`CreateFlowNotAuthenticatedError`). Same shape applies to the
-  pre-seeded vs subpath conflict at `startPublicGitHubTemplate:271-274`.
-  - Risk: low (only template-import callers; current UI does its own
-    UI-side check)
-  - Suggested fix: throw a typed error (or `return null` and adjust
-    callers) so the contract is uniform across the three entry points.
-
-- `apps/web/client/src/app/projects/_components/clone-website-dialog.tsx:201-208` —
-  Loader steps include "Reading the source page" with `ready: phase
-  !== 'idle' && phase !== 'scraping-url'`. The screenshot path skips
-  `scraping-url` entirely (idle → forking-sandbox), so the loader
-  shows "Reading the source page" as completed (green check) even
-  though no page was read. Misleading on the screenshot tab.
-  - Risk: low (cosmetic)
-  - Suggested fix: drive the steps array off `activeTab` or rename the
-    first step to match both flows ("Preparing source material" or
-    similar).
-
-- `apps/web/client/src/hooks/use-import-local-project.ts:94,212` —
-  `setHasPendingLocalImport(false)` is referenced inside
-  `handleImportLocalProject` (line 94) before its `useState`
-  declaration appears later in the same component (line 212). Works at
-  runtime because the handler is invoked only after all hooks have
-  initialised, but the forward reference is fragile and confusing.
-  - Risk: very low (functional today; bait for future refactors)
-  - Suggested fix: hoist the `useState` for `hasPendingLocalImport`
-    above `handleImportLocalProject`.
+- `apps/web/client/src/server/api/routers/project/sandbox.ts` +
+  `apps/web/client/src/hooks/use-import-local-project.ts:117` — Added a
+  `sandbox.startOrphan` tRPC procedure (mirrors `deleteOrphan`'s trust
+  model: refuses if any `branches` row references the sandbox, otherwise
+  opens a session under the caller's identity). Switched the
+  local-folder import flow's `getSession` callback to it. `sandbox.start`
+  continues to require a `branches` row, so attached projects still go
+  through the CR-118 ownership check. Restores the local-import path
+  that was broken by CR-118.
+- `apps/web/client/src/hooks/use-create-blank-project.ts:106` — Replaced
+  `errorMessage.includes('sandbox')` with a tighter transient-error
+  classifier: 502/503/504 with `\b` boundaries, the `sandbox.fork`
+  retry-exhaustion message format, and the literal phrases "temporarily
+  unavailable" / "timeout" / "timed out". Permanent failures (quota,
+  billing, invalid template) now surface their actual cause instead of
+  a misleading "Sandbox service temporarily unavailable" toast.
+- `apps/web/client/src/components/store/create/manager.ts` — Introduced
+  `CreateFlowInvalidInputError` + `isInvalidInputError`. Private-repo
+  rejection in `startGitHubTemplate` and the subpath/pre-seeded-sandbox
+  conflict in `startPublicGitHubTemplate` now throw the typed sentinel
+  instead of silently writing `this.error` and returning `undefined`.
+  Contract is uniform with `CreateFlowNotAuthenticatedError`.
+- `apps/web/client/src/app/projects/_components/clone-website-dialog.tsx:201-225` —
+  `creationSteps` branches on `activeTab`. URL flow shows
+  "Reading the source page" → "Setting up your workspace" → "Opening
+  the editor"; screenshot flow drops the first step entirely since no
+  page is scraped on that path.
+- `apps/web/client/src/hooks/use-import-local-project.ts:50-58` —
+  Hoisted the `useState` for `hasPendingLocalImport` above
+  `handleImportLocalProject` so the setter is no longer referenced
+  before its declaration. Functional behavior unchanged.
+- `apps/web/client/src/components/store/create/manager.test.ts` —
+  Added 4 tests covering the new sentinel: shape match, message
+  preservation, mutual exclusion with `CreateFlowNotAuthenticatedError`.
+  Suite now: 9 pass / 0 fail.

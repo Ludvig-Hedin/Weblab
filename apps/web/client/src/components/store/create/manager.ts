@@ -35,6 +35,23 @@ export function isNotAuthenticatedError(error: unknown): boolean {
     return error instanceof CreateFlowNotAuthenticatedError;
 }
 
+/**
+ * Thrown when a GitHub-template create flow is rejected for a user-correctable
+ * reason (private repo, conflicting input). Distinct from network/sandbox
+ * failures so callers can show a precise message instead of a generic
+ * "Failed to create project" toast.
+ */
+export class CreateFlowInvalidInputError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'CreateFlowInvalidInputError';
+    }
+}
+
+export function isInvalidInputError(error: unknown): boolean {
+    return error instanceof CreateFlowInvalidInputError;
+}
+
 export class CreateManager {
     error: string | null = null;
     phase: CreatePhase = 'idle';
@@ -178,9 +195,9 @@ export class CreateManager {
             });
 
             if (isPrivateRepo) {
-                this.error =
-                    "The repository you've provided is private. Only public repositories are supported";
-                return;
+                throw new CreateFlowInvalidInputError(
+                    "The repository you've provided is private. Only public repositories are supported.",
+                );
             }
 
             const [{ sandboxId, previewUrl }, projectName] = await Promise.all([
@@ -269,8 +286,9 @@ export class CreateManager {
             }
 
             if (input.sandboxId && input.subpath) {
-                this.error = 'Cannot use subpath with pre-seeded sandbox templates';
-                return;
+                throw new CreateFlowInvalidInputError(
+                    'Cannot use subpath with pre-seeded sandbox templates.',
+                );
             }
 
             let sandboxResult: { sandboxId: string; previewUrl: string };

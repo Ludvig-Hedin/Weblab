@@ -230,6 +230,53 @@ export const sandboxRouter = createTRPCRouter({
             }
         }),
     /**
+     * Open a session against a sandbox that was just forked but is not yet
+     * attached to a project. Required by the local-folder import flow, which
+     * needs to upload files into the sandbox BEFORE calling `project.create`
+     * (so the project row references a sandbox that already has the user's
+     * code). The regular `start` endpoint runs `verifySandboxAccess`, which
+     * rejects anything without a `branches` row — orphans by definition.
+     *
+     * Safety: refuse if ANY branch row references the sandbox. That would be
+     * a real, owned project and must go through `start` with proper ownership
+     * checks. Sandbox IDs are high-entropy CodeSandbox UUIDs, so guessing an
+     * unattached sandbox to hijack is impractical; this mirrors the
+     * `deleteOrphan` trust model.
+     */
+    startOrphan: protectedProcedure
+        .input(
+            z.object({
+                sandboxId: z.string(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const branch = await ctx.db.query.branches.findFirst({
+                where: eq(branches.sandboxId, input.sandboxId),
+            });
+            if (branch) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message:
+                        'Sandbox is attached to a project; use sandbox.start with project ownership.',
+                });
+            }
+            const userId = ctx.user.id;
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                userId,
+            });
+            try {
+                const session = await provider.createSession({
+                    args: {
+                        id: shortenUuid(userId, 20),
+                    },
+                });
+                return session;
+            } finally {
+                await provider.destroy().catch(() => {});
+            }
+        }),
+    /**
      * Best-effort cleanup for sandboxes that were forked but never attached to
      * a project (e.g. project.create failed, walkFiles threw, user closed the
      * tab mid-import). The regular `delete` endpoint requires an owning branch

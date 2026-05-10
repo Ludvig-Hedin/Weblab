@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 
-import { CreateFlowNotAuthenticatedError, isNotAuthenticatedError } from './manager';
+import {
+    CreateFlowInvalidInputError,
+    CreateFlowNotAuthenticatedError,
+    isInvalidInputError,
+    isNotAuthenticatedError,
+} from './manager';
 
 describe('isNotAuthenticatedError', () => {
     it('matches the typed sentinel error', () => {
@@ -31,5 +36,30 @@ describe('isNotAuthenticatedError', () => {
         const err = new CreateFlowNotAuthenticatedError();
         expect(err.name).toBe('CreateFlowNotAuthenticatedError');
         expect(err.message).toBe('NOT_AUTHENTICATED');
+    });
+
+    it('does NOT match a CreateFlowInvalidInputError — distinct sentinels', () => {
+        expect(isNotAuthenticatedError(new CreateFlowInvalidInputError('private repo'))).toBe(
+            false,
+        );
+    });
+});
+
+describe('isInvalidInputError', () => {
+    it('matches the typed sentinel error', () => {
+        expect(isInvalidInputError(new CreateFlowInvalidInputError('private repo'))).toBe(true);
+    });
+
+    it('preserves the supplied user-facing message', () => {
+        const err = new CreateFlowInvalidInputError('Cannot use subpath with pre-seeded sandbox.');
+        expect(err.name).toBe('CreateFlowInvalidInputError');
+        expect(err.message).toBe('Cannot use subpath with pre-seeded sandbox.');
+    });
+
+    it('rejects auth-error sentinel and unrelated values', () => {
+        expect(isInvalidInputError(new CreateFlowNotAuthenticatedError())).toBe(false);
+        expect(isInvalidInputError(new Error('private repo'))).toBe(false);
+        expect(isInvalidInputError(null)).toBe(false);
+        expect(isInvalidInputError({ message: 'private repo' })).toBe(false);
     });
 });

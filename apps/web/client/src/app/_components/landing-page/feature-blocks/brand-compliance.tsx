@@ -66,7 +66,7 @@ function ParallaxContainer({
 export function BrandComplianceBlock() {
     return (
         <div className="flex flex-col gap-6">
-            <div className="bg-background-weblab/80 relative h-100 w-full overflow-hidden rounded-lg">
+            <div className="relative h-100 w-full">
                 <ParallaxContainer speed={0.04}>
                     <div className="border-foreground-primary/20 absolute top-7 left-1/14 flex h-100 w-60 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl">
                         <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">

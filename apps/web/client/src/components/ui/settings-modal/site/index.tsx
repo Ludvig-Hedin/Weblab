@@ -129,9 +129,9 @@ export const SiteTab = observer(() => {
     };
 
     return (
-        <div className="text-sm">
+        <div className="text-regular">
             <div className="flex flex-col gap-2 p-6">
-                <h2 className="text-lg">Site Settings</h2>
+                <h2 className="text-largePlus">Site Settings</h2>
             </div>
             <div className="relative">
                 {editorEngine.pages.isScanning ? (

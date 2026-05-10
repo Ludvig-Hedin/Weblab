@@ -15,10 +15,30 @@ type FontSizeOption = 'small' | 'medium' | 'large';
 type DensityOption = 'compact' | 'comfortable';
 
 const ACCENT_COLORS: { value: AccentOption; label: string; bg: string; ring: string }[] = [
-    { value: 'blue', label: 'Blue', bg: 'bg-blue-500', ring: 'ring-blue-500' },
-    { value: 'red', label: 'Red', bg: 'bg-red-500', ring: 'ring-red-500' },
-    { value: 'green', label: 'Green', bg: 'bg-green-500', ring: 'ring-green-500' },
-    { value: 'neutral', label: 'Neutral', bg: 'bg-neutral-500', ring: 'ring-neutral-500' },
+    {
+        value: 'blue',
+        label: 'Blue',
+        bg: 'bg-[oklch(0.623_0.214_255)]',
+        ring: 'ring-[oklch(0.623_0.214_255)]',
+    },
+    {
+        value: 'red',
+        label: 'Red',
+        bg: 'bg-[oklch(0.637_0.237_25.3)]',
+        ring: 'ring-[oklch(0.637_0.237_25.3)]',
+    },
+    {
+        value: 'green',
+        label: 'Green',
+        bg: 'bg-[oklch(0.723_0.19_142.5)]',
+        ring: 'ring-[oklch(0.723_0.19_142.5)]',
+    },
+    {
+        value: 'neutral',
+        label: 'Neutral',
+        bg: 'bg-[oklch(0.556_0_0)]',
+        ring: 'ring-[oklch(0.556_0_0)]',
+    },
 ];
 
 function SegmentedControl<T extends string>({
@@ -39,10 +59,10 @@ function SegmentedControl<T extends string>({
                     aria-pressed={value === opt.value}
                     onClick={() => onChange(opt.value)}
                     className={cn(
-                        'px-3 py-1.5 text-sm transition-colors',
+                        'text-regular px-3 py-1.5 transition-colors',
                         value === opt.value
                             ? 'bg-foreground text-background font-medium'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-background-secondary/50',
+                            : 'text-foreground-tertiary hover:text-foreground hover:bg-background-secondary',
                     )}
                 >
                     {opt.label}
@@ -80,12 +100,12 @@ export const AppearanceTab = observer(() => {
     );
 
     return (
-        <div className="flex flex-col gap-8 p-6">
+        <div className="flex flex-col gap-16 p-6">
             {/* Theme */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Theme</h2>
-                    <p className="text-muted-foreground text-sm">
+                    <h2 className="text-largePlus">Theme</h2>
+                    <p className="text-regular text-foreground-tertiary">
                         Choose your preferred color scheme.
                     </p>
                 </div>
@@ -101,10 +121,10 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Accent color */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Accent color</h2>
-                    <p className="text-muted-foreground text-sm">
+                    <h2 className="text-largePlus">Accent color</h2>
+                    <p className="text-regular text-foreground-tertiary">
                         Used for active states and highlights.
                     </p>
                 </div>
@@ -128,10 +148,10 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Font family */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Font family</h2>
-                    <p className="text-muted-foreground text-sm">
+                    <h2 className="text-largePlus">Font family</h2>
+                    <p className="text-regular text-foreground-tertiary">
                         Applies to the app UI, not your project.
                     </p>
                 </div>
@@ -146,10 +166,12 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Font size */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Font size</h2>
-                    <p className="text-muted-foreground text-sm">Base size for the app UI text.</p>
+                    <h2 className="text-largePlus">Font size</h2>
+                    <p className="text-regular text-foreground-tertiary">
+                        Base size for the app UI text.
+                    </p>
                 </div>
                 <SegmentedControl<FontSizeOption>
                     options={[
@@ -163,10 +185,10 @@ export const AppearanceTab = observer(() => {
             </section>
 
             {/* Density */}
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
                 <div>
-                    <h2 className="text-base font-medium">Density</h2>
-                    <p className="text-muted-foreground text-sm">
+                    <h2 className="text-largePlus">Density</h2>
+                    <p className="text-regular text-foreground-tertiary">
                         Controls spacing throughout the UI.
                     </p>
                 </div>

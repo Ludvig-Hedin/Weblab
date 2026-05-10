@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
@@ -20,8 +20,25 @@ type PendingChanges = {
 export const EditorTab = observer(() => {
     const apiUtils = api.useUtils();
     const { data: userSettings } = api.user.settings.get.useQuery();
-    const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-        onSuccess: () => void apiUtils.user.settings.get.invalidate(),
+    const [savedFlash, setSavedFlash] = useState(false);
+    const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMountedRef = useRef(true);
+    useEffect(
+        () => () => {
+            isMountedRef.current = false;
+            if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+        },
+        [],
+    );
+    const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
+        onSuccess: () => {
+            void apiUtils.user.settings.get.invalidate();
+            if (isMountedRef.current) {
+                setSavedFlash(true);
+                if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+                savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+            }
+        },
         onError: () => {
             void apiUtils.user.settings.get.invalidate();
             toast.error('Failed to save editor settings');
@@ -58,19 +75,39 @@ export const EditorTab = observer(() => {
 
     const editor = userSettings?.editor;
 
+    const SaveStatus = () => (
+        <span className="text-mini">
+            {isSaving ? (
+                <span className="text-foreground-tertiary">Saving…</span>
+            ) : (
+                <span
+                    className="text-foreground-secondary transition-opacity duration-300"
+                    style={{ opacity: savedFlash ? 1 : 0 }}
+                >
+                    Saved
+                </span>
+            )}
+        </span>
+    );
+
     return (
-        <div className="flex flex-col gap-8 p-6">
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
-                <div>
-                    <h2 className="text-base font-medium">Editor preferences</h2>
-                    <p className="text-muted-foreground text-sm">Control how the editor behaves.</p>
+        <div className="flex flex-col gap-16 p-6">
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-largePlus">Editor preferences</h2>
+                        <p className="text-regular text-foreground-tertiary">
+                            Control how the editor behaves.
+                        </p>
+                    </div>
+                    <SaveStatus />
                 </div>
 
                 <div className="space-y-3">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-sm font-medium">Warn before deleting elements</p>
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-regularPlus">Warn before deleting elements</p>
+                            <p className="text-regular text-foreground-tertiary">
                                 Show a confirmation dialog when removing elements.
                             </p>
                         </div>
@@ -83,8 +120,8 @@ export const EditorTab = observer(() => {
 
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <p className="text-sm font-medium">Enable Bun replace</p>
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-regularPlus">Enable Bun replace</p>
+                            <p className="text-regular text-foreground-tertiary">
                                 Prefer Bun for package management operations.
                             </p>
                         </div>
@@ -97,19 +134,22 @@ export const EditorTab = observer(() => {
                 </div>
             </section>
 
-            <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
-                <div>
-                    <h2 className="text-base font-medium">Build configuration</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Flags passed to the build command.
-                    </p>
+            <section className="border-border bg-background-secondary space-y-4 rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-largePlus">Build configuration</h2>
+                        <p className="text-regular text-foreground-tertiary">
+                            Flags passed to the build command.
+                        </p>
+                    </div>
+                    <SaveStatus />
                 </div>
                 <div className="space-y-1.5">
-                    <Label className="text-xs">Build flags</Label>
+                    <Label className="text-mini">Build flags</Label>
                     <Input
                         value={editor?.buildFlags ?? '--no-lint'}
                         onChange={(e) => patch({ buildFlags: e.target.value })}
-                        className="h-8 font-mono text-sm"
+                        className="text-small h-8 font-mono"
                         placeholder="--no-lint"
                     />
                 </div>

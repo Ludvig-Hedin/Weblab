@@ -58,7 +58,7 @@ const faqSections = [
         faqs: [
             {
                 question: 'What frontend frameworks does Weblab support?',
-                answer: "Weblab focuses on React and Next.js projects. We're built on a Babel JSX/TSX parser optimized for the React ecosystem.",
+                answer: "Weblab supports React-based frameworks: Next.js, Vite, Remix, Astro, TanStack Start, and static HTML. We're built on a Babel JSX/TSX parser optimized for the React ecosystem.",
             },
             {
                 question: 'What CSS and styling approaches does Weblab support?',
@@ -164,12 +164,14 @@ export default function FAQPage() {
                 <h1>Weblab Frequently Asked Questions</h1>
                 <p>
                     Weblab is an AI-powered visual editor for frontend development. It connects to
-                    existing React, Vue, or Angular codebases and lets teams design with real
+                    existing React and Next.js codebases and lets teams design with real
                     components. AI is constrained to your design system, preventing brand drift.
-                    Changes become mergeable pull requests. Weblab supports all major frameworks
-                    (React, Next.js, Vue, Angular, Svelte), styling approaches (Tailwind, CSS
-                    Modules, styled-components), and component libraries (shadcn/ui, Material UI,
-                    Chakra UI, Mantine, Radix UI). It's open source.
+                    Changes become mergeable pull requests. Weblab supports React-based frameworks
+                    (Next.js, Vite, Remix, Astro, TanStack Start, and static HTML), all major
+                    styling approaches (Tailwind, CSS Modules, styled-components, Emotion,
+                    SASS/SCSS), and component libraries (shadcn/ui, Material UI, Chakra UI,
+                    Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). It's open source under
+                    Apache 2.0.
                 </p>
             </section>
 

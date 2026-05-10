@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -23,6 +24,15 @@ import { SubscriptionTab } from './subscription-tab';
 
 export const NonProjectSettingsModal = observer(() => {
     const stateManager = useStateManager();
+
+    useEffect(() => {
+        if (!stateManager.isSettingsModalOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') stateManager.isSettingsModalOpen = false;
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [stateManager, stateManager.isSettingsModalOpen]);
 
     const tabs: SettingTab[] = [
         {
@@ -117,9 +127,9 @@ export const NonProjectSettingsModal = observer(() => {
                                 {/* Main content */}
                                 <div className="flex min-h-0 flex-1 overflow-hidden">
                                     {/* Left navigation */}
-                                    <div className="flex flex-col overflow-y-scroll select-none">
-                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
-                                            <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
+                                    <div className="bg-background-secondary flex flex-col overflow-y-scroll select-none">
+                                        <div className="w-48 shrink-0 space-y-1 p-5">
+                                            <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
                                                 Global Settings
                                             </p>
                                             {tabs.map((tab) => (

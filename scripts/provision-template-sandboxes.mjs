@@ -14,9 +14,17 @@
  * Idempotency: rerun safely. Pass `--only <id1,id2>` to provision a subset,
  * `--include-existing` to refresh templates that already have a `sandboxId`.
  *
- * Usage:
- *   CSB_API_KEY=csb_v1_... bun scripts/provision-template-sandboxes.mjs
- *   CSB_API_KEY=csb_v1_... bun scripts/provision-template-sandboxes.mjs --only portfolio-starter-kit,blog-starter-kit
+ * Usage (must use node, not bun — see note below):
+ *   CSB_API_KEY=csb_v1_... node scripts/provision-template-sandboxes.mjs
+ *   CSB_API_KEY=csb_v1_... node scripts/provision-template-sandboxes.mjs --only=portfolio-starter-kit,blog-starter-kit
+ *
+ * Why node and not bun: the CodeSandbox SDK uses the `ws` package to upgrade
+ * the build-session WebSocket during a `source: 'git'` create. Bun's `ws`
+ * polyfill rejects that 101 Switching Protocols upgrade with
+ * "Unexpected server response: 101" before the clone finishes. The same SDK
+ * call works under node. (`scripts/create-csb-template.mjs` works under bun
+ * because it uses `source: 'template'`, which does not perform a git clone
+ * and never opens that build session.)
  *
  * After it finishes, follow the "Next steps" printout it emits to wire the
  * new sandbox ids into source. The script never writes to source files — it
@@ -24,6 +32,17 @@
  */
 
 import { CodeSandbox } from '@codesandbox/sdk';
+
+// Bun's WebSocket polyfill rejects the 101 Switching Protocols upgrade that
+// the CodeSandbox SDK opens during a `source: 'git'` create, so every clone
+// fails after ~25s with "Unexpected server response: 101". This script must
+// run on node. Fail fast with an actionable message instead of letting the
+// user wait 25s per template only to hit the same opaque error.
+if (typeof process.versions?.bun === 'string') {
+    console.error('This script must run on node, not bun.');
+    console.error('Re-run with: CSB_API_KEY=... node scripts/provision-template-sandboxes.mjs');
+    process.exit(1);
+}
 
 const apiKey = process.env.CSB_API_KEY;
 if (!apiKey) {

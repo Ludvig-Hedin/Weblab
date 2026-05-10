@@ -3,12 +3,12 @@ import { Button } from '@weblab/ui/button';
 
 export const UpgradePrompt = ({ onClick }: { onClick: () => void }) => {
     return (
-        <div className="rounded-md border border-blue-600 bg-blue-600/10 p-4 text-blue-600 dark:border-blue-600 dark:bg-blue-950 dark:text-blue-100">
-            <p className="flex items-center gap-2 text-sm">
+        <div className="border-warning bg-background-warning text-foreground-warning rounded-md border p-4">
+            <p className="text-regular flex items-center gap-2">
                 You must be on {APP_NAME} Pro to use a custom Domain.
                 <Button
                     variant="link"
-                    className="h-auto p-0 px-2 font-medium text-blue-600 hover:text-blue-700 dark:text-blue-100 dark:hover:text-blue-200"
+                    className="text-foreground-warning hover:text-foreground-warning/80 h-auto p-0 px-2 font-medium"
                     onClick={onClick}
                 >
                     Upgrade today!

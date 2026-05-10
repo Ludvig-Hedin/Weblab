@@ -36,7 +36,15 @@ const featuresFaqs = [
     },
     {
         question: 'What tech stack does Weblab support?',
-        answer: 'React, Next.js, and any CSS approach (Tailwind, CSS modules, styled-components). Works with any component library.',
+        answer: 'React-based frameworks — Next.js, Vite, Remix, Astro, TanStack Start, and static HTML. Any CSS approach (Tailwind, CSS modules, styled-components, Emotion, SASS). Works with any React component library — shadcn/ui, Radix, Material UI, Mantine, Chakra UI, Ant Design.',
+    },
+    {
+        question: 'What can the AI actually do inside Weblab?',
+        answer: 'Beyond chat: generate and edit images, search the web for context (Exa), read and write files in your project, scrape URLs, run typecheck and error checks, and switch between Ask, Build, and Plan modes. Plan mode drafts the work before any edits land so you can review before code changes.',
+    },
+    {
+        question: 'Which AI models can I use?',
+        answer: 'Claude Opus 4.7, Sonnet 4.6, Haiku 4.5, GPT-5.5, Gemini 3.1 Pro/Flash, DeepSeek V4, Mistral Codestral, Moonshot Kimi, plus local models via Ollama. Switch any time. Dial reasoning effort from Fast to Deep.',
     },
 ];
 
@@ -63,16 +71,46 @@ export default function FeaturesPage() {
                             AI constrained to your design system — uses your colors, fonts, and
                             tokens
                         </li>
+                        <li>
+                            Multi-provider AI — Claude Opus 4.7, GPT-5.5, Gemini 3.1 Pro, DeepSeek,
+                            Mistral, or local Ollama
+                        </li>
+                        <li>
+                            Reasoning effort control — dial AI from Fast to Deep depending on the
+                            task
+                        </li>
+                        <li>
+                            Ask, Build, and Plan modes — review the AI's plan before any code
+                            changes land
+                        </li>
+                        <li>
+                            AI tools — image generation and editing, web search (Exa), file
+                            read/write, URL scraping, typecheck
+                        </li>
+                        <li>
+                            Website clone — recreate any site from a URL or screenshot as an
+                            editable React or static HTML project
+                        </li>
+                        <li>
+                            Frame breakpoints — design responsive layouts per frame, classes rebase
+                            automatically
+                        </li>
+                        <li>Restore last position — editor reopens with last frame and selection</li>
                         <li>Built for Teams — real-time collaboration with spatial comments</li>
                         <li>Ship PRs, Not Prototypes — changes become mergeable pull requests</li>
                         <li>Canvas manipulation — drag, resize, arrange elements visually</li>
                         <li>Layer management — navigate your React component tree visually</li>
                         <li>Version history — roll back to any previous version</li>
                         <li>
-                            Works with your codebase — connect existing React or Next.js projects
+                            Works with your codebase — Next.js, Vite, Remix, Astro, TanStack Start,
+                            static HTML
                         </li>
                         <li>
                             Direct GitHub integration — push changes directly to your repository
+                        </li>
+                        <li>
+                            Pairs with Claude Code via MCP — visual canvas + agent on the same
+                            project
                         </li>
                     </ul>
                 </section>

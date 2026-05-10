@@ -49,6 +49,14 @@ export function useImportLocalProject() {
     const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS);
     const isImporting = progress.phase !== 'idle' && progress.phase !== 'done';
 
+    // Surface whether the user attempted "Import folder to cloud" while signed out.
+    // The picker itself can't be auto-invoked here — `showDirectoryPicker()` requires
+    // a fresh user gesture, and a `useEffect` running after auth-redirect doesn't
+    // count. Consumers (e.g. the `/projects` empty state) read this flag and render
+    // a banner whose button click *is* a fresh gesture, then call
+    // `handleImportLocalProject()` from there.
+    const [hasPendingLocalImport, setHasPendingLocalImport] = useState(false);
+
     const handleImportLocalProject = async () => {
         // Idempotency: this function is called both from the button
         // click and from the post-auth resume effect below. Without this
@@ -107,6 +115,10 @@ export function useImportLocalProject() {
             forkedSandboxId = sandboxId;
 
             // 2. Connect a client to that sandbox so we can write files.
+            // `sandbox.start` requires the sandbox to be attached to a project
+            // via a `branches` row (CR-118 ownership check), which orphans
+            // don't have yet — the project row gets created in step 4. Use
+            // `startOrphan`, which mirrors the trust model of `deleteOrphan`.
             setProgress({ filesUploaded: 0, phase: 'connecting' });
             provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
                 providerOptions: {
@@ -114,7 +126,8 @@ export function useImportLocalProject() {
                         sandboxId,
                         userId: user.id,
                         initClient: true,
-                        getSession: async (id) => apiClient.sandbox.start.mutate({ sandboxId: id }),
+                        getSession: async (id) =>
+                            apiClient.sandbox.startOrphan.mutate({ sandboxId: id }),
                     },
                 },
             });
@@ -202,14 +215,6 @@ export function useImportLocalProject() {
             }
         }
     };
-
-    // Surface whether the user attempted "Import folder to cloud" while signed out.
-    // The picker itself can't be auto-invoked here — `showDirectoryPicker()` requires
-    // a fresh user gesture, and a `useEffect` running after auth-redirect doesn't
-    // count. Consumers (e.g. the `/projects` empty state) read this flag and render
-    // a banner whose button click *is* a fresh gesture, then call
-    // `handleImportLocalProject()` from there.
-    const [hasPendingLocalImport, setHasPendingLocalImport] = useState(false);
 
     useEffect(() => {
         if (!user?.id) {
