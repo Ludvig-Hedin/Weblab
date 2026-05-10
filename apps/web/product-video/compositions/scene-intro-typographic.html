@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .si { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(ellipse 90% 70% at 50% 50%, #0e0e15 0%, #07070a 70%, #050507 100%); font-family: 'Inter', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; }
+  .si .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 50% 40% at 30% 50%, rgba(61,139,253,0.16), transparent 60%), radial-gradient(ellipse 45% 40% at 70% 50%, rgba(124,58,237,0.10), transparent 65%); filter: blur(50px); }
+  .si .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.018) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.6; }
+  .si .stack { position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 30px; padding: 0 200px; }
+  .si .pre { color: rgba(196,196,195,0.7); font-size: 18px; letter-spacing: 0.36em; text-transform: uppercase; font-weight: 500; display: flex; align-items: center; gap: 14px; }
+  .si .pre .dot { width: 7px; height: 7px; background: #3d8bfd; border-radius: 50%; box-shadow: 0 0 12px #3d8bfd; }
+  .si .head { font-size: 132px; font-weight: 200; letter-spacing: -0.04em; line-height: 0.92; text-align: center; color: #fafaf9; max-width: 1500px; }
+  .si .head .accent { font-style: italic; font-weight: 300; background: linear-gradient(90deg, #3d8bfd 0%, #7c3aed 50%, #3d8bfd 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .si .sub { font-size: 22px; color: #c4c4c3; max-width: 700px; text-align: center; line-height: 1.5; font-weight: 400; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-intro-typographic" data-width="1920" data-height="1080">
+  <div class="si">
+    <div class="clip mesh" id="si-mesh" data-start="0" data-duration="3.5" data-track-index="0"></div>
+    <div class="grain"></div>
+    <div class="stack">
+      <div class="pre clip" id="si-pre" data-start="0.15" data-duration="3.35" data-track-index="1"><span class="dot"></span>Weblab</div>
+      <h1 class="head clip" id="si-head" data-start="0.3" data-duration="3.2" data-track-index="2">Design.<br/>Don't <span class="accent">draw</span>.</h1>
+      <div class="sub clip" id="si-sub" data-start="0.85" data-duration="2.65" data-track-index="3">Your design system. Your real components. Live, on the canvas.</div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.si .mesh', { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'power2.out' }, 0);
+  tl.fromTo('.si #si-pre', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 0.15);
+  tl.fromTo('.si #si-head', { opacity: 0, y: 36, filter: 'blur(12px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.95, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.3);
+  tl.fromTo('.si .head .accent', { backgroundPosition: '-100% 50%' }, { backgroundPosition: '100% 50%', duration: 1.6, ease: 'power2.inOut' }, 0.7);
+  tl.fromTo('.si #si-sub', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: 'expo.out' }, 0.85);
+  window.__timelines['scene-intro-typographic'] = tl;
+</script>
+</body>
+</html>

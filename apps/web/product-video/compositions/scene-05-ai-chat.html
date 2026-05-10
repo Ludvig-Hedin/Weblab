@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .s5 { position: absolute; inset: 0; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; }
+  .s5 .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 45% 35% at 75% 50%, rgba(61,139,253,0.14), transparent 70%); filter: blur(60px); }
+  .s5 .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.5; }
+  .s5 .shell { position: absolute; inset: 80px 100px; background: #0d0d11; border: 1px solid #1f1f25; border-radius: 18px; overflow: hidden; display: grid; grid-template-rows: 56px 1fr; box-shadow: 0 40px 100px rgba(0,0,0,0.75); }
+  .s5 .topbar { background: #0a0a0e; border-bottom: 1px solid #1a1a1f; display: flex; align-items: center; padding: 0 22px; gap: 14px; color: #8a8a8c; font-size: 14px; }
+  .s5 .traffic { display: flex; gap: 8px; }
+  .s5 .traffic span { width: 11px; height: 11px; border-radius: 50%; background: #2a2a30; }
+  .s5 .body { display: grid; grid-template-columns: 1fr 540px; }
+  .s5 .canvas { position: relative; background: #1a1a1e; background-image: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(61,139,253,0.06), transparent 60%); padding: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .s5 .canvas-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.7; }
+  .s5 .features { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; width: 100%; max-width: 880px; }
+  .s5 .feature { background: #1a1a20; border: 1px solid #2a2a31; border-radius: 14px; padding: 22px 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 12px 30px rgba(0,0,0,0.35); }
+  .s5 .feature.featured { border: 2px solid #2a2a31; box-shadow: 0 12px 30px rgba(0,0,0,0.35); position: relative; }
+  .s5 .feature-ico { width: 36px; height: 36px; border-radius: 10px; background: rgba(61,139,253,0.10); border: 1px solid rgba(61,139,253,0.20); display: flex; align-items: center; justify-content: center; color: #c4c4c3; }
+  .s5 .featured .feature-ico { color: #3d8bfd; background: rgba(61,139,253,0.16); border-color: rgba(61,139,253,0.40); }
+  .s5 .feature-ico svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .s5 .feature h3 { font-size: 16px; color: #fafaf9; font-weight: 500; }
+  .s5 .feature p { font-size: 13px; color: #c4c4c3; line-height: 1.55; }
+  .s5 .chat { display: flex; flex-direction: column; background: #0a0a0e; border-left: 1px solid #1a1a1f; }
+  .s5 .chat-tabs { padding: 18px 22px; border-bottom: 1px solid #1a1a1f; display: flex; gap: 4px; position: relative; }
+  .s5 .chat-tabs .t { padding: 6px 11px; border-radius: 7px; font-size: 13px; color: #6b6b6e; font-weight: 500; position: relative; }
+  .s5 .chat-tabs .t.active { background: #1a1a1f; color: #fafaf9; }
+  .s5 .chat-tabs .t .badge { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: #3d8bfd; box-shadow: 0 0 6px #3d8bfd; }
+  .s5 .chat-body { flex: 1; padding: 22px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .s5 .msg.user { align-self: flex-end; background: #1a1a20; border: 1px solid #1f1f25; padding: 14px 16px; border-radius: 14px; max-width: 88%; font-size: 16px; color: #fafaf9; line-height: 1.5; }
+  .s5 .msg.user .ctx { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; background: rgba(61,139,253,0.16); color: #3d8bfd; font-size: 12px; border-radius: 999px; font-weight: 500; margin-bottom: 8px; }
+  .s5 .msg.user .ctx::before { content: '@'; }
+  .s5 .msg.user .typed { display: inline-block; overflow: hidden; white-space: pre-wrap; vertical-align: top; }
+  .s5 .msg.assistant { font-size: 15px; line-height: 1.55; color: #c4c4c3; max-width: 95%; }
+  .s5 .msg.assistant .stream { display: inline-block; clip-path: inset(0 100% 0 0); }
+  .s5 .msg.assistant .stream-cursor { display: inline-block; width: 7px; height: 16px; background: #3d8bfd; vertical-align: text-bottom; margin-left: 2px; border-radius: 1px; }
+  .s5 .msg.assistant .file-pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; margin-top: 8px; background: rgba(61,139,253,0.14); color: #3d8bfd; font-size: 13px; border-radius: 7px; font-family: 'JetBrains Mono', ui-monospace, monospace; opacity: 0; }
+  .s5 .composer-bottom { padding: 16px 22px; border-top: 1px solid #1a1a1f; display: flex; align-items: center; gap: 10px; }
+  .s5 .composer-input { flex: 1; padding: 11px 14px; background: #14141a; border: 1px solid #1f1f25; border-radius: 10px; color: #6b6b6e; font-size: 14px; }
+  .s5 .send { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(180deg, #3d8bfd 0%, #2c6ee0 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(61,139,253,0.32); }
+  .s5 .send svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-05-ai-chat" data-width="1920" data-height="1080">
+  <div class="s5">
+    <div class="mesh"></div>
+    <div class="grain"></div>
+    <div class="shell">
+      <div class="topbar"><div class="traffic"><span></span><span></span><span></span></div><span>flow · Chat</span></div>
+      <div class="body">
+        <div class="canvas">
+          <div class="canvas-grid"></div>
+          <div class="features">
+            <div class="feature">
+              <div class="feature-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 12h2M19 12h2M12 3v2M12 19v2"/></svg></div>
+              <h3>Real-time</h3><p>See teammates type, drag, decide.</p>
+            </div>
+            <div class="feature featured" id="s5-featured">
+              <div class="feature-ico"><svg viewBox="0 0 24 24"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg></div>
+              <h3>Smart merge</h3><p>Branches, conflicts — handled.</p>
+            </div>
+            <div class="feature">
+              <div class="feature-ico"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/></svg></div>
+              <h3>Insights</h3><p>Live data on what's shipped.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chat">
+          <div class="chat-tabs">
+            <div class="t">Style</div>
+            <div class="t active">Chat<span class="badge"></span></div>
+            <div class="t">Comments</div>
+          </div>
+          <div class="chat-body">
+            <div class="msg user" id="s5-user-msg">
+              <span class="ctx">FeatureGrid</span>
+              <div><span class="typed" id="s5-typed">Make Smart merge stand out. Use my brand color.</span></div>
+            </div>
+            <div class="msg assistant" id="s5-assistant">
+              <span class="stream" id="s5-stream">Highlighting Smart merge — adding the brand-blue border and a soft glow so it pops above the others.</span><span class="stream-cursor" id="s5-caret"></span>
+              <br/><span class="file-pill" id="s5-filepill">edited app/page.tsx</span>
+            </div>
+          </div>
+          <div class="composer-bottom">
+            <div class="composer-input">Reply…</div>
+            <div class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.s5 #s5-user-msg', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.2);
+  tl.fromTo('.s5 #s5-typed', { width: 0 }, { width: 'auto', duration: 1.5, ease: 'none' }, 0.45);
+  tl.fromTo('.s5 #s5-assistant', { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 2.3);
+  tl.fromTo('.s5 #s5-stream', { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 3.4, ease: 'none' }, 2.5);
+  tl.fromTo('.s5 #s5-caret', { opacity: 0.2 }, { opacity: 1, duration: 0.4, ease: 'steps(1)', repeat: 12, yoyo: true }, 2.5);
+  tl.fromTo('.s5 #s5-filepill', { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, 6.0);
+  tl.to('.s5 #s5-featured', { borderColor: '#3d8bfd', boxShadow: '0 12px 30px rgba(0,0,0,0.35), 0 0 50px rgba(61,139,253,0.32)', duration: 0.6, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 6.2);
+  tl.to('.s5 #s5-featured', { y: -6, duration: 0.55, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, 6.3);
+  window.__timelines['scene-05-ai-chat'] = tl;
+</script>
+</body>
+</html>

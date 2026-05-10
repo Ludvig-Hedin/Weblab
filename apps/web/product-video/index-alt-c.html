@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Weblab — Kinetic typography 30s</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07070a; color: #fafaf9; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      #root > .clip { position: absolute; inset: 0; }
+
+      .bg { position: absolute; inset: 0; background: #07070a; }
+      .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(61,139,253,0.16), transparent 65%); filter: blur(70px); }
+      .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.018) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.6; }
+
+      .word { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 240px; font-weight: 200; letter-spacing: -0.045em; line-height: 0.9; text-align: center; color: #fafaf9; opacity: 0; }
+      .word.med { font-size: 180px; }
+      .word.lg { font-size: 260px; }
+      .word .em { color: #3d8bfd; font-style: italic; font-weight: 300; }
+      .word .strike { text-decoration: line-through; text-decoration-color: #3d8bfd; text-decoration-thickness: 8px; color: #6b6b6e; }
+
+      .pre-tag { position: absolute; left: 50%; top: 50%; transform: translate(-50%, calc(-50% - 220px)); font-size: 18px; color: #3d8bfd; letter-spacing: 0.32em; text-transform: uppercase; font-weight: 500; display: inline-flex; align-items: center; gap: 14px; opacity: 0; }
+      .pre-tag::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #3d8bfd; box-shadow: 0 0 12px #3d8bfd; }
+
+      .lockup { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 28px; opacity: 0; }
+      .lockup .marks { display: flex; align-items: center; gap: 22px; }
+      .lockup .marks img.s { height: 96px; }
+      .lockup .marks img.w { height: 64px; }
+      .lockup .tag { font-size: 56px; font-weight: 200; color: #fafaf9; letter-spacing: -0.025em; }
+      .lockup .tag .em { color: #3d8bfd; font-style: italic; font-weight: 300; }
+      .lockup .cta { padding: 16px 32px; border-radius: 999px; background: linear-gradient(180deg, #3d8bfd, #2c6ee0); color: #fff; font-size: 22px; font-weight: 500; box-shadow: 0 12px 32px rgba(61,139,253,0.42); display: flex; align-items: center; gap: 12px; }
+      .lockup .cta::after { content: '→'; }
+
+      .ui-flash { position: absolute; inset: 80px 200px; background: #0d0d11; border: 1px solid #1f1f25; border-radius: 18px; box-shadow: 0 40px 100px rgba(0,0,0,0.7); display: grid; grid-template-rows: 56px 1fr; overflow: hidden; opacity: 0; }
+      .ui-flash .topbar { background: #0a0a0e; border-bottom: 1px solid #1a1a1f; display: flex; align-items: center; padding: 0 22px; gap: 14px; }
+      .ui-flash .traffic { display: flex; gap: 8px; }
+      .ui-flash .traffic span { width: 11px; height: 11px; border-radius: 50%; background: #2a2a30; }
+      .ui-flash .crumbs { color: #8a8a8c; font-size: 14px; font-weight: 500; }
+      .ui-flash .crumbs strong { color: #c4c4c3; }
+      .ui-flash .canvas { background: #1a1a1e; padding: 60px; display: flex; align-items: center; justify-content: center; position: relative; }
+      .ui-flash .canvas-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(61,139,253,0.12), transparent 60%); }
+      .ui-flash .stage-feature { position: relative; z-index: 2; width: 540px; background: linear-gradient(180deg, #1a1a20, #16161b); border: 2px solid #3d8bfd; border-radius: 18px; padding: 36px 32px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 0 0 5px rgba(61,139,253,0.10), 0 30px 80px rgba(0,0,0,0.55), 0 0 50px rgba(61,139,253,0.18); }
+      .ui-flash .ico { width: 48px; height: 48px; border-radius: 12px; background: rgba(61,139,253,0.16); border: 1px solid rgba(61,139,253,0.32); display: flex; align-items: center; justify-content: center; color: #3d8bfd; }
+      .ui-flash .ico svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .ui-flash h3 { font-size: 24px; color: #fafaf9; font-weight: 500; }
+      .ui-flash p { font-size: 17px; color: #c4c4c3; line-height: 1.55; }
+      .ui-flash .meta { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #3d8bfd; font-weight: 500; }
+      .ui-flash .meta::after { content: '→'; }
+
+      .browser-flash { position: absolute; inset: 80px 200px; background: #0d0d11; border: 1px solid #1f1f25; border-radius: 14px; box-shadow: 0 50px 120px rgba(0,0,0,0.7); display: grid; grid-template-rows: 52px 1fr; overflow: hidden; opacity: 0; }
+      .browser-flash .chrome { background: #0a0a0e; border-bottom: 1px solid #1a1a1f; display: flex; align-items: center; padding: 0 16px; gap: 14px; }
+      .browser-flash .url { flex: 1; max-width: 660px; padding: 8px 14px; background: #14141a; border-radius: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 14px; color: #c4c4c3; display: flex; align-items: center; gap: 8px; }
+      .browser-flash .url .lock { color: #3fb950; }
+      .browser-flash .url .host { color: #fafaf9; }
+      .browser-flash .url .live { margin-left: auto; padding: 3px 9px; border-radius: 999px; background: rgba(63,185,80,0.16); color: #3fb950; font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 6px; }
+      .browser-flash .url .live::before { content: ''; width: 6px; height: 6px; background: #3fb950; border-radius: 50%; box-shadow: 0 0 8px #3fb950; }
+      .browser-flash .page { background: linear-gradient(180deg, #0d0d11, #14141a); padding: 50px 70px; display: flex; flex-direction: column; gap: 28px; position: relative; align-items: center; text-align: center; overflow: hidden; }
+      .browser-flash .page-glow { position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 1100px; height: 600px; background: radial-gradient(ellipse 50% 50% at 50% 30%, rgba(61,139,253,0.18), transparent 70%); filter: blur(60px); }
+      .browser-flash h1 { position: relative; z-index: 2; font-size: 64px; font-weight: 200; letter-spacing: -0.03em; color: #fafaf9; }
+      .browser-flash h1 .em { color: #3d8bfd; font-style: italic; font-weight: 300; }
+      .browser-flash p { position: relative; z-index: 2; font-size: 19px; color: #c4c4c3; max-width: 520px; line-height: 1.55; }
+      .browser-flash .ctas { position: relative; z-index: 2; display: flex; gap: 12px; }
+      .browser-flash .pri { padding: 13px 26px; background: linear-gradient(180deg, #3d8bfd, #2c6ee0); color: #fff; border-radius: 10px; font-size: 16px; font-weight: 500; box-shadow: 0 4px 14px rgba(61,139,253,0.4); }
+      .browser-flash .sec { padding: 13px 26px; background: transparent; color: #fafaf9; border: 1px solid #2a2a31; border-radius: 10px; font-size: 16px; font-weight: 500; }
+    </style>
+    <script>
+      window.__tailwindReady = new Promise(function (resolve) {
+        var loaded = document.readyState === 'complete', resolved = false, observer;
+        function readTailwindCss() { var styles = document.querySelectorAll('style'); for (var i = styles.length-1; i >= 0; i--) { var t = styles[i].textContent || ''; if (t.indexOf('tailwindcss v') !== -1) return t; } return ''; }
+        function finish() { if (resolved || !loaded || !readTailwindCss()) return; resolved = true; if (observer) observer.disconnect(); resolve(true); }
+        observer = new MutationObserver(finish); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        if (loaded) finish(); else window.addEventListener('load', function () { loaded = true; finish(); }, { once: true });
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js" integrity="sha384-v5YF9xS+gLRWdvrQ0u/WRbCkjSIH0NjHIPe8tBL1ZRrmI7PiSH6LLdzs0aAIMCuh" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <!-- Background ambient layers -->
+      <div class="clip" style="z-index: 0;" data-start="0" data-duration="30" data-track-index="0">
+        <div class="bg"></div>
+        <div class="mesh"></div>
+        <div class="grain"></div>
+      </div>
+
+      <!-- Pre tag at top -->
+      <div class="clip pre-tag" id="pre" data-start="0.3" data-duration="2.0" data-track-index="1">Weblab</div>
+
+      <!-- TYPOGRAPHIC HOOKS -->
+      <h2 class="clip word lg"  id="w-1" data-start="0.4" data-duration="2.0" data-track-index="2">Sites you <span class="em">design.</span></h2>
+      <h2 class="clip word lg"  id="w-2" data-start="2.6" data-duration="2.0" data-track-index="2"><span class="em">Not</span> Figma frames.</h2>
+
+      <!-- UI flash 1 — feature card moment -->
+      <div class="clip ui-flash" id="ui-1" data-start="4.8" data-duration="3.0" data-track-index="3">
+        <div class="topbar">
+          <div class="traffic"><span></span><span></span><span></span></div>
+          <div class="crumbs">flow / app / <strong>page.tsx</strong></div>
+        </div>
+        <div class="canvas">
+          <div class="canvas-glow"></div>
+          <div class="stage-feature">
+            <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M5 19l4-4M15 9l4-4"/></svg></div>
+            <h3>Smart merge</h3>
+            <p>Branches, comments, conflicts — handled.</p>
+            <div class="meta">Learn more</div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="clip word"     id="w-3" data-start="8.0"  data-duration="1.8" data-track-index="2">Type. <span class="em">Click.</span> Drag.</h2>
+      <h2 class="clip word med" id="w-4" data-start="10.0" data-duration="1.8" data-track-index="2">Real components.<br/><span class="em">Real code.</span></h2>
+
+      <!-- UI flash 2 — chat moment -->
+      <div class="clip ui-flash" id="ui-2" data-start="12.0" data-duration="3.2" data-track-index="3">
+        <div class="topbar">
+          <div class="traffic"><span></span><span></span><span></span></div>
+          <div class="crumbs">flow · <strong>Chat</strong></div>
+        </div>
+        <div class="canvas" style="padding: 50px; align-items: stretch;">
+          <div class="canvas-glow"></div>
+          <div style="position:relative; z-index:2; display:grid; grid-template-columns: 1fr 1fr; gap: 40px; width:100%;">
+            <div style="display:flex; flex-direction:column; gap:14px; justify-content:center;">
+              <div style="align-self:flex-end; background:#1a1a20; border:1px solid #1f1f25; padding:14px 18px; border-radius:14px; max-width:90%; font-size:18px; color:#fafaf9; line-height:1.5;">
+                <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px; background:rgba(61,139,253,0.16); color:#3d8bfd; font-size:13px; border-radius:999px; font-weight:500; margin-bottom:8px;">@FeatureGrid</span><br/>
+                Make Smart merge stand out. Use my brand color.
+              </div>
+              <div style="font-size:16px; line-height:1.55; color:#c4c4c3;">Highlighting Smart merge — adding the brand-blue border.</div>
+            </div>
+            <div style="background:#1a1a20; border:2px solid #3d8bfd; border-radius:14px; padding:24px; display:flex; flex-direction:column; gap:12px; box-shadow: 0 0 50px rgba(61,139,253,0.32);">
+              <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/></svg></div>
+              <h3>Smart merge</h3>
+              <p>Branches, conflicts — handled.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="clip word"     id="w-5" data-start="15.4" data-duration="1.8" data-track-index="2">Talk to it. <span class="em">It listens.</span></h2>
+      <h2 class="clip word lg"  id="w-6" data-start="17.6" data-duration="1.8" data-track-index="2">Ship in <span class="em">minutes.</span></h2>
+
+      <!-- UI flash 3 — live deployed site -->
+      <div class="clip browser-flash" id="ui-3" data-start="19.8" data-duration="3.5" data-track-index="3">
+        <div class="chrome">
+          <div class="traffic"><span style="width:11px;height:11px;border-radius:50%;background:#2a2a30;"></span><span style="width:11px;height:11px;border-radius:50%;background:#2a2a30;"></span><span style="width:11px;height:11px;border-radius:50%;background:#2a2a30;"></span></div>
+          <div class="url"><span class="lock">●</span><span>https://</span><span class="host">flow.weblab.build</span><span class="live">Live</span></div>
+        </div>
+        <div class="page">
+          <div class="page-glow"></div>
+          <h1>Build with your team. <span class="em">Faster.</span></h1>
+          <p>The shared workspace where teams ship.</p>
+          <div class="ctas"><div class="pri">Start free →</div><div class="sec">See demo</div></div>
+        </div>
+      </div>
+
+      <h2 class="clip word med" id="w-7" data-start="23.6" data-duration="1.4" data-track-index="2">It's <span class="em">yours.</span></h2>
+
+      <!-- End lockup -->
+      <div class="clip lockup" id="lockup" data-start="25.4" data-duration="4.6" data-track-index="2">
+        <div class="marks">
+          <img class="s" src="assets/brand/symbol.svg" alt="Weblab" />
+          <img class="w" src="assets/brand/wordmark.svg" alt="Weblab" />
+        </div>
+        <div class="tag">Made for <span class="em">builders.</span></div>
+        <div class="cta">Try Weblab — free</div>
+      </div>
+
+      <!-- AUDIO -->
+      <audio class="clip" id="music"    src="assets/audio/music-groove.mp3"  data-start="0"     data-duration="30"   data-track-index="9" data-volume="0.6"></audio>
+      <audio class="clip" id="x-w0"  src="assets/audio/sfx-whoosh.mp3"   data-start="0.3"  data-duration="0.5" data-track-index="10" data-volume="0.7"></audio>
+      <audio class="clip" id="x-w1"  src="assets/audio/sfx-whoosh.mp3"   data-start="2.5"  data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-w2"  src="assets/audio/sfx-whoosh.mp3"   data-start="4.7"  data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-c1"  src="assets/audio/sfx-click.mp3"    data-start="5.2"  data-duration="0.4" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-w3"  src="assets/audio/sfx-whoosh.mp3"   data-start="7.9"  data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-k1"  src="assets/audio/sfx-keypress.mp3" data-start="8.0"  data-duration="0.4" data-track-index="10" data-volume="0.55"></audio>
+      <audio class="clip" id="x-k2"  src="assets/audio/sfx-keypress.mp3" data-start="9.95" data-duration="0.4" data-track-index="10" data-volume="0.55"></audio>
+      <audio class="clip" id="x-w4"  src="assets/audio/sfx-whoosh.mp3"   data-start="11.9" data-duration="0.5" data-track-index="10" data-volume="0.65"></audio>
+      <audio class="clip" id="x-d1"  src="assets/audio/sfx-ding.mp3"     data-start="13.6" data-duration="0.45" data-track-index="10" data-volume="0.55"></audio>
+      <audio class="clip" id="x-w5"  src="assets/audio/sfx-whoosh.mp3"   data-start="15.3" data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-w6"  src="assets/audio/sfx-whoosh.mp3"   data-start="17.5" data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-w7"  src="assets/audio/sfx-whoosh.mp3"   data-start="19.7" data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-d2"  src="assets/audio/sfx-success.mp3"  data-start="21.0" data-duration="1.2" data-track-index="10" data-volume="0.55"></audio>
+      <audio class="clip" id="x-w8"  src="assets/audio/sfx-whoosh.mp3"   data-start="23.5" data-duration="0.5" data-track-index="10" data-volume="0.6"></audio>
+      <audio class="clip" id="x-d3"  src="assets/audio/sfx-ding.mp3"     data-start="25.3" data-duration="0.45" data-track-index="10" data-volume="0.6"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // PRE-TAG
+      tl.fromTo('#pre', { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, 0.3);
+      tl.to('#pre', { opacity: 0, duration: 0.3, ease: 'power2.in' }, 2.0);
+
+      // KINETIC WORDS — punch-in / punch-out for each
+      ['#w-1','#w-2','#w-3','#w-4','#w-5','#w-6','#w-7'].forEach(function (id) {
+        const el = document.querySelector(id);
+        if (!el) return;
+        const start = parseFloat(el.getAttribute('data-start') || '0');
+        const dur = parseFloat(el.getAttribute('data-duration') || '1.5');
+        tl.fromTo(id, { opacity: 0, scale: 0.8, filter: 'blur(16px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.32, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, start);
+        tl.to(id, { opacity: 0, scale: 1.18, filter: 'blur(10px)', duration: 0.26, ease: 'power2.in' }, start + dur - 0.26);
+      });
+
+      // UI FLASHES — zoom-in entry + zoom-out exit
+      ['#ui-1','#ui-2','#ui-3'].forEach(function (id) {
+        const el = document.querySelector(id);
+        if (!el) return;
+        const start = parseFloat(el.getAttribute('data-start') || '0');
+        const dur = parseFloat(el.getAttribute('data-duration') || '3');
+        tl.fromTo(id, { opacity: 0, scale: 1.12, filter: 'blur(10px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.45, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, start);
+        tl.to(id, { opacity: 0, scale: 0.96, filter: 'blur(6px)', duration: 0.34, ease: 'power2.in' }, start + dur - 0.34);
+      });
+
+      // LOCKUP — punch and hold
+      tl.fromTo('#lockup', { opacity: 0, scale: 0.9, filter: 'blur(10px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.55, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, 25.4);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

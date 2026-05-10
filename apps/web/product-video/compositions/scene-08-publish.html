@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .s8 { position: absolute; inset: 0; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; }
+  .s8 .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 60% 50% at 70% 50%, rgba(61,139,253,0.14), transparent 70%); filter: blur(60px); }
+  .s8 .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.5; }
+  .s8 .shell { position: absolute; inset: 80px 100px; background: #0d0d11; border: 1px solid #1f1f25; border-radius: 18px; overflow: hidden; display: grid; grid-template-rows: 56px 1fr; box-shadow: 0 40px 100px rgba(0,0,0,0.75); }
+  .s8 .topbar { background: #0a0a0e; border-bottom: 1px solid #1a1a1f; display: flex; align-items: center; padding: 0 22px; gap: 14px; justify-content: space-between; }
+  .s8 .top-left { display: flex; align-items: center; gap: 14px; color: #8a8a8c; font-size: 14px; }
+  .s8 .traffic { display: flex; gap: 8px; }
+  .s8 .traffic span { width: 11px; height: 11px; border-radius: 50%; background: #2a2a30; }
+  .s8 .top-right { display: flex; align-items: center; gap: 12px; }
+  .s8 .top-right .branch { font-size: 13px; color: #6b6b6e; padding: 4px 10px; background: #14141a; border-radius: 7px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .s8 .publish-btn { position: relative; padding: 9px 18px; background: linear-gradient(180deg, #3d8bfd 0%, #2c6ee0 100%); color: #fff; border-radius: 10px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(61,139,253,0.40); }
+  .s8 .publish-btn svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; }
+  .s8 .publish-pulse { position: absolute; inset: -3px; border-radius: 12px; border: 1.5px solid #3d8bfd; opacity: 0; }
+  .s8 .canvas { position: relative; background: #0d0d11; padding: 40px 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; overflow: hidden; }
+  .s8 .deploy-card { position: relative; width: 760px; background: linear-gradient(180deg, #1a1a20 0%, #14141a 100%); border: 1px solid #2a2a31; border-radius: 18px; padding: 36px 40px; box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(61,139,253,0.04); display: flex; flex-direction: column; gap: 18px; }
+  .s8 .deploy-title { display: flex; justify-content: space-between; align-items: center; }
+  .s8 .deploy-title h3 { font-size: 22px; font-weight: 500; color: #fafaf9; }
+  .s8 .deploy-title .meta { font-size: 13px; color: #6b6b6e; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .s8 .deploy-step { display: flex; align-items: center; gap: 14px; padding: 10px 0; }
+  .s8 .deploy-step .check { width: 26px; height: 26px; border-radius: 50%; background: rgba(63,185,80,0.16); color: #3fb950; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+  .s8 .deploy-step .check svg { width: 14px; height: 14px; stroke: #3fb950; stroke-width: 3; fill: none; stroke-linecap: round; }
+  .s8 .deploy-step .label { font-size: 17px; color: #c4c4c3; }
+  .s8 .deploy-step .time { margin-left: auto; font-size: 13px; color: #6b6b6e; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .s8 .url-bar { margin-top: 14px; padding: 18px 22px; background: #0d0d11; border: 1px solid rgba(61,139,253,0.32); border-radius: 12px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 22px; color: #fafaf9; display: flex; align-items: center; gap: 14px; box-shadow: 0 0 0 4px rgba(61,139,253,0.06), 0 0 30px rgba(61,139,253,0.16); }
+  .s8 .url-bar .scheme { color: #6b6b6e; }
+  .s8 .url-bar .host { color: #fafaf9; font-weight: 500; }
+  .s8 .url-bar .live { margin-left: auto; padding: 4px 12px; border-radius: 999px; background: rgba(63,185,80,0.16); color: #3fb950; font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif; display: flex; align-items: center; gap: 7px; }
+  .s8 .url-bar .live::before { content: ''; width: 7px; height: 7px; background: #3fb950; border-radius: 50%; box-shadow: 0 0 10px #3fb950; }
+  .s8 .progress-track { height: 3px; background: #1a1a1f; border-radius: 999px; overflow: hidden; }
+  .s8 .progress-fill { height: 100%; background: linear-gradient(90deg, #3d8bfd, #5fa1ff); width: 0%; box-shadow: 0 0 10px #3d8bfd; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-08-publish" data-width="1920" data-height="1080">
+  <div class="s8">
+    <div class="mesh"></div>
+    <div class="grain"></div>
+    <div class="shell">
+      <div class="topbar">
+        <div class="top-left"><div class="traffic"><span></span><span></span><span></span></div><span>flow</span></div>
+        <div class="top-right">
+          <span class="branch">main</span>
+          <div class="publish-btn clip" id="s8-btn" data-start="0" data-duration="7" data-track-index="0"><span class="publish-pulse clip" id="s8-pulse" data-start="0.65" data-duration="0.7" data-track-index="1"></span><svg viewBox="0 0 24 24"><path d="M5 12l7-7 7 7M12 19V5"/></svg>Publish</div>
+        </div>
+      </div>
+      <div class="canvas">
+        <div class="deploy-card clip" id="s8-deploy" data-start="1.0" data-duration="6" data-track-index="2" style="opacity: 0;">
+          <div class="deploy-title"><h3>Publishing to flow.weblab.build</h3><span class="meta">main · 2 commits</span></div>
+          <div class="progress-track"><div class="progress-fill clip" id="s8-progress" data-start="1.5" data-duration="4" data-track-index="3"></div></div>
+          <div>
+            <div class="deploy-step clip" id="s8-step-1" data-start="1.7" data-duration="5.3" data-track-index="4" style="opacity: 0;"><div class="check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div><div class="label">Building production bundle</div><span class="time">1.2s</span></div>
+            <div class="deploy-step clip" id="s8-step-2" data-start="2.6" data-duration="4.4" data-track-index="5" style="opacity: 0;"><div class="check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div><div class="label">Deploying to global edge</div><span class="time">2.4s</span></div>
+            <div class="deploy-step clip" id="s8-step-3" data-start="3.5" data-duration="3.5" data-track-index="6" style="opacity: 0;"><div class="check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div><div class="label">Provisioning HTTPS</div><span class="time">0.6s</span></div>
+          </div>
+          <div class="url-bar clip" id="s8-url" data-start="5.0" data-duration="2" data-track-index="7" style="opacity: 0;"><span class="scheme">https://</span><span class="host">flow.weblab.build</span><span class="live">Live</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.s8 #s8-btn', { scale: 1 }, { scale: 0.94, duration: 0.12, ease: 'power2.in', yoyo: true, repeat: 1 }, 0.6);
+  tl.fromTo('.s8 #s8-pulse', { opacity: 0.85, scale: 1 }, { opacity: 0, scale: 1.6, duration: 0.7, ease: 'power2.out' }, 0.65);
+  tl.to('.s8 #s8-deploy', { opacity: 1, y: -32, duration: 0.7, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 1.0);
+  tl.fromTo('.s8 #s8-deploy', { y: 32 }, { y: 0, duration: 0.7, ease: 'cubic-bezier(0.16, 1, 0.3, 1)', overwrite: 'auto' }, 1.0);
+  tl.to('.s8 #s8-progress', { width: '100%', duration: 4.0, ease: 'cubic-bezier(0.65, 0, 0.35, 1)' }, 1.5);
+  tl.to('.s8 #s8-step-1', { opacity: 1, x: 0, duration: 0.45, ease: 'power3.out' }, 1.7);
+  tl.to('.s8 #s8-step-2', { opacity: 1, x: 0, duration: 0.45, ease: 'power3.out' }, 2.6);
+  tl.to('.s8 #s8-step-3', { opacity: 1, x: 0, duration: 0.45, ease: 'power3.out' }, 3.5);
+  tl.to('.s8 #s8-url', { opacity: 1, scale: 1, duration: 0.6, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, 5.0);
+  window.__timelines['scene-08-publish'] = tl;
+</script>
+</body>
+</html>

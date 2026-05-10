@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .s2 {
+    position: absolute; inset: 0; overflow: hidden;
+    background: #07070a;
+    font-family: 'Inter', system-ui, sans-serif; color: #fafaf9;
+  }
+  .s2 .mesh {
+    position: absolute; inset: -8%;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 30%, rgba(61, 139, 253, 0.16), transparent 60%),
+      radial-gradient(ellipse 45% 35% at 30% 80%, rgba(124, 58, 237, 0.08), transparent 65%),
+      radial-gradient(ellipse 40% 30% at 75% 60%, rgba(61, 139, 253, 0.08), transparent 60%);
+    filter: blur(80px); opacity: 0.9;
+  }
+  .s2 .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 3px 3px; pointer-events: none; opacity: 0.5; }
+  .s2 .watermark {
+    position: absolute; top: 56px; left: 56px; display: flex; align-items: center; gap: 12px;
+    opacity: 0.65; z-index: 6;
+  }
+  .s2 .watermark img { height: 22px; }
+  .s2 .stage {
+    position: absolute; inset: 0; z-index: 5;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 56px;
+    padding: 0 200px;
+  }
+  .s2 .heading {
+    font-size: 92px; font-weight: 200; letter-spacing: -0.035em; line-height: 0.95; text-align: center;
+    color: #fafaf9; max-width: 1300px;
+  }
+  .s2 .heading .accent {
+    font-style: italic; font-weight: 400; color: #3d8bfd;
+  }
+  .s2 .composer {
+    width: 1080px;
+    background: linear-gradient(180deg, #1a1a1f 0%, #16161b 100%);
+    border: 1px solid #2a2a31; border-radius: 22px;
+    padding: 26px 28px;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(61,139,253,0.05), inset 0 1px 0 rgba(255,255,255,0.04);
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .s2 .prompt-row { font-size: 30px; color: #fafaf9; line-height: 1.45; min-height: 84px; position: relative; }
+  .s2 .typed { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; }
+  .s2 .caret { display: inline-block; width: 3px; height: 36px; background: #3d8bfd; vertical-align: middle; margin-left: 2px; transform: translateY(-2px); border-radius: 2px; }
+  .s2 .composer-meta { display: flex; align-items: center; justify-content: space-between; }
+  .s2 .model { font-size: 16px; color: #8a8a8c; display: flex; align-items: center; gap: 10px; }
+  .s2 .model::before { content: ''; width: 18px; height: 18px; border-radius: 5px; background: linear-gradient(135deg, #3d8bfd 0%, #5fa1ff 100%); display: inline-block; }
+  .s2 .send-btn {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(180deg, #3d8bfd 0%, #2c6ee0 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(61,139,253,0.42);
+    position: relative;
+  }
+  .s2 .send-btn svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .s2 .send-pulse { position: absolute; inset: -4px; border-radius: 14px; border: 1.5px solid #3d8bfd; opacity: 0; }
+  .s2 .actions {
+    display: flex; gap: 28px; align-items: center; font-size: 18px; color: rgba(196,196,195,0.7); font-weight: 500;
+  }
+  .s2 .actions span.dot { width: 4px; height: 4px; background: rgba(196,196,195,0.25); border-radius: 50%; }
+  .s2 .cursor {
+    position: absolute; pointer-events: none; z-index: 9;
+    width: 28px; height: 28px;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-02-prompt" data-width="1920" data-height="1080">
+  <div class="s2">
+    <div class="mesh"></div>
+    <div class="grain"></div>
+    <div class="watermark clip" id="s2-watermark" data-start="0" data-duration="5.5" data-track-index="0"><img src="../assets/brand/wordmark.svg" alt="Weblab" /></div>
+    <div class="stage">
+      <h1 class="heading clip" id="s2-heading" data-start="0.1" data-duration="5.4" data-track-index="1">Build something <span class="accent">real</span>.</h1>
+      <div class="composer clip" id="s2-composer" data-start="0.45" data-duration="5.05" data-track-index="2">
+        <div class="prompt-row">
+          <span class="typed clip" id="s2-typed" data-start="1.6" data-duration="3.9" data-track-index="4">A landing page for a team workspace tool. Hero, three features, dark.</span><span class="caret clip" id="s2-caret" data-start="1.6" data-duration="3.9" data-track-index="5"></span>
+        </div>
+        <div class="composer-meta">
+          <div class="model">Claude Sonnet 4.6</div>
+          <div class="send-btn clip" id="s2-send" data-start="0" data-duration="5.5" data-track-index="6">
+            <span class="send-pulse clip" id="s2-pulse" data-start="4.05" data-duration="0.7" data-track-index="7"></span>
+            <svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="actions clip" id="s2-actions" data-start="0.9" data-duration="4.6" data-track-index="8">
+        <span>Import GitHub</span><span class="dot"></span>
+        <span>Open local folder</span><span class="dot"></span>
+        <span>Start blank</span>
+      </div>
+    </div>
+    <div class="cursor clip" id="s2-cursor" data-start="0.85" data-duration="4.65" data-track-index="3" style="left: 78%; top: 92%;">
+      <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51z" fill="#fafaf9" stroke="#1a1a1c" stroke-width="1"/></svg>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.s2 .watermark', { opacity: 0, x: -16 }, { opacity: 0.65, x: 0, duration: 0.5, ease: 'power2.out' }, 0);
+  tl.fromTo('.s2 #s2-heading', { opacity: 0, y: 32, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.85, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.1);
+  tl.fromTo('.s2 .heading .accent', { opacity: 0.55 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.5);
+  tl.fromTo('.s2 #s2-composer', { opacity: 0, y: 40, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.75, ease: 'expo.out' }, 0.45);
+  tl.fromTo('.s2 #s2-cursor', { opacity: 0 }, { opacity: 1, duration: 0.3, overwrite: 'auto' }, 0.85);
+  tl.to('.s2 #s2-cursor', { left: '34%', top: '52%', duration: 1.0, ease: 'cubic-bezier(0.65, 0, 0.35, 1)' }, 0.95);
+  tl.fromTo('.s2 #s2-typed', { width: 0 }, { width: 'auto', duration: 1.9, ease: 'none' }, 1.6);
+  tl.fromTo('.s2 #s2-caret', { opacity: 1 }, { opacity: 0.2, duration: 0.45, ease: 'steps(1)', repeat: 5, yoyo: true }, 1.6);
+  tl.to('.s2 #s2-cursor', { left: '78%', top: '52%', duration: 0.6, ease: 'power2.inOut' }, 3.6);
+  tl.fromTo('.s2 #s2-send', { scale: 1 }, { scale: 0.92, duration: 0.12, ease: 'power2.in', yoyo: true, repeat: 1 }, 4.0);
+  tl.fromTo('.s2 #s2-pulse', { opacity: 0.85, scale: 1 }, { opacity: 0, scale: 1.45, duration: 0.7, ease: 'power2.out' }, 4.05);
+  tl.fromTo('.s2 #s2-actions', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 0.9);
+  window.__timelines['scene-02-prompt'] = tl;
+</script>
+</body>
+</html>

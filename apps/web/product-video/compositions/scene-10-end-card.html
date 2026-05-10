@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .s10 { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(ellipse 80% 60% at 50% 55%, #0e0e15 0%, #07070a 70%, #050507 100%); font-family: 'Inter', system-ui, sans-serif; display: flex; align-items: center; justify-content: center; }
+  .s10 .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 50% 40% at 30% 40%, rgba(61,139,253,0.18), transparent 60%), radial-gradient(ellipse 35% 40% at 70% 65%, rgba(61,139,253,0.08), transparent 65%); filter: blur(50px); opacity: 0.95; }
+  .s10 .halo { position: absolute; width: 1300px; height: 1300px; border-radius: 50%; background: radial-gradient(circle, rgba(61,139,253,0.22) 0%, rgba(61,139,253,0.05) 35%, transparent 70%); filter: blur(28px); pointer-events: none; }
+  .s10 .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.018) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.6; }
+  .s10 .stack { position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 38px; }
+  .s10 .lockup { display: flex; align-items: center; gap: 22px; }
+  .s10 .lockup img.symbol { height: 96px; }
+  .s10 .lockup img.wordmark { height: 64px; }
+  .s10 .tagline { color: #fafaf9; font-size: 56px; font-weight: 200; letter-spacing: -0.025em; text-align: center; max-width: 1300px; }
+  .s10 .tagline .accent { font-style: italic; font-weight: 300; color: #3d8bfd; }
+  .s10 .url { color: rgba(196,196,195,0.75); font-size: 18px; letter-spacing: 0.32em; text-transform: uppercase; font-weight: 500; display: flex; align-items: center; gap: 14px; }
+  .s10 .url .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 10px #3fb950; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-10-end-card" data-width="1920" data-height="1080">
+  <div class="s10">
+    <div class="mesh"></div>
+    <div class="halo clip" id="s10-halo" data-start="0" data-duration="4" data-track-index="0"></div>
+    <div class="grain"></div>
+    <div class="stack">
+      <div class="lockup clip" id="s10-lockup" data-start="0.15" data-duration="3.85" data-track-index="1">
+        <img src="../assets/brand/symbol.svg" alt="Weblab" class="symbol" />
+        <img src="../assets/brand/wordmark.svg" alt="Weblab" class="wordmark" />
+      </div>
+      <div class="tagline clip" id="s10-tag" data-start="0.45" data-duration="3.55" data-track-index="2">Made for <span class="accent">builders.</span></div>
+      <div class="url clip" id="s10-url" data-start="0.95" data-duration="3.05" data-track-index="3"><span class="live-dot"></span>weblab.build</div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.s10 .halo', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 1.2, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0);
+  tl.fromTo('.s10 #s10-lockup', { opacity: 0, y: 20, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.15);
+  tl.fromTo('.s10 #s10-tag', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: 'expo.out' }, 0.45);
+  tl.fromTo('.s10 .tagline .accent', { opacity: 0.55 }, { opacity: 1, duration: 0.9, ease: 'power2.out' }, 0.65);
+  tl.fromTo('.s10 #s10-url', { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.95);
+  tl.to('.s10 .halo', { scale: 1.04, duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: 1, overwrite: 'auto' }, 0.5);
+  window.__timelines['scene-10-end-card'] = tl;
+</script>
+</body>
+</html>

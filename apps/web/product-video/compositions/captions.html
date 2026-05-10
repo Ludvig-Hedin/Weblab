@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .caps { position: absolute; inset: 0; font-family: 'Inter', system-ui, sans-serif; pointer-events: none; }
+  .caps .cap {
+    position: absolute;
+    left: 50%; bottom: 110px; transform: translateX(-50%);
+    padding: 14px 32px; border-radius: 999px;
+    background: rgba(10, 10, 14, 0.85);
+    border: 1px solid rgba(61,139,253,0.22);
+    backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+    color: #fafaf9; font-size: 38px; font-weight: 500; letter-spacing: -0.005em;
+    white-space: nowrap;
+    box-shadow: 0 22px 60px rgba(0,0,0,0.65);
+    opacity: 0;
+  }
+  .caps .cap .em { color: #3d8bfd; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="captions" data-width="1920" data-height="1080">
+  <div class="caps">
+    <div class="cap clip" id="cap-1" data-start="3.2" data-duration="3.3" data-track-index="0">One sentence.</div>
+    <div class="cap clip" id="cap-2" data-start="9.0" data-duration="2.5" data-track-index="1">Real Next.js code.</div>
+    <div class="cap clip" id="cap-3" data-start="13.5" data-duration="4.0" data-track-index="2">Edit it like Figma.</div>
+    <div class="cap clip" id="cap-4" data-start="19.5" data-duration="5.0" data-track-index="3">Talk to it.</div>
+    <div class="cap clip" id="cap-5" data-start="27.5" data-duration="3.0" data-track-index="4"><span class="em">Your</span> style. Always.</div>
+    <div class="cap clip" id="cap-6" data-start="33.5" data-duration="3.0" data-track-index="5">One click. <span class="em">Live.</span></div>
+    <div class="cap clip" id="cap-7" data-start="39.0" data-duration="2.6" data-track-index="6">It's all <span class="em">yours.</span></div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  const caps = [
+    { id: 'cap-1', start: 3.2,  end: 6.5  },
+    { id: 'cap-2', start: 9.0,  end: 11.5 },
+    { id: 'cap-3', start: 13.5, end: 17.5 },
+    { id: 'cap-4', start: 19.5, end: 24.5 },
+    { id: 'cap-5', start: 27.5, end: 30.5 },
+    { id: 'cap-6', start: 33.5, end: 36.5 },
+    { id: 'cap-7', start: 39.0, end: 41.6 }
+  ];
+  caps.forEach(function (c) {
+    tl.fromTo('#' + c.id, { opacity: 0, y: 16, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, c.start);
+    tl.to('#' + c.id, { opacity: 0, y: -8, duration: 0.24, ease: 'power2.in' }, c.end);
+    tl.set('#' + c.id, { opacity: 0 }, c.end + 0.25);
+  });
+  window.__timelines['captions'] = tl;
+</script>
+</body>
+</html>

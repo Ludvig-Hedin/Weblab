@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .caps { position: absolute; inset: 0; font-family: 'Inter', system-ui, sans-serif; pointer-events: none; }
+  .caps .cap { position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%); padding: 16px 36px; border-radius: 999px; background: rgba(10,10,14,0.85); border: 1px solid rgba(61,139,253,0.25); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); color: #fafaf9; font-size: 42px; font-weight: 500; letter-spacing: -0.005em; white-space: nowrap; box-shadow: 0 22px 60px rgba(0,0,0,0.65); opacity: 0; }
+  .caps .cap .em { color: #3d8bfd; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="captions-alt-b" data-width="1920" data-height="1080">
+  <div class="caps">
+    <div class="cap" id="cb-1">One sentence.</div>
+    <div class="cap" id="cb-2">A real site.</div>
+    <div class="cap" id="cb-3"><span class="em">Yours</span> to edit.</div>
+    <div class="cap" id="cb-4">One click. <span class="em">Live.</span></div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  const caps = [
+    { id: 'cb-1', start: 4.0,  end: 8.5  },
+    { id: 'cb-2', start: 11.0, end: 16.5 },
+    { id: 'cb-3', start: 19.0, end: 25.5 },
+    { id: 'cb-4', start: 32.0, end: 38.5 }
+  ];
+  caps.forEach(function (c) {
+    tl.fromTo('#' + c.id, { opacity: 0, y: 16, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, c.start);
+    tl.to('#' + c.id, { opacity: 0, y: -8, duration: 0.28, ease: 'power2.in' }, c.end);
+  });
+  window.__timelines['captions-alt-b'] = tl;
+</script>
+</body>
+</html>

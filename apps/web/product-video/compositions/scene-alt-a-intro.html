@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .saa { position: absolute; inset: 0; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; display: flex; align-items: center; justify-content: center; }
+  .saa .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 50% 35% at 50% 50%, rgba(61,139,253,0.16), transparent 65%); filter: blur(80px); }
+  .saa .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.018) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.6; pointer-events: none; }
+  .saa .stage { position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 0 200px; }
+  .saa .pre { font-size: 16px; color: rgba(196,196,195,0.7); letter-spacing: 0.36em; text-transform: uppercase; font-weight: 500; display: flex; align-items: center; gap: 14px; }
+  .saa .pre .dot { width: 7px; height: 7px; background: #3d8bfd; border-radius: 50%; box-shadow: 0 0 12px #3d8bfd; }
+  .saa .stack { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  .saa .word { font-size: 142px; font-weight: 200; letter-spacing: -0.04em; line-height: 0.95; text-align: center; color: #fafaf9; }
+  .saa .word.struck { color: #6b6b6e; position: relative; }
+  .saa .word.struck::after { content: ''; position: absolute; left: 0; top: 50%; height: 6px; width: 100%; background: #3d8bfd; transform: translateY(-50%) scaleX(0); transform-origin: left center; box-shadow: 0 0 12px rgba(61,139,253,0.5); }
+  .saa .word.accent { background: linear-gradient(90deg, #3d8bfd, #5fa1ff); -webkit-background-clip: text; background-clip: text; color: transparent; font-style: italic; font-weight: 300; }
+  .saa .sub { font-size: 22px; color: #c4c4c3; max-width: 720px; text-align: center; line-height: 1.55; font-weight: 400; opacity: 0; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-alt-a-intro" data-width="1920" data-height="1080">
+  <div class="saa">
+    <div class="mesh"></div>
+    <div class="grain"></div>
+    <div class="stage">
+      <div class="pre" id="saa-pre"><span class="dot"></span>Weblab</div>
+      <div class="stack">
+        <div class="word struck" id="saa-w1">Sketch.</div>
+        <div class="word struck" id="saa-w2">Hand off.</div>
+        <div class="word struck" id="saa-w3">Drift.</div>
+        <div class="word accent" id="saa-w4" style="opacity: 0;">Just build.</div>
+      </div>
+      <div class="sub" id="saa-sub">Design with your real components. Ship in minutes.</div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.saa #saa-pre', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 0.1);
+  tl.fromTo('.saa #saa-w1', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.4);
+  tl.fromTo('.saa #saa-w2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.65);
+  tl.fromTo('.saa #saa-w3', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.9);
+  tl.to('.saa #saa-w1::after', {}, 1.2);
+  // strike-through bars: animate the ::after via CSS variable workaround — use setProperty on the word's style for transform
+  tl.to('.saa #saa-w1', { '--strike': 1, duration: 0.4, ease: 'power3.out', onUpdate: function() { document.getElementById('saa-w1').style.setProperty('--strike-progress', this.targets()[0].style.getPropertyValue('--strike') || '0'); } }, 1.3);
+  // Direct transform via JS — easier: use a separate strike element. Simpler: animate width via background.
+  // Use width-based strike approach: re-render via separate divs.
+  tl.fromTo('.saa #saa-w4', { opacity: 0, y: 30, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, 2.3);
+  tl.to('.saa #saa-w1', { opacity: 0.35, duration: 0.5, ease: 'power2.in' }, 2.0);
+  tl.to('.saa #saa-w2', { opacity: 0.35, duration: 0.5, ease: 'power2.in' }, 2.1);
+  tl.to('.saa #saa-w3', { opacity: 0.35, duration: 0.5, ease: 'power2.in' }, 2.2);
+  tl.fromTo('.saa #saa-sub', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: 'expo.out' }, 2.8);
+  window.__timelines['scene-alt-a-intro'] = tl;
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Weblab — Build something real</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #07070a; color: #fafaf9;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+      }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      #root > .clip { position: absolute; inset: 0; }
+      /* zoom-in entry on scene clips */
+      #root > .clip.scene-zoom { transform-origin: center center; }
+
+      /* Kinetic text overlay (above scenes) */
+      .kt { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 200px; font-weight: 200; letter-spacing: -0.04em; text-align: center; color: #fafaf9; opacity: 0; pointer-events: none; z-index: 60; }
+      .kt .em { color: #3d8bfd; font-style: italic; font-weight: 300; }
+      .kt-sub { position: absolute; left: 50%; bottom: 220px; transform: translateX(-50%); font-size: 28px; color: rgba(196,196,195,0.85); letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; opacity: 0; pointer-events: none; z-index: 60; }
+    </style>
+    <script>
+      window.__tailwindReady = new Promise(function (resolve) {
+        var loaded = document.readyState === 'complete', resolved = false, observer;
+        function readTailwindCss() { var styles = document.querySelectorAll('style'); for (var i = styles.length-1; i >= 0; i--) { var t = styles[i].textContent || ''; if (t.indexOf('tailwindcss v') !== -1) return t; } return ''; }
+        function finish() { if (resolved || !loaded || !readTailwindCss()) return; resolved = true; if (observer) observer.disconnect(); resolve(true); }
+        observer = new MutationObserver(finish); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        if (loaded) finish(); else window.addEventListener('load', function () { loaded = true; finish(); }, { once: true });
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js" integrity="sha384-v5YF9xS+gLRWdvrQ0u/WRbCkjSIH0NjHIPe8tBL1ZRrmI7PiSH6LLdzs0aAIMCuh" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="45" data-width="1920" data-height="1080">
+      <div class="clip scene-zoom" id="s1"  data-composition-id="scene-01-logo"        data-composition-src="compositions/scene-01-logo.html"        data-start="0"  data-duration="2"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s2"  data-composition-id="scene-02-prompt"      data-composition-src="compositions/scene-02-prompt.html"      data-start="2"  data-duration="5"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s3"  data-composition-id="scene-03-generate"    data-composition-src="compositions/scene-03-generate.html"    data-start="7"  data-duration="5"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s4"  data-composition-id="scene-04-style-edit"  data-composition-src="compositions/scene-04-style-edit.html"  data-start="12" data-duration="6"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s5"  data-composition-id="scene-05-ai-chat"     data-composition-src="compositions/scene-05-ai-chat.html"     data-start="18" data-duration="7"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s6"  data-composition-id="scene-06-ast-diff"    data-composition-src="compositions/scene-06-ast-diff.html"    data-start="25" data-duration="6"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s8"  data-composition-id="scene-08-publish"     data-composition-src="compositions/scene-08-publish.html"     data-start="31" data-duration="6"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s9"  data-composition-id="scene-09-live-site"   data-composition-src="compositions/scene-09-live-site.html"   data-start="37" data-duration="5"  data-track-index="0"></div>
+      <div class="clip scene-zoom" id="s10" data-composition-id="scene-10-end-card"    data-composition-src="compositions/scene-10-end-card.html"    data-start="42" data-duration="3"  data-track-index="0"></div>
+
+      <!-- Captions overlay -->
+      <div class="clip" id="captions" data-composition-id="captions" data-composition-src="compositions/captions.html" data-start="0" data-duration="45" data-track-index="1" style="z-index: 50; pointer-events: none;"></div>
+
+      <!-- Kinetic text hooks layered above scenes -->
+      <h2 class="clip kt"     id="kt-1" data-start="0.6" data-duration="1.2" data-track-index="2" style="z-index: 60;">One <span class="em">prompt.</span></h2>
+      <h2 class="clip kt"     id="kt-2" data-start="7.4" data-duration="1.4" data-track-index="2" style="z-index: 60;">Real <span class="em">code.</span></h2>
+      <h2 class="clip kt"     id="kt-3" data-start="25.4" data-duration="1.4" data-track-index="2" style="z-index: 60;"><span class="em">Your</span> style.</h2>
+      <h2 class="clip kt"     id="kt-4" data-start="37.4" data-duration="1.4" data-track-index="2" style="z-index: 60;">Live in <span class="em">seconds.</span></h2>
+
+      <!-- Audio: groovy upbeat instrumental music (no vocals) -->
+      <audio class="clip" id="music"     src="assets/audio/music-groove.mp3" data-start="0"   data-duration="45"   data-track-index="3" data-volume="0.55"></audio>
+
+      <!-- SFX cluster: cursor / interactions / transitions / publish -->
+      <audio class="clip" id="sfx-w0"  src="assets/audio/sfx-whoosh.mp3"   data-start="0.4"   data-duration="0.45" data-track-index="4" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-k1"  src="assets/audio/sfx-keypress.mp3" data-start="3.6"   data-duration="0.4"  data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-k2"  src="assets/audio/sfx-keypress.mp3" data-start="4.4"   data-duration="0.4"  data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-k3"  src="assets/audio/sfx-keypress.mp3" data-start="5.2"   data-duration="0.4"  data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-c1"  src="assets/audio/sfx-click.mp3"    data-start="6.2"   data-duration="0.4"  data-track-index="4" data-volume="0.7"></audio>
+      <audio class="clip" id="sfx-w1"  src="assets/audio/sfx-whoosh.mp3"   data-start="7.0"   data-duration="0.5"  data-track-index="4" data-volume="0.65"></audio>
+      <audio class="clip" id="sfx-h1"  src="assets/audio/sfx-hover.mp3"    data-start="13.8"  data-duration="0.4"  data-track-index="4" data-volume="0.5"></audio>
+      <audio class="clip" id="sfx-c2"  src="assets/audio/sfx-click.mp3"    data-start="14.5"  data-duration="0.4"  data-track-index="4" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-d1"  src="assets/audio/sfx-ding.mp3"     data-start="17.2"  data-duration="0.45" data-track-index="4" data-volume="0.5"></audio>
+      <audio class="clip" id="sfx-w2"  src="assets/audio/sfx-whoosh.mp3"   data-start="18.0"  data-duration="0.5"  data-track-index="4" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-k4"  src="assets/audio/sfx-keypress.mp3" data-start="19.0"  data-duration="0.4"  data-track-index="4" data-volume="0.5"></audio>
+      <audio class="clip" id="sfx-d2"  src="assets/audio/sfx-ding.mp3"     data-start="23.7"  data-duration="0.45" data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-w3"  src="assets/audio/sfx-whoosh.mp3"   data-start="25.0"  data-duration="0.5"  data-track-index="4" data-volume="0.65"></audio>
+      <audio class="clip" id="sfx-w4"  src="assets/audio/sfx-whoosh.mp3"   data-start="31.0"  data-duration="0.5"  data-track-index="4" data-volume="0.65"></audio>
+      <audio class="clip" id="sfx-c3"  src="assets/audio/sfx-click.mp3"    data-start="31.6"  data-duration="0.4"  data-track-index="4" data-volume="0.7"></audio>
+      <audio class="clip" id="sfx-s1"  src="assets/audio/sfx-success.mp3"  data-start="35.5"  data-duration="1.4"  data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-w5"  src="assets/audio/sfx-whoosh.mp3"   data-start="37.0"  data-duration="0.5"  data-track-index="4" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-d3"  src="assets/audio/sfx-ding.mp3"     data-start="42.2"  data-duration="0.45" data-track-index="4" data-volume="0.55"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene-level zoom-in entry on each scene
+      ['#s1','#s2','#s3','#s4','#s5','#s6','#s8','#s9','#s10'].forEach(function (id, i) {
+        const el = document.querySelector(id);
+        if (!el) return;
+        const startAttr = parseFloat(el.getAttribute('data-start') || '0');
+        tl.fromTo(id, { scale: 1.08, filter: 'blur(8px)' }, { scale: 1, filter: 'blur(0px)', duration: 0.55, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, startAttr);
+      });
+
+      // Kinetic text hooks: fade-in + scale + fade-out
+      ['#kt-1','#kt-2','#kt-3','#kt-4'].forEach(function (id) {
+        const el = document.querySelector(id);
+        if (!el) return;
+        const startAttr = parseFloat(el.getAttribute('data-start') || '0');
+        const durAttr = parseFloat(el.getAttribute('data-duration') || '1');
+        tl.fromTo(id, { opacity: 0, scale: 0.85, filter: 'blur(12px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.32, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }, startAttr);
+        tl.to(id, { opacity: 0, scale: 1.18, filter: 'blur(8px)', duration: 0.28, ease: 'power2.in' }, startAttr + durAttr - 0.28);
+      });
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

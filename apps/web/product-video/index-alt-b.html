@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Weblab — 45s</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      #root > .clip { position: absolute; inset: 0; }
+    </style>
+    <script>
+      window.__tailwindReady = new Promise(function (resolve) {
+        var loaded = document.readyState === 'complete', resolved = false, observer;
+        function readTailwindCss() { var styles = document.querySelectorAll('style'); for (var i = styles.length-1; i >= 0; i--) { var t = styles[i].textContent || ''; if (t.indexOf('tailwindcss v') !== -1) return t; } return ''; }
+        function finish() { if (resolved || !loaded || !readTailwindCss()) return; resolved = true; if (observer) observer.disconnect(); resolve(true); }
+        observer = new MutationObserver(finish); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        if (loaded) finish(); else window.addEventListener('load', function () { loaded = true; finish(); }, { once: true });
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js" integrity="sha384-v5YF9xS+gLRWdvrQ0u/WRbCkjSIH0NjHIPe8tBL1ZRrmI7PiSH6LLdzs0aAIMCuh" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="45" data-width="1920" data-height="1080">
+      <div class="clip" id="s1"  data-composition-id="scene-01-logo"        data-composition-src="compositions/scene-01-logo.html"        data-start="0"  data-duration="3"  data-track-index="0"></div>
+      <div class="clip" id="s2"  data-composition-id="scene-02-prompt"      data-composition-src="compositions/scene-02-prompt.html"      data-start="3"  data-duration="5"  data-track-index="0"></div>
+      <div class="clip" id="s3"  data-composition-id="scene-03-generate"    data-composition-src="compositions/scene-03-generate.html"    data-start="8"  data-duration="6"  data-track-index="0"></div>
+      <div class="clip" id="s5"  data-composition-id="scene-05-ai-chat"     data-composition-src="compositions/scene-05-ai-chat.html"     data-start="14" data-duration="9"  data-track-index="0"></div>
+      <div class="clip" id="s7"  data-composition-id="scene-07-responsive"  data-composition-src="compositions/scene-07-responsive.html"  data-start="23" data-duration="8"  data-track-index="0"></div>
+      <div class="clip" id="s8"  data-composition-id="scene-08-publish"     data-composition-src="compositions/scene-08-publish.html"     data-start="31" data-duration="6"  data-track-index="0"></div>
+      <div class="clip" id="s9"  data-composition-id="scene-09-live-site"   data-composition-src="compositions/scene-09-live-site.html"   data-start="37" data-duration="5"  data-track-index="0"></div>
+      <div class="clip" id="s10" data-composition-id="scene-10-end-card"    data-composition-src="compositions/scene-10-end-card.html"    data-start="42" data-duration="3"  data-track-index="0"></div>
+      <div class="clip" id="captions" data-composition-id="captions-alt-b" data-composition-src="compositions/captions-alt-b.html" data-start="0" data-duration="45" data-track-index="1" style="z-index: 50; pointer-events: none;"></div>
+
+      <audio class="clip" id="music"   src="assets/audio/music-groove.mp3" data-start="0"    data-duration="45"   data-track-index="2" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-w0"  src="assets/audio/sfx-whoosh.mp3"   data-start="0.4"  data-duration="0.45" data-track-index="3" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-k1"  src="assets/audio/sfx-keypress.mp3" data-start="4.5"  data-duration="0.4"  data-track-index="3" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-k2"  src="assets/audio/sfx-keypress.mp3" data-start="5.4"  data-duration="0.4"  data-track-index="3" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-c0"  src="assets/audio/sfx-click.mp3"    data-start="7.0"  data-duration="0.4"  data-track-index="3" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-w1"  src="assets/audio/sfx-whoosh.mp3"   data-start="8.0"  data-duration="0.5"  data-track-index="3" data-volume="0.65"></audio>
+      <audio class="clip" id="sfx-h1"  src="assets/audio/sfx-hover.mp3"    data-start="14.5" data-duration="0.4"  data-track-index="3" data-volume="0.5"></audio>
+      <audio class="clip" id="sfx-d1"  src="assets/audio/sfx-ding.mp3"     data-start="20.0" data-duration="0.45" data-track-index="3" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-w2"  src="assets/audio/sfx-whoosh.mp3"   data-start="23.0" data-duration="0.5"  data-track-index="3" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-w3"  src="assets/audio/sfx-whoosh.mp3"   data-start="31.0" data-duration="0.5"  data-track-index="3" data-volume="0.65"></audio>
+      <audio class="clip" id="sfx-c2"  src="assets/audio/sfx-click.mp3"    data-start="31.6" data-duration="0.4"  data-track-index="3" data-volume="0.7"></audio>
+      <audio class="clip" id="sfx-s1"  src="assets/audio/sfx-success.mp3"  data-start="35.5" data-duration="1.4"  data-track-index="3" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx-w4"  src="assets/audio/sfx-whoosh.mp3"   data-start="37.0" data-duration="0.5"  data-track-index="3" data-volume="0.6"></audio>
+      <audio class="clip" id="sfx-d2"  src="assets/audio/sfx-ding.mp3"     data-start="42.2" data-duration="0.45" data-track-index="3" data-volume="0.6"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

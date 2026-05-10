@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Weblab — Skip the handoff</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+      #root > .clip { position: absolute; inset: 0; }
+    </style>
+    <script>
+      window.__tailwindReady = new Promise(function (resolve) {
+        var loaded = document.readyState === 'complete', resolved = false, observer;
+        function readTailwindCss() { var styles = document.querySelectorAll('style'); for (var i = styles.length-1; i >= 0; i--) { var t = styles[i].textContent || ''; if (t.indexOf('tailwindcss v') !== -1) return t; } return ''; }
+        function finish() { if (resolved || !loaded || !readTailwindCss()) return; resolved = true; if (observer) observer.disconnect(); resolve(true); }
+        observer = new MutationObserver(finish); observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        if (loaded) finish(); else window.addEventListener('load', function () { loaded = true; finish(); }, { once: true });
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js" integrity="sha384-v5YF9xS+gLRWdvrQ0u/WRbCkjSIH0NjHIPe8tBL1ZRrmI7PiSH6LLdzs0aAIMCuh" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="60" data-width="1920" data-height="1080">
+      <div class="clip" id="si"  data-composition-id="scene-alt-a-intro"  data-composition-src="compositions/scene-alt-a-intro.html"  data-start="0"  data-duration="6"  data-track-index="0"></div>
+      <div class="clip" id="s3"  data-composition-id="scene-03-generate"   data-composition-src="compositions/scene-03-generate.html"   data-start="6"  data-duration="8"  data-track-index="0"></div>
+      <div class="clip" id="s4"  data-composition-id="scene-04-style-edit" data-composition-src="compositions/scene-04-style-edit.html" data-start="14" data-duration="9"  data-track-index="0"></div>
+      <div class="clip" id="s5"  data-composition-id="scene-05-ai-chat"    data-composition-src="compositions/scene-05-ai-chat.html"    data-start="23" data-duration="10" data-track-index="0"></div>
+      <div class="clip" id="s6"  data-composition-id="scene-06-ast-diff"   data-composition-src="compositions/scene-06-ast-diff.html"   data-start="33" data-duration="10" data-track-index="0"></div>
+      <div class="clip" id="s8"  data-composition-id="scene-08-publish"    data-composition-src="compositions/scene-08-publish.html"    data-start="43" data-duration="7"  data-track-index="0"></div>
+      <div class="clip" id="s9"  data-composition-id="scene-09-live-site"  data-composition-src="compositions/scene-09-live-site.html"  data-start="50" data-duration="6"  data-track-index="0"></div>
+      <div class="clip" id="se"  data-composition-id="scene-end-v2"        data-composition-src="compositions/scene-end-v2.html"        data-start="56" data-duration="4"  data-track-index="0"></div>
+      <div class="clip" id="captions" data-composition-id="captions-alt-a" data-composition-src="compositions/captions-alt-a.html" data-start="0" data-duration="60" data-track-index="1" style="z-index: 50; pointer-events: none;"></div>
+
+      <audio class="clip" id="music" src="assets/audio/music.mp3" data-start="0" data-duration="60" data-track-index="2" data-volume="0.32"></audio>
+      <audio class="clip" id="vo1"   src="assets/audio/vo-1.mp3"  data-start="6.5"  data-duration="4" data-track-index="3" data-volume="1.0"></audio>
+      <audio class="clip" id="vo2"   src="assets/audio/vo-2.mp3"  data-start="14.0" data-duration="4.6" data-track-index="3" data-volume="1.0"></audio>
+      <audio class="clip" id="vo3"   src="assets/audio/vo-3.mp3"  data-start="33.5" data-duration="4.8" data-track-index="3" data-volume="1.0"></audio>
+      <audio class="clip" id="vo4"   src="assets/audio/vo-4.mp3"  data-start="44.0" data-duration="4.8" data-track-index="3" data-volume="1.0"></audio>
+      <audio class="clip" id="sfx2"  src="assets/audio/sfx-woosh.mp3"   data-start="6.0"  data-duration="0.8" data-track-index="4" data-volume="0.55"></audio>
+      <audio class="clip" id="sfx3"  src="assets/audio/sfx-click.mp3"   data-start="43.6" data-duration="0.5" data-track-index="4" data-volume="0.7"></audio>
+      <audio class="clip" id="sfx4"  src="assets/audio/sfx-success.mp3" data-start="48.5" data-duration="1.4" data-track-index="4" data-volume="0.6"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

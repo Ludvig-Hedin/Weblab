@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .s7 { position: absolute; inset: 0; overflow: hidden; background: #07070a; font-family: 'Inter', system-ui, sans-serif; color: #fafaf9; }
+  .s7 .mesh { position: absolute; inset: -8%; background: radial-gradient(ellipse 60% 45% at 50% 60%, rgba(61,139,253,0.10), transparent 70%); filter: blur(60px); }
+  .s7 .grain { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 3px 3px; opacity: 0.5; }
+  .s7 .heading { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); font-size: 60px; font-weight: 200; letter-spacing: -0.03em; line-height: 1.0; text-align: center; color: #fafaf9; }
+  .s7 .heading .accent { color: #3d8bfd; font-style: italic; font-weight: 300; }
+  .s7 .switcher { position: absolute; top: 220px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; background: rgba(15,15,20,0.7); border: 1px solid rgba(61,139,253,0.18); border-radius: 14px; padding: 6px; backdrop-filter: blur(20px); }
+  .s7 .switcher .bp { padding: 8px 16px; border-radius: 9px; font-size: 14px; color: #6b6b6e; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .s7 .switcher .bp.active { background: rgba(61,139,253,0.16); color: #fafaf9; box-shadow: inset 0 0 0 1px rgba(61,139,253,0.3); }
+  .s7 .switcher .bp svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 1.6; fill: none; }
+  .s7 .frames { position: absolute; top: 320px; left: 0; right: 0; bottom: 60px; display: flex; align-items: flex-start; justify-content: center; gap: 50px; z-index: 5; }
+  .s7 .frame { background: #131318; border: 1px solid #2a2a31; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.55); display: flex; flex-direction: column; }
+  .s7 .frame.active { border: 1.5px solid rgba(61,139,253,0.55); box-shadow: 0 24px 60px rgba(0,0,0,0.55), 0 0 60px rgba(61,139,253,0.18); }
+  .s7 .frame-bar { height: 28px; background: #0d0d11; border-bottom: 1px solid #1a1a1f; display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+  .s7 .frame-bar span { width: 6px; height: 6px; border-radius: 50%; background: #2a2a30; }
+  .s7 .frame-bar .label { margin-left: 10px; font-size: 11px; color: #6b6b6e; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .s7 .desktop { width: 720px; height: 480px; }
+  .s7 .tablet { width: 380px; height: 560px; }
+  .s7 .mobile { width: 220px; height: 480px; }
+  .s7 .frame-body { flex: 1; padding: 22px; background: #1a1a1e; display: flex; flex-direction: column; gap: 14px; overflow: hidden; }
+  .s7 .frame-body .h { font-size: 14px; color: #c4c4c3; font-weight: 500; }
+  .s7 .desktop .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; flex: 1; }
+  .s7 .tablet .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex: 1; }
+  .s7 .mobile .grid { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: hidden; }
+  .s7 .ph-card { background: #1f1f25; border: 1px solid #2a2a31; border-radius: 9px; padding: 12px 11px; display: flex; flex-direction: column; gap: 6px; min-height: 90px; }
+  .s7 .ph-card.featured { border: 1.5px solid #3d8bfd; box-shadow: inset 0 0 18px rgba(61,139,253,0.16); }
+  .s7 .ph-tier { font-size: 11px; color: #c4c4c3; font-weight: 500; }
+  .s7 .ph-card.featured .ph-tier { color: #3d8bfd; }
+  .s7 .ph-ico { width: 16px; height: 16px; border-radius: 4px; background: #2a2a31; }
+  .s7 .ph-card.featured .ph-ico { background: rgba(61,139,253,0.4); }
+  .s7 .ph-bar { height: 4px; background: #2a2a31; border-radius: 2px; }
+  .s7 .ph-bar.short { width: 60%; }
+  .s7 .ph-cta { margin-top: auto; height: 18px; background: #2a2a31; border-radius: 5px; }
+  .s7 .ph-cta.primary { background: #3d8bfd; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="scene-07-responsive" data-width="1920" data-height="1080">
+  <div class="s7">
+    <div class="mesh"></div>
+    <div class="grain"></div>
+    <h2 class="heading" id="s7-heading">Same code. <span class="accent">Every screen.</span></h2>
+    <div class="switcher" id="s7-switcher">
+      <div class="bp active" id="s7-bp-d"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="1.5"/><path d="M9 21h6"/></svg>Desktop</div>
+      <div class="bp" id="s7-bp-t"><svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/></svg>Tablet</div>
+      <div class="bp" id="s7-bp-m"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="1.5"/></svg>Mobile</div>
+    </div>
+    <div class="frames">
+      <div class="frame desktop active" id="s7-desktop">
+        <div class="frame-bar"><span></span><span></span><span></span><span class="label">desktop · 1280</span></div>
+        <div class="frame-body"><div class="h">Flow</div><div class="grid">
+          <div class="ph-card"><div class="ph-ico"></div><div class="ph-tier">Realtime</div><div class="ph-bar"></div><div class="ph-bar"></div><div class="ph-cta"></div></div>
+          <div class="ph-card featured"><div class="ph-ico"></div><div class="ph-tier">Smart merge</div><div class="ph-bar"></div><div class="ph-bar"></div><div class="ph-cta primary"></div></div>
+          <div class="ph-card"><div class="ph-ico"></div><div class="ph-tier">Insights</div><div class="ph-bar"></div><div class="ph-bar"></div><div class="ph-cta"></div></div>
+        </div></div>
+      </div>
+      <div class="frame tablet" id="s7-tablet">
+        <div class="frame-bar"><span></span><span></span><span></span><span class="label">tablet · 768</span></div>
+        <div class="frame-body"><div class="h">Flow</div><div class="grid">
+          <div class="ph-card"><div class="ph-ico"></div><div class="ph-tier">Realtime</div><div class="ph-bar"></div><div class="ph-cta"></div></div>
+          <div class="ph-card featured"><div class="ph-ico"></div><div class="ph-tier">Smart merge</div><div class="ph-bar"></div><div class="ph-cta primary"></div></div>
+          <div class="ph-card"><div class="ph-ico"></div><div class="ph-tier">Insights</div><div class="ph-bar"></div><div class="ph-cta"></div></div>
+        </div></div>
+      </div>
+      <div class="frame mobile" id="s7-mobile">
+        <div class="frame-bar"><span></span><span></span><span></span><span class="label">390</span></div>
+        <div class="frame-body"><div class="h">Flow</div><div class="grid">
+          <div class="ph-card"><div class="ph-ico"></div><div class="ph-tier">Realtime</div><div class="ph-cta"></div></div>
+          <div class="ph-card featured"><div class="ph-ico"></div><div class="ph-tier">Smart merge</div><div class="ph-cta primary"></div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo('.s7 #s7-heading', { opacity: 0, y: 24, filter: 'blur(8px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.85, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.1);
+  tl.fromTo('.s7 #s7-switcher', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'expo.out' }, 0.4);
+  tl.fromTo('.s7 #s7-desktop', { opacity: 0, y: 60, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.7);
+  tl.fromTo('.s7 #s7-tablet', { opacity: 0, y: 60, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 0.95);
+  tl.fromTo('.s7 #s7-mobile', { opacity: 0, y: 60, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.85, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, 1.2);
+  tl.to('.s7 #s7-bp-d', { backgroundColor: 'transparent', color: '#6b6b6e', boxShadow: 'none', duration: 0.3 }, 4.0);
+  tl.to('.s7 #s7-bp-t', { backgroundColor: 'rgba(61,139,253,0.16)', color: '#fafaf9', boxShadow: 'inset 0 0 0 1px rgba(61,139,253,0.3)', duration: 0.3 }, 4.0);
+  tl.to('.s7 #s7-desktop', { boxShadow: '0 24px 60px rgba(0,0,0,0.55)', borderColor: '#2a2a31', duration: 0.3 }, 4.0);
+  tl.to('.s7 #s7-tablet', { boxShadow: '0 24px 60px rgba(0,0,0,0.55), 0 0 60px rgba(61,139,253,0.18)', borderColor: 'rgba(61,139,253,0.55)', duration: 0.3 }, 4.0);
+  tl.to('.s7 #s7-bp-t', { backgroundColor: 'transparent', color: '#6b6b6e', boxShadow: 'none', duration: 0.3 }, 7.8);
+  tl.to('.s7 #s7-bp-m', { backgroundColor: 'rgba(61,139,253,0.16)', color: '#fafaf9', boxShadow: 'inset 0 0 0 1px rgba(61,139,253,0.3)', duration: 0.3 }, 7.8);
+  tl.to('.s7 #s7-tablet', { boxShadow: '0 24px 60px rgba(0,0,0,0.55)', borderColor: '#2a2a31', duration: 0.3 }, 7.8);
+  tl.to('.s7 #s7-mobile', { boxShadow: '0 24px 60px rgba(0,0,0,0.55), 0 0 60px rgba(61,139,253,0.18)', borderColor: 'rgba(61,139,253,0.55)', duration: 0.3 }, 7.8);
+  window.__timelines['scene-07-responsive'] = tl;
+</script>
+</body>
+</html>

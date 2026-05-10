@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<style>
+  .caps { position: absolute; inset: 0; font-family: 'Inter', system-ui, sans-serif; pointer-events: none; }
+  .caps .cap { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%); padding: 14px 30px; border-radius: 999px; background: rgba(10, 10, 14, 0.82); border: 1px solid rgba(61,139,253,0.20); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); color: #fafaf9; font-size: 38px; font-weight: 500; letter-spacing: -0.005em; white-space: nowrap; box-shadow: 0 18px 50px rgba(0,0,0,0.6); }
+  .caps .cap .em { color: #3d8bfd; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head>
+<body>
+<div data-composition-id="captions-v3" data-width="1920" data-height="1080">
+  <div class="caps">
+    <div class="clip cap" id="cv3-1" data-start="3.5"  data-duration="3.5" data-track-index="0">A site, in <span class="em">one prompt.</span></div>
+    <div class="clip cap" id="cv3-2" data-start="9.0"  data-duration="5.0" data-track-index="0">Talk to it. <span class="em">It builds.</span></div>
+    <div class="clip cap" id="cv3-3" data-start="16.0" data-duration="4.0" data-track-index="0">One click. <span class="em">Live.</span></div>
+    <div class="clip cap" id="cv3-4" data-start="21.0" data-duration="3.5" data-track-index="0">Real code. <span class="em">Yours.</span></div>
+  </div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  ['cv3-1','cv3-2','cv3-3','cv3-4'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = parseFloat(el.getAttribute('data-start'));
+    tl.fromTo('#' + id, { opacity: 0, y: 16, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }, start);
+  });
+  window.__timelines['captions-v3'] = tl;
+</script>
+</body>
+</html>
