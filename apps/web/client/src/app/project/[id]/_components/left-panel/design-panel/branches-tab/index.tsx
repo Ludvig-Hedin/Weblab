@@ -128,12 +128,10 @@ export const BranchesTab = observer(() => {
     return (
         <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b p-4">
-                <div className="flex items-center gap-2">
-                    <h2 className="text-small">Branches</h2>
-                    <span className="text-muted-foreground text-mini">
-                        ({branches.allBranches.length})
-                    </span>
-                </div>
+                <span className="text-muted-foreground text-mini">
+                    {branches.allBranches.length} branch
+                    {branches.allBranches.length === 1 ? '' : 'es'}
+                </span>
                 <Popover open={createOpen} onOpenChange={setCreateOpen}>
                     <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

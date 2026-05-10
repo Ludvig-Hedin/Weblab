@@ -25,6 +25,10 @@ import { PagesTab } from './page-tab';
 import { SearchTab } from './search-tab';
 import { ZoomControls } from './zoom-controls';
 
+const PANEL_DEFAULT_WIDTH = 272;
+const PANEL_MIN_WIDTH = 240;
+const PANEL_MAX_WIDTH = 560;
+
 const tabs: {
     value: LeftPanelTabValue;
     icon: ReactNode;
@@ -153,31 +157,45 @@ export const DesignPanel = observer(() => {
         }
     };
 
-    if (isCollapsed) {
+    if (isCollapsed || editorEngine.state.panelsHidden) {
         return (
             <div className="mt-3 flex">
                 <Button
                     variant="ghost"
                     size="icon"
-                    aria-label="Open left panel"
-                    className="border-border-bar bg-background-secondary text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-md border border-l-0"
-                    onClick={() => setIsCollapsed(false)}
+                    aria-label={t(transKeys.editor.panels.layers.rail.openLeftPanel)}
+                    className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-none rounded-r-md border border-l-0"
+                    onClick={() => {
+                        if (editorEngine.state.panelsHidden) {
+                            editorEngine.state.togglePanelsHidden();
+                        }
+                        setIsCollapsed(false);
+                    }}
                 >
-                    <Icons.ChevronRight className="h-4 w-4" />
+                    <Icons.SidebarLeftExpand className="h-4 w-4" />
                 </Button>
             </div>
         );
     }
 
+    const panelTitle = selectedTab ? getTabLabel(selectedTab) : '';
+
     const tabContent = (
-        <div className="bg-background-secondary relative flex h-full flex-col overflow-hidden">
-            {/* Pin / unpin control — visible at top-right of the open panel. */}
-            <div className="absolute top-2 right-2 z-10">
+        <div className="bg-background-chrome border-border-bar flex h-full flex-col overflow-hidden border-r">
+            {/* Panel header — current tab title with inline pin / unpin control. */}
+            <div className="border-border-bar/60 flex h-10 shrink-0 items-center justify-between border-b px-3">
+                <span className="text-foreground-primary text-small truncate font-medium">
+                    {panelTitle}
+                </span>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <button
                             type="button"
-                            aria-label={isLocked ? 'Unpin panel' : 'Pin panel'}
+                            aria-label={
+                                isLocked
+                                    ? t(transKeys.editor.panels.layers.rail.unpinPanel)
+                                    : t(transKeys.editor.panels.layers.rail.pinPanel)
+                            }
                             aria-pressed={isLocked}
                             onClick={() => editorEngine.state.setLeftPanelLocked(!isLocked)}
                             className={cn(
@@ -188,18 +206,20 @@ export const DesignPanel = observer(() => {
                             )}
                         >
                             {isLocked ? (
-                                <Icons.BookmarkFilled className="h-3.5 w-3.5" />
+                                <Icons.PinFilled className="h-3.5 w-3.5" />
                             ) : (
-                                <Icons.Bookmark className="h-3.5 w-3.5" />
+                                <Icons.Pin className="h-3.5 w-3.5" />
                             )}
                         </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" hideArrow>
-                        {isLocked ? 'Unpin panel' : 'Pin panel'}
+                        {isLocked
+                            ? t(transKeys.editor.panels.layers.rail.unpinPanel)
+                            : t(transKeys.editor.panels.layers.rail.pinPanel)}
                     </TooltipContent>
                 </Tooltip>
             </div>
-            <div className="border-border-bar h-full overflow-auto border-r p-0">
+            <div className="flex-1 overflow-auto p-0">
                 {selectedTab === LeftPanelTabValue.INSERT && <InsertTab />}
                 {selectedTab === LeftPanelTabValue.COMPONENTS && <ComponentsTab />}
                 {selectedTab === LeftPanelTabValue.LAYERS && <LayersTab />}
@@ -215,7 +235,7 @@ export const DesignPanel = observer(() => {
     return (
         <div className="flex h-full overflow-auto" onMouseLeave={handleMouseLeave}>
             {/* Left sidebar with tabs */}
-            <div className="bg-background-secondary border-border-bar flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
+            <div className="bg-background-chrome border-border-bar flex w-14 flex-col items-center gap-1 border-r px-1.5 py-2">
                 {tabs.map((tab) => {
                     const label = getTabLabel(tab.value);
 
@@ -260,15 +280,15 @@ export const DesignPanel = observer(() => {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
-                                aria-label="Collapse left panel"
+                                aria-label={t(transKeys.editor.panels.layers.rail.collapsePanel)}
                                 className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-150"
                                 onClick={() => setIsCollapsed(true)}
                             >
-                                <Icons.ChevronRight className="h-4 w-4 rotate-180" />
+                                <Icons.SidebarLeftCollapse className="h-4 w-4" />
                             </button>
                         </TooltipTrigger>
                         <TooltipContent side="right" hideArrow>
-                            Collapse panel
+                            {t(transKeys.editor.panels.layers.rail.collapsePanel)}
                         </TooltipContent>
                     </Tooltip>
                 </div>
@@ -280,14 +300,16 @@ export const DesignPanel = observer(() => {
                     {isLocked ? (
                         <ResizablePanel
                             side="left"
-                            defaultWidth={272}
-                            minWidth={240}
-                            maxWidth={560}
+                            defaultWidth={PANEL_DEFAULT_WIDTH}
+                            minWidth={PANEL_MIN_WIDTH}
+                            maxWidth={PANEL_MAX_WIDTH}
                         >
                             {tabContent}
                         </ResizablePanel>
                     ) : (
-                        <div className="w-[272px] flex-1">{tabContent}</div>
+                        <div className="flex-1" style={{ width: PANEL_DEFAULT_WIDTH }}>
+                            {tabContent}
+                        </div>
                     )}
 
                     {/* Invisible padding area that maintains hover state */}

@@ -170,11 +170,7 @@ export const InsertTab = observer(() => {
 
     return (
         <div className="text-active text-mini flex h-full w-full flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-3 pt-3 pb-1">
-                <span className="text-foreground-primary text-small font-medium">Add</span>
-            </div>
-
-            <div className="px-3 pb-2">
+            <div className="px-3 pt-3 pb-2">
                 <div className="border-border-primary/50 flex items-center gap-4 border-b">
                     {(['elements', 'blocks'] as Mode[]).map((value) => (
                         <button

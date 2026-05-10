@@ -70,11 +70,7 @@ export const ComponentsTab = observer(() => {
 
     return (
         <div className="text-active text-mini flex h-full w-full flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-3 pt-3 pb-1">
-                <span className="text-foreground-primary text-small font-medium">Components</span>
-            </div>
-
-            <div className="px-3 pb-2">
+            <div className="px-3 pt-3 pb-2">
                 <div className="relative">
                     <Icons.MagnifyingGlass className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
