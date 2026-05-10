@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
 import type { ChatModel, LocalModelOption } from '@weblab/models';
 import { PROVIDER_MANIFEST } from '@weblab/ai/client';
+import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import {
     Command,
@@ -285,7 +286,7 @@ export const ModelSelectorV2 = ({
                                                 className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
                                             />
                                             <span className="text-foreground-secondary truncate">
-                                                Available in the Weblab desktop app
+                                                Available in the {APP_NAME} desktop app
                                             </span>
                                         </CommandItem>
                                     </CommandGroup>

@@ -427,6 +427,7 @@
       "name": "@weblab/framework",
       "version": "0.0.0",
       "dependencies": {
+        "@weblab/constants": "*",
         "@weblab/models": "*",
       },
       "devDependencies": {

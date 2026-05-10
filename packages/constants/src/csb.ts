@@ -21,6 +21,11 @@ export const SandboxTemplates: Record<Templates, SandboxTemplate> = {
 // its bundled Next.js server that returns a JSON error for every request.
 export const DEFAULT_NEW_PROJECT_TEMPLATE = SandboxTemplates[Templates.BLANK];
 
+// Sandbox ID for the static HTML starter template. Exported so
+// packages/framework/src/adapters/static-html.ts can reference the same value
+// without duplication.
+export const STATIC_HTML_SANDBOX_ID = 'html-qz83hv';
+
 // Public sandbox IDs that any signed-in user is allowed to fork. These are
 // canonical templates (the BLANK seed plus pre-seeded external templates
 // referenced from the templates page); they have no `branches` row, so the
@@ -29,7 +34,7 @@ export const DEFAULT_NEW_PROJECT_TEMPLATE = SandboxTemplates[Templates.BLANK];
 export const PUBLIC_TEMPLATE_SANDBOX_IDS = new Set<string>([
     SandboxTemplates[Templates.BLANK].id,
     SandboxTemplates[Templates.EMPTY_NEXTJS].id,
-    'html-qz83hv', // static-html-starter (apps/web/client/.../template-data.ts)
+    STATIC_HTML_SANDBOX_ID,
 ]);
 
 export const CSB_PREVIEW_TASK_NAME = 'dev';

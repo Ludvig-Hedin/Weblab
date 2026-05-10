@@ -1,3 +1,5 @@
+import { STATIC_HTML_SANDBOX_ID } from '@weblab/constants';
+
 import type { FrameworkAdapter, ProjectFiles, ValidationResult } from '../types';
 
 /**
@@ -13,7 +15,7 @@ export const staticHtmlAdapter: FrameworkAdapter = {
     id: 'static-html',
     displayName: 'Static HTML',
     template: {
-        codesandboxId: 'html-qz83hv',
+        codesandboxId: STATIC_HTML_SANDBOX_ID,
         port: 3000,
         devTask: 'dev',
         staticHosting: true,
