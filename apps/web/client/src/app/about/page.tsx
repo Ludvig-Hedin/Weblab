@@ -105,6 +105,18 @@ export default function AboutPage() {
                                 For too long, the most brilliant creative teams have been severed by
                                 the complexity of tools. We're building Weblab from Sweden — a
                                 bridge that will end the gap between creativity and implementation.
+                                <br />
+                                <br />
+                                Open source under Apache 2.0. Built in public on{' '}
+                                <a
+                                    href="https://github.com/Ludvig-Hedin/Weblab"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-foreground-primary underline underline-offset-4"
+                                >
+                                    GitHub
+                                </a>
+                                .
                             </p>
                         </motion.div>
                     </div>

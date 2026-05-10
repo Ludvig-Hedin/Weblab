@@ -807,60 +807,110 @@ export function WeblabInterfaceMockup() {
             </div>
 
             {/* Top Bar */}
-            <div className="border-border bg-background-chrome
-             relative z-10 grid h-10 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
-                <div className="flex min-w-0 items-center gap-1">
-                    <Icons.WeblabLogo className="h-5 w-5 shrink-0" />
-                    <span className="text-foreground-secondary ml-1 max-w-[100px] truncate text-xs">
+            <div className="border-border bg-background-chrome relative z-10 grid h-11 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
+                {/* Left cluster: logo + project breadcrumb + branch + connection */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                    <Icons.WeblabLogo className="h-4.5 w-4.5 shrink-0" />
+                    <span className="text-foreground max-w-[110px] truncate text-[11px] font-medium">
                         Villainterest
                     </span>
-                    <Icons.ChevronDown className="text-foreground-tertiary ml-0.5 h-4 w-4" />
+                    <Icons.ChevronDown className="text-foreground-tertiary -ml-0.5 h-3.5 w-3.5" />
+                    <span className="text-foreground-tertiary mx-0.5 text-[11px]">/</span>
+                    <div className="bg-background-secondary/60 border-border/60 flex items-center gap-1 rounded-md border px-1.5 py-0.5">
+                        <Icons.Branch className="text-foreground-secondary h-3 w-3" />
+                        <span className="text-foreground-secondary text-[10.5px]">main</span>
+                    </div>
+                    <div className="bg-emerald-500/10 border-emerald-500/30 ml-1 flex items-center gap-1 rounded-md border px-1.5 py-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgb(52_211_153)]" />
+                        <span className="text-emerald-200 text-[10px] font-medium">Online</span>
+                    </div>
                 </div>
+
                 <ModeToggle activeMode={activeMode} onChange={setActiveMode} />
-                <div className="flex items-center justify-end gap-1.5">
-                    <button className="hover:bg-background-secondary rounded p-1">
-                        <Icons.Reset className="text-foreground-secondary h-4 w-4" />
-                    </button>
-                    <button className="hover:bg-background-secondary rounded p-1">
-                        <Icons.Reset className="text-foreground-secondary h-4 w-4 scale-x-[-1]" />
+
+                {/* Right cluster: undo/redo, history, diff, git, CMS, preview, members, avatar, Publish */}
+                <div className="flex items-center justify-end gap-0.5">
+                    <button
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="Undo"
+                    >
+                        <Icons.Reset className="h-3.5 w-3.5" />
                     </button>
                     <button
-                        onClick={handlePublish}
-                        type="button"
-                        className={cn(
-                            'ml-2 flex flex-row items-center gap-1.5 rounded border-[1px] px-2.5 py-1 text-xs transition-colors',
-                            publishState === 'publishing'
-                                ? 'border-amber-300/60 bg-amber-300/10 text-amber-200'
-                                : 'border-teal-200 bg-teal-900/40 text-teal-200 hover:bg-teal-900/60',
-                        )}
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="Redo"
                     >
-                        {publishState === 'publishing' ? (
-                            <>
-                                <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
-                                Publishing
-                            </>
-                        ) : (
-                            <>
-                                <Icons.Globe className="h-3.5 w-3.5" />
-                                Live
-                            </>
-                        )}
+                        <Icons.Reset className="h-3.5 w-3.5 scale-x-[-1]" />
                     </button>
-                    <div className="bg-background-tertiary text-foreground mt-0.5 ml-1 flex h-7.5 w-7.5 items-center justify-center rounded-full text-xs">
+                    <div className="bg-border/60 mx-1 h-4 w-px" />
+                    <button
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="Version history"
+                    >
+                        <Icons.CounterClockwiseClock className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="Diff"
+                    >
+                        <Icons.Code className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="CMS"
+                    >
+                        <Icons.Cube className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        aria-label="Preview"
+                        onClick={() => setActiveMode('preview')}
+                    >
+                        <Icons.Play className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="bg-border/60 mx-1 h-4 w-px" />
+                    {/* Members avatar stack */}
+                    <div className="mr-1 flex -space-x-1.5">
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-gradient-to-br from-sky-300 to-indigo-400 ring-2" />
+                    </div>
+                    <div className="bg-background-tertiary text-foreground ml-0.5 flex h-6.5 w-6.5 items-center justify-center overflow-hidden rounded-full text-xs">
                         <img
                             src="/assets/profile-picture.png"
                             alt="Profile Picture"
                             className="h-full w-full rounded-full object-cover"
                         />
                     </div>
+                    <button
+                        onClick={handlePublish}
+                        type="button"
+                        className={cn(
+                            'ml-1.5 flex flex-row items-center gap-1.5 rounded-md border-[1px] px-2.5 py-1 text-xs transition-colors',
+                            publishState === 'publishing'
+                                ? 'border-amber-300/60 bg-amber-300/10 text-amber-200'
+                                : 'border-teal-200/70 bg-teal-900/40 text-teal-100 hover:bg-teal-900/60',
+                        )}
+                    >
+                        {publishState === 'publishing' ? (
+                            <>
+                                <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
+                                Publishing
+                            </>
+                        ) : (
+                            <>
+                                <Icons.Globe className="h-3 w-3" />
+                                Publish
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="relative flex h-[calc(100%-2.5rem)]">
-                {/* Sidebar */}
-                <div className="bg-background-bar/80 flex h-full w-10 flex-col items-center justify-between py-2 backdrop-blur-xl">
-                    <div className="flex flex-col items-center gap-1.5">
+            <div className="relative flex h-[calc(100%-2.75rem)]">
+                {/* Sidebar rail */}
+                <div className="bg-background-chrome border-border-bar flex h-full w-11 flex-col items-center justify-between border-r py-2 backdrop-blur-xl">
+                    <div className="flex flex-col items-center gap-0.5">
                         {TAB_DEFS.map((tab) => {
                             const Icon = Icons[tab.icon];
                             const active = tab.id === activeTab;
@@ -871,7 +921,7 @@ export function WeblabInterfaceMockup() {
                                     onClick={() => setActiveTab(tab.id)}
                                     aria-label={tab.label}
                                     className={cn(
-                                        'flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors',
+                                        'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-md transition-colors',
                                         active
                                             ? 'bg-background-bar-active text-foreground'
                                             : 'hover:bg-background-secondary/60 text-foreground-secondary',
@@ -882,8 +932,22 @@ export function WeblabInterfaceMockup() {
                             );
                         })}
                     </div>
-                    <div className="flex w-full flex-row items-center justify-center pb-2">
-                        <Icons.QuestionMarkCircled className="text-foreground-secondary h-4 w-4" />
+                    <div className="flex flex-col items-center gap-0.5">
+                        <div className="text-foreground-tertiary flex h-6 items-center justify-center text-[10px] tabular-nums">
+                            100%
+                        </div>
+                        <button
+                            aria-label="Help"
+                            className="text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
+                        >
+                            <Icons.QuestionMarkCircled className="h-4 w-4" />
+                        </button>
+                        <button
+                            aria-label="Collapse panel"
+                            className="text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
+                        >
+                            <Icons.SidebarLeftCollapse className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
 
