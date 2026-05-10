@@ -19,6 +19,7 @@ import {
     convertToStreamMessages,
     getAskModeSystemPrompt,
     getCreatePageSystemPrompt,
+    getPlanModeSystemPrompt,
     getSystemPrompt,
     getToolSetFromType,
     initModel,
@@ -108,7 +109,10 @@ const getSystemPromptFromType = (
             return getCreatePageSystemPrompt(memories, framework, skills);
         case ChatType.ASK:
             return getAskModeSystemPrompt(memories, framework, skills);
+        case ChatType.PLAN:
+            return getPlanModeSystemPrompt(memories, framework, skills);
         case ChatType.EDIT:
+        case ChatType.FIX:
         default:
             return getSystemPrompt(memories, framework, skills);
     }

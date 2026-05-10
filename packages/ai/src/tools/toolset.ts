@@ -7,6 +7,7 @@ import type { BaseTool } from './models/base';
 import type { ServerToolContext } from './server-context';
 import {
     AddGeneratedImageToProjectTool,
+    AskUserQuestionTool,
     BashEditTool,
     BashReadTool,
     CheckErrorsTool,
@@ -19,6 +20,7 @@ import {
     ListBranchesTool,
     ListFilesTool,
     ListSkillsTool,
+    PlanCompleteTool,
     ReadFileTool,
     ReadSkillTool,
     ReadStyleGuideTool,
@@ -107,6 +109,11 @@ const editOnlyToolClasses: ToolClass[] = [
     ...imageOnlyToolClasses,
 ];
 const allToolClasses: ToolClass[] = [...readOnlyToolClasses, ...editOnlyToolClasses];
+const planToolClasses: ToolClass[] = [
+    ...readOnlyToolClasses,
+    AskUserQuestionTool,
+    PlanCompleteTool,
+];
 
 export const readOnlyToolset: ToolSet = createToolSet(readOnlyToolClasses);
 export const allToolset: ToolSet = createToolSet(allToolClasses);
@@ -128,8 +135,14 @@ function filterUnavailable(classes: ToolClass[]): ToolClass[] {
 }
 
 export function getToolClassesFromType(chatType: ChatType): ToolClass[] {
-    const base = chatType === ChatType.ASK ? readOnlyToolClasses : allToolClasses;
-    return filterUnavailable(base);
+    switch (chatType) {
+        case ChatType.ASK:
+            return filterUnavailable(readOnlyToolClasses);
+        case ChatType.PLAN:
+            return filterUnavailable(planToolClasses);
+        default:
+            return filterUnavailable(allToolClasses);
+    }
 }
 
 /**

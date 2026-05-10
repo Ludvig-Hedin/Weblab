@@ -56,7 +56,8 @@ const ChatRequestBodySchema = z.object({
     messages: z.array(z.any()).min(1),
     chatType: z.nativeEnum(ChatType),
     conversationId: z.string().min(1),
-    projectId: z.string().min(1),
+    // projectId is optional for ChatType.PLAN pre-creation sessions (no project yet)
+    projectId: z.string().optional(),
     model: z.string().optional(),
     ollamaBaseUrl: z.string().optional(),
 });
@@ -136,12 +137,20 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     // Verify project access BEFORE any work or usage increment. The
     // serverToolContext below trusts projectId to scope server-side tools, so
     // this check is the contract that makes that trust safe.
-    try {
-        await api.project.get({ projectId });
-    } catch (err) {
-        console.warn('[chat] project access denied', err);
-        return new Response(JSON.stringify({ error: 'Forbidden', code: 403 }), {
-            status: 403,
+    // PLAN mode without projectId = pre-creation planning session — skip check.
+    if (projectId) {
+        try {
+            await api.project.get({ projectId });
+        } catch (err) {
+            console.warn('[chat] project access denied', err);
+            return new Response(JSON.stringify({ error: 'Forbidden', code: 403 }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+    } else if (chatType !== ChatType.PLAN) {
+        return new Response(JSON.stringify({ error: 'projectId required', code: 400 }), {
+            status: 400,
             headers: { 'Content-Type': 'application/json' },
         });
     }
@@ -163,13 +172,16 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     // prompt can be calibrated to the actual stack (Next.js vs static HTML).
     // Project access is already verified above; the framework lookup tolerates
     // failure (falls back to the React/Next.js prompt).
-    const frameworkPromise: Promise<ProjectFrameworkId | null> = api.project
-        .get({ projectId })
-        .then((p) => p?.metadata.runtime?.framework ?? null)
-        .catch((err) => {
-            console.warn('[chat] failed to read project framework, defaulting to React', err);
-            return null;
-        });
+    // PLAN pre-creation sessions have no projectId — skip and default to null.
+    const frameworkPromise: Promise<ProjectFrameworkId | null> = projectId
+        ? api.project
+              .get({ projectId })
+              .then((p) => p?.metadata.runtime?.framework ?? null)
+              .catch((err) => {
+                  console.warn('[chat] failed to read project framework, defaulting to React', err);
+                  return null;
+              })
+        : Promise.resolve(null);
 
     const selectedModel: ChatModel = body.model ?? CHAT_MODEL_OPTIONS[0].model;
     if (!isValidChatModel(selectedModel)) {
@@ -229,7 +241,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         // with model validation above. Each defaults safely on failure.
         const skillsPromise = loadSkillSummaries({
             userId,
-            projectId,
+            projectId: projectId ?? undefined,
             trpcCaller: api,
         }).catch((err) => {
             console.warn('[chat] failed to load Agent Skills, continuing without them', err);
@@ -243,7 +255,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         const stream = createRootAgentStream({
             chatType,
             conversationId,
-            projectId,
+            projectId: projectId ?? '',
             userId,
             traceId,
             messages,
@@ -253,13 +265,17 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             framework,
             skills,
             abortSignal: req.signal,
-            serverToolContext: {
-                userId,
-                projectId,
-                conversationId,
-                trpcCaller: api,
-                messages,
-            },
+            // PLAN pre-creation sessions have no projectId — omit serverToolContext
+            // so server-side tools are not bound (plan mode uses read-only client tools only).
+            serverToolContext: projectId
+                ? {
+                      userId,
+                      projectId,
+                      conversationId,
+                      trpcCaller: api,
+                      messages,
+                  }
+                : undefined,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
@@ -305,7 +321,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
 
                 // Fire-and-forget: extract facts and store them in Mem0.
                 // Never awaited — the streaming response has already been sent.
-                addMemoriesFromConversation(finalMessages, userId, projectId).catch((err) => {
+                addMemoriesFromConversation(finalMessages, userId, projectId ?? '').catch((err) => {
                     console.warn('[mem0] Failed to store memories:', err);
                 });
             },
