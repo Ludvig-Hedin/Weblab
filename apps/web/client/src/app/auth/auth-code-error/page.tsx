@@ -55,9 +55,16 @@ const REASONS = {
 
 type ReasonKey = keyof typeof REASONS;
 
+function isOwnReasonKey(value: string): value is ReasonKey {
+    // `value in REASONS` would match prototype keys (`__proto__`, `toString`)
+    // and let an attacker pin reasonKey to a Object.prototype member, leaking
+    // `undefined` into the rendered title/body.
+    return Object.prototype.hasOwnProperty.call(REASONS, value);
+}
+
 function resolveReasonKey(value: string | undefined): ReasonKey {
     if (value === undefined || value === 'default') return 'default';
-    if (value in REASONS) return value as ReasonKey;
+    if (isOwnReasonKey(value)) return value;
     // Callback emits `oauth_${supabaseErrorCode}` — collapse the open set into
     // the shared `oauth` copy while preserving the raw value for support emails.
     if (value.startsWith('oauth_')) return 'oauth';
@@ -69,8 +76,8 @@ function resolveReasonKey(value: string | undefined): ReasonKey {
 // from rendering arbitrary attacker-controlled query strings as "Reason" text.
 function isDisplayableReason(value: string | undefined): value is string {
     if (value === undefined) return false;
-    if (value in REASONS) return true;
-    return value.startsWith('oauth_') && /^oauth_[a-z0-9_]{1,40}$/.test(value);
+    if (isOwnReasonKey(value)) return true;
+    return /^oauth_[a-z0-9_]{1,40}$/.test(value);
 }
 
 interface AuthCodeErrorPageProps {
