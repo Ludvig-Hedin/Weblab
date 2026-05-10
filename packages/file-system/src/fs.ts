@@ -154,7 +154,32 @@ export class FileSystem {
             await this.fs.promises.mkdir(dir, { recursive: true });
         }
 
-        await this.fs.promises.writeFile(fullPath, content);
+        try {
+            await this.fs.promises.writeFile(fullPath, content);
+        } catch (err) {
+            // ZenFS' IndexedDB-backed StoreFS occasionally throws
+            // `Exception: File exists` from `commitNew` even though
+            // `writeFile` is supposed to truncate-or-create. Triggered
+            // when the in-memory index drifts from the persisted store
+            // (typically after a sandbox restart re-runs `pullFromSandbox`
+            // and the previous index was never released). Recover by
+            // deleting the stale entry and writing fresh — this matches
+            // POSIX `O_TRUNC|O_CREAT` semantics that the underlying call
+            // is supposed to provide.
+            const message = err instanceof Error ? err.message : String(err);
+            if (/file exists|EEXIST/i.test(message)) {
+                try {
+                    await this.fs.promises.unlink(fullPath);
+                } catch {
+                    // unlink may itself fail if the entry is a directory
+                    // or already absent — fall through to the retry and
+                    // surface that error if it still doesn't take.
+                }
+                await this.fs.promises.writeFile(fullPath, content);
+                return;
+            }
+            throw err;
+        }
     }
 
     async writeFiles(files: Array<{ path: string; content: string | Uint8Array }>): Promise<void> {

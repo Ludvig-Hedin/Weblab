@@ -7,7 +7,15 @@ export enum Templates {
 
 export const SandboxTemplates: Record<Templates, SandboxTemplate> = {
     BLANK: {
-        id: 'xzsy8c',
+        // Working Next.js 15 App Router template scaffolded by
+        // scripts/create-csb-template.mjs. The previous BLANK (`xzsy8c`)
+        // was an empty sandbox with no package.json or .codesandbox/tasks.json,
+        // causing every fresh project to surface "Script not found 'dev'"
+        // and a permanent 502 on the preview iframe. This template:
+        //  - has a `dev` script (`next dev -p 3000`)
+        //  - registers a `dev` task in .codesandbox/tasks.json with runAtStart
+        //  - ships node_modules pre-installed so cold-boot is just `next dev`
+        id: 'pf2nqh',
         port: 3000,
     },
     EMPTY_NEXTJS: {
@@ -16,9 +24,9 @@ export const SandboxTemplates: Record<Templates, SandboxTemplate> = {
     },
 };
 
-// New project creation should use the stable public blank template.
-// EMPTY_NEXTJS (pt_EphPmsurimGCQdiB44wa7s) has a broken getPreviewInfo call inside
-// its bundled Next.js server that returns a JSON error for every request.
+// New project creation uses the BLANK template. EMPTY_NEXTJS has a broken
+// getPreviewInfo call inside its bundled Next.js server that returns a JSON
+// error for every request — keep BLANK as the default.
 export const DEFAULT_NEW_PROJECT_TEMPLATE = SandboxTemplates[Templates.BLANK];
 
 // Sandbox ID for the static HTML starter template. Exported so

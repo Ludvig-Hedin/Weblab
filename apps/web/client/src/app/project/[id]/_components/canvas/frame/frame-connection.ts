@@ -34,19 +34,11 @@ export function isFrameBridgeReady({
     return preloadScriptReady && isPenpalConnected && !(isConnecting && !hasTimedOut);
 }
 
-// Threshold matches the failure count at which the FrameView surfaces the
-// "Trouble connecting" retry banner, so the auto-unlock and the manual
-// recovery affordance appear together rather than at separate moments.
-const PREVIEW_UNLOCK_FAILURE_THRESHOLD = 2;
-
-export function shouldUnlockCodeSandboxPreview({
-    isCodeSandboxFrame,
-    isPenpalConnected,
-    connectionFailureCount,
-    isFirstCreation,
-}: CodeSandboxPreviewState): boolean {
-    if (!isCodeSandboxFrame || isPenpalConnected || isFirstCreation) {
-        return false;
-    }
-    return connectionFailureCount >= PREVIEW_UNLOCK_FAILURE_THRESHOLD;
+export function shouldUnlockCodeSandboxPreview(_state: CodeSandboxPreviewState): boolean {
+    // Auto-flip to PREVIEW on connection failure has been disabled. Users
+    // reported being forced into preview after a 1-2s delay on project entry
+    // and having to dismiss it twice. Entering preview is now a manual action
+    // via the toolbar Play button or the PREVIEW hotkey. The CodeSandbox trust
+    // prompt (if present) remains reachable through that explicit affordance.
+    return false;
 }

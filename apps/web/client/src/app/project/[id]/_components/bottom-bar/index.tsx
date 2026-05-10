@@ -14,6 +14,7 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
+import { ErrorsConsole } from './errors-console';
 import { PreviewThemeToggle } from './preview-theme-toggle';
 import { TerminalArea } from './terminal-area';
 
@@ -238,6 +239,12 @@ export const BottomBar = observer(() => {
 
                         {/* Theme toggle for the previewed site (light / dark / system). */}
                         <PreviewThemeToggle />
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Errors console — surfaces dev-server errors with one-click AI fix
+                            without forcing the user to open the chat panel. */}
+                        <ErrorsConsole />
                     </TerminalArea>
                 </motion.div>
             </AnimatePresence>

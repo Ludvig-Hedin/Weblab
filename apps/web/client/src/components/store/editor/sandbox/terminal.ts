@@ -208,9 +208,9 @@ export class CLISessionImpl implements CLISession {
     private async runFallbackDevServer(): Promise<void> {
         // Read package.json to figure out which command actually runs the
         // dev server. Most templates use `bun dev`, but some use
-        // `npm run dev` / `pnpm dev`. Default to `bun dev` because every
-        // CodeSandbox image we use ships bun.
-        let devCommand = 'bun dev';
+        // `npm run dev` / `pnpm dev`.
+        let devCommand: string | null = null;
+        let pkgError: string | null = null;
         try {
             const { output } = await this.provider.runCommand({
                 args: { command: 'cat package.json 2>/dev/null || echo "{}"' },
@@ -220,11 +220,33 @@ export class CLISessionImpl implements CLISession {
                 devCommand = 'bun run dev';
             } else if (pkg.scripts?.start) {
                 devCommand = 'bun run start';
+            } else {
+                pkgError =
+                    'No dev/start script in package.json. Sandbox is missing scaffolding ' +
+                    '(this happens when the project was forked from an empty template). ' +
+                    'Add a "dev" script or recreate the project.';
             }
-        } catch {
-            // Couldn't parse package.json — stick with the default. Worst
-            // case `bun dev` fails and the user sees a clear shell error in
-            // the terminal panel rather than a silent 502.
+        } catch (err) {
+            pkgError =
+                'Could not read package.json — sandbox may be empty or in a broken state. ' +
+                'Recreate the project from the templates page.';
+            console.error('[CLISession] Fallback dev runner: package.json parse failed:', err);
+        }
+
+        if (!devCommand) {
+            // Don't run a command that is guaranteed to fail with the same
+            // confusing "Script not found" message every time. Surface a
+            // clear, actionable error in the terminal panel and let the
+            // user recover. Recovery is template-level — there's no `dev`
+            // script to invoke and no fallback that would magically produce
+            // one without overwriting the user's project.
+            const banner =
+                '\r\n\x1b[31m✗ Cannot start dev server.\x1b[0m\r\n' +
+                (pkgError ?? 'Unknown error.') +
+                '\r\n';
+            this.xterm?.write(banner);
+            this.errorManager.processMessage(banner);
+            return;
         }
 
         // Always run install first; a freshly-forked sandbox may not have

@@ -12,6 +12,7 @@ import { colors } from '@weblab/ui/tokens';
 import type { IFrameView } from './view';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
+import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
 import { api } from '@/trpc/react';
 import { RightClickMenu } from '../../right-click-menu';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
@@ -89,6 +90,11 @@ export const FrameView = observer(
         const restartReloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
         useEffect(() => {
+            // Filters CSB SDK transient cold-boot rejections that escape as
+            // unhandled promise rejections. Idempotent — guarded by a module
+            // flag so multiple FrameViews / StrictMode double-mounts only
+            // attach the listener once.
+            installCodeSandboxNoiseSuppression();
             return () => {
                 if (restartReloadTimeoutRef.current) {
                     clearTimeout(restartReloadTimeoutRef.current);
