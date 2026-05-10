@@ -27,7 +27,7 @@ import { useProviderStatuses } from './use-provider-statuses';
 
 function ProviderIcon({ name, className }: { name: string; className?: string }) {
     const Icon = (Icons as Record<string, React.ComponentType<{ className?: string }>>)[name];
-    if (\!Icon) return <Icons.Cube className={className} />;
+    if (!Icon) return <Icons.Cube className={className} />;
     return <Icon className={className} />;
 }
 
@@ -90,7 +90,7 @@ export const ModelSelectorV2 = ({
         onSuccess: () => refresh(),
     });
     const hasCliBridge =
-        typeof window \!== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
+        typeof window !== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
 
     useEffect(() => {
         const handleOpen = () => setIsOpen(true);
@@ -105,7 +105,7 @@ export const ModelSelectorV2 = ({
         if (typeof window === 'undefined') return;
         const url = new URL(window.location.href);
         const errorCode = url.searchParams.get('provider_oauth_error');
-        if (\!errorCode) return;
+        if (!errorCode) return;
         const friendly =
             errorCode === 'token_exchange_failed'
                 ? 'Sign-in failed during token exchange. Try again.'
@@ -125,7 +125,7 @@ export const ModelSelectorV2 = ({
     );
 
     const cloud = PROVIDER_MANIFEST.find((e) => e.kind === 'openrouter');
-    const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind \!== 'openrouter');
+    const subProviders = PROVIDER_MANIFEST.filter((e) => e.kind !== 'openrouter');
 
     const selectedId = value as string;
 
@@ -180,7 +180,7 @@ export const ModelSelectorV2 = ({
                 <Command
                     className="bg-transparent"
                     filter={(itemValue, search) => {
-                        if (\!search) return 1;
+                        if (!search) return 1;
                         const haystack = itemValue.toLowerCase();
                         const needle = search.toLowerCase();
                         if (haystack.includes(needle)) return 1;
@@ -384,7 +384,7 @@ export const ModelSelectorV2 = ({
                                         </>
                                     )}
 
-                                    {entry.webOAuth && \!hasCliBridge && (
+                                    {entry.webOAuth && !hasCliBridge && (
                                         <CommandItem
                                             value={`${entry.label} disconnect`}
                                             onSelect={() => handleDisconnect(entry)}
@@ -405,9 +405,9 @@ export const ModelSelectorV2 = ({
                 <ProviderSetupDialog
                     entry={setupEntry}
                     status={statuses[setupEntry.kind]}
-                    open={setupEntry \!== null}
+                    open={setupEntry !== null}
                     onOpenChange={(open) => {
-                        if (\!open) setSetupEntry(null);
+                        if (!open) setSetupEntry(null);
                     }}
                     onRecheck={refresh}
                 />
