@@ -21,6 +21,14 @@ interface ChatTabContentProps {
     initialMessages: ChatMessage[];
 }
 
+/** Match the human-readable size strings ollama prints itself. */
+function formatBytes(n: number): string {
+    if (n >= 1e9) return `${(n / 1e9).toFixed(1)} GB`;
+    if (n >= 1e6) return `${(n / 1e6).toFixed(1)} MB`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(1)} KB`;
+    return `${n} B`;
+}
+
 export const ChatTabContent = ({
     conversationId,
     projectId,
@@ -60,23 +68,61 @@ export const ChatTabContent = ({
         };
     }, []);
 
-    // Fetch available local Ollama models
+    // Fetch available local Ollama models.
+    //
+    // Two probe paths, server first then browser fallback:
+    //   1. Server-side `/api/models/local` — works in self-hosted / desktop /
+    //      `bun dev` setups where the Next.js server runs on the same machine
+    //      as Ollama and can reach 127.0.0.1:11434.
+    //   2. Browser fallback — when (1) returns empty / fails (e.g. hosted
+    //      web on weblab.build can't reach the user's localhost), the user's
+    //      browser CAN reach their own localhost. Hit it directly. Ollama
+    //      enables CORS by default since v0.1.32; older versions may need
+    //      `OLLAMA_ORIGINS=*` exported. Errors are swallowed silently —
+    //      empty list is a valid "Ollama not running" answer.
     useEffect(() => {
         const baseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
         const params = new URLSearchParams({ baseUrl });
         const controller = new AbortController();
         setLocalModelsLoading(true);
+
+        const probeBrowser = async (): Promise<LocalModelOption[]> => {
+            try {
+                const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/tags`, {
+                    signal: controller.signal,
+                });
+                if (!res.ok) return [];
+                const data = (await res.json()) as {
+                    models?: Array<{ name?: string; size?: number }>;
+                };
+                return (data.models ?? [])
+                    .filter((m): m is { name: string; size?: number } => typeof m.name === 'string')
+                    .map((m) => ({
+                        label: m.name,
+                        model: `ollama/${m.name}` as `ollama/${string}`,
+                        size: typeof m.size === 'number' ? formatBytes(m.size) : undefined,
+                    }));
+            } catch {
+                return [];
+            }
+        };
+
         fetch(`/api/models/local?${params.toString()}`, { signal: controller.signal })
-            .then((r) => {
+            .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return r.json();
+                return (await r.json()) as { available: boolean; models: LocalModelOption[] };
             })
-            .then((data: { available: boolean; models: LocalModelOption[] }) => {
-                setLocalModels(data.models ?? []);
+            .then(async (data) => {
+                if (data.models && data.models.length > 0) {
+                    setLocalModels(data.models);
+                    return;
+                }
+                // Server probe found nothing — try direct browser probe.
+                setLocalModels(await probeBrowser());
             })
-            .catch((err) => {
+            .catch(async (err) => {
                 if (err instanceof Error && err.name === 'AbortError') return;
-                setLocalModels([]);
+                setLocalModels(await probeBrowser());
             })
             .finally(() => setLocalModelsLoading(false));
         return () => controller.abort();
