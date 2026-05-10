@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
 import { DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { Button } from '@weblab/ui/button';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
@@ -69,6 +70,7 @@ export const Create = observer(
         const charactersRemaining = Math.max(0, MIN_PROMPT_LENGTH - trimmedLength);
         const [isComposing, setIsComposing] = useState(false);
         const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
+        const [createMode, setCreateMode] = useState<'build' | 'plan'>('build');
         const restoredDraftRef = useRef(false);
 
         const createProject = useCallback(
@@ -186,7 +188,9 @@ export const Create = observer(
         ]);
 
         const handleSubmit = async () => {
-            if (isInputInvalid) {
+            if (isInputInvalid) return;
+            if (createMode === 'plan') {
+                router.push(`/projects/plan?prompt=${encodeURIComponent(inputValue.trim())}`);
                 return;
             }
             await createProject(inputValue, selectedImages);
@@ -406,12 +410,40 @@ export const Create = observer(
                     }
                     submitTooltip={!user?.id ? 'Sign in to start building' : undefined}
                     leftControls={
-                        <ModelSelector
-                            value={selectedModel}
-                            onChange={setSelectedModel}
-                            localModels={[]}
-                            localModelsLoading={false}
-                        />
+                        <div className="flex items-center gap-1">
+                            <ModelSelector
+                                value={selectedModel}
+                                onChange={setSelectedModel}
+                                localModels={[]}
+                                localModelsLoading={false}
+                            />
+                            <div className="bg-background-tertiary flex items-center gap-0.5 rounded-md p-0.5">
+                                <button
+                                    onClick={() => setCreateMode('build')}
+                                    className={cn(
+                                        'text-foreground-tertiary flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-colors',
+                                        createMode === 'build'
+                                            ? 'bg-background-primary text-foreground-primary shadow-sm'
+                                            : 'hover:text-foreground-secondary',
+                                    )}
+                                >
+                                    <Icons.Build className="h-3 w-3" />
+                                    Build
+                                </button>
+                                <button
+                                    onClick={() => setCreateMode('plan')}
+                                    className={cn(
+                                        'text-foreground-tertiary flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-colors',
+                                        createMode === 'plan'
+                                            ? 'bg-background-primary text-foreground-primary shadow-sm'
+                                            : 'hover:text-foreground-secondary',
+                                    )}
+                                >
+                                    <Icons.Plan className="h-3 w-3" />
+                                    Plan
+                                </button>
+                            </div>
+                        </div>
                     }
                     suggestionsSlot={
                         suggestions && suggestions.length > 0 ? (

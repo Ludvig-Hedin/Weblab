@@ -109,11 +109,21 @@ const editOnlyToolClasses: ToolClass[] = [
     ...imageOnlyToolClasses,
 ];
 const allToolClasses: ToolClass[] = [...readOnlyToolClasses, ...editOnlyToolClasses];
+
+/** Full plan tool set — used when a project is available (has a sandbox to read). */
 const planToolClasses: ToolClass[] = [
     ...readOnlyToolClasses,
     AskUserQuestionTool,
     PlanCompleteTool,
 ];
+
+/** Minimal plan tool set — used for pre-creation plan sessions with no sandbox.
+ *  Only the interactive tools (question + completion) are available; no file
+ *  access tools that would hang waiting for an EditorEngine that isn't present. */
+export const prePlanToolClasses: ToolClass[] = [AskUserQuestionTool, PlanCompleteTool];
+
+/** Pre-built ToolSet for pre-creation plan sessions (no sandbox / no EditorEngine). */
+export const prePlanToolset: ToolSet = createToolSet(prePlanToolClasses);
 
 export const readOnlyToolset: ToolSet = createToolSet(readOnlyToolClasses);
 export const allToolset: ToolSet = createToolSet(allToolClasses);

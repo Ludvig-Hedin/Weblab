@@ -32,10 +32,7 @@ export class AskUserQuestionTool extends ClientTool {
      * ask_user_question fires. The PlanQuestionCard UI calls
      * AskUserQuestionTool.resolve(toolCallId, answer) to unblock the stream.
      */
-    static readonly pendingResolvers = new Map<
-        string,
-        (result: { answer: string }) => void
-    >();
+    static readonly pendingResolvers = new Map<string, (result: { answer: string }) => void>();
 
     static resolve(toolCallId: string, answer: string) {
         const resolver = AskUserQuestionTool.pendingResolvers.get(toolCallId);

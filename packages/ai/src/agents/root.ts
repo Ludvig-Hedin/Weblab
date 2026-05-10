@@ -39,6 +39,7 @@ export const createRootAgentStream = ({
     abortSignal,
     serverToolContext,
     skills,
+    toolSetOverride,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -64,10 +65,17 @@ export const createRootAgentStream = ({
     serverToolContext?: ServerToolContext;
     /** Discovered Agent Skills (name + description) injected into the system prompt. */
     skills?: SkillSummary[];
+    /**
+     * Override the tool set entirely. Used by pre-creation PLAN sessions that
+     * have no sandbox, so only interactive tools (ask_user_question + plan_complete)
+     * are passed instead of the full read-only set.
+     */
+    toolSetOverride?: ToolSet;
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
     const systemPrompt = getSystemPromptFromType(chatType, memories, framework, skills);
-    const toolSet = getToolSetFromType(chatType, { serverContext: serverToolContext });
+    const toolSet =
+        toolSetOverride ?? getToolSetFromType(chatType, { serverContext: serverToolContext });
     const provider = getProviderFromModel(model);
     return streamText({
         providerOptions: modelConfig.providerOptions,

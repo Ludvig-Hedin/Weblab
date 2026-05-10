@@ -4,6 +4,7 @@ import stripAnsi from 'strip-ansi';
 import { type z } from 'zod';
 
 import type { WebSearchResult } from '@weblab/models';
+import { ChatType } from '@weblab/models';
 import {
     AskUserQuestionTool,
     EditImageTool,
@@ -18,6 +19,7 @@ import {
     WriteFileTool,
 } from '@weblab/ai/client';
 
+import { useEditorEngine } from '@/components/store/editor';
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { CollapsibleCodeBlock } from '../../code-display/collapsible-code-block';
 import { SearchSourcesDisplay } from '../../code-display/search-sources-display';
@@ -37,6 +39,7 @@ const ToolCallDisplayComponent = ({
     isStream: boolean;
     applied: boolean;
 }) => {
+    const editorEngine = useEditorEngine();
     const toolName = toolPart.type.split('-')[1];
 
     if (toolName === AskUserQuestionTool.toolName) {
@@ -62,6 +65,7 @@ const ToolCallDisplayComponent = ({
                 key={toolPart.toolCallId}
                 input={{ summary: args?.summary ?? '' }}
                 isStream={isStream && toolPart.state !== 'output-available'}
+                onBuildNow={() => editorEngine.state.setChatMode(ChatType.EDIT)}
             />
         );
     }

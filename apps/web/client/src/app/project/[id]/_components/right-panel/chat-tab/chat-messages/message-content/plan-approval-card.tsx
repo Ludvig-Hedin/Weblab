@@ -4,29 +4,25 @@ import { useState } from 'react';
 import type { z } from 'zod';
 
 import { PlanCompleteTool } from '@weblab/ai/client';
-import { ChatType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { toast } from '@weblab/ui/sonner';
-
-import { useEditorEngine } from '@/components/store/editor';
 
 type ApprovalInput = z.infer<typeof PlanCompleteTool.parameters>;
 
 export function PlanApprovalCard({
     input,
     isStream,
+    onBuildNow,
 }: {
     input: ApprovalInput;
     isStream: boolean;
+    onBuildNow: () => void;
 }) {
-    const editorEngine = useEditorEngine();
     const [building, setBuilding] = useState(false);
 
     const handleBuildNow = () => {
         setBuilding(true);
-        editorEngine.state.setChatMode(ChatType.EDIT);
-        toast.success('Plan approved — switched to Build mode');
+        onBuildNow();
     };
 
     if (isStream) {

@@ -8,6 +8,7 @@ import {
     createRootAgentStream,
     extractInstructionText,
     inferProviderFromModelId,
+    prePlanToolset,
     searchMemories,
 } from '@weblab/ai';
 import { loadSkillSummaries } from '@weblab/ai/server';
@@ -266,7 +267,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             skills,
             abortSignal: req.signal,
             // PLAN pre-creation sessions have no projectId — omit serverToolContext
-            // so server-side tools are not bound (plan mode uses read-only client tools only).
+            // and restrict to interaction-only tools (no file access).
             serverToolContext: projectId
                 ? {
                       userId,
@@ -276,6 +277,8 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                       messages,
                   }
                 : undefined,
+            toolSetOverride:
+                chatType === ChatType.PLAN && !projectId ? prePlanToolset : undefined,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
