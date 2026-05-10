@@ -39,7 +39,7 @@ function startOfDay(d: Date): number {
 
 function groupForDate(createdAt: Date | string, today: number): GroupKey {
     const ts = startOfDay(new Date(createdAt));
-    const diffDays = Math.round((today - ts) / MS_PER_DAY);
+    const diffDays = Math.floor((today - ts) / MS_PER_DAY);
     if (diffDays <= 0) return 'today';
     if (diffDays === 1) return 'yesterday';
     if (diffDays < 7) return 'lastSevenDays';

@@ -10,8 +10,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { transKeys } from '@/i18n/keys';
+import type { DragPosition } from './index';
 
 const DRAG_TYPE = 'application/x-weblab-queue-id';
+// Safari + a few other browsers strip non-standard MIMEs from dataTransfer in
+// some configurations. Always set both so the drop handler has a fallback.
+const FALLBACK_DRAG_TYPE = 'text/plain';
 
 interface QueuedMessageItemProps {
     message: QueuedMessage;
@@ -19,10 +23,11 @@ interface QueuedMessageItemProps {
     total: number;
     isDragging: boolean;
     isDragOver: boolean;
+    dragOverPosition: DragPosition;
     onDragStart: () => void;
-    onDragOver: () => void;
+    onDragOver: (position: DragPosition) => void;
     onDragLeave: () => void;
-    onDrop: (sourceId: string) => void;
+    onDrop: (sourceId: string, position: DragPosition) => void;
     onDragEnd: () => void;
     removeFromQueue: (id: string) => void;
     editQueuedMessage: (id: string, content: string) => void;
@@ -35,6 +40,7 @@ export const QueuedMessageItem = ({
     total,
     isDragging,
     isDragOver,
+    dragOverPosition,
     onDragStart,
     onDragOver,
     onDragLeave,
@@ -48,6 +54,15 @@ export const QueuedMessageItem = ({
     const [isEditing, setIsEditing] = useState(false);
     const [draft, setDraft] = useState(message.content);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    // Tracks mounted state so blur-fired commit on a row that just got drained
+    // from the queue can't call setState after unmount.
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
     useEffect(() => {
         if (!isEditing) setDraft(message.content);
@@ -71,10 +86,13 @@ export const QueuedMessageItem = ({
         if (trimmed && trimmed !== message.content) {
             editQueuedMessage(message.id, trimmed);
         }
-        setIsEditing(false);
+        if (isMountedRef.current) {
+            setIsEditing(false);
+        }
     };
 
     const cancelEdit = () => {
+        if (!isMountedRef.current) return;
         setDraft(message.content);
         setIsEditing(false);
     };
@@ -88,20 +106,31 @@ export const QueuedMessageItem = ({
                 'group relative flex items-center gap-2 px-2 py-1.5 transition-colors',
                 !isEditing && 'hover:bg-background-tertiary/70',
                 isDragging && 'opacity-50',
-                isDragOver && 'before:bg-foreground-brand before:absolute before:inset-x-2 before:top-0 before:h-px',
+                isDragOver &&
+                    dragOverPosition === 'before' &&
+                    'before:bg-foreground-brand before:absolute before:inset-x-2 before:top-0 before:h-px',
+                isDragOver &&
+                    dragOverPosition === 'after' &&
+                    'after:bg-foreground-brand after:absolute after:inset-x-2 after:bottom-0 after:h-px',
             )}
             onDragOver={(e) => {
-                if (!isEditing) {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    onDragOver();
-                }
+                if (isEditing) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const rect = e.currentTarget.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                onDragOver(e.clientY < midpoint ? 'before' : 'after');
             }}
             onDragLeave={onDragLeave}
             onDrop={(e) => {
                 e.preventDefault();
-                const sourceId = e.dataTransfer.getData(DRAG_TYPE);
-                if (sourceId) onDrop(sourceId);
+                const sourceId =
+                    e.dataTransfer.getData(DRAG_TYPE) ||
+                    e.dataTransfer.getData(FALLBACK_DRAG_TYPE);
+                if (!sourceId) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                onDrop(sourceId, e.clientY < midpoint ? 'before' : 'after');
             }}
         >
             <Tooltip>
@@ -112,6 +141,7 @@ export const QueuedMessageItem = ({
                         draggable={!isEditing}
                         onDragStart={(e) => {
                             e.dataTransfer.setData(DRAG_TYPE, message.id);
+                            e.dataTransfer.setData(FALLBACK_DRAG_TYPE, message.id);
                             e.dataTransfer.effectAllowed = 'move';
                             onDragStart();
                         }}

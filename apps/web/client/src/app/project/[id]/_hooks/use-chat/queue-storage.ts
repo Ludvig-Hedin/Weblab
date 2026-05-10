@@ -48,7 +48,8 @@ export function saveQueue(conversationId: string, queue: QueuedMessage[]): void 
             window.localStorage.removeItem(key(conversationId));
             return;
         }
-        const trimmed = queue.length > MAX_PERSISTED ? queue.slice(-MAX_PERSISTED) : queue;
+        // Keep the head — that's the next message to drain. Drop the tail when over cap.
+        const trimmed = queue.length > MAX_PERSISTED ? queue.slice(0, MAX_PERSISTED) : queue;
         window.localStorage.setItem(key(conversationId), JSON.stringify(trimmed));
     } catch {
         // Quota exceeded / private mode — silently no-op.
