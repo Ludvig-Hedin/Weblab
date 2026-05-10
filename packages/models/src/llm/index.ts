@@ -86,11 +86,11 @@ export function getProviderFromModel(model: ChatModel): LLMProvider {
 
 export const CHAT_MODEL_OPTIONS = [
     {
-        label: 'OpenAI GPT-5.5',
+        label: 'GPT-5.5',
         model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
     },
     {
-        label: 'Gemini 3 Pro Preview',
+        label: 'Gemini 3 Pro',
         model: OPENROUTER_MODELS.GEMINI_3_PRO_PREVIEW,
     },
     {
