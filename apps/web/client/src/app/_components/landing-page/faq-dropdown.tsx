@@ -22,7 +22,7 @@ function FAQItem({ faq, isOpen, onToggle }: { faq: FAQ; isOpen: boolean; onToggl
     }, [faq.answer]);
 
     return (
-        <div className="px-0 py-6">
+        <div className="px-0 py-1">
             <button
                 className="text-foreground-primary flex w-full cursor-pointer items-center justify-between py-2 text-left text-lg focus:outline-none"
                 onClick={onToggle}

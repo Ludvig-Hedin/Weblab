@@ -15,10 +15,11 @@ export default async function Layout({
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
     const supabase = await createClient();
+    // Use getUser() (verified via Supabase Auth) rather than getSession() which decodes a forgeable cookie.
     const {
-        data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
         redirect(`${Routes.LOGIN}?${getReturnUrlQueryParam(`/project/${projectId}`)}`);
     }
     const hasAccess = await api.project.hasAccess({ projectId });

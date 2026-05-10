@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import type { z } from 'zod';
+import { useState } from 'react';
 
-import { PlanCompleteTool } from '@weblab/ai/client';
+import type { PlanCompleteTool } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+
+import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
 
 type ApprovalInput = z.infer<typeof PlanCompleteTool.parameters>;
 
@@ -22,7 +24,14 @@ export function PlanApprovalCard({
 
     const handleBuildNow = () => {
         setBuilding(true);
-        onBuildNow();
+        try {
+            onBuildNow();
+        } finally {
+            // onBuildNow flips a global chat mode; the card usually unmounts.
+            // If it doesn't (mode toggle cancelled elsewhere) reset the
+            // spinner so the button isn't stuck forever.
+            setTimeout(() => setBuilding(false), 800);
+        }
     };
 
     if (isStream) {
@@ -41,7 +50,7 @@ export function PlanApprovalCard({
                 <span className="text-foreground-primary text-mini font-medium">Plan ready</span>
             </div>
             {input.summary && (
-                <p className="text-foreground-secondary mb-3 text-mini leading-relaxed">
+                <p className="text-foreground-secondary text-mini mb-3 leading-relaxed">
                     {input.summary}
                 </p>
             )}
@@ -51,7 +60,7 @@ export function PlanApprovalCard({
                     variant="default"
                     disabled={building}
                     onClick={handleBuildNow}
-                    className="h-6 px-2.5 text-mini"
+                    className="text-mini h-6 px-2.5"
                 >
                     {building ? (
                         <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
@@ -62,10 +71,8 @@ export function PlanApprovalCard({
                 <Button
                     size="sm"
                     variant="ghost"
-                    className="text-foreground-tertiary hover:text-foreground-primary h-6 px-2.5 text-mini"
-                    onClick={() => {
-                        // User can type a refinement message — no action needed
-                    }}
+                    className="text-foreground-tertiary hover:text-foreground-primary text-mini h-6 px-2.5"
+                    onClick={() => window.dispatchEvent(new Event(FOCUS_CHAT_INPUT_EVENT))}
                 >
                     Keep Refining
                 </Button>

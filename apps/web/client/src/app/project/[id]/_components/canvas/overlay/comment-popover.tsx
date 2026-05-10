@@ -63,6 +63,7 @@ export const CommentPopover = observer(() => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [confirmDeleteReplyId, setConfirmDeleteReplyId] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
     const newCommentInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -94,6 +95,7 @@ export const CommentPopover = observer(() => {
 
     useEffect(() => {
         setConfirmDeleteId(null);
+        setConfirmDeleteReplyId(null);
         setIsDeleting(false);
     }, [activeCommentId, pendingPlacement]);
 
@@ -215,6 +217,7 @@ export const CommentPopover = observer(() => {
                                 placeholder="Add a comment..."
                                 rows={2}
                                 className="text-foreground-primary placeholder:text-foreground-tertiary text-small min-w-0 flex-1 resize-none bg-transparent px-2.5 pt-2 pb-1.5 focus:outline-none"
+                                disabled={isSubmitting}
                             />
                             <Button
                                 variant="default"
@@ -386,18 +389,57 @@ export const CommentPopover = observer(() => {
                                                         <span className="text-foreground-tertiary text-[10px]">
                                                             {formatRelativeTime(reply.createdAt)}
                                                         </span>
-                                                        {currentUserId === reply.authorId && (
-                                                            <button
-                                                                onClick={() =>
-                                                                    editorEngine.comment.deleteReply(
-                                                                        reply.id,
-                                                                    )
-                                                                }
-                                                                className="text-foreground-tertiary hover:text-destructive text-micro transition-colors"
-                                                            >
-                                                                <Icons.Trash className="h-3 w-3" />
-                                                            </button>
-                                                        )}
+                                                        {currentUserId === reply.authorId &&
+                                                            (confirmDeleteReplyId === reply.id ? (
+                                                                <span className="flex items-center gap-0.5">
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            try {
+                                                                                await editorEngine.comment.deleteReply(
+                                                                                    reply.id,
+                                                                                );
+                                                                            } catch (error) {
+                                                                                console.error(
+                                                                                    'Failed to delete reply',
+                                                                                    error,
+                                                                                );
+                                                                                toast.error(
+                                                                                    'Failed to delete reply',
+                                                                                );
+                                                                            } finally {
+                                                                                setConfirmDeleteReplyId(
+                                                                                    null,
+                                                                                );
+                                                                            }
+                                                                        }}
+                                                                        className="bg-destructive/10 text-destructive text-micro rounded px-1.5 py-0.5 transition-colors"
+                                                                    >
+                                                                        Confirm
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            setConfirmDeleteReplyId(
+                                                                                null,
+                                                                            )
+                                                                        }
+                                                                        className="text-foreground-tertiary text-micro px-1 transition-colors"
+                                                                    >
+                                                                        &#x2715;
+                                                                    </button>
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    aria-label="Delete reply"
+                                                                    onClick={() =>
+                                                                        setConfirmDeleteReplyId(
+                                                                            reply.id,
+                                                                        )
+                                                                    }
+                                                                    className="text-foreground-tertiary hover:text-destructive text-micro transition-colors"
+                                                                >
+                                                                    <Icons.Trash className="h-3 w-3" />
+                                                                </button>
+                                                            ))}
                                                     </div>
                                                 </div>
                                                 <p className="text-foreground-secondary mt-0.5 text-[11px]">
@@ -425,6 +467,7 @@ export const CommentPopover = observer(() => {
                                     placeholder="Add a reply..."
                                     rows={2}
                                     className="bg-background-secondary border-border text-foreground-primary placeholder:text-foreground-tertiary focus:ring-foreground/20 text-mini flex-1 resize-none rounded-2xl border px-2.5 py-1.5 focus:ring-1 focus:outline-none"
+                                    disabled={isSubmitting}
                                 />
                                 <Button
                                     variant="default"

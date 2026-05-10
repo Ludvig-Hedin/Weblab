@@ -35,6 +35,7 @@ import { StyleManager } from './style';
 import { StylePreferencesStore } from './style/preferences';
 import { TextEditingManager } from './text';
 import { ThemeManager } from './theme';
+import { TokensManager } from './tokens';
 
 export class EditorEngine {
     readonly projectId: string;
@@ -79,6 +80,7 @@ export class EditorEngine {
     readonly chat: ChatManager = new ChatManager(this);
     readonly image: ImageManager = new ImageManager(this);
     readonly theme: ThemeManager = new ThemeManager(this);
+    readonly tokens: TokensManager = new TokensManager(this);
     readonly font: FontManager = new FontManager(this);
     readonly pages: PagesManager = new PagesManager(this);
     readonly frames: FramesManager = new FramesManager(this);
@@ -136,6 +138,7 @@ export class EditorEngine {
         this.breakpoints.clear();
         this.image.clear();
         this.theme.clear();
+        this.tokens.clear();
         this.font.clear();
         this.pages.clear();
         this.chat.clear();

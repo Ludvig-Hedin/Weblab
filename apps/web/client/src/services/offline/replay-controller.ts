@@ -2,9 +2,9 @@
 
 import type { Provider } from '@weblab/code-provider';
 
+import type { QueueRecord } from './write-queue';
 import { OfflineProvider } from '@/components/store/editor/sandbox/offline-provider';
 import { hashContent } from '@/services/sync-engine/sync-engine';
-import type { QueueRecord } from './write-queue';
 import {
     bumpAttempt,
     getQueueContent,

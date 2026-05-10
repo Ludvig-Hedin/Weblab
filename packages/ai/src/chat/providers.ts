@@ -7,13 +7,21 @@ import type {
     ModelConfig,
     OllamaModelId,
     OPENROUTER_MODELS,
+    ReasoningEffort,
 } from '@weblab/models';
-import { getMaxTokens, LLMProvider, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import {
+    getMaxTokens,
+    LLMProvider,
+    modelSupportsReasoningEffort,
+    OLLAMA_DEFAULT_BASE_URL,
+} from '@weblab/models';
 import { assertNever } from '@weblab/utility';
+
+type ProviderOptions = Record<string, Record<string, unknown>>;
 
 export function initModel(payload: InitialModelPayload): ModelConfig {
     let model: LanguageModel;
-    let providerOptions: Record<string, any> | undefined;
+    let providerOptions: ProviderOptions | undefined;
     const maxOutputTokens = getMaxTokens(payload.model);
 
     switch (payload.provider) {
@@ -29,6 +37,11 @@ export function initModel(payload: InitialModelPayload): ModelConfig {
                     anthropic: { cacheControl: { type: 'ephemeral' } },
                 };
             }
+            providerOptions = applyReasoningEffort(
+                providerOptions,
+                payload.model,
+                payload.reasoningEffort,
+            );
             break;
         }
         case LLMProvider.OLLAMA: {
@@ -47,6 +60,20 @@ export function initModel(payload: InitialModelPayload): ModelConfig {
         providerOptions,
         maxOutputTokens,
     };
+}
+
+function applyReasoningEffort(
+    base: ProviderOptions | undefined,
+    model: OPENROUTER_MODELS,
+    effort: ReasoningEffort | undefined,
+): ProviderOptions | undefined {
+    if (!effort || effort === 'minimal' || !modelSupportsReasoningEffort(model)) return base;
+    const next: ProviderOptions = { ...(base ?? {}) };
+    next.openrouter = {
+        ...(next.openrouter ?? {}),
+        reasoning: { effort },
+    };
+    return next;
 }
 
 function getOpenRouterProvider(model: OPENROUTER_MODELS): LanguageModel {

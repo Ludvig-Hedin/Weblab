@@ -124,14 +124,14 @@ export const RightPanel = observer(() => {
                             className="flex h-full flex-col gap-0"
                         >
                             <div className="border-border-bar flex h-14 w-full flex-row items-center border-b px-2">
-                                <TabsList className="bg-background-tab-strip h-9 gap-0 rounded-md p-0.5">
+                                <TabsList className="bg-background-tab-strip/70 h-9 gap-0 rounded-md p-0.5">
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <TabsTrigger
                                                 value="style"
                                                 disabled={isCodeMode}
                                                 className={cn(
-                                                    'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-8 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                    'data-[state=active]:bg-background-tab-active/50 data-[state=active]:border-border-tab-active/50 relative h-8 gap-1.5 rounded-sm border border-transparent px-2.5 text-xs',
                                                     isCodeMode && 'cursor-not-allowed opacity-40',
                                                 )}
                                             >

@@ -67,6 +67,9 @@ export enum LeftPanelTabValue {
 export enum BrandTabValue {
     COLORS = 'colors',
     FONTS = 'fonts',
+    COLOR_STYLES = 'color-styles',
+    TEXT_STYLES = 'text-styles',
+    VARIABLES = 'variables',
 }
 
 export enum BranchTabValue {

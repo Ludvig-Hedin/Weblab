@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { getCloneSystemPrompt } from '@weblab/ai/client';
 import type { ImageMessageContext, MessageContext } from '@weblab/models';
 import { type ProjectCreateRequest } from '@weblab/db';
 import {
     ChatType,
+    CloneOutputFramework,
     CreateRequestContextType,
     MessageContextType,
     ProjectCreateRequestStatus,
@@ -327,10 +329,72 @@ export const useStartProject = () => {
             const context: MessageContext[] = [...createContext, ...imageContexts];
             editorEngine.chat.context.addContexts(context);
 
-            const prompt = creationData.context
+            const userPrompt = creationData.context
                 .filter((context) => context.type === CreateRequestContextType.PROMPT)
                 .map((context) => context.content)
                 .join('\n');
+
+            // Clone-mode context: WEBSITE_URL carries the source URL plus the
+            // chosen output framework. WEBSITE_SCRAPE carries the markdown +
+            // brand-identity blob extracted by Firecrawl. We assemble a
+            // clone-specific prompt prefix (system guidance + scrape data) and
+            // glue the user's optional notes onto the end.
+            const websiteUrlContext = creationData.context.find(
+                (c) => c.type === CreateRequestContextType.WEBSITE_URL,
+            );
+            const websiteScrapeBlocks = creationData.context
+                .filter((c) => c.type === CreateRequestContextType.WEBSITE_SCRAPE)
+                .map((c) => c.content);
+
+            const isCloneFramework = (v: unknown): v is CloneOutputFramework =>
+                typeof v === 'string' &&
+                (Object.values(CloneOutputFramework) as string[]).includes(v);
+
+            let prompt: string;
+            if (websiteUrlContext) {
+                const rawFramework: unknown = websiteUrlContext.framework;
+                if (rawFramework != null && !isCloneFramework(rawFramework)) {
+                    console.warn(
+                        '[useStartProject] unknown clone framework, falling back to NEXTJS',
+                        rawFramework,
+                    );
+                }
+                const framework: CloneOutputFramework = isCloneFramework(rawFramework)
+                    ? rawFramework
+                    : CloneOutputFramework.NEXTJS;
+                const cloneGuidance = getCloneSystemPrompt(framework);
+                const sourceBlock = websiteUrlContext.content
+                    ? `Source URL: ${websiteUrlContext.content}\n`
+                    : '';
+                const scrapeBlock =
+                    websiteScrapeBlocks.length > 0
+                        ? `\n=== Source Page Content ===\n${websiteScrapeBlocks.join('\n\n')}\n`
+                        : '';
+                const screenshotNote =
+                    imageContexts.length > 0
+                        ? '\nA screenshot of the source page is attached as an image — use it as the visual source of truth.\n'
+                        : '';
+                const userNotes = userPrompt.trim()
+                    ? `\nAdditional user notes:\n${userPrompt.trim()}\n`
+                    : '';
+                prompt =
+                    `${cloneGuidance}\n${sourceBlock}${scrapeBlock}${screenshotNote}${userNotes}`.trim();
+            } else if (websiteScrapeBlocks.length > 0) {
+                // Scrape-only context without an explicit URL entry — rare,
+                // but treat it as a clone with the default framework.
+                const cloneGuidance = getCloneSystemPrompt(CloneOutputFramework.NEXTJS);
+                const scrapeBlock = `\n=== Source Page Content ===\n${websiteScrapeBlocks.join('\n\n')}\n`;
+                const screenshotNote =
+                    imageContexts.length > 0
+                        ? '\nA screenshot of the source page is attached as an image — use it as the visual source of truth.\n'
+                        : '';
+                const userNotes = userPrompt.trim()
+                    ? `\nAdditional user notes:\n${userPrompt.trim()}\n`
+                    : '';
+                prompt = `${cloneGuidance}${scrapeBlock}${screenshotNote}${userNotes}`.trim();
+            } else {
+                prompt = userPrompt;
+            }
 
             const [conversation] = await editorEngine.chat.conversation.getConversations(
                 editorEngine.projectId,

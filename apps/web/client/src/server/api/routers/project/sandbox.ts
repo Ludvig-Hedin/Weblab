@@ -301,17 +301,28 @@ export const sandboxRouter = createTRPCRouter({
                 } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
 
-                    if (attempt < MAX_RETRY_ATTEMPTS) {
-                        await new Promise((resolve) =>
-                            setTimeout(resolve, Math.pow(2, attempt) * 1000),
-                        );
+                    // A timeout means the clone didn't finish within the
+                    // provider's 5-minute ceiling — retrying spawns another
+                    // 5-minute clone (and another orphan sandbox), turning a
+                    // single failure into 15 minutes of UI hang. Surface the
+                    // timeout immediately so the caller can show a real error
+                    // and the user can either retry from the UI or pick a
+                    // pre-seeded template.
+                    const isTimeout = lastError.message.includes('Repository access timeout');
+
+                    if (isTimeout || attempt >= MAX_RETRY_ATTEMPTS) {
+                        break;
                     }
+
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, Math.pow(2, attempt) * 1000),
+                    );
                 }
             }
 
             throw new TRPCError({
                 code: 'INTERNAL_SERVER_ERROR',
-                message: `Failed to create GitHub sandbox after ${MAX_RETRY_ATTEMPTS} attempts: ${lastError?.message}`,
+                message: `Failed to create GitHub sandbox: ${lastError?.message}`,
                 cause: lastError,
             });
         }),

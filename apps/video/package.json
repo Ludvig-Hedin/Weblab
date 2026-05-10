@@ -1,0 +1,50 @@
+{
+    "name": "@weblab/video",
+    "description": "Weblab Remotion product explainer video",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "remotion studio src/index.ts",
+        "render": "remotion render src/index.ts WeblabExplainerC out/weblab-storyboard-c-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:c": "remotion render src/index.ts WeblabExplainerC out/weblab-storyboard-c-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:a": "remotion render src/index.ts WeblabExplainerA out/weblab-storyboard-a-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:b": "remotion render src/index.ts WeblabExplainerB out/weblab-storyboard-b-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:d": "remotion render src/index.ts WeblabExplainerD out/weblab-storyboard-d-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:e": "remotion render src/index.ts WeblabExplainerE out/weblab-storyboard-e-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:all": "bun render:c && bun render:a && bun render:b && bun render:d && bun render:e",
+        "render:c:smoke": "remotion render src/index.ts WeblabExplainerC out/smoke-c.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:a:smoke": "remotion render src/index.ts WeblabExplainerA out/smoke-a.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:b:smoke": "remotion render src/index.ts WeblabExplainerB out/smoke-b.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:d:smoke": "remotion render src/index.ts WeblabExplainerD out/smoke-d.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:e:smoke": "remotion render src/index.ts WeblabExplainerE out/smoke-e.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f1": "remotion render src/index.ts WeblabFocusF1 out/weblab-focus-f1-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f2": "remotion render src/index.ts WeblabFocusF2 out/weblab-focus-f2-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f3": "remotion render src/index.ts WeblabFocusF3 out/weblab-focus-f3-1080p60.mp4 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f1:smoke": "remotion render src/index.ts WeblabFocusF1 out/smoke-f1.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f2:smoke": "remotion render src/index.ts WeblabFocusF2 out/smoke-f2.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:f3:smoke": "remotion render src/index.ts WeblabFocusF3 out/smoke-f3.mp4 --frames 0-60 --crf 18 --codec h264 --audio-bitrate 192k",
+        "render:focus:all": "bun render:f1 && bun render:f2 && bun render:f3",
+        "render:4k:c": "remotion render src/index.ts WeblabExplainerC out/weblab-storyboard-c-2160p60.mp4 --width 3840 --height 2160 --crf 18 --codec h264 --audio-bitrate 192k",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint . --max-warnings 0",
+        "format": "eslint --fix ."
+    },
+    "dependencies": {
+        "@remotion/animation-utils": "^4.0.350",
+        "@remotion/bundler": "^4.0.350",
+        "@remotion/cli": "^4.0.350",
+        "@remotion/google-fonts": "^4.0.350",
+        "@remotion/media-utils": "^4.0.350",
+        "@weblab/constants": "*",
+        "lucide-react": "^0.544.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "remotion": "^4.0.350"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.2",
+        "@types/react-dom": "^19.2.2",
+        "typescript": "^5.5.4"
+    }
+}

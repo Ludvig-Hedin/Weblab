@@ -11,14 +11,39 @@ import {
     ConversationScrollButton,
 } from '@weblab/ui/ai-elements';
 import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 import { assertNever } from '@weblab/utility';
 
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
+import type { MessageKeyPaths } from '@/i18n/keys';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { AssistantMessage } from './assistant-message';
 import { ErrorMessage } from './error-message';
 import { UserMessage } from './user-message';
+
+const STARTER_SUGGESTIONS = [
+    {
+        key: 'darkMode',
+        icon: Icons.Moon,
+        transKey: transKeys.editor.panels.edit.tabs.chat.starters.darkMode,
+    },
+    {
+        key: 'modernizeHero',
+        icon: Icons.Sparkles,
+        transKey: transKeys.editor.panels.edit.tabs.chat.starters.modernizeHero,
+    },
+    {
+        key: 'mobileLayout',
+        icon: Icons.Mobile,
+        transKey: transKeys.editor.panels.edit.tabs.chat.starters.mobileLayout,
+    },
+    {
+        key: 'polish',
+        icon: Icons.Pencil,
+        transKey: transKeys.editor.panels.edit.tabs.chat.starters.polish,
+    },
+] as const;
 
 const getLatestAssistantMessageId = (messages: ChatMessage[]) =>
     [...messages].reverse().find((message) => message.role === 'assistant')?.id ?? null;
@@ -27,6 +52,7 @@ interface ChatMessagesProps {
     messages: ChatMessage[];
     onEditMessage: EditMessage;
     onRegenerateLastAssistant: () => Promise<void>;
+    onSuggestionClick?: (text: string) => void;
     isStreaming: boolean;
     error?: Error;
 }
@@ -36,6 +62,7 @@ export const ChatMessages = observer(
         messages,
         onEditMessage,
         onRegenerateLastAssistant,
+        onSuggestionClick,
         isStreaming,
         error,
     }: ChatMessagesProps) => {
@@ -90,11 +117,40 @@ export const ChatMessages = observer(
         if (!messages || messages.length === 0) {
             return (
                 !editorEngine.elements.selected.length && (
-                    <div className="text-foreground-tertiary/80 flex h-full flex-1 flex-col items-center justify-center">
+                    <div className="text-foreground-tertiary/80 flex h-full flex-1 flex-col items-center justify-center gap-5 px-6">
                         <Icons.EmptyState className="size-32" />
                         <p className="text-regularPlus max-w-[300px] text-center text-balance">
                             {t(transKeys.editor.panels.edit.tabs.chat.emptyState)}
                         </p>
+                        {onSuggestionClick && (
+                            <ul
+                                className="flex w-full max-w-sm flex-col gap-1.5"
+                                aria-label="Starter suggestions"
+                            >
+                                {STARTER_SUGGESTIONS.map(
+                                    ({ key, icon: SuggestionIcon, transKey }) => {
+                                        const label = t(transKey);
+                                        return (
+                                            <li key={key}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onSuggestionClick(label)}
+                                                    className={cn(
+                                                        'border-border/40 hover:border-border bg-background-secondary/40 hover:bg-background-secondary text-foreground-secondary hover:text-foreground-primary flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors',
+                                                        'focus-visible:ring-ring focus-visible:ring-1 focus-visible:outline-none',
+                                                    )}
+                                                >
+                                                    <SuggestionIcon className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
+                                                    <span className="text-small truncate">
+                                                        {label}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        );
+                                    },
+                                )}
+                            </ul>
+                        )}
                     </div>
                 )
             );

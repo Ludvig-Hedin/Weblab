@@ -13,6 +13,7 @@ import type {
     ImageMessageContext,
     LocalModelOption,
     QueuedMessage,
+    ReasoningEffort,
 } from '@weblab/models';
 import { ChatType } from '@weblab/models';
 import { MessageContextType } from '@weblab/models/chat';
@@ -29,6 +30,7 @@ import type {
 } from '@/components/ai-prompt-composer/types';
 import type { Editor } from '@tiptap/react';
 import { AiPromptComposer } from '@/components/ai-prompt-composer';
+import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle';
 import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
@@ -40,7 +42,6 @@ import { InputContextPills } from '../context-pills/input-context-pills';
 import { Suggestions } from '../suggestions';
 import { ActionButtons } from './action-buttons';
 import { ChatContextWindow } from './chat-context';
-import { ChatModeToggle } from './chat-mode-toggle';
 import { QueueItems } from './queue-items';
 
 interface ChatInputProps {
@@ -61,6 +62,8 @@ interface ChatInputProps {
     onModelChange: (model: ChatModel) => void;
     localModels: LocalModelOption[];
     localModelsLoading: boolean;
+    reasoningEffort: ReasoningEffort;
+    onReasoningEffortChange: (effort: ReasoningEffort) => void;
 }
 
 const imageDragDataSchema = z.object({
@@ -85,6 +88,8 @@ export const ChatInput = observer(
         onModelChange,
         localModels,
         localModelsLoading,
+        reasoningEffort,
+        onReasoningEffortChange,
     }: ChatInputProps) => {
         const editorEngine = useEditorEngine();
         const t = useTranslations();
@@ -327,10 +332,10 @@ export const ChatInput = observer(
                 return aiAvailability.message;
             }
             if (chatMode === ChatType.ASK) {
-                return 'Ask a question about your project...';
+                return t(transKeys.editor.panels.edit.tabs.chat.askPlaceholder);
             }
             if (chatMode === ChatType.PLAN) {
-                return 'Describe what you want to plan...';
+                return t(transKeys.editor.panels.edit.tabs.chat.planPlaceholder);
             }
             return t(transKeys.editor.panels.edit.tabs.chat.input.placeholder);
         };
@@ -634,12 +639,12 @@ export const ChatInput = observer(
                 },
                 {
                     name: 'clear',
-                    label: 'Clear chat',
-                    description: 'Clear the current conversation',
+                    label: 'New chat',
+                    description: 'Start a new conversation',
                     icon: Icons.Trash,
-                    keywords: ['reset', 'new'],
+                    keywords: ['reset', 'new', 'clear'],
                     action: () => {
-                        editorEngine.chat.conversation.clear();
+                        void editorEngine.chat.conversation.startNewConversation();
                     },
                 },
                 {
@@ -722,9 +727,14 @@ export const ChatInput = observer(
                             onChange={onModelChange}
                             localModels={localModels}
                             localModelsLoading={localModelsLoading}
+                            reasoningEffort={reasoningEffort}
+                            onReasoningEffortChange={onReasoningEffortChange}
                         />
                         {lastUsageMessage?.metadata?.usage && (
-                            <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
+                            <ChatContextWindow
+                                usage={lastUsageMessage?.metadata?.usage}
+                                model={model}
+                            />
                         )}
                     </>
                 }

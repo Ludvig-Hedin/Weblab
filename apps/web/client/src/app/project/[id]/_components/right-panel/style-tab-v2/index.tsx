@@ -49,10 +49,8 @@ const WriteTargetToolbar = observer(function WriteTargetToolbar() {
     const editorEngine = useEditorEngine();
     const target = editorEngine.stylePreferences.defaultWriteTarget;
     return (
-        <div className="border-border/40 flex items-center gap-2 border-b px-3 py-2">
-            <span className="text-foreground-secondary text-[10px] tracking-wider uppercase">
-                Write as
-            </span>
+        <div className="border-border/40 flex items-center gap-3 border-b px-3 py-2">
+            <span className="text-foreground-tertiary text-mini">Write as</span>
             <ToggleGroup
                 type="single"
                 size="sm"

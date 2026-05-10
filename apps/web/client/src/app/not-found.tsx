@@ -1,57 +1,91 @@
 'use client';
 
+import type { MotionValue } from 'framer-motion';
+import { useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
-import { Illustrations } from './_components/landing-page/illustrations';
+import { Button } from '@weblab/ui/button';
+
 import { WebsiteLayout } from './_components/website-layout';
+
+function PlayfulDigit({ char, delay }: { char: string; delay: number }) {
+    const ref = useRef<HTMLSpanElement>(null);
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+
+    const springConfig = { stiffness: 180, damping: 14, mass: 0.6 };
+    const sx: MotionValue<number> = useSpring(x, springConfig);
+    const sy: MotionValue<number> = useSpring(y, springConfig);
+    const rotate = useTransform(sx, [-80, 80], [-10, 10]);
+    const skewX = useTransform(sy, [-80, 80], [4, -4]);
+
+    const handleMove = (e: React.MouseEvent<HTMLSpanElement>) => {
+        const rect = ref.current?.getBoundingClientRect();
+        if (!rect) return;
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        x.set((e.clientX - cx) / 3);
+        y.set((e.clientY - cy) / 3);
+    };
+
+    const reset = () => {
+        x.set(0);
+        y.set(0);
+    };
+
+    return (
+        <motion.span
+            ref={ref}
+            onMouseMove={handleMove}
+            onMouseLeave={reset}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.85 }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+            style={{ x: sx, y: sy, rotate, skewX, display: 'inline-block' }}
+            className="cursor-grab select-none active:cursor-grabbing"
+        >
+            {char}
+        </motion.span>
+    );
+}
 
 export default function NotFound() {
     return (
         <WebsiteLayout>
             <main className="relative min-h-screen w-full overflow-hidden">
-                {/* Giant Weblab Seal - positioned to overflow top */}
-                <motion.div
-                    className="pointer-events-none absolute -top-[35vh] left-1/2 -translate-x-1/2"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 1, delay: 0.7, ease: 'easeOut' }}
-                >
-                    <Illustrations.WeblabLogoSeal className="text-foreground-primary/10 h-[90vw] max-h-[1000px] w-[90vw] max-w-[1000px]" />
-                </motion.div>
-
-                {/* Content - centered in viewport */}
-                <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center p-4 pt-24 text-center">
-                    <div className="mt-[15vh] max-w-md space-y-6">
-                        {/* Title and subtitle */}
-                        <motion.div
-                            className="space-y-3"
-                            initial={{ opacity: 0, y: 20 }}
+                <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center p-4 text-center">
+                    <div className="max-w-md space-y-6">
+                        <h1 className="text-foreground-primary flex justify-center gap-2 text-8xl font-light tracking-tight md:text-9xl">
+                            <PlayfulDigit char="4" delay={0} />
+                            <PlayfulDigit char="0" delay={0.08} />
+                            <PlayfulDigit char="4" delay={0.16} />
+                        </h1>
+                        <motion.p
+                            className="text-foreground-tertiary text-xl"
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                            transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
                         >
-                            <h1 className="text-foreground-primary text-6xl font-light tracking-tight">
-                                404
-                            </h1>
-                            <p className="text-foreground-tertiary text-xl">
-                                Seems like you ventured somewhere unknown on your journey. Let us
-                                help you find your way.
-                            </p>
-                        </motion.div>
-
-                        {/* Home button */}
+                            Seems like you ventured somewhere unknown on your journey. Let us help
+                            you find your way.
+                        </motion.p>
                         <motion.div
                             className="flex justify-center pt-4"
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2, ease: 'easeOut' }}
+                            transition={{ duration: 0.5, delay: 0.45, ease: 'easeOut' }}
                         >
-                            <Link
-                                href="/"
-                                className="border-foreground-primary/20 text-foreground-primary hover:bg-foreground-primary/5 focus-visible:outline-primary inline-flex items-center rounded-md border px-6 py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                            <Button
+                                asChild
+                                variant="secondary"
+                                size="lg"
+                                className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-colors"
                             >
-                                Back to home
-                            </Link>
+                                <Link href="/">Back to home</Link>
+                            </Button>
                         </motion.div>
                     </div>
                 </div>

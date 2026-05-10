@@ -14,6 +14,7 @@ import { useCreateBlankProject } from '@/hooks/use-create-blank-project';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { transKeys } from '@/i18n/keys';
 import { ExternalRoutes, Routes } from '@/utils/constants';
+import { CloneWebsiteDialog } from './clone-website-dialog';
 import { FrameworkSelectDialog } from './framework-select-dialog';
 
 interface ChooserCardProps {
@@ -75,6 +76,7 @@ export function ProjectChooserCards({
     const router = useRouter();
     const t = useTranslations();
     const [showFrameworkDialog, setShowFrameworkDialog] = useState(false);
+    const [showCloneDialog, setShowCloneDialog] = useState(false);
 
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
     const { handleImportLocalProject, isImporting, isFsAccessSupported } = useImportLocalProject();
@@ -110,7 +112,7 @@ export function ProjectChooserCards({
                 </span>
                 <div className="bg-foreground/10 h-px flex-1" />
             </div>
-            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <ChooserCard
                     icon={<Icons.FilePlus className="h-4 w-4" />}
                     title="Start blank"
@@ -118,6 +120,14 @@ export function ProjectChooserCards({
                     cta="Choose a framework"
                     onClick={() => setShowFrameworkDialog(true)}
                     busy={isCreatingProject}
+                    disabled={isBusy}
+                />
+                <ChooserCard
+                    icon={<Icons.MagicWand className="h-4 w-4" />}
+                    title="Clone a website"
+                    description="Recreate any site from a URL or a screenshot. The AI rebuilds it as an editable project."
+                    cta="Open the cloner"
+                    onClick={() => setShowCloneDialog(true)}
                     disabled={isBusy}
                 />
                 <ChooserCard
@@ -166,6 +176,8 @@ export function ProjectChooserCards({
                     void handleStartBlankProject(framework);
                 }}
             />
+
+            <CloneWebsiteDialog open={showCloneDialog} onOpenChange={setShowCloneDialog} />
         </div>
     );
 }

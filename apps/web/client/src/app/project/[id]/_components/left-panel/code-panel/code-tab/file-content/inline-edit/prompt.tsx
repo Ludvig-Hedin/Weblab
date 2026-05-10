@@ -274,7 +274,12 @@ export const InlineEditPrompt = ({
                         )}
                     </div>
                 </div>
-                {session.error && <div className="text-mini text-destructive">{session.error}</div>}
+                {session.error && (
+                    <div className="text-mini text-destructive flex flex-col gap-0.5">
+                        <span>{session.error}</span>
+                        <span className="text-foreground-tertiary">Press ⏎ to retry</span>
+                    </div>
+                )}
             </div>
         </div>
     );

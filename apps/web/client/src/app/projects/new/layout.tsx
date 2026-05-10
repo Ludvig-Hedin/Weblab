@@ -13,10 +13,11 @@ export const metadata: Metadata = {
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
     const supabase = await createClient();
+    // Use getUser() (verified via Supabase Auth) rather than getSession() which decodes a forgeable cookie.
     const {
-        data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
+        data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
         redirect(Routes.LOGIN);
     }
     return <>{children}</>;

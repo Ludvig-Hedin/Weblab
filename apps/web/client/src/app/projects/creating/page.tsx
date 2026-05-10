@@ -31,13 +31,23 @@ const STEPS: StepDef[] = [
     {
         phase: 'importing',
         label: 'Setting up sandbox',
-        detail: 'Preparing your sandbox — this usually takes a few seconds to a minute…',
+        detail: 'Preparing your sandbox…',
     },
     { phase: 'saving', label: 'Creating project', detail: 'Saving to your workspace…' },
     { phase: 'redirecting', label: 'Opening workspace', detail: 'Almost there…' },
 ];
 
 const PHASE_ORDER: Phase[] = ['initialising', 'importing', 'saving', 'redirecting'];
+
+// Templates with a pre-seeded sandboxId fork in ~2s; templates without one fall
+// back to a full GitHub import that genuinely takes 2-5 minutes for the current
+// monorepo-based examples. The importing-step tip text adapts so users on the
+// slow path know to expect a multi-minute wait instead of giving up after 30s.
+const FAST_IMPORT_TIP = 'Almost there — finalizing your sandbox.';
+const SLOW_IMPORT_TIP =
+    'Cloning the template from GitHub. Larger templates can take a few minutes.';
+const SLOW_IMPORT_LONG_TIP =
+    'Still working — large GitHub templates can take up to five minutes. You can keep this tab open.';
 
 // ─── Content (needs Suspense boundary for useSearchParams) ──────────────────
 
@@ -52,9 +62,25 @@ function CreatingContent() {
 
     const [phase, setPhase] = useState<Phase>('waiting-auth');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [importDuration, setImportDuration] = useState(0);
     const hasStarted = useRef(false);
 
     const template = templateId ? getExternalTemplate(templateId) : null;
+    const isFastImport = Boolean(template?.sandboxId);
+
+    // Tick a counter while the slow import is in flight so the tip can
+    // escalate from "this can take a few minutes" to "still working" without
+    // the user thinking the page is frozen.
+    useEffect(() => {
+        if (phase !== 'importing' || isFastImport) {
+            return;
+        }
+        const started = Date.now();
+        const timer = window.setInterval(() => {
+            setImportDuration(Math.floor((Date.now() - started) / 1000));
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [phase, isFastImport]);
 
     // ── Redirect to login if the user isn't signed in ────────────────────────
     useEffect(() => {
@@ -278,8 +304,11 @@ function CreatingContent() {
                         transition={{ delay: 4 }}
                         className="text-foreground/30 max-w-xs text-center text-xs"
                     >
-                        Taking longer than usual — the sandbox may be cloning from GitHub. Typically
-                        finishes within a minute.
+                        {isFastImport
+                            ? FAST_IMPORT_TIP
+                            : importDuration > 60
+                              ? SLOW_IMPORT_LONG_TIP
+                              : SLOW_IMPORT_TIP}
                     </motion.p>
                 )}
             </AnimatePresence>

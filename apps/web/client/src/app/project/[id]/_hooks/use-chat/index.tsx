@@ -13,6 +13,7 @@ import type {
     GitMessageCheckpoint,
     MessageContext,
     QueuedMessage,
+    ReasoningEffort,
 } from '@weblab/models';
 import { ChatType } from '@weblab/models';
 import { jsonClone } from '@weblab/utility';
@@ -44,6 +45,7 @@ interface UseChatProps {
     initialMessages: ChatMessage[];
     model: ChatModel;
     ollamaBaseUrl?: string;
+    reasoningEffort?: ReasoningEffort;
 }
 
 export function useChat({
@@ -52,6 +54,7 @@ export function useChat({
     initialMessages,
     model,
     ollamaBaseUrl,
+    reasoningEffort,
 }: UseChatProps) {
     const editorEngine = useEditorEngine();
     const posthog = usePostHog();
@@ -85,10 +88,12 @@ export function useChat({
     // its routing decision.
     const modelRef = useRef(model);
     const ollamaBaseUrlRef = useRef(ollamaBaseUrl);
+    const reasoningEffortRef = useRef(reasoningEffort);
     useEffect(() => {
         modelRef.current = model;
         ollamaBaseUrlRef.current = ollamaBaseUrl;
-    }, [model, ollamaBaseUrl]);
+        reasoningEffortRef.current = reasoningEffort;
+    }, [model, ollamaBaseUrl, reasoningEffort]);
     const getModel = useCallback(() => modelRef.current, []);
     const getOllamaBaseUrl = useCallback(() => ollamaBaseUrlRef.current, []);
 
@@ -107,6 +112,7 @@ export function useChat({
                             projectId,
                             model: modelRef.current,
                             ollamaBaseUrl: ollamaBaseUrlRef.current,
+                            reasoningEffort: reasoningEffortRef.current,
                             messages,
                             ...(body ?? {}),
                         },
@@ -143,6 +149,26 @@ export function useChat({
                 setIsExecutingToolCall(true);
                 try {
                     await handleToolCall(toolCall.toolCall, editorEngine, addToolResult);
+                } catch (err) {
+                    // Defensive net: handleToolCall already converts thrown
+                    // errors into `output-error` results, but if THAT path
+                    // itself fails (e.g. addToolResult rejects after the
+                    // stream closed), the tool part would otherwise stay in
+                    // `input-available` forever and the UI would spin
+                    // indefinitely. Surface a final error result so the part
+                    // transitions out of the loading state.
+                    const message = err instanceof Error ? err.message : String(err);
+                    try {
+                        await addToolResult({
+                            state: 'output-error',
+                            tool: toolCall.toolCall.toolName,
+                            toolCallId: toolCall.toolCall.toolCallId,
+                            errorText: message,
+                        });
+                    } catch {
+                        // Stream is gone — nothing else we can do client-side.
+                        console.warn('[chat] tool result write failed after error', err);
+                    }
                 } finally {
                     inflightToolCalls.current = Math.max(0, inflightToolCalls.current - 1);
                     if (inflightToolCalls.current === 0) {
@@ -186,6 +212,7 @@ export function useChat({
                     context: messageContext,
                     model,
                     ollamaBaseUrl,
+                    reasoningEffort,
                 },
             });
             void editorEngine.chat.conversation.generateTitle(content);
@@ -200,6 +227,7 @@ export function useChat({
             conversationId,
             model,
             ollamaBaseUrl,
+            reasoningEffort,
         ],
     );
 
@@ -216,6 +244,12 @@ export function useChat({
                 timestamp: new Date(),
                 context,
             };
+
+            // Snapshot images on this message and clear from live context so
+            // subsequent sends start clean. Without this, queueing a second
+            // message during streaming silently re-attaches the previous
+            // images.
+            editorEngine.chat.context.clearImagesFromContext();
 
             if (isStreaming) {
                 // AI is running - add to bottom of queue (normal queueing)
@@ -273,12 +307,21 @@ export function useChat({
                     conversationId,
                     model,
                     ollamaBaseUrl,
+                    reasoningEffort,
                 },
             });
 
             return message;
         },
-        [editorEngine.chat.context, regenerate, conversationId, setMessages, model, ollamaBaseUrl],
+        [
+            editorEngine.chat.context,
+            regenerate,
+            conversationId,
+            setMessages,
+            model,
+            ollamaBaseUrl,
+            reasoningEffort,
+        ],
     );
 
     const removeFromQueue = useCallback((id: string) => {
@@ -346,8 +389,10 @@ export function useChat({
             );
             await processMessage(nextMessage.content, nextMessage.type, refreshedContext);
 
-            // Remove only after successful processing
-            setQueuedMessages((prev) => prev.slice(1));
+            // Remove by id, not position — user may prepend a new message in
+            // the microtask window between processMessage returning and this
+            // setter running, which would otherwise drop the wrong entry.
+            setQueuedMessages((prev) => prev.filter((m) => m.id !== nextMessage.id));
         } catch (error) {
             console.error('Failed to process queued message:', error);
         } finally {
@@ -389,9 +434,64 @@ export function useChat({
                 conversationId,
                 model,
                 ollamaBaseUrl,
+                reasoningEffort,
             },
         });
-    }, [isStreaming, posthog, regenerate, conversationId, model, ollamaBaseUrl]);
+    }, [isStreaming, posthog, regenerate, conversationId, model, ollamaBaseUrl, reasoningEffort]);
+
+    // Listen for the global "retry stalled tool" event dispatched by
+    // ToolCallSimple. Surgical retry: re-run only the stalled tool — not the
+    // whole assistant turn — so the model's reasoning and any sibling tool
+    // results are preserved. The `addToolResult` write reconciles the part
+    // state from `input-available` to `output-available` / `output-error`,
+    // and the SDK's `sendAutomaticallyWhen` continues the conversation from
+    // there.
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (
+                event as CustomEvent<{
+                    toolCallId: string;
+                    toolName: string;
+                    input: unknown;
+                }>
+            ).detail;
+            if (!detail?.toolCallId || !detail.toolName) return;
+            inflightToolCalls.current += 1;
+            setIsExecutingToolCall(true);
+            void (async () => {
+                try {
+                    await handleToolCall(
+                        {
+                            toolCallId: detail.toolCallId,
+                            toolName: detail.toolName,
+                            input: detail.input,
+                        } as Parameters<typeof handleToolCall>[0],
+                        editorEngine,
+                        addToolResult,
+                    );
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    try {
+                        await addToolResult({
+                            state: 'output-error',
+                            tool: detail.toolName,
+                            toolCallId: detail.toolCallId,
+                            errorText: message,
+                        });
+                    } catch {
+                        console.warn('[chat] retry tool result write failed', err);
+                    }
+                } finally {
+                    inflightToolCalls.current = Math.max(0, inflightToolCalls.current - 1);
+                    if (inflightToolCalls.current === 0) {
+                        setIsExecutingToolCall(false);
+                    }
+                }
+            })();
+        };
+        window.addEventListener('weblab:chat-retry-tool', handler as EventListener);
+        return () => window.removeEventListener('weblab:chat-retry-tool', handler as EventListener);
+    }, [addToolResult, editorEngine]);
 
     useEffect(() => {
         // Actions to handle when the chat is finished

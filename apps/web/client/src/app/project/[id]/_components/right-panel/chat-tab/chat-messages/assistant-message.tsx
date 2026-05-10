@@ -40,7 +40,7 @@ const AssistantMessageComponent = ({
     };
 
     return (
-        <div className="group/assistant text-small flex flex-col content-start gap-2 px-4 py-2 text-wrap">
+        <div className="group/assistant text-small flex flex-col content-start gap-1.5 px-3 py-2 leading-snug tracking-[-0.005em] text-wrap">
             <MessageContent
                 messageId={message.id}
                 parts={message.parts}

@@ -3,7 +3,8 @@
 import type { LanguageModelUsage } from 'ai';
 import { useMemo } from 'react';
 
-import { MODEL_MAX_TOKENS, OPENROUTER_MODELS } from '@weblab/models';
+import type { ChatModel } from '@weblab/models';
+import { getMaxTokens } from '@weblab/models';
 import {
     Context,
     ContextCacheUsage,
@@ -17,10 +18,15 @@ import {
     ContextTrigger,
 } from '@weblab/ui/ai-elements/context';
 
-export const ChatContextWindow = ({ usage }: { usage: LanguageModelUsage }) => {
+export const ChatContextWindow = ({
+    usage,
+    model,
+}: {
+    usage: LanguageModelUsage;
+    model: ChatModel;
+}) => {
     const showCost = false;
-    // Hardcoded for now, but should be dynamic based on the model used
-    const maxTokens = MODEL_MAX_TOKENS[OPENROUTER_MODELS.CLAUDE_OPUS_4_7] ?? 0;
+    const maxTokens = getMaxTokens(model);
     const usedTokens = useMemo(() => {
         if (!usage) return 0;
         const input = usage.inputTokens ?? 0;

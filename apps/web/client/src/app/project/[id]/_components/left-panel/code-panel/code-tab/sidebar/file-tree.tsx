@@ -186,7 +186,7 @@ export const FileTree = ({
     );
 
     return (
-        <div className="bg-background-secondary border-border-bar flex h-full w-56 flex-col border-r">
+        <div className="bg-background-chrome border-border-bar flex h-full w-56 flex-col border-r">
             <FileTreeSearch
                 ref={inputRef}
                 searchQuery={searchQuery}
@@ -197,12 +197,12 @@ export const FileTree = ({
             />
             <div ref={resizeObserverRef} className="text-mini min-h-0 w-full flex-1 px-2">
                 {isLoading ? (
-                    <div className="text-foreground/50 text-small flex h-full flex-col items-center justify-start pt-4">
+                    <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-start pt-4">
                         <div className="border-foreground-hover mb-2 h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"></div>
                         <span>Loading files...</span>
                     </div>
                 ) : filteredFiles.length === 0 ? (
-                    <div className="text-foreground/50 text-small flex h-full flex-col items-center justify-start pt-4">
+                    <div className="text-foreground-tertiary text-small flex h-full flex-col items-center justify-start pt-4">
                         {fileEntries.length === 0 ? 'No files found' : 'No files match your search'}
                     </div>
                 ) : (

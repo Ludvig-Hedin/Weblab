@@ -130,10 +130,10 @@ export const ProjectPreviewSurface = ({
     const shouldRenderImage = Boolean(imageUrl && !imageFailed);
     const shouldRenderIframe = Boolean(
         !shouldRenderImage &&
-            siteUrl &&
-            !isNonEmbeddable(siteUrl) &&
-            isVisible &&
-            (iframeLoaded || !iframeTimedOut),
+        siteUrl &&
+        !isNonEmbeddable(siteUrl) &&
+        isVisible &&
+        (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);

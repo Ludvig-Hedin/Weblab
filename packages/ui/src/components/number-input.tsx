@@ -8,8 +8,10 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 const DEFAULT_UNITS = ['px', 'rem', 'em', '%', 'vh', 'vw', 'ch', 'fr'] as const;
 export type CssUnit = (typeof DEFAULT_UNITS)[number] | (string & {});
 
-export interface NumberInputProps
-    extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
+export interface NumberInputProps extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    'value' | 'onChange' | 'type'
+> {
     /** Full string value, e.g. `"16px"`, `"1.5"`, `"auto"`, `""`. */
     value: string;
     /** Called with the new full string value when the user commits. */

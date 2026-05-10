@@ -39,12 +39,26 @@ interface ModelMapping {
     [LLMProvider.OLLAMA]: OllamaModelId;
 }
 
+/**
+ * User-facing reasoning effort knob. Controls how long the model "thinks"
+ * before answering. Surfaced in the model picker as Fast / Balanced / Deep.
+ *  - `minimal`  → Fast: skip reasoning entirely where the provider supports it
+ *  - `low`      → Balanced (default for most surfaces)
+ *  - `medium`   → more deliberate reasoning
+ *  - `high`     → Deep: longest budget, slowest, best for hard tasks
+ */
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+
+export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'minimal';
+
 export type InitialModelPayload = {
     [K in keyof ModelMapping]: {
         provider: K;
         model: ModelMapping[K];
         /** Base URL for the Ollama server, required when provider is OLLAMA */
         ollamaBaseUrl?: string;
+        /** User-selected reasoning effort. Translated to provider-specific options. */
+        reasoningEffort?: ReasoningEffort;
     };
 }[keyof ModelMapping];
 
@@ -55,6 +69,24 @@ export type ModelConfig = {
     headers?: Record<string, string>;
     maxOutputTokens: number;
 };
+
+/**
+ * Models that meaningfully support a reasoning-effort knob. Used by the UI to
+ * hide the Fast / Balanced / Deep selector for models where the control would
+ * be a no-op (e.g. Ollama, non-reasoning Claude variants, Mistral).
+ */
+const REASONING_CAPABLE_MODELS: ReadonlySet<string> = new Set<string>([
+    OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
+    OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI,
+    OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
+    OPENROUTER_MODELS.CLAUDE_OPUS_4_7,
+    OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
+    OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
+]);
+
+export function modelSupportsReasoningEffort(model: ChatModel): boolean {
+    return REASONING_CAPABLE_MODELS.has(model);
+}
 
 export const MODEL_MAX_TOKENS: Record<string, number> = {
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 1050000,

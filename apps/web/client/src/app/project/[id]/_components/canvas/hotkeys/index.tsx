@@ -553,14 +553,22 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         [getKey('OPEN_ELEMENT_PALETTE')],
     );
 
-    // Global command palette (cmd+k). Dispatches a window event so the
-    // palette component can live anywhere in the tree (currently mounted
-    // in main.tsx). enableOnFormTags + preventDefault so it works while
-    // typing in chat / code-editor inputs.
+    // Global command palette (cmd+k). When focus is inside the CodeMirror
+    // editor, yield to its inlineEditKeymap (Mod-k) instead of opening
+    // the palette — same pattern used by the Cmd+F / SEARCH handler above.
     useHotkeys(
         getKey('OPEN_COMMAND_PALETTE'),
-        () => window.dispatchEvent(new Event('open-command-palette')),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        (e) => {
+            if (
+                typeof document !== 'undefined' &&
+                document.activeElement?.closest?.('.cm-editor')
+            ) {
+                return;
+            }
+            e.preventDefault();
+            window.dispatchEvent(new Event('open-command-palette'));
+        },
+        { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('OPEN_COMMAND_PALETTE')],
     );
 

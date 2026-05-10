@@ -73,7 +73,7 @@ export function TipTapEditor({
         editorProps: {
             attributes: {
                 class: cn(
-                    'text-small resize-none overflow-auto rounded-none outline-none',
+                    'text-small resize-none overflow-auto rounded-none text-left outline-none',
                     'min-h-[44px] cursor-text px-3 py-1.5',
                     'text-foreground-primary caret-foreground-brand bg-transparent dark:bg-transparent',
                     'selection:bg-foreground-brand/30 selection:text-foreground-brand',

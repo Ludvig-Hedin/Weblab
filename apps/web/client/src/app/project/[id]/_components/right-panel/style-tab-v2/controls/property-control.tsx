@@ -145,33 +145,31 @@ export const PropertyControl = observer(function PropertyControl({
             <ContextMenuTrigger asChild>
                 <div
                     data-style-property={property}
-                    className={cn('group/control flex items-center gap-2 px-3 py-1.5', className)}
+                    className={cn('group/control flex items-center gap-3 px-3 py-1', className)}
                 >
                     <button
                         type="button"
                         onClick={handleLabelClick}
                         title={`${label} — alt-click to reset`}
-                        className="text-mini flex w-20 shrink-0 items-center gap-1.5 text-left"
+                        className={cn(
+                            'text-mini flex w-[72px] shrink-0 items-center gap-1.5 text-left transition-colors',
+                            styleValue.isSet
+                                ? 'text-foreground-primary font-medium'
+                                : 'text-foreground-tertiary group-hover/control:text-foreground-secondary font-normal',
+                        )}
                     >
+                        {/* Non-color "is set" signal so colorblind users have a
+                            second cue beyond the label tint. */}
                         <span
                             aria-hidden
                             className={cn(
-                                'h-1.5 w-1.5 rounded-full transition-colors',
+                                'h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
                                 styleValue.isSet
                                     ? 'bg-foreground-brand'
-                                    : 'bg-foreground-secondary/30 group-hover/control:bg-foreground-secondary/60',
+                                    : 'bg-foreground-secondary/25 group-hover/control:bg-foreground-secondary/50',
                             )}
                         />
-                        <span
-                            className={cn(
-                                'truncate',
-                                styleValue.isSet
-                                    ? 'text-foreground-primary'
-                                    : 'text-foreground-secondary',
-                            )}
-                        >
-                            {label}
-                        </span>
+                        <span className="truncate">{label}</span>
                     </button>
                     <div className="min-w-0 flex-1">
                         {children({

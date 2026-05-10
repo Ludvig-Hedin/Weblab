@@ -469,9 +469,7 @@ export const CodeTab = memo(
             const fileName = oldPath.split('/').pop() || 'file';
             const newFileName = newPath.split('/').pop() || 'file';
 
-            const opened = openedEditorFilesRef.current.find((f) =>
-                pathsEqual(f.path, oldPath),
-            );
+            const opened = openedEditorFilesRef.current.find((f) => pathsEqual(f.path, oldPath));
             if (opened && (await isDirty(opened))) {
                 toast.error(
                     `Cannot rename "${fileName}" with unsaved changes. Save or discard first.`,
@@ -504,9 +502,7 @@ export const CodeTab = memo(
             setActiveEditorFile((prev) =>
                 prev && pathsEqual(prev.path, oldPath) ? { ...prev, path: newPath } : prev,
             );
-            setSelectedFilePath((prev) =>
-                prev && pathsEqual(prev, oldPath) ? newPath : prev,
-            );
+            setSelectedFilePath((prev) => (prev && pathsEqual(prev, oldPath) ? newPath : prev));
         };
 
         const handleDeleteFile = (path: string) => {

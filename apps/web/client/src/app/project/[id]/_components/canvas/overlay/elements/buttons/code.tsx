@@ -32,6 +32,7 @@ export const OverlayOpenCode = observer(({ isInputting }: { isInputting: boolean
                 onClick={handleCodeButtonClick}
                 className="hover:text-foreground-primary flex w-full flex-row items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors"
                 title="Open in Code"
+                aria-label="Open in Code"
             >
                 <Icons.Code className="h-4 w-4" />
             </button>

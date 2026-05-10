@@ -31,7 +31,7 @@ export const ErrorMessage = observer(({ error: chatError }: ErrorMessageProps) =
                 errorMessage = parsed.error || chatError.toString();
             }
         }
-    } catch (e) {
+    } catch {
         // Not JSON, use raw error message
         errorMessage = chatError.message || chatError.toString();
     }
@@ -56,7 +56,7 @@ export const ErrorMessage = observer(({ error: chatError }: ErrorMessageProps) =
 
     if (errorMessage) {
         return (
-            <div className="text-small text-red flex w-full flex-row items-center justify-center gap-2 p-2">
+            <div className="text-small text-destructive flex w-full flex-row items-center justify-center gap-2 p-2">
                 <Icons.ExclamationTriangle className="w-6" />
                 <p className="w-5/6 overflow-auto text-wrap">{errorMessage}</p>
             </div>

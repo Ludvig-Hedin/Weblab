@@ -175,22 +175,20 @@ function dedupNewElement(newEl: HTMLElement) {
         `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_WEBLAB_INSERTED}]`,
         `[${EditorAttributes.DATA_WEBLAB_ID}="${oid}"][${EditorAttributes.DATA_ONLOOK_INSERTED}]`,
     ];
-    document
-        .querySelectorAll(insertedSelectors.join(','))
-        .forEach((targetEl) => {
-            const ATTRIBUTES_TO_REPLACE = [
-                EditorAttributes.DATA_WEBLAB_DOM_ID,
-                EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE,
-                EditorAttributes.DATA_WEBLAB_EDITING_TEXT,
-                EditorAttributes.DATA_WEBLAB_INSTANCE_ID,
-            ];
+    document.querySelectorAll(insertedSelectors.join(',')).forEach((targetEl) => {
+        const ATTRIBUTES_TO_REPLACE = [
+            EditorAttributes.DATA_WEBLAB_DOM_ID,
+            EditorAttributes.DATA_WEBLAB_DRAG_SAVED_STYLE,
+            EditorAttributes.DATA_WEBLAB_EDITING_TEXT,
+            EditorAttributes.DATA_WEBLAB_INSTANCE_ID,
+        ];
 
-            ATTRIBUTES_TO_REPLACE.forEach((attr) => {
-                const targetAttr = targetEl.getAttribute(attr);
-                if (targetAttr) {
-                    newEl.setAttribute(attr, targetAttr);
-                }
-            });
-            targetEl.remove();
+        ATTRIBUTES_TO_REPLACE.forEach((attr) => {
+            const targetAttr = targetEl.getAttribute(attr);
+            if (targetAttr) {
+                newEl.setAttribute(attr, targetAttr);
+            }
         });
+        targetEl.remove();
+    });
 }

@@ -1890,3 +1890,116 @@ Branch: `main` @ HEAD `678de9bb`, 8 unpushed commits ahead of `origin/main`. Six
 - **Suggested approach:** Add `if (!data.user.id) { return badAuthResponse() }` early. Costs nothing and removes the silent assumption.
 - **Status:** open
 
+
+---
+
+## Bug Hunt — 2026-05-10
+
+Scope: changed files mode (git diff HEAD, ~45 files)
+
+### Auto-fixed (2 issues)
+
+- `apps/web/client/src/components/store/editor/chat/conversation.ts:91-94` — `startNewConversation` threw inside its own `try`-`catch` when the conversation was already empty, causing `toast.error("Error starting new conversation")` every time "New Chat" was clicked in a fresh empty conversation. Changed `throw new Error(...)` to `return` (silent early exit).
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:182` — `processFile()` called fire-and-forget inside a `useEffect` with no error handling. If `createEditorFile` threw, the error was silently swallowed. Changed to `void processFile().catch(console.error)`.
+
+### Needs human review (4 issues)
+
+- `packages/file-system/src/fs.ts:198-215` — `deleteFile` catch block catches both `stat` failures AND `rm` failures. If the non-recursive `rm(fullPath)` itself throws, the catch retries with `{ recursive: true }`, masking the original error and potentially hitting a double-delete loop. Consider separating the stat check from the rm.
+  - Risk: medium (incorrect error message surfaced; double rm call on already-broken state)
+
+- `packages/file-system/src/fs.ts:569-572` — `listFiles` converts glob `**/*` to regex via `pattern.replace(/\*/g, '.*')`, producing `^.*.*\/.*$`. This excludes root-level files (paths without `/`). Default call `listFiles()` silently drops files at the project root.
+  - Risk: medium (root-level files like `index.ts`, `package.json` would be omitted)
+  - Suggested fix: special-case `**/*` to return all files, or use a proper glob library.
+
+- `packages/file-system/src/fs.ts:507` — `setupWatchersRecursive(fullPath)` is not awaited in `watchDirectory`. The returned cleanup function may close watchers before they're fully registered; new-directory events during setup are lost.
+  - Risk: low (brief window at startup; watcher still eventually establishes)
+
+- `apps/web/client/src/app/project/[id]/_components/offline-panel.tsx:59` — `setInterval(refresh, 2_000)` where `refresh` is async. Concurrent calls can queue if `refresh` takes >2s; state updates from stale calls fire after unmount.
+  - Risk: low (read-only queries, short interval; React 18 batches most state updates)
+
+## Bug Hunt — 2026-05-10 — Project creation flow
+
+Targeted scan of the project-creation surfaces: `useCreateBlankProject`,
+`useImportLocalProject`, `useCloneWebsite`, `CreateManager` (manager.ts),
+the `project.create` / `sandbox.fork` / `project.fork` tRPC routers, the
+`/projects/creating` and `/projects/new` pages, and the consumption side
+in `useStartProject`.
+
+### Auto-fixed (1 issue)
+
+- `apps/web/client/src/server/api/routers/project/fork.ts:78,99-110,193` —
+  `fork` mutation lost the source project's framework metadata and used a
+  hardcoded port 3000 for every forked sandbox preview URL. Fix: thread
+  `sourceProject.runtimeMetadata.framework` into `forkAllBranches` so
+  `getSandboxPreviewUrl` uses the framework adapter's port (Vite=5173,
+  Astro=4321, Next=3000), and persist `runtimeMetadata: { framework }` +
+  `storageMode: 'cloud'` on the new project so the editor's preload-script
+  injector and dev-server-port logic pick the right path on first load.
+  Without this, forking a Vite / Astro / static-html template silently
+  downgraded to the Next.js framework-detection race and the sandbox
+  preview 404'd on port 3000.
+
+### Needs human review (5 issues)
+
+- `apps/web/client/src/hooks/use-import-local-project.ts:117` — The
+  `getSession` callback wired into `createCodeProviderClient` calls
+  `apiClient.sandbox.start.mutate({ sandboxId })`, but `sandbox.start`
+  invokes `verifySandboxAccess` (added by CR-118), which fails with
+  `NOT_FOUND` because the freshly forked sandbox has no `branches` row
+  yet — `project.create` runs only after the upload finishes. The local
+  folder import path is broken end-to-end on every machine that ran the
+  CR-118 patch.
+  - Risk: high (entire local-import feature non-functional; orphan
+    sandbox cleanup fires on every attempt)
+  - Suggested fix: introduce a `sandbox.startOrphan` (or similar) tRPC
+    procedure that authenticates the caller but does not require a
+    branch row — analogous to `sandbox.deleteOrphan`. Switch the
+    `getSession` callback in `useImportLocalProject` to that endpoint.
+
+- `apps/web/client/src/hooks/use-create-blank-project.ts:106` —
+  `errorMessage.includes('502') || errorMessage.includes('sandbox')`
+  is too loose. Any error message containing the substring "sandbox"
+  (rate-limit copy, invalid template id, billing failure, "sandbox
+  quota exceeded", etc.) hits the misleading "Sandbox service
+  temporarily unavailable" toast with a Retry button instead of the
+  actual cause.
+  - Risk: medium (UX/diagnosability — users will mash Retry on a
+    permanent failure)
+  - Suggested fix: match against TRPC error codes (e.g. status 502/503
+    on the underlying error, or a typed code field) rather than free-text
+    substrings, and reserve the retry toast for transient failures only.
+
+- `apps/web/client/src/components/store/create/manager.ts:180-184` —
+  When `startGitHubTemplate` detects a private repo it sets
+  `this.error` and returns `undefined`. Callers cannot distinguish
+  this from "success returning no project" without consulting
+  `this.error`, which the auth-failure path also writes. Inconsistent
+  with `startCreate` which throws a typed sentinel
+  (`CreateFlowNotAuthenticatedError`). Same shape applies to the
+  pre-seeded vs subpath conflict at `startPublicGitHubTemplate:271-274`.
+  - Risk: low (only template-import callers; current UI does its own
+    UI-side check)
+  - Suggested fix: throw a typed error (or `return null` and adjust
+    callers) so the contract is uniform across the three entry points.
+
+- `apps/web/client/src/app/projects/_components/clone-website-dialog.tsx:201-208` —
+  Loader steps include "Reading the source page" with `ready: phase
+  !== 'idle' && phase !== 'scraping-url'`. The screenshot path skips
+  `scraping-url` entirely (idle → forking-sandbox), so the loader
+  shows "Reading the source page" as completed (green check) even
+  though no page was read. Misleading on the screenshot tab.
+  - Risk: low (cosmetic)
+  - Suggested fix: drive the steps array off `activeTab` or rename the
+    first step to match both flows ("Preparing source material" or
+    similar).
+
+- `apps/web/client/src/hooks/use-import-local-project.ts:94,212` —
+  `setHasPendingLocalImport(false)` is referenced inside
+  `handleImportLocalProject` (line 94) before its `useState`
+  declaration appears later in the same component (line 212). Works at
+  runtime because the handler is invoked only after all hooks have
+  initialised, but the forward reference is fragile and confusing.
+  - Risk: very low (functional today; bait for future refactors)
+  - Suggested fix: hoist the `useState` for `hasPendingLocalImport`
+    above `handleImportLocalProject`.

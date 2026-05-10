@@ -3,9 +3,18 @@ import { motion } from 'motion/react';
 
 import { useCreateManager } from '@/components/store/create';
 
-export const CreateError = observer(() => {
+interface CreateErrorProps {
+    onRetry?: () => void;
+}
+
+export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
     const createManager = useCreateManager();
     const error = createManager.error;
+
+    const handleClick = () => {
+        createManager.error = null;
+        onRetry?.();
+    };
 
     return (
         <motion.div
@@ -24,12 +33,10 @@ export const CreateError = observer(() => {
             <span className="flex-1 text-center">{error}</span>
             <button
                 type="button"
-                onClick={() => {
-                    createManager.error = null;
-                }}
+                onClick={handleClick}
                 className="cursor-pointer rounded-md border border-red-500/60 px-2 py-1 text-xs font-medium tracking-wide text-red-200 uppercase transition-colors hover:bg-red-500/20"
             >
-                Try again
+                {onRetry ? 'Try again' : 'Dismiss'}
             </button>
         </motion.div>
     );

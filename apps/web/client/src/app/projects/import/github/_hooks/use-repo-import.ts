@@ -60,6 +60,11 @@ export const useRepositoryImport = () => {
                     project: {
                         name: selectedRepo.name ?? 'New project',
                         description: selectedRepo.description || 'Imported from GitHub',
+                        // Default framework hint so the editor's preload-script
+                        // injector picks the Next.js path on first load instead
+                        // of falling through to the framework-detection race.
+                        // Adapter re-validates against the real sandbox files.
+                        runtimeMetadata: { framework: 'nextjs' },
                     },
                     sandboxId,
                     sandboxUrl: previewUrl,

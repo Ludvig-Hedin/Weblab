@@ -1,9 +1,21 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import type { ChatMessage, GitMessageCheckpoint } from '@weblab/models';
 import { ChatType, MessageCheckpointType } from '@weblab/models';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
+import { Checkbox } from '@weblab/ui/checkbox';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,9 +33,16 @@ import { cn } from '@weblab/ui/utils';
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
 import { useEditorEngine } from '@/components/store/editor';
 import { restoreCheckpoint } from '@/components/store/editor/git';
+import { transKeys } from '@/i18n/keys';
 import { SentContextPill } from '../context-pills/sent-context-pill';
 import { MessageContent } from './message-content';
 import { MultiBranchRevertModal } from './multi-branch-revert-modal';
+import { useSkipRestoreConfirm } from './use-skip-restore-confirm';
+
+type PendingRestore =
+    | { kind: 'single'; checkpoint: GitMessageCheckpoint }
+    | { kind: 'legacy' }
+    | null;
 
 interface UserMessageProps {
     onEditMessage: EditMessage;
@@ -43,12 +62,18 @@ export const getUserMessageContent = (message: ChatMessage) => {
 
 const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations();
     const [isCopied, setIsCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editValue, setEditValue] = useState('');
     const [isComposing, setIsComposing] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
     const [isMultiBranchModalOpen, setIsMultiBranchModalOpen] = useState(false);
+    const [pendingRestore, setPendingRestore] = useState<PendingRestore>(null);
+    const [skipRestoreConfirm, setSkipRestoreConfirm] = useSkipRestoreConfirm();
+    const [skipNextTime, setSkipNextTime] = useState(false);
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const gitCheckpoints =
@@ -95,14 +120,28 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     }
 
     const handleSubmit = async () => {
+        if (isSubmittingEdit) return;
+        setIsSubmittingEdit(true);
         setIsEditing(false);
-        await sendMessage(editValue);
+        try {
+            await sendMessage(editValue);
+        } finally {
+            setIsSubmittingEdit(false);
+        }
     };
 
     const handleRetry = async () => {
-        toast.promise(onEditMessage(message.id, getUserMessageContent(message), ChatType.EDIT), {
-            error: 'Failed to resubmit message',
-        });
+        if (isRetrying) return;
+        setIsRetrying(true);
+        const promise = onEditMessage(message.id, getUserMessageContent(message), ChatType.EDIT);
+        toast.promise(promise, { error: 'Failed to resubmit message' });
+        try {
+            await promise;
+        } catch {
+            // toast.promise already surfaces the error to the user.
+        } finally {
+            setIsRetrying(false);
+        }
     };
 
     const sendMessage = async (newContent: string) => {
@@ -113,20 +152,43 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
         });
     };
 
-    const handleRestoreSingleBranch = async (checkpoint: GitMessageCheckpoint) => {
+    const performRestore = async (checkpoint: GitMessageCheckpoint) => {
         setIsRestoring(true);
-        await restoreCheckpoint(checkpoint, editorEngine);
-        setIsRestoring(false);
-    };
-
-    const handleRestoreLegacy = async () => {
-        // Legacy checkpoints without branchId will restore to the active branch
-        const firstCheckpoint = gitCheckpoints[0];
-        if (firstCheckpoint) {
-            setIsRestoring(true);
-            await restoreCheckpoint(firstCheckpoint, editorEngine);
+        try {
+            await restoreCheckpoint(checkpoint, editorEngine);
+        } finally {
             setIsRestoring(false);
         }
+    };
+
+    const requestRestoreSingleBranch = (checkpoint: GitMessageCheckpoint) => {
+        if (skipRestoreConfirm) {
+            void performRestore(checkpoint);
+            return;
+        }
+        setSkipNextTime(false);
+        setPendingRestore({ kind: 'single', checkpoint });
+    };
+
+    const requestRestoreLegacy = () => {
+        const firstCheckpoint = gitCheckpoints[0];
+        if (!firstCheckpoint) return;
+        if (skipRestoreConfirm) {
+            void performRestore(firstCheckpoint);
+            return;
+        }
+        setSkipNextTime(false);
+        setPendingRestore({ kind: 'legacy' });
+    };
+
+    const confirmRestore = async () => {
+        if (!pendingRestore) return;
+        if (skipNextTime) setSkipRestoreConfirm(true);
+        const checkpoint =
+            pendingRestore.kind === 'legacy' ? gitCheckpoints[0] : pendingRestore.checkpoint;
+        setPendingRestore(null);
+        if (!checkpoint) return;
+        await performRestore(checkpoint);
     };
 
     const getBranchName = (branchId: string | undefined): string => {
@@ -151,11 +213,25 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                     onCompositionEnd={() => setIsComposing(false)}
                 />
                 <div className="flex justify-end gap-2">
-                    <Button size="sm" variant={'ghost'} onClick={handleCancel}>
+                    <Button
+                        size="sm"
+                        variant={'ghost'}
+                        onClick={handleCancel}
+                        disabled={isSubmittingEdit}
+                    >
                         Cancel
                     </Button>
-                    <Button size="sm" variant={'outline'} onClick={handleSubmit}>
-                        Submit
+                    <Button
+                        size="sm"
+                        variant={'outline'}
+                        onClick={handleSubmit}
+                        disabled={isSubmittingEdit || editValue.trim().length === 0}
+                    >
+                        {isSubmittingEdit ? (
+                            <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
+                        ) : (
+                            'Submit'
+                        )}
                     </Button>
                 </div>
             </div>
@@ -171,9 +247,15 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                             onClick={handleRetry}
                             size="icon"
                             variant="ghost"
+                            disabled={isRetrying}
+                            aria-label={t(transKeys.editor.panels.edit.tabs.chat.userMessage.retry)}
                             className="h-6 w-6 p-1"
                         >
-                            <Icons.Reload className="h-4 w-4" />
+                            {isRetrying ? (
+                                <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Icons.Reload className="h-4 w-4" />
+                            )}
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top" sideOffset={5}>
@@ -187,6 +269,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                             onClick={handleEditClick}
                             size="icon"
                             variant="ghost"
+                            aria-label={t(transKeys.editor.panels.edit.tabs.chat.userMessage.edit)}
                             className="h-6 w-6 p-1"
                         >
                             <Icons.Pencil className="h-4 w-4" />
@@ -202,6 +285,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                             onClick={handleCopyClick}
                             size="icon"
                             variant="ghost"
+                            aria-label={t(transKeys.editor.panels.edit.tabs.chat.userMessage.copy)}
                             className="h-6 w-6 p-1"
                         >
                             {isCopied ? (
@@ -222,20 +306,20 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
     return (
         <div className="group relative flex w-full flex-row justify-end px-2" key={message.id}>
             <div className="ml-8 flex w-[90%] flex-col items-end gap-1">
-                <div className="bg-background-primary border-border relative flex w-full flex-col rounded-md border p-2.5 shadow-sm">
-                    <div className="relative h-6">
-                        <div className="absolute top-1 right-0 left-0 flex w-full flex-row items-center justify-start overflow-auto pr-16">
-                            <div className="text-micro text-foreground-secondary flex flex-row gap-3">
-                                {message.metadata?.context?.map((context, index) => (
-                                    <SentContextPill
-                                        key={`${context.type}-${index}`}
-                                        context={context}
-                                    />
-                                ))}
-                            </div>
+                {(message.metadata?.context?.length ?? 0) > 0 && (
+                    <div className="mb-2 flex w-full flex-row items-center justify-end pr-2">
+                        <div className="text-foreground-secondary flex flex-row gap-3 text-xs">
+                            {message.metadata?.context?.map((context, index) => (
+                                <SentContextPill
+                                    key={`${context.type}-${index}`}
+                                    context={context}
+                                />
+                            ))}
                         </div>
                     </div>
-                    <div className="text-small mt-1">
+                )}
+                <div className="bg-background-primary relative flex flex-col rounded-xl px-3 py-2 shadow-sm">
+                    <div className="text-small leading-snug tracking-[-0.005em]">
                         {isEditing ? (
                             renderEditingInput()
                         ) : (
@@ -256,7 +340,8 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <button
-                                    onClick={handleRestoreLegacy}
+                                    onClick={requestRestoreLegacy}
+                                    aria-label={t(transKeys.editor.panels.edit.tabs.chat.restore.ariaLabel)}
                                     className={cn(
                                         'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
                                         isRestoring ? 'opacity-100' : 'opacity-0',
@@ -281,6 +366,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
                                             <button
+                                                aria-label={t(transKeys.editor.panels.edit.tabs.chat.restore.ariaLabel)}
                                                 className={cn(
                                                     'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
                                                     isRestoring ? 'opacity-100' : 'opacity-0',
@@ -304,7 +390,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                             <DropdownMenuItem
                                                 key={checkpoint.branchId}
                                                 onClick={() =>
-                                                    handleRestoreSingleBranch(checkpoint)
+                                                    requestRestoreSingleBranch(checkpoint)
                                                 }
                                             >
                                                 {getBranchName(checkpoint.branchId)}
@@ -332,6 +418,38 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                     )}
                 </div>
             )}
+            <AlertDialog
+                open={pendingRestore !== null}
+                onOpenChange={(next) => {
+                    if (!next) setPendingRestore(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            {t(transKeys.editor.panels.edit.tabs.chat.restore.confirmTitle)}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t(transKeys.editor.panels.edit.tabs.chat.restore.confirmDescription)}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <label className="text-foreground-secondary text-mini flex items-center gap-2">
+                        <Checkbox
+                            checked={skipNextTime}
+                            onCheckedChange={(checked) => setSkipNextTime(checked === true)}
+                        />
+                        {t(transKeys.editor.panels.edit.tabs.chat.restore.dontAskAgain)}
+                    </label>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>
+                            {t(transKeys.editor.panels.edit.tabs.chat.restore.cancel)}
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={() => void confirmRestore()}>
+                            {t(transKeys.editor.panels.edit.tabs.chat.restore.confirm)}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

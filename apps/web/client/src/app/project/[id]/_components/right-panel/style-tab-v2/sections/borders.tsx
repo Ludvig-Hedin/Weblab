@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { ColorField } from '../controls/color-field';
@@ -30,6 +32,8 @@ const CORNERS = [
     { property: 'border-bottom-left-radius', label: 'BL' },
 ] as const;
 
+type CornerProperty = (typeof CORNERS)[number]['property'];
+
 const PER_SIDE_PROPERTIES = [
     'border-top-width',
     'border-right-width',
@@ -49,14 +53,35 @@ function CornerRadius() {
 
     const allEqual = useMemo(() => {
         const v = [tl.value, tr.value, br.value, bl.value];
-        const f = v[0];
-        return v.every((x) => x === f);
+        return v.every((x) => x === v[0]);
     }, [tl.value, tr.value, br.value, bl.value]);
 
-    const [linked, setLinked] = useState(allEqual);
+    const anySet = tl.isSet || tr.isSet || br.isSet || bl.isSet;
+    const linkedValue = allEqual ? tl.value : '';
+    const linkedIsSet = allEqual && tl.isSet;
+    const placeholder = !allEqual ? 'Mixed' : undefined;
+
+    // User-driven collapse intent: once they explicitly close the row, don't
+    // pop it back open just because a value diverges. We only auto-expand on
+    // the first transition into a divergent state.
+    const [expanded, setExpanded] = useState(() => anySet && !allEqual);
+    const prevDivergentRef = useRef(anySet && !allEqual);
     useEffect(() => {
-        if (!allEqual) setLinked(false);
-    }, [allEqual]);
+        const divergent = anySet && !allEqual;
+        if (divergent && !prevDivergentRef.current) setExpanded(true);
+        prevDivergentRef.current = divergent;
+    }, [anySet, allEqual]);
+
+    // Sync ref synchronously inside the toggle handler so a manual collapse
+    // performed before the next effect flush does not get re-opened by a
+    // simultaneously-arriving divergent value.
+    const handleToggle = () => {
+        setExpanded((v) => {
+            const next = !v;
+            prevDivergentRef.current = anySet && !allEqual;
+            return next;
+        });
+    };
 
     const setAll = (value: string) => {
         tlSetter.set(value);
@@ -65,56 +90,84 @@ function CornerRadius() {
         blSetter.set(value);
     };
 
-    const linkedValue = linked ? tl.value : '';
-
     return (
-        <div className="flex items-start gap-3 px-3 py-2">
-            <span className="text-foreground-secondary text-mini w-12 shrink-0 pt-1.5">Radius</span>
-            <div className="flex flex-1 flex-col gap-1">
-                {linked ? (
-                    <NumberInput
-                        compact
-                        value={linkedValue}
-                        onCommit={setAll}
-                        aria-label="Corner radius"
-                    />
-                ) : (
-                    <div className="grid grid-cols-2 gap-1">
+        <TooltipProvider delayDuration={400}>
+            <div className="flex flex-col gap-1.5 px-3 py-1">
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={handleToggle}
+                        title={expanded ? 'Collapse radius' : 'Expand to per-corner'}
+                        className={cn(
+                            'text-mini flex w-[72px] shrink-0 items-center gap-1 text-left transition-colors',
+                            anySet
+                                ? 'text-foreground-primary font-medium'
+                                : 'text-foreground-tertiary hover:text-foreground-secondary font-normal',
+                        )}
+                    >
+                        <ChevronDown
+                            className={cn(
+                                'size-3 shrink-0 transition-transform duration-150',
+                                expanded ? 'rotate-180' : 'rotate-0',
+                            )}
+                        />
+                        <span className="truncate">Radius</span>
+                    </button>
+                    <div className="min-w-0 flex-1">
+                        {!expanded && (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <NumberInput
+                                        compact
+                                        value={linkedValue}
+                                        placeholder={placeholder}
+                                        onCommit={setAll}
+                                        className={cn(
+                                            'w-full',
+                                            linkedIsSet && 'border-foreground-brand/40',
+                                        )}
+                                        aria-label="Corner radius (all corners)"
+                                    />
+                                </TooltipTrigger>
+                                {!allEqual && anySet && (
+                                    <TooltipContent side="left" className="text-mini">
+                                        Corners differ — expand to edit individually
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        )}
+                    </div>
+                </div>
+                {expanded && (
+                    <div className="flex items-end gap-1.5 pl-[84px]">
                         {CORNERS.map(({ property, label }) => (
                             <CornerInput key={property} property={property} label={label} />
                         ))}
                     </div>
                 )}
-                <button
-                    type="button"
-                    onClick={() => setLinked((v) => !v)}
-                    className={cn(
-                        'text-micro self-end rounded px-2 py-0.5 transition-colors duration-150',
-                        linked
-                            ? 'bg-foreground/12 text-foreground-primary'
-                            : 'bg-foreground/5 text-foreground-tertiary hover:bg-foreground/10',
-                    )}
-                >
-                    {linked ? 'Linked' : 'Per corner'}
-                </button>
             </div>
-        </div>
+        </TooltipProvider>
     );
 }
 
-function CornerInput({ property, label }: { property: string; label: string }) {
+function CornerInput({ property, label }: { property: CornerProperty; label: string }) {
     const styleValue = useStyleValue(property);
     const setter = useStyleSetter(property);
     return (
-        <div className="flex items-center gap-1">
-            <span className="text-foreground-secondary w-5 text-[10px] uppercase">{label}</span>
+        <div className="flex flex-1 flex-col items-center gap-0.5">
             <NumberInput
                 compact
                 value={styleValue.value}
                 onCommit={setter.set}
-                className={cn(styleValue.isSet && 'border-foreground-brand/40')}
+                className={cn(
+                    'w-full text-center',
+                    styleValue.isSet && 'border-foreground-brand/40',
+                )}
                 aria-label={`Radius ${label}`}
             />
+            <span className="text-foreground-tertiary text-[9px] leading-none uppercase">
+                {label}
+            </span>
         </div>
     );
 }

@@ -189,6 +189,10 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 project: {
                     name: fileName || 'Figma Import',
                     description: `Imported from Figma: ${fileName}`,
+                    // Figma scaffolding writes a Next.js src/app/page.tsx, so
+                    // hint the framework upfront to avoid the preload-injector
+                    // race on first load.
+                    runtimeMetadata: { framework: 'nextjs' },
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,

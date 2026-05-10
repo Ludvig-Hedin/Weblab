@@ -26,6 +26,7 @@ import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility'
 
 import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
+import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle';
 import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
@@ -43,7 +44,6 @@ import { InputContextPills } from '../context-pills/input-context-pills';
 import { Suggestions } from '../suggestions';
 import { ActionButtons } from './action-buttons';
 import { ChatContextWindow } from './chat-context';
-import { ChatModeToggle } from './chat-mode-toggle';
 import { QueueItems } from './queue-items';
 
 interface ChatInputProps {
@@ -508,7 +508,10 @@ export const ChatInput = observer(
                                 localModelsLoading={localModelsLoading}
                             />
                             {lastUsageMessage?.metadata?.usage && (
-                                <ChatContextWindow usage={lastUsageMessage?.metadata?.usage} />
+                                <ChatContextWindow
+                                    usage={lastUsageMessage?.metadata?.usage}
+                                    model={model}
+                                />
                             )}
                         </div>
                         <div className="flex flex-row items-center gap-1">

@@ -1,4 +1,7 @@
+import { useState } from 'react';
+
 import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 interface UnsavedChangesDialogProps {
     onSave: () => Promise<void>;
@@ -14,6 +17,17 @@ export function UnsavedChangesDialog({
     fileCount = 1,
 }: UnsavedChangesDialogProps) {
     const isMultiple = fileCount > 1;
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave();
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <div className="bg-card border-border absolute top-4 left-1/2 z-50 w-[320px] -translate-x-1/2 rounded-lg border p-4 shadow-lg">
             <div className="text-foreground text-small mb-4">
@@ -21,15 +35,25 @@ export function UnsavedChangesDialog({
                 {isMultiple ? `${fileCount} files` : 'this file'}?
             </div>
             <div className="flex justify-end gap-1">
-                <Button onClick={onDiscard} variant="ghost" className="text-red hover:text-red">
+                <Button
+                    onClick={onDiscard}
+                    variant="ghost"
+                    className="text-red hover:text-red"
+                    disabled={isSaving}
+                >
                     Discard
                 </Button>
                 <Button
-                    onClick={onSave}
+                    onClick={handleSave}
                     variant="ghost"
                     className="text-foreground-brand text-small"
+                    disabled={isSaving}
                 >
-                    Save
+                    {isSaving ? (
+                        <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                        'Save'
+                    )}
                 </Button>
                 <Button variant="ghost" onClick={onCancel}>
                     Cancel

@@ -14,29 +14,36 @@ import { cmsSources } from './source';
  * `slug` is the stable identifier used in bindings and (later) routing.
  * It is unique per project, not globally.
  */
-export const cmsCollections = pgTable('cms_collection', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    projectId: uuid('project_id')
-        .notNull()
-        .references(() => projects.id, {
-            onDelete: 'cascade',
-            onUpdate: 'cascade',
-        }),
-    sourceId: uuid('source_id')
-        .notNull()
-        .references(() => cmsSources.id, {
-            onDelete: 'cascade',
-            onUpdate: 'cascade',
-        }),
-    name: varchar('name').notNull(),
-    slug: varchar('slug').notNull(),
-    icon: varchar('icon'),
-    description: text('description'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-    uniqueSlugPerProject: unique('cms_collection_project_slug_unique').on(table.projectId, table.slug),
-})).enableRLS();
+export const cmsCollections = pgTable(
+    'cms_collection',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        projectId: uuid('project_id')
+            .notNull()
+            .references(() => projects.id, {
+                onDelete: 'cascade',
+                onUpdate: 'cascade',
+            }),
+        sourceId: uuid('source_id')
+            .notNull()
+            .references(() => cmsSources.id, {
+                onDelete: 'cascade',
+                onUpdate: 'cascade',
+            }),
+        name: varchar('name').notNull(),
+        slug: varchar('slug').notNull(),
+        icon: varchar('icon'),
+        description: text('description'),
+        createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    },
+    (table) => ({
+        uniqueSlugPerProject: unique('cms_collection_project_slug_unique').on(
+            table.projectId,
+            table.slug,
+        ),
+    }),
+).enableRLS();
 
 export const cmsCollectionRelations = relations(cmsCollections, ({ one, many }) => ({
     project: one(projects, {

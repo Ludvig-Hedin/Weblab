@@ -220,6 +220,7 @@ export function AiPromptComposer({
             type="button"
             size="icon"
             variant="secondary"
+            aria-label="Stop generating"
             className={cn(
                 'text-primary bg-background-primary',
                 classes.button,
@@ -235,10 +236,11 @@ export function AiPromptComposer({
             type="button"
             size="icon"
             variant="secondary"
+            aria-label={isSubmitting ? 'Sending' : 'Send message'}
             className={cn(
                 classes.button,
                 isSubmitDisabled
-                    ? 'text-foreground-primary'
+                    ? 'bg-background-tertiary text-foreground-tertiary cursor-not-allowed opacity-60'
                     : 'bg-foreground-primary hover:bg-foreground-hover text-background',
                 submitButtonClassName,
             )}
@@ -252,6 +254,15 @@ export function AiPromptComposer({
             )}
         </Button>
     );
+
+    const defaultSubmitTooltip: ReactNode = showStopButton
+        ? 'Stop generating'
+        : isSubmitting
+          ? 'Sending…'
+          : isSubmitDisabled
+            ? 'Type a prompt to send'
+            : 'Send (⏎)';
+    const resolvedSubmitTooltip = submitTooltip ?? defaultSubmitTooltip;
 
     return (
         <div className={cn('flex flex-col items-center gap-3', classes.root, className)}>
@@ -356,18 +367,16 @@ export function AiPromptComposer({
                                 iconClassName={classes.icon}
                             />
                         )}
-                        {submitTooltip ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>{submitButton}</TooltipTrigger>
-                                <TooltipPortal>
-                                    <TooltipContent side="top" sideOffset={5}>
-                                        {submitTooltip}
-                                    </TooltipContent>
-                                </TooltipPortal>
-                            </Tooltip>
-                        ) : (
-                            submitButton
-                        )}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex">{submitButton}</span>
+                            </TooltipTrigger>
+                            <TooltipPortal>
+                                <TooltipContent side="top" sideOffset={5}>
+                                    {resolvedSubmitTooltip}
+                                </TooltipContent>
+                            </TooltipPortal>
+                        </Tooltip>
                     </div>
                 </div>
             </div>

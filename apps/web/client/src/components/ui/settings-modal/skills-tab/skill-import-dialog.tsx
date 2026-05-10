@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -165,7 +164,9 @@ export function SkillImportDialog({
                             </div>
                             <div>
                                 <p className="text-muted-foreground text-mini">
-                                    {t('previewSection.body', { count: String(parsed.contentLength) })}
+                                    {t('previewSection.body', {
+                                        count: String(parsed.contentLength),
+                                    })}
                                 </p>
                                 <pre className="bg-background text-mini mt-1 max-h-32 overflow-auto rounded p-2 whitespace-pre-wrap">
                                     {parsed.contentPreview}

@@ -17,7 +17,9 @@ const cacheByScope: Map<string, { skills: SkillInfo[]; expiresAt: number }> = ((
     return fresh;
 })();
 
-// eslint-disable-next-line no-new-func
+// Wrapper around `import()` that survives bundler analysis — Webpack would
+// otherwise rewrite the call and break server-only Node imports below. The
+// argument is a hardcoded module specifier from this file, never user input.
 const _serverImport = new Function('p', 'return import(p)');
 
 function scopeCacheKey(scope: SkillScope | undefined): string {

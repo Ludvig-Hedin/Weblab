@@ -21,13 +21,16 @@ export interface SectionProps {
  */
 export function Section({ id, title, setCount, children, className, actions }: SectionProps) {
     return (
-        <AccordionItem value={id} className={cn('border-border/40 px-1', className)}>
+        <AccordionItem
+            value={id}
+            className={cn('border-border/40 border-t px-0 first:border-t-0', className)}
+        >
             <div className="flex items-center">
-                <AccordionTrigger className="text-foreground-secondary text-micro flex-1 px-3 py-2 font-medium uppercase hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                <AccordionTrigger className="text-foreground-primary text-mini flex-1 px-3 py-2.5 font-medium hover:no-underline [&[data-state=open]>svg]:rotate-180">
                     <span className="flex items-center gap-2">
                         {title}
                         {setCount !== undefined && setCount > 0 && (
-                            <span className="bg-foreground/8 text-foreground-secondary text-micro inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-medium">
+                            <span className="bg-foreground/6 text-foreground-tertiary text-micro inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-medium">
                                 {setCount}
                             </span>
                         )}
@@ -36,7 +39,7 @@ export function Section({ id, title, setCount, children, className, actions }: S
                 {actions && <div className="pr-2">{actions}</div>}
             </div>
             <AccordionContent className="pt-0 pb-3">
-                <div className="flex flex-col gap-1">{children}</div>
+                <div className="flex flex-col gap-0.5">{children}</div>
             </AccordionContent>
         </AccordionItem>
     );

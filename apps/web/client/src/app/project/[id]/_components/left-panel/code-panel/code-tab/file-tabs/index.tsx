@@ -56,7 +56,7 @@ export const FileTabs = ({
     }, [activeFile?.path]);
 
     return (
-        <div className="bg-background-secondary border-border-bar relative flex h-10 flex-shrink-0 items-center justify-between border-b pl-0">
+        <div className="bg-background-chrome border-border-bar relative flex h-10 flex-shrink-0 items-center justify-between border-b pl-0">
             <div className="flex h-full w-full items-center overflow-x-auto" ref={ref}>
                 {openedFiles.map((file) => (
                     <FileTab
@@ -69,9 +69,12 @@ export const FileTabs = ({
                     />
                 ))}
             </div>
-            <div className="bg-background-secondary border-border-bar flex h-full w-11 items-center border-l p-1">
+            <div className="bg-background-chrome border-border-bar flex h-full w-11 items-center border-l p-1">
                 <DropdownMenu>
-                    <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex h-full w-full items-center justify-center rounded p-1 px-2.5">
+                    <DropdownMenuTrigger
+                        aria-label="File tab options"
+                        className="text-muted-foreground hover:text-foreground hover:bg-foreground/5 flex h-full w-full items-center justify-center rounded p-1 px-2.5"
+                    >
                         <Icons.DotsHorizontal className="h-4 w-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="-mt-1">

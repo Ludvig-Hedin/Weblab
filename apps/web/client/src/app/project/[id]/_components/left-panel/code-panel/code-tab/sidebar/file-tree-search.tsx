@@ -24,7 +24,7 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
             <div className="border-border-bar relative mb-2 flex h-11 flex-shrink-0 flex-row items-center justify-between border-b">
                 <Input
                     ref={ref}
-                    className="text-small focus-visible:ring-border-secondary/50 m-2 h-8 pr-8 focus-visible:ring-1 focus-visible:ring-offset-0"
+                    className="text-small m-2 h-8 pr-8"
                     placeholder="Search files"
                     value={searchQuery}
                     disabled={isLoading}
@@ -33,7 +33,7 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
                 />
                 {searchQuery && (
                     <button
-                        className="hover:bg-background-bar-active group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] active:bg-transparent"
+                        className="hover:bg-background-bar-active group absolute top-[1px] right-[1px] bottom-[1px] flex aspect-square items-center justify-center rounded-r-[calc(theme(borderRadius.md)-1px)] transition-opacity active:bg-transparent"
                         onClick={clearSearch}
                         aria-label="Clear search"
                     >

@@ -61,6 +61,7 @@ const ChatRequestBodySchema = z.object({
     projectId: z.string().optional(),
     model: z.string().optional(),
     ollamaBaseUrl: z.string().optional(),
+    reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -262,6 +263,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             messages,
             model: selectedModel,
             ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
+            reasoningEffort: parsedBody.reasoningEffort,
             memories,
             framework,
             skills,
@@ -277,8 +279,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                       messages,
                   }
                 : undefined,
-            toolSetOverride:
-                chatType === ChatType.PLAN && !projectId ? prePlanToolset : undefined,
+            toolSetOverride: chatType === ChatType.PLAN && !projectId ? prePlanToolset : undefined,
         });
         return stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,

@@ -15,6 +15,7 @@ export class ChatManager {
     // Content sent from useChat hook
     _sendMessageAction: SendMessage | null = null;
     isStreaming = false;
+    pendingFixErrorsRequest = false;
 
     constructor(private editorEngine: EditorEngine) {
         this.context = new ChatContext(this.editorEngine);
@@ -50,8 +51,19 @@ export class ChatManager {
         await this._sendMessageAction(content, type);
     }
 
+    requestFixErrors() {
+        this.pendingFixErrorsRequest = true;
+    }
+
+    consumeFixErrorsRequest(): boolean {
+        if (!this.pendingFixErrorsRequest) return false;
+        this.pendingFixErrorsRequest = false;
+        return true;
+    }
+
     clear() {
         this.context.clear();
         this.conversation.clear();
+        this.pendingFixErrorsRequest = false;
     }
 }

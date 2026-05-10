@@ -86,6 +86,15 @@ export function Footer() {
                         <ul className="text-regular flex flex-col gap-4">
                             <li>
                                 <a
+                                    href={Routes.DOWNLOAD}
+                                    className={linkClass}
+                                    title="Download Weblab for Mac, Windows, Linux & iOS"
+                                >
+                                    Download
+                                </a>
+                            </li>
+                            <li>
+                                <a
                                     href={Routes.PROJECTS}
                                     className={linkClass}
                                     title="View your projects"

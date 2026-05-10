@@ -37,12 +37,15 @@ export const AITab = observer(() => {
     const { data: userSettings } = api.user.settings.get.useQuery();
     const [savedFlash, setSavedFlash] = useState(false);
     const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isMountedRef = useRef(true);
     const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
         onSuccess: () => {
             void apiUtils.user.settings.get.invalidate();
-            setSavedFlash(true);
-            if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
-            savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+            if (isMountedRef.current) {
+                setSavedFlash(true);
+                if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+                savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+            }
         },
         onError: () => {
             void apiUtils.user.settings.get.invalidate();
@@ -52,6 +55,7 @@ export const AITab = observer(() => {
 
     useEffect(
         () => () => {
+            isMountedRef.current = false;
             if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
         },
         [],
@@ -169,12 +173,20 @@ export const AITab = observer(() => {
         );
     };
 
-    const SaveStatus = () =>
-        isSaving ? (
-            <span className="text-foreground-tertiary text-xs">Saving…</span>
-        ) : savedFlash ? (
-            <span className="text-foreground-secondary text-xs transition-opacity">Saved</span>
-        ) : null;
+    const SaveStatus = () => (
+        <span className="text-xs">
+            {isSaving ? (
+                <span className="text-foreground-tertiary">Saving…</span>
+            ) : (
+                <span
+                    className="text-foreground-secondary transition-opacity duration-300"
+                    style={{ opacity: savedFlash ? 1 : 0 }}
+                >
+                    Saved
+                </span>
+            )}
+        </span>
+    );
 
     return (
         <div className="flex flex-col gap-8 p-6">

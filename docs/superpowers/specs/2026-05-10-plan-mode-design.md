@@ -55,7 +55,7 @@ parameters = z.object({
 })
 ```
 
-Client behavior: renders `PlanQuestionCard`. When the tool is invoked via `onToolCall`, do NOT return a result immediately — instead store the `toolCallId` in a ref and render the card. When user selects an option or submits custom text, call `addToolResult({ toolCallId, result: { answer: selectedLabel } })`. The AI SDK will then automatically continue the stream with the tool result. This requires using the `addToolResult` function exposed by `useChat` from the Vercel AI SDK.
+Client behavior: renders `PlanQuestionCard`. When the tool is invoked via `onToolCall`, do NOT return a result immediately — instead store the `toolCallId` in a ref and render the card. When user selects an option or submits custom text, call `addToolOutput({ toolCallId, output: { answer: selectedLabel } })` **without awaiting it** — awaiting inside `onToolCall` deadlocks when `sendAutomaticallyWhen` is configured. The AI SDK will then automatically continue the stream with the tool output. This requires using the `addToolOutput` function exposed by `useChat` from the Vercel AI SDK.
 
 #### `PlanCompleteTool`
 ```ts
@@ -67,7 +67,7 @@ parameters = z.object({
 })
 ```
 
-Client behavior: renders `PlanApprovalCard` with approval actions. Returns `{ approved: false }` immediately (non-blocking); approval action is handled by the UI.
+Client behavior: renders `PlanApprovalCard` with approval actions. Returns `{ status: "awaiting_approval" }` immediately (non-blocking); actual approval is handled by UI button clicks. Using `{ approved: false }` was avoided because it creates semantic confusion — the AI would interpret the tool result as a rejection. `{ status: "awaiting_approval" }` is a neutral acknowledgment that keeps the AI in a waiting state.
 
 #### Plan Tool Set (`packages/ai/src/tools/toolset.ts`)
 
@@ -90,6 +90,11 @@ case ChatType.PLAN:
 **File:** `packages/ai/src/prompt/plan.ts` (new)  
 **Export from:** `packages/ai/src/prompt/index.ts`
 
+The prompt is **conditional on whether `projectId` is defined**. Export two variants:
+
+#### `getPlanModeSystemPrompt` (with project — codebase-aware)
+Used when `projectId` is defined (project editor PLAN mode). Full codebase exploration.
+
 ```
 You are in PLAN MODE. Your role is to research the codebase and write a comprehensive plan.
 
@@ -107,11 +112,36 @@ RULES — you MUST follow these without exception:
 You are NOT in execution mode. Do not write code changes inline. The plan document is the deliverable.
 ```
 
+#### `getPlanModeNoProjectSystemPrompt` (without project — requirements gathering)
+Used when `projectId` is undefined (`/projects/plan` standalone page). No codebase to explore — focus on gathering requirements and producing a high-level plan.
+
+```
+You are in PLAN MODE. There is no existing codebase to explore. Your role is to gather requirements and write a high-level plan for a new project.
+
+RULES — you MUST follow these without exception:
+1. No read_file, grep, glob, or bash tools are available. Do not attempt to call them.
+2. Ask clarifying questions using ask_user_question. Focus on: tech stack, key features, data model, integrations, constraints.
+3. Write a complete high-level plan in your response. Use this structure:
+   ## Overview — what you're building and why
+   ## Tech Stack — recommended stack with brief rationale
+   ## Key Features — prioritised feature list
+   ## Data Model — core entities and relationships
+   ## Implementation Phases — ordered milestones
+   ## Risks & Considerations — unknowns and open questions
+4. Call plan_complete when your plan is fully written. Include a 1-2 sentence summary.
+
+You are NOT in execution mode. The plan document is the deliverable.
+```
+
 **`packages/ai/src/agents/root.ts` switch update:**
 ```ts
 case ChatType.PLAN:
-    return getPlanModeSystemPrompt(memories, framework, skills);
+    return projectId
+        ? getPlanModeSystemPrompt(memories, framework, skills)
+        : getPlanModeNoProjectSystemPrompt(memories);
 ```
+
+> **Note:** `createRootAgentStream` must accept `projectId: string | undefined` and forward it to the prompt selector above.
 
 ---
 
@@ -146,11 +176,15 @@ When `answered: true`, show the selected answer as a readonly pill (disabled sta
 
 - Header: small "Plan Ready" badge + `summary` text
 - Three action buttons:
-  - **Build Now** (primary) → `editorEngine.state.setChatMode(ChatType.EDIT)`; send follow-up message: `"Proceed with the plan above."`
+  - **Build Now** (primary) — behavior varies by context (see `context` prop below)
   - **Keep Refining** (ghost) → focuses the chat input (user types refinements in PLAN mode)  
   - **Edit Plan** (ghost) → toggles the preceding plan message text into an editable textarea; user can modify and save
 
-Props: `{ summary: string, onBuildNow: () => void, onRefine: () => void, onEditPlan: () => void, approved: boolean }`
+Props: `{ summary: string, context: 'inEditor' | 'createProject', onBuildNow: () => void, onRefine: () => void, onEditPlan: () => void, approved: boolean }`
+
+**`context` prop behavior:**
+- `'inEditor'`: `onBuildNow` → `editorEngine.state.setChatMode(ChatType.EDIT)` + send follow-up `"Proceed with the plan above."` The plan context is already present in the conversation history.
+- `'createProject'`: `onBuildNow` → sets `isCreating = true`, calls `createManager.startCreate(...)`, on success calls `router.push(Routes.Project(project.id))`. The plan text must be preserved — pass it via navigation state or pre-load it into the new project's initial chat history (via `createManager`) so it is visible when the user lands on the project editor.
 
 When `approved: true`, show a "Building…" disabled state.
 

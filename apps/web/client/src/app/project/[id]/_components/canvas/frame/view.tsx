@@ -595,12 +595,7 @@ export const FrameComponent = observer(
                         // signal instead of a fork-bomb canvas.
                         {...(useSnapshot
                             ? { srcDoc: snapshotHtml ?? undefined }
-                            : {
-                                  src:
-                                      frame.url && frame.url.length > 0
-                                          ? frame.url
-                                          : EMPTY_FRAME_FALLBACK_SRC,
-                              })}
+                            : { src: frame.url || EMPTY_FRAME_FALLBACK_SRC })}
                         sandbox="allow-modals allow-forms allow-same-origin allow-scripts allow-popups allow-downloads"
                         allow="geolocation; microphone; camera; midi; encrypted-media"
                         style={(() => {

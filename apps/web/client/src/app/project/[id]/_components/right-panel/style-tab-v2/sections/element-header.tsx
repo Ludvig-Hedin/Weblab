@@ -145,9 +145,9 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
     };
 
     return (
-        <div className="border-border/40 flex flex-col gap-2 border-b px-3 py-3">
-            <div className="flex items-center gap-2">
-                <span className="text-foreground-secondary text-mini w-12 shrink-0">Tag</span>
+        <div className="border-border/40 flex flex-col gap-2 border-b px-3 py-2.5">
+            <div className="flex items-center gap-3">
+                <span className="text-foreground-secondary text-mini w-[72px] shrink-0">Tag</span>
                 <SelectField
                     value={tagName}
                     options={TAG_OPTIONS}
@@ -155,16 +155,16 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
                     className="flex-1"
                 />
             </div>
-            <div className="flex items-center gap-2">
-                <span className="text-foreground-secondary text-mini w-12 shrink-0">ID</span>
+            <div className="flex items-center gap-3">
+                <span className="text-foreground-secondary text-mini w-[72px] shrink-0">ID</span>
                 <TextField
                     value={idValue}
                     placeholder="hero-section"
                     onCommit={(v) => void commitId(v)}
                 />
             </div>
-            <div className="flex items-start gap-2">
-                <span className="text-foreground-secondary text-mini w-12 shrink-0 pt-1.5">
+            <div className="flex items-start gap-3">
+                <span className="text-foreground-secondary text-mini w-[72px] shrink-0 pt-1.5">
                     Class
                 </span>
                 <div className="border-input bg-background flex min-h-[28px] flex-1 flex-wrap items-center gap-1 rounded-md border p-1">

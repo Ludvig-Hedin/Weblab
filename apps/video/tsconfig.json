@@ -1,0 +1,22 @@
+{
+    "extends": "../../tooling/typescript/base.json",
+    "compilerOptions": {
+        "jsx": "react-jsx",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "isolatedModules": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "verbatimModuleSyntax": false,
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@weblab/constants": ["src/types/weblab-constants.d.ts"]
+        }
+    },
+    "include": ["src/**/*", "src/types/**/*.d.ts", "remotion.config.ts"],
+    "exclude": ["node_modules", "out", "dist", "../../packages/**", "../web/**"]
+}

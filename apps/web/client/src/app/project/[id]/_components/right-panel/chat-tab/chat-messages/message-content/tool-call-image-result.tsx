@@ -1,7 +1,7 @@
 'use client';
 
 import type { ToolUIPart } from 'ai';
-import { memo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import mime from 'mime-lite';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { CHAT_RETRY_TOOL_EVENT } from './tool-call-simple';
 
 interface ImageToolOutput {
     id?: string;
@@ -45,6 +46,21 @@ const ToolCallImageResultComponent = ({
     const [replacing, setReplacing] = useState(false);
     const [savedPath, setSavedPath] = useState<string | null>(null);
     const [imageLoadError, setImageLoadError] = useState(false);
+    const [retrySent, setRetrySent] = useState(false);
+
+    const handleRetry = useCallback(() => {
+        if (typeof window === 'undefined' || retrySent) return;
+        setRetrySent(true);
+        window.dispatchEvent(
+            new CustomEvent(CHAT_RETRY_TOOL_EVENT, {
+                detail: {
+                    toolCallId: toolPart.toolCallId,
+                    toolName,
+                    input: toolPart.input,
+                },
+            }),
+        );
+    }, [retrySent, toolName, toolPart.input, toolPart.toolCallId]);
 
     const selectedImg = pickSelectedImageElement(editorEngine);
     const altText = ((output?.prompt ?? 'Generated image').trim() || 'Generated image').slice(
@@ -139,11 +155,27 @@ const ToolCallImageResultComponent = ({
                         </div>
                     </div>
                 ) : (
-                    <div className="text-muted-foreground p-2 text-xs">
-                        {loading ? 'Generating image…' : 'No image returned.'}
+                    <div className="text-muted-foreground flex flex-col gap-2 p-2 text-xs">
+                        <span>{loading ? 'Generating image…' : 'No image returned.'}</span>
                         {toolPart.errorText ? (
-                            <div className="text-destructive mt-1">{toolPart.errorText}</div>
+                            <div className="text-destructive">{toolPart.errorText}</div>
                         ) : null}
+                        {!loading && (
+                            <button
+                                type="button"
+                                onClick={handleRetry}
+                                disabled={retrySent}
+                                aria-label="Retry image generation"
+                                className="text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary focus-visible:ring-ring inline-flex w-fit items-center gap-1 rounded-md px-2 py-1 transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:opacity-60"
+                            >
+                                {retrySent ? (
+                                    <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Icons.Reload className="h-3 w-3" />
+                                )}
+                                {retrySent ? 'Retrying…' : 'Retry'}
+                            </button>
+                        )}
                     </div>
                 )}
             </ToolContent>

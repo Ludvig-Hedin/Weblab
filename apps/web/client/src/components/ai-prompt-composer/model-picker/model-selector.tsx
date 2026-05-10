@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
-import type { ChatModel, LocalModelOption } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS } from '@weblab/models';
+import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, modelSupportsReasoningEffort } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -18,13 +18,18 @@ import { cn } from '@weblab/ui/utils';
 
 import { env } from '@/env';
 import { ModelSelectorV2 } from './model-selector-v2';
+import { ReasoningEffortPills } from './reasoning-effort-pills';
 
-export const ModelSelector = (props: {
+export type ModelSelectorProps = {
     value: ChatModel;
     onChange: (model: ChatModel) => void;
     localModels: LocalModelOption[];
     localModelsLoading: boolean;
-}) => {
+    reasoningEffort?: ReasoningEffort;
+    onReasoningEffortChange?: (effort: ReasoningEffort) => void;
+};
+
+export const ModelSelector = (props: ModelSelectorProps) => {
     if (env.NEXT_PUBLIC_PROVIDER_PICKER_V2) {
         return <ModelSelectorV2 {...props} />;
     }
@@ -36,12 +41,9 @@ const ModelSelectorLegacy = ({
     onChange,
     localModels,
     localModelsLoading,
-}: {
-    value: ChatModel;
-    onChange: (model: ChatModel) => void;
-    localModels: LocalModelOption[];
-    localModelsLoading: boolean;
-}) => {
+    reasoningEffort,
+    onReasoningEffortChange,
+}: ModelSelectorProps) => {
     const cloudOption = CHAT_MODEL_OPTIONS.find((o) => o.model === value);
     const localOption = localModels.find((o) => o.model === value);
     const fullLabel = cloudOption?.label ?? localOption?.label ?? value;
@@ -60,6 +62,9 @@ const ModelSelectorLegacy = ({
         return () => window.removeEventListener('open-model-selector', handleOpen);
     }, []);
 
+    const showEffortControl =
+        !!onReasoningEffortChange && !!reasoningEffort && modelSupportsReasoningEffort(value);
+
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
@@ -70,7 +75,10 @@ const ModelSelectorLegacy = ({
                     className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary text-mini h-7 gap-1 rounded-md px-1.5 font-normal"
                 >
                     {/* Hide the label on narrow panels; the chevron stays as the affordance. */}
-                    <span className="hidden max-w-[160px] truncate @[260px]:inline">
+                    <span
+                        title={currentLabel}
+                        className="hidden max-w-[160px] truncate @[260px]:inline"
+                    >
                         {currentLabel}
                     </span>
                     <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
@@ -133,6 +141,18 @@ const ModelSelectorLegacy = ({
                     >
                         No local models — start Ollama to use them
                     </DropdownMenuItem>
+                )}
+
+                {showEffortControl && reasoningEffort && onReasoningEffortChange && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 pb-2">
+                            <ReasoningEffortPills
+                                value={reasoningEffort}
+                                onChange={onReasoningEffortChange}
+                            />
+                        </div>
+                    </>
                 )}
             </DropdownMenuContent>
         </DropdownMenu>

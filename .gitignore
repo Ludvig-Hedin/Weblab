@@ -28,6 +28,9 @@ release
 *.sln
 *.sw?
 
+# Vidoes
+apps/video/out
+
 #lockfile
 package-lock.json
 pnpm-lock.yaml

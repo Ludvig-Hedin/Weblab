@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import type { z } from 'zod';
+import { useState } from 'react';
 
 import { AskUserQuestionTool } from '@weblab/ai/client';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 type QuestionInput = z.infer<typeof AskUserQuestionTool.parameters>;
@@ -52,19 +53,19 @@ export function PlanQuestionCard({
         <div className="border-border-primary/40 bg-background-secondary rounded-lg border p-3 text-sm">
             <div className="mb-2.5 flex items-start gap-2">
                 <Icons.QuestionMarkCircled className="text-foreground-tertiary mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <p className="text-foreground-primary text-mini leading-relaxed">{input.question}</p>
+                <p className="text-foreground-primary text-mini leading-relaxed">
+                    {input.question}
+                </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
                 {input.options.map((opt) => {
                     const isSelected = selected.has(opt.label);
-                    return (
+                    const optionButton = (
                         <button
-                            key={opt.label}
                             onClick={() => toggle(opt.label)}
                             disabled={submitted}
-                            title={opt.description}
                             className={cn(
-                                'border-border-primary text-foreground-secondary hover:border-border-strong hover:text-foreground-primary rounded-md border px-2 py-1 text-mini transition-colors',
+                                'border-border-primary text-foreground-secondary hover:border-border-strong hover:text-foreground-primary text-mini rounded-md border px-2 py-1 transition-colors',
                                 isSelected &&
                                     'border-foreground-tertiary bg-background-weblab text-foreground-primary',
                                 submitted && 'cursor-default opacity-60',
@@ -72,6 +73,16 @@ export function PlanQuestionCard({
                         >
                             {opt.label}
                         </button>
+                    );
+                    return opt.description ? (
+                        <Tooltip key={opt.label}>
+                            <TooltipTrigger asChild>{optionButton}</TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={4} className="max-w-[240px]">
+                                {opt.description}
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <span key={opt.label}>{optionButton}</span>
                     );
                 })}
             </div>
@@ -82,14 +93,14 @@ export function PlanQuestionCard({
                         variant="default"
                         disabled={!canSubmit}
                         onClick={submit}
-                        className="h-6 px-2.5 text-mini"
+                        className="text-mini h-6 px-2.5"
                     >
                         Answer
                     </Button>
                 </div>
             )}
             {submitted && (
-                <div className="text-foreground-tertiary mt-2 flex items-center gap-1 text-mini">
+                <div className="text-foreground-tertiary text-mini mt-2 flex items-center gap-1">
                     <Icons.CheckCircled className="h-3 w-3" />
                     <span>Answered: {Array.from(selected).join(', ')}</span>
                 </div>

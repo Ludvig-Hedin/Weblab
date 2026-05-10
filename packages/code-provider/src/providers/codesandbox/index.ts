@@ -81,8 +81,7 @@ export interface CodesandboxProviderOptions {
 
 export interface CodesandboxCreateSessionInput extends CreateSessionInput {}
 export interface CodesandboxCreateSessionOutput
-    extends CreateSessionOutput,
-        SandboxBrowserSession {}
+    extends CreateSessionOutput, SandboxBrowserSession {}
 
 export class CodesandboxProvider extends Provider {
     private readonly options: CodesandboxProviderOptions;
@@ -172,10 +171,18 @@ export class CodesandboxProvider extends Provider {
             tags: input.tags,
             privacy: input.privacy,
         });
-        const previewToken =
-            input.privacy === 'private'
-                ? (await sdk.hosts.createToken(newSandbox.id)).token
-                : undefined;
+        let previewToken: string | undefined;
+        if (input.privacy === 'private') {
+            try {
+                previewToken = (await sdk.hosts.createToken(newSandbox.id)).token;
+            } catch (err) {
+                // Token creation failed — destroy the just-created sandbox so a
+                // retry doesn't stack orphan sandboxes (the caller has no
+                // sandboxId to clean up because we never returned).
+                await sdk.sandboxes.shutdown(newSandbox.id).catch(() => {});
+                throw err;
+            }
+        }
         return {
             id: newSandbox.id,
             previewToken,
@@ -189,7 +196,18 @@ export class CodesandboxProvider extends Provider {
         privacy?: 'public' | 'unlisted' | 'private';
     }): Promise<CreateProjectOutput> {
         const sdk = new CodeSandbox();
-        const TIMEOUT_MS = 30000;
+        // CodeSandbox shallow-clones the repo, then we run a setup script that
+        // copies the subpath to the sandbox root and runs the framework's
+        // install/build. For monorepos referenced by current templates
+        // (vercel/examples, vercel/next.js, chapter-three/next-drupal) the
+        // clone + subpath rewrite + dependency install genuinely takes 2-5
+        // minutes. The previous 30s ceiling rejected before the clone could
+        // even finish, leaked an orphan sandbox (createPromise keeps running
+        // after the race rejects), and bubbled "Repository access timeout"
+        // up to the user every time. 300s gives the slow path room to finish;
+        // the fast path (pre-seeded sandboxId, see template-data.ts) is
+        // unchanged and still returns in ~2s.
+        const TIMEOUT_MS = 300_000;
         const subpath = input.subpath?.trim();
 
         const createPromise = sdk.sandboxes.create({
@@ -234,10 +252,17 @@ rm -rf "$tmp"
         });
 
         const newSandbox = await Promise.race([createPromise, timeoutPromise]);
-        const previewToken =
-            input.privacy === 'private'
-                ? (await sdk.hosts.createToken(newSandbox.id)).token
-                : undefined;
+        let previewToken: string | undefined;
+        if (input.privacy === 'private') {
+            try {
+                previewToken = (await sdk.hosts.createToken(newSandbox.id)).token;
+            } catch (err) {
+                // See createProject — destroy on token failure to prevent
+                // orphan sandbox leak across retries.
+                await sdk.sandboxes.shutdown(newSandbox.id).catch(() => {});
+                throw err;
+            }
+        }
 
         return {
             id: newSandbox.id,

@@ -16,6 +16,7 @@ import {
     userCanvases,
     userProjects,
 } from '@weblab/db';
+import { getFrameworkAdapter } from '@weblab/framework';
 import { ProjectRole } from '@weblab/models';
 
 import { protectedProcedure } from '@/server/api/trpc';
@@ -58,6 +59,7 @@ function validateSourceProject(
 async function forkAllBranches(
     sourceBranches: Branch[],
     sourceProjectName: string,
+    sandboxPort: number,
 ): Promise<Map<string, ForkedBranch>> {
     const CodesandboxProvider = await getStaticCodeProvider(CodeProvider.CodeSandbox);
     const branchMapping = new Map<string, ForkedBranch>();
@@ -75,7 +77,11 @@ async function forkAllBranches(
             privacy: SANDBOX_PRIVACY,
         });
 
-        const newSandboxUrl = getSandboxPreviewUrl(newSandbox.id, 3000, newSandbox.previewToken);
+        const newSandboxUrl = getSandboxPreviewUrl(
+            newSandbox.id,
+            sandboxPort,
+            newSandbox.previewToken,
+        );
         const newBranch: Branch = {
             ...sourceBranch,
             id: uuidv4(),
@@ -106,6 +112,16 @@ function createNewProjectData(sourceProject: SourceProjectWithRelations, customN
         previewImgBucket: sourceProject.previewImgBucket,
         // Allows for the preview image to be updated
         updatedPreviewImgAt: null,
+        // Forks always create a fresh CodeSandbox sandbox, so storage mode
+        // resets to cloud regardless of source. Framework hint is preserved
+        // so the editor's preload-script injector and dev-server-port logic
+        // pick the right path on first load — without this a forked Vite /
+        // Astro / static-html template would silently downgrade to the
+        // Next.js framework detection race.
+        storageMode: 'cloud' as const,
+        runtimeMetadata: {
+            framework: sourceProject.runtimeMetadata?.framework ?? 'nextjs',
+        },
     };
 }
 
@@ -190,7 +206,17 @@ export const fork = protectedProcedure
         validateSourceProject(sourceProject);
 
         // 2. Fork all branches and create sandbox projects
-        const branchMapping = await forkAllBranches(sourceProject.branches, sourceProject.name);
+        // Resolve the dev-server port from the source project's framework
+        // adapter (Vite=5173, Astro=4321, Next=3000, ...). Without this every
+        // forked sandbox URL pointed at port 3000 regardless of the actual
+        // framework, so non-Next templates 404'd on first preview load.
+        const sourceFramework = sourceProject.runtimeMetadata?.framework ?? null;
+        const sandboxPort = getFrameworkAdapter(sourceFramework).template.port;
+        const branchMapping = await forkAllBranches(
+            sourceProject.branches,
+            sourceProject.name,
+            sandboxPort,
+        );
 
         // 3. Create the new project with forked data
         const newProjectData = createNewProjectData(sourceProject, input.name);

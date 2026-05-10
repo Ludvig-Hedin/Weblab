@@ -1,7 +1,11 @@
+import { useTranslations } from 'next-intl';
+
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
+
+import { transKeys } from '@/i18n/keys';
 
 export const ActionButtons = ({
     disabled = false,
@@ -10,6 +14,7 @@ export const ActionButtons = ({
     disabled?: boolean;
     handleImageEvent: (file: File, fileName: string) => Promise<void>;
 }) => {
+    const t = useTranslations();
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
         const inputElement = document.createElement('input');
@@ -28,6 +33,7 @@ export const ActionButtons = ({
                 <Button
                     variant={'ghost'}
                     size={'icon'}
+                    aria-label={t(transKeys.editor.panels.edit.tabs.chat.attachImage)}
                     className="text-foreground-tertiary group h-8 w-8 cursor-pointer hover:bg-transparent"
                     disabled={disabled}
                     onClick={handleClick}

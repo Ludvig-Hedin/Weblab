@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v1-7-chat-polish',
+        version: '1.7',
+        title: 'Faster, Cleaner AI Chat',
+        description:
+            'New Fast / Balanced / Deep reasoning control lets you trade thinking time for speed — Fast skips reasoning entirely so simple edits return instantly. Stalled tool calls now show a Retry affordance instead of a frozen spinner. Tighter spacing, calmer thinking blocks, and clearer tool-call states across the chat.',
+        date: '2026-05-10',
+        tags: ['AI', 'Chat', 'Performance', 'UX'],
+    },
+    {
         slug: 'v1-6-restore-editor-session',
         version: '1.6',
         title: 'Restore Where You Left Off',

@@ -4,7 +4,6 @@ import stripAnsi from 'strip-ansi';
 import { type z } from 'zod';
 
 import type { WebSearchResult } from '@weblab/models';
-import { ChatType } from '@weblab/models';
 import {
     AskUserQuestionTool,
     EditImageTool,
@@ -18,6 +17,7 @@ import {
     WebSearchTool,
     WriteFileTool,
 } from '@weblab/ai/client';
+import { ChatType } from '@weblab/models';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
@@ -45,7 +45,9 @@ const ToolCallDisplayComponent = ({
     if (toolName === AskUserQuestionTool.toolName) {
         const args = toolPart.input as z.infer<typeof AskUserQuestionTool.parameters> | null;
         if (!args?.question) {
-            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={isStream} />;
+            return (
+                <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={isStream} />
+            );
         }
         const answered = toolPart.state === 'output-available';
         return (
@@ -257,14 +259,31 @@ const ToolCallDisplayComponent = ({
         );
     }
 
-    if (
-        isStream ||
-        (toolPart.state !== 'output-available' && toolPart.state !== 'input-available')
-    ) {
+    // Per-state rendering. Previous code lumped every non-output state into a
+    // perpetual loading spinner, which masked errors and made stalled tool
+    // calls look identical to running ones. Each branch below renders the
+    // exact state so the user can tell what's happening.
+    const state = toolPart.state;
+
+    // Provider returned an error — show the error inline, NOT a spinner.
+    if (state === 'output-error') {
+        return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={false} />;
+    }
+
+    // Tool resolved successfully.
+    if (state === 'output-available') {
+        return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={false} />;
+    }
+
+    // Currently streaming (live response). Show shimmer.
+    if (isStream) {
         return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={true} />;
     }
 
-    return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
+    // Tool call is in `input-available` / `input-streaming` but the assistant
+    // turn has finished — i.e. the call never returned a result. Surface a
+    // retry affordance so the user isn't stuck staring at a frozen spinner.
+    return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={false} stalled />;
 };
 
 export const ToolCallDisplay = observer(ToolCallDisplayComponent);

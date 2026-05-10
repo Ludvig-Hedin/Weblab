@@ -8,6 +8,7 @@ import type {
     ModelConfig,
     OllamaModelId,
     OPENROUTER_MODELS,
+    ReasoningEffort,
 } from '@weblab/models';
 import {
     ChatType,
@@ -40,6 +41,7 @@ export const createRootAgentStream = ({
     messages,
     model,
     ollamaBaseUrl,
+    reasoningEffort,
     memories,
     framework,
     abortSignal,
@@ -55,6 +57,8 @@ export const createRootAgentStream = ({
     messages: ChatMessage[];
     model: ChatModel;
     ollamaBaseUrl?: string;
+    /** User-selected reasoning effort. Forwarded to provider-specific options. */
+    reasoningEffort?: ReasoningEffort;
     memories: MemorySearchResult[];
     /**
      * The project's framework id, used to pick the right system prompt
@@ -78,7 +82,7 @@ export const createRootAgentStream = ({
      */
     toolSetOverride?: ToolSet;
 }) => {
-    const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl);
+    const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl, reasoningEffort);
     const systemPrompt = getSystemPromptFromType(chatType, memories, framework, skills);
     const toolSet =
         toolSetOverride ?? getToolSetFromType(chatType, { serverContext: serverToolContext });
@@ -136,6 +140,7 @@ const getModelFromType = (
     chatType: ChatType,
     selectedModel: ChatModel,
     ollamaBaseUrl?: string,
+    reasoningEffort?: ReasoningEffort,
 ): ModelConfig => {
     const provider = getProviderFromModel(selectedModel);
     switch (provider) {
@@ -144,12 +149,14 @@ const getModelFromType = (
                 provider: LLMProvider.OLLAMA,
                 model: selectedModel as OllamaModelId,
                 ollamaBaseUrl: ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL,
+                reasoningEffort,
             });
         case LLMProvider.OPENROUTER:
         default:
             return initModel({
                 provider: LLMProvider.OPENROUTER,
                 model: selectedModel as OPENROUTER_MODELS,
+                reasoningEffort,
             });
     }
 };

@@ -58,7 +58,7 @@ export const utilsRouter = createTRPCRouter({
             z.object({
                 url: z.string().url(),
                 formats: z
-                    .array(z.enum(['markdown', 'html', 'json', 'branding']))
+                    .array(z.enum(['markdown', 'html', 'json', 'branding', 'screenshot']))
                     .default(['markdown']),
                 onlyMainContent: z.boolean().default(true),
                 includeTags: z.array(z.string()).optional(),
@@ -66,99 +66,168 @@ export const utilsRouter = createTRPCRouter({
                 waitFor: z.number().min(0).optional(),
             }),
         )
-        .mutation(async ({ input }): Promise<{ result: string | null; error: string | null }> => {
-            try {
-                if (!env.FIRECRAWL_API_KEY) {
-                    throw new Error('FIRECRAWL_API_KEY is not configured');
-                }
-
-                const app = new FirecrawlApp({ apiKey: env.FIRECRAWL_API_KEY });
-
-                // Cast formats to SDK type - 'branding' is supported by API but not in SDK types yet
-                const result = await app.scrapeUrl(input.url, {
-                    formats: input.formats as any,
-                    onlyMainContent: input.onlyMainContent,
-                    ...(input.includeTags && { includeTags: input.includeTags }),
-                    ...(input.excludeTags && { excludeTags: input.excludeTags }),
-                    ...(input.waitFor !== undefined && { waitFor: input.waitFor }),
-                });
-
-                if (!result.success) {
-                    throw new Error(`Failed to scrape URL: ${result.error || 'Unknown error'}`);
-                }
-
-                const hasBranding = input.formats.includes('branding');
-                const hasContentFormats = input.formats.some((f) =>
-                    ['markdown', 'html', 'json'].includes(f),
-                );
-
-                // Extract branding data if requested - access via type assertion since SDK types may not include it yet
-                const resultWithBranding = result as { branding?: unknown };
-                const brandingData =
-                    hasBranding && resultWithBranding.branding
-                        ? JSON.stringify(resultWithBranding.branding, null, 2)
-                        : null;
-
-                // Return the primary content format (markdown by default)
-                // or the first available format if markdown isn't available
-                const content =
-                    result.markdown ?? result.html ?? JSON.stringify(result.json, null, 2);
-
-                // Combine content and branding if both are requested
-                if (hasBranding && hasContentFormats) {
-                    // Ensure at least one format is available
-                    if (!content && !brandingData) {
-                        throw new Error('No content or branding data was extracted from the URL');
+        .mutation(
+            async ({
+                input,
+            }): Promise<{
+                result: string | null;
+                screenshotUrl: string | null;
+                screenshotBase64: string | null;
+                screenshotMimeType: string | null;
+                error: string | null;
+            }> => {
+                try {
+                    if (!env.FIRECRAWL_API_KEY) {
+                        throw new Error('FIRECRAWL_API_KEY is not configured');
                     }
 
-                    const parts: string[] = [];
-                    if (content) {
-                        parts.push(content);
+                    const app = new FirecrawlApp({ apiKey: env.FIRECRAWL_API_KEY });
+
+                    // Cast formats to SDK type - 'branding' is supported by API but not in SDK types yet
+                    const result = await app.scrapeUrl(input.url, {
+                        formats: input.formats as any,
+                        onlyMainContent: input.onlyMainContent,
+                        ...(input.includeTags && { includeTags: input.includeTags }),
+                        ...(input.excludeTags && { excludeTags: input.excludeTags }),
+                        ...(input.waitFor !== undefined && { waitFor: input.waitFor }),
+                    });
+
+                    if (!result.success) {
+                        throw new Error(`Failed to scrape URL: ${result.error || 'Unknown error'}`);
                     }
-                    if (brandingData) {
-                        // Only add separator if we have both content and branding
-                        if (content) {
-                            parts.push('\n\n=== Brand Identity ===\n');
-                            parts.push(
-                                'The following brand identity information was extracted from the website:\n',
+
+                    const hasBranding = input.formats.includes('branding');
+                    const hasScreenshot = input.formats.includes('screenshot');
+                    const hasContentFormats = input.formats.some((f) =>
+                        ['markdown', 'html', 'json'].includes(f),
+                    );
+
+                    // Extract branding data if requested - access via type assertion since SDK types may not include it yet
+                    const resultWithBranding = result as { branding?: unknown };
+                    const brandingData =
+                        hasBranding && resultWithBranding.branding
+                            ? JSON.stringify(resultWithBranding.branding, null, 2)
+                            : null;
+
+                    // Screenshot URL is a CDN-hosted image returned by Firecrawl
+                    // when the 'screenshot' format is requested. We also
+                    // download it server-side and return the bytes inline as a
+                    // base64 data URL so browser callers (the website cloner)
+                    // don't have to issue cross-origin fetches against a
+                    // third-party CDN. Failures here are non-fatal — the rest
+                    // of the scrape (markdown, branding, URL) still returns.
+                    const screenshotUrl = hasScreenshot ? (result.screenshot ?? null) : null;
+                    let screenshotBase64: string | null = null;
+                    let screenshotMimeType: string | null = null;
+                    if (screenshotUrl) {
+                        try {
+                            const response = await fetch(screenshotUrl, {
+                                signal: AbortSignal.timeout(10000),
+                            });
+                            if (response.ok) {
+                                const arrayBuffer = await response.arrayBuffer();
+                                screenshotMimeType =
+                                    response.headers.get('content-type') ?? 'image/png';
+                                screenshotBase64 = `data:${screenshotMimeType};base64,${Buffer.from(arrayBuffer).toString('base64')}`;
+                            } else {
+                                console.warn(
+                                    `[scrapeUrl] screenshot download failed: ${response.status} ${response.statusText}`,
+                                );
+                            }
+                        } catch (err) {
+                            console.warn('[scrapeUrl] screenshot download threw', err);
+                        }
+                    }
+
+                    // Return the primary content format (markdown by default)
+                    // or the first available format if markdown isn't available
+                    const content =
+                        result.markdown ?? result.html ?? JSON.stringify(result.json, null, 2);
+
+                    // Combine content and branding if both are requested
+                    if (hasBranding && hasContentFormats) {
+                        // Ensure at least one format is available
+                        if (!content && !brandingData) {
+                            throw new Error(
+                                'No content or branding data was extracted from the URL',
                             );
                         }
-                        parts.push(brandingData);
+
+                        const parts: string[] = [];
+                        if (content) {
+                            parts.push(content);
+                        }
+                        if (brandingData) {
+                            // Only add separator if we have both content and branding
+                            if (content) {
+                                parts.push('\n\n=== Brand Identity ===\n');
+                                parts.push(
+                                    'The following brand identity information was extracted from the website:\n',
+                                );
+                            }
+                            parts.push(brandingData);
+                        }
+                        return {
+                            result: parts.join('\n'),
+                            screenshotUrl,
+                            screenshotBase64,
+                            screenshotMimeType,
+                            error: null,
+                        };
                     }
+
+                    // Return branding only if it's the only text format requested
+                    if (hasBranding && !hasContentFormats) {
+                        if (!brandingData && !screenshotUrl) {
+                            throw new Error('No branding data was extracted from the URL');
+                        }
+                        return {
+                            result: brandingData,
+                            screenshotUrl,
+                            screenshotBase64,
+                            screenshotMimeType,
+                            error: null,
+                        };
+                    }
+
+                    // Screenshot-only request: no text formats, no branding
+                    if (hasScreenshot && !hasContentFormats && !hasBranding) {
+                        if (!screenshotUrl) {
+                            throw new Error('No screenshot was returned for the URL');
+                        }
+                        return {
+                            result: null,
+                            screenshotUrl,
+                            screenshotBase64,
+                            screenshotMimeType,
+                            error: null,
+                        };
+                    }
+
+                    // Return content only (existing behavior)
+                    if (!content) {
+                        throw new Error('No content was scraped from the URL');
+                    }
+
                     return {
-                        result: parts.join('\n'),
+                        result: content,
+                        screenshotUrl,
+                        screenshotBase64,
+                        screenshotMimeType,
                         error: null,
                     };
-                }
-
-                // Return branding only if it's the only format requested
-                if (hasBranding && !hasContentFormats) {
-                    if (!brandingData) {
-                        throw new Error('No branding data was extracted from the URL');
-                    }
+                } catch (error) {
+                    console.error('Error scraping URL:', error);
                     return {
-                        result: brandingData,
-                        error: null,
+                        error: error instanceof Error ? error.message : 'Unknown error',
+                        result: null,
+                        screenshotUrl: null,
+                        screenshotBase64: null,
+                        screenshotMimeType: null,
                     };
                 }
-
-                // Return content only (existing behavior)
-                if (!content) {
-                    throw new Error('No content was scraped from the URL');
-                }
-
-                return {
-                    result: content,
-                    error: null,
-                };
-            } catch (error) {
-                console.error('Error scraping URL:', error);
-                return {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    result: null,
-                };
-            }
-        }),
+            },
+        ),
     webSearch: protectedProcedure
         .input(
             z.object({

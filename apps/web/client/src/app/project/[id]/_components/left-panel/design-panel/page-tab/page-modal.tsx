@@ -160,7 +160,7 @@ export function PageModal({
                             onChange={(e) => {
                                 setPageName(e.target.value.toLowerCase());
                             }}
-                            className={cn(warning && 'border-warning focus-visible:ring-warning')}
+                            className={cn(warning && 'border-destructive')}
                             placeholder={
                                 itemType === 'folder'
                                     ? 'marketing or blog'

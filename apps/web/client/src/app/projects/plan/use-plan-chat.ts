@@ -41,7 +41,7 @@ export function usePlanChat() {
             setIsExecutingToolCall(true);
             try {
                 const result = await new Promise<{ answer: string }>((resolve) => {
-                    AskUserQuestionTool.pendingResolvers.set(toolCall.toolCallId, resolve);
+                    AskUserQuestionTool.register(toolCall.toolCallId, resolve);
                 });
                 await addToolResult({
                     tool: toolCall.toolName,

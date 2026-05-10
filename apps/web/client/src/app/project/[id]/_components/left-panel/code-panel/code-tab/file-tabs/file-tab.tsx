@@ -68,6 +68,7 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                 </button>
                 <div className="group-hover:bg-background-bar-active absolute top-1/2 right-[-3px] z-10 -translate-y-1/2 rounded-md opacity-0 transition-opacity group-hover:opacity-100">
                     <button
+                        aria-label="Close file"
                         className={cn(
                             'hover:text-foreground-hover hover:bg-background-bar-active flex-shrink-0 cursor-pointer p-1.5 hover:rounded-md',
                             isActive ? 'text-foreground-secondary' : 'text-foreground-primary',

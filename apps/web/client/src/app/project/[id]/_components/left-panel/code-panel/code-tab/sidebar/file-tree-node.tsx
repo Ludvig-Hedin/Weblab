@@ -24,6 +24,7 @@ import {
     ContextMenuTrigger,
 } from '@weblab/ui/context-menu';
 import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { FileIcon } from './file-icon';
@@ -101,8 +102,11 @@ export const FileTreeNode = ({
     }, [inputRef.current]);
 
     const handleBlur = () => {
-        if (editingName.trim() && editingName !== node.data.name) {
-            const newPath = node.data.path.replace(node.data.name, editingName.trim());
+        const trimmed = editingName.trim();
+        if (trimmed && trimmed !== node.data.name) {
+            const segments = node.data.path.split('/');
+            segments[segments.length - 1] = trimmed;
+            const newPath = segments.join('/');
             onRenameFile(node.data.path, newPath);
         }
         setIsEditing(false);
@@ -127,50 +131,80 @@ export const FileTreeNode = ({
     const handleCopyPath = async () => {
         try {
             await navigator.clipboard.writeText(node.data.path);
+            toast.success('Path copied');
         } catch (error) {
             console.error('Failed to copy path:', error);
         }
     };
 
-    const menuItems: Array<{
+    const handleCopyName = async () => {
+        try {
+            await navigator.clipboard.writeText(node.data.name);
+            toast.success('Name copied');
+        } catch (error) {
+            console.error('Failed to copy name:', error);
+        }
+    };
+
+    type MenuItem = {
         label: string;
         action: () => void;
         icon: ReactElement;
         separator: boolean;
         className?: string;
-    } | null> = [
-        !isDirectory
-            ? {
+    };
+
+    const deleteItem: MenuItem = {
+        label: 'Delete',
+        action: () => setShowDeleteDialog(true),
+        icon: <Icons.Trash className="text-destructive h-4 w-4" />,
+        separator: false,
+        className: 'text-destructive',
+    };
+
+    const menuItems: MenuItem[] = isDirectory
+        ? [
+              {
+                  label: 'Copy Path',
+                  action: handleCopyPath,
+                  icon: <Icons.Copy className="h-4 w-4" />,
+                  separator: false,
+              },
+              {
+                  label: 'Copy Name',
+                  action: handleCopyName,
+                  icon: <Icons.File className="h-4 w-4" />,
+                  separator: true,
+              },
+              deleteItem,
+          ]
+        : [
+              {
                   label: 'Add to Chat',
                   action: handleAddToChat,
                   icon: <Icons.Plus className="h-4 w-4" />,
                   separator: false,
-              }
-            : null,
-        {
-            label: 'Copy Path',
-            action: handleCopyPath,
-            icon: <Icons.Copy className="h-4 w-4" />,
-            separator: false,
-        },
-        !isDirectory
-            ? {
+              },
+              {
+                  label: 'Copy Path',
+                  action: handleCopyPath,
+                  icon: <Icons.Copy className="h-4 w-4" />,
+                  separator: false,
+              },
+              {
+                  label: 'Copy Name',
+                  action: handleCopyName,
+                  icon: <Icons.File className="h-4 w-4" />,
+                  separator: false,
+              },
+              {
                   label: 'Rename',
                   action: handleRename,
                   icon: <Icons.Edit className="h-4 w-4" />,
-                  separator: false,
-              }
-            : null,
-        {
-            label: 'Delete',
-            action: () => {
-                setShowDeleteDialog(true);
-            },
-            icon: <Icons.Trash className="text-destructive h-4 w-4" />,
-            separator: false,
-            className: 'text-destructive',
-        },
-    ];
+                  separator: true,
+              },
+              deleteItem,
+          ];
 
     return (
         <ContextMenu>
@@ -188,7 +222,7 @@ export const FileTreeNode = ({
                                     initial={false}
                                     animate={{ rotate: node.isOpen ? 90 : 0 }}
                                 >
-                                    <Icons.ChevronRight className="h-2.5 w-2.5" />
+                                    <Icons.ChevronRight className="h-3 w-3" />
                                 </motion.div>
                             </div>
                         )}
@@ -202,11 +236,13 @@ export const FileTreeNode = ({
                             onChange={(e) => setEditingName(e.target.value)}
                             onBlur={handleBlur}
                             onKeyDown={handleKeyDown}
-                            className="outline-rounded outline-border-primary truncate rounded-xs bg-transparent px-0 outline-2 outline-offset-2"
+                            className="outline-border-active truncate rounded-xs bg-transparent px-0 outline outline-2 outline-offset-2"
                             onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
-                        <span className="truncate">{node.data.name}</span>
+                        <span className="truncate" title={node.data.name}>
+                            {node.data.name}
+                        </span>
                     )}
                     {/* {!isDirectory && contentMatches?.has(node.data.path) && (
                         <span className="ml-1 px-1.5 py-0.5 text-mini bg-primary/10 text-primary rounded-full font-medium min-w-[20px] text-center">
@@ -216,21 +252,17 @@ export const FileTreeNode = ({
                 </div>
             </ContextMenuTrigger>
             <ContextMenuContent>
-                {menuItems
-                    .filter((item) => item !== null)
-                    .map((item, index) => (
-                        <div key={item.label}>
-                            <ContextMenuItem onClick={item.action} className="cursor-pointer">
-                                <span
-                                    className={cn('flex w-full items-center gap-1', item.className)}
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                </span>
-                            </ContextMenuItem>
-                            {item.separator && <ContextMenuSeparator />}
-                        </div>
-                    ))}
+                {menuItems.map((item) => (
+                    <div key={item.label}>
+                        <ContextMenuItem onClick={item.action} className="cursor-pointer">
+                            <span className={cn('flex w-full items-center gap-1', item.className)}>
+                                {item.icon}
+                                {item.label}
+                            </span>
+                        </ContextMenuItem>
+                        {item.separator && <ContextMenuSeparator />}
+                    </div>
+                ))}
             </ContextMenuContent>
 
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

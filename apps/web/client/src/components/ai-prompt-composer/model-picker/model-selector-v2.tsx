@@ -3,9 +3,20 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
-import type { ChatModel, LocalModelOption } from '@weblab/models';
-import { PROVIDER_MANIFEST } from '@weblab/ai/client';
+import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
+import { inferProviderFromModelId, PROVIDER_MANIFEST } from '@weblab/ai/client';
 import { APP_NAME } from '@weblab/constants';
+import { modelSupportsReasoningEffort } from '@weblab/models';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import {
     Command,
@@ -24,6 +35,7 @@ import { cn } from '@weblab/ui/utils';
 import { api } from '@/trpc/react';
 import { ProviderSetupDialog } from './provider-setup-dialog';
 import { PullModelDialog } from './pull-model-dialog';
+import { ReasoningEffortPills } from './reasoning-effort-pills';
 import { useProviderStatuses } from './use-provider-statuses';
 
 function ProviderIcon({ name, className }: { name: string; className?: string }) {
@@ -77,18 +89,27 @@ export const ModelSelectorV2 = ({
     onChange,
     localModels,
     localModelsLoading,
+    reasoningEffort,
+    onReasoningEffortChange,
 }: {
     value: ChatModel;
     onChange: (model: ChatModel) => void;
     localModels: LocalModelOption[];
     localModelsLoading: boolean;
+    reasoningEffort?: ReasoningEffort;
+    onReasoningEffortChange?: (effort: ReasoningEffort) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
+    const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
     const { statuses, refresh } = useProviderStatuses({ localModels, localModelsLoading });
     const disconnectMutation = api.provider.connectionsDelete.useMutation({
-        onSuccess: () => refresh(),
+        onSuccess: (_, vars) => {
+            refresh();
+            toast.success(`Disconnected ${vars.provider}`);
+        },
+        onError: () => toast.error('Disconnect failed. Try again.'),
     });
     const hasCliBridge =
         typeof window !== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
@@ -148,7 +169,16 @@ export const ModelSelectorV2 = ({
         requestAnimationFrame(() => setPullDialogOpen(true));
     };
 
-    const handleDisconnect = (entry: ProviderManifestEntry) => {
+    const requestDisconnect = (entry: ProviderManifestEntry) => {
+        setIsOpen(false);
+        // Defer dialog mount until popover focus trap releases (same pattern
+        // as openSetup) so the AlertDialog mounts visibly.
+        requestAnimationFrame(() => setDisconnectTarget(entry));
+    };
+
+    const confirmDisconnect = () => {
+        const entry = disconnectTarget;
+        if (!entry) return;
         if (
             entry.kind === 'codex' ||
             entry.kind === 'cursor' ||
@@ -157,7 +187,25 @@ export const ModelSelectorV2 = ({
         ) {
             disconnectMutation.mutate({ provider: entry.kind });
         }
+        setDisconnectTarget(null);
     };
+
+    const handleQuitOllama = () => {
+        const quit = window.weblabNative?.cli?.ollamaQuit;
+        if (!quit) return;
+        void quit()
+            .then(() => {
+                refresh();
+                toast.success('Ollama stopped');
+            })
+            .catch(() => toast.error('Failed to stop Ollama'));
+    };
+
+    // Resolve current model's provider so the trigger can show its icon. Falls
+    // back to the cloud sparkle if inference can't match (legacy/free-form ID).
+    const currentProviderKind = inferProviderFromModelId(value as string);
+    const currentProviderEntry = PROVIDER_MANIFEST.find((e) => e.kind === currentProviderKind);
+    const currentIconName = currentProviderEntry?.icon ?? 'Sparkles';
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -165,12 +213,20 @@ export const ModelSelectorV2 = ({
                 <Button
                     variant="ghost"
                     size="sm"
+                    aria-label={`Model: ${currentLabel}`}
                     className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1.5 px-2 text-xs"
                 >
-                    <Icons.ChevronDown className="h-3.5 w-3.5 shrink-0" />
-                    <span className="max-w-[80px] truncate @[260px]:max-w-[160px]">
+                    <ProviderIcon
+                        name={currentIconName}
+                        className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                    />
+                    <span
+                        title={currentLabel}
+                        className="max-w-[80px] truncate @[260px]:max-w-[160px]"
+                    >
                         {currentLabel}
                     </span>
+                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -189,11 +245,7 @@ export const ModelSelectorV2 = ({
                         return tokens.every((t) => haystack.includes(t)) ? 0.5 : 0;
                     }}
                 >
-                    <CommandInput
-                        placeholder="Search models…"
-                        autoFocus
-                        className="h-9 text-xs"
-                    />
+                    <CommandInput placeholder="Search models…" autoFocus className="h-9 text-xs" />
                     <CommandList className="max-h-[360px] py-1">
                         <CommandEmpty className="text-foreground-tertiary px-3 py-4 text-center text-xs">
                             No models found.
@@ -202,7 +254,7 @@ export const ModelSelectorV2 = ({
                         {cloud && cloud.models.length > 0 && (
                             <CommandGroup
                                 heading="Cloud"
-                                className="[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider"
+                                className="[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:uppercase"
                             >
                                 {cloud.models.map((option) => (
                                     <CommandItem
@@ -211,8 +263,7 @@ export const ModelSelectorV2 = ({
                                         onSelect={() => handleSelectModel(option.id)}
                                         className={cn(
                                             'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
-                                            option.id === selectedId &&
-                                                'bg-background-secondary',
+                                            option.id === selectedId && 'bg-background-secondary',
                                         )}
                                     >
                                         <Icons.Sparkles className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
@@ -235,16 +286,6 @@ export const ModelSelectorV2 = ({
 
                             const groupClass =
                                 '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
-
-                            const heading = (
-                                <span className="flex items-center gap-1.5">
-                                    <ProviderIcon
-                                        name={entry.icon}
-                                        className="h-3 w-3 shrink-0"
-                                    />
-                                    {entry.label}
-                                </span>
-                            );
 
                             if (loading) {
                                 return (
@@ -374,9 +415,7 @@ export const ModelSelectorV2 = ({
                                             </CommandItem>
                                             <CommandItem
                                                 value={`${entry.label} quit ollama`}
-                                                onSelect={() => {
-                                                    void window.weblabNative?.cli?.ollamaQuit?.();
-                                                }}
+                                                onSelect={handleQuitOllama}
                                                 className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                             >
                                                 <Icons.Stop className="h-3.5 w-3.5 shrink-0" />
@@ -388,10 +427,17 @@ export const ModelSelectorV2 = ({
                                     {entry.webOAuth && !hasCliBridge && (
                                         <CommandItem
                                             value={`${entry.label} disconnect`}
-                                            onSelect={() => handleDisconnect(entry)}
+                                            onSelect={() => requestDisconnect(entry)}
+                                            disabled={disconnectMutation.isPending}
                                             className="text-foreground-tertiary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                         >
-                                            <span>Disconnect {entry.label}</span>
+                                            <span>
+                                                {disconnectMutation.isPending &&
+                                                disconnectMutation.variables?.provider ===
+                                                    entry.kind
+                                                    ? `Disconnecting ${entry.label}…`
+                                                    : `Disconnect ${entry.label}`}
+                                            </span>
                                         </CommandItem>
                                     )}
                                 </CommandGroup>
@@ -401,6 +447,16 @@ export const ModelSelectorV2 = ({
                         <CommandSeparator className="hidden" />
                     </CommandList>
                 </Command>
+                {reasoningEffort &&
+                    onReasoningEffortChange &&
+                    modelSupportsReasoningEffort(value) && (
+                        <div className="border-border/40 border-t px-3 py-2">
+                            <ReasoningEffortPills
+                                value={reasoningEffort}
+                                onChange={onReasoningEffortChange}
+                            />
+                        </div>
+                    )}
             </PopoverContent>
             {setupEntry && (
                 <ProviderSetupDialog
@@ -416,6 +472,28 @@ export const ModelSelectorV2 = ({
             {hasCliBridge && (
                 <PullModelDialog open={pullDialogOpen} onOpenChange={setPullDialogOpen} />
             )}
+            <AlertDialog
+                open={disconnectTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDisconnectTarget(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Disconnect {disconnectTarget?.label}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You&apos;ll need to sign in again to use {disconnectTarget?.label}{' '}
+                            models.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDisconnect}>
+                            Disconnect
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </Popover>
     );
 };

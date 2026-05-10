@@ -1,5 +1,6 @@
 export * from './ask';
 export * from './base';
+export * from './clone';
 export * from './create';
 export * from './format';
 export * from './weblab';

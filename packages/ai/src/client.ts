@@ -13,3 +13,6 @@ export * from './tools';
 
 // Provider manifest, types, and helpers (model picker, transport layers)
 export * from './providers/manifest';
+
+// Client-safe prompt helpers
+export { getCloneSystemPrompt } from './prompt/constants/clone';

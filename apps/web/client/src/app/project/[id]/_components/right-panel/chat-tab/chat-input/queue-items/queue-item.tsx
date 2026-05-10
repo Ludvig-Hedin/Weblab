@@ -9,8 +9,8 @@ import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
-import { transKeys } from '@/i18n/keys';
 import type { DragPosition } from './index';
+import { transKeys } from '@/i18n/keys';
 
 const DRAG_TYPE = 'application/x-weblab-queue-id';
 // Safari + a few other browsers strip non-standard MIMEs from dataTransfer in
@@ -125,8 +125,7 @@ export const QueuedMessageItem = ({
             onDrop={(e) => {
                 e.preventDefault();
                 const sourceId =
-                    e.dataTransfer.getData(DRAG_TYPE) ||
-                    e.dataTransfer.getData(FALLBACK_DRAG_TYPE);
+                    e.dataTransfer.getData(DRAG_TYPE) || e.dataTransfer.getData(FALLBACK_DRAG_TYPE);
                 if (!sourceId) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const midpoint = rect.top + rect.height / 2;
@@ -177,7 +176,7 @@ export const QueuedMessageItem = ({
                         }
                     }}
                     rows={1}
-                    className="text-small text-foreground-primary border-border bg-background placeholder:text-foreground-tertiary focus-visible:ring-foreground/30 min-w-0 flex-1 resize-none rounded-sm border px-2 py-1 outline-none focus-visible:ring-1 [field-sizing:content]"
+                    className="text-small text-foreground-primary border-border bg-background placeholder:text-foreground-tertiary focus-visible:ring-foreground/30 [field-sizing:content] min-w-0 flex-1 resize-none rounded-sm border px-2 py-1 outline-none focus-visible:ring-1"
                 />
             ) : (
                 <button
@@ -191,7 +190,7 @@ export const QueuedMessageItem = ({
             )}
 
             {!isEditing && (
-                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <Button
@@ -216,7 +215,9 @@ export const QueuedMessageItem = ({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                aria-label={t(transKeys.editor.panels.edit.tabs.chat.queue.moveDown)}
+                                aria-label={t(
+                                    transKeys.editor.panels.edit.tabs.chat.queue.moveDown,
+                                )}
                                 disabled={isLast}
                                 onClick={() => moveQueuedMessage(message.id, 'down')}
                                 className="text-foreground-tertiary hover:text-foreground-primary h-6 w-6"

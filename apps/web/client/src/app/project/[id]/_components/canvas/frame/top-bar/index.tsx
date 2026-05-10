@@ -211,7 +211,8 @@ export const TopBar = observer(
                             size="sm"
                             className={cn(
                                 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                !editorEngine.frames.navigation.canGoBack(frame.id) && 'hidden',
+                                !editorEngine.frames.navigation.canGoBack(frame.id) &&
+                                    'pointer-events-none opacity-30',
                                 !isSelected && 'hidden',
                             )}
                             onClick={handleGoBack}
@@ -226,7 +227,8 @@ export const TopBar = observer(
                             size="sm"
                             className={cn(
                                 'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                !editorEngine.frames.navigation.canGoForward(frame.id) && 'hidden',
+                                !editorEngine.frames.navigation.canGoForward(frame.id) &&
+                                    'pointer-events-none opacity-30',
                                 !isSelected && 'hidden',
                             )}
                             onClick={handleGoForward}

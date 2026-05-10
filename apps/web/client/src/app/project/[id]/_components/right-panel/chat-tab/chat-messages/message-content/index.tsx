@@ -148,15 +148,22 @@ const MessageContentComponent = ({
                 <Reasoning
                     key={`reasoning-${idx}`}
                     className={cn(
-                        'text-foreground-tertiary m-0 mb-2 items-center gap-2',
-                        isStreamingThisPart &&
-                            'animate-shimmer bg-gradient-to-l from-white/30 via-white/85 to-white/30 bg-[length:200%_100%] bg-clip-text text-transparent',
+                        'text-foreground-tertiary border-border/50 m-0 mb-1.5 border-l pl-3',
+                        isStreamingThisPart && 'border-foreground-tertiary/40',
                     )}
                     isStreaming={isStreamingThisPart}
-                    defaultOpen={true}
+                    defaultOpen={false}
                 >
-                    <ReasoningTrigger />
-                    <ReasoningContent className="text-mini">{part.text}</ReasoningContent>
+                    <ReasoningTrigger
+                        className={cn(
+                            'text-mini',
+                            isStreamingThisPart &&
+                                'animate-shimmer bg-gradient-to-l from-white/30 via-white/85 to-white/30 bg-[length:200%_100%] bg-clip-text text-transparent',
+                        )}
+                    />
+                    <ReasoningContent className="text-mini text-foreground-tertiary leading-snug">
+                        {part.text}
+                    </ReasoningContent>
                 </Reasoning>
             );
         }

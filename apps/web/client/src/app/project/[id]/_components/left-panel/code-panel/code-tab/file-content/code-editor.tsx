@@ -5,6 +5,16 @@ import CodeMirror from '@uiw/react-codemirror';
 import { observer } from 'mobx-react-lite';
 
 import type { CodeNavigationTarget } from '@weblab/models';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuShortcut,
+    ContextMenuTrigger,
+} from '@weblab/ui/context-menu';
+import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 import { convertToBase64DataUrl, getMimeType, isVideoFile } from '@weblab/utility';
 
 import type { BinaryEditorFile, EditorFile } from '../shared/types';
@@ -26,6 +36,7 @@ import {
     inlineEditField,
     InlineEditPrompt,
     openInlineEditEffect,
+    openInlineEditFromSelection,
 } from './inline-edit';
 import { setTabCompleteContext, setTabCompleteEnabled } from './tab-complete';
 import { useAiFeatureFlags } from './use-ai-feature-flags';
@@ -303,79 +314,143 @@ export const CodeEditor = observer(
 
         const handleAddToChat = (selection: { from: number; to: number; text: string }) => {
             onAddSelectionToChat?.(selection);
-            setSelectionAddedToChat(true); // Mark as added to chat
-            onFocusChatInput?.(); // Focus chat input
+            setSelectionAddedToChat(true);
+            onFocusChatInput?.();
         };
 
+        const handleQuickEdit = () => {
+            const editor = editorViewsRef.current?.get(file.path);
+            if (editor) openInlineEditFromSelection(editor);
+        };
+
+        const handleCopy = async (text: string, label: string) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                toast.success(`${label} copied`);
+            } catch (error) {
+                console.error(`Failed to copy ${label.toLowerCase()}`, error);
+                toast.error(`Failed to copy ${label.toLowerCase()}`);
+            }
+        };
+
+        const fileName = file.path.split('/').pop() ?? '';
+
         return (
-            <div
-                className="relative h-full"
-                style={{
-                    display: isActive ? 'block' : 'none',
-                }}
-            >
-                {file.type === 'binary' && (
-                    <>
-                        {isVideoFile(file.path) ? (
-                            <video
-                                src={getFileUrl(file as BinaryEditorFile)}
-                                controls
-                                className="h-full w-full object-contain p-5"
-                            >
-                                Your browser does not support the video tag.
-                            </video>
-                        ) : (
-                            <img
-                                src={getFileUrl(file as BinaryEditorFile)}
-                                alt={file.path}
-                                className="h-full w-full object-contain p-5"
-                            />
+            <ContextMenu>
+                <ContextMenuTrigger asChild>
+                    <div
+                        className="relative h-full"
+                        style={{
+                            display: isActive ? 'block' : 'none',
+                        }}
+                    >
+                        {file.type === 'binary' && (
+                            <>
+                                {isVideoFile(file.path) ? (
+                                    <video
+                                        src={getFileUrl(file as BinaryEditorFile)}
+                                        controls
+                                        className="h-full w-full object-contain p-5"
+                                    >
+                                        Your browser does not support the video tag.
+                                    </video>
+                                ) : (
+                                    <img
+                                        src={getFileUrl(file as BinaryEditorFile)}
+                                        alt={file.path}
+                                        className="h-full w-full object-contain p-5"
+                                    />
+                                )}
+                            </>
                         )}
-                    </>
-                )}
-                {file.type === 'text' && typeof file.content === 'string' && (
-                    <>
-                        <CodeMirror
-                            key={file.path}
-                            value={file.content}
-                            height="100%"
-                            theme="dark"
-                            extensions={[
-                                ...getBasicSetup(onSaveFile),
-                                ...getExtensions(file.path.split('.').pop() || ''),
-                                ...selectionExtension,
-                            ]}
-                            onChange={(value) => {
-                                onUpdateFileContent(file.path, value);
-                            }}
-                            className="h-full overflow-hidden"
-                            onCreateEditor={onCreateEditor}
-                        />
-                        {currentSelection &&
-                            showButton &&
-                            onAddSelectionToChat &&
-                            editorViewsRef.current?.get(file.path) &&
-                            !selectionAddedToChat &&
-                            !inlineEditSession && (
-                                <FloatingAddToChatButton
-                                    editor={editorViewsRef.current.get(file.path)!}
-                                    selection={currentSelection}
-                                    onAddToChat={() => handleAddToChat(currentSelection)}
+                        {file.type === 'text' && typeof file.content === 'string' && (
+                            <>
+                                <CodeMirror
+                                    key={file.path}
+                                    value={file.content}
+                                    height="100%"
+                                    theme="dark"
+                                    extensions={[
+                                        ...getBasicSetup(onSaveFile),
+                                        ...getExtensions(file.path.split('.').pop() || ''),
+                                        ...selectionExtension,
+                                    ]}
+                                    onChange={(value) => {
+                                        onUpdateFileContent(file.path, value);
+                                    }}
+                                    className="h-full overflow-hidden"
+                                    onCreateEditor={onCreateEditor}
                                 />
-                            )}
-                        {inlineEditSession && editorViewsRef.current?.get(file.path) && (
-                            <InlineEditPrompt
-                                editor={editorViewsRef.current.get(file.path)!}
-                                session={inlineEditSession}
-                                filePath={file.path}
-                                language={getLanguageFromFileName(file.path)}
-                                projectId={editorEngine.projectId}
-                                onApply={handleInlineEditApply}
-                            />
+                                {currentSelection &&
+                                    showButton &&
+                                    onAddSelectionToChat &&
+                                    editorViewsRef.current?.get(file.path) &&
+                                    !selectionAddedToChat &&
+                                    !inlineEditSession && (
+                                        <FloatingAddToChatButton
+                                            editor={editorViewsRef.current.get(file.path)!}
+                                            selection={currentSelection}
+                                            onAddToChat={() => handleAddToChat(currentSelection)}
+                                            onQuickEdit={handleQuickEdit}
+                                        />
+                                    )}
+                                {inlineEditSession && editorViewsRef.current?.get(file.path) && (
+                                    <InlineEditPrompt
+                                        editor={editorViewsRef.current.get(file.path)!}
+                                        session={inlineEditSession}
+                                        filePath={file.path}
+                                        language={getLanguageFromFileName(file.path)}
+                                        projectId={editorEngine.projectId}
+                                        onApply={handleInlineEditApply}
+                                    />
+                                )}
+                            </>
                         )}
-                    </>
-                )}
-            </div>
+                    </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                    {currentSelection && (
+                        <>
+                            <ContextMenuItem
+                                onClick={() => handleAddToChat(currentSelection)}
+                                className="cursor-pointer"
+                            >
+                                <Icons.MessageSquare className="h-4 w-4" />
+                                Add to Chat
+                                <ContextMenuShortcut>⌘L</ContextMenuShortcut>
+                            </ContextMenuItem>
+                            <ContextMenuItem onClick={handleQuickEdit} className="cursor-pointer">
+                                <Icons.Pencil className="h-4 w-4" />
+                                Quick Edit
+                                <ContextMenuShortcut>⌘K</ContextMenuShortcut>
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                onClick={() => void handleCopy(currentSelection.text, 'Selection')}
+                                className="cursor-pointer"
+                            >
+                                <Icons.ClipboardCopy className="h-4 w-4" />
+                                Copy Selection
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                        </>
+                    )}
+                    <ContextMenuItem
+                        onClick={() => void handleCopy(file.path, 'Path')}
+                        className="cursor-pointer"
+                    >
+                        <Icons.Copy className="h-4 w-4" />
+                        Copy Path
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={() => void handleCopy(fileName, 'File name')}
+                        className="cursor-pointer"
+                    >
+                        <Icons.File className="h-4 w-4" />
+                        Copy File Name
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
         );
     },
 );

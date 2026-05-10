@@ -23,3 +23,5 @@ export interface TailwindColor {
     };
     override?: boolean;
 }
+
+export * from './tokens';

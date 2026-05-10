@@ -13,6 +13,12 @@ export interface DomElement extends BaseDomElement {
     tagName: string;
     styles: DomElementStyles | null;
     parent: ParentDomElement | null;
+    /**
+     * Raw className attribute from the iframe view, when available. Used by
+     * the design-token layer to detect text-style-* / utility bindings.
+     * Optional — older bridges leave it undefined.
+     */
+    className?: string;
 }
 
 export interface DomElementStyles {

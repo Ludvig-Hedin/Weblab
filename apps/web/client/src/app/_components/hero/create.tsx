@@ -8,9 +8,8 @@ import { AnimatePresence } from 'motion/react';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
-import { DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
+import { ChatType, DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
-import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser } from '@weblab/utility';
@@ -19,6 +18,7 @@ import { useAuthContext } from '@/app/auth/auth-context';
 import { validateImageLimit } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/helpers';
 import { ImagePill } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/image-pill';
 import { AiPromptComposer } from '@/components/ai-prompt-composer';
+import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle';
 import {
     AI_PROMPT_CREATE_RESUME_PATH,
     loadAiPromptCreateDraft,
@@ -32,6 +32,7 @@ import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateManager } from '@/components/store/create';
 import { isNotAuthenticatedError } from '@/components/store/create/manager';
 import { LocalForageKeys, Routes } from '@/utils/constants';
+import { CreateError } from './create-error';
 
 export interface CreateSuggestion {
     label: string;
@@ -71,7 +72,7 @@ export const Create = observer(
         const charactersRemaining = Math.max(0, MIN_PROMPT_LENGTH - trimmedLength);
         const [isComposing, setIsComposing] = useState(false);
         const [selectedModel, setSelectedModel] = useState<ChatModel>(DEFAULT_CHAT_MODEL);
-        const [createMode, setCreateMode] = useState<'build' | 'plan'>('build');
+        const [chatMode, setChatMode] = useState<ChatType>(ChatType.EDIT);
         const restoredDraftRef = useRef(false);
 
         const createProject = useCallback(
@@ -205,7 +206,7 @@ export const Create = observer(
 
         const handleSubmit = async () => {
             if (isInputInvalid) return;
-            if (createMode === 'plan') {
+            if (chatMode === ChatType.PLAN) {
                 router.push(`/projects/plan?prompt=${encodeURIComponent(inputValue.trim())}`);
                 return;
             }
@@ -359,6 +360,10 @@ export const Create = observer(
             { label: 'Opening the editor', ready: false },
         ];
 
+        const handleRetry = () => {
+            void createProject(inputValue, selectedImages);
+        };
+
         return (
             <div key={cardKey} className="flex w-full flex-col items-center gap-3">
                 {showCreationOverlay && (
@@ -369,6 +374,7 @@ export const Create = observer(
                         steps={creationSteps}
                     />
                 )}
+                <CreateError onRetry={handleRetry} />
                 <AiPromptComposer
                     value={inputValue}
                     onChange={(value) => {
@@ -433,32 +439,12 @@ export const Create = observer(
                                 localModels={[]}
                                 localModelsLoading={false}
                             />
-                            <div className="bg-background-tertiary flex items-center gap-0.5 rounded-md p-0.5">
-                                <button
-                                    onClick={() => setCreateMode('build')}
-                                    className={cn(
-                                        'text-foreground-tertiary flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-colors',
-                                        createMode === 'build'
-                                            ? 'bg-background-primary text-foreground-primary shadow-sm'
-                                            : 'hover:text-foreground-secondary',
-                                    )}
-                                >
-                                    <Icons.Build className="h-3 w-3" />
-                                    Build
-                                </button>
-                                <button
-                                    onClick={() => setCreateMode('plan')}
-                                    className={cn(
-                                        'text-foreground-tertiary flex items-center gap-1 rounded px-2 py-0.5 text-[11px] transition-colors',
-                                        createMode === 'plan'
-                                            ? 'bg-background-primary text-foreground-primary shadow-sm'
-                                            : 'hover:text-foreground-secondary',
-                                    )}
-                                >
-                                    <Icons.Plan className="h-3 w-3" />
-                                    Plan
-                                </button>
-                            </div>
+                            <ChatModeToggle
+                                chatMode={chatMode}
+                                onChatModeChange={setChatMode}
+                                modes={[ChatType.EDIT, ChatType.PLAN]}
+                                disabled={isCreatingProject}
+                            />
                         </div>
                     }
                     suggestionsSlot={

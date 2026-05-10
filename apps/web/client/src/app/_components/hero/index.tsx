@@ -12,7 +12,6 @@ import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
 import { Create } from './create';
-import { CreateError } from './create-error';
 import { HighDemand } from './high-demand';
 import { ImportGitHub } from './import';
 import { OpenLocalFolder } from './open-local-folder';
@@ -78,7 +77,6 @@ export function Hero() {
                         production-ready websites instead of prototypes.
                     </motion.p>
                     <HighDemand />
-                    <CreateError />
                 </div>
                 <motion.div
                     className="pointer-events-auto relative z-20 flex w-full justify-center px-4"
@@ -101,13 +99,23 @@ export function Hero() {
                     transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
                 >
                     {user?.id ? (
-                        <Link
-                            href={Routes.PROJECTS}
-                            className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
-                        >
-                            <Icons.ArrowRight className="h-4 w-4" />
-                            Continue to your projects
-                        </Link>
+                        <>
+                            <Link
+                                href={Routes.PROJECTS}
+                                className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
+                            >
+                                <Icons.ArrowRight className="h-4 w-4" />
+                                Continue to your projects
+                            </Link>
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <Link
+                                href={Routes.DOWNLOAD}
+                                className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
+                            >
+                                <Icons.Download className="h-4 w-4" />
+                                Download app
+                            </Link>
+                        </>
                     ) : (
                         <>
                             <GetStarted />
@@ -117,6 +125,14 @@ export function Hero() {
                             <OpenLocalFolder />
                             <span className="text-foreground-secondary/30 select-none">·</span>
                             <StartBlank />
+                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <Link
+                                href={Routes.DOWNLOAD}
+                                className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
+                            >
+                                <Icons.Download className="h-4 w-4" />
+                                Download app
+                            </Link>
                         </>
                     )}
                 </motion.div>

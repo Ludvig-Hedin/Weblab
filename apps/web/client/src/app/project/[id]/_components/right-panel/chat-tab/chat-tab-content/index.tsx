@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ChatMessage, ChatModel, LocalModelOption } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
+import { CHAT_MODEL_OPTIONS, ChatType, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
 
 import {
     loadAiPromptCreateModel,
     removeAiPromptCreateModel,
 } from '@/components/ai-prompt-composer/create-draft';
+import { useReasoningEffort } from '@/components/ai-prompt-composer/model-picker/use-reasoning-effort';
+import { useEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
 import { useChat } from '../../../../_hooks/use-chat';
 import { ChatInput } from '../chat-input';
@@ -99,7 +101,7 @@ export const ChatTabContent = ({
                     .filter((m): m is { name: string; size?: number } => typeof m.name === 'string')
                     .map((m) => ({
                         label: m.name,
-                        model: `ollama/${m.name}` as `ollama/${string}`,
+                        model: `ollama/${m.name}`,
                         size: typeof m.size === 'number' ? formatBytes(m.size) : undefined,
                     }));
             } catch {
@@ -129,6 +131,7 @@ export const ChatTabContent = ({
     }, [userSettings?.chat.ollamaBaseUrl]);
 
     const ollamaBaseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
+    const [reasoningEffort, setReasoningEffort] = useReasoningEffort();
 
     const {
         isStreaming,
@@ -150,6 +153,7 @@ export const ChatTabContent = ({
         initialMessages,
         model,
         ollamaBaseUrl,
+        reasoningEffort,
     });
 
     // `useAiChat` snapshots `initialMessages` once on mount and never re-syncs
@@ -194,6 +198,11 @@ export const ChatTabContent = ({
         setModel(next);
     };
 
+    const editorEngine = useEditorEngine();
+    const handleSuggestionClick = (text: string) => {
+        void sendMessage(text, editorEngine.state.chatMode ?? ChatType.EDIT);
+    };
+
     return (
         <div className="flex h-full flex-col justify-end gap-2 pt-2">
             <ChatMessages
@@ -202,6 +211,7 @@ export const ChatTabContent = ({
                 error={error}
                 onEditMessage={editMessage}
                 onRegenerateLastAssistant={regenerateLastAssistant}
+                onSuggestionClick={handleSuggestionClick}
             />
             <ErrorSection isStreaming={isStreaming} onSendMessage={sendMessage} />
             <ChatInput
@@ -218,6 +228,8 @@ export const ChatTabContent = ({
                 onModelChange={handleModelChange}
                 localModels={localModels}
                 localModelsLoading={localModelsLoading}
+                reasoningEffort={reasoningEffort}
+                onReasoningEffortChange={setReasoningEffort}
             />
         </div>
     );
