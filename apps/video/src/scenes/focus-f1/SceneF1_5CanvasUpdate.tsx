@@ -12,14 +12,16 @@ import { fontStack, palette } from '../../utils/tokens';
 
 /**
  * F1.5 — Canvas Update (0..600 scene-local). Pan to canvas. Hero
- * re-renders: subtitle softens; two CTAs appear staggered 12f. Text
+ * re-renders: subtitle softens; two CTAs appear staggered 40f. Text
  * overlay in safe zone (top-left).
  */
 
 const HeroSoftenedTwoCtas: React.FC<{ frame: number }> = ({ frame }) => {
     const headlineWeight = interp(frame, [20, 80], [600, 500]);
-    const headlineColor =
-        frame > 60 ? `rgba(${interp(frame, [60, 120], [10, 31])}, 41, 55, 1)` : '#0a0a0a';
+    const r = interp(frame, [60, 120], [10, 31]);
+    const g = interp(frame, [60, 120], [10, 41]);
+    const b = interp(frame, [60, 120], [10, 55]);
+    const headlineColor = frame > 60 ? `rgba(${r}, ${g}, ${b}, 1)` : '#0a0a0a';
     const primaryT = interp(frame, [80, 130], [0, 1]);
     const secondaryT = interp(frame, [120, 170], [0, 1]);
 
