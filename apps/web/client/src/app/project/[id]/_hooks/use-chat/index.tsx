@@ -22,6 +22,7 @@ import { handleToolCall } from '@/components/tools';
 import { api } from '@/trpc/client';
 import { WeblabCliTransport } from './cli-transport';
 import { OllamaWebTransport } from './ollama-web-transport';
+import { loadQueue, saveQueue } from './queue-storage';
 import { RoutingChatTransport } from './routing-transport';
 import { createCheckpointsForAllBranches, getUserChatMessageFromString } from './utils';
 
@@ -62,8 +63,22 @@ export function useChat({
     // this, the first tool to finish would clear the flag while siblings are
     // still mutating files.
     const inflightToolCalls = useRef(0);
-    const [queuedMessages, setQueuedMessages] = useState<QueuedMessage[]>([]);
+    const [queuedMessages, setQueuedMessagesRaw] = useState<QueuedMessage[]>(() =>
+        loadQueue(conversationId),
+    );
     const isProcessingQueue = useRef(false);
+
+    // Persist on every queue mutation so reloads / conversation switches restore.
+    const setQueuedMessages = useCallback(
+        (updater: QueuedMessage[] | ((prev: QueuedMessage[]) => QueuedMessage[])) => {
+            setQueuedMessagesRaw((prev) => {
+                const next = typeof updater === 'function' ? updater(prev) : updater;
+                saveQueue(conversationId, next);
+                return next;
+            });
+        },
+        [conversationId],
+    );
 
     // The selected model + ollamaBaseUrl are read via ref-backed factories so
     // the transport instance stays stable across model changes. Without this,
@@ -225,6 +240,7 @@ export function useChat({
             isStreaming,
             queuedMessages.length,
             conversationId,
+            setQueuedMessages,
         ],
     );
 
@@ -269,9 +285,57 @@ export function useChat({
         [editorEngine.chat.context, regenerate, conversationId, setMessages, model, ollamaBaseUrl],
     );
 
-    const removeFromQueue = useCallback((id: string) => {
-        setQueuedMessages((prev) => prev.filter((msg) => msg.id !== id));
-    }, []);
+    const removeFromQueue = useCallback(
+        (id: string) => {
+            setQueuedMessages((prev) => prev.filter((msg) => msg.id !== id));
+        },
+        [setQueuedMessages],
+    );
+
+    const editQueuedMessage = useCallback(
+        (id: string, newContent: string) => {
+            const trimmed = newContent.trim();
+            if (!trimmed) return;
+            setQueuedMessages((prev) =>
+                prev.map((msg) => (msg.id === id ? { ...msg, content: trimmed } : msg)),
+            );
+        },
+        [setQueuedMessages],
+    );
+
+    const moveQueuedMessage = useCallback(
+        (id: string, direction: 'up' | 'down') => {
+            setQueuedMessages((prev) => {
+                const index = prev.findIndex((msg) => msg.id === id);
+                if (index === -1) return prev;
+                const target = direction === 'up' ? index - 1 : index + 1;
+                if (target < 0 || target >= prev.length) return prev;
+                const next = [...prev];
+                const tmp = next[index]!;
+                next[index] = next[target]!;
+                next[target] = tmp;
+                return next;
+            });
+        },
+        [setQueuedMessages],
+    );
+
+    const reorderQueuedMessages = useCallback(
+        (sourceId: string, targetId: string) => {
+            if (sourceId === targetId) return;
+            setQueuedMessages((prev) => {
+                const sourceIndex = prev.findIndex((msg) => msg.id === sourceId);
+                const targetIndex = prev.findIndex((msg) => msg.id === targetId);
+                if (sourceIndex === -1 || targetIndex === -1) return prev;
+                const next = [...prev];
+                const [moved] = next.splice(sourceIndex, 1);
+                if (!moved) return prev;
+                next.splice(targetIndex, 0, moved);
+                return next;
+            });
+        },
+        [setQueuedMessages],
+    );
 
     const processNextInQueue = useCallback(async () => {
         if (isProcessingQueue.current || isStreaming || queuedMessages.length === 0) return;
@@ -294,7 +358,7 @@ export function useChat({
         } finally {
             isProcessingQueue.current = false;
         }
-    }, [queuedMessages, editorEngine.chat.context, processMessage, isStreaming]);
+    }, [queuedMessages, editorEngine.chat.context, processMessage, isStreaming, setQueuedMessages]);
 
     const editMessage: EditMessage = useCallback(
         async (messageId: string, newContent: string, chatType: ChatType) => {
@@ -438,5 +502,8 @@ export function useChat({
         isStreaming,
         queuedMessages,
         removeFromQueue,
+        editQueuedMessage,
+        moveQueuedMessage,
+        reorderQueuedMessages,
     };
 }

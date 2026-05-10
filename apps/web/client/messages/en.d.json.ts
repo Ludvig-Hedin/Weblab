@@ -319,11 +319,11 @@ declare const messages: {
       "localFolderUnsupportedTooltip": "Local folder access requires Chrome, Edge, or Arc",
       "recentProjects": "Recent Projects",
       "importFromGitHub": "Import from GitHub",
-      "preparingWorkspace": "Preparing your workspace",
-      "creatingProject": "Creating your project",
-      "openingEditor": "Opening editor",
-      "creatingBlankProject": "Creating your blank project",
-      "creatingBlankProjectCaption": "This usually takes 10–20 seconds.",
+      "preparingWorkspace": "Setting up your workspace",
+      "creatingProject": "Saving your project",
+      "openingEditor": "Opening the editor",
+      "creatingBlankProject": "Building your project",
+      "creatingBlankProjectCaption": "This takes about 15 seconds while we get your workspace ready. Hang tight.",
       "startBlankProject": "Start blank project"
     },
     "dialogs": {
@@ -569,6 +569,9 @@ declare const messages: {
             "name": "Chat",
             "emptyState": "Select an element to chat with AI",
             "emptyStateStart": "Start the project to chat",
+            "loadingMessages": "Loading messages…",
+            "loadFailed": "Couldn’t load messages.",
+            "retry": "Retry",
             "input": {
               "placeholder": "Type your message...",
               "tooltip": "Chat with AI about the selected element"
@@ -578,13 +581,59 @@ declare const messages: {
             },
             "controls": {
               "newChat": "New Chat",
-              "history": "Chat History"
+              "history": "Chat History",
+              "newChatTooltipStarting": "Starting new chat…",
+              "newChatTooltipStreaming": "Reply still streaming",
+              "chatSettings": "Chat settings",
+              "closePanel": "Close panel",
+              "openPanel": "Open AI chat panel"
             },
             "settings": {
               "showSuggestions": "Show suggestions",
               "showMiniChat": "Show mini chat",
               "autoApplyCode": "Auto-apply results",
-              "expandCodeBlocks": "Show code while rendering"
+              "expandCodeBlocks": "Show code while rendering",
+              "displayHeading": "Display"
+            },
+            "errors": {
+              "single": "Error",
+              "many": "{count} Errors",
+              "fix": "Fix",
+              "fixPrompt": "How can I resolve these errors? If you propose a fix, please make it concise.",
+              "fixToastError": "Failed to send fix error message. Please try again.",
+              "consoleNoErrors": "Console — no errors",
+              "consoleErrors": "Console — {count, plural, one {# error} other {# errors}}",
+              "consoleViewAndFix": "Console — view & fix errors",
+              "noErrors": "No errors",
+              "errorCount": "{count, plural, one {# error} other {# errors}}",
+              "fixWithAi": "Fix with AI",
+              "cleanDevServer": "Your dev server is clean. Errors will show up here."
+            },
+            "history": {
+              "title": "Chat History",
+              "close": "Close chat history",
+              "groupToday": "Today",
+              "groupYesterday": "Yesterday",
+              "groupLastSevenDays": "Last 7 days",
+              "groupEarlier": "Earlier",
+              "newConversationFallback": "New Conversation",
+              "deleteConversationTooltip": "Delete conversation",
+              "deleteDialog": {
+                "title": "Are you sure you want to delete this conversation?",
+                "description": "This action cannot be undone. This will permanently delete your conversation.",
+                "cancel": "Cancel",
+                "delete": "Delete",
+                "deleteFailed": "Failed to delete conversation."
+              }
+            },
+            "queue": {
+              "header": "{count} queued",
+              "edit": "Edit",
+              "moveUp": "Move up",
+              "moveDown": "Move down",
+              "remove": "Remove from queue",
+              "saveHint": "Press Enter to save, Esc to cancel",
+              "drag": "Drag to reorder"
             },
             "miniChat": {
               "button": "Chat with AI"
@@ -597,6 +646,7 @@ declare const messages: {
           },
           "styles": {
             "name": "Styles",
+            "availableInDesignMode": "Available in Design mode",
             "emptyState": "Select an element to edit its style properties",
             "emptyStateHint": "Select a single canvas element to inspect layout, spacing, appearance, typography, and position.",
             "groups": {
@@ -652,6 +702,50 @@ declare const messages: {
           "branches": "Branches",
           "apps": "Apps",
           "search": "Search"
+        },
+        "rail": {
+          "openLeftPanel": "Open left panel",
+          "pinPanel": "Pin panel",
+          "unpinPanel": "Unpin panel",
+          "collapsePanel": "Collapse panel"
+        }
+      },
+      "code": {
+        "controls": {
+          "viewFiles": "View Files",
+          "save": "Save",
+          "saving": "Saving...",
+          "savingChanges": "Saving changes...",
+          "saveChanges": "Save changes",
+          "createOrUploadFile": "Create or Upload File",
+          "createNewFile": "Create new file",
+          "uploadFile": "Upload file",
+          "newFolder": "New Folder"
+        },
+        "emptyState": "Pick a file from the tree to start editing.",
+        "fileModal": {
+          "title": "Create New File",
+          "description": "Pick where to add the file, then name it.",
+          "location": "Location",
+          "fileName": "File Name",
+          "namePlaceholder": "component.tsx",
+          "fullPath": "Full path:",
+          "cancel": "Cancel",
+          "create": "Create File",
+          "creating": "Creating file..."
+        },
+        "folderModal": {
+          "title": "Create New Folder",
+          "description": "Pick where to add the folder, then name it.",
+          "folderName": "Folder Name",
+          "namePlaceholder": "components",
+          "create": "Create Folder",
+          "creating": "Creating folder..."
+        },
+        "directoryPicker": {
+          "selected": "Selected:",
+          "expand": "Expand",
+          "collapse": "Collapse"
         }
       }
     },

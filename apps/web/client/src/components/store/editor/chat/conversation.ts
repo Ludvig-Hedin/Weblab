@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { type ChatConversation } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
+import { clearQueue } from '@/app/project/[id]/_hooks/use-chat/queue-storage';
 import { api } from '@/trpc/client';
 import { lastActiveConversationKey } from '@/utils/constants';
 
@@ -89,7 +90,8 @@ export class ConversationManager {
         try {
             this.creatingConversation = true;
             if (this.current?.messageCount === 0 && !this.current?.title) {
-                throw new Error('Current conversation is already empty.');
+                // Already in a fresh, untitled conversation — nothing to create.
+                return;
             }
             const newConversation = await api.chat.conversation.upsert.mutate({
                 projectId: this.editorEngine.projectId,
@@ -123,7 +125,7 @@ export class ConversationManager {
         this.writeLastActiveConversationId(id);
     }
 
-    deleteConversation(id: string) {
+    async deleteConversation(id: string): Promise<void> {
         if (!this.current) {
             console.error('No conversation found');
             return;
@@ -134,8 +136,14 @@ export class ConversationManager {
             console.error('No conversation found with id', id);
             return;
         }
+
+        // Pessimistic delete: await server first so a network failure surfaces
+        // to the caller before we mutate local state. Caller toasts the error.
+        await this.deleteConversationInStorage(id);
+
+        clearQueue(id);
+
         this.conversations.splice(index, 1);
-        void this.deleteConversationInStorage(id);
         if (this.current?.id === id) {
             if (this.conversations.length > 0 && !!this.conversations[0]) {
                 void this.selectConversation(this.conversations[0].id);

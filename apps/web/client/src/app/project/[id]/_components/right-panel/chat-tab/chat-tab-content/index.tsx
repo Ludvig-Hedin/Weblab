@@ -141,6 +141,9 @@ export const ChatTabContent = ({
         stop,
         queuedMessages,
         removeFromQueue,
+        editQueuedMessage,
+        moveQueuedMessage,
+        reorderQueuedMessages,
     } = useChat({
         conversationId,
         projectId,
@@ -208,6 +211,9 @@ export const ChatTabContent = ({
                 onSendMessage={sendMessage}
                 queuedMessages={queuedMessages}
                 removeFromQueue={removeFromQueue}
+                editQueuedMessage={editQueuedMessage}
+                moveQueuedMessage={moveQueuedMessage}
+                reorderQueuedMessages={reorderQueuedMessages}
                 model={model}
                 onModelChange={handleModelChange}
                 localModels={localModels}

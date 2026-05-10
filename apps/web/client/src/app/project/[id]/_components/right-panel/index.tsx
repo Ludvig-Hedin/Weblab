@@ -19,6 +19,7 @@ import { api } from '@/trpc/react';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
 import { ChatTab } from './chat-tab';
 import { ChatControls } from './chat-tab/controls';
+import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
 import { CommentsTab } from './comments-tab';
@@ -59,6 +60,18 @@ export const RightPanel = observer(() => {
         }
     }, [isCodeMode, activeTab]);
 
+    useEffect(() => {
+        const openChatForFixRequest = () => {
+            if (editorEngine.state.panelsHidden) {
+                editorEngine.state.togglePanelsHidden();
+            }
+            setIsCollapsed(false);
+            setActiveTab('chat');
+        };
+        window.addEventListener(FIX_ERRORS_EVENT, openChatForFixRequest);
+        return () => window.removeEventListener(FIX_ERRORS_EVENT, openChatForFixRequest);
+    }, [editorEngine.state]);
+
     // Show a dot on the Style tab when an element is selected but the user hasn't
     // switched to it yet. This is a passive signal — we never force a tab switch.
     const showStyleDot = hasElementSelection && activeTab !== 'style' && !isCodeMode;
@@ -67,21 +80,35 @@ export const RightPanel = observer(() => {
         <div
             className={cn(
                 'flex h-full items-start justify-end transition-[width,opacity] duration-200',
-                !isCollapsed &&
-                    'bg-background-secondary group/panel border-border-bar w-full border-l',
+                !(isCollapsed || editorEngine.state.panelsHidden) &&
+                    'bg-background-chrome group/panel border-border-bar w-full border-l',
             )}
         >
-            {isCollapsed ? (
+            {isCollapsed || editorEngine.state.panelsHidden ? (
                 <div className="mt-3 flex">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Open AI chat panel"
-                        className="border-border-bar bg-background-secondary text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-md rounded-r-none border border-r-0"
-                        onClick={() => setIsCollapsed(false)}
-                    >
-                        <Icons.SidebarLeftCollapse className="h-4 w-4 scale-x-[-1]" />
-                    </Button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t(
+                                    transKeys.editor.panels.edit.tabs.chat.controls.openPanel,
+                                )}
+                                className="border-border-bar bg-background-chrome text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-10 w-10 rounded-l-md rounded-r-none border border-r-0"
+                                onClick={() => {
+                                    if (editorEngine.state.panelsHidden) {
+                                        editorEngine.state.togglePanelsHidden();
+                                    }
+                                    setIsCollapsed(false);
+                                }}
+                            >
+                                <Icons.SidebarLeftCollapse className="h-4 w-4 scale-x-[-1]" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" hideArrow>
+                            {t(transKeys.editor.panels.edit.tabs.chat.controls.openPanel)}
+                        </TooltipContent>
+                    </Tooltip>
                 </div>
             ) : (
                 <ResizablePanel
@@ -119,7 +146,10 @@ export const RightPanel = observer(() => {
                                         </TooltipTrigger>
                                         {isCodeMode && (
                                             <TooltipContent side="bottom" hideArrow>
-                                                Available in Design mode
+                                                {t(
+                                                    transKeys.editor.panels.edit.tabs.styles
+                                                        .availableInDesignMode,
+                                                )}
                                             </TooltipContent>
                                         )}
                                     </Tooltip>
@@ -149,26 +179,52 @@ export const RightPanel = observer(() => {
                                                 isChatHistoryOpen={isChatHistoryOpen}
                                                 setIsChatHistoryOpen={setIsChatHistoryOpen}
                                             >
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    aria-label="Chat settings"
-                                                    className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
-                                                >
-                                                    <Icons.DotsHorizontal className="h-4 w-4" />
-                                                </Button>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            aria-label={t(
+                                                                transKeys.editor.panels.edit.tabs
+                                                                    .chat.controls.chatSettings,
+                                                            )}
+                                                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
+                                                        >
+                                                            <Icons.DotsHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" hideArrow>
+                                                        {t(
+                                                            transKeys.editor.panels.edit.tabs.chat
+                                                                .controls.chatSettings,
+                                                        )}
+                                                    </TooltipContent>
+                                                </Tooltip>
                                             </ChatPanelDropdown>
                                         </>
                                     )}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Close right panel"
-                                        className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
-                                        onClick={() => setIsCollapsed(true)}
-                                    >
-                                        <Icons.SidebarLeftCollapse className="h-4 w-4" />
-                                    </Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={t(
+                                                    transKeys.editor.panels.edit.tabs.chat.controls
+                                                        .closePanel,
+                                                )}
+                                                className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
+                                                onClick={() => setIsCollapsed(true)}
+                                            >
+                                                <Icons.SidebarLeftCollapse className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" hideArrow>
+                                            {t(
+                                                transKeys.editor.panels.edit.tabs.chat.controls
+                                                    .closePanel,
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </div>
                             </div>
                             <ChatHistory

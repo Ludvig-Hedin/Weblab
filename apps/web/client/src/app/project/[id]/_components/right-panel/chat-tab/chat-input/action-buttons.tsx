@@ -28,7 +28,7 @@ export const ActionButtons = ({
                 <Button
                     variant={'ghost'}
                     size={'icon'}
-                    className="text-foreground-tertiary group h-7 w-7 cursor-pointer hover:bg-transparent"
+                    className="text-foreground-tertiary group h-8 w-8 cursor-pointer hover:bg-transparent"
                     disabled={disabled}
                     onClick={handleClick}
                     onMouseDown={(e) => e.currentTarget.blur()}

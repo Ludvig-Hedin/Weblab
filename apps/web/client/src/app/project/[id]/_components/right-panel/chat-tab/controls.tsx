@@ -1,4 +1,5 @@
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
 import { getFrameworkAdapter } from '@weblab/framework';
 import { Button } from '@weblab/ui/button';
@@ -6,12 +7,15 @@ import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { transKeys } from '@/i18n/keys';
 
 export const ChatControls = observer(() => {
     const editorEngine = useEditorEngine();
+    const t = useTranslations();
 
     const isStartingNewConversation = editorEngine.chat.conversation.creatingConversation;
-    const isDisabled = editorEngine.chat.isStreaming || isStartingNewConversation;
+    const isStreaming = editorEngine.chat.isStreaming;
+    const isDisabled = isStreaming || isStartingNewConversation;
 
     // Surface the project's framework so users can see what stack the AI is
     // calibrated for. We hide the chip when framework is null (pre-
@@ -27,6 +31,10 @@ export const ChatControls = observer(() => {
         void editorEngine.chat.conversation.startNewConversation();
         editorEngine.chat.focusChatInput();
     };
+
+    const disabledTooltip = isStartingNewConversation
+        ? t(transKeys.editor.panels.edit.tabs.chat.controls.newChatTooltipStarting)
+        : t(transKeys.editor.panels.edit.tabs.chat.controls.newChatTooltipStreaming);
 
     return (
         <div className="flex flex-row items-center gap-1">
@@ -51,27 +59,24 @@ export const ChatControls = observer(() => {
                         <Button
                             variant={'ghost'}
                             size={'icon'}
-                            className="group text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
+                            className="group text-foreground-secondary hover:text-foreground-primary h-8 w-fit cursor-pointer gap-1.5 bg-transparent px-2 hover:!bg-transparent"
                             onClick={handleNewChat}
                             disabled={isDisabled}
                         >
                             {isStartingNewConversation ? (
-                                <>
-                                    <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
-                                    <span className="text-small">New Chat</span>
-                                </>
+                                <Icons.LoadingSpinner className="h-4 w-4 animate-spin" />
                             ) : (
-                                <>
-                                    <Icons.Edit className="h-4 w-4" />
-                                    <span className="text-small">New Chat</span>
-                                </>
+                                <Icons.Edit className="h-4 w-4" />
                             )}
+                            <span className="text-small">
+                                {t(transKeys.editor.panels.edit.tabs.chat.controls.newChat)}
+                            </span>
                         </Button>
                     </span>
                 </TooltipTrigger>
                 {isDisabled && (
                     <TooltipContent side="bottom" hideArrow>
-                        AI is still loading
+                        {disabledTooltip}
                     </TooltipContent>
                 )}
             </Tooltip>

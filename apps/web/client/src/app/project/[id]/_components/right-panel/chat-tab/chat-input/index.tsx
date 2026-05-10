@@ -50,6 +50,9 @@ interface ChatInputProps {
     onSendMessage: SendMessage;
     queuedMessages: QueuedMessage[];
     removeFromQueue: (id: string) => void;
+    editQueuedMessage: (id: string, content: string) => void;
+    moveQueuedMessage: (id: string, direction: 'up' | 'down') => void;
+    reorderQueuedMessages: (sourceId: string, targetId: string) => void;
     model: ChatModel;
     onModelChange: (model: ChatModel) => void;
     localModels: LocalModelOption[];
@@ -71,6 +74,9 @@ export const ChatInput = observer(
         onSendMessage,
         queuedMessages,
         removeFromQueue,
+        editQueuedMessage,
+        moveQueuedMessage,
+        reorderQueuedMessages,
         model,
         onModelChange,
         localModels,
@@ -682,6 +688,9 @@ export const ChatInput = observer(
                         <QueueItems
                             queuedMessages={queuedMessages}
                             removeFromQueue={removeFromQueue}
+                            editQueuedMessage={editQueuedMessage}
+                            moveQueuedMessage={moveQueuedMessage}
+                            reorderQueuedMessages={reorderQueuedMessages}
                         />
                         <InputContextPills />
                         <Suggestions
