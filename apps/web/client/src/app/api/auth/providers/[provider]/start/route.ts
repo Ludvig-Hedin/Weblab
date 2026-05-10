@@ -47,13 +47,16 @@ export async function GET(
     }
 
     if (!isProviderConfigured(provider)) {
-        return NextResponse.json(
-            {
-                error: 'provider_not_configured',
-                detail: `Set ${provider.toUpperCase()}_OAUTH_CLIENT_ID and ${provider.toUpperCase()}_OAUTH_CLIENT_SECRET in env.`,
-            },
-            { status: 503 },
+        // Don't echo env-var names back to end users — leaks server config.
+        // Redirect with a friendly error code that the picker translates to a
+        // user-facing toast. Operators can grep server logs for the exact
+        // missing key.
+        console.warn(
+            `[provider-oauth] ${provider} not configured (missing OAUTH_CLIENT_ID/SECRET)`,
         );
+        const fallback = new URL('/projects', request.nextUrl.origin);
+        fallback.searchParams.set('provider_oauth_error', 'provider_not_configured');
+        return NextResponse.redirect(fallback.toString());
     }
 
     const config = getOAuthConfig(provider);
