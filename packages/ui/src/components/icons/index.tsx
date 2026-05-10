@@ -48,6 +48,8 @@ import {
     DotsVerticalIcon,
     DownloadIcon,
     DragHandleDots2Icon,
+    DrawingPinFilledIcon,
+    DrawingPinIcon,
     DropdownMenuIcon,
     EnvelopeClosedIcon,
     ExclamationTriangleIcon,
@@ -255,10 +257,7 @@ export const Icons = {
             {...props}
         >
             <path d="M180 240H60V120H180V240Z" fill="currentColor" opacity="0.5" />
-            <path
-                d="M180 60H60V240H180V60ZM240 300H0V0H240V300Z"
-                fill="currentColor"
-            />
+            <path d="M180 60H60V240H180V60ZM240 300H0V0H240V300Z" fill="currentColor" />
         </svg>
     ),
 
@@ -1763,6 +1762,7 @@ export const Icons = {
     CircleBackslash: CircleBackslashIcon,
     Clipboard: ClipboardIcon,
     ClipboardCopy: ClipboardCopyIcon,
+    Plan: ClipboardIcon,
     Code: CodeIcon,
     ComponentInstance: ComponentInstanceIcon,
     Copy: CopyIcon,
@@ -1916,6 +1916,8 @@ export const Icons = {
     Pencil: Pencil1Icon,
     PencilPaper: Pencil2Icon,
     Pilcrow: PilcrowIcon,
+    Pin: DrawingPinIcon,
+    PinFilled: DrawingPinFilledIcon,
     PinLeft: PinLeftIcon,
     PinRight: PinRightIcon,
     Plus: PlusIcon,
