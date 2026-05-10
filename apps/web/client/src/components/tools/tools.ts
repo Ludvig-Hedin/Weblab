@@ -1,4 +1,4 @@
-import { getToolClassesFromType } from '@weblab/ai/client';
+import { AskUserQuestionTool, getToolClassesFromType } from '@weblab/ai/client';
 import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '@/components/store/editor/engine';
@@ -32,6 +32,20 @@ export async function handleToolCall(
     const availableTools = getToolClassesFromType(currentChatMode);
 
     try {
+        // ask_user_question pauses the stream until the user answers in the UI.
+        // Store a resolver so PlanQuestionCard can unblock it via AskUserQuestionTool.resolve().
+        if (toolName === AskUserQuestionTool.toolName) {
+            const result = await new Promise<{ answer: string }>((resolve) => {
+                AskUserQuestionTool.pendingResolvers.set(toolCall.toolCallId, resolve);
+            });
+            await addToolResult({
+                tool: toolName,
+                toolCallId: toolCall.toolCallId,
+                output: result,
+            });
+            return;
+        }
+
         const tool = availableTools.find((tool) => tool.toolName === toolName);
         if (!tool) {
             toast.error(`Tool "${toolName}" not available in ask mode`, {

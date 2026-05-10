@@ -329,6 +329,9 @@ export const ChatInput = observer(
             if (chatMode === ChatType.ASK) {
                 return 'Ask a question about your project...';
             }
+            if (chatMode === ChatType.PLAN) {
+                return 'Describe what you want to plan...';
+            }
             return t(transKeys.editor.panels.edit.tabs.chat.input.placeholder);
         };
 

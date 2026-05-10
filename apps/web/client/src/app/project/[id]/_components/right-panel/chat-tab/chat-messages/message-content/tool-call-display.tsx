@@ -5,9 +5,11 @@ import { type z } from 'zod';
 
 import type { WebSearchResult } from '@weblab/models';
 import {
+    AskUserQuestionTool,
     EditImageTool,
     FuzzyEditFileTool,
     GenerateImageTool,
+    PlanCompleteTool,
     SearchReplaceEditTool,
     SearchReplaceMultiEditFileTool,
     TerminalCommandTool,
@@ -19,6 +21,8 @@ import {
 import { BashCodeDisplay } from '../../code-display/bash-code-display';
 import { CollapsibleCodeBlock } from '../../code-display/collapsible-code-block';
 import { SearchSourcesDisplay } from '../../code-display/search-sources-display';
+import { PlanApprovalCard } from './plan-approval-card';
+import { PlanQuestionCard } from './plan-question-card';
 import { ToolCallImageResult } from './tool-call-image-result';
 import { ToolCallSimple } from './tool-call-simple';
 
@@ -34,6 +38,33 @@ const ToolCallDisplayComponent = ({
     applied: boolean;
 }) => {
     const toolName = toolPart.type.split('-')[1];
+
+    if (toolName === AskUserQuestionTool.toolName) {
+        const args = toolPart.input as z.infer<typeof AskUserQuestionTool.parameters> | null;
+        if (!args?.question) {
+            return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} loading={isStream} />;
+        }
+        const answered = toolPart.state === 'output-available';
+        return (
+            <PlanQuestionCard
+                key={toolPart.toolCallId}
+                toolCallId={toolPart.toolCallId}
+                input={args}
+                answered={answered}
+            />
+        );
+    }
+
+    if (toolName === PlanCompleteTool.toolName) {
+        const args = toolPart.input as z.infer<typeof PlanCompleteTool.parameters> | null;
+        return (
+            <PlanApprovalCard
+                key={toolPart.toolCallId}
+                input={{ summary: args?.summary ?? '' }}
+                isStream={isStream && toolPart.state !== 'output-available'}
+            />
+        );
+    }
 
     if (toolName === GenerateImageTool.toolName || toolName === EditImageTool.toolName) {
         return (

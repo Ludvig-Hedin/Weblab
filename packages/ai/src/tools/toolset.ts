@@ -118,7 +118,10 @@ const planToolClasses: ToolClass[] = [
 export const readOnlyToolset: ToolSet = createToolSet(readOnlyToolClasses);
 export const allToolset: ToolSet = createToolSet(allToolClasses);
 export const TOOLS_MAP = new Map<string, ToolClass>(
-    allToolClasses.map((toolClass) => [toolClass.toolName, toolClass]),
+    [...allToolClasses, AskUserQuestionTool, PlanCompleteTool].map((toolClass) => [
+        toolClass.toolName,
+        toolClass,
+    ]),
 );
 
 /**
