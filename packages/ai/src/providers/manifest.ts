@@ -64,7 +64,7 @@ const OPENROUTER_ENTRY: ProviderManifestEntry = {
 const OLLAMA_ENTRY: ProviderManifestEntry = {
     kind: 'ollama',
     label: 'Ollama',
-    icon: 'BoxModel',
+    icon: 'OllamaLogo',
     binary: 'ollama',
     installUrl: 'https://ollama.com/download',
     models: [],
@@ -114,7 +114,7 @@ const CLAUDE_CODE_ENTRY: ProviderManifestEntry = {
 const GEMINI_ENTRY: ProviderManifestEntry = {
     kind: 'gemini',
     label: 'Gemini',
-    icon: 'GoogleLogo',
+    icon: 'GeminiLogo',
     binary: 'gemini',
     installUrl: 'https://github.com/google-gemini/gemini-cli',
     authCommand: 'gemini auth login',
@@ -131,7 +131,7 @@ const GEMINI_ENTRY: ProviderManifestEntry = {
 const OPENCODE_ENTRY: ProviderManifestEntry = {
     kind: 'opencode',
     label: 'OpenCode',
-    icon: 'Code',
+    icon: 'OpenCodeLogo',
     binary: 'opencode',
     installUrl: 'https://opencode.ai',
     webOAuth: { startPath: '/api/auth/providers/opencode/start', provider: 'opencode' },
