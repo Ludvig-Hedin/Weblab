@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
@@ -19,6 +19,7 @@ import {
 } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
+import { cn } from '@weblab/ui/utils';
 
 import { api } from '@/trpc/react';
 
@@ -34,13 +35,27 @@ type PendingAI = {
 export const AITab = observer(() => {
     const apiUtils = api.useUtils();
     const { data: userSettings } = api.user.settings.get.useQuery();
-    const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-        onSuccess: () => void apiUtils.user.settings.get.invalidate(),
+    const [savedFlash, setSavedFlash] = useState(false);
+    const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
+        onSuccess: () => {
+            void apiUtils.user.settings.get.invalidate();
+            setSavedFlash(true);
+            if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+            savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+        },
         onError: () => {
             void apiUtils.user.settings.get.invalidate();
             toast.error('Failed to save AI settings');
         },
     });
+
+    useEffect(
+        () => () => {
+            if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+        },
+        [],
+    );
 
     const pending = useRef<PendingAI>({});
 
@@ -55,7 +70,9 @@ export const AITab = observer(() => {
         [updateSettings],
     );
 
-    useEffect(() => () => debouncedSave.cancel(), [debouncedSave]);
+    // Flush in-flight pending changes on unmount so closing the modal mid-debounce
+    // doesn't drop the user's last edit. cancel() would silently discard it.
+    useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
     const patch = (changes: PendingAI) => {
         apiUtils.user.settings.get.setData(undefined, (current) => {
@@ -71,6 +88,7 @@ export const AITab = observer(() => {
     // Local model detection state
     const [localModels, setLocalModels] = useState<LocalModelOption[]>([]);
     const [localModelsLoading, setLocalModelsLoading] = useState(false);
+    const [detectionError, setDetectionError] = useState<string | null>(null);
     const [ollamaUrlInput, setOllamaUrlInput] = useState<string>(
         userSettings?.chat?.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL,
     );
@@ -84,6 +102,7 @@ export const AITab = observer(() => {
 
     const detectLocalModels = (baseUrl: string, signal?: AbortSignal) => {
         setLocalModelsLoading(true);
+        setDetectionError(null);
         const params = new URLSearchParams({ baseUrl });
         fetch(`/api/models/local?${params.toString()}`, { signal })
             .then((r) => {
@@ -96,6 +115,9 @@ export const AITab = observer(() => {
             .catch((err) => {
                 if (err instanceof Error && err.name === 'AbortError') return;
                 setLocalModels([]);
+                setDetectionError(
+                    err instanceof Error ? err.message : 'Failed to reach Ollama server.',
+                );
             })
             .finally(() => setLocalModelsLoading(false));
     };
@@ -129,28 +151,43 @@ export const AITab = observer(() => {
             'showSuggestions' | 'showMiniChat' | 'autoApplyCode' | 'expandCodeBlocks'
         >;
         defaultValue?: boolean;
-    }) => (
-        <div className="flex items-center justify-between gap-4">
-            <div>
-                <p className="text-sm font-medium">{label}</p>
-                <p className="text-muted-foreground text-sm">{description}</p>
+    }) => {
+        // Stable per-row id so the visible label clicks toggle the switch.
+        const id = useId();
+        return (
+            <div className="flex items-center justify-between gap-4">
+                <label htmlFor={id} className="cursor-pointer">
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-muted-foreground text-sm">{description}</p>
+                </label>
+                <Switch
+                    id={id}
+                    checked={ai?.[field] ?? defaultValue}
+                    onCheckedChange={(v) => patch({ [field]: v })}
+                />
             </div>
-            <Switch
-                checked={ai?.[field] ?? defaultValue}
-                onCheckedChange={(v) => patch({ [field]: v })}
-            />
-        </div>
-    );
+        );
+    };
+
+    const SaveStatus = () =>
+        isSaving ? (
+            <span className="text-foreground-tertiary text-xs">Saving…</span>
+        ) : savedFlash ? (
+            <span className="text-foreground-secondary text-xs transition-opacity">Saved</span>
+        ) : null;
 
     return (
         <div className="flex flex-col gap-8 p-6">
             {/* Default model */}
             <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
-                <div>
-                    <h2 className="text-base font-medium">Default model</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Pre-selected when you open a new chat.
-                    </p>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-base font-medium">Default model</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Pre-selected when you open a new chat.
+                        </p>
+                    </div>
+                    <SaveStatus />
                 </div>
                 <div className="space-y-1.5">
                     <Label className="text-xs">Model</Label>
@@ -185,11 +222,14 @@ export const AITab = observer(() => {
 
             {/* Local models (Ollama) */}
             <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
-                <div>
-                    <h2 className="text-base font-medium">Local models</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Use locally-running models via Ollama.
-                    </p>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 className="text-base font-medium">Local models</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Use locally-running models via Ollama.
+                        </p>
+                    </div>
+                    <SaveStatus />
                 </div>
                 <div className="space-y-3">
                     <div className="space-y-1.5">
@@ -216,13 +256,28 @@ export const AITab = observer(() => {
                             </Button>
                         </div>
                     </div>
-                    <p className="text-muted-foreground text-xs">
-                        {localModelsLoading
-                            ? 'Looking for Ollama…'
-                            : localModels.length > 0
-                              ? `${localModels.length} model${localModels.length === 1 ? '' : 's'} detected: ${localModels.map((m) => m.label).join(', ')}`
-                              : 'No local models detected. Make sure Ollama is running.'}
-                    </p>
+                    <div className="flex items-start gap-2">
+                        <span
+                            aria-hidden="true"
+                            className={cn(
+                                'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                                localModelsLoading
+                                    ? 'animate-pulse bg-amber-500'
+                                    : localModels.length > 0
+                                      ? 'bg-emerald-500'
+                                      : 'bg-foreground-tertiary/40',
+                            )}
+                        />
+                        <p className="text-muted-foreground text-xs">
+                            {localModelsLoading
+                                ? 'Looking for Ollama…'
+                                : localModels.length > 0
+                                  ? `${localModels.length} model${localModels.length === 1 ? '' : 's'} detected: ${localModels.map((m) => m.label).join(', ')}`
+                                  : detectionError
+                                    ? `Couldn't reach Ollama: ${detectionError}`
+                                    : 'No local models detected. Make sure Ollama is running.'}
+                        </p>
+                    </div>
                     <p className="text-muted-foreground/80 text-[11px] leading-snug">
                         Detection probes Ollama from the Weblab server, not your browser. On hosted
                         deployments only models reachable from the server are visible — when running
@@ -233,8 +288,9 @@ export const AITab = observer(() => {
 
             {/* Chat behaviour */}
             <section className="border-border/60 bg-background-secondary/30 space-y-4 rounded-lg border p-4">
-                <div>
+                <div className="flex items-start justify-between gap-4">
                     <h2 className="text-base font-medium">Chat behaviour</h2>
+                    <SaveStatus />
                 </div>
                 <div className="space-y-3">
                     <ToggleRow

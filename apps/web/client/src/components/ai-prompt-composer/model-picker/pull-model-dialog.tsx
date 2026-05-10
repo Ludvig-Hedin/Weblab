@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from '@weblab/ui/dialog';
 import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
 
 // Mirror of `SAFE_OLLAMA_MODEL` in `apps/desktop/weblab-cli.js` so we can
 // reject malformed model names client-side and give a precise error before
@@ -91,6 +92,7 @@ export function PullModelDialog({
             if (!result.ok) {
                 setError(result.error ?? 'Pull failed.');
             } else {
+                toast.success(`Pulled ${model}`);
                 onPulled?.();
                 onOpenChange(false);
             }
