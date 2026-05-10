@@ -22,6 +22,12 @@ export class StateManager {
     leftPanelLocked = false;
     canvasPanning = false;
     isDragSelecting = false;
+    /**
+     * When true, the left and right panels are fully hidden (collapsed off-canvas).
+     * Used by the panel-collapse buttons and surfaces that need to temporarily
+     * un-hide the chrome (e.g. opening fix flow from the bottom-bar).
+     */
+    panelsHidden = false;
     /** Theme override broadcast to the previewed site (iframe). */
     previewTheme: PreviewTheme = 'system';
 
@@ -83,6 +89,10 @@ export class StateManager {
 
     setLeftPanelLocked(locked: boolean) {
         this.leftPanelLocked = locked;
+    }
+
+    togglePanelsHidden() {
+        this.panelsHidden = !this.panelsHidden;
     }
 
     setPreviewTheme(theme: PreviewTheme) {

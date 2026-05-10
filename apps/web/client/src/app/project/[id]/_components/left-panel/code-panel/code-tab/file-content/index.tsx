@@ -1,12 +1,12 @@
 import type { RefObject } from 'react';
-import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { CodeNavigationTarget } from '@weblab/models';
 import { pathsEqual } from '@weblab/utility';
 
 import type { EditorFile } from '../shared/types';
 import type { EditorView } from '@codemirror/view';
-import { isDirty } from '../shared/utils';
+import { transKeys } from '@/i18n/keys';
 import { CodeEditor } from './code-editor';
 import { UnsavedChangesDialog } from './unsaved-changes-dialog';
 
@@ -43,30 +43,7 @@ export const CodeEditorArea = ({
     onAddSelectionToChat,
     onFocusChatInput,
 }: CodeEditorAreaProps) => {
-    const [activeFileIsDirty, setActiveFileIsDirty] = useState(false);
-
-    useEffect(() => {
-        // Guard setActiveFileIsDirty being called after
-        // the component is unmounted because isDirty is async
-        let isMounted = true;
-
-        async function checkDirty() {
-            if (!activeFile) {
-                setActiveFileIsDirty(false);
-                return;
-            }
-            const dirty = await isDirty(activeFile);
-            if (isMounted) {
-                setActiveFileIsDirty(dirty);
-            }
-        }
-
-        void checkDirty();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [activeFile]);
+    const t = useTranslations();
 
     return (
         <div className="relative flex-1 overflow-hidden">
@@ -74,7 +51,7 @@ export const CodeEditorArea = ({
                 {openedFiles.length === 0 || !activeFile ? (
                     <div className="absolute inset-0 z-10 flex items-center justify-center">
                         <div className="text-muted-foreground text-regular text-center">
-                            Open a file or select an element on the page.
+                            {t(transKeys.editor.panels.code.emptyState)}
                         </div>
                     </div>
                 ) : (
@@ -112,7 +89,7 @@ export const CodeEditorArea = ({
                     ))
                 )}
             </div>
-            {activeFileIsDirty && showUnsavedDialog && (
+            {showUnsavedDialog && (fileCountToClose ?? 0) > 0 && (
                 <UnsavedChangesDialog
                     onSave={onSaveAndCloseFiles}
                     onDiscard={onDiscardChanges}

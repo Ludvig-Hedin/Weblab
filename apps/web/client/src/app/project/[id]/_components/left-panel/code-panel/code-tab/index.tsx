@@ -87,7 +87,7 @@ export const CodeTab = memo(
         openedEditorFilesRef.current = openedEditorFiles;
         const [showLocalUnsavedDialog, setShowLocalUnsavedDialog] = useState(false);
         const [filesToClose, setFilesToClose] = useState<string[]>([]);
-        const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+        const [isSidebarOpen, setIsSidebarOpen] = useState(true);
         const [editorSelection, setEditorSelection] = useState<{
             from: number;
             to: number;
@@ -179,7 +179,7 @@ export const CodeTab = memo(
                 };
             };
 
-            processFile();
+            void processFile().catch(console.error);
         }, [loadedContent, selectedFilePath]);
 
         useEffect(() => {
@@ -337,7 +337,7 @@ export const CodeTab = memo(
                 }
             } catch (error) {
                 console.error('Failed to save file:', error);
-                alert(
+                toast.error(
                     `Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 );
             }
@@ -363,7 +363,7 @@ export const CodeTab = memo(
                 setShowLocalUnsavedDialog(false);
             } catch (error) {
                 console.error('Failed to save files:', error);
-                alert(
+                toast.error(
                     `Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 );
             }
@@ -463,18 +463,50 @@ export const CodeTab = memo(
             setShowLocalUnsavedDialog(false);
         };
 
-        const handleRenameFile = (oldPath: string, newPath: string) => {
+        const handleRenameFile = async (oldPath: string, newPath: string) => {
             if (!branchData?.codeEditor) return;
 
             const fileName = oldPath.split('/').pop() || 'file';
             const newFileName = newPath.split('/').pop() || 'file';
 
-            toast.promise(branchData.codeEditor.moveFile(oldPath, newPath), {
+            const opened = openedEditorFilesRef.current.find((f) =>
+                pathsEqual(f.path, oldPath),
+            );
+            if (opened && (await isDirty(opened))) {
+                toast.error(
+                    `Cannot rename "${fileName}" with unsaved changes. Save or discard first.`,
+                );
+                return;
+            }
+
+            const movePromise = branchData.codeEditor.moveFile(oldPath, newPath);
+            toast.promise(movePromise, {
                 loading: `Renaming ${fileName}...`,
                 success: `Renamed to ${newFileName}`,
                 error: (error) =>
                     `Failed to rename: ${error instanceof Error ? error.message : 'Unknown error'}`,
             });
+            try {
+                await movePromise;
+            } catch {
+                return;
+            }
+
+            const view = editorViewsRef.current.get(oldPath);
+            if (view) {
+                editorViewsRef.current.delete(oldPath);
+                editorViewsRef.current.set(newPath, view);
+            }
+
+            setOpenedEditorFiles((prev) =>
+                prev.map((f) => (pathsEqual(f.path, oldPath) ? { ...f, path: newPath } : f)),
+            );
+            setActiveEditorFile((prev) =>
+                prev && pathsEqual(prev.path, oldPath) ? { ...prev, path: newPath } : prev,
+            );
+            setSelectedFilePath((prev) =>
+                prev && pathsEqual(prev, oldPath) ? newPath : prev,
+            );
         };
 
         const handleDeleteFile = (path: string) => {
@@ -670,6 +702,7 @@ export const CodeTab = memo(
                 <CodeControls
                     isDirty={hasUnsavedChanges}
                     currentPath={getCurrentPath()}
+                    fileEntries={fileEntries}
                     onSave={handleSaveFile}
                     onRefresh={refreshFileTree}
                     onCreateFile={handleCreateFile}

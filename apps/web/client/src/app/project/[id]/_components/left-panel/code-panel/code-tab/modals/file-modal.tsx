@@ -1,6 +1,8 @@
 import path from 'path';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
+import type { FileEntry } from '@weblab/file-system/hooks';
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -13,48 +15,74 @@ import {
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
+import { pathsEqual } from '@weblab/utility';
 
+import { transKeys } from '@/i18n/keys';
+import { DirectoryPicker } from '../shared/directory-picker';
 import { getFileTemplate } from '../shared/file-templates';
 
 interface FileModalProps {
     basePath: string;
+    fileEntries: FileEntry[];
     show: boolean;
     setShow: (show: boolean) => void;
     onSuccess?: () => void;
     onCreateFile: (filePath: string, content?: string) => Promise<void>;
 }
 
-export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: FileModalProps) => {
+function findEntryByPath(entries: FileEntry[], target: string): FileEntry | null {
+    for (const entry of entries) {
+        if (pathsEqual(entry.path, target)) return entry;
+        if (entry.children) {
+            const found = findEntryByPath(entry.children, target);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+export const FileModal = ({
+    basePath,
+    fileEntries,
+    show,
+    setShow,
+    onSuccess,
+    onCreateFile,
+}: FileModalProps) => {
+    const t = useTranslations();
     const [name, setName] = useState('');
     const [currentPath, setCurrentPath] = useState(basePath);
     const [warning, setWarning] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isComposing, setIsComposing] = useState(false);
 
-    // Update currentPath when basePath prop changes
     useEffect(() => {
-        setCurrentPath(basePath);
-    }, [basePath]);
+        if (show) setCurrentPath(basePath);
+    }, [basePath, show]);
 
     const fullPath = useMemo(() => {
         if (!name) return '';
         return path.join(currentPath, name).replace(/\\/g, '/');
     }, [currentPath, name]);
 
-    const title = 'Create New File';
-    const buttonText = 'Create File';
-    const loadingText = 'Creating file...';
-    const placeholder = 'component.tsx';
+    const collisionWarning = useMemo(() => {
+        if (!fullPath) return '';
+        const existing = findEntryByPath(fileEntries, fullPath);
+        if (!existing) return '';
+        return existing.isDirectory
+            ? `A folder named "${existing.name}" already exists here.`
+            : `A file named "${existing.name}" already exists here.`;
+    }, [fileEntries, fullPath]);
+
+    const effectiveWarning = warning || collisionWarning;
 
     const handleSubmit = async () => {
-        if (!name || warning) return;
+        if (!name || effectiveWarning) return;
 
         try {
             setIsLoading(true);
-
             const content = getFileTemplate(name);
             await onCreateFile(fullPath, content);
-
             setName('');
             setCurrentPath(basePath);
             setWarning('');
@@ -69,58 +97,61 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
         }
     };
 
-    const displayPath = currentPath === '' ? '/' : `/${currentPath}`;
-
     return (
         <Dialog open={show} onOpenChange={(isOpen) => setShow(isOpen)}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>Create a new file</DialogDescription>
+                    <DialogTitle>{t(transKeys.editor.panels.code.fileModal.title)}</DialogTitle>
+                    <DialogDescription>
+                        {t(transKeys.editor.panels.code.fileModal.description)}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="path">Directory Path</Label>
-                        <Input
-                            id="path"
-                            value={currentPath}
-                            onChange={(e) => setCurrentPath(e.target.value)}
-                            placeholder="/"
+                        <Label>{t(transKeys.editor.panels.code.fileModal.location)}</Label>
+                        <DirectoryPicker
+                            entries={fileEntries}
+                            selectedPath={currentPath}
+                            onSelect={setCurrentPath}
                             disabled={isLoading}
-                            className="text-small"
                         />
-                        <p className="text-muted-foreground text-mini">
-                            Path where the file will be created
-                        </p>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="name">File Name</Label>
+                        <Label htmlFor="name">
+                            {t(transKeys.editor.panels.code.fileModal.fileName)}
+                        </Label>
                         <Input
                             id="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className={cn(warning && 'border-warning focus-visible:ring-warning')}
-                            placeholder={placeholder}
+                            className={cn(effectiveWarning && 'border-destructive')}
+                            placeholder={t(transKeys.editor.panels.code.fileModal.namePlaceholder)}
                             disabled={isLoading}
+                            autoFocus
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !isComposing && !warning && name) {
+                                if (
+                                    e.key === 'Enter' &&
+                                    !isComposing &&
+                                    !effectiveWarning &&
+                                    name
+                                ) {
                                     handleSubmit();
                                 }
                             }}
                             onCompositionStart={() => setIsComposing(true)}
                             onCompositionEnd={() => setIsComposing(false)}
                         />
-                        {warning && (
+                        {effectiveWarning && (
                             <p className="text-small text-foreground-warning flex items-center gap-2">
-                                {warning}
+                                {effectiveWarning}
                             </p>
                         )}
-                        {fullPath && !warning && (
-                            <p className="text-muted-foreground text-small">
-                                Full path:{' '}
-                                <code className="bg-background-secondary text-mini rounded px-1 py-0.5">
-                                    {fullPath}
+                        {fullPath && !effectiveWarning && (
+                            <p className="text-muted-foreground text-mini">
+                                {t(transKeys.editor.panels.code.fileModal.fullPath)}{' '}
+                                <code className="bg-background-secondary text-foreground-primary rounded px-1 py-0.5">
+                                    /{fullPath}
                                 </code>
                             </p>
                         )}
@@ -129,14 +160,16 @@ export const FileModal = ({ basePath, show, setShow, onSuccess, onCreateFile }: 
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setShow(false)} disabled={isLoading}>
-                        Cancel
+                        {t(transKeys.editor.panels.code.fileModal.cancel)}
                     </Button>
                     <Button
                         variant="outline"
                         onClick={handleSubmit}
-                        disabled={isLoading || !!warning || !name}
+                        disabled={isLoading || !!effectiveWarning || !name}
                     >
-                        {isLoading ? loadingText : buttonText}
+                        {isLoading
+                            ? t(transKeys.editor.panels.code.fileModal.creating)
+                            : t(transKeys.editor.panels.code.fileModal.create)}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -13,7 +13,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
@@ -23,8 +22,7 @@ import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
 import { CommentsTab } from './comments-tab';
-import { StyleTab } from './style-tab';
-import { StyleTabV2 } from './style-tab-v2';
+import { StyleTabV2 as StyleTab } from './style-tab-v2';
 
 type RightPanelTab = 'style' | 'chat' | 'comments';
 
@@ -233,7 +231,7 @@ export const RightPanel = observer(() => {
                             />
 
                             <TabsContent value="style" className="min-h-0 flex-1 overflow-hidden">
-                                {env.NEXT_PUBLIC_STYLE_PANEL_V2 ? <StyleTabV2 /> : <StyleTab />}
+                                <StyleTab />
                             </TabsContent>
 
                             <TabsContent value="chat" className="min-h-0 flex-1 overflow-hidden">

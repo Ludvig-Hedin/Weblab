@@ -15,6 +15,7 @@ import { toast } from '@weblab/ui/sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@weblab/ui/table';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { ItemEditor } from './item-editor';
@@ -38,6 +39,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     const [routingOpen, setRoutingOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const { confirm, dialog: confirmDialog } = useConfirm();
     const t = useTranslations();
 
     // Reset selection + search when the user switches collections — otherwise
@@ -107,7 +109,13 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Delete this item? This cannot be undone.')) return;
+        const ok = await confirm({
+            title: 'Delete this item?',
+            description: 'This cannot be undone.',
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
         try {
             await deleteMutation.mutateAsync({ projectId, itemId: id });
             await utils.cms.item.list.invalidate({ projectId, collectionId: collection.id });
@@ -126,7 +134,13 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
 
     const handleBulkDelete = async () => {
         if (selectedIds.size === 0) return;
-        if (!confirm(`Delete ${selectedIds.size} item(s)? This cannot be undone.`)) return;
+        const ok = await confirm({
+            title: `Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`,
+            description: 'This cannot be undone.',
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
         const failures: string[] = [];
         for (const id of Array.from(selectedIds)) {
             try {
@@ -368,6 +382,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 open={routingOpen}
                 onOpenChange={setRoutingOpen}
             />
+            {confirmDialog}
         </div>
     );
 });

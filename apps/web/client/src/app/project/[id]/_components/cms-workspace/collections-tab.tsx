@@ -11,6 +11,7 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { ItemsTable } from './items-table';
@@ -123,14 +124,21 @@ const CollectionRow = observer(({ projectId, selected, collection }: CollectionR
     const editorEngine = useEditorEngine();
     const utils = api.useUtils();
     const deleteMutation = api.cms.collection.delete.useMutation();
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
         const itemNote =
             collection.itemCount > 0
-                ? `\n\n${collection.itemCount} item(s) and any bindings will also be removed.`
+                ? ` ${collection.itemCount} item(s) and any bindings will also be removed.`
                 : '';
-        if (!confirm(`Delete "${collection.name}"?${itemNote}`)) return;
+        const ok = await confirm({
+            title: `Delete "${collection.name}"?`,
+            description: `This cannot be undone.${itemNote}`,
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
         try {
             await deleteMutation.mutateAsync({ projectId, collectionId: collection.id });
             await utils.cms.collection.list.invalidate({ projectId });
@@ -144,6 +152,7 @@ const CollectionRow = observer(({ projectId, selected, collection }: CollectionR
 
     return (
         <li className="group/row relative">
+            {confirmDialog}
             <button
                 type="button"
                 onClick={() => editorEngine.state.setCmsSelectedCollectionId(collection.id)}

@@ -10,6 +10,7 @@ import { toast } from '@weblab/ui/sonner';
 
 import type { ConflictRecord, DeadLetterRecord, QueueRecord } from '@/services/offline/write-queue';
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { pingOnlineStatus, useOnlineStatus } from '@/services/offline/online-status';
 import { replayQueue } from '@/services/offline/replay-controller';
 import {
@@ -35,6 +36,7 @@ function bytes(content?: string | Uint8Array): number {
 export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
     const editorEngine = useEditorEngine();
     const online = useOnlineStatus();
+    const { confirm, dialog: confirmDialog } = useConfirm();
     const [pending, setPending] = useState<QueueRecord[]>([]);
     const [dead, setDead] = useState<DeadLetterRecord[]>([]);
     const [conflicts, setConflicts] = useState<ConflictRecord[]>([]);
@@ -113,152 +115,164 @@ export const OfflinePanel = observer(({ open, onOpenChange }: Props) => {
     };
 
     const handleClearDead = async () => {
-        if (!confirm('Discard all dead-letter records? Their content will be lost.')) return;
+        const ok = await confirm({
+            title: 'Discard all dead-letter records?',
+            description: 'Their content will be lost. This cannot be undone.',
+            confirmLabel: 'Discard',
+            destructive: true,
+        });
+        if (!ok) return;
         await clearDeadLetter();
         toast.success('Dead letter cleared.');
         await refresh();
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Offline sync</DialogTitle>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Offline sync</DialogTitle>
+                    </DialogHeader>
 
-                <div className="flex items-center justify-between text-xs">
-                    <div className="text-muted-foreground">
-                        {online ? 'Online' : 'Offline'} · {pending.length} pending · {dead.length}{' '}
-                        dead-letter · {conflicts.length} conflict
-                        {conflicts.length === 1 ? '' : 's'}
+                    <div className="flex items-center justify-between text-xs">
+                        <div className="text-muted-foreground">
+                            {online ? 'Online' : 'Offline'} · {pending.length} pending ·{' '}
+                            {dead.length} dead-letter · {conflicts.length} conflict
+                            {conflicts.length === 1 ? '' : 's'}
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={busy || !online}
+                            onClick={() => void handleSyncNow()}
+                        >
+                            {busy && <Icons.LoadingSpinner className="mr-2 h-3 w-3 animate-spin" />}
+                            Sync now
+                        </Button>
                     </div>
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={busy || !online}
-                        onClick={() => void handleSyncNow()}
-                    >
-                        {busy && <Icons.LoadingSpinner className="mr-2 h-3 w-3 animate-spin" />}
-                        Sync now
-                    </Button>
-                </div>
 
-                <section className="mt-4">
-                    <h3 className="text-sm font-medium">Pending writes</h3>
-                    {pending.length === 0 ? (
-                        <p className="text-muted-foreground mt-1 text-xs">No queued changes.</p>
-                    ) : (
-                        <ul className="border-border/50 mt-2 max-h-64 divide-y overflow-y-auto rounded-md border text-xs">
-                            {pending.map((r) => (
-                                <li key={r.id} className="flex justify-between gap-3 px-3 py-1.5">
-                                    <span className="text-foreground/80 truncate font-mono">
-                                        {r.op} · {r.path}
-                                    </span>
-                                    <span className="text-muted-foreground shrink-0">
-                                        {new Date(r.enqueuedAt).toLocaleTimeString()}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
-
-                <section className="mt-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium">Dead letter</h3>
-                        {dead.length > 0 && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => void handleClearDead()}
-                            >
-                                Clear all
-                            </Button>
-                        )}
-                    </div>
-                    {dead.length === 0 ? (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                            No records have failed past retry.
-                        </p>
-                    ) : (
-                        <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
-                            {dead.map((r) => (
-                                <li key={r.id} className="flex flex-col gap-1 px-3 py-2">
-                                    <div className="flex justify-between gap-3">
+                    <section className="mt-4">
+                        <h3 className="text-sm font-medium">Pending writes</h3>
+                        {pending.length === 0 ? (
+                            <p className="text-muted-foreground mt-1 text-xs">No queued changes.</p>
+                        ) : (
+                            <ul className="border-border/50 mt-2 max-h-64 divide-y overflow-y-auto rounded-md border text-xs">
+                                {pending.map((r) => (
+                                    <li
+                                        key={r.id}
+                                        className="flex justify-between gap-3 px-3 py-1.5"
+                                    >
                                         <span className="text-foreground/80 truncate font-mono">
                                             {r.op} · {r.path}
                                         </span>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => void handleRetry(r)}
-                                        >
-                                            Retry
-                                        </Button>
-                                    </div>
-                                    {r.lastError && (
-                                        <p className="text-red-300/80">{r.lastError}</p>
-                                    )}
-                                    <p className="text-muted-foreground">
-                                        {bytes(r.content)} bytes ·{' '}
-                                        {new Date(r.enqueuedAt).toLocaleString()}
-                                    </p>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
-
-                <section className="mt-4">
-                    <h3 className="text-sm font-medium">Conflicts</h3>
-                    {conflicts.length === 0 ? (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                            No remote changes were overwritten by your offline edits.
-                        </p>
-                    ) : (
-                        <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
-                            {conflicts.map((c) => (
-                                <li key={c.id} className="flex flex-col gap-1 px-3 py-2">
-                                    <div className="flex justify-between gap-3">
-                                        <span className="text-foreground/80 truncate font-mono">
-                                            {c.path}
+                                        <span className="text-muted-foreground shrink-0">
+                                            {new Date(r.enqueuedAt).toLocaleTimeString()}
                                         </span>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => {
-                                                void dismissConflict(c.id).then(refresh);
-                                            }}
-                                        >
-                                            Dismiss
-                                        </Button>
-                                    </div>
-                                    <p className="text-muted-foreground">
-                                        Your version was kept. Detected{' '}
-                                        {new Date(c.detectedAt).toLocaleString()}.
-                                    </p>
-                                    <details className="text-muted-foreground/80">
-                                        <summary className="cursor-pointer">
-                                            Show remote version
-                                        </summary>
-                                        <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-[10px] break-words whitespace-pre-wrap">
-                                            {typeof c.remoteContent === 'string'
-                                                ? c.remoteContent
-                                                : '[binary content]'}
-                                        </pre>
-                                    </details>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </section>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
 
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                        Close
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    <section className="mt-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium">Dead letter</h3>
+                            {dead.length > 0 && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => void handleClearDead()}
+                                >
+                                    Clear all
+                                </Button>
+                            )}
+                        </div>
+                        {dead.length === 0 ? (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                                No records have failed past retry.
+                            </p>
+                        ) : (
+                            <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
+                                {dead.map((r) => (
+                                    <li key={r.id} className="flex flex-col gap-1 px-3 py-2">
+                                        <div className="flex justify-between gap-3">
+                                            <span className="text-foreground/80 truncate font-mono">
+                                                {r.op} · {r.path}
+                                            </span>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => void handleRetry(r)}
+                                            >
+                                                Retry
+                                            </Button>
+                                        </div>
+                                        {r.lastError && (
+                                            <p className="text-red-300/80">{r.lastError}</p>
+                                        )}
+                                        <p className="text-muted-foreground">
+                                            {bytes(r.content)} bytes ·{' '}
+                                            {new Date(r.enqueuedAt).toLocaleString()}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+
+                    <section className="mt-4">
+                        <h3 className="text-sm font-medium">Conflicts</h3>
+                        {conflicts.length === 0 ? (
+                            <p className="text-muted-foreground mt-1 text-xs">
+                                No remote changes were overwritten by your offline edits.
+                            </p>
+                        ) : (
+                            <ul className="border-border/50 mt-2 divide-y rounded-md border text-xs">
+                                {conflicts.map((c) => (
+                                    <li key={c.id} className="flex flex-col gap-1 px-3 py-2">
+                                        <div className="flex justify-between gap-3">
+                                            <span className="text-foreground/80 truncate font-mono">
+                                                {c.path}
+                                            </span>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => {
+                                                    void dismissConflict(c.id).then(refresh);
+                                                }}
+                                            >
+                                                Dismiss
+                                            </Button>
+                                        </div>
+                                        <p className="text-muted-foreground">
+                                            Your version was kept. Detected{' '}
+                                            {new Date(c.detectedAt).toLocaleString()}.
+                                        </p>
+                                        <details className="text-muted-foreground/80">
+                                            <summary className="cursor-pointer">
+                                                Show remote version
+                                            </summary>
+                                            <pre className="bg-muted/30 mt-1 max-h-48 overflow-auto p-2 text-[10px] break-words whitespace-pre-wrap">
+                                                {typeof c.remoteContent === 'string'
+                                                    ? c.remoteContent
+                                                    : '[binary content]'}
+                                            </pre>
+                                        </details>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {confirmDialog}
+        </>
     );
 });

@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
+import type { FileEntry } from '@weblab/file-system/hooks';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -11,6 +13,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import { transKeys } from '@/i18n/keys';
 import { FileModal } from './modals/file-modal';
 import { FolderModal } from './modals/folder-modal';
 import { UploadModal } from './modals/upload-modal';
@@ -18,6 +21,7 @@ import { UploadModal } from './modals/upload-modal';
 interface CodeControlsProps {
     isDirty: boolean;
     currentPath: string;
+    fileEntries: FileEntry[];
     onSave: () => Promise<void>;
     onRefresh: () => void;
     onCreateFile: (filePath: string, content?: string | Uint8Array) => Promise<void>;
@@ -29,6 +33,7 @@ interface CodeControlsProps {
 export const CodeControls = ({
     isDirty,
     currentPath,
+    fileEntries,
     onSave,
     onRefresh,
     onCreateFile,
@@ -36,6 +41,7 @@ export const CodeControls = ({
     isSidebarOpen,
     setIsSidebarOpen,
 }: CodeControlsProps) => {
+    const t = useTranslations();
     const [showFileModal, setShowFileModal] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [showFolderModal, setShowFolderModal] = useState(false);
@@ -59,20 +65,31 @@ export const CodeControls = ({
     };
 
     return (
-        <div className="bg-background-secondary border-border-bar flex h-10 w-full flex-row items-center justify-between border-b p-1">
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
-            >
-                {isSidebarOpen ? (
-                    <Icons.SidebarLeftCollapse className="h-4 w-4" />
-                ) : (
-                    <Icons.MoveToFolder className="h-4 w-4" />
-                )}
-                <span className="text-small ml-0.5">{isSidebarOpen ? '' : 'View Files'}</span>
-            </Button>
+        <div className="bg-background-bar border-border-bar flex h-10 w-full flex-row items-center justify-between border-b p-1">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="text-foreground-secondary hover:text-foreground-primary h-fit w-fit cursor-pointer bg-transparent px-2 py-1 hover:!bg-transparent"
+                    >
+                        {isSidebarOpen ? (
+                            <Icons.SidebarLeftCollapse className="h-4 w-4" />
+                        ) : (
+                            <Icons.MoveToFolder className="h-4 w-4" />
+                        )}
+                        <span className="text-small ml-0.5">
+                            {isSidebarOpen
+                                ? ''
+                                : t(transKeys.editor.panels.code.controls.viewFiles)}
+                        </span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" hideArrow>
+                    <p>{isSidebarOpen ? 'Hide file tree' : 'Show file tree'}</p>
+                </TooltipContent>
+            </Tooltip>
             <div className="ml-auto flex flex-row items-center transition-opacity duration-200">
                 <Tooltip>
                     <DropdownMenu>
@@ -93,19 +110,19 @@ export const CodeControls = ({
                                 onClick={() => setShowFileModal(true)}
                             >
                                 <Icons.FilePlus className="mr-2 h-4 w-4" />
-                                Create new file
+                                {t(transKeys.editor.panels.code.controls.createNewFile)}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="cursor-pointer"
                                 onClick={() => setShowUploadModal(true)}
                             >
                                 <Icons.Upload className="mr-2 h-4 w-4" />
-                                Upload file
+                                {t(transKeys.editor.panels.code.controls.uploadFile)}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <TooltipContent side="bottom" hideArrow>
-                        <p>Create or Upload File</p>
+                        <p>{t(transKeys.editor.panels.code.controls.createOrUploadFile)}</p>
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -120,7 +137,7 @@ export const CodeControls = ({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" hideArrow>
-                        <p>New Folder</p>
+                        <p>{t(transKeys.editor.panels.code.controls.newFolder)}</p>
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -144,16 +161,25 @@ export const CodeControls = ({
                                     className={cn('h-4 w-4', isDirty && 'text-background-primary')}
                                 />
                             )}
-                            <span className="text-small">{isSaving ? 'Saving...' : 'Save'}</span>
+                            <span className="text-small">
+                                {isSaving
+                                    ? t(transKeys.editor.panels.code.controls.saving)
+                                    : t(transKeys.editor.panels.code.controls.save)}
+                            </span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" hideArrow>
-                        <p>{isSaving ? 'Saving changes...' : 'Save changes'}</p>
+                        <p>
+                            {isSaving
+                                ? t(transKeys.editor.panels.code.controls.savingChanges)
+                                : t(transKeys.editor.panels.code.controls.saveChanges)}
+                        </p>
                     </TooltipContent>
                 </Tooltip>
             </div>
             <FileModal
                 basePath={currentPath}
+                fileEntries={fileEntries}
                 show={showFileModal}
                 setShow={setShowFileModal}
                 onSuccess={handleModalSuccess}
@@ -161,6 +187,7 @@ export const CodeControls = ({
             />
             <FolderModal
                 basePath={currentPath}
+                fileEntries={fileEntries}
                 show={showFolderModal}
                 setShow={setShowFolderModal}
                 onSuccess={handleModalSuccess}

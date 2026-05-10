@@ -16,6 +16,7 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { ConnectSourceDialog } from './connect-source-dialog';
@@ -48,6 +49,7 @@ export const SourcesTab = observer(() => {
     const testExistingMutation = api.cms.source.testExisting.useMutation();
     const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
     const [testingId, setTestingId] = useState<string | null>(null);
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     if (!projectId) return null;
     const sources = sourcesQuery.data ?? [];
@@ -73,13 +75,14 @@ export const SourcesTab = observer(() => {
     };
 
     const handleSyncWithPrune = async (sourceId: string) => {
-        if (
-            !confirm(
-                'Refresh and prune?\n\nThis will delete any local items whose remote source no longer returns them. Bindings to pruned items will stop resolving.',
-            )
-        ) {
-            return;
-        }
+        const ok = await confirm({
+            title: 'Refresh and prune?',
+            description:
+                'Local items whose remote source no longer returns them will be deleted. Bindings to pruned items will stop resolving.',
+            confirmLabel: 'Refresh & prune',
+            destructive: true,
+        });
+        if (!ok) return;
         await handleSync(sourceId, true);
     };
 
@@ -100,10 +103,25 @@ export const SourcesTab = observer(() => {
     };
 
     const handleDelete = async (sourceId: string) => {
-        if (!confirm(t(transKeys.cms.sources.deleteConfirm))) return;
+        const ok = await confirm({
+            title: t(transKeys.cms.sources.deleteConfirm),
+            confirmLabel: 'Delete',
+            destructive: true,
+        });
+        if (!ok) return;
         try {
             await deleteMutation.mutateAsync({ projectId, sourceId });
-            await utils.cms.source.list.invalidate({ projectId });
+            // DB cascade removes collections → fields → items. Invalidate every
+            // dependent cache so the UI doesn't show ghost rows.
+            await Promise.all([
+                utils.cms.source.list.invalidate({ projectId }),
+                utils.cms.collection.list.invalidate({ projectId }),
+                utils.cms.item.list.invalidate(),
+                utils.cms.binding.snapshot.invalidate({ projectId }),
+            ]);
+            if (editorEngine.state.cmsSelectedCollectionId) {
+                editorEngine.state.setCmsSelectedCollectionId(null);
+            }
             toast.success(t(transKeys.cms.sources.deleted));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.sources.deleteFailed));
@@ -232,6 +250,7 @@ export const SourcesTab = observer(() => {
                 sourceId={editingSourceId}
                 onClose={() => setEditingSourceId(null)}
             />
+            {confirmDialog}
         </div>
     );
 });

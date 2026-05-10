@@ -53,7 +53,15 @@ export const ErrorSection = observer(({ isStreaming, onSendMessage }: ErrorSecti
     }, [editorEngine.chat, isStreaming, errorCount, sendFixError]);
 
     useEffect(() => {
-        if (!editorEngine.chat.pendingFixErrorsRequest || isStreaming || errorCount === 0) return;
+        if (!editorEngine.chat.pendingFixErrorsRequest) return;
+        // Drop the request if errors cleared before chat could honor it —
+        // otherwise the flag strands and fires against a future, unrelated
+        // error set.
+        if (errorCount === 0) {
+            editorEngine.chat.consumeFixErrorsRequest();
+            return;
+        }
+        if (isStreaming) return;
         if (!editorEngine.chat.consumeFixErrorsRequest()) return;
         sendFixError();
     }, [

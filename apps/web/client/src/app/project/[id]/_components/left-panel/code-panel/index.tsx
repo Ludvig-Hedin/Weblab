@@ -18,7 +18,7 @@ export const CodePanel = observer(() => {
     return (
         <div
             className={cn(
-                'bg-background-canvas group/panel flex size-full overflow-hidden',
+                'bg-background-chrome group/panel flex size-full overflow-hidden',
                 editorEngine.state.editorMode !== EditorMode.CODE && 'hidden',
             )}
         >
