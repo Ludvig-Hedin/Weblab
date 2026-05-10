@@ -16,6 +16,25 @@ import { parseRepoUrl } from '../editor/pages/helper';
  */
 export type CreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
 
+/**
+ * Thrown by every create-flow entry point when the caller did not supply a
+ * userId. Callers should detect this with `isNotAuthenticatedError` and
+ * re-open the auth modal instead of surfacing a misleading "Failed to create
+ * project" toast. Using a named subclass (instead of a string sentinel)
+ * prevents collisions with unrelated errors that happen to share the same
+ * message — `instanceof` matches identity, not text.
+ */
+export class CreateFlowNotAuthenticatedError extends Error {
+    constructor() {
+        super('NOT_AUTHENTICATED');
+        this.name = 'CreateFlowNotAuthenticatedError';
+    }
+}
+
+export function isNotAuthenticatedError(error: unknown): boolean {
+    return error instanceof CreateFlowNotAuthenticatedError;
+}
+
 export class CreateManager {
     error: string | null = null;
     phase: CreatePhase = 'idle';
@@ -45,8 +64,12 @@ export class CreateManager {
         let forkedSandboxId: string | null = null;
         try {
             if (!userId) {
-                console.error('No user ID found');
-                return;
+                // Throw a typed sentinel so callers can distinguish "user is
+                // signed out" from a real failure and re-open the auth modal
+                // instead of surfacing a misleading toast. The previous silent
+                // return produced a dead-end (button reset, no feedback) when
+                // a session expired between the auth gate and the click.
+                throw new CreateFlowNotAuthenticatedError();
             }
             const config = {
                 title: `Prompted project - ${userId}`,
@@ -62,6 +85,17 @@ export class CreateManager {
                 this.generateProjectName(prompt),
             ]);
             forkedSandboxId = sandboxId;
+            // Defense-in-depth: a degenerate fork response (empty id/url)
+            // would persist `frames.url = ''`, and the editor's
+            // <iframe src=""> then resolves to the parent document URL —
+            // the user sees Weblab rendered inside itself with no recovery
+            // path. Reject here so the catch block deletes the orphan and
+            // the toast surfaces the cause.
+            if (!sandboxId || !previewUrl) {
+                throw new Error(
+                    'Sandbox fork returned an incomplete response (missing sandbox id or preview URL). Please try again.',
+                );
+            }
 
             this.phase = 'creating-project';
             const project = createDefaultProject({
@@ -86,7 +120,11 @@ export class CreateManager {
                             content: prompt,
                         },
                         ...images.map((image) => ({
-                            type: CreateRequestContextType.IMAGE,
+                            // `as const` keeps `type` narrowed to the
+                            // literal `IMAGE` member rather than widening to
+                            // the full `CreateRequestContextType` enum, which
+                            // is required by `ImageCreateRequestContext`.
+                            type: CreateRequestContextType.IMAGE as const,
                             content: image.content,
                             mimeType: image.mimeType,
                         })),
@@ -131,8 +169,7 @@ export class CreateManager {
         let forkedSandboxId: string | null = null;
         try {
             if (!userId) {
-                console.error('No user ID found');
-                return;
+                throw new CreateFlowNotAuthenticatedError();
             }
             const { owner, repo } = parseRepoUrl(repoUrl);
             const { branch, isPrivateRepo } = await api.github.validate.mutate({
@@ -151,9 +188,19 @@ export class CreateManager {
                 this.generateProjectName(`Import from GitHub repository: ${repo}`),
             ]);
             forkedSandboxId = sandboxId;
+            // See `startCreate` — reject incomplete responses before
+            // persisting so the orphan-cleanup path can fire.
+            if (!sandboxId || !previewUrl) {
+                throw new Error(
+                    'Sandbox import returned an incomplete response (missing sandbox id or preview URL). Please try again.',
+                );
+            }
             const project = createDefaultProject({
                 overrides: {
                     name: projectName,
+                    // Hint Next.js to avoid the preload-injector framework
+                    // detection race; adapter still re-validates from sandbox.
+                    runtimeMetadata: { framework: 'nextjs' },
                 },
             });
             const newProject = await api.project.create.mutate({
@@ -179,6 +226,10 @@ export class CreateManager {
                         });
                     });
             }
+            // Re-throw so the caller can surface a toast / re-open the
+            // auth modal. Without this, callers see `!project`, no toast
+            // fires, and the UX dies silently. Mirrors `startCreate`.
+            throw error;
         }
     }
 
@@ -214,8 +265,7 @@ export class CreateManager {
         let forkedSandboxId: string | null = null;
         try {
             if (!input.userId) {
-                console.error('No user ID found');
-                return;
+                throw new CreateFlowNotAuthenticatedError();
             }
 
             if (input.sandboxId && input.subpath) {
@@ -243,13 +293,22 @@ export class CreateManager {
                 );
             }
             forkedSandboxId = sandboxResult.sandboxId;
+            // See `startCreate` — reject incomplete responses before
+            // persisting so the orphan-cleanup path can fire.
+            if (!sandboxResult.sandboxId || !sandboxResult.previewUrl) {
+                throw new Error(
+                    'Sandbox provisioning returned an incomplete response (missing sandbox id or preview URL). Please try again.',
+                );
+            }
 
             const project = createDefaultProject({
                 overrides: {
                     name: input.name,
                     description: input.description,
                     tags: ['template-import'],
-                    runtimeMetadata: input.framework ? { framework: input.framework } : undefined,
+                    // Default Next.js when caller didn't specify — avoids the
+                    // preload-injector race on first load.
+                    runtimeMetadata: { framework: input.framework ?? 'nextjs' },
                 },
             });
 
@@ -276,6 +335,10 @@ export class CreateManager {
                         });
                     });
             }
+            // Re-throw so the caller can surface a toast / re-open the
+            // auth modal. Without this, callers see `!project`, no toast
+            // fires, and the UX dies silently. Mirrors `startCreate`.
+            throw error;
         }
     }
 }

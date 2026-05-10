@@ -9,8 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
 import { DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
-import { Icons } from '@weblab/ui/icons';
 import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser } from '@weblab/utility';
@@ -30,6 +30,7 @@ import {
 import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useCreateManager } from '@/components/store/create';
+import { isNotAuthenticatedError } from '@/components/store/create/manager';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
 export interface CreateSuggestion {
@@ -114,6 +115,21 @@ export const Create = observer(
                     // back between router.push and the route transition,
                     // making the loading feel broken.
                 } catch (error) {
+                    // Session expired between the auth gate at line 97 and
+                    // the mutate call (rare but possible) — re-open the auth
+                    // modal instead of toasting a misleading "Failed to
+                    // create project". Save the draft so post-login resume
+                    // picks it up.
+                    if (isNotAuthenticatedError(error)) {
+                        await saveAiPromptCreateDraft(prompt, images);
+                        await localforage.setItem(
+                            LocalForageKeys.RETURN_URL,
+                            AI_PROMPT_CREATE_RESUME_PATH,
+                        );
+                        setIsAuthModalOpen(true);
+                        setIsCreatingProject(false);
+                        return;
+                    }
                     console.error('Error creating project:', error);
                     await saveAiPromptCreateDraft(prompt, images);
                     // Prefer the manager's structured error message when

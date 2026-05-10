@@ -31,6 +31,7 @@ import {
     userCanvases,
     userProjects,
 } from '@weblab/db';
+import { getFrameworkAdapter } from '@weblab/framework';
 import { compressImageServer } from '@weblab/image-server';
 import {
     LLMProvider,
@@ -74,6 +75,10 @@ export const projectRouter = createTRPCRouter({
                     throw new Error('FIRECRAWL_API_KEY is not configured');
                 }
 
+                // Single round-trip — pulls the branch, its frames, AND the
+                // owning project's runtimeMetadata in one query (Drizzle
+                // generates an inner SELECT join). Avoids a second
+                // `projects.findFirst` for the framework lookup below.
                 const branch = await ctx.db.query.branches.findFirst({
                     where: and(
                         eq(branches.projectId, input.projectId),
@@ -81,6 +86,9 @@ export const projectRouter = createTRPCRouter({
                     ),
                     with: {
                         frames: true,
+                        project: {
+                            columns: { runtimeMetadata: true },
+                        },
                     },
                 });
 
@@ -92,8 +100,18 @@ export const projectRouter = createTRPCRouter({
                     throw new Error('No sandbox found for branch');
                 }
 
-                // Extract port from existing frame URL or fall back to 3000
-                const port = extractCsbPort(branch.frames) ?? 3000;
+                // Resolve the dev-server port in this priority:
+                //   1. an existing frame URL (proves the sandbox is already
+                //      serving on that port),
+                //   2. the framework adapter's default port (Vite=5173,
+                //      Astro=4321, Next=3000, etc.),
+                //   3. 3000 as the historical default.
+                // Without (2) static-html / Vite / Astro projects whose
+                // frames row has not been populated yet would always be
+                // scraped on port 3000 and return 404.
+                const frameworkId = branch.project?.runtimeMetadata?.framework ?? null;
+                const adapterPort = getFrameworkAdapter(frameworkId).template.port;
+                const port = extractCsbPort(branch.frames) ?? adapterPort ?? 3000;
                 const url = branch.frames[0]?.url ?? getSandboxPreviewUrl(branch.sandboxId, port);
                 const app = new FirecrawlApp({ apiKey: env.FIRECRAWL_API_KEY });
 
@@ -294,8 +312,12 @@ export const projectRouter = createTRPCRouter({
         .input(
             z.object({
                 project: projectInsertSchema,
-                sandboxId: z.string(),
-                sandboxUrl: z.string(),
+                // Reject empty IDs and non-URL strings so a degenerate
+                // sandbox.fork response (empty id / previewUrl) cannot
+                // persist as `frames.url = ''`, which would render the
+                // editor inside its own iframe via `<iframe src="">`.
+                sandboxId: z.string().min(1),
+                sandboxUrl: z.string().url(),
                 creationData: projectCreateRequestInsertSchema
                     .omit({
                         projectId: true,

@@ -11,6 +11,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { CreateManagerProvider, useCreateManager } from '@/components/store/create';
+import { isNotAuthenticatedError } from '@/components/store/create/manager';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { getExternalTemplate } from '../_components/templates/template-data';
@@ -104,6 +105,19 @@ function CreatingContent() {
                 await new Promise<void>((r) => setTimeout(r, 400));
                 router.push(`${Routes.PROJECT}/${project.id}`);
             } catch (err) {
+                // Session expired between the auth gate above and the
+                // mutate call — re-open the auth modal instead of showing
+                // a confusing 'NOT_AUTHENTICATED' error message.
+                if (isNotAuthenticatedError(err)) {
+                    void localforage.setItem(
+                        LocalForageKeys.RETURN_URL,
+                        window.location.pathname + window.location.search,
+                    );
+                    setIsAuthModalOpen(true);
+                    setPhase('waiting-auth');
+                    hasStarted.current = false;
+                    return;
+                }
                 const msg = err instanceof Error ? err.message : String(err);
                 setErrorMessage(msg);
                 setPhase('error');
@@ -111,7 +125,7 @@ function CreatingContent() {
         };
 
         void run();
-    }, [user?.id, template, createManager, router]);
+    }, [user?.id, template, createManager, router, setIsAuthModalOpen]);
 
     // ── Derived state ────────────────────────────────────────────────────────
     const currentStepIndex =

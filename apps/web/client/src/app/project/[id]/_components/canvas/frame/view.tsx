@@ -31,6 +31,41 @@ export type IFrameView = HTMLIFrameElement & {
     isLoading: () => boolean;
 } & PromisifiedPendpalChildMethods;
 
+// Inline placeholder used when `frame.url` is empty/missing. A `data:` URL
+// gives the iframe an opaque origin (no cookies, no parent recursion) while
+// still rendering useful copy. Without this, `<iframe src="">` resolves to
+// the parent document URL and renders the editor inside itself.
+const EMPTY_FRAME_FALLBACK_SRC =
+    'data:text/html;charset=utf-8,' +
+    encodeURIComponent(
+        '<meta name="color-scheme" content="dark light">' +
+            '<style>html,body{height:100%;margin:0;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;color:#888}</style>' +
+            '<div>Preview unavailable.<br>Sandbox returned no URL.</div>',
+    );
+
+// Common upstream-error markers seen in HTTP error pages. CSB and proxies
+// return error HTML with status 200 from the iframe's perspective (the
+// `error` event only fires on transport-level failures), so we sniff body
+// text. Numeric codes require non-digit boundaries to avoid false positives
+// on port numbers and prose like "Last 502 calls".
+const UPSTREAM_ERROR_PATTERN =
+    /(?:^|\D)(404|500|502|503|504)(?:\D|$)|Bad Gateway|Service Unavailable|Gateway Timeout/;
+// Real upstream error pages are tiny (<1KB body) and put the status code
+// in the <title>. Requiring at least one of those gates the regex from
+// firing on legitimate user content that happens to mention error codes.
+const UPSTREAM_ERROR_MAX_BODY_LENGTH = 1024;
+
+function looksLikeUpstreamErrorPage(doc: Document | null | undefined): boolean {
+    if (!doc) return false;
+    if (doc.readyState !== 'complete') return false;
+    const title = doc.title ?? '';
+    const bodyText = doc.body?.innerText ?? '';
+    const titleLooksLikeError = UPSTREAM_ERROR_PATTERN.test(title);
+    const shortBodyMatches =
+        bodyText.length <= UPSTREAM_ERROR_MAX_BODY_LENGTH && UPSTREAM_ERROR_PATTERN.test(bodyText);
+    return titleLooksLikeError || shortBodyMatches;
+}
+
 // Creates a proxy that provides safe fallback methods for any property access
 const createSafeFallbackMethods = (): PromisifiedPendpalChildMethods => {
     return new Proxy({} as PromisifiedPendpalChildMethods, {
@@ -135,12 +170,9 @@ export const FrameComponent = observer(
                     const iframeDoc = canReadIframeDocument(iframeRef.current)
                         ? iframeRef.current.contentDocument
                         : null;
-                    if (
-                        iframeDoc?.readyState === 'complete' &&
-                        iframeDoc.body?.innerText?.includes('404')
-                    ) {
+                    if (looksLikeUpstreamErrorPage(iframeDoc)) {
                         console.error(
-                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Frame URL returned 404`,
+                            `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Frame URL returned an upstream error`,
                         );
                         onConnectionFailed();
                         return;
@@ -554,9 +586,21 @@ export const FrameComponent = observer(
                         // setup is skipped in that case (no live JS), but the
                         // visual fidelity is preserved and the editor's
                         // overlay-based selection still works on the static DOM.
+                        //
+                        // Live mode: never bind `src` to an empty/falsy
+                        // `frame.url`. `<iframe src="">` resolves to the
+                        // parent document URL, rendering the editor inside
+                        // itself recursively. Fall back to a data: URL with
+                        // a small inline error so the user gets a recoverable
+                        // signal instead of a fork-bomb canvas.
                         {...(useSnapshot
                             ? { srcDoc: snapshotHtml ?? undefined }
-                            : { src: frame.url })}
+                            : {
+                                  src:
+                                      frame.url && frame.url.length > 0
+                                          ? frame.url
+                                          : EMPTY_FRAME_FALLBACK_SRC,
+                              })}
                         sandbox="allow-modals allow-forms allow-same-origin allow-scripts allow-popups allow-downloads"
                         allow="geolocation; microphone; camera; midi; encrypted-media"
                         style={(() => {

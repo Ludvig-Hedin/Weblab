@@ -1,4 +1,5 @@
 import type { FrameworkId } from '@weblab/framework';
+import { STATIC_HTML_SANDBOX_ID } from '@weblab/constants';
 
 export type ExternalTemplateCategory =
     | 'boilerplate'
@@ -62,14 +63,14 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         category: 'starter',
         framework: 'static-html',
         tags: ['HTML', 'CSS', 'JavaScript'],
-        sourceUrl: 'https://codesandbox.io/p/sandbox/html-qz83hv',
+        sourceUrl: `https://codesandbox.io/p/sandbox/${STATIC_HTML_SANDBOX_ID}`,
         // Fast path forks sandboxId (~2 s). repoUrl is only reached if the
         // CSB fork endpoint is unavailable — replace with the actual repo that
-        // backs sandboxId html-qz83hv once that is known.
+        // backs STATIC_HTML_SANDBOX_ID once that is known.
         repoUrl: 'https://github.com/h5bp/html5-boilerplate',
-        previewUrl: 'https://html-qz83hv.csb.app/',
+        previewUrl: `https://${STATIC_HTML_SANDBOX_ID}.csb.app/`,
         branch: 'main',
-        sandboxId: 'html-qz83hv',
+        sandboxId: STATIC_HTML_SANDBOX_ID,
         highlights: [
             'Zero dependencies — no npm or bundler required',
             'index.html, style.css, and app.js ready to edit',
