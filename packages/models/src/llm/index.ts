@@ -7,16 +7,20 @@ export enum LLMProvider {
 
 export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434';
 
+// ---------------------------------------------------------------------------
+// Cloud model registry — edit here to add/remove OpenRouter models
+// ---------------------------------------------------------------------------
 export enum OPENROUTER_MODELS {
     // Generate object does not work for Anthropic models https://github.com/OpenRouterTeam/ai-sdk-provider/issues/165
     OPEN_AI_GPT_5_5 = 'openai/gpt-5.5',
     OPEN_AI_GPT_5_4_MINI = 'openai/gpt-5.4-mini',
-    GEMINI_3_PRO_PREVIEW = 'google/gemini-3-pro-preview',
+    GEMINI_3_1_PRO_PREVIEW = 'google/gemini-3.1-pro-preview',
     CLAUDE_OPUS_4_7 = 'anthropic/claude-opus-4.7',
+    CLAUDE_SONNET_4_6 = 'anthropic/claude-sonnet-4.6',
     CLAUDE_3_5_HAIKU = 'anthropic/claude-3.5-haiku',
     KIMI_K2_6 = 'moonshotai/kimi-k2.6',
-    GLM_5_1 = 'zai/glm-5.1',
     DEEPSEEK_V4_PRO = 'deepseek/deepseek-v4-pro',
+    DEEPSEEK_V4_FLASH = 'deepseek/deepseek-v4-flash',
     MISTRAL_CODESTRAL = 'mistralai/codestral-2501',
 }
 
@@ -46,20 +50,22 @@ export type InitialModelPayload = {
 
 export type ModelConfig = {
     model: LanguageModel;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     providerOptions?: Record<string, any>;
     headers?: Record<string, string>;
     maxOutputTokens: number;
 };
 
 export const MODEL_MAX_TOKENS: Record<string, number> = {
-    [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 400000,
+    [OPENROUTER_MODELS.OPEN_AI_GPT_5_5]: 1050000,
     [OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI]: 400000,
-    [OPENROUTER_MODELS.GEMINI_3_PRO_PREVIEW]: 1048576,
-    [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: 200000,
+    [OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW]: 1048576,
+    [OPENROUTER_MODELS.CLAUDE_OPUS_4_7]: 1000000,
+    [OPENROUTER_MODELS.CLAUDE_SONNET_4_6]: 1000000,
     [OPENROUTER_MODELS.CLAUDE_3_5_HAIKU]: 200000,
     [OPENROUTER_MODELS.KIMI_K2_6]: 1000000,
-    [OPENROUTER_MODELS.GLM_5_1]: 1000000,
-    [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: 1000000,
+    [OPENROUTER_MODELS.DEEPSEEK_V4_PRO]: 1048576,
+    [OPENROUTER_MODELS.DEEPSEEK_V4_FLASH]: 1048576,
     [OPENROUTER_MODELS.MISTRAL_CODESTRAL]: 256000,
 };
 
@@ -69,6 +75,8 @@ export const MODEL_MAX_TOKENS: Record<string, number> = {
  */
 export const DEFAULT_INLINE_EDIT_MODEL: OPENROUTER_MODELS = OPENROUTER_MODELS.OPEN_AI_GPT_5_4_MINI;
 export const DEFAULT_TAB_COMPLETE_MODEL: OPENROUTER_MODELS = OPENROUTER_MODELS.MISTRAL_CODESTRAL;
+/** Cheap, fast model for structured-output tool-call repair. */
+export const DEFAULT_REPAIR_MODEL: OPENROUTER_MODELS = OPENROUTER_MODELS.CLAUDE_3_5_HAIKU;
 
 /** Fallback context window for local models not present in MODEL_MAX_TOKENS */
 const OLLAMA_DEFAULT_MAX_TOKENS = 32768;
@@ -84,30 +92,34 @@ export function getProviderFromModel(model: ChatModel): LLMProvider {
     return LLMProvider.OPENROUTER;
 }
 
+// ---------------------------------------------------------------------------
+// Chat model options — shown in the UI model picker (cloud / OpenRouter)
+// Edit here to add/remove models from the user-facing dropdown.
+// ---------------------------------------------------------------------------
 export const CHAT_MODEL_OPTIONS = [
     {
         label: 'GPT-5.5',
         model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
     },
     {
-        label: 'Gemini 3 Pro',
-        model: OPENROUTER_MODELS.GEMINI_3_PRO_PREVIEW,
+        label: 'Claude Sonnet 4.6',
+        model: OPENROUTER_MODELS.CLAUDE_SONNET_4_6,
     },
     {
         label: 'Claude Opus 4.7',
         model: OPENROUTER_MODELS.CLAUDE_OPUS_4_7,
     },
     {
-        label: 'Kimi K2.6',
-        model: OPENROUTER_MODELS.KIMI_K2_6,
-    },
-    {
-        label: 'GLM-5.1',
-        model: OPENROUTER_MODELS.GLM_5_1,
+        label: 'Gemini 3.1 Pro',
+        model: OPENROUTER_MODELS.GEMINI_3_1_PRO_PREVIEW,
     },
     {
         label: 'DeepSeek V4 Pro',
         model: OPENROUTER_MODELS.DEEPSEEK_V4_PRO,
+    },
+    {
+        label: 'Kimi K2.6',
+        model: OPENROUTER_MODELS.KIMI_K2_6,
     },
 ] as const;
 
@@ -122,3 +134,35 @@ export const CHAT_MODEL_OPTIONS = [
 export const DEFAULT_CHAT_MODEL: OPENROUTER_MODELS = CHAT_MODEL_OPTIONS[0].model;
 
 export type ChatModel = OPENROUTER_MODELS | OllamaModelId;
+
+// ---------------------------------------------------------------------------
+// Per-provider model lists — edit here to add/remove models everywhere.
+// These feed manifest.ts and the Ollama pull dialog; no IDs live elsewhere.
+// ---------------------------------------------------------------------------
+
+/** Claude Code CLI models (direct Anthropic API model IDs). */
+export const CLAUDE_CODE_MODELS = [
+    { id: 'claude-opus-4.7', label: 'Claude Opus 4.7' },
+    { id: 'claude-sonnet-4.6', label: 'Claude Sonnet 4.6' },
+    { id: 'claude-haiku-4.5', label: 'Claude Haiku 4.5' },
+] as const;
+
+/** Gemini CLI models (direct Gemini API model IDs). */
+export const GEMINI_CLI_MODELS = [
+    { id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' },
+    { id: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' },
+    { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' },
+] as const;
+
+/** Curated Ollama models shown in the "Pull model" dialog. */
+export const OLLAMA_CURATED_MODELS = [
+    { id: 'qwen2.5-coder:7b', label: 'Qwen 2.5 Coder 7B', size: '~4.5 GB' },
+    { id: 'qwen2.5-coder:14b', label: 'Qwen 2.5 Coder 14B', size: '~9 GB' },
+    { id: 'llama3.2:3b', label: 'Llama 3.2 3B', size: '~2 GB' },
+    {
+        id: 'deepseek-coder-v2:16b',
+        label: 'DeepSeek Coder V2 16B',
+        size: '~9 GB',
+    },
+    { id: 'gemma2:4b', label: 'Gemma 2 4B', size: '~3 GB' },
+] as const;

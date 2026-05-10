@@ -7,7 +7,12 @@
  * the renderer, the desktop main process, and Next.js route handlers alike.
  */
 
-import { CHAT_MODEL_OPTIONS, OPENROUTER_MODELS } from '@weblab/models';
+import {
+    CHAT_MODEL_OPTIONS,
+    CLAUDE_CODE_MODELS,
+    GEMINI_CLI_MODELS,
+    OPENROUTER_MODELS,
+} from '@weblab/models';
 
 export type ProviderKind =
     | 'openrouter'
@@ -104,11 +109,7 @@ const CLAUDE_CODE_ENTRY: ProviderManifestEntry = {
     // subscription via OAuth, so Claude on hosted web stays "Desktop only".
     // Conservative defaults — these are real Claude API model names. Newer
     // versions can be added as Anthropic publishes them.
-    models: [
-        { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-        { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
-        { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
-    ],
+    models: CLAUDE_CODE_MODELS.map((m) => ({ id: m.id, label: m.label })),
 };
 
 const GEMINI_ENTRY: ProviderManifestEntry = {
@@ -120,11 +121,7 @@ const GEMINI_ENTRY: ProviderManifestEntry = {
     authCommand: 'gemini auth login',
     webOAuth: { startPath: '/api/auth/providers/gemini/start', provider: 'gemini' },
     // Real public Gemini model identifiers accepted by the Gemini API and CLI.
-    models: [
-        { id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro' }, // main high‑end model
-        { id: 'gemini-3.1-flash', label: 'Gemini 3.1 Flash' }, // fast, cheaper
-        { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite' }, // ultra‑cheap, lightweight
-    ],
+    models: GEMINI_CLI_MODELS.map((m) => ({ id: m.id, label: m.label })),
     supportsCustomModel: true,
 };
 

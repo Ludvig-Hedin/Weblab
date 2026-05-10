@@ -2,13 +2,19 @@ import type { ToolSet } from 'ai';
 import { generateObject, NoSuchToolError, smoothStream, stepCountIs, streamText } from 'ai';
 
 import type { FrameworkId } from '@weblab/framework';
-import type { ChatMessage, ChatModel, ModelConfig, OllamaModelId } from '@weblab/models';
+import type {
+    ChatMessage,
+    ChatModel,
+    ModelConfig,
+    OllamaModelId,
+    OPENROUTER_MODELS,
+} from '@weblab/models';
 import {
     ChatType,
+    DEFAULT_REPAIR_MODEL,
     getProviderFromModel,
     LLMProvider,
     OLLAMA_DEFAULT_BASE_URL,
-    OPENROUTER_MODELS,
 } from '@weblab/models';
 
 import type { MemorySearchResult } from '../memory/types';
@@ -197,9 +203,10 @@ export const repairToolCall = async ({
     // Use a cheaper, fast model for structured repair; GPT-5.5 is overkill here.
     const { model } = initModel({
         provider: LLMProvider.OPENROUTER,
-        model: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU,
+        model: DEFAULT_REPAIR_MODEL,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { object: repairedArgs } = await generateObject({
         model,
         schema: tool.inputSchema,

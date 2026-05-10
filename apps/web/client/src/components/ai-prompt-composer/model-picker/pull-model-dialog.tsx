@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import { OLLAMA_CURATED_MODELS } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     Dialog,
@@ -13,14 +14,6 @@ import {
     DialogTitle,
 } from '@weblab/ui/dialog';
 import { Input } from '@weblab/ui/input';
-
-const CURATED_MODELS = [
-    { label: 'Qwen 2.5 Coder 1.5B', model: 'qwen2.5-coder:1.5b', size: '~1 GB' },
-    { label: 'Qwen 2.5 Coder 7B', model: 'qwen2.5-coder:7b', size: '~4.5 GB' },
-    { label: 'Llama 3.2 3B', model: 'llama3.2:3b', size: '~2 GB' },
-    { label: 'Gemma 2 4B', model: 'gemma2:4b', size: '~3 GB' },
-    { label: 'DeepSeek Coder V2 16B', model: 'deepseek-coder-v2:16b', size: '~9 GB' },
-];
 
 // Mirror of `SAFE_OLLAMA_MODEL` in `apps/desktop/weblab-cli.js` so we can
 // reject malformed model names client-side and give a precise error before
@@ -35,7 +28,10 @@ const SAFE_OLLAMA_MODEL = /^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$/;
  *   "success"
  * Falls back to the raw line when no percent can be extracted.
  */
-function parseProgress(line: string): { percent: number | null; label: string } {
+function parseProgress(line: string): {
+    percent: number | null;
+    label: string;
+} {
     const m = /(\d{1,3})%/.exec(line);
     const percent = m?.[1] ? Math.min(100, parseInt(m[1], 10)) : null;
     return { percent, label: line };
@@ -119,24 +115,24 @@ export function PullModelDialog({
 
                 <div className="flex flex-col gap-2">
                     <span className="text-foreground-tertiary text-mini">Curated</span>
-                    {CURATED_MODELS.map((m) => (
+                    {OLLAMA_CURATED_MODELS.map((m) => (
                         <div
-                            key={m.model}
+                            key={m.id}
                             className="border-foreground-primary/15 flex items-center justify-between rounded-md border px-3 py-2"
                         >
                             <div className="flex flex-col">
                                 <span className="text-small font-medium">{m.label}</span>
                                 <span className="text-foreground-tertiary text-mini">
-                                    {m.model} · {m.size}
+                                    {m.id} · {m.size}
                                 </span>
                             </div>
                             <Button
                                 size="sm"
                                 variant="secondary"
                                 disabled={pulling !== null}
-                                onClick={() => void pull(m.model)}
+                                onClick={() => void pull(m.id)}
                             >
-                                {pulling === m.model ? 'Pulling…' : 'Pull'}
+                                {pulling === m.id ? 'Pulling…' : 'Pull'}
                             </Button>
                         </div>
                     ))}
