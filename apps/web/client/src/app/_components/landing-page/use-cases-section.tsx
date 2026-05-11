@@ -51,7 +51,7 @@ export function UseCasesSection() {
         <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
             <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-20">
                 {/* Left: visual */}
-                <div className="border-border bg-background-secondary relative aspect-[4/5] w-full overflow-hidden rounded-2xl border md:aspect-auto md:min-h-[36rem]">
+                <div className="border-foreground-primary/10 bg-background-secondary/40 relative aspect-[4/5] w-full overflow-hidden rounded-2xl border backdrop-blur-sm md:aspect-auto md:min-h-[36rem]">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={active.key}
@@ -79,7 +79,7 @@ export function UseCasesSection() {
                                 <li key={u.key}>
                                     <button
                                         onClick={() => handleSelect(idx)}
-                                        className={`group flex w-full items-center gap-2 py-0.5 text-left text-2xl leading-[1.35] font-light transition-colors duration-300 lg:text-[28px] ${
+                                        className={`group flex w-full items-center gap-2 py-0 text-left text-2xl leading-[1.35] font-light transition-colors duration-300 lg:text-[28px] ${
                                             selected
                                                 ? 'text-foreground-primary'
                                                 : 'text-foreground-tertiary hover:text-foreground-secondary'
@@ -110,7 +110,7 @@ export function UseCasesSection() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -6 }}
                                 transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                                className="text-foreground-secondary text-regular max-w-md font-light"
+                                className="text-foreground-secondary text-regular max-w-md font-light tracking-tight"
                             >
                                 {t(`${active.i18nKey}.description`)}
                             </motion.p>
@@ -141,24 +141,25 @@ export function UseCasesSection() {
  *  - One whisper accent per tab.
  */
 
-function VisualFrame({ children, accent }: { children: React.ReactNode; accent: string }) {
+function VisualFrame({
+    children,
+    accent: _accent,
+}: {
+    children: React.ReactNode;
+    /** @deprecated kept for API parity — accent glows removed for cleaner aesthetic */
+    accent?: string;
+}) {
     return (
         <div className="relative h-full w-full overflow-hidden">
-            {/* Base wash */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.06),transparent_60%)]" />
-            {/* Accent glow */}
-            <div className="absolute inset-0" style={{ background: accent }} />
-            {/* Fine grid */}
+            {/* Faint dot grid — single subtle texture, no glow */}
             <div
-                className="absolute inset-0 opacity-[0.06]"
+                className="absolute inset-0 opacity-[0.5]"
                 style={{
                     backgroundImage:
-                        'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-                    backgroundSize: '32px 32px',
+                        'radial-gradient(circle, hsl(var(--foreground-primary) / 0.06) 1px, transparent 1px)',
+                    backgroundSize: '18px 18px',
                 }}
             />
-            {/* Top-bottom vignette */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/40" />
             {children}
         </div>
     );
@@ -166,12 +167,9 @@ function VisualFrame({ children, accent }: { children: React.ReactNode; accent: 
 
 function BrowserChrome({ url, children }: { url: string; children: React.ReactNode }) {
     return (
-        <div className="bg-background border-border w-full overflow-hidden rounded-lg border shadow-2xl">
-            <div className="border-border bg-background-secondary flex items-center gap-1.5 border-b px-3 py-2">
-                <span className="h-2 w-2 rounded-full bg-white/15" />
-                <span className="h-2 w-2 rounded-full bg-white/15" />
-                <span className="h-2 w-2 rounded-full bg-white/15" />
-                <div className="text-foreground-tertiary mx-auto flex items-center gap-1.5 rounded-md bg-white/[0.04] px-2 py-0.5 font-mono text-[10px]">
+        <div className="bg-background border-foreground-primary/8 w-full overflow-hidden rounded-lg border">
+            <div className="border-foreground-primary/8 flex items-center justify-center border-b px-3 py-2">
+                <div className="text-foreground-tertiary bg-foreground-primary/[0.04] flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[10px]">
                     <Icons.Globe className="h-2.5 w-2.5" />
                     {url}
                 </div>
@@ -183,7 +181,7 @@ function BrowserChrome({ url, children }: { url: string; children: React.ReactNo
 
 function LandingPagesVisual() {
     return (
-        <VisualFrame accent="radial-gradient(circle at 75% 80%, rgba(251,146,60,0.12), transparent 55%)">
+        <VisualFrame accent="radial-gradient(circle at 75% 80%, hsl(var(--accent-orange) / 0.12), transparent 55%)">
             <div className="absolute inset-x-8 top-10 bottom-10 flex items-center justify-center">
                 <BrowserChrome url="acme.com">
                     <div className="bg-background p-6">
@@ -231,13 +229,13 @@ function LandingPagesVisual() {
 function SelectionRing({ className }: { className?: string }) {
     return (
         <div
-            className={`pointer-events-none absolute rounded-md ring-1 ring-sky-400 ring-inset ${className ?? ''}`}
+            className={`pointer-events-none absolute rounded-md ring-1 ring-[hsl(var(--foreground-brand))] ring-inset ${className ?? ''}`}
         >
-            <span className="bg-sky-400 -top-1.5 -left-1 absolute h-2 w-2 rounded-sm" />
-            <span className="bg-sky-400 -top-1.5 -right-1 absolute h-2 w-2 rounded-sm" />
-            <span className="bg-sky-400 -bottom-1 -left-1 absolute h-2 w-2 rounded-sm" />
-            <span className="bg-sky-400 -bottom-1 -right-1 absolute h-2 w-2 rounded-sm" />
-            <span className="absolute -top-5 left-0 rounded-sm bg-sky-400 px-1.5 py-0.5 text-[9px] font-mono text-white">
+            <span className="absolute -top-1.5 -left-1 h-2 w-2 rounded-sm bg-[hsl(var(--foreground-brand))]" />
+            <span className="absolute -top-1.5 -right-1 h-2 w-2 rounded-sm bg-[hsl(var(--foreground-brand))]" />
+            <span className="absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-[hsl(var(--foreground-brand))]" />
+            <span className="absolute -right-1 -bottom-1 h-2 w-2 rounded-sm bg-[hsl(var(--foreground-brand))]" />
+            <span className="absolute -top-5 left-0 rounded-sm bg-[hsl(var(--foreground-brand))] px-1.5 py-0.5 font-mono text-[9px] text-white">
                 h1.hero-title
             </span>
         </div>
@@ -246,7 +244,7 @@ function SelectionRing({ className }: { className?: string }) {
 
 function MarketingVisual() {
     return (
-        <VisualFrame accent="radial-gradient(circle at 20% 30%, rgba(56,189,248,0.10), transparent 55%)">
+        <VisualFrame accent="radial-gradient(circle at 20% 30%, hsl(var(--accent-sky) / 0.10), transparent 55%)">
             {/* Back window */}
             <div className="absolute top-16 left-14 w-[68%] origin-top-left -rotate-[2deg]">
                 <BrowserChrome url="acme.com/pricing">
@@ -379,7 +377,7 @@ function Stat({
                 {value}
             </div>
             <div
-                className={`mt-0.5 text-[10px] tabular-nums ${positive ? 'text-emerald-400' : 'text-red-400'}`}
+                className={`mt-0.5 text-[10px] tabular-nums ${positive ? 'text-[hsl(var(--foreground-brand))]' : 'text-foreground-tertiary'}`}
             >
                 {delta}
             </div>
@@ -404,9 +402,9 @@ function PrototypesVisual() {
                             {['Browse', 'Continue · Onboarding', 'Settings'].map((row, i) => (
                                 <div
                                     key={row}
-                                    className={`border-border flex items-center justify-between rounded-md border p-2 text-[10px] ${
+                                    className={`border-foreground-primary/8 flex items-center justify-between rounded-md border p-2 text-[10px] ${
                                         i === 1
-                                            ? 'bg-foreground-primary/10 ring-1 ring-sky-400/60'
+                                            ? 'bg-foreground-primary/[0.06] ring-1 ring-[hsl(var(--foreground-brand)/0.6)]'
                                             : ''
                                     }`}
                                 >
@@ -442,17 +440,21 @@ function PrototypesVisual() {
             >
                 <path
                     d="M5 30 C 35 5, 65 55, 95 30"
-                    stroke="rgba(168,85,247,0.7)"
+                    stroke="hsl(var(--foreground-brand) / 0.7)"
                     strokeWidth="1.5"
                     strokeDasharray="3 3"
                 />
-                <path d="M88 24 L97 30 L88 36" stroke="rgba(168,85,247,0.9)" strokeWidth="1.5" />
+                <path
+                    d="M88 24 L97 30 L88 36"
+                    stroke="hsl(var(--foreground-brand) / 0.9)"
+                    strokeWidth="1.5"
+                />
             </svg>
             {/* Hotspot label */}
-            <div className="border-border bg-background/80 absolute top-6 left-6 flex items-center gap-1.5 rounded-full border px-2 py-1 backdrop-blur">
+            <div className="border-foreground-primary/8 bg-background/80 absolute top-6 left-6 flex items-center gap-1.5 rounded-full border px-2 py-1 backdrop-blur">
                 <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-purple-400 opacity-70" />
-                    <span className="relative h-1.5 w-1.5 rounded-full bg-purple-400" />
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--foreground-brand))] opacity-70" />
+                    <span className="relative h-1.5 w-1.5 rounded-full bg-[hsl(var(--foreground-brand))]" />
                 </span>
                 <span className="text-foreground-secondary font-mono text-[10px]">
                     tap → screen&nbsp;2
@@ -464,9 +466,9 @@ function PrototypesVisual() {
 
 function Phone({ children }: { children: React.ReactNode }) {
     return (
-        <div className="bg-background relative h-full w-full rounded-[1.8rem] border-[3px] border-white/15 p-1 shadow-2xl">
+        <div className="bg-background border-foreground-primary/10 relative h-full w-full rounded-[1.8rem] border-2 p-1">
             <div className="bg-background h-full w-full overflow-hidden rounded-[1.5rem]">
-                <div className="bg-background-secondary/40 mx-auto mt-2 h-1 w-12 rounded-full" />
+                <div className="bg-foreground-primary/10 mx-auto mt-2 h-1 w-12 rounded-full" />
                 {children}
             </div>
         </div>
@@ -477,15 +479,15 @@ function ProductionAppsVisual() {
     return (
         <VisualFrame accent="radial-gradient(circle at 70% 70%, rgba(99,102,241,0.10), transparent 55%)">
             <div className="absolute inset-x-8 top-10 bottom-10 flex items-center justify-center">
-                <div className="bg-background border-border w-full overflow-hidden rounded-lg border shadow-2xl">
+                <div className="bg-background border-foreground-primary/8 w-full overflow-hidden rounded-lg border">
                     {/* Tabs */}
-                    <div className="border-border bg-background-secondary flex items-center gap-1 border-b px-2 pt-1.5">
+                    <div className="border-foreground-primary/8 bg-background-secondary/60 flex items-center gap-1 border-b px-2 pt-1.5">
                         <Tab active>app/page.tsx</Tab>
                         <Tab>checkout.ts</Tab>
                         <Tab>schema.sql</Tab>
                     </div>
                     {/* Code */}
-                    <pre className="font-mono text-[10.5px] leading-[1.55] text-white/80">
+                    <pre className="text-foreground-primary/80 font-mono text-[10.5px] leading-[1.55]">
                         <div className="grid grid-cols-[auto_1fr]">
                             <div className="text-foreground-tertiary border-border border-r px-2 py-3 text-right select-none">
                                 {Array.from({ length: 10 }, (_, i) => (
@@ -504,7 +506,9 @@ function ProductionAppsVisual() {
                                 <Line>&nbsp;</Line>
                                 <Line>
                                     <K>export async function</K>{' '}
-                                    <span className="text-yellow-300">POST</span>
+                                    <span className="text-foreground-primary font-medium">
+                                        POST
+                                    </span>
                                     {'(req: Request) {'}
                                 </Line>
                                 <Line>
@@ -529,8 +533,14 @@ function ProductionAppsVisual() {
                 </div>
             </div>
             {/* PR toast */}
-            <div className="border-border bg-background absolute right-6 bottom-6 flex items-center gap-2 rounded-md border px-3 py-2 shadow-xl">
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <div className="border-foreground-primary/8 bg-background absolute right-6 bottom-6 flex items-center gap-2 rounded-md border px-3 py-2">
+                <div
+                    className="flex h-5 w-5 items-center justify-center rounded-full"
+                    style={{
+                        backgroundColor: 'hsl(var(--foreground-brand) / 0.16)',
+                        color: 'hsl(var(--foreground-brand))',
+                    }}
+                >
                     <Icons.Plus className="h-3 w-3" />
                 </div>
                 <div className="flex flex-col leading-tight">
@@ -561,10 +571,14 @@ function Tab({ children, active }: { children: React.ReactNode; active?: boolean
 }
 
 function K({ children }: { children: React.ReactNode }) {
-    return <span className="text-purple-300">{children}</span>;
+    return (
+        <span className="text-foreground-primary font-medium" style={{ opacity: 0.85 }}>
+            {children}
+        </span>
+    );
 }
 function S({ children }: { children: React.ReactNode }) {
-    return <span className="text-emerald-300">{children}</span>;
+    return <span className="text-foreground-tertiary">{children}</span>;
 }
 function Line({ children }: { children: React.ReactNode }) {
     return <div>{children}</div>;

@@ -23,9 +23,9 @@ import { cn } from '@/lib/utils';
 const C = {
     brand: 'text-[hsl(var(--foreground-brand))]',
     ok: 'text-[hsl(var(--foreground-brand))]',
-    head: 'text-slate-200',
-    mute: 'text-slate-400',
-    faint: 'text-slate-500',
+    head: 'text-foreground-primary',
+    mute: 'text-foreground-secondary',
+    faint: 'text-foreground-tertiary',
 } as const;
 
 const tabs: TabContent[] = [
@@ -129,10 +129,10 @@ export function TerminalSection() {
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-6 md:flex-row md:gap-16">
                 {/* Copy — left */}
                 <div className="w-full max-w-md text-left">
-                    <h2 className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                    <h2 className="heading-style-h3 text-foreground-primary mb-4 tracking-tight text-balance">
                         {t('heading')}
                     </h2>
-                    <p className="text-foreground-secondary max-w-sm text-base leading-relaxed">
+                    <p className="text-foreground-secondary max-w-sm text-base leading-relaxed font-light tracking-tight">
                         {t('body')}
                     </p>
                 </div>
@@ -149,14 +149,14 @@ export function TerminalSection() {
                     >
                         <TerminalAnimationBackgroundGradient />
                         <TerminalAnimationContainer className="max-w-[43rem] px-0">
-                            <TerminalAnimationWindow className="border-white/10 outline-1 outline-offset-[2px] outline-white/10">
+                            <TerminalAnimationWindow className="border-foreground-primary/10 outline-foreground-primary/10 outline-1 outline-offset-[2px]">
                                 <TerminalAnimationContent className="min-h-[24rem]">
                                     <div className="flex items-center gap-2 leading-relaxed">
-                                        <span className="font-mono text-[10px] text-slate-500 select-none md:text-sm">
+                                        <span className="text-foreground-tertiary font-mono text-[10px] select-none md:text-sm">
                                             $
                                         </span>
                                         <TerminalAnimationCommandBar
-                                            className="font-mono text-[10px] text-slate-100 md:text-sm"
+                                            className="text-foreground-primary font-mono text-[10px] md:text-sm"
                                             cursor={<TerminalAnimationBlinkingCursor />}
                                         />
                                     </div>
@@ -176,7 +176,8 @@ export function TerminalSection() {
                                                     <span
                                                         className={cn(
                                                             'font-mono text-[10px] md:text-sm',
-                                                            line.color ?? 'text-slate-400',
+                                                            line.color ??
+                                                                'text-foreground-secondary',
                                                         )}
                                                     >
                                                         {line.text || ' '}
@@ -186,7 +187,7 @@ export function TerminalSection() {
                                         }}
                                     />
                                     <TerminalAnimationTrailingPrompt className="mt-1 flex items-center gap-2 leading-relaxed">
-                                        <span className="font-mono text-sm text-slate-500 select-none">
+                                        <span className="text-foreground-tertiary font-mono text-sm select-none">
                                             $
                                         </span>
                                         <TerminalAnimationBlinkingCursor />
@@ -194,13 +195,13 @@ export function TerminalSection() {
                                 </TerminalAnimationContent>
 
                                 <div className="flex justify-center pb-6">
-                                    <TerminalAnimationTabList className="inline-flex items-center gap-0 rounded-lg border border-white/10 bg-white/5 px-1 py-1">
+                                    <TerminalAnimationTabList className="border-foreground-primary/10 bg-foreground-primary/5 inline-flex items-center gap-0 rounded-lg border px-1 py-1">
                                         {tabs.map((tab, i) => (
                                             <TerminalAnimationTabTrigger
                                                 className={cn(
                                                     'cursor-pointer rounded-md px-3.5 py-1 font-mono text-xs transition-all duration-150 md:text-sm',
-                                                    'data-[state=active]:bg-white data-[state=active]:font-medium data-[state=active]:text-slate-900',
-                                                    'data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-slate-200',
+                                                    'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:font-medium',
+                                                    'data-[state=inactive]:text-foreground-secondary data-[state=inactive]:hover:text-foreground-primary',
                                                 )}
                                                 index={i}
                                                 key={tab.label}
