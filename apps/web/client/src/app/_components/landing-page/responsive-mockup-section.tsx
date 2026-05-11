@@ -7,7 +7,6 @@ import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
 import { ClaudeIcon } from './provider-icons';
-import { WeblabInterfaceMockup } from './weblab-interface-mockup';
 
 const PROMPTS = [
     'Make the hero darker',
@@ -121,6 +120,104 @@ function PromptOnCanvasAsset() {
     );
 }
 
+// Cycle through small variants of the same button (label + tint changes)
+// to suggest "edit visually, code stays in sync."
+const BUTTON_VARIANTS = [
+    { label: 'Get started', radius: 'rounded-xl', radiusToken: 'xl' },
+    { label: 'Continue', radius: 'rounded-lg', radiusToken: 'lg' },
+    { label: 'Start trial', radius: 'rounded-full', radiusToken: 'full' },
+] as const;
+
+function DesignToCodeAsset() {
+    const [variantIdx, setVariantIdx] = useState(0);
+    const [paused, setPaused] = useState(false);
+    useEffect(() => {
+        if (paused) return;
+        const id = setInterval(() => {
+            setVariantIdx((i) => (i + 1) % BUTTON_VARIANTS.length);
+        }, 3500);
+        return () => clearInterval(id);
+    }, [paused]);
+
+    const v = BUTTON_VARIANTS[variantIdx]!;
+
+    return (
+        <div
+            className="border-foreground-primary/10 bg-background-secondary/40 mx-auto w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+        >
+            {/* Design region — rendered button with selection */}
+            <div className="bg-background-secondary/30 relative flex aspect-[16/9] w-full items-center justify-center">
+                <div
+                    className="absolute inset-0 opacity-50"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(circle, hsl(var(--foreground-primary) / 0.08) 1px, transparent 1px)',
+                        backgroundSize: '14px 14px',
+                    }}
+                    aria-hidden
+                />
+                <div className="relative">
+                    <button
+                        type="button"
+                        tabIndex={-1}
+                        aria-hidden
+                        className={`bg-foreground-primary text-background text-small pointer-events-none px-4 py-2 font-light tracking-tight transition-[border-radius] duration-300 ${v.radius}`}
+                    >
+                        {v.label}
+                    </button>
+                    {/* Selection ring */}
+                    <span
+                        className={`pointer-events-none absolute -inset-1 transition-[border-radius] duration-300 ${v.radius}`}
+                        style={{
+                            boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground-brand))`,
+                        }}
+                        aria-hidden
+                    />
+                    <span
+                        className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-sm"
+                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        aria-hidden
+                    />
+                    <span
+                        className="absolute -right-1 -bottom-1 h-1.5 w-1.5 rounded-sm"
+                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        aria-hidden
+                    />
+                    <span
+                        className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-sm"
+                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        aria-hidden
+                    />
+                    <span
+                        className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-sm"
+                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        aria-hidden
+                    />
+                </div>
+            </div>
+            {/* Divider */}
+            <div className="border-foreground-primary/8 border-t" aria-hidden />
+            {/* Code region */}
+            <div className="p-3">
+                <div className="text-foreground-quadranary mb-1.5 font-mono text-[10px] tracking-wider uppercase">
+                    Button.tsx
+                </div>
+                <pre className="text-foreground-secondary text-mini font-mono leading-relaxed">
+                    {'<button className="'}
+                    <span style={{ color: 'hsl(var(--foreground-brand))' }}>{v.radius}</span>
+                    {' bg-fg px-4 py-2">'}
+                    {'\n  '}
+                    <span className="text-foreground-primary">{v.label}</span>
+                    {'\n'}
+                    {'</button>'}
+                </pre>
+            </div>
+        </div>
+    );
+}
+
 export function ResponsiveMockupSection() {
     const t = useTranslations('landing.responsiveMockup');
     return (
@@ -149,20 +246,18 @@ export function ResponsiveMockupSection() {
                     </Reveal>
                 </div>
 
-                {/* Mobile: panel 2 — design 1:1 with code (existing, to redesign next) */}
+                {/* Mobile: panel 2 — design ↔ code */}
                 <div
-                    className="relative flex w-screen flex-col items-center justify-center overflow-hidden py-14"
+                    className="relative flex w-full flex-col items-center gap-8 px-6 py-16"
                     id="features-mobile-2"
                 >
-                    <div className="absolute top-1/2 left-10 h-[800px] w-[1000px] -translate-y-1/2 transform">
-                        <WeblabInterfaceMockup />
-                    </div>
+                    <DesignToCodeAsset />
 
-                    <Reveal className="mt-[700px] px-8 text-left">
-                        <h2 className="heading-style-h4 text-foreground-primary mb-4 text-balance">
+                    <Reveal className="w-full text-left">
+                        <h2 className="heading-style-h4 text-foreground-primary mb-3 text-balance">
                             {t('panel2.title')}
                         </h2>
-                        <p className="text-large text-foreground-secondary leading-relaxed text-balance">
+                        <p className="text-foreground-secondary text-base leading-relaxed font-light tracking-tight text-balance">
                             {t('panel2.body')}
                         </p>
                     </Reveal>
