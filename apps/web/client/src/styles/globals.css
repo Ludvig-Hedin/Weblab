@@ -1,3 +1,10 @@
+/* Pin Tailwind's layer order so rules in this file (which loads before the
+   `@import 'tailwindcss'` in @weblab/ui/globals.css) end up in the right
+   tier of the cascade. Without this, `@layer components` declared here gets
+   registered before tailwind's own layer order, ending up at the bottom of
+   the cascade and losing to preflight's `* { font-size: inherit }`. */
+@layer theme, base, components, utilities;
+
 html {
   overscroll-behavior: none;
 }
@@ -69,5 +76,69 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 @media (prefers-reduced-motion: reduce) {
     .animate-weblab-indeterminate {
         animation: none !important;
+    }
+}
+
+/* ── Landing/Marketing heading scale (Client-First convention) ──────────────
+   Tag-agnostic visual heading styles. Apply to any element to get the
+   visual style of that heading tier without locking the semantic tag.
+   Color is intentionally NOT set — keep text-foreground-* / text-white
+   on the element so dark/light section variants stay free.
+   Lives in @layer components so Tailwind utilities (in @layer utilities)
+   can still override at call-sites, while preflight's
+   `* { font-size: inherit }` (in @layer base) loses.
+   See /design-system for the live reference and usage rules.
+   --------------------------------------------------------------------------- */
+@layer components {
+    .heading-style-h1 {
+        font-size: 2.25rem;             /* 4xl  */
+        font-weight: 300;
+        line-height: 0.95;
+        letter-spacing: -0.025em;
+    }
+    @media (min-width: 40rem)  { .heading-style-h1 { font-size: 3rem;    } } /* sm → 5xl */
+    @media (min-width: 64rem)  { .heading-style-h1 { font-size: 3.75rem; } } /* lg → 6xl */
+    @media (min-width: 80rem)  { .heading-style-h1 { font-size: 4.5rem;  } } /* xl → 7xl */
+
+    .heading-style-h2 {
+        font-size: 2.25rem;             /* 4xl */
+        font-weight: 300;
+        line-height: 1.05;
+        letter-spacing: -0.025em;
+    }
+    @media (min-width: 40rem) { .heading-style-h2 { font-size: 3rem;    } } /* sm → 5xl */
+    @media (min-width: 64rem) { .heading-style-h2 { font-size: 3.75rem; } } /* lg → 6xl */
+
+    .heading-style-h3 {
+        font-size: 1.875rem;            /* 3xl */
+        font-weight: 300;
+        line-height: 1.1;
+        letter-spacing: -0.025em;
+    }
+    @media (min-width: 40rem) { .heading-style-h3 { font-size: 2.25rem; } } /* sm → 4xl */
+    @media (min-width: 64rem) { .heading-style-h3 { font-size: 3rem;    } } /* lg → 5xl */
+
+    .heading-style-h4 {
+        font-size: 1.5rem;              /* 2xl */
+        font-weight: 300;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+    }
+    @media (min-width: 40rem) { .heading-style-h4 { font-size: 1.875rem; } } /* sm → 3xl */
+    @media (min-width: 64rem) { .heading-style-h4 { font-size: 2.25rem;  } } /* lg → 4xl */
+
+    .heading-style-h5 {
+        font-size: 1.25rem;             /* xl */
+        font-weight: 500;
+        line-height: 1.3;
+        letter-spacing: 0;
+    }
+
+    .heading-style-h6 {
+        font-size: 0.75rem;             /* mini */
+        font-weight: 500;
+        line-height: 1;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
     }
 }

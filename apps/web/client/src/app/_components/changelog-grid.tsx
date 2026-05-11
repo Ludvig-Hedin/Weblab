@@ -20,10 +20,10 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
         <section className="mx-auto w-full max-w-6xl px-4 py-16 md:px-8">
             <div className="mb-6 flex items-baseline justify-between">
                 <div>
-                    <p className="text-foreground-tertiary mb-1 text-xs font-medium tracking-widest uppercase">
+                    <p className="heading-style-h6 text-foreground-tertiary mb-1">
                         What&apos;s new
                     </p>
-                    <h2 className="text-foreground-primary text-2xl font-light tracking-tight">
+                    <h2 className="heading-style-h4 text-foreground-primary">
                         Changelog
                     </h2>
                 </div>
