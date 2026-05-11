@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -18,6 +19,10 @@ import { Routes } from '@/utils/constants';
 // ─── Projects dropdown ───────────────────────────────────────────────────────
 
 function ProjectsDropdown() {
+    const t = useTranslations('projectsTopBar') as (
+        key: string,
+        values?: Record<string, string>,
+    ) => string;
     const [open, setOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const ref = useRef<HTMLDivElement>(null);
@@ -70,7 +75,7 @@ function ProjectsDropdown() {
                 aria-expanded={open}
                 className="text-foreground-secondary -mx-1 flex items-center gap-1 px-1 py-2 text-sm hover:opacity-80 active:opacity-60"
             >
-                Projects
+                {t('projects')}
                 <Icons.ChevronDown
                     className={cn(
                         'h-4 w-4 transition-transform duration-200',
@@ -88,7 +93,7 @@ function ProjectsDropdown() {
                                     ref={filterInputRef}
                                     value={filter}
                                     onChange={(e) => setFilter(e.currentTarget.value)}
-                                    placeholder="Filter recent projects"
+                                    placeholder={t('filterRecent')}
                                     className="h-7 border-transparent bg-transparent px-0 text-xs focus-visible:border-transparent focus-visible:ring-0"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Escape') setOpen(false);
@@ -118,18 +123,20 @@ function ProjectsDropdown() {
                             </ul>
                         ) : filter ? (
                             <div className="text-foreground-tertiary px-2 py-3 text-xs">
-                                No projects match "{filter}"
+                                {t('noMatches', { filter })}
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2 px-2 py-3">
-                                <p className="text-foreground-tertiary text-xs">No projects yet</p>
+                                <p className="text-foreground-tertiary text-xs">
+                                    {t('noProjectsYet')}
+                                </p>
                                 <Link
                                     href={Routes.NEW_PROJECT}
                                     onClick={() => setOpen(false)}
                                     className="text-foreground-secondary hover:text-foreground flex items-center gap-1 text-xs transition-colors"
                                 >
                                     <Icons.FilePlus className="h-3.5 w-3.5" />
-                                    Create your first project
+                                    {t('createFirst')}
                                 </Link>
                             </div>
                         )}
@@ -142,7 +149,7 @@ function ProjectsDropdown() {
                                 onClick={() => setOpen(false)}
                                 className="text-foreground-tertiary hover:bg-foreground/5 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors"
                             >
-                                View all projects
+                                {t('viewAll')}
                                 <Icons.ArrowRight className="h-3 w-3" />
                             </Link>
                         </div>
@@ -161,6 +168,7 @@ interface TopBarProps {
 }
 
 export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
+    const t = useTranslations('projectsTopBar');
     const router = useRouter();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
@@ -227,7 +235,7 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                     href={Routes.MARKETPLACE}
                     className="text-foreground-secondary -mx-1 px-1 py-2 text-sm hover:opacity-80 active:opacity-60"
                 >
-                    Marketplace
+                    {t('marketplace')}
                 </Link>
             </div>
 
@@ -251,14 +259,14 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                             value={searchQuery ?? ''}
                             onChange={(e) => onSearchChange?.(e.currentTarget.value)}
                             onFocus={() => setIsSearchFocused(true)}
-                            placeholder="Search projects"
+                            placeholder={t('searchProjects')}
                             className="w-full pr-7 pl-9 focus-visible:border-transparent focus-visible:ring-0"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => onSearchChange?.('')}
                                 className="text-foreground-tertiary hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
-                                aria-label="Clear search"
+                                aria-label={t('clearSearch')}
                             >
                                 <Icons.CrossS className="h-4 w-4" />
                             </button>
@@ -281,7 +289,7 @@ export const TopBar = ({ searchQuery, onSearchChange }: TopBarProps) => {
                     onClick={() => router.push(Routes.NEW_PROJECT)}
                 >
                     <Icons.Plus className="h-4 w-4" />
-                    New project
+                    {t('newProject')}
                 </Button>
                 <CurrentUserAvatar className="h-8 w-8" />
             </div>

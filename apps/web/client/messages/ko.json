@@ -54,6 +54,7 @@
             "importProject": "프로젝트 가져오기",
             "subscriptions": "구독하기",
             "settings": "설정",
+            "sendFeedback": "피드백 보내기",
             "downloadCode": "코드 다운로드",
             "downloadingCode": "다운로드 준비 중...",
             "downloadSuccess": "다운로드가 성공적으로 시작되었습니다.",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
@@ -185,15 +186,13 @@ function PendingLocalImportBanner({
     onDismiss: () => void;
     isImporting: boolean;
 }) {
+    const t = useTranslations('selectProject');
     return (
         <Alert className="border-foreground/10 bg-foreground/4 mb-6 backdrop-blur-xl">
             <Icons.Directory className="h-4 w-4" />
-            <AlertTitle>Welcome back — pick the folder you wanted to import?</AlertTitle>
+            <AlertTitle>{t('pendingImportTitle')}</AlertTitle>
             <AlertDescription>
-                <span>
-                    You tried to open a local folder before signing in. Browsers only allow that
-                    picker right after a click, so click below to continue.
-                </span>
+                <span>{t('pendingImportBody')}</span>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button
                         variant="outline"
@@ -207,7 +206,7 @@ function PendingLocalImportBanner({
                         ) : (
                             <Icons.Directory className="h-4 w-4" />
                         )}
-                        Choose folder
+                        {t('chooseFolder')}
                     </Button>
                     <Button
                         variant="ghost"
@@ -216,7 +215,7 @@ function PendingLocalImportBanner({
                         onClick={onDismiss}
                         disabled={isImporting}
                     >
-                        Not now
+                        {t('notNow')}
                     </Button>
                 </div>
             </AlertDescription>
@@ -231,6 +230,10 @@ export const SelectProject = ({
     externalSearchQuery?: string;
     onClearSearch?: () => void;
 } = {}) => {
+    const t = useTranslations('selectProject') as (
+        key: string,
+        values?: Record<string, string | number>,
+    ) => string;
     const router = useRouter();
     const utils = api.useUtils();
     const { data: user } = api.user.get.useQuery();
@@ -300,8 +303,8 @@ export const SelectProject = ({
             // Roll the optimistic state back so the UI matches what's actually
             // persisted; otherwise a refresh will surprise the user.
             setFolders(previousFolders);
-            toast.error('Failed to save folder changes', {
-                description: 'Your changes were undone. Please try again.',
+            toast.error(t('saveFoldersFailed'), {
+                description: t('saveFoldersFailedBody'),
             });
         }
     };
@@ -327,7 +330,7 @@ export const SelectProject = ({
             return;
         }
 
-        toast.info(`${template.name} template is not available yet.`);
+        toast.info(t('templateNotAvailable', { name: template.name }));
     };
 
     const handleCloseTemplateModal = () => {
@@ -352,13 +355,13 @@ export const SelectProject = ({
         if (!selectedTemplate?.id) return;
         try {
             await removeTag({ projectId: selectedTemplate.id, tag: Tags.TEMPLATE });
-            toast.success('Removed from templates');
+            toast.success(t('removedFromTemplates'));
             setIsTemplateModalOpen(false);
             setSelectedTemplate(null);
             await Promise.all([utils.project.list.invalidate()]);
             await refetch();
         } catch {
-            toast.error('Failed to update template tag');
+            toast.error(t('failedTemplateTag'));
         }
     };
 
@@ -394,10 +397,10 @@ export const SelectProject = ({
     }, [searchQuery]);
 
     const sortOptions = [
-        { value: 'Last viewed', label: 'Last viewed' },
-        { value: 'Date created', label: 'Date created' },
-        { value: 'Alphabetical', label: 'A–Z' },
-    ] as const;
+        { value: 'Last viewed' as const, label: t('sortLastViewed') },
+        { value: 'Date created' as const, label: t('sortDateCreated') },
+        { value: 'Alphabetical' as const, label: t('sortAlphabetical') },
+    ];
 
     const sortedProjects = useMemo(() => {
         return [...projects].sort((a, b) => {
@@ -513,7 +516,7 @@ export const SelectProject = ({
         const nextFolders = [...folders, nextFolder];
         await persistFolders(nextFolders);
         setOpenFolderId(nextFolder.id);
-        toast.success('Folder created');
+        toast.success(t('folderCreated'));
     };
 
     const handleSelectionChange = (projectId: string, checked: boolean) => {
@@ -552,7 +555,7 @@ export const SelectProject = ({
             setOpenFolderId(folderId);
         }
         resetSelection();
-        toast.success(folderId ? 'Projects moved to folder' : 'Projects removed from folder');
+        toast.success(folderId ? t('projectsMovedToFolder') : t('projectsRemovedFromFolder'));
     };
 
     const handleDeleteSelected = async () => {
@@ -597,25 +600,30 @@ export const SelectProject = ({
                 .map((failure) => failure.name)
                 .slice(0, 3)
                 .join(', ');
-            const overflowSuffix = failures.length > 3 ? `, and ${failures.length - 3} more` : '';
+            const overflowSuffix =
+                failures.length > 3 ? t('failedOverflow', { count: failures.length - 3 }) : '';
 
             if (failures.length > 0 && deletedIds.length > 0) {
                 toast.warning(
-                    `Deleted ${deletedIds.length} project${deletedIds.length === 1 ? '' : 's'}, failed to delete ${failures.length}`,
-                    { description: `Failed: ${failedNames}${overflowSuffix}` },
+                    t('deletedPartial', { deleted: deletedIds.length, failed: failures.length }),
+                    {
+                        description: t('failedListPrefix', {
+                            names: `${failedNames}${overflowSuffix}`,
+                        }),
+                    },
                 );
             } else if (failures.length > 0) {
-                toast.error('Failed to delete selected projects', {
-                    description: `Failed: ${failedNames}${overflowSuffix}`,
+                toast.error(t('deletedFailed'), {
+                    description: t('failedListPrefix', {
+                        names: `${failedNames}${overflowSuffix}`,
+                    }),
                 });
             } else {
-                toast.success(
-                    `Deleted ${deletedIds.length} project${deletedIds.length === 1 ? '' : 's'}`,
-                );
+                toast.success(t('deletedCount', { count: deletedIds.length }));
             }
         } catch (error) {
             console.error('Failed to delete selected projects:', error);
-            toast.error('Failed to delete selected projects', {
+            toast.error(t('deletedFailed'), {
                 description: error instanceof Error ? error.message : String(error),
             });
         } finally {
@@ -669,11 +677,10 @@ export const SelectProject = ({
 
                     <div className="flex w-full flex-col items-center gap-3 text-center">
                         <div className="text-foreground text-3xl font-normal tracking-tight">
-                            Start your first project
+                            {t('startFirstHeading')}
                         </div>
                         <div className="text-foreground-tertiary max-w-md text-sm leading-relaxed">
-                            Describe what you want to build and the AI will generate it, or pick
-                            another starting point below.
+                            {t('startFirstBody')}
                         </div>
                     </div>
 
@@ -738,7 +745,7 @@ export const SelectProject = ({
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <h2 className="text-foreground text-3xl font-normal tracking-tight">
-                                Projects
+                                {t('projectsHeading')}
                             </h2>
                         </div>
 
@@ -755,7 +762,7 @@ export const SelectProject = ({
                                     onClick={() => setShowCreateFolderDialog(true)}
                                 >
                                     <Icons.MoveToFolder className="h-4 w-4" />
-                                    Create folder
+                                    {t('createFolder')}
                                 </Button>
                             )}
 
@@ -772,7 +779,7 @@ export const SelectProject = ({
                                 }}
                             >
                                 <Icons.ListCheck className="h-4 w-4" />
-                                {selectionMode ? 'Done selecting' : 'Select'}
+                                {selectionMode ? t('doneSelecting') : t('select')}
                             </Button>
 
                             <div className="border-foreground/8 bg-foreground/4 flex items-center gap-1 rounded-full border p-1">
@@ -799,7 +806,7 @@ export const SelectProject = ({
                                 <span className="text-foreground border-foreground/8 bg-foreground/8 rounded-full border px-2.5 py-1 text-xs">
                                     {selectedCount}
                                 </span>
-                                {selectedCount === 1 ? 'project selected' : 'projects selected'}
+                                {t('projectSelected', { count: selectedCount })}
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
@@ -812,15 +819,17 @@ export const SelectProject = ({
                                             disabled={selectedCount === 0}
                                         >
                                             <Icons.MoveToFolder className="h-4 w-4" />
-                                            Move to folder
+                                            {t('moveToFolder')}
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="min-w-56">
-                                        <DropdownMenuLabel>Folder destination</DropdownMenuLabel>
+                                        <DropdownMenuLabel>
+                                            {t('folderDestination')}
+                                        </DropdownMenuLabel>
                                         <DropdownMenuItem
                                             onSelect={() => void handleMoveSelected(null)}
                                         >
-                                            Remove from folder
+                                            {t('removeFromFolder')}
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         {folders.length > 0 ? (
@@ -836,7 +845,7 @@ export const SelectProject = ({
                                             ))
                                         ) : (
                                             <DropdownMenuItem disabled>
-                                                No folders yet
+                                                {t('noFoldersYet')}
                                             </DropdownMenuItem>
                                         )}
                                     </DropdownMenuContent>
@@ -849,7 +858,7 @@ export const SelectProject = ({
                                     onClick={() => setShowDeleteSelectedDialog(true)}
                                 >
                                     <Icons.Trash className="h-4 w-4" />
-                                    Delete selected
+                                    {t('deleteSelected')}
                                 </Button>
                             </div>
                         </div>
@@ -860,10 +869,10 @@ export const SelectProject = ({
                     <div className="mb-10">
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-foreground-tertiary text-sm font-medium tracking-[0.18em] uppercase">
-                                Folders
+                                {t('folders')}
                             </h3>
                             <span className="text-foreground-tertiary text-xs">
-                                {folderViewModels.length} saved
+                                {t('foldersSaved', { count: folderViewModels.length })}
                             </span>
                         </div>
 
@@ -896,8 +905,9 @@ export const SelectProject = ({
                                             {openFolder.folder.name}
                                         </h4>
                                         <p className="text-foreground-tertiary mt-1 text-sm">
-                                            {openFolder.previewProjects.length} saved site
-                                            {openFolder.previewProjects.length === 1 ? '' : 's'}
+                                            {t('savedSite', {
+                                                count: openFolder.previewProjects.length,
+                                            })}
                                         </p>
                                     </div>
                                 </div>
@@ -926,9 +936,7 @@ export const SelectProject = ({
                                     </motion.div>
                                 ) : (
                                     <div className="text-foreground-tertiary border-foreground/10 bg-foreground/5 flex flex-col items-start gap-3 rounded-[22px] border border-dashed p-6 text-sm">
-                                        <span>
-                                            No projects in this folder match your search yet.
-                                        </span>
+                                        <span>{t('noProjectsMatchSearch')}</span>
                                         {debouncedSearchQuery && onClearSearch && (
                                             <Button
                                                 variant="outline"
@@ -936,7 +944,7 @@ export const SelectProject = ({
                                                 className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
                                                 onClick={() => onClearSearch()}
                                             >
-                                                Clear search
+                                                {t('clearSearch')}
                                             </Button>
                                         )}
                                     </div>
@@ -963,12 +971,12 @@ export const SelectProject = ({
                         <div className="border-foreground/8 bg-foreground/3 flex w-full items-center justify-center rounded-[26px] border border-dashed py-16">
                             <div className="flex flex-col items-center gap-3 text-center">
                                 <div className="text-foreground-secondary text-base">
-                                    No loose projects found
+                                    {t('noLooseProjects')}
                                 </div>
                                 <div className="text-foreground-tertiary text-sm">
                                     {debouncedSearchQuery
-                                        ? 'Try adjusting your search terms'
-                                        : 'Move projects here or create a new one'}
+                                        ? t('adjustSearch')
+                                        : t('moveProjectsHere')}
                                 </div>
                                 {debouncedSearchQuery && onClearSearch && (
                                     <Button
@@ -977,7 +985,7 @@ export const SelectProject = ({
                                         className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
                                         onClick={() => onClearSearch()}
                                     >
-                                        Clear search
+                                        {t('clearSearch')}
                                     </Button>
                                 )}
                             </div>
@@ -1038,10 +1046,9 @@ export const SelectProject = ({
             <AlertDialog open={showDeleteSelectedDialog} onOpenChange={setShowDeleteSelectedDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete selected projects?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('deleteDialogTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will permanently remove {selectedCount} project
-                            {selectedCount === 1 ? '' : 's'} from your workspace.
+                            {t('deleteDialogBody', { count: selectedCount })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -1050,7 +1057,7 @@ export const SelectProject = ({
                             onClick={() => setShowDeleteSelectedDialog(false)}
                             disabled={isDeletingSelected}
                         >
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -1062,7 +1069,7 @@ export const SelectProject = ({
                             ) : (
                                 <Icons.Trash className="h-4 w-4" />
                             )}
-                            Delete
+                            {t('delete')}
                         </Button>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1073,9 +1080,7 @@ export const SelectProject = ({
                     isOpen={isTemplateModalOpen}
                     onClose={handleCloseTemplateModal}
                     title={selectedTemplate.name}
-                    description={
-                        selectedTemplate.metadata?.description ?? 'No description available'
-                    }
+                    description={selectedTemplate.metadata?.description ?? t('noDescription')}
                     image={
                         selectedTemplate.metadata?.previewImg?.url ??
                         (selectedTemplate.metadata?.previewImg?.storagePath?.bucket &&

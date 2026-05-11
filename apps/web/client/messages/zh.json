@@ -54,6 +54,7 @@
             "importProject": "导入项目",
             "subscriptions": "订阅",
             "settings": "设置",
+            "sendFeedback": "发送反馈",
             "downloadCode": "下载代码",
             "downloadingCode": "准备下载...",
             "downloadSuccess": "下载成功",

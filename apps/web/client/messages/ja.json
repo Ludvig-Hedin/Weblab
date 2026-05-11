@@ -505,6 +505,7 @@
             "importProject": "プロジェクトをインポート",
             "subscriptions": "サブスクリプション",
             "settings": "設定",
+            "sendFeedback": "フィードバックを送信",
             "downloadCode": "コードをダウンロード",
             "downloadingCode": "ダウンロードを準備中...",
             "downloadSuccess": "ダウンロードが正常に開始されました",
