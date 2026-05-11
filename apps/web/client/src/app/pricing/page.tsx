@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import type { IconProps } from '@weblab/ui/icons';
@@ -15,77 +16,37 @@ import { FAQSection } from '../_components/landing-page/faq-section';
 import { WebsiteLayout } from '../_components/website-layout';
 
 const HIGHLIGHTED_FEATURES = [
-    {
-        icon: 'FilePlus',
-        title: 'Project Templates',
-        description: 'Save and reuse your projects as templates across your team',
-    },
-    {
-        icon: 'Branch',
-        title: 'Branching & Version Control',
-        description: 'Create and manage branches for your projects with full version history',
-    },
-    {
-        icon: 'Component',
-        title: 'Your Real Design system',
-        description: `Bring your real components in ${APP_NAME} and use them in your projects`,
-    },
-    {
-        icon: 'Brand',
-        title: 'Theming & Branding',
-        description: 'Centralized design tokens, color palettes, and typography management',
-    },
-    {
-        icon: 'Layers',
-        title: 'Built like a design tool',
-        description: 'Navigate your React component tree with precise control over every element',
-    },
-    {
-        icon: 'Sparkles',
-        title: 'Pick your model — or bring your own key',
-        description:
-            'Claude Opus 4.7, Sonnet 4.6, Haiku 4.5, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4, Mistral Codestral, or your local Ollama. Dial reasoning from Fast to Deep.',
-    },
-    {
-        icon: 'GitHubLogo',
-        title: 'Open Source',
-        description: "Built with the community. Customize and extend for your team's needs",
-    },
-    {
-        icon: 'Globe',
-        title: 'Custom Domains',
-        description: 'Deploy your projects to your own internal domain',
-    },
-    {
-        icon: 'LockClosed',
-        title: 'Advanced Security',
-        description: 'SSO (SAML/OAuth), advanced security controls, audit logs, and admin controls',
-    },
-];
+    { icon: 'FilePlus', key: 'projectTemplates' },
+    { icon: 'Branch', key: 'branching' },
+    { icon: 'Component', key: 'designSystem' },
+    { icon: 'Brand', key: 'theming' },
+    { icon: 'Layers', key: 'layers' },
+    { icon: 'Sparkles', key: 'models' },
+    { icon: 'GitHubLogo', key: 'openSource' },
+    { icon: 'Globe', key: 'domains' },
+    { icon: 'LockClosed', key: 'security' },
+] as const;
 
 const ENTERPRISE_FEATURES = [
-    'Unlimited projects',
-    'Custom integrations',
-    'Advanced usage analytics',
-    'Early access to new features',
-    'Dedicated support',
-    'Account manager',
-    'Dedicated Slack channel',
-    'Technical onboarding',
-];
+    'unlimited',
+    'customIntegrations',
+    'analytics',
+    'earlyAccess',
+    'dedicatedSupport',
+    'accountManager',
+    'slack',
+    'onboarding',
+] as const;
 
 export default function PricingPage() {
+    const t = useTranslations('pricingPage') as (
+        key: string,
+        values?: Record<string, string>,
+    ) => string;
+
     const handleContactUs = () => {
-        const subject = encodeURIComponent(`[Team Inquiry]: Getting Started with ${APP_NAME}`);
-        const body = encodeURIComponent(`Hi,
-
-I'm interested in setting up ${APP_NAME} for our team.
-
-Looking forward to hearing from you.
-
-Best regards,
-[Your name]`);
-
+        const subject = encodeURIComponent(t('mailto.subject', { appName: APP_NAME }));
+        const body = encodeURIComponent(t('mailto.body', { appName: APP_NAME }));
         window.location.href = `mailto:support@weblab.build?subject=${subject}&body=${body}`;
     };
 
@@ -93,27 +54,23 @@ Best regards,
         <WebsiteLayout showFooter={true}>
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-8">
                 <div className="mt-24 mb-16 w-full text-left">
-                    <h1 className="text-foreground mb-4 text-5xl font-light">Pricing</h1>
-                    <p className="text-muted-foreground text-regular">
-                        Equip your product team with the power of AI
-                    </p>
+                    <h1 className="text-foreground mb-4 text-5xl font-light">{t('heading')}</h1>
+                    <p className="text-muted-foreground text-regular">{t('subhead')}</p>
                 </div>
 
-                {/* Plan Cards */}
                 <div className="mb-24 w-full">
                     <PricingTable />
                 </div>
 
-                {/* Enterprise Detail Section */}
                 <div className="mx-auto w-full max-w-6xl">
                     <div className="border-border-primary rounded-lg border p-8 sm:p-12">
                         <div className="mb-8 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
                             <div className="text-left">
                                 <h2 className="text-foreground mb-3 text-3xl font-light sm:text-4xl">
-                                    For Teams
+                                    {t('forTeamsHeading')}
                                 </h2>
                                 <p className="text-regular text-foreground-secondary">
-                                    Custom pricing tailored to your team's needs
+                                    {t('forTeamsSub')}
                                 </p>
                             </div>
                             <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row lg:flex-shrink-0">
@@ -123,21 +80,20 @@ Best regards,
                                     variant="outline"
                                     size="lg"
                                 >
-                                    Contact us
+                                    {t('contactUs')}
                                 </Button>
                                 <Button
                                     className="w-full sm:w-auto sm:min-w-[180px]"
                                     size="lg"
                                     asChild
                                 >
-                                    <a href="/projects">Get Started</a>
+                                    <a href="/projects">{t('getStarted')}</a>
                                 </Button>
                             </div>
                         </div>
 
                         <div className="border-border-primary my-8 border-t" />
 
-                        {/* Highlighted Features */}
                         <div className="mb-8 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
                             {HIGHLIGHTED_FEATURES.map((feature) => {
                                 const IconComponent = Icons[
@@ -145,7 +101,7 @@ Best regards,
                                 ] as React.FC<IconProps>;
                                 return (
                                     <div
-                                        key={feature.title}
+                                        key={feature.key}
                                         className="flex items-start gap-4 rounded-lg p-0"
                                     >
                                         <div className="bg-foreground-weblab/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
@@ -153,10 +109,12 @@ Best regards,
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <h3 className="text-foreground text-base font-medium">
-                                                {feature.title}
+                                                {t(`features.${feature.key}.title`)}
                                             </h3>
                                             <p className="text-foreground-secondary text-sm text-balance">
-                                                {feature.description}
+                                                {t(`features.${feature.key}.description`, {
+                                                    appName: APP_NAME,
+                                                })}
                                             </p>
                                         </div>
                                     </div>
@@ -166,8 +124,9 @@ Best regards,
 
                         <div className="border-border-primary my-8 border-t" />
 
-                        {/* Standard Features */}
-                        <h3 className="text-title3 text-foreground mb-4 font-light">And more...</h3>
+                        <h3 className="text-title3 text-foreground mb-4 font-light">
+                            {t('andMore')}
+                        </h3>
                         <div className="mx-auto mb-8 grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
                             {ENTERPRISE_FEATURES.map((feature) => (
                                 <div
@@ -175,24 +134,22 @@ Best regards,
                                     className="text-foreground-secondary flex items-center gap-3 text-base"
                                 >
                                     <Icons.CheckCircled className="text-foreground-weblab h-5 w-5 flex-shrink-0" />
-                                    <span>{feature}</span>
+                                    <span>{t(`enterpriseFeatures.${feature}`)}</span>
                                 </div>
                             ))}
                         </div>
 
                         <div className="border-border-primary my-8 border-t" />
                         <p className="text-small text-muted-foreground/50 max-w-2xl text-balance">
-                            Existing paid plan users can continue using {APP_NAME}. New users –
-                            Please contact us to get your team set up. If you're looking to
-                            self-host {APP_NAME}, please check out the{' '}
+                            {t('disclaimerPart1', { appName: APP_NAME })}
                             <Link
                                 href="https://github.com/Ludvig-Hedin/Weblab"
                                 target="_blank"
                                 className="underline"
                             >
-                                GitHub repository
-                            </Link>{' '}
-                            or reach out to us to schedule a call.
+                                {t('disclaimerLink')}
+                            </Link>
+                            {t('disclaimerPart2')}
                         </p>
                     </div>
                 </div>

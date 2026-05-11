@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import * as Portal from '@radix-ui/react-portal';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -15,6 +16,7 @@ interface MobileMenuProps {
 }
 
 export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
+    const t = useTranslations() as (key: string) => string;
     useEffect(() => {
         if (isOpen) {
             document.body.classList.add('overflow-hidden');
@@ -32,7 +34,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
             <button
                 onClick={() => onOpenChange(!isOpen)}
                 className="text-foreground-primary relative flex h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-70 active:scale-95 lg:hidden"
-                aria-label={isOpen ? 'Close menu' : 'Open menu'}
+                aria-label={isOpen ? t('nav.mobileMenu.close') : t('nav.mobileMenu.open')}
             >
                 <span
                     className={cn(
@@ -67,7 +69,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                 <Accordion type="single" collapsible className="w-full">
                                     {NAVIGATION_CATEGORIES.map((category, i) => (
                                         <motion.div
-                                            key={category.label}
+                                            key={category.labelKey}
                                             initial={{ opacity: 0, y: 14 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{
@@ -77,12 +79,12 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                             }}
                                         >
                                             <AccordionItem
-                                                value={category.label}
+                                                value={category.labelKey}
                                                 className="border-foreground/[0.08] border-b last:border-0"
                                             >
                                                 <AccordionTrigger className="py-4 hover:no-underline [&>svg]:hidden">
                                                     <span className="text-foreground-primary text-[1.75rem] leading-none font-light tracking-tight">
-                                                        {category.label}
+                                                        {t(category.labelKey)}
                                                     </span>
                                                 </AccordionTrigger>
                                                 <AccordionContent className="bg-transparent">
@@ -99,10 +101,10 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                                                 })}
                                                             >
                                                                 <span className="text-sm font-medium">
-                                                                    {link.title}
+                                                                    {t(link.titleKey)}
                                                                 </span>
                                                                 <span className="text-foreground-tertiary mt-0.5 text-xs">
-                                                                    {link.description}
+                                                                    {t(link.descriptionKey)}
                                                                 </span>
                                                             </a>
                                                         ))}
@@ -124,7 +126,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                         onClick={() => onOpenChange(false)}
                                         className="bg-foreground-primary text-background block w-full rounded-full py-4 text-center text-base font-medium transition-all hover:opacity-90 active:scale-[0.97] active:opacity-80"
                                     >
-                                        Get Started
+                                        {t('nav.mobileMenu.getStarted')}
                                     </a>
                                 </motion.div>
                             </div>

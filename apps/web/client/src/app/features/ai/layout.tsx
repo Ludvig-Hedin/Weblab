@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -8,72 +9,31 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'AI Visual Editor', path: '/features/ai' },
 ]);
 
-export const metadata: Metadata = {
-    title: 'AI Visual Editor | Build UIs with AI Using Your Design System | Weblab',
-    description:
-        'Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system — no brand drift, no throwaway code. Changes become mergeable PRs.',
-    keywords: [
-        // Primary keywords
-        'AI visual editor',
-        'AI UI builder',
-        'AI design tool',
-        'AI frontend development',
-        // Design system
-        'AI design system',
-        'AI component builder',
-        'constrained AI code',
-        'brand safe AI',
-        // Framework specific
-        'React AI builder',
-        'Next.js AI editor',
-        'AI Tailwind editor',
-        // Workflow
-        'AI to PR workflow',
-        'visual AI coding',
-        'design to code AI',
-        // Comparisons
-        'v0 alternative',
-        'AI website builder',
-        'AI prototype generator',
-    ],
-    openGraph: {
-        title: 'AI Visual Editor | Weblab',
-        description:
-            'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs, not throwaway code.',
-        type: 'website',
-        url: 'https://weblab.build/features/ai',
-        siteName: 'Weblab',
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: 'Weblab AI visual editor preview',
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'featuresAi',
+        path: '/features/ai',
+        keywords: [
+            'AI visual editor',
+            'AI UI builder',
+            'AI design tool',
+            'AI frontend development',
+            'AI design system',
+            'AI component builder',
+            'constrained AI code',
+            'brand safe AI',
+            'React AI builder',
+            'Next.js AI editor',
+            'AI Tailwind editor',
+            'AI to PR workflow',
+            'visual AI coding',
+            'design to code AI',
+            'v0 alternative',
+            'AI website builder',
+            'AI prototype generator',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: 'AI Visual Editor | Weblab',
-        description:
-            'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs.',
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: 'https://weblab.build/features/ai',
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

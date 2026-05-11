@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -8,69 +9,31 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Visual Builder', path: '/features/builder' },
 ]);
 
-export const metadata: Metadata = {
-    title: 'Visual Builder | Design with Your Real React Components | Weblab',
-    description:
-        'Weblab is a visual builder that works with your existing codebase. Design with your real React, Vue, or Angular components on an infinite canvas. Changes become mergeable pull requests.',
-    keywords: [
-        // Primary keywords
-        'visual builder',
-        'visual code editor',
-        'design to code',
-        'React visual builder',
-        // Design specific
-        'infinite canvas',
-        'visual component editor',
-        'drag drop code editor',
-        'WYSIWYG code editor',
-        // Framework specific
-        'React visual editor',
-        'Next.js builder',
-        'Vue visual builder',
-        'Angular visual builder',
-        // Comparisons
-        'Figma to code',
-        'Webflow alternative',
-        'Framer alternative',
-        // Workflow
-        'designer developer workflow',
-        'design engineer tools',
-    ],
-    openGraph: {
-        title: 'Visual Builder | Weblab',
-        description:
-            'Design with your real React components on an infinite canvas. Changes become mergeable PRs.',
-        type: 'website',
-        url: 'https://weblab.build/features/builder',
-        siteName: 'Weblab',
-        images: [
-            {
-                url: '/favicon.ico',
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'featuresBuilder',
+        path: '/features/builder',
+        keywords: [
+            'visual builder',
+            'visual code editor',
+            'design to code',
+            'React visual builder',
+            'infinite canvas',
+            'visual component editor',
+            'drag drop code editor',
+            'WYSIWYG code editor',
+            'React visual editor',
+            'Next.js builder',
+            'Vue visual builder',
+            'Angular visual builder',
+            'Figma to code',
+            'Webflow alternative',
+            'Framer alternative',
+            'designer developer workflow',
+            'design engineer tools',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: 'Visual Builder | Weblab',
-        description:
-            'Design with your real React components on an infinite canvas. Changes become mergeable PRs.',
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: 'https://weblab.build/features/builder',
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

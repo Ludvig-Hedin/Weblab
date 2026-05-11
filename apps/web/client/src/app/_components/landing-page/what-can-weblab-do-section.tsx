@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { APP_NAME } from '@weblab/constants';
 
@@ -119,6 +120,7 @@ function ParallaxContainer({
 }
 
 export function WhatCanWeblabDoSection() {
+    const tMore = useTranslations('landing.andSoMuchMore');
     // Detect operating system for keyboard shortcuts
     const os = useOperatingSystem();
 
@@ -308,11 +310,11 @@ export function WhatCanWeblabDoSection() {
 
     return (
         <>
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-8 py-32 md:flex-row md:gap-24">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 py-24 sm:gap-24 sm:px-6 md:flex-row md:gap-24 md:px-8 md:py-32">
                 {/* Left Column */}
                 <div className="flex flex-1 flex-col gap-24">
                     <div className="flex-1">
-                        <h2 className="text-foreground-primary text-4xl leading-tight font-light lg:text-5xl">
+                        <h2 className="heading-style-h3 text-foreground-primary">
                             <span className="animate-shimmer bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-transparent drop-shadow-[0_0_14px_rgba(255,255,255,1)] filter">
                                 AI
                             </span>{' '}
@@ -320,7 +322,7 @@ export function WhatCanWeblabDoSection() {
                             <span className="font-mono">Code</span>{' '}
                             <span className="text-foreground-tertiary">•</span>{' '}
                             <span
-                                className={`${vujahdayScript.className} large:text-6xl text-6xl not-italic`}
+                                className={`${vujahdayScript.className} large:text-6xl text-5xl not-italic sm:text-6xl`}
                             >
                                 Design
                             </span>
@@ -339,70 +341,65 @@ export function WhatCanWeblabDoSection() {
                 </div>
             </div>
             {/* Grid extension section */}
-            <div className="mx-auto w-full max-w-6xl px-8 py-32">
-                <h2 className="text-foreground-primary mb-20 text-right text-6xl leading-[1.1] font-light">
-                    ...and so
+            <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
+                <h2 className="heading-style-h2 text-foreground-primary mb-12 text-right sm:mb-20">
+                    {tMore('titleLine1')}
                     <br />
-                    much more
+                    {tMore('titleLine2')}
                 </h2>
-                <div className="grid grid-cols-2 gap-x-16 gap-y-20 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 sm:gap-x-16 sm:gap-y-20 md:grid-cols-3">
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Works With Your Codebase
+                            {tMore('worksWithCodebase.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            Connect your existing React, Next.js, or Vue project. No rebuilding. No
-                            migration. Start designing in minutes.
+                            {tMore('worksWithCodebase.body')}
                         </div>
                     </div>
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Built for Teams
+                            {tMore('builtForTeams.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            Share your canvas. Leave spatial comments. Work together on designs that
-                            become real PRs.
+                            {tMore('builtForTeams.body')}
                         </div>
                     </div>
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Direct GitHub Integration
+                            {tMore('githubIntegration.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            Push changes directly to your repository. Review diffs before
-                            committing.
+                            {tMore('githubIntegration.body')}
                         </div>
                     </div>
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Ship PRs, Not Prototypes
+                            {tMore('shipPrs.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            Your changes become a real pull request. Engineers review and merge — no
-                            handoff, no translation.
+                            {tMore('shipPrs.body')}
                         </div>
                     </div>
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Power User Shortcuts
+                            {tMore('shortcuts.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            All your familiar hotkeys work here.{' '}
+                            {tMore('shortcuts.bodyPrefix')}{' '}
                             <span
                                 className={`inline-block transition-all duration-250 ${isShortcutAnimating ? '-translate-x-1 opacity-50 blur-sm' : 'blur-0 translate-x-0 opacity-100'}`}
                             >
                                 {getKeyboardShortcut()}
                             </span>{' '}
-                            and everything in between.
+                            {tMore('shortcuts.bodySuffix')}
                         </div>
                     </div>
                     <div>
                         <div className="text-foreground-primary text-regularPlus mb-2 text-balance">
-                            Reference Anything in Chat
+                            {tMore('reference.title')}
                         </div>
                         <div className="text-foreground-secondary text-regular text-balance">
-                            Drop images, mockups, or docs into your conversation. AI uses them as
-                            context for better results.
+                            {tMore('reference.body')}
                         </div>
                     </div>
                 </div>

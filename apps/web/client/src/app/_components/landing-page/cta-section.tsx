@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@weblab/ui/button';
@@ -16,25 +16,28 @@ interface CTASectionProps {
 export function CTASection({
     href,
     onClick,
-    ctaText = 'Ready to stop rebuilding?\nYour design system, on a canvas.',
-    buttonText = 'Get Started',
+    ctaText,
+    buttonText,
     showSubtext = true,
 }: CTASectionProps = {}) {
     const router = useRouter();
+    const t = useTranslations('landing.cta');
+
+    const headingLines = ctaText
+        ? ctaText.split('\n')
+        : [t('defaultHeadingLine1'), t('defaultHeadingLine2')];
+    const resolvedButton = buttonText ?? t('defaultButton');
 
     const handleGetStartedClick = () => {
         if (onClick) {
             onClick();
         } else if (href) {
-            // Check if href is external (starts with http)
             if (href.startsWith('http')) {
                 window.open(href, '_blank', 'noopener,noreferrer');
             } else {
-                // Navigate to the specified href
                 router.push(href);
             }
         } else {
-            // Default behavior: scroll to hero section on homepage
             const heroSection = document.getElementById('hero');
             if (heroSection) {
                 heroSection.scrollIntoView({
@@ -46,18 +49,17 @@ export function CTASection({
     };
 
     const handleHomepageNavigation = () => {
-        // Navigate to homepage with hash to trigger scroll to hero
         router.push('/');
     };
 
     return (
-        <div className="items-right mx-auto flex w-full max-w-6xl flex-col gap-24 px-8 py-32">
+        <div className="items-right mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 py-24 sm:gap-24 sm:px-6 md:px-8 md:py-32">
             <div className="flex flex-1 flex-col items-end justify-center text-right">
-                <h2 className="text-foreground-primary mb-8 max-w-4xl text-5xl leading-[1.05] font-light text-balance md:text-6xl">
-                    {ctaText.split('\n').map((line, index) => (
+                <h2 className="heading-style-h2 text-foreground-primary mb-8 max-w-4xl text-balance">
+                    {headingLines.map((line, index) => (
                         <span key={index}>
                             {line}
-                            {index < ctaText.split('\n').length - 1 && <br />}
+                            {index < headingLines.length - 1 && <br />}
                         </span>
                     ))}
                 </h2>
@@ -68,7 +70,7 @@ export function CTASection({
                         className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-colors"
                         onClick={href === '/' ? handleHomepageNavigation : handleGetStartedClick}
                     >
-                        {buttonText}
+                        {resolvedButton}
                     </Button>
                 </div>
             </div>

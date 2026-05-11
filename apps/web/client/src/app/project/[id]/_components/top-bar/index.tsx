@@ -5,7 +5,6 @@ import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
-import { EditorMode } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
@@ -106,49 +105,24 @@ export const TopBar = observer(() => {
                                 stateManager.settingsTab = SettingsTabValue.VERSIONS;
                                 stateManager.isSettingsModalOpen = true;
                             }}
+                            aria-label={t(transKeys.editor.toolbar.versionHistory)}
                         >
                             <Icons.CounterClockwiseClock className="h-4 w-4" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="mt-1" hideArrow>
-                        {t(transKeys.editor.toolbar.versionHistory)}
+                        {/* Surface the hotkey alongside the label so power
+                            users discover bindings in context instead of
+                            having to open the dedicated shortcuts modal. */}
+                        <HotkeyLabel hotkey={Hotkey.OPEN_VERSION_HISTORY} />
                     </TooltipContent>
                 </Tooltip>
                 <DiffButton />
                 <GitActionsButton />
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={headerIconBtnClass}
-                            onClick={() => editorEngine.state.setEditorMode(EditorMode.CMS)}
-                            aria-label={t(transKeys.cms.topBar.tooltip)}
-                        >
-                            <Icons.Cube className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="mt-1" hideArrow>
-                        {t(transKeys.cms.topBar.tooltip)}
-                    </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            data-tour="preview-button"
-                            className={headerIconBtnClass}
-                            onClick={() => editorEngine.state.setEditorMode(EditorMode.PREVIEW)}
-                            aria-label="Preview"
-                        >
-                            <Icons.Play className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="mt-1" hideArrow>
-                        <HotkeyLabel hotkey={Hotkey.PREVIEW} />
-                    </TooltipContent>
-                </Tooltip>
+                {/* Preview and CMS entry points now live inside ModeToggle as
+                    first-class modes. Keeping the redundant icon buttons here
+                    duplicated the action surface and confused power users
+                    about which path to use. */}
                 <div className="group flex items-center">
                     <div
                         className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}

@@ -1,11 +1,31 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import UnicornScene from 'unicornstudio-react/next';
 
+function hasWebGL(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+        const canvas = document.createElement('canvas');
+        const gl =
+            canvas.getContext('webgl2') ||
+            canvas.getContext('webgl') ||
+            canvas.getContext('experimental-webgl');
+        return !!gl;
+    } catch {
+        return false;
+    }
+}
+
 export function UnicornBackground() {
     const containerRef = useRef<HTMLDivElement>(null);
+    const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+    const [sceneFailed, setSceneFailed] = useState(false);
+
+    useEffect(() => {
+        setWebglSupported(hasWebGL());
+    }, []);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -17,15 +37,13 @@ export function UnicornBackground() {
         };
         container.addEventListener('wheel', handleWheel, { passive: false });
 
-        // On touch devices there is no real cursor, so drive a slow Lissajous
-        // path to keep the background alive without any user input.
         let rafId: number | null = null;
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
         if (isTouchDevice) {
             let t = 0;
             const tick = () => {
-                t += 0.003; // ~35 s per full cycle at 60 fps — very slow
+                t += 0.003;
                 const w = window.innerWidth;
                 const h = window.innerHeight;
                 const x = w / 2 + Math.sin(t) * w * 0.35;
@@ -43,6 +61,16 @@ export function UnicornBackground() {
             if (rafId !== null) cancelAnimationFrame(rafId);
         };
     }, []);
+
+    if (webglSupported === null || webglSupported === false || sceneFailed) {
+        return (
+            <div
+                ref={containerRef}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-0 h-screen w-screen bg-[radial-gradient(ellipse_at_center,_var(--background-secondary)_0%,_var(--background)_70%)]"
+            />
+        );
+    }
 
     return (
         <motion.div
@@ -63,8 +91,7 @@ export function UnicornBackground() {
                 scale={1}
                 dpi={1}
                 fps={60}
-                onError={(error) => console.error('UnicornScene error:', error)}
-                onLoad={() => console.log('UnicornScene loaded successfully')}
+                onError={() => setSceneFailed(true)}
             />
         </motion.div>
     );

@@ -1,6 +1,10 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 
 export function HighDemand() {
+    const t = useTranslations('landing.hero');
     // TODO: Use feature flags
     const isHighDemand = false;
 
@@ -16,7 +20,7 @@ export function HighDemand() {
             transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
             style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
         >
-            {"We're currently experiencing high demand. Project may fail to create."}
+            {t('highDemand')}
         </motion.p>
     );
 }

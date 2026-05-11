@@ -1,5 +1,7 @@
 'use client';
 
+import React, { useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     motion,
     useAnimationFrame,
@@ -10,7 +12,6 @@ import {
     useVelocity,
     wrap,
 } from 'framer-motion';
-import React, { useRef } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -19,6 +20,8 @@ interface ParallaxProps {
     baseVelocity: number;
     className?: string;
 }
+
+const COPIES = 8;
 
 function ParallaxText({ children, baseVelocity, className }: ParallaxProps) {
     const baseX = useMotionValue(0);
@@ -32,7 +35,8 @@ function ParallaxText({ children, baseVelocity, className }: ParallaxProps) {
         clamp: false,
     });
 
-    const x = useTransform(baseX, (v) => `${wrap(-25, 0, v)}%`);
+    // 100/COPIES so loop seam is invisible. With 8 copies => -12.5.
+    const x = useTransform(baseX, (v) => `${wrap(-(100 / COPIES), 0, v)}%`);
 
     const directionFactor = useRef<number>(1);
     useAnimationFrame((_t, delta) => {
@@ -52,7 +56,7 @@ function ParallaxText({ children, baseVelocity, className }: ParallaxProps) {
     return (
         <div className="flex flex-nowrap overflow-hidden whitespace-nowrap">
             <motion.div className={cn('flex whitespace-nowrap', className)} style={{ x }}>
-                {Array.from({ length: 6 }).map((_, i) => (
+                {Array.from({ length: COPIES }).map((_, i) => (
                     <span key={i} className="mr-12 block">
                         {children}
                     </span>
@@ -63,22 +67,47 @@ function ParallaxText({ children, baseVelocity, className }: ParallaxProps) {
 }
 
 export function ScrollingVelocitySection() {
+    const t = useTranslations('landing.scrollingVelocity');
+    const sectionRef = useRef<HTMLElement | null>(null);
+
+    // Fade in as section enters viewport.
+    const { scrollYProgress } = useScroll({
+        target: sectionRef,
+        offset: ['start end', 'center center'],
+    });
+    const opacity = useTransform(scrollYProgress, [0, 0.6, 1], [0, 0.6, 1]);
+    const translateY = useTransform(scrollYProgress, [0, 1], [40, 0]);
+
+    // Scroll-velocity-driven rotation. Resting state = 0deg. Direction swaps with scroll direction.
+    const { scrollY } = useScroll();
+    const scrollVelocity = useVelocity(scrollY);
+    const smoothVelocity = useSpring(scrollVelocity, {
+        damping: 40,
+        stiffness: 200,
+    });
+    const rotate = useTransform(smoothVelocity, [-2000, 0, 2000], [3, 0, -3], {
+        clamp: true,
+    });
+
     return (
-        <section className="relative w-full overflow-hidden py-24 md:py-32">
-            <div className="-rotate-[3deg]">
+        <section
+            ref={sectionRef}
+            className="bg-background relative w-full overflow-hidden py-48 md:py-64"
+        >
+            <motion.div style={{ opacity, y: translateY, rotate }}>
                 <ParallaxText
                     baseVelocity={1.5}
-                    className="text-foreground-primary text-6xl leading-[1.1] font-light tracking-tight md:text-8xl"
+                    className="text-foreground-primary text-6xl leading-[1.1] font-medium tracking-tight md:text-8xl"
                 >
-                    Design without limits.
+                    {t('lineTop')}
                 </ParallaxText>
                 <ParallaxText
                     baseVelocity={-1.5}
-                    className="text-foreground-tertiary text-6xl leading-[1.1] font-light tracking-tight md:text-8xl"
+                    className="text-foreground-tertiary text-6xl leading-[1.1] font-medium tracking-tight md:text-8xl"
                 >
-                    Ship without rebuilding.
+                    {t('lineBottom')}
                 </ParallaxText>
-            </div>
+            </motion.div>
         </section>
     );
 }

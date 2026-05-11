@@ -317,7 +317,7 @@ export const Create = observer(
         };
 
         return (
-            <div key={cardKey} className="flex w-full flex-col items-center gap-3">
+            <div key={cardKey} className="flex w-full flex-col items-start gap-3">
                 <div
                     data-create-container
                     className={cn(

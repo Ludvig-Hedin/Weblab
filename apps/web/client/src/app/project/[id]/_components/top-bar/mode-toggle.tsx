@@ -12,18 +12,19 @@ import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 
+// All four editor views surfaced inline as the primary mode switcher.
+// Previously Preview + CMS lived as separate icon buttons elsewhere on the
+// top bar; promoting them here makes the four modes a single, consistent
+// control. Inactive items use a muted foreground so the active one reads
+// clearly without colour beyond the underline indicator.
 const MODE_TOGGLE_ITEMS: {
     mode: EditorMode;
     hotkey: Hotkey;
 }[] = [
-    {
-        mode: EditorMode.DESIGN,
-        hotkey: Hotkey.SELECT,
-    },
-    {
-        mode: EditorMode.CODE,
-        hotkey: Hotkey.CODE,
-    },
+    { mode: EditorMode.DESIGN, hotkey: Hotkey.SELECT },
+    { mode: EditorMode.CODE, hotkey: Hotkey.CODE },
+    { mode: EditorMode.PREVIEW, hotkey: Hotkey.PREVIEW },
+    { mode: EditorMode.CMS, hotkey: Hotkey.MODE_CMS },
 ];
 
 export const ModeToggle = observer(() => {
@@ -31,12 +32,11 @@ export const ModeToggle = observer(() => {
     const editorEngine = useEditorEngine();
     const mode = editorEngine.state.editorMode;
 
-    const getXPosition = () => {
-        if (mode === EditorMode.CODE) {
-            return '100%';
-        }
-        return '0%';
-    };
+    const activeIndex = MODE_TOGGLE_ITEMS.findIndex((item) => item.mode === mode);
+    const itemWidthPercent = 100 / MODE_TOGGLE_ITEMS.length;
+    // Slide indicator under the active mode. When the mode isn't tracked
+    // (e.g. PAN), fall back to position 0 so we don't render a stranded bar.
+    const xPercent = activeIndex >= 0 ? activeIndex * itemWidthPercent : 0;
 
     return (
         <div className="relative">
@@ -56,11 +56,19 @@ export const ModeToggle = observer(() => {
                             <ToggleGroupItem
                                 value={item.mode}
                                 aria-label={item.hotkey.description}
+                                // Preserve the onboarding-tour anchor that
+                                // previously lived on the play-icon button so
+                                // first-run tooltips still point at Preview.
+                                data-tour={
+                                    item.mode === EditorMode.PREVIEW
+                                        ? 'preview-button'
+                                        : undefined
+                                }
                                 className={cn(
                                     'text-small cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-all duration-150 ease-in-out',
                                     mode === item.mode
                                         ? 'text-active hover:text-active text-small hover:bg-transparent'
-                                        : 'text-foreground-secondary hover:text-foreground-hover text-small hover:bg-transparent',
+                                        : 'text-foreground-tertiary hover:text-foreground-hover text-small hover:bg-transparent',
                                 )}
                             >
                                 {t(
@@ -80,8 +88,8 @@ export const ModeToggle = observer(() => {
                 className="bg-foreground absolute -top-1 h-0.5"
                 initial={false}
                 animate={{
-                    width: '50%',
-                    x: getXPosition(),
+                    width: `${itemWidthPercent}%`,
+                    x: `${xPercent}%`,
                 }}
                 transition={{
                     type: 'tween',

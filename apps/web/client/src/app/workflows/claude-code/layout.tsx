@@ -2,6 +2,7 @@ import { type Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -10,75 +11,31 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Claude Code', path: '/workflows/claude-code' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Claude Code for Designers: Add a Visual Canvas to Your Workflow | ${APP_NAME}`,
-    description: `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
-    keywords: [
-        // Primary keywords
-        'claude code for designers',
-        'claude code visual editor',
-        'claude code design tool',
-        'claude code UI design',
-        'visual layer for claude code',
-        'claude code collaboration',
-        // Related tools
-        'cursor for designers',
-        'AI code visual canvas',
-        'anthropic claude design',
-        // Workflow
-        'design engineer workflow',
-        'AI coding visual design',
-        'claude code infinite canvas',
-        'visual AI development',
-        // Problem/solution
-        'claude code team collaboration',
-        'claude code PR output',
-        'claude code design system',
-        'AI generated UI editor',
-    ],
-    openGraph: {
-        url: `https://${APP_DOMAIN}/workflows/claude-code`,
-        type: 'website',
-        siteName: APP_NAME,
-        title: `Claude Code for Designers: Add a Visual Canvas to Your Workflow | ${APP_NAME}`,
-        description: `Designers using Claude Code need a visual layer. ${APP_NAME} gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.`,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `${APP_NAME} Claude Code workflow preview`,
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'workflowsClaudeCode',
+        path: '/workflows/claude-code',
+        keywords: [
+            'claude code for designers',
+            'claude code visual editor',
+            'claude code design tool',
+            'claude code UI design',
+            'visual layer for claude code',
+            'claude code collaboration',
+            'cursor for designers',
+            'AI code visual canvas',
+            'anthropic claude design',
+            'design engineer workflow',
+            'AI coding visual design',
+            'claude code infinite canvas',
+            'visual AI development',
+            'claude code team collaboration',
+            'claude code PR output',
+            'claude code design system',
+            'AI generated UI editor',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        site: '@weblab',
-        creator: '@weblab',
-        title: `Claude Code for Designers | ${APP_NAME}`,
-        description:
-            'The visual canvas your Claude Code workflow is missing. Design with your real components, collaborate with your team, ship PRs.',
-        images: [
-            {
-                url: '/favicon.ico',
-            },
-        ],
-    }, */
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/workflows/claude-code`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

@@ -49,12 +49,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     ) => {
         try {
             setSigningInMethod(method);
-            // returnUrl is now propagated through the OAuth redirectTo query
-            // string by the server action. Existing auth-modal CTAs still stage
-            // it in localforage before opening the modal, so drain that value
-            // when the button did not receive an explicit returnUrl prop.
-            const stagedReturnUrl =
-                returnUrl ?? (await localforage.getItem<string>(LocalForageKeys.RETURN_URL));
+            // returnUrl is propagated through the OAuth redirectTo query string by
+            // the server action. Existing auth-modal CTAs stage it in localforage
+            // before opening the modal, so drain that value when the button did
+            // not receive an explicit returnUrl prop. Skip stale staged returnUrls
+            // (a previous modal dismiss, an abandoned chat draft) so bookmarking
+            // /login does not send users to /projects/new?resumeCreate=1.
+            let stagedReturnUrl: string | null = returnUrl;
+            if (!stagedReturnUrl) {
+                const stored = await localforage.getItem<string>(LocalForageKeys.RETURN_URL);
+                const { loadAiPromptCreateDraft, AI_PROMPT_CREATE_RESUME_PATH } = await import(
+                    '@/components/ai-prompt-composer/create-draft'
+                );
+                if (stored === AI_PROMPT_CREATE_RESUME_PATH) {
+                    const draft = await loadAiPromptCreateDraft();
+                    stagedReturnUrl = draft ? stored : null;
+                } else {
+                    stagedReturnUrl = stored;
+                }
+            }
             await localforage.removeItem(LocalForageKeys.RETURN_URL);
             await localforage.setItem(LAST_SIGN_IN_METHOD_KEY, method);
             await login(method, stagedReturnUrl);

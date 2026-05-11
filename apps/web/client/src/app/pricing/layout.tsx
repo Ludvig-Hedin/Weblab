@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
-
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,50 +8,19 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Pricing', path: '/pricing' },
 ]);
 
-const description = `${APP_NAME} pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.`;
-
-export const metadata: Metadata = {
-    title: `Pricing | ${APP_NAME} — Visual Editor for React`,
-    description,
-    keywords: [
-        'Weblab pricing',
-        'visual editor pricing',
-        'AI design tool pricing',
-        'cursor for designers price',
-        'react visual editor cost',
-    ],
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/pricing`,
-    },
-    openGraph: {
-        url: `https://${APP_DOMAIN}/pricing`,
-        type: 'website',
-        siteName: APP_NAME,
-        title: `Pricing | ${APP_NAME}`,
-        description,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `${APP_NAME} pricing`,
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'pricing',
+        path: '/pricing',
+        keywords: [
+            'Weblab pricing',
+            'visual editor pricing',
+            'AI design tool pricing',
+            'cursor for designers price',
+            'react visual editor cost',
         ],
-    },
-    twitter: {
-        card: 'summary_large_image',
-        title: `Pricing | ${APP_NAME}`,
-        description,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `${APP_NAME} pricing`,
-            },
-        ],
-    },
-};
+    });
+}
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
     return (

@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
                 destination: '/auth/auth-code-error',
                 permanent: false,
             },
+            // Shared project links sometimes use the plural pluralization. Forward
+            // to the canonical singular route so users hit the login gate (or load
+            // the project) instead of a flat 404.
+            {
+                source: '/projects/:id((?!new|import|creating|marketplace|plan|templates).+)',
+                destination: '/project/:id',
+                permanent: false,
+            },
         ];
     },
     async headers() {

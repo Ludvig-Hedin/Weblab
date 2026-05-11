@@ -4,26 +4,25 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
+import { PROJECT_SUGGESTIONS } from '@/app/projects/_components/select';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
 import { JustShippedStrip } from '../landing-page/just-shipped-strip';
-import { CloneWebsite } from './clone-website';
 import { Create } from './create';
 import { HighDemand } from './high-demand';
-import { ImportGitHub } from './import';
-import { OpenLocalFolder } from './open-local-folder';
-import { StartBlank } from './start-blank';
 import { UnicornBackground } from './unicorn-background';
 
 function GetStarted() {
     const router = useRouter();
     const { data: user } = api.user.get.useQuery();
     const { setIsAuthModalOpen } = useAuthContext();
+    const t = useTranslations('landing.hero');
 
     const handleClick = () => {
         if (!user?.id) {
@@ -39,7 +38,7 @@ function GetStarted() {
             className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
         >
             <Icons.ArrowRight className="h-4 w-4" />
-            Get started
+            {t('getStarted')}
         </button>
     );
 }
@@ -47,25 +46,29 @@ function GetStarted() {
 export function Hero() {
     const { data: user } = api.user.get.useQuery();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
+    const t = useTranslations('landing.hero');
 
     return (
         <div className="relative flex h-full w-full flex-col items-center text-center text-lg">
             <UnicornBackground />
             {/* pointer-events-none allows mouse events to pass through to the canvas behind */}
-            <div className="pointer-events-none mb-42 flex h-full w-full flex-col items-center justify-center gap-10 pt-12">
+            <div className="pointer-events-none mb-42 flex h-full w-full flex-col items-center justify-center gap-10 px-4 pt-12 sm:px-6">
                 <div className="relative z-20 flex flex-col items-center gap-3 pt-8 pb-2">
+                    {/* Changelog tag — moved above the h1 so the latest ship is the
+                        first thing a returning visitor sees. */}
+                    <JustShippedStrip />
                     <motion.h1
-                        className="text-center text-4xl !leading-[0.9] leading-tight font-light sm:text-6xl"
+                        className="heading-style-h1 text-center text-balance"
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
                         animate={{ opacity: 1, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Design on your real codebase. <br />
+                        {t('headline')} <br />
                         <span
-                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.1] sm:text-[4.6rem] sm:leading-[1.0]`}
+                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[2.4rem] leading-[1.1] sm:text-[4.6rem] sm:leading-[1.0]`}
                         >
-                            Ship a real PR.
+                            {t('headlineScript')}
                         </span>
                     </motion.h1>
                     <motion.p
@@ -75,11 +78,9 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Open your real React or Next.js project, edit visually with AI, and push to
-                        GitHub. Open source. Pairs with Claude Code.
+                        {t('subhead')}
                     </motion.p>
                     <HighDemand />
-                    <JustShippedStrip />
                 </div>
                 <motion.div
                     className="pointer-events-auto relative z-20 flex w-full justify-center px-4"
@@ -93,10 +94,11 @@ export function Hero() {
                         setIsCreatingProject={setIsCreatingProject}
                         user={user ?? null}
                         variant="hero"
+                        suggestions={PROJECT_SUGGESTIONS}
                     />
                 </motion.div>
                 <motion.div
-                    className="pointer-events-auto relative z-20 flex flex-row flex-wrap items-center justify-center gap-6 text-sm"
+                    className="pointer-events-auto relative z-20 flex flex-row flex-wrap items-center justify-center gap-3 text-sm sm:gap-6"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
@@ -108,35 +110,35 @@ export function Hero() {
                                 className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                             >
                                 <Icons.ArrowRight className="h-4 w-4" />
-                                Continue to your projects
+                                {t('continueProjects')}
                             </Link>
-                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <span className="text-foreground-secondary/30 hidden select-none sm:inline">
+                                ·
+                            </span>
                             <Link
                                 href={Routes.DOWNLOAD}
                                 className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                             >
                                 <Icons.Download className="h-4 w-4" />
-                                Download app
+                                {t('downloadApp')}
                             </Link>
                         </>
                     ) : (
+                        // Single primary entry point + download. Secondary starting
+                        // points (clone, import GitHub, local folder, blank) live
+                        // on /projects/new so the hero stays focused and new users
+                        // are not paralyzed by six near-equivalent links.
                         <>
                             <GetStarted />
-                            <span className="text-foreground-secondary/30 select-none">·</span>
-                            <CloneWebsite />
-                            <span className="text-foreground-secondary/30 select-none">·</span>
-                            <ImportGitHub />
-                            <span className="text-foreground-secondary/30 select-none">·</span>
-                            <OpenLocalFolder />
-                            <span className="text-foreground-secondary/30 select-none">·</span>
-                            <StartBlank />
-                            <span className="text-foreground-secondary/30 select-none">·</span>
+                            <span className="text-foreground-secondary/30 hidden select-none sm:inline">
+                                ·
+                            </span>
                             <Link
                                 href={Routes.DOWNLOAD}
                                 className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                             >
                                 <Icons.Download className="h-4 w-4" />
-                                Download app
+                                {t('downloadApp')}
                             </Link>
                         </>
                     )}

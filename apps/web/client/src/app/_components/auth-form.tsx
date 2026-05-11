@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -22,12 +22,33 @@ import { DevLoginButton, LoginButton } from './login-button';
 // Must match the key read by /login/verify/page.tsx.
 const LOGIN_EMAIL_KEY = 'weblab-login-email';
 
+// Per-tab key tracking the last successful OTP send. Used to enforce a client
+// cooldown so visitors can't fire repeated OTP sends from this form before the
+// backend rate-limiter kicks in. Pairs with the verify-page resend cooldown.
+const LOGIN_OTP_LAST_SEND_KEY = 'weblab-login-otp-last-send';
+const OTP_SEND_COOLDOWN_MS = 30_000;
+
 const AUTH_PROVIDERS = new Set(
     (env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '')
         .split(',')
         .map((p) => p.trim().toLowerCase())
         .filter(Boolean),
 );
+
+// Surface a dev-mode warning when `NEXT_PUBLIC_AUTH_PROVIDERS` is empty so the
+// reviewer notices the OAuth buttons silently disappeared. Wrapped in
+// `process.env.NODE_ENV` so this never reaches the production bundle.
+if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV !== 'production' &&
+    AUTH_PROVIDERS.size === 0 &&
+    !env.NEXT_PUBLIC_SHOW_DEV_LOGIN
+) {
+    console.warn(
+        '[auth-form] No NEXT_PUBLIC_AUTH_PROVIDERS configured — the login form is OTP-only. ' +
+            'Set NEXT_PUBLIC_AUTH_PROVIDERS="github,google" in .env.local to enable OAuth.',
+    );
+}
 
 interface AuthFormProps {
     /** Return URL to forward through OAuth / OTP flows. */
@@ -62,6 +83,29 @@ export function AuthForm({
     const [email, setEmail] = useState('');
     const [isEmailLoading, setIsEmailLoading] = useState(false);
     const [emailError, setEmailError] = useState<string | null>(initialEmailError);
+    const [cooldownSecondsRemaining, setCooldownSecondsRemaining] = useState(0);
+
+    useEffect(() => {
+        let stored = 0;
+        try {
+            stored = Number(sessionStorage.getItem(LOGIN_OTP_LAST_SEND_KEY) ?? '0');
+        } catch {
+            stored = 0;
+        }
+        if (!stored || Number.isNaN(stored)) return;
+        const elapsed = Date.now() - stored;
+        if (elapsed >= OTP_SEND_COOLDOWN_MS) return;
+        const remaining = Math.ceil((OTP_SEND_COOLDOWN_MS - elapsed) / 1000);
+        setCooldownSecondsRemaining(remaining);
+    }, []);
+
+    useEffect(() => {
+        if (cooldownSecondsRemaining <= 0) return;
+        const id = setInterval(() => {
+            setCooldownSecondsRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [cooldownSecondsRemaining]);
 
     const showGithub = AUTH_PROVIDERS.has('github');
     const showGoogle = AUTH_PROVIDERS.has('google');
@@ -163,6 +207,11 @@ export function AuthForm({
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isEmailLoading}
                     required
+                    autoComplete="email"
+                    inputMode="email"
+                    // RFC 5321: full address ≤ 254 chars. Anything longer is
+                    // either a bug or an abuse attempt.
+                    maxLength={254}
                 />
                 {emailError && <p className="text-small text-red-500">{emailError}</p>}
                 <Button

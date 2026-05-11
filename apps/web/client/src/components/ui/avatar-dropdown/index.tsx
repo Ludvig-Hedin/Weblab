@@ -24,13 +24,39 @@ import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { SettingsTabValue } from '../settings-modal/helpers';
 import { UsageSection } from './plans';
 
+/**
+ * "alex.morgan+tag@example.com" → "Alex". Returns null when the local part
+ * can't produce a readable name so callers fall back to a generic label.
+ */
+function deriveFirstNameFromEmail(email: string | null | undefined): string | null {
+    if (!email) return null;
+    const local = email.split('@')[0]?.split('+')[0] ?? '';
+    const firstWord = local
+        .split(/[._-]+/)
+        .map((w) => w.replace(/[^a-zA-Z]/g, ''))
+        .filter(Boolean)[0];
+    if (!firstWord || firstWord.length < 2) return null;
+    return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+}
+
 export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const stateManager = useStateManager();
     const supabase = createClient();
     const t = useTranslations();
 
     const { data: user } = api.user.get.useQuery();
-    const initials = getInitials(user?.displayName ?? user?.firstName ?? '');
+    // Pick the most flattering, least-email-y label available. If
+    // `displayName` matches the email sentinel (OTP signup skipped), fall
+    // back to firstName → derived name → "You" so we never display the raw
+    // email as if it were the user's name.
+    const displayNameLooksLikeEmail =
+        !!user?.displayName && !!user?.email && user.displayName === user.email;
+    const friendlyName =
+        user?.firstName ||
+        (displayNameLooksLikeEmail ? null : user?.displayName) ||
+        deriveFirstNameFromEmail(user?.email) ||
+        'You';
+    const initials = getInitials(friendlyName);
     const [open, setOpen] = useState(false);
 
     const handleSignOut = async () => {
@@ -118,9 +144,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
             <DropdownMenuContent className="w-72 p-0">
                 <div className="flex items-center gap-2 p-3 select-none">
                     <div className="flex flex-col">
-                        <span className="text-smallPlus">
-                            {user?.firstName ?? user?.displayName}
-                        </span>
+                        <span className="text-smallPlus">{friendlyName}</span>
                         <span className="text-mini text-foreground-secondary">{user?.email}</span>
                     </div>
                 </div>

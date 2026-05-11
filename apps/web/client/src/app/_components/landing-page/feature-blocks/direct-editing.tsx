@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
 import { DirectEditingInteractive } from '../../shared/mockups/direct-editing-interactive';
 
 export function DirectEditingBlock() {
+    const t = useTranslations('landing.benefits.canvas');
     return (
         <div className="flex flex-col gap-6">
             <DirectEditingInteractive />
@@ -14,12 +16,11 @@ export function DirectEditingBlock() {
                         <Icons.DirectManipulation className="text-foreground-primary h-6 w-6" />
                     </div>
                     <span className="text-foreground-primary text-largePlus font-light">
-                        Canvas Manipulation
+                        {t('eyebrow')}
                     </span>
                 </div>
                 <p className="text-foreground-secondary text-regular w-1/2 text-balance">
-                    Drag, resize, and arrange elements directly on the canvas. See changes in real
-                    code instantly.
+                    {t('body')}
                 </p>
             </div>
         </div>

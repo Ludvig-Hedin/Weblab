@@ -68,7 +68,7 @@ export function BrandComplianceBlock() {
         <div className="flex flex-col gap-6">
             <div className="relative h-100 w-full">
                 <ParallaxContainer speed={0.04}>
-                    <div className="border-foreground-primary/20 absolute top-7 left-1/14 flex h-100 w-60 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl">
+                    <div className="border-foreground-primary/20 absolute top-7 left-2 flex h-100 w-44 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl sm:left-1/14 sm:w-60">
                         <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">
                             Brand Colors
                         </p>
@@ -197,7 +197,7 @@ export function BrandComplianceBlock() {
                     </div>
                 </ParallaxContainer>
                 <ParallaxContainer speed={-0.04}>
-                    <div className="border-foreground-primary/20 absolute top-20 right-1/14 flex h-100 w-60 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/50 backdrop-blur-2xl">
+                    <div className="border-foreground-primary/20 absolute top-20 right-2 flex h-100 w-44 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/50 backdrop-blur-2xl sm:right-1/14 sm:w-60">
                         <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">
                             Brand Colors
                         </p>
@@ -325,9 +325,9 @@ export function BrandComplianceBlock() {
                     </div>
                 </ParallaxContainer>
             </div>
-            <div className="flex w-full flex-row items-start gap-8">
+            <div className="flex w-full flex-col items-start gap-4 sm:flex-row sm:gap-8">
                 {/* Icon + Title */}
-                <div className="flex w-1/2 flex-col items-start">
+                <div className="flex w-full flex-col items-start sm:w-1/2">
                     <div className="mb-2">
                         <Icons.Brand className="text-foreground-primary h-6 w-6" />
                     </div>
@@ -336,7 +336,7 @@ export function BrandComplianceBlock() {
                     </span>
                 </div>
                 {/* Description */}
-                <p className="text-foreground-secondary text-regular w-1/2 text-balance">
+                <p className="text-foreground-secondary text-regular w-full text-balance sm:w-1/2">
                     AI is constrained to your colors, fonts, and tokens. No drift. No off-brand
                     outputs.
                 </p>

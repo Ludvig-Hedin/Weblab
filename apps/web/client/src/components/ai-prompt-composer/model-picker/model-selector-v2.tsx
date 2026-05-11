@@ -232,7 +232,7 @@ export const ModelSelectorV2 = ({
             <PopoverContent
                 align="start"
                 sideOffset={6}
-                className="border-border/60 bg-background w-72 overflow-hidden rounded-lg p-0 shadow-xl"
+                className="border-border bg-popover w-72 overflow-hidden rounded-lg p-0 shadow-xl"
             >
                 <Command
                     className="bg-transparent"

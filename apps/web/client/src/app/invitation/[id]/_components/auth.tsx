@@ -20,11 +20,14 @@ export const HandleAuth = () => {
 
     return (
         <div className="flex h-screen items-center justify-center">
-            <div className="flex flex-col items-center justify-center gap-4">
-                <div className="text-2xl">You must be logged in to accept this invitation</div>
+            <div className="flex max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+                <h1 className="text-foreground text-2xl font-medium">Invitation</h1>
+                <p className="text-foreground-secondary">
+                    You must be logged in to accept this invitation.
+                </p>
                 <Button variant="outline" onClick={handleLogin}>
                     <Icons.WeblabLogo className="size-4" />
-                    Login or Signup
+                    Log in or sign up
                 </Button>
             </div>
         </div>

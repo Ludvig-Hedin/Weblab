@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
-
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,17 +8,12 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Privacy Policy', path: '/privacy-policy' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Privacy Policy | ${APP_NAME}`,
-    description: `${APP_NAME} privacy policy. Learn how ${APP_NAME} handles your data.`,
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/privacy-policy`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'privacyPolicy',
+        path: '/privacy-policy',
+    });
+}
 
 export default function PrivacyLayout({ children }: { children: React.ReactNode }) {
     return (

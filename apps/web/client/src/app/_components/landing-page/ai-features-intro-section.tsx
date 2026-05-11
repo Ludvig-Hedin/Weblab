@@ -1,18 +1,17 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 export function AiFeaturesIntroSection() {
+    const t = useTranslations('landing.aiFeaturesIntro');
     return (
-        <div className="mx-auto w-full max-w-6xl px-8 py-32 text-center">
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32 text-center">
             <div className="mx-auto max-w-3xl">
-                <h2 className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase">
-                    Design on an Infinite Canvas
-                </h2>
-                <p className="text-foreground-primary mb-8 text-2xl leading-[1.1] font-light text-balance md:text-5xl">
-                    Point at what you want. AI knows exactly what you mean.
+                <h2 className="heading-style-h6 text-foreground-secondary mb-6">{t('eyebrow')}</h2>
+                <p className="heading-style-h3 text-foreground-primary mb-8 text-balance">
+                    {t('headline')}
                 </p>
                 <p className="text-foreground-secondary mx-auto max-w-xl text-lg text-balance">
-                    No more describing "the button in the top right" — just click it. AI is
-                    constrained to your design system, so outputs stay on-brand every time.
+                    {t('body')}
                 </p>
             </div>
         </div>

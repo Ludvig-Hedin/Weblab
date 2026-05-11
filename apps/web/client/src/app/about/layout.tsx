@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,62 +10,24 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'About', path: '/about' },
 ]);
 
-export const metadata: Metadata = {
-    title: `About ${APP_NAME} | The Visual Editor for React`,
-    description: `Meet the founder behind ${APP_NAME} — an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.`,
-    keywords: [
-        // Company
-        `${APP_NAME} founder`,
-        `${APP_NAME} company`,
-        `${APP_NAME} about`,
-        // Mission
-        'design engineering',
-        'design to code',
-        'creative tools startup',
-        'developer tools startup',
-        // Location
-        'Sweden startup',
-        // Open source
-        'open source design tool',
-        'open source visual editor',
-    ],
-    openGraph: {
-        title: `About ${APP_NAME}`,
-        description: `Meet the founder behind ${APP_NAME}. Built in Sweden to obliterate the divide between creativity and implementation.`,
-        type: 'website',
-        url: `https://${APP_DOMAIN}/about`,
-        siteName: APP_NAME,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `About ${APP_NAME}`,
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'about',
+        path: '/about',
+        keywords: [
+            `${APP_NAME} founder`,
+            `${APP_NAME} company`,
+            `${APP_NAME} about`,
+            'design engineering',
+            'design to code',
+            'creative tools startup',
+            'developer tools startup',
+            'Sweden startup',
+            'open source design tool',
+            'open source visual editor',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: `About ${APP_NAME}`,
-        description:
-            `Meet the founder behind ${APP_NAME}. Built in Sweden to obliterate the divide between creativity and implementation.`,
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/about`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // AboutPage + ProfilePage hybrid for the founder bio.
 const aboutPageJsonLd = {

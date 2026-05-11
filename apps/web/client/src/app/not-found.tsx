@@ -2,6 +2,7 @@
 
 import type { MotionValue } from 'framer-motion';
 import { useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
@@ -53,6 +54,7 @@ function PlayfulDigit({ char, delay }: { char: string; delay: number }) {
 }
 
 export default function NotFound() {
+    const t = useTranslations('notFound');
     return (
         <WebsiteLayout>
             <main className="relative min-h-screen w-full overflow-hidden">
@@ -69,8 +71,7 @@ export default function NotFound() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
                         >
-                            Seems like you ventured somewhere unknown on your journey. Let us help
-                            you find your way.
+                            {t('body')}
                         </motion.p>
                         <motion.div
                             className="flex justify-center pt-4"
@@ -84,7 +85,7 @@ export default function NotFound() {
                                 size="lg"
                                 className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-colors"
                             >
-                                <Link href="/">Back to home</Link>
+                                <Link href="/">{t('backHome')}</Link>
                             </Button>
                         </motion.div>
                     </div>

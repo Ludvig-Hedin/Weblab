@@ -7,7 +7,6 @@ import { Icons } from '@weblab/ui/icons/index';
 
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
-import { transKeys } from '@/i18n/keys';
 
 /**
  * Hero CTA that picks a local folder and imports it into a cloud-backed
@@ -22,7 +21,8 @@ import { transKeys } from '@/i18n/keys';
 export function OpenLocalFolder() {
     const { handleImportLocalProject, isImporting, progress, isFsAccessSupported } =
         useImportLocalProject();
-    const t = useTranslations();
+    const t = useTranslations('landing.hero.openLocalFolder');
+    const tActions = useTranslations('projects.actions');
     // Compute support detection client-side only to keep the SSR markup stable
     // (and avoid hydration warnings). On Safari/Firefox the API is unavailable;
     // disable the button with a tooltip rather than letting users click and
@@ -38,15 +38,15 @@ export function OpenLocalFolder() {
         {
             label:
                 progress.phase === 'uploading' && progress.filesUploaded > 0
-                    ? `Uploading files (${progress.filesUploaded})`
-                    : 'Uploading folder',
+                    ? t('uploadingFiles', { count: String(progress.filesUploaded) })
+                    : t('uploadingFolder'),
             ready: progress.phase === 'creating' || progress.phase === 'done',
         },
         {
-            label: 'Creating your project',
+            label: t('creatingProject'),
             ready: progress.phase === 'done',
         },
-        { label: 'Opening editor', ready: false },
+        { label: t('openingEditor'), ready: false },
     ];
 
     // 'picking' is a transient state between the click and the user
@@ -59,19 +59,15 @@ export function OpenLocalFolder() {
             {showOverlay && (
                 <ProjectCreationLoader
                     overlay
-                    heading="Importing your folder"
-                    caption="Uploading your files. Larger folders take longer."
+                    heading={t('importingHeading')}
+                    caption={t('importingCaption')}
                     steps={creationSteps}
                 />
             )}
             <button
                 onClick={() => void handleImportLocalProject()}
                 disabled={isImporting || !supported}
-                title={
-                    !supported
-                        ? 'Local folder access is only available in Chromium-based browsers (Chrome, Edge, Arc).'
-                        : undefined
-                }
+                title={!supported ? t('unsupportedTooltip') : undefined}
                 className="text-foreground-secondary hover:text-foreground disabled:hover:text-foreground-secondary flex items-center gap-2 text-sm transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {isImporting ? (
@@ -79,9 +75,7 @@ export function OpenLocalFolder() {
                 ) : (
                     <Icons.Directory className="h-4 w-4" />
                 )}
-                {isImporting
-                    ? t(transKeys.projects.actions.importingLocalFolder)
-                    : t(transKeys.projects.actions.openLocalFolder)}
+                {isImporting ? tActions('importingLocalFolder') : tActions('openLocalFolder')}
             </button>
         </>
     );

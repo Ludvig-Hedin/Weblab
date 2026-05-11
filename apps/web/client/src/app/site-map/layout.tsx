@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,24 +10,12 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Sitemap', path: '/site-map' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Sitemap | ${APP_NAME}`,
-    description: `Complete sitemap for ${APP_DOMAIN} — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.`,
-    openGraph: {
-        title: `Sitemap | ${APP_NAME}`,
-        description: `Complete sitemap for ${APP_DOMAIN}. Browse all pages including features, workflows, and resources.`,
-        type: 'website',
-        url: `https://${APP_DOMAIN}/site-map`,
-        siteName: APP_NAME,
-    },
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/site-map`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'sitemap',
+        path: '/site-map',
+    });
+}
 
 // JSON-LD structured data for sitemap
 const jsonLd = {

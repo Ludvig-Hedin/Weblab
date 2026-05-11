@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -24,6 +25,7 @@ const LINKS = [
 export const TopBar = () => {
     const currentPath = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const t = useTranslations('nav');
 
     return (
         <div className="text-foreground-secondary relative mx-auto flex h-12 w-full max-w-6xl items-center justify-between p-3 text-sm select-none">
@@ -33,7 +35,7 @@ export const TopBar = () => {
                     <Link
                         href={link.href}
                         key={link.href}
-                        aria-label={link.href === Routes.HOME ? 'Weblab home' : undefined}
+                        aria-label={link.href === Routes.HOME ? t('brandHomeAria') : undefined}
                         className={cn(
                             'transition-opacity duration-150 hover:opacity-70',
                             currentPath === link.href && 'text-foreground-primary',
@@ -52,8 +54,8 @@ export const TopBar = () => {
                 <div className="ml-3 hidden items-center gap-5 lg:flex">
                     {NAVIGATION_CATEGORIES.map((category) => (
                         <DropdownMenu
-                            key={category.label}
-                            label={category.label}
+                            key={category.labelKey}
+                            labelKey={category.labelKey}
                             links={category.links}
                         />
                     ))}

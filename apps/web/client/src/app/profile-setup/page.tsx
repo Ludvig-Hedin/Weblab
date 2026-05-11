@@ -17,6 +17,26 @@ import { Routes } from '@/utils/constants';
 import { sanitizeReturnUrl } from '@/utils/url';
 
 /**
+ * Convert "alex.morgan+tag@example.com" → "Alex Morgan".
+ * Returns null when the local part is unusable (empty, numeric, single char)
+ * so the caller can fall back to "skip without setting a name".
+ */
+function deriveFirstNameFromEmail(email: string): string | null {
+    const local = email.split('@')[0]?.split('+')[0] ?? '';
+    if (!local) return null;
+    const words = local
+        .split(/[._-]+/)
+        .map((w) => w.replace(/[^a-zA-Z]/g, ''))
+        .filter((w) => w.length > 0)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    if (words.length === 0) return null;
+    const candidate = words.join(' ');
+    // Single-letter or all-numeric handles produce a useless display name.
+    if (candidate.replace(/\s/g, '').length < 2) return null;
+    return candidate;
+}
+
+/**
  * First-run profile setup. Email-OTP signups land here because the OTP path
  * can't infer a name from the email alone (it inserts blank firstName/lastName);
  * OAuth signups also pass through but short-circuit to `returnUrl` because their
@@ -116,6 +136,21 @@ export default function ProfileSetupPage() {
     };
 
     const handleSkip = () => {
+        // Don't leave the user with `displayName === email`. Derive a friendly
+        // first-name guess from the email local part so the rest of the UI
+        // (avatar dropdown, comments, share dialogs) doesn't leak the raw
+        // email address everywhere we read displayName.
+        if (user?.email) {
+            const derivedFirstName = deriveFirstNameFromEmail(user.email);
+            if (derivedFirstName) {
+                updateProfile({
+                    firstName: derivedFirstName,
+                    lastName: '',
+                    displayName: derivedFirstName,
+                });
+                return;
+            }
+        }
         router.push(finalRedirect);
     };
 

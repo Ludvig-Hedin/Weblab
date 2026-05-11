@@ -1,92 +1,90 @@
-import { APP_NAME } from '@weblab/constants';
-
 import { ExternalRoutes, Routes } from './index';
 
 export interface NavigationLink {
-    title: string;
+    titleKey: string;
     href: string;
-    description: string;
+    descriptionKey: string;
     external?: boolean;
 }
 
 export const PRODUCT_LINKS: NavigationLink[] = [
     {
-        title: 'AI',
+        titleKey: 'nav.categories.product.links.ai.title',
         href: Routes.FEATURES_AI,
-        description: 'AI-powered design',
+        descriptionKey: 'nav.categories.product.links.ai.description',
     },
     {
-        title: 'AI for Frontend',
+        titleKey: 'nav.categories.product.links.aiFrontend.title',
         href: Routes.FEATURES_AI_FRONTEND,
-        description: 'AI constrained to your design system',
+        descriptionKey: 'nav.categories.product.links.aiFrontend.description',
     },
     {
-        title: 'Visual Builder',
+        titleKey: 'nav.categories.product.links.visualBuilder.title',
         href: Routes.FEATURES_BUILDER,
-        description: 'Craft on a canvas',
+        descriptionKey: 'nav.categories.product.links.visualBuilder.description',
     },
     {
-        title: 'Prototyping',
+        titleKey: 'nav.categories.product.links.prototyping.title',
         href: Routes.FEATURES_PROTOTYPE,
-        description: 'Rapid prototype creation',
+        descriptionKey: 'nav.categories.product.links.prototyping.description',
     },
     {
-        title: 'Claude Code',
+        titleKey: 'nav.categories.product.links.claudeCode.title',
         href: Routes.WORKFLOWS_CLAUDE_CODE,
-        description: 'Visual layer for Claude Code',
+        descriptionKey: 'nav.categories.product.links.claudeCode.description',
     },
     {
-        title: 'Vibe Coding',
+        titleKey: 'nav.categories.product.links.vibeCoding.title',
         href: Routes.WORKFLOWS_VIBE_CODING,
-        description: 'Team collaboration for vibe coding',
+        descriptionKey: 'nav.categories.product.links.vibeCoding.description',
     },
     {
-        title: 'All Features',
+        titleKey: 'nav.categories.product.links.allFeatures.title',
         href: Routes.FEATURES,
-        description: `See everything ${APP_NAME} offers`,
+        descriptionKey: 'nav.categories.product.links.allFeatures.description',
     },
 ];
 
 export const RESOURCES_LINKS: NavigationLink[] = [
     {
-        title: 'Documentation',
+        titleKey: 'nav.categories.resources.links.documentation.title',
         href: ExternalRoutes.DOCS,
-        description: `Learn how to use ${APP_NAME}`,
+        descriptionKey: 'nav.categories.resources.links.documentation.description',
         external: true,
     },
     {
-        title: 'Blog',
+        titleKey: 'nav.categories.resources.links.blog.title',
         href: Routes.BLOG,
-        description: 'News and updates',
+        descriptionKey: 'nav.categories.resources.links.blog.description',
     },
     {
-        title: 'GitHub',
+        titleKey: 'nav.categories.resources.links.github.title',
         href: ExternalRoutes.GITHUB,
-        description: 'View the source code',
+        descriptionKey: 'nav.categories.resources.links.github.description',
         external: true,
     },
 ];
 
 export const ABOUT_LINKS: NavigationLink[] = [
     {
-        title: 'About Us',
+        titleKey: 'nav.categories.about.links.aboutUs.title',
         href: Routes.ABOUT,
-        description: 'Learn about our mission',
+        descriptionKey: 'nav.categories.about.links.aboutUs.description',
     },
     {
-        title: 'FAQ',
+        titleKey: 'nav.categories.about.links.faq.title',
         href: Routes.FAQ,
-        description: 'Common questions',
+        descriptionKey: 'nav.categories.about.links.faq.description',
     },
 ];
 
 export interface NavigationCategory {
-    label: string;
+    labelKey: string;
     links: NavigationLink[];
 }
 
 export const NAVIGATION_CATEGORIES: NavigationCategory[] = [
-    { label: 'Product', links: PRODUCT_LINKS },
-    { label: 'Resources', links: RESOURCES_LINKS },
-    { label: 'About', links: ABOUT_LINKS },
+    { labelKey: 'nav.categories.product.label', links: PRODUCT_LINKS },
+    { labelKey: 'nav.categories.resources.label', links: RESOURCES_LINKS },
+    { labelKey: 'nav.categories.about.label', links: ABOUT_LINKS },
 ];

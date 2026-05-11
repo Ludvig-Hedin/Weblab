@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { TabContent, TerminalLine } from '@/components/ui/terminal-animation';
 import {
@@ -18,20 +18,30 @@ import {
 } from '@/components/ui/terminal-animation';
 import { cn } from '@/lib/utils';
 
+// Brand-aligned color tokens for terminal lines.
+// Stick to brand blue + neutral grays — no rainbow.
+const C = {
+    brand: 'text-[hsl(var(--foreground-brand))]',
+    ok: 'text-[hsl(var(--foreground-brand))]',
+    head: 'text-slate-200',
+    mute: 'text-slate-400',
+    faint: 'text-slate-500',
+} as const;
+
 const tabs: TabContent[] = [
     {
         label: 'install',
         command: 'bun install',
         lines: [
             { text: '', delay: 80 },
-            { text: 'added 1,247 packages in 12s', color: 'text-[#6FF7CC]', delay: 400 },
+            { text: 'added 1,247 packages in 12s', color: C.ok, delay: 400 },
             { text: '', delay: 80 },
-            { text: '  +-----------------------+', color: 'text-[#ED42B5]', delay: 120 },
-            { text: '  |        WEBLAB         |', color: 'text-[#ED42B5]', delay: 120 },
-            { text: '  |   Design meets code   |', color: 'text-[#ED42B5]', delay: 120 },
-            { text: '  +-----------------------+', color: 'text-[#ED42B5]', delay: 160 },
+            { text: '  +-----------------------+', color: C.brand, delay: 120 },
+            { text: '  |        WEBLAB         |', color: C.brand, delay: 120 },
+            { text: '  |   Design meets code   |', color: C.brand, delay: 120 },
+            { text: '  +-----------------------+', color: C.brand, delay: 160 },
             { text: '', delay: 80 },
-            { text: '  found 0 vulnerabilities', color: 'text-[#ADFA1F]', delay: 250 },
+            { text: '  found 0 vulnerabilities', color: C.ok, delay: 250 },
         ],
     },
     {
@@ -39,37 +49,37 @@ const tabs: TabContent[] = [
         command: 'bun run build',
         lines: [
             { text: '', delay: 80 },
-            { text: '  ▲ Next.js 16.1.6', color: 'text-slate-300', delay: 300 },
+            { text: '  ▲ Next.js 16.1.6', color: C.head, delay: 300 },
             { text: '', delay: 80 },
             {
                 text: '  Creating an optimized production build...',
-                color: 'text-slate-400',
+                color: C.mute,
                 delay: 250,
             },
-            { text: '  ✓ Compiled successfully', color: 'text-[#6FF7CC]', delay: 200 },
+            { text: '  ✓ Compiled successfully', color: C.ok, delay: 200 },
             {
                 text: '  ✓ Linting and checking validity of types',
-                color: 'text-[#6FF7CC]',
+                color: C.ok,
                 delay: 150,
             },
-            { text: '  ✓ Generating static pages (12/12)', color: 'text-[#6FF7CC]', delay: 150 },
+            { text: '  ✓ Generating static pages (12/12)', color: C.ok, delay: 150 },
             {
                 text: '  Route (app)  /  142 kB  |  First Load JS 198 kB',
-                color: 'text-slate-500',
+                color: C.faint,
                 delay: 150,
             },
             {
                 text: '  Route (app)  /blog 61 kB | First Load JS 57 kB',
-                color: 'text-slate-500',
+                color: C.faint,
                 delay: 150,
             },
             {
                 text: '  Route (app)  /about 75 kB | First Load JS 92 kB',
-                color: 'text-slate-500',
+                color: C.faint,
                 delay: 150,
             },
             { text: '', delay: 80 },
-            { text: '  ✓ Build completed in 4.2s', color: 'text-[#6FF7CC]', delay: 300 },
+            { text: '  ✓ Build completed in 4.2s', color: C.ok, delay: 300 },
         ],
     },
     {
@@ -77,17 +87,17 @@ const tabs: TabContent[] = [
         command: 'weblab deploy --prod',
         lines: [
             { text: '', delay: 80 },
-            { text: '  Weblab CLI 1.6.0', color: 'text-slate-400', delay: 200 },
+            { text: '  Weblab CLI 1.6.0', color: C.mute, delay: 200 },
             { text: '', delay: 80 },
-            { text: '  > Deploying to production...', color: 'text-[#ED42B5]', delay: 300 },
+            { text: '  > Deploying to production...', color: C.brand, delay: 300 },
             { text: '', delay: 80 },
-            { text: '  ✓ Building', color: 'text-[#6FF7CC]', delay: 250 },
-            { text: '  ✓ Uploading', color: 'text-[#6FF7CC]', delay: 200 },
-            { text: '  ✓ Finalizing', color: 'text-[#6FF7CC]', delay: 200 },
+            { text: '  ✓ Building', color: C.ok, delay: 250 },
+            { text: '  ✓ Uploading', color: C.ok, delay: 200 },
+            { text: '  ✓ Finalizing', color: C.ok, delay: 200 },
             { text: '', delay: 80 },
-            { text: '  Production: https://weblab.build', color: 'text-[#ED42B5]', delay: 400 },
+            { text: '  Production: https://weblab.build', color: C.brand, delay: 400 },
             { text: '', delay: 80 },
-            { text: '  ✓ Deployment complete', color: 'text-[#6FF7CC]', delay: 250 },
+            { text: '  ✓ Deployment complete', color: C.ok, delay: 250 },
         ],
     },
     {
@@ -95,115 +105,116 @@ const tabs: TabContent[] = [
         command: 'bun test',
         lines: [
             { text: '', delay: 80 },
-            { text: '  PASS  src/components/Button.test.tsx', color: 'text-slate-400', delay: 200 },
-            { text: '    ✓ renders correctly', color: 'text-[#ADFA1F]', delay: 100 },
-            { text: '    ✓ handles click events', color: 'text-[#ADFA1F]', delay: 100 },
-            { text: '  PASS  src/utils/format.test.ts', color: 'text-slate-400', delay: 150 },
-            { text: '    ✓ formats currency', color: 'text-[#ADFA1F]', delay: 100 },
-            { text: '    ✓ formats dates', color: 'text-[#ADFA1F]', delay: 100 },
+            { text: '  PASS  src/components/Button.test.tsx', color: C.mute, delay: 200 },
+            { text: '    ✓ renders correctly', color: C.ok, delay: 100 },
+            { text: '    ✓ handles click events', color: C.ok, delay: 100 },
+            { text: '  PASS  src/utils/format.test.ts', color: C.mute, delay: 150 },
+            { text: '    ✓ formats currency', color: C.ok, delay: 100 },
+            { text: '    ✓ formats dates', color: C.ok, delay: 100 },
             { text: '', delay: 80 },
-            { text: '  Test Suites: 2 passed, 2 total', color: 'text-[#ADFA1F]', delay: 200 },
-            { text: '  Tests:       4 passed, 4 total', color: 'text-[#ADFA1F]', delay: 150 },
-            { text: '  Time:        1.234 s', color: 'text-slate-500', delay: 100 },
+            { text: '  Test Suites: 2 passed, 2 total', color: C.ok, delay: 200 },
+            { text: '  Tests:       4 passed, 4 total', color: C.ok, delay: 150 },
+            { text: '  Time:        1.234 s', color: C.faint, delay: 100 },
         ],
     },
 ];
 
 export function TerminalSection() {
-    const [animationKey, setAnimationKey] = useState(0);
-
+    const t = useTranslations('landing.terminalSection');
     return (
         <section
-            className="relative flex w-screen flex-col items-center justify-center overflow-hidden py-20 md:py-28"
+            className="bg-background relative flex w-screen items-center justify-center overflow-hidden py-20 md:py-28"
             id="terminal"
         >
-            <div className="mb-12 max-w-2xl px-6 text-center">
-                <h2 className="text-foreground-primary mb-4 text-3xl leading-tight font-light text-balance md:text-4xl">
-                    Real code. Real terminal. Real control.
-                </h2>
-                <p className="text-large text-foreground-secondary leading-relaxed text-balance">
-                    Weblab ships production code you can install, build, test, and deploy from your
-                    own terminal — no lock-in, no black box.
-                </p>
-            </div>
+            <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-6 md:flex-row md:gap-16">
+                {/* Copy — left */}
+                <div className="w-full max-w-md text-left">
+                    <h2 className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                        {t('heading')}
+                    </h2>
+                    <p className="text-foreground-secondary max-w-sm text-base leading-relaxed">
+                        {t('body')}
+                    </p>
+                </div>
 
-            <TerminalAnimationRoot
-                key={animationKey}
-                alwaysDark={true}
-                className="relative flex w-full justify-center overflow-hidden"
-                defaultActiveTab={1}
-                hideCursorOnComplete={false}
-                tabs={tabs}
-            >
-                <TerminalAnimationBackgroundGradient />
-                <button
-                    className="absolute top-4 right-4 z-20 rounded-md border border-white/25 bg-black/45 px-3 py-1.5 font-mono text-[11px] tracking-wide text-white/90 uppercase transition hover:bg-black/65"
-                    onClick={() => setAnimationKey((prev) => prev + 1)}
-                    type="button"
-                >
-                    Replay
-                </button>
-                <TerminalAnimationContainer className="max-w-[43rem]">
-                    <TerminalAnimationWindow className="outline-1 outline-offset-[2px] outline-white/30">
-                        <TerminalAnimationContent className="min-h-[26rem]">
-                            <div className="flex items-center gap-2 leading-relaxed">
-                                <span className="text-muted-foreground font-mono text-[10px] select-none md:text-sm">
-                                    $
-                                </span>
-                                <TerminalAnimationCommandBar
-                                    className="text-foreground font-mono text-[10px] md:text-sm"
-                                    cursor={<TerminalAnimationBlinkingCursor />}
-                                />
-                            </div>
+                {/* Terminal — right */}
+                <div className="w-full flex-1">
+                    <TerminalAnimationRoot
+                        alwaysDark={true}
+                        className="relative flex w-full justify-center"
+                        defaultActiveTab={0}
+                        hideCursorOnComplete={false}
+                        loopTabs={true}
+                        tabs={tabs}
+                    >
+                        <TerminalAnimationBackgroundGradient />
+                        <TerminalAnimationContainer className="max-w-[43rem] px-0">
+                            <TerminalAnimationWindow className="border-white/10 outline-1 outline-offset-[2px] outline-white/10">
+                                <TerminalAnimationContent className="min-h-[24rem]">
+                                    <div className="flex items-center gap-2 leading-relaxed">
+                                        <span className="font-mono text-[10px] text-slate-500 select-none md:text-sm">
+                                            $
+                                        </span>
+                                        <TerminalAnimationCommandBar
+                                            className="font-mono text-[10px] text-slate-100 md:text-sm"
+                                            cursor={<TerminalAnimationBlinkingCursor />}
+                                        />
+                                    </div>
 
-                            <TerminalAnimationOutput
-                                className="mt-1"
-                                renderLine={(line: TerminalLine, _i: number, visible: boolean) => {
-                                    if (!visible) {
-                                        return null;
-                                    }
-                                    return (
-                                        <div className="leading-relaxed">
-                                            <span
+                                    <TerminalAnimationOutput
+                                        className="mt-1"
+                                        renderLine={(
+                                            line: TerminalLine,
+                                            _i: number,
+                                            visible: boolean,
+                                        ) => {
+                                            if (!visible) {
+                                                return null;
+                                            }
+                                            return (
+                                                <div className="leading-relaxed">
+                                                    <span
+                                                        className={cn(
+                                                            'font-mono text-[10px] md:text-sm',
+                                                            line.color ?? 'text-slate-400',
+                                                        )}
+                                                    >
+                                                        {line.text || ' '}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }}
+                                    />
+                                    <TerminalAnimationTrailingPrompt className="mt-1 flex items-center gap-2 leading-relaxed">
+                                        <span className="font-mono text-sm text-slate-500 select-none">
+                                            $
+                                        </span>
+                                        <TerminalAnimationBlinkingCursor />
+                                    </TerminalAnimationTrailingPrompt>
+                                </TerminalAnimationContent>
+
+                                <div className="flex justify-center pb-6">
+                                    <TerminalAnimationTabList className="inline-flex items-center gap-0 rounded-lg border border-white/10 bg-white/5 px-1 py-1">
+                                        {tabs.map((tab, i) => (
+                                            <TerminalAnimationTabTrigger
                                                 className={cn(
-                                                    'font-mono text-[10px] md:text-sm',
-                                                    line.color ?? 'text-muted-foreground',
+                                                    'cursor-pointer rounded-md px-3.5 py-1 font-mono text-xs transition-all duration-150 md:text-sm',
+                                                    'data-[state=active]:bg-white data-[state=active]:font-medium data-[state=active]:text-slate-900',
+                                                    'data-[state=inactive]:text-slate-400 data-[state=inactive]:hover:text-slate-200',
                                                 )}
+                                                index={i}
+                                                key={tab.label}
                                             >
-                                                {line.text || ' '}
-                                            </span>
-                                        </div>
-                                    );
-                                }}
-                            />
-                            <TerminalAnimationTrailingPrompt className="mt-1 flex items-center gap-2 leading-relaxed">
-                                <span className="text-muted-foreground font-mono text-sm select-none">
-                                    $
-                                </span>
-                                <TerminalAnimationBlinkingCursor />
-                            </TerminalAnimationTrailingPrompt>
-                        </TerminalAnimationContent>
-
-                        <div className="flex justify-center pb-6">
-                            <TerminalAnimationTabList className="border-border bg-muted/50 inline-flex items-center gap-0 rounded-lg border px-1 py-1">
-                                {tabs.map((tab, i) => (
-                                    <TerminalAnimationTabTrigger
-                                        className={cn(
-                                            'cursor-pointer rounded-md px-3.5 py-1 font-mono text-sm transition-all duration-150',
-                                            'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-medium',
-                                            'data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground',
-                                        )}
-                                        index={i}
-                                        key={tab.label}
-                                    >
-                                        {tab.label}
-                                    </TerminalAnimationTabTrigger>
-                                ))}
-                            </TerminalAnimationTabList>
-                        </div>
-                    </TerminalAnimationWindow>
-                </TerminalAnimationContainer>
-            </TerminalAnimationRoot>
+                                                {tab.label}
+                                            </TerminalAnimationTabTrigger>
+                                        ))}
+                                    </TerminalAnimationTabList>
+                                </div>
+                            </TerminalAnimationWindow>
+                        </TerminalAnimationContainer>
+                    </TerminalAnimationRoot>
+                </div>
+            </div>
         </section>
     );
 }

@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
-
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,24 +8,12 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Download', path: '/download' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Download ${APP_NAME} | Mac, Windows, Linux & iOS`,
-    description: `Get the ${APP_NAME} desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.`,
-    openGraph: {
-        title: `Download ${APP_NAME}`,
-        description: `Get ${APP_NAME} on macOS, Windows, Linux, and iOS.`,
-        type: 'website',
-        url: `https://${APP_DOMAIN}/download`,
-        siteName: APP_NAME,
-    },
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/download`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-    },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'download',
+        path: '/download',
+    });
+}
 
 export default function DownloadLayout({ children }: { children: React.ReactNode }) {
     return (

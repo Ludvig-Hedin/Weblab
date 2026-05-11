@@ -27,6 +27,7 @@ import {
     DropdownMenuTrigger,
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
+import { Skeleton } from '@weblab/ui/skeleton';
 
 import type { StaticTemplate } from '../templates/static-templates';
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';
@@ -623,11 +624,30 @@ export const SelectProject = ({
     };
 
     if (isLoading) {
+        // Render skeleton tiles in the grid container so the search bar / nav
+        // already on screen don't disappear during the initial fetch. The
+        // viewport-filling spinner caused a jarring layout swap for returning
+        // users who otherwise saw their projects appear in place.
         return (
-            <div className="flex h-screen w-screen flex-col items-center justify-center">
-                <div className="flex flex-row items-center gap-2">
-                    <Icons.LoadingSpinner className="text-foreground-primary h-6 w-6 animate-spin" />
-                    <div className="text-foreground-secondary text-lg">Loading projects...</div>
+            <div className="mx-auto w-full max-w-6xl px-6 py-8">
+                <div className="mb-6 flex flex-col gap-4">
+                    <div className="h-9 w-32">
+                        <Skeleton className="h-full w-full rounded-md" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="flex flex-col gap-3 p-1.5">
+                            <Skeleton className="aspect-[4/2.75] w-full rounded-xl" />
+                            <div className="flex items-start justify-between gap-3 px-1">
+                                <div className="flex flex-col gap-2">
+                                    <Skeleton className="h-4 w-32 rounded-sm" />
+                                    <Skeleton className="h-3 w-24 rounded-sm" />
+                                </div>
+                                <Skeleton className="h-3 w-12 rounded-sm" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -723,15 +743,21 @@ export const SelectProject = ({
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                                onClick={() => setShowCreateFolderDialog(true)}
-                            >
-                                <Icons.MoveToFolder className="h-4 w-4" />
-                                Create folder
-                            </Button>
+                            {/* Folder controls are noise until the user has
+                                enough projects to want organisation. Surfacing
+                                them at 0–2 projects encourages making empty
+                                folders the user then can't fill. */}
+                            {projects.length >= 3 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
+                                    onClick={() => setShowCreateFolderDialog(true)}
+                                >
+                                    <Icons.MoveToFolder className="h-4 w-4" />
+                                    Create folder
+                                </Button>
+                            )}
 
                             <Button
                                 variant="ghost"

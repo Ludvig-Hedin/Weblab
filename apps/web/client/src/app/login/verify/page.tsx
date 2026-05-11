@@ -181,10 +181,15 @@ export default function VerifyPage() {
     }
 
     // While we hydrate the email from sessionStorage on mount, avoid rendering
-    // a description that interpolates an empty string. The mount effect either
-    // sets the email or redirects, so this null state is brief.
+    // a description that interpolates an empty string. Show a spinner instead
+    // of `return null` so the user doesn't see a blank white viewport between
+    // the navigation and the OTP form mount.
     if (email === null) {
-        return null;
+        return (
+            <div className="flex h-screen w-screen items-center justify-center">
+                <Icons.LoadingSpinner className="text-foreground-secondary h-6 w-6 animate-spin" />
+            </div>
+        );
     }
 
     return (

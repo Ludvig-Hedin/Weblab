@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { observer } from 'mobx-react-lite';
@@ -61,6 +62,8 @@ export const Create = observer(
     }) => {
         const createManager = useCreateManager();
         const router = useRouter();
+        const t = useTranslations('landing.hero.create');
+        const tSteps = useTranslations('projects.actions');
 
         const { setIsAuthModalOpen } = useAuthContext();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -139,7 +142,7 @@ export const Create = observer(
                     const description =
                         createManager.error ??
                         (error instanceof Error ? error.message : String(error));
-                    toast.error('Failed to create project', { description });
+                    toast.error(t('failedToCreate'), { description });
                     setIsCreatingProject(false);
                 }
             },
@@ -331,6 +334,14 @@ export const Create = observer(
         };
 
         const handleSuggestionClick = (suggestion: CreateSuggestion) => {
+            // Don't silently nuke a half-typed prompt when the user mis-clicks
+            // a chip. Confirm overwrite once they've typed more than a few
+            // characters — the threshold avoids prompting for an accidental
+            // letter or whitespace.
+            if (inputValue.trim().length > 6) {
+                const proceed = window.confirm(t('replacePromptConfirm'));
+                if (!proceed) return;
+            }
             setInputValue(suggestion.prompt);
             requestAnimationFrame(() => {
                 const textarea = textareaRef.current;
@@ -353,11 +364,11 @@ export const Create = observer(
         const showCreationOverlay = isCreatingProject;
         const creationSteps = [
             {
-                label: 'Setting up your workspace',
+                label: tSteps('preparingWorkspace'),
                 ready: phase === 'creating-project' || phase === 'opening-editor',
             },
-            { label: 'Saving your project', ready: phase === 'opening-editor' },
-            { label: 'Opening the editor', ready: false },
+            { label: tSteps('creatingProject'), ready: phase === 'opening-editor' },
+            { label: tSteps('openingEditor'), ready: false },
         ];
 
         const handleRetry = () => {
@@ -369,8 +380,8 @@ export const Create = observer(
                 {showCreationOverlay && (
                     <ProjectCreationLoader
                         overlay
-                        heading="Getting your site ready"
-                        caption="Your prompt is saved. The AI will start building as soon as the editor loads."
+                        heading={t('overlayHeading')}
+                        caption={t('overlayCaption')}
                         steps={creationSteps}
                     />
                 )}
@@ -382,7 +393,7 @@ export const Create = observer(
                         requestAnimationFrame(adjustTextareaHeight);
                     }}
                     onSubmit={handleSubmit}
-                    placeholder="Describe what you want to build"
+                    placeholder={t('promptPlaceholder')}
                     variant={variant}
                     textareaRef={textareaRef}
                     isSubmitting={isCreatingProject}
@@ -430,7 +441,7 @@ export const Create = observer(
                             aria-live="polite"
                         />
                     }
-                    submitTooltip={!user?.id ? 'Sign in to start building' : undefined}
+                    submitTooltip={!user?.id ? t('signInTooltip') : undefined}
                     leftControls={
                         <div className="flex items-center gap-1">
                             <ModelSelector

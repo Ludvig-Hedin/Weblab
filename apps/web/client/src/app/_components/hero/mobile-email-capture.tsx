@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 
 import { Button } from '@weblab/ui/button';
@@ -22,6 +23,7 @@ const MEASUREMENT_DELAY = 100; // ms - delay for DOM measurement
 const SUCCESS_TIMEOUT = 7000; // ms - how long to show success message
 
 export function MobileEmailCapture() {
+    const t = useTranslations('landing.hero.mobileEmailCapture');
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [containerHeight, setContainerHeight] = useState<number>(140); // Increased default height for notification
     const notificationRef = useRef<HTMLDivElement>(null);
@@ -105,12 +107,12 @@ export function MobileEmailCapture() {
         e.preventDefault();
 
         if (!formData.name.trim() || !formData.email.trim()) {
-            setError('Please fill in all fields');
+            setError(t('errors.missingFields'));
             return;
         }
 
         if (!isValidEmail(formData.email)) {
-            setError('Please enter a valid email address');
+            setError(t('errors.invalidEmail'));
             return;
         }
 
@@ -169,16 +171,16 @@ export function MobileEmailCapture() {
 
             if (error instanceof Error) {
                 if (error.name === 'AbortError') {
-                    setError('Request timed out. Please check your connection and try again.');
+                    setError(t('errors.timeout'));
                 } else if (error.message.includes('Server error')) {
-                    setError('Server error. Please try again in a moment.');
+                    setError(t('errors.server'));
                 } else if (error.message.includes('Failed to fetch')) {
-                    setError('Network error. Please check your connection and try again.');
+                    setError(t('errors.network'));
                 } else {
-                    setError('Failed to submit form. Please try again.');
+                    setError(t('errors.submit'));
                 }
             } else {
-                setError('An unexpected error occurred. Please try again.');
+                setError(t('errors.generic'));
             }
         } finally {
             setIsSubmitting(false);
@@ -339,14 +341,14 @@ export function MobileEmailCapture() {
                     ref={notificationRef}
                 >
                     <div className="xs:text-lg text-foreground-secondary my-2 px-2 text-center text-base font-light">
-                        Weblab is optimized for larger screens
+                        {t('notification')}
                     </div>
                     <Button
                         size="sm"
                         onClick={handleShowEmailForm}
                         className="bg-foreground-primary text-background-primary hover:bg-foreground-hover hover:text-background-primary xs:text-lg h-auto w-full py-3 text-base leading-tight whitespace-normal"
                     >
-                        Email me a link for later
+                        {t('cta')}
                     </Button>
                 </motion.div>
             ) : (
@@ -371,14 +373,14 @@ export function MobileEmailCapture() {
                         >
                             <Icons.Check className="size-8" />
                             <div className="text-foreground-secondary xs:text-lg w-full px-2 text-base font-light">
-                                Thanks, an email to use Weblab has been sent to you!
+                                {t('success')}
                             </div>
                         </motion.div>
                     ) : (
                         <>
                             <div className="text-foreground-secondary xs:text-base w-full px-1 text-left text-sm font-light">
                                 <h3 className="xs:text-base text-foreground-primary text-sm font-medium break-words">
-                                    Email me a link to Weblab
+                                    {t('formTitle')}
                                 </h3>
                             </div>
 
@@ -388,13 +390,13 @@ export function MobileEmailCapture() {
                                         htmlFor="name"
                                         className="text-foreground-secondary text-xs"
                                     >
-                                        Name
+                                        {t('nameLabel')}
                                     </label>
                                     <Input
                                         ref={nameInputRef}
                                         id="name"
                                         type="text"
-                                        placeholder="Pablo Picasso"
+                                        placeholder={t('namePlaceholder')}
                                         value={formData.name}
                                         onChange={(e) => handleInputChange('name', e.target.value)}
                                         onKeyDown={handleNameKeyDown}
@@ -409,13 +411,13 @@ export function MobileEmailCapture() {
                                         htmlFor="email"
                                         className="text-foreground-secondary text-xs"
                                     >
-                                        Email
+                                        {t('emailLabel')}
                                     </label>
                                     <Input
                                         ref={emailInputRef}
                                         id="email"
                                         type="email"
-                                        placeholder="Enter your email"
+                                        placeholder={t('emailPlaceholder')}
                                         value={formData.email}
                                         onChange={(e) => handleInputChange('email', e.target.value)}
                                         onKeyDown={handleEmailKeyDown}
@@ -479,7 +481,7 @@ export function MobileEmailCapture() {
                                         className="bg-foreground-primary text-background-primary hover:bg-foreground-hover hover:text-background-primary xs:h-10 xs:text-sm h-9 min-w-0 flex-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <span className="truncate">
-                                            {isSubmitting ? 'Submitting...' : 'Email me a link'}
+                                            {isSubmitting ? t('submitting') : t('submit')}
                                         </span>
                                     </Button>
                                 </div>

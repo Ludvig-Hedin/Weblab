@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const mockDivs = [
     { id: 1, label: 'Header', codeLines: [2, 3] },
@@ -58,14 +61,15 @@ function highlightCode(line: string) {
 
 export function CodeOneToOneSection() {
     const [selectedDiv, setSelectedDiv] = useState<number | null>(null);
+    const t = useTranslations('landing.codeOneToOne');
 
     return (
         <section className="relative mx-auto flex min-h-[480px] w-full max-w-6xl justify-center bg-transparent px-8">
             <div className="pointer-events-none absolute top-0 left-0 z-10 mx-auto w-full max-w-6xl">
-                <h2 className="ml-12 max-w-4xl text-left text-[4vw] leading-[1.1] font-light text-white drop-shadow-xl">
-                    Truly one-to-one
+                <h2 className="heading-style-h2 ml-12 max-w-4xl text-left text-white drop-shadow-xl">
+                    {t('headingLine1')}
                     <br />
-                    with code
+                    {t('headingLine2')}
                 </h2>
             </div>
             <div

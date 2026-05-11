@@ -669,6 +669,39 @@
     --radius-xl: calc(var(--radius) + 0.25rem);
     --radius-2xl: calc(var(--radius) + 0.5rem);
     --radius-3xl: calc(var(--radius) + 1rem);
+
+    /*
+     * Motion tokens
+     * Durations: instant=75ms · fast=150ms · base=200ms · slow=300ms · slower=500ms · slowest=700ms
+     * Easing: standard product motion (in-out), entrance (out), exit (in), spring-like (back)
+     * Use via Tailwind `duration-*` / `ease-*` arbitrary utilities, e.g.
+     *   `duration-[var(--motion-fast)] ease-[var(--motion-standard)]`
+     * Or via the named scale below (mapped through Tailwind v4 theme).
+     */
+    --motion-instant: 75ms;
+    --motion-fast: 150ms;
+    --motion-base: 200ms;
+    --motion-slow: 300ms;
+    --motion-slower: 500ms;
+    --motion-slowest: 700ms;
+
+    --motion-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-entrance: cubic-bezier(0, 0, 0.2, 1);
+    --motion-exit: cubic-bezier(0.4, 0, 1, 1);
+    --motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Tailwind v4 named-scale bindings: `duration-fast`, `ease-standard`, etc. */
+    --duration-instant: var(--motion-instant);
+    --duration-fast: var(--motion-fast);
+    --duration-base: var(--motion-base);
+    --duration-slow: var(--motion-slow);
+    --duration-slower: var(--motion-slower);
+    --duration-slowest: var(--motion-slowest);
+
+    --ease-standard: var(--motion-standard);
+    --ease-entrance: var(--motion-entrance);
+    --ease-exit: var(--motion-exit);
+    --ease-spring: var(--motion-spring);
 }
 
 @layer base {

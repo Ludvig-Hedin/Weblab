@@ -1,30 +1,44 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
-import { ButtonLink } from '../button-link';
 import { AiChatInteractive } from '../shared/mockups/ai-chat-interactive';
 import { DirectEditingInteractive } from '../shared/mockups/direct-editing-interactive';
 import { TailwindColorEditorMockup } from '../shared/mockups/tailwind-color-editor';
 
+const GUARDRAIL_FEATURES = [
+    'autoLayout',
+    'borders',
+    'margins',
+    'imageBackgrounds',
+    'typography',
+    'padding',
+    'gradients',
+    'cornerRadii',
+] as const;
+
 export function AiBenefitsSection() {
+    const t = useTranslations('landing.aiBenefits') as (key: string) => string;
+    const tFeatures = useTranslations('landing.benefits.guardrails.features') as (
+        key: string,
+    ) => string;
+
     return (
-        <div className="mx-auto w-full max-w-6xl px-8 py-32 lg:py-64">
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32 lg:py-64">
             <div className="space-y-24">
                 <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
-                            AI Code Generation for Designers
+                        <h2 className="heading-style-h6 text-foreground-secondary mb-4">
+                            {t('codeGen.eyebrow')}
                         </h2>
-                        <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
-                            Build Production-Ready Apps with Natural Language
+                        <p className="heading-style-h4 text-foreground-primary mb-6">
+                            {t('codeGen.headline')}
                         </p>
                         <p className="text-foreground-secondary text-regular mb-8 max-w-xl text-balance">
-                            Describe what you want in plain text and watch AI create fully
-                            functional web applications with real databases, user authentication,
-                            and interactive features - not just static mockups or prototypes.
+                            {t('codeGen.body')}
                         </p>
                     </div>
                     <div className="order-1 lg:order-2">
@@ -34,17 +48,14 @@ export function AiBenefitsSection() {
 
                 <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
-                            Visual AI Design Tools
+                        <h2 className="heading-style-h6 text-foreground-secondary mb-4">
+                            {t('collaborate.eyebrow')}
                         </h2>
-                        <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
-                            Collaborate with AI on a Visual Canvas
+                        <p className="heading-style-h4 text-foreground-primary mb-6">
+                            {t('collaborate.headline')}
                         </p>
                         <p className="text-foreground-secondary text-regular mb-8 max-w-xl text-balance">
-                            Select any element and choose to edit it yourself or work together with
-                            AI. Unlike pure chat-based tools, you maintain full visual control while
-                            AI assists with the heavy lifting, creating a seamless collaboration
-                            between human creativity and AI capability.
+                            {t('collaborate.body')}
                         </p>
                     </div>
                     <div className="order-1 lg:order-2">
@@ -54,54 +65,31 @@ export function AiBenefitsSection() {
 
                 <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
-                            AI Design System Management
+                        <h2 className="heading-style-h6 text-foreground-secondary mb-4">
+                            {t('system.eyebrow')}
                         </h2>
-                        <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
-                            Maintain Design System Consistency
+                        <p className="heading-style-h4 text-foreground-primary mb-6">
+                            {t('system.headline')}
                         </p>
                         <p className="text-foreground-secondary text-regular mb-6 max-w-xl text-balance">
-                            AI automatically applies your brand guidelines, component patterns, and
-                            design tokens to ensure every element stays on-brand and consistent
-                            across your entire application, eliminating design drift and maintaining
-                            professional polish.
+                            {t('system.body')}
                         </p>
                         <div className="text-foreground-secondary text-regular mb-8 grid grid-cols-2 gap-8">
                             <div className="flex flex-col gap-4">
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Auto Layout & Flexbox</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Borders</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Margins</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Image backgrounds</span>
-                                </div>
+                                {GUARDRAIL_FEATURES.slice(0, 4).map((key) => (
+                                    <div key={key} className="flex items-center gap-2">
+                                        <Icons.CheckCircled className="h-5 w-5" />
+                                        <span>{tFeatures(key)}</span>
+                                    </div>
+                                ))}
                             </div>
                             <div className="flex flex-col gap-4">
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Typography</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Padding</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Gradients</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Icons.CheckCircled className="h-5 w-5" />
-                                    <span>Corner Radii</span>
-                                </div>
+                                {GUARDRAIL_FEATURES.slice(4).map((key) => (
+                                    <div key={key} className="flex items-center gap-2">
+                                        <Icons.CheckCircled className="h-5 w-5" />
+                                        <span>{tFeatures(key)}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

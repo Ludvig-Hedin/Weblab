@@ -1,0 +1,1933 @@
+{
+    "cms": {
+        "topBar": {
+            "tooltip": "CMS"
+        },
+        "workspace": {
+            "closeCms": "Stäng CMS",
+            "tabs": {
+                "collections": "Samlingar",
+                "fields": "Fält",
+                "sources": "Källor"
+            }
+        },
+        "collections": {
+            "sidebarTitle": "Samlingar",
+            "addCollection": "Lägg till samling",
+            "loading": "Läser in…",
+            "emptySidebar": "Inga samlingar än.",
+            "newCollection": "Ny samling",
+            "hint": "Välj en samling för att se dess innehåll.",
+            "create": {
+                "title": "Ny samling",
+                "description": "Samlingar grupperar objekt med samma struktur – t.ex. blogginlägg, dokument, teammedlemmar.",
+                "name": "Namn",
+                "namePlaceholder": "Blogginlägg",
+                "slug": "Slug",
+                "slugPlaceholder": "blogginlagg",
+                "slugHelp": "Används i URL:er och bindningar. Små bokstäver, siffror och bindestreck.",
+                "descriptionLabel": "Beskrivning (valfritt)",
+                "cancel": "Avbryt",
+                "create": "Skapa",
+                "success": "Samlingen skapades",
+                "nameRequired": "Samlingen måste ha ett namn",
+                "failed": "Det gick inte att skapa samlingen"
+            }
+        },
+        "items": {
+            "count": "{count, plural, =1 {# objekt} other {# objekt}}",
+            "editFields": "Redigera fält",
+            "newItem": "Nytt objekt",
+            "addFieldsFirst": "Lägg till minst ett fält i samlingen först",
+            "columnTitle": "Titel",
+            "columnSlug": "Slug",
+            "columnStatus": "Status",
+            "columnUpdated": "Uppdaterad",
+            "untitled": "Utan titel",
+            "noFieldsTitle": "Inga fält än",
+            "noFieldsBody": "Lägg till fält i samlingen så att objekten har något att fyllas med.",
+            "addFields": "Lägg till fält",
+            "noItemsTitle": "Inga objekt än",
+            "noItemsBody": "Lägg till ditt första objekt – det dyker upp här."
+        },
+        "itemEditor": {
+            "headerNew": "Nytt {name}-objekt",
+            "headerEdit": "Redigera objekt",
+            "slug": "Slug",
+            "slugAuto": "auto",
+            "cancel": "Avbryt",
+            "saveDraft": "Spara utkast",
+            "publish": "Publicera",
+            "successCreated": "Objektet skapades",
+            "successUpdated": "Objektet uppdaterades",
+            "failed": "Det gick inte att spara objektet"
+        },
+        "fields": {
+            "needCollection": "Välj en samling under fliken Samlingar för att redigera dess fält.",
+            "back": "Tillbaka",
+            "title": "{name} – Fält",
+            "addField": "Lägg till fält",
+            "emptyTitle": "Inga fält än",
+            "emptyBody": "Lägg till fält för att definiera strukturen på objekten i samlingen – Titel, Slug, Datum, Bild och så vidare.",
+            "requiredSuffix": "obligatoriskt",
+            "addDialog": {
+                "title": "Lägg till fält",
+                "name": "Namn",
+                "namePlaceholder": "Titel",
+                "key": "Nyckel",
+                "keyHelp": "Används i bindningar – t.ex. {example}.",
+                "type": "Typ",
+                "help": "Hjälptext (valfritt)",
+                "required": "Obligatoriskt",
+                "cancel": "Avbryt",
+                "add": "Lägg till fält",
+                "success": "Fältet lades till",
+                "nameRequired": "Fältet måste ha ett namn",
+                "failed": "Det gick inte att lägga till fältet"
+            },
+            "types": {
+                "text": "Text",
+                "rich_text": "Formaterad text",
+                "number": "Tal",
+                "boolean": "Växla",
+                "date": "Datum",
+                "image": "Bild",
+                "slug": "Slug",
+                "option": "Alternativ",
+                "reference": "Referens"
+            }
+        },
+        "sources": {
+            "title": "Källor",
+            "connectSource": "Anslut källa",
+            "connectSourceTooltip": "Externa källor kommer snart",
+            "empty": "Inga källor än. Lägg till en samling för att skapa Weblabs standardkälla.",
+            "weblab": "Weblab CMS",
+            "payload": "Payload",
+            "strapi": "Strapi",
+            "rest": "Generisk REST",
+            "mapButton": "Mappa",
+            "refresh": "Uppdatera",
+            "refreshing": "Uppdaterar…",
+            "refreshDonePrefix": "Synkade",
+            "refreshDoneSuffix": "objekt",
+            "refreshFailed": "Uppdateringen misslyckades",
+            "deleteConfirm": "Koppla från källan? Samlingar som använder den behöver en ny källa först.",
+            "deleted": "Källan frånkopplad",
+            "deleteFailed": "Det gick inte att koppla från källan",
+            "connect": {
+                "title": "Anslut en CMS-källa",
+                "description": "Hämta innehåll från ett externt CMS in i Weblab. Objekten synkas till ditt projekt och beter sig som inbyggda.",
+                "nameLabel": "Visningsnamn",
+                "namePlaceholder": "Marknads-CMS",
+                "nameRequired": "Ge källan ett visningsnamn",
+                "baseUrl": "Bas-URL",
+                "apiKey": "API-nyckel",
+                "apiToken": "API-token",
+                "payloadUsersSlug": "Slug för användarsamlingen",
+                "payloadCollections": "Slug för samlingar",
+                "payloadCollectionsHelp": "Kommaseparerad. Lämna tom för att upptäcka automatiskt.",
+                "strapiTypes": "Pluralnamn för innehållstyper",
+                "strapiTypesHelp": "Kommaseparerade, t.ex. blog-posts,authors.",
+                "restApiKey": "API-nyckel",
+                "restEndpoints": "Ändpunkter",
+                "restEndpointsHelp": "JSON-array med {name,path}. Varje post mappas till en Weblab-samling.",
+                "testButton": "Testa anslutning",
+                "testOk": "Anslutningen fungerar",
+                "testFailed": "Anslutningen misslyckades",
+                "testFirst": "Testa anslutningen innan du sparar",
+                "saveButton": "Spara och fortsätt",
+                "cancel": "Avbryt",
+                "created": "Källan ansluten",
+                "failed": "Det gick inte att spara källan"
+            },
+            "map": {
+                "title": "Mappa externa samlingar",
+                "description": "Välj hur varje extern samling ska mappas till Weblab.",
+                "loading": "Söker efter externa samlingar…",
+                "empty": "Hittade inga samlingar. Kontrollera källans inställningar och försök igen.",
+                "createNew": "Skapa ny: {name}",
+                "skip": "Hoppa över",
+                "inferredFields": "fält identifierade",
+                "confirm": "Bekräfta och synka",
+                "cancel": "Avbryt",
+                "nothingToMap": "Välj minst en samling att mappa",
+                "success": "Samlingarna mappades och synkades",
+                "failed": "Mappningen misslyckades"
+            }
+        },
+        "bind": {
+            "contextMenu": "Bind till CMS…",
+            "title": "Bind till CMS",
+            "description": "Ersätt elementets innehåll med ett värde från ditt CMS vid förhandsgranskning.",
+            "collection": "Samling",
+            "collectionEmpty": "Inga samlingar än",
+            "collectionPick": "Välj en samling",
+            "field": "Fält",
+            "fieldPickFirst": "Välj en samling först",
+            "fieldEmpty": "Den här samlingen har inga fält",
+            "fieldPick": "Välj ett fält",
+            "sourceLabel": "Källa",
+            "sourceItem": "Specifikt objekt",
+            "sourceFirst": "Första objektet i samlingen",
+            "sourcePage": "Aktuellt objekt från sidan",
+            "sourcePageDisabled": "Skapa en detaljsida för samlingen först",
+            "item": "Objekt",
+            "itemEmpty": "Den här samlingen har inga objekt än",
+            "itemPick": "Välj ett objekt",
+            "cancel": "Avbryt",
+            "bind": "Bind",
+            "update": "Uppdatera",
+            "remove": "Ta bort bindning",
+            "successSaved": "Bindningen sparades",
+            "successRemoved": "Bindningen togs bort",
+            "failed": "Det gick inte att spara bindningen",
+            "removeFailed": "Det gick inte att ta bort bindningen",
+            "pickAll": "Välj samling och fält",
+            "pickItem": "Välj ett objekt eller byt till ”Första matchande objekt”",
+            "repeat": {
+                "title": "Konfigurera lista",
+                "description": "Det här elementet upprepas en gång per objekt i samlingen.",
+                "collection": "Samling",
+                "sortField": "Sortera efter",
+                "sortNone": "Standardordning",
+                "sortDirection": "Riktning",
+                "sortAsc": "Stigande",
+                "sortDesc": "Fallande",
+                "limit": "Gräns",
+                "limitPlaceholder": "Alla objekt",
+                "limitHelp": "Lämna tomt för att visa alla objekt.",
+                "pickCollection": "Välj en samling för listan",
+                "invalidLimit": "Gränsen måste vara ett heltal större än noll"
+            },
+            "current": {
+                "title": "Bind till aktuellt objekt",
+                "description": "Elementet ligger i en lista. Välj vilket fält i aktuellt objekt som ska visas.",
+                "inheritedCollectionPrefix": "Objekten kommer från",
+                "inheritedUnknown": "Den överordnade listans samling är inte konfigurerad än.",
+                "parentNotConfigured": "Konfigurera den överordnade listans samling först och kom sedan tillbaka för att binda elementet.",
+                "pickField": "Välj ett fält"
+            }
+        },
+        "list": {
+            "contentSection": "Innehåll"
+        },
+        "filters": {
+            "title": "Filter",
+            "add": "Lägg till filter",
+            "remove": "Ta bort filter",
+            "empty": "Inga filter. Listan visar alla objekt.",
+            "fieldPlaceholder": "Välj ett fält",
+            "opEq": "är",
+            "opNeq": "är inte",
+            "opBefore": "före",
+            "opAfter": "efter",
+            "opContains": "innehåller",
+            "opStartsWith": "börjar med",
+            "opIsSet": "är ifyllt",
+            "opIsUnset": "är tomt"
+        },
+        "routing": {
+            "title": "Detaljsida",
+            "openButton": "Routing",
+            "noneTitle": "Ingen detaljsida än",
+            "noneBody": "Markera en sida (t.ex. /blog/[slug]) som detaljsida för samlingen så att varje objekt får en egen URL.",
+            "currentBody": "Objekten i samlingen visas på {path}, matchade på fältet {field}.",
+            "pagePathLabel": "Sidsökväg",
+            "pagePathPlaceholder": "/blog/[slug]",
+            "pagePathHelp": "Använd hakparenteser för dynamiska segment, t.ex. /blog/[slug].",
+            "matchFieldLabel": "Matchningsfält",
+            "matchFieldHelp": "Fältet vars värde fyller det dynamiska segmentet.",
+            "save": "Spara",
+            "remove": "Ta bort",
+            "saved": "Detaljsidan sparades",
+            "removed": "Detaljsidan togs bort",
+            "saveFailed": "Det gick inte att spara detaljsidan",
+            "removeFailed": "Det gick inte att ta bort detaljsidan",
+            "pickFieldFirst": "Lägg till ett fält i samlingen innan du mappar en detaljsida",
+            "previewItemLabel": "Förhandsgranska som",
+            "previewItemPlaceholder": "Välj ett objekt att förhandsgranska"
+        }
+    },
+    "projects": {
+        "create": {
+            "settings": {
+                "title": "Inställningar",
+                "tooltip": "Konfigurera inställningar för nytt projekt"
+            },
+            "success": "Projektet skapades.",
+            "steps": {
+                "count": "{current} av {total}",
+                "error": "Projektdata saknas."
+            },
+            "methods": {
+                "new": "Skapa nytt projekt",
+                "load": "Ladda befintligt projekt"
+            },
+            "loading": {
+                "title": "Förbereder ditt nya projekt…",
+                "description": "Det här tar några sekunder",
+                "cancel": "Avbryt"
+            },
+            "error": {
+                "title": "Kunde inte skapa din Weblab-app",
+                "backToPrompt": "Tillbaka till prompten"
+            }
+        },
+        "select": {
+            "empty": "Inga projekt hittades",
+            "sort": {
+                "recent": "Senast uppdaterade",
+                "name": "Projektnamn"
+            },
+            "lastEdited": "Senast redigerad för {time} sedan"
+        },
+        "actions": {
+            "import": "Importera projekt",
+            "close": "Stäng",
+            "about": "Om Weblab",
+            "signOut": "Logga ut",
+            "editApp": "Redigera app",
+            "projectSettings": "Projektinställningar",
+            "showInExplorer": "Visa i Utforskaren",
+            "renameProject": "Byt namn på projekt",
+            "deleteProject": "Ta bort projekt",
+            "cloneProject": "Klona projekt",
+            "cancel": "Avbryt",
+            "delete": "Ta bort",
+            "rename": "Byt namn",
+            "clone": "Klona",
+            "goToAllProjects": "Till alla projekt",
+            "newProject": "Nytt projekt",
+            "blankProject": "Skapa projekt",
+            "startFromScratch": "Börja från noll",
+            "importProject": "Importera ett projekt",
+            "subscriptions": "Prenumerationer",
+            "settings": "Inställningar",
+            "downloadCode": "Ladda ner kod",
+            "downloadingCode": "Förbereder nedladdning...",
+            "downloadSuccess": "Nedladdningen startade",
+            "downloadError": "Det gick inte att förbereda nedladdningen",
+            "downloadToFolder": "Ladda ner till mapp…",
+            "downloadingToFolder": "Sparar i mapp…",
+            "openLocalFolder": "Importera mapp",
+            "openingLocalFolder": "Öppnar…",
+            "importingLocalFolder": "Laddar upp filer…",
+            "localFolderUnsupportedTooltip": "Lokal mappåtkomst kräver Chrome, Edge eller Arc",
+            "recentProjects": "Senaste projekten",
+            "importFromGitHub": "Importera från GitHub",
+            "preparingWorkspace": "Förbereder din arbetsyta",
+            "creatingProject": "Sparar ditt projekt",
+            "openingEditor": "Öppnar redigeraren",
+            "creatingBlankProject": "Bygger ditt projekt",
+            "creatingBlankProjectCaption": "Det här tar ungefär 15 sekunder medan vi förbereder arbetsytan. Häng kvar.",
+            "startBlankProject": "Starta tomt projekt"
+        },
+        "dialogs": {
+            "delete": {
+                "title": "Ta bort projektet?",
+                "description": "Det här tar permanent bort projektet och all dess data.",
+                "moveToTrash": "Flytta även mappen till papperskorgen"
+            },
+            "rename": {
+                "title": "Byt namn på projekt",
+                "label": "Projektnamn",
+                "error": "Projektnamnet får inte vara tomt"
+            },
+            "clone": {
+                "title": "Klona projekt",
+                "label": "Projektnamn",
+                "placeholder": "Ange namn för det klonade projektet",
+                "error": "Projektnamnet får inte vara tomt"
+            }
+        },
+        "prompt": {
+            "title": "Vilken slags webbplats vill du skapa?",
+            "description": "Berätta lite om ditt projekt. Var så detaljerad som möjligt.",
+            "input": {
+                "placeholder": "Klistra in en referensskärmdump, skriv en roman, var kreativ...",
+                "imageUpload": "Ladda upp bildreferens",
+                "fileReference": "Filreferens",
+                "submit": "Börja bygga din webbplats"
+            },
+            "blankStart": "Börja från en tom sida"
+        }
+    },
+    "welcome": {
+        "title": "Välkommen till Weblab",
+        "titleReturn": "Välkommen tillbaka till Weblab",
+        "description": "Designa och publicera produktionsklara webbplatser med AI – ingen utvecklaröverlämning behövs.",
+        "alpha": "Alpha",
+        "login": {
+            "github": "Logga in med GitHub",
+            "google": "Logga in med Google",
+            "lastUsed": "Det här använde du senast",
+            "loginToEdit": "Logga in för att redigera",
+            "shareProjects": "Inget kreditkort krävs • Få en webbplats på sekunder",
+            "email": "Fortsätt med e-post",
+            "emailPlaceholder": "din@epost.se",
+            "sendCode": "Skicka kod",
+            "sending": "Skickar..."
+        },
+        "verify": {
+            "title": "Kolla din e-post",
+            "description": "Vi skickade en 6-siffrig kod till {email}",
+            "enterCode": "Ange verifieringskod",
+            "verify": "Verifiera",
+            "verifying": "Verifierar...",
+            "resend": "Skicka koden igen",
+            "resendIn": "Skicka igen om {seconds}s",
+            "back": "Tillbaka till inloggning",
+            "wrongEmail": "Fel e-post?"
+        },
+        "terms": {
+            "agreement": "Genom att registrera dig godkänner du vår",
+            "privacy": "Integritetspolicy",
+            "and": "och våra",
+            "tos": "Användarvillkor"
+        },
+        "profileSetup": {
+            "title": "Vad ska vi kalla dig?",
+            "description": "Berätta ditt namn så att Weblab kan tilltala dig rätt i appen.",
+            "firstName": "Förnamn",
+            "lastName": "Efternamn",
+            "optional": "(valfritt)",
+            "firstNamePlaceholder": "Ada",
+            "lastNamePlaceholder": "Lovelace",
+            "errorFirstNameRequired": "Ange ditt förnamn.",
+            "errorSaveFailed": "Det gick inte att spara profilen. Försök igen.",
+            "saving": "Sparar...",
+            "continue": "Fortsätt",
+            "skip": "Hoppa över för nu"
+        },
+        "version": "Version {version}"
+    },
+    "loginPage": {
+        "verificationExpired": "Verifieringssessionen gick ut. Ange din e-post och försök igen."
+    },
+    "authCodeError": {
+        "eyebrow": "Autentiseringsfel",
+        "backToLogin": "Tillbaka till inloggning",
+        "goHome": "Till startsidan",
+        "getHelp": "Få hjälp",
+        "errorCodeLabel": "Felkod",
+        "supportSubject": "Autentiseringsfel",
+        "reasons": {
+            "missing_email": {
+                "title": "Vi behöver din e-post för att logga in dig",
+                "body": "Din leverantör returnerade ingen e-postadress – oftast för att din GitHub-e-post är satt som privat. Gör din primära e-post publik i GitHub-inställningarna, eller logga in med en magisk länk istället."
+            },
+            "missing_user_id": {
+                "title": "Inloggningen är ofullständig",
+                "body": "Din leverantör returnerade ett ofullständigt svar. Försök igen – om det fortsätter, logga in med en magisk länk istället."
+            },
+            "db_upsert_failed": {
+                "title": "Vi kunde inte skapa ditt konto",
+                "body": "Vi loggade ut dig för säkerhets skull. Försök igen om en stund – om det kvarstår, kontakta supporten och inkludera felkoden nedan."
+            },
+            "missing_code": {
+                "title": "Inloggningslänken är ofullständig",
+                "body": "Inloggningslänken saknade obligatorisk information. Försök logga in igen – om problemet kvarstår, begär en ny länk."
+            },
+            "callback_exception": {
+                "title": "Inloggningen avbröts",
+                "body": "Något gick fel hos oss när inloggningen skulle slutföras. Försök igen om en stund – om det kvarstår, kontakta supporten och inkludera felkoden nedan."
+            },
+            "oauth": {
+                "title": "Din leverantör kunde inte slutföra inloggningen",
+                "body": "Leverantören avvisade begäran. Länken kan ha gått ut eller fönstret stängdes för tidigt. Försök igen, eller använd en magisk länk istället."
+            },
+            "default": {
+                "title": "Vi kunde inte slutföra inloggningen",
+                "body": "Inloggningslänken kan ha gått ut eller fönstret stängdes för tidigt. Försök igen – om problemet kvarstår, kontakta supporten."
+            }
+        }
+    },
+    "notFound": {
+        "body": "Det verkar som att du hamnat någonstans okänt på din resa. Låt oss hjälpa dig hitta vägen.",
+        "backHome": "Tillbaka till startsidan"
+    },
+    "comparePage": {
+        "srBody": "Jämför {appName} med Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com och Onlook – välj rätt verktyg för ditt team.",
+        "heroHeading": "{appName} mot alla andra",
+        "heroBody": "De flesta AI-designverktyg genererar ny kod från noll. {appName} redigerar dina riktiga React-komponenter på en visuell canvas och skickar pull requests utvecklare kan merga.",
+        "tryButton": "Prova {appName}",
+        "pickHeading": "Välj en jämförelse",
+        "vs": "{appName} vs {name}",
+        "readComparison": "Läs jämförelsen →",
+        "ctaLine1": "Se själv.",
+        "ctaLine2": "Öppna {appName} på ditt repo.",
+        "ctaButton": "Kom igång",
+        "competitors": {
+            "lovable": {
+                "tagline": "Chattbaserad AI-appbyggare",
+                "oneLiner": "{appName} jobbar med din befintliga React-kodbas och skickar PR:er. Lovable skapar nya appar från prompter."
+            },
+            "bolt": {
+                "tagline": "Webbläsarbaserad AI-fullstack-byggare",
+                "oneLiner": "{appName} parar en oändlig designcanvas med dina riktiga komponenter. Bolt bygger nya appar från start till mål via chatt."
+            },
+            "v0": {
+                "tagline": "AI-komponentgenerator",
+                "oneLiner": "{appName} redigerar dina befintliga komponenter på en canvas. v0 genererar nya komponentsnuttar från prompter."
+            },
+            "webflow": {
+                "tagline": "No-code visuell webbplatsbyggare",
+                "oneLiner": "{appName} redigerar din riktiga React-kodbas och skickar PR:er. Webflow genererar egen HTML/CSS i en no-code-miljö."
+            },
+            "framer": {
+                "tagline": "Designdriven sajtbyggare med AI",
+                "oneLiner": "{appName} ansluter till din befintliga kodbas och skickar PR:er. Framer bygger sajter i sin egen värdade miljö."
+            },
+            "replit": {
+                "tagline": "Webbläsar-IDE med AI-agent",
+                "oneLiner": "{appName} är en visuell canvas för befintliga React-kodbaser. Replit är en moln-IDE där en AI-agent bygger och deployar appar från prompter."
+            },
+            "claudeCode": {
+                "tagline": "Anthropics AI-terminal-CLI",
+                "oneLiner": "{appName} ger designers en visuell canvas; Claude Code ger utvecklare en AI-terminal. De kompletterar varandra."
+            },
+            "emergent": {
+                "tagline": "Fullstack-appbyggare med multi-agent-AI",
+                "oneLiner": "{appName} redigerar en befintlig React-kodbas visuellt. Emergent bygger fullstack-appar från noll via ett multi-agent-system."
+            },
+            "wix": {
+                "tagline": "Webbplatsbyggare för småföretag",
+                "oneLiner": "{appName} är för utvecklingsteam med React-kodbaser. Wix är för småföretag som vill ha en webbplats utan kod."
+            },
+            "oneCom": {
+                "tagline": "Budgetwebbhotell och webbplatsbyggare",
+                "oneLiner": "{appName} är ett utvecklarverktyg för React-team. one.com är ett budgetwebbhotell för privatpersoner som vill ha en enkel webbplats."
+            },
+            "onlook": {
+                "tagline": "Öppen källkods visuell redigerare för React",
+                "oneLiner": "{appName} bygger vidare på samma grund med arbetsflöden, AI-integrationer och teamsamarbete."
+            }
+        }
+    },
+    "changelogPage": {
+        "eyebrow": "Uppdateringar",
+        "heading": "Changelog"
+    },
+    "downloadPage": {
+        "heading": "Ladda ner {appName}",
+        "subhead": "Samma {appName}, paketerat native för din enhet. Logga in en gång – din session synkar med webbappen.",
+        "mac": {
+            "title": "macOS",
+            "subtitle": "Universal – Apple Silicon och Intel",
+            "cta": "Ladda ner för macOS"
+        },
+        "ios": {
+            "title": "iOS",
+            "subtitle": "iPhone och iPad – iOS 16 eller senare",
+            "cta": "Hämta i TestFlight"
+        },
+        "beta": "BETA",
+        "recommended": "Rekommenderat",
+        "comingSoon": "Kommer snart",
+        "footnotePart1": "Inloggning fungerar som i webbappen – Google, GitHub eller e-post. Desktop- och iOS-apparna kör OAuth via din systemwebbläsare och släpper dig sedan tillbaka redan inloggad. Letar du efter äldre versioner? Bläddra i ",
+        "footnoteLink": "fullständigt releasearkiv",
+        "footnotePart2": "."
+    },
+    "aboutPage": {
+        "srTitle": "Om Weblab: den visuella redigeraren för React",
+        "srBody": "Weblab grundades för att utplåna klyftan mellan kreativitet och implementation. Vi bygger en bro mellan designers och utvecklare – en visuell redigerare som jobbar med dina riktiga React-komponenter. AI:n är begränsad till ditt designsystem. Ändringar blir mergebara pull requests. Weblab är öppen källkod under Apache 2.0.",
+        "srCompanyFacts": "Företagsfakta",
+        "srBasedSweden": "Baserat i Sverige",
+        "srOpenSource": "Öppen källkod – Apache 2.0-licens, publikt GitHub-repo",
+        "srFounder": "Grundare",
+        "srFounderItem": "Ludvig Hedin – Grundare.",
+        "srValues": "Våra värderingar",
+        "srSpeed": "Speed – Olympiska tempot, ihärdighet, strategi genom utförande.",
+        "srResilience": "Resilience – Att uthärda utmaningar utan att tappa momentum.",
+        "srReinvention": "Reinvention – Kreativitet i problemlösning, att tänja på state-of-the-art.",
+        "srCompetence": "Competence – Stolthet i arbetet, inspirera andra med smak och teknik.",
+        "heroLine1": "Design förtjänar",
+        "heroLine2": "bättre verktyg",
+        "heroBodyPart1": "Weblab grundades för att utplåna klyftan mellan kreativitet och implementation.",
+        "heroBodyPart2": "Alldeles för länge har de mest briljanta kreativa teamen separerats av verktygens komplexitet. Vi bygger Weblab från Sverige – en bro som ska stänga klyftan mellan kreativitet och implementation.",
+        "heroBodyPart3": "Öppen källkod under Apache 2.0. Byggt i öppen källkod på ",
+        "heroBodyPart4": ".",
+        "githubLink": "GitHub",
+        "meetThe": "Möt",
+        "founderScript": "grundaren",
+        "founderBody": "Frustrerad över status quo i att skapa mjukvara satte Ludvig igång för att ge utvecklare, byggare, designers och produktägare ett nytt sätt att samarbeta i kod.",
+        "founderName": "Ludvig Hedin",
+        "founderTitle": "Grundare",
+        "githubAria": "Ludvigs GitHub",
+        "linkedinAria": "Ludvigs LinkedIn",
+        "rewardHeading": "Vad vi",
+        "rewardScript": "belönar",
+        "values": {
+            "speed": {
+                "title": "Speed",
+                "body": "Olympiskt tempo, ihärdighet, strategi genom utförande."
+            },
+            "resilience": {
+                "title": "Resilience",
+                "body": "Uthärda utmaningar utan att tappa momentum – grit, uthållighet och driv."
+            },
+            "reinvention": {
+                "title": "Reinvention",
+                "body": "Kreativitet i problemlösning, tänja oss bortom state-of-the-art."
+            },
+            "competence": {
+                "title": "Competence",
+                "body": "Stolthet i sitt arbete, inspirera andra med din smak och teknik."
+            }
+        },
+        "lookForHeading": "Vad vi",
+        "lookForScript": "söker",
+        "lookFor": {
+            "commitment": {
+                "title": "Engagemang",
+                "body": "Har du lagt riktig tid på något du brydde dig om? Vi letar efter byggare som gjort långsiktiga satsningar på sig själva."
+            },
+            "passion": {
+                "title": "Passion",
+                "body": "Vi är allergiska mot apati. Vi vill ha människor som bryr sig om design, devtools eller AI – och kan visa det."
+            },
+            "excellence": {
+                "title": "Excellens",
+                "body": "Ta med något sällsynt. Vi vill ha människor som är världsklass på något och inte kompromissar."
+            }
+        },
+        "cta": {
+            "line1": "Redo att sluta bygga om?",
+            "line2": "Ditt designsystem, på en canvas.",
+            "button": "Kom igång"
+        }
+    },
+    "faqPage": {
+        "heading": "Vanliga frågor",
+        "subhead": "Allt du behöver veta om Weblab – den AI-drivna visuella redigeraren för frontend-utveckling.",
+        "topics": "Ämnen",
+        "stillQuestions": "Har du fortfarande frågor?",
+        "getStarted": "Kom igång",
+        "srTitle": "Weblabs vanliga frågor",
+        "srBody": "Weblab är en AI-driven visuell redigerare för frontend-utveckling. Den ansluter till befintliga React- och Next.js-kodbaser och låter team designa med riktiga komponenter. AI:n är begränsad till ditt designsystem, vilket förhindrar varumärkesdrift. Ändringar blir mergebara pull requests. Weblab stödjer React-baserade ramverk (Next.js, Vite, Remix, Astro, TanStack Start och statisk HTML), alla större stilmetoder (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS) och komponentbibliotek (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). Det är öppen källkod under Apache 2.0.",
+        "sections": {
+            "about": {
+                "title": "Om Weblab",
+                "q1": {
+                    "question": "Vad är Weblab?",
+                    "answer": "Weblab är en AI-driven visuell redigerare för design. Den ansluter till din befintliga kodbas och låter designers och utvecklare skapa gränssnitt med riktiga komponenter. Till skillnad från generiska AI-kodgeneratorer begränsar Weblab AI:n till ditt designsystem. Ändringar blir pull requests som utvecklare kan merga direkt – ingen export, ingen översättning, inga engångsprototyper."
+                },
+                "q2": {
+                    "question": "Vem är Weblab till för?",
+                    "answer": "Weblab är till för produktteam med designers och ett befintligt komponentbibliotek. Idealiska användare inkluderar design engineers, produktdesigners i kod-forward-team, frontend-utvecklare som vill ha visuella verktyg och team som underhåller designsystem och vill ha AI som respekterar deras befintliga arbete."
+                },
+                "q3": {
+                    "question": "Vad gör Weblab annorlunda jämfört med andra designverktyg?",
+                    "answer": "Traditionella designverktyg skapar statiska mockups som måste byggas om i kod. Weblab jobbar med dina riktiga komponenter – det du designar ÄR koden. Ingen överlämning, eftersom designers och utvecklare jobbar i samma artefakt. Ändringar blir PR:er, inte specs. AI:n är begränsad till ditt designsystem, så ingen varumärkesdrift."
+                },
+                "q4": {
+                    "question": "Vad gör Weblab annorlunda jämfört med AI-kodgeneratorer?",
+                    "answer": "AI-kodgeneratorer skapar ny kod från noll med generisk HTML/CSS. Resultatet måste översättas för att fungera med dina riktiga komponenter. Weblab är annorlunda – det ansluter till ditt befintliga komponentbibliotek och begränsar AI:n till DITT designsystem. Resultaten är konsekventa, on-brand och direkt mergebara. Inget översättningssteg behövs."
+                }
+            },
+            "features": {
+                "title": "Funktioner och förmågor",
+                "q1": {
+                    "question": "Vilka är Weblabs huvudfunktioner?",
+                    "answer": "Weblab erbjuder: (1) En oändlig canvas för visuell design med riktig kod under huven, (2) AI som är begränsad till ditt designsystem – ingen varumärkesdrift, (3) Realtidssamarbete med spatiala kommentarer, (4) Direkt GitHub-integration – ändringar blir mergebara PR:er, (5) Stöd för dina befintliga komponenter, färger och designtokens, (6) Ett visuellt gränssnitt som inte kräver kod för designers."
+                },
+                "q2": {
+                    "question": "Hur fungerar Weblabs AI?",
+                    "answer": "Weblabs AI är begränsad till ditt designsystem. När du ber AI:n göra ändringar kan den bara använda komponenter, färger och tokens som finns i din kodbas. Det förhindrar varumärkesdrift och säkerställer att resultaten matchar ditt designsystem. Du kan peka på element visuellt istället för att beskriva dem i text – AI:n förstår exakt selector, komponent och stilar."
+                },
+                "q3": {
+                    "question": "Stödjer Weblab samarbete i realtid?",
+                    "answer": "Ja. Weblab har inbyggt teamsamarbete. Dela din canvas, lämna spatiala kommentarer och jobba tillsammans i realtid. Flera teammedlemmar kan visa och redigera samma projekt samtidigt. Ändringar synkas till koden och kan skickas som PR:er."
+                },
+                "q4": {
+                    "question": "Hur får jag ut ändringar i produktion?",
+                    "answer": "Ändringar du gör i Weblab blir riktiga kodändringar i ditt repo. När du är redo, skicka dem som en pull request för utvecklare att granska och merga. Ingen export, ingen copy-paste, ingen översättning. Koden är produktionsklar eftersom den använder dina riktiga komponenter."
+                }
+            },
+            "compatibility": {
+                "title": "Teknisk kompatibilitet",
+                "q1": {
+                    "question": "Vilka frontend-ramverk stödjer Weblab?",
+                    "answer": "Weblab stödjer React-baserade ramverk: Next.js, Vite, Remix, Astro, TanStack Start och statisk HTML. Vi är byggda på en Babel JSX/TSX-parser optimerad för React-ekosystemet."
+                },
+                "q2": {
+                    "question": "Vilka CSS- och stilmetoder stödjer Weblab?",
+                    "answer": "Weblab stödjer alla större CSS-metoder: Tailwind CSS, CSS Modules, styled-components, Emotion, SASS/SCSS, Less, Vanilla Extract, Stitches och vanlig CSS. Oavsett vilken stilmetod din kodbas använder fungerar Weblab med den."
+                },
+                "q3": {
+                    "question": "Vilka komponentbibliotek stödjer Weblab?",
+                    "answer": "Weblab fungerar med React-komponentbibliotek som shadcn/ui, Material UI, Mantine, Chakra UI, Radix UI, Ant Design, Headless UI och Fluent UI. Om dina komponenter fungerar i din React/Next.js-kodbas fungerar de i Weblab."
+                },
+                "q4": {
+                    "question": "Fungerar Weblab med mina befintliga React-komponenter?",
+                    "answer": "Ja. Weblab ansluter till din kodbas och låter dig designa med dina riktiga komponenter – knapparna, korten och layouterna dina utvecklare redan byggt. AI-förslagen använder ditt riktiga komponent-API, inte generiska alternativ."
+                },
+                "q5": {
+                    "question": "Hur integrerar Weblab med GitHub?",
+                    "answer": "Weblab ansluter direkt till ditt GitHub-repo. Ändringar du gör spåras som riktiga kodändringar. När du är redo att skicka skapar Weblab en pull request med dina ändringar som utvecklare kan granska, kommentera och merga via sitt vanliga arbetsflöde."
+                }
+            },
+            "workflow": {
+                "title": "Arbetsflöde och samarbete",
+                "q1": {
+                    "question": "Hur samarbetar designers och utvecklare i Weblab?",
+                    "answer": "Designers och utvecklare jobbar i samma artefakt – ingen överlämning. Designers gör visuella ändringar på canvasen, som blir riktiga kodändringar. Utvecklare kan granska och finjustera i sin IDE. Ändringar skickas som PR:er för teamgranskning. Spatiala kommentarer låter teammedlemmar kommunicera direkt på canvasen."
+                },
+                "q2": {
+                    "question": "Kan jag använda Weblab med mitt befintliga utvecklingsarbetsflöde?",
+                    "answer": "Ja. Weblab passar in i ditt befintliga Git-arbetsflöde. Ändringar blir branches och PR:er. Utvecklare granskar kod i sina vanliga verktyg. CI/CD-pipelines fungerar som väntat."
+                },
+                "q3": {
+                    "question": "Hur fungerar Weblab med Claude Code eller andra AI-kodverktyg?",
+                    "answer": "Weblab kompletterar AI-kodverktyg som Claude Code. Claude Code är bra för att bygga i terminalen – Weblab lägger till det visuella lagret designers behöver. Använd Claude Code för att skapa komponenter, sedan Weblab för att iterera och finjustera visuellt. Ändringar från båda verktygen mergas in i samma kodbas."
+                },
+                "q4": {
+                    "question": "Kan jag dela mitt arbete med intressenter som inte använder Weblab?",
+                    "answer": "Ja. Eftersom Weblab jobbar med riktig kod kan du dela ditt arbete direkt som du skapat det på canvasen. Intressenter ser riktigt fungerande UI – inte statiska mockups som kanske inte matchar slutprodukten."
+                }
+            },
+            "company": {
+                "title": "Företag",
+                "q1": {
+                    "question": "Vem skapade Weblab?",
+                    "answer": "Weblab skapades av Ludvig Hedin. Målet: överbrygga klyftan mellan design och utveckling med ett verktyg som låter dig jobba direkt på dina riktiga React-komponenter. Weblab är en löpande iteration mot den nya state-of-the-art för samarbete i kod."
+                },
+                "q2": {
+                    "question": "Varför är Weblab öppen källkod?",
+                    "answer": "Utvecklare har historiskt varit andra rangens medborgare i designprocessen. Weblab grundades för att överbrygga klyftan mellan design och utveckling, och vi ville göra utvecklare till första rangens medborgare vid sidan av designers. Vi valde öppen källkod för att ge utvecklare transparens i hur vi bygger Weblab och hur arbetet som skapas genom Weblab kompletterar utvecklarnas arbete."
+                },
+                "q3": {
+                    "question": "Var är Weblab baserat?",
+                    "answer": "Weblab byggs i Sverige. Våra open source-bidragsgivare är utspridda över världen och tillför sina unika perspektiv och otroliga talang till projektet medan vi fortsätter tänja på gränserna för design och utveckling."
+                }
+            }
+        }
+    },
+    "pricingPage": {
+        "heading": "Priser",
+        "subhead": "Utrusta ditt produktteam med kraften i AI",
+        "forTeamsHeading": "För team",
+        "forTeamsSub": "Anpassade priser efter teamets behov",
+        "contactUs": "Kontakta oss",
+        "getStarted": "Kom igång",
+        "andMore": "Och mycket mer...",
+        "disclaimerPart1": "Befintliga betalplanskunder kan fortsätta använda {appName}. Nya användare – kontakta oss så hjälper vi ditt team komma igång. Vill du självhosta {appName}, kolla in ",
+        "disclaimerLink": "GitHub-repot",
+        "disclaimerPart2": " eller hör av dig så bokar vi ett samtal.",
+        "mailto": {
+            "subject": "[Team-förfrågan]: Komma igång med {appName}",
+            "body": "Hej,\n\nJag är intresserad av att sätta upp {appName} för vårt team.\n\nSer fram emot att höra från er.\n\nMed vänlig hälsning,\n[Ditt namn]"
+        },
+        "features": {
+            "projectTemplates": {
+                "title": "Projektmallar",
+                "description": "Spara och återanvänd dina projekt som mallar i hela teamet"
+            },
+            "branching": {
+                "title": "Branchning och versionskontroll",
+                "description": "Skapa och hantera branches för dina projekt med full versionshistorik"
+            },
+            "designSystem": {
+                "title": "Ditt riktiga designsystem",
+                "description": "Ta in dina riktiga komponenter i {appName} och använd dem i dina projekt"
+            },
+            "theming": {
+                "title": "Teman och varumärke",
+                "description": "Centraliserad hantering av designtokens, färgpaletter och typografi"
+            },
+            "layers": {
+                "title": "Byggt som ett designverktyg",
+                "description": "Navigera ditt React-komponentträd med precis kontroll över varje element"
+            },
+            "models": {
+                "title": "Välj din modell – eller använd din egen nyckel",
+                "description": "Claude Opus 4.7 och Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus lokala modeller via Ollama i desktop-appen. Justera resonemang från Fast till Deep."
+            },
+            "openSource": {
+                "title": "Öppen källkod",
+                "description": "Byggt tillsammans med communityn. Anpassa och bygg vidare för ditt teams behov"
+            },
+            "domains": {
+                "title": "Egna domäner",
+                "description": "Deploya dina projekt till en egen intern domän"
+            },
+            "security": {
+                "title": "Avancerad säkerhet",
+                "description": "SSO (SAML/OAuth), avancerade säkerhetskontroller, granskningsloggar och adminkontroller"
+            }
+        },
+        "enterpriseFeatures": {
+            "unlimited": "Obegränsat antal projekt",
+            "customIntegrations": "Anpassade integrationer",
+            "analytics": "Avancerad användningsanalys",
+            "earlyAccess": "Tidig åtkomst till nya funktioner",
+            "dedicatedSupport": "Dedikerad support",
+            "accountManager": "Kontoansvarig",
+            "slack": "Dedikerad Slack-kanal",
+            "onboarding": "Teknisk onboarding"
+        }
+    },
+    "pricing": {
+        "plans": {
+            "basic": {
+                "name": "Basic",
+                "price": "$0/månad",
+                "description": "Utforska och experimentera – inget kreditkort krävs.",
+                "features": [
+                    "Tillgång till visuell kodredigerare",
+                    "Obegränsat antal projekt",
+                    "{dailyMessages} AI-meddelanden per dag",
+                    "{monthlyMessages} AI-meddelanden per månad",
+                    "Begränsat till 1 skärmdump per chatt"
+                ]
+            },
+            "pro": {
+                "name": "Pro",
+                "price": "$20/månad",
+                "description": "Bygg och publicera snygga webbplatser med AI, utan begränsningar.",
+                "features": [
+                    "Tillgång till visuell kodredigerare",
+                    "Obegränsat antal projekt",
+                    "Obegränsat antal AI-meddelanden per dag",
+                    "Obegränsade månadsvisa chattar",
+                    "Ta bort vattenstämpeln ”Built with Weblab”",
+                    "1 gratis anpassad domän hostad med Weblab",
+                    "Prioriterad support"
+                ]
+            },
+            "launch": {
+                "name": "Launch",
+                "price": "$50/månad",
+                "description": "Perfekt för startups och växande team.",
+                "features": [
+                    "Obegränsat antal meddelanden per dag",
+                    "Prioriterad support",
+                    "Avancerade integrationer",
+                    "Teamfunktioner för samarbete"
+                ]
+            },
+            "scale": {
+                "name": "Scale",
+                "price": "$100/månad",
+                "description": "Funktioner i företagsklass för stora team.",
+                "features": [
+                    "Allt i Launch-planen",
+                    "Dedikerad kontoansvarig",
+                    "Anpassade integrationer",
+                    "Avancerad analys",
+                    "Premiumsupport dygnet runt"
+                ]
+            }
+        },
+        "titles": {
+            "choosePlan": "Välj din plan",
+            "proMember": "Tack för att du är Pro-medlem!"
+        },
+        "buttons": {
+            "currentPlan": "Aktuell plan",
+            "getPro": "Skaffa Pro",
+            "manageSubscription": "Hantera prenumeration",
+            "getStarted": "Kom igång",
+            "upgrade": "Uppgradera"
+        },
+        "freeCard": {
+            "dailyCreditsFeature": "Upp till 5 AI-krediter per dag",
+            "monthlyCreditsFeature": "15 AI-krediter per månad",
+            "dailyCreditsLabel": "5 dagliga krediter"
+        },
+        "credits": {
+            "selectPlaceholder": "Välj krediter",
+            "currentPlan": "Aktuell plan",
+            "pending": "Pågående"
+        },
+        "scheduledPlanStart": "Den här planen startar {date}",
+        "enterprise": {
+            "contactUs": "Kontakta oss"
+        },
+        "loading": {
+            "checkingPayment": "Kontrollerar betalning..."
+        },
+        "toasts": {
+            "checkingOut": {
+                "title": "Påbörjar utcheckning",
+                "description": "Du skickas nu vidare till Stripe för att slutföra betalningen."
+            },
+            "redirectingToStripe": {
+                "title": "Skickar dig till Stripe",
+                "description": "Du skickas nu vidare till Stripe för att hantera din prenumeration."
+            },
+            "error": {
+                "title": "Fel",
+                "description": "Det gick inte att starta utcheckningen. Försök igen."
+            }
+        },
+        "footer": {
+            "unusedMessages": "Oanvända meddelanden förs över varje månad."
+        }
+    },
+    "usage": {
+        "scheduledPlanStart": "Din plan med {monthlyMessageLimit} krediter per månad startar {date}",
+        "creditsUsed": "{period} krediter använda",
+        "periods": {
+            "daily": "dagliga",
+            "monthly": "månatliga"
+        }
+    },
+    "github": {
+        "popupBlocked": "Ett popup-fönster blockerades. Tillåt popup-fönster för den här webbplatsen och försök igen."
+    },
+    "editor": {
+        "modes": {
+            "design": {
+                "name": "Design",
+                "description": "Redigera och ändra webbplatsens design",
+                "tooltip": "Växla till designläge"
+            },
+            "code": {
+                "name": "Kod",
+                "description": "Redigera och ändra webbplatsens kod",
+                "tooltip": "Växla till kodläge"
+            },
+            "preview": {
+                "name": "Förhandsgranska",
+                "description": "Förhandsgranska och testa webbplatsens funktionalitet",
+                "tooltip": "Växla till förhandsgranskningsläge"
+            },
+            "comment": {
+                "name": "Kommentar",
+                "description": "Lägg till kommentarer på arbetsytan",
+                "tooltip": "Växla till kommentarsläge"
+            },
+            "cms": {
+                "name": "CMS",
+                "description": "Hantera innehållssamlingar och bindningar",
+                "tooltip": "Växla till CMS-läge"
+            }
+        },
+        "toolbar": {
+            "tools": {
+                "select": {
+                    "name": "Markera",
+                    "tooltip": "Markera och ändra element"
+                },
+                "pan": {
+                    "name": "Panorera",
+                    "tooltip": "Panorera och förflytta dig på arbetsytan"
+                },
+                "comment": {
+                    "name": "Kommentar",
+                    "tooltip": "Lägg till och visa kommentarer på arbetsytan"
+                },
+                "insertDiv": {
+                    "name": "Infoga behållare",
+                    "tooltip": "Lägg till ett nytt behållarelement"
+                },
+                "insertText": {
+                    "name": "Infoga text",
+                    "tooltip": "Lägg till ett nytt textelement"
+                }
+            },
+            "versionHistory": "Versionshistorik"
+        },
+        "panels": {
+            "edit": {
+                "tabs": {
+                    "chat": {
+                        "name": "Chatt",
+                        "emptyState": "Markera ett element för att chatta med AI",
+                        "emptyStateStart": "Starta projektet för att chatta",
+                        "loadingMessages": "Läser in meddelanden…",
+                        "loadFailed": "Det gick inte att läsa in meddelanden.",
+                        "retry": "Försök igen",
+                        "input": {
+                            "placeholder": "Skriv ditt meddelande...",
+                            "tooltip": "Chatta med AI om det markerade elementet"
+                        },
+                        "mode": {
+                            "tooltip": "Växla mellan Build- och Ask-läge"
+                        },
+                        "controls": {
+                            "newChat": "Ny chatt",
+                            "history": "Chatthistorik",
+                            "newChatTooltipStarting": "Startar ny chatt…",
+                            "newChatTooltipStreaming": "Svar strömmar fortfarande",
+                            "chatSettings": "Chattinställningar",
+                            "closePanel": "Stäng panelen",
+                            "openPanel": "Öppna AI-chattpanelen"
+                        },
+                        "settings": {
+                            "showSuggestions": "Visa förslag",
+                            "showMiniChat": "Visa minichatt",
+                            "autoApplyCode": "Tillämpa resultat automatiskt",
+                            "expandCodeBlocks": "Visa kod medan den genereras",
+                            "displayHeading": "Visning"
+                        },
+                        "errors": {
+                            "single": "Fel",
+                            "many": "{count} fel",
+                            "fix": "Åtgärda",
+                            "fixPrompt": "Hur löser jag de här felen? Föreslå gärna en kort åtgärd.",
+                            "fixToastError": "Det gick inte att skicka åtgärdsmeddelandet. Försök igen.",
+                            "consoleNoErrors": "Konsol – inga fel",
+                            "consoleErrors": "Konsol – {count, plural, one {# fel} other {# fel}}",
+                            "consoleViewAndFix": "Konsol – visa och åtgärda fel",
+                            "noErrors": "Inga fel",
+                            "errorCount": "{count, plural, one {# fel} other {# fel}}",
+                            "fixWithAi": "Åtgärda med AI",
+                            "cleanDevServer": "Din dev-server är ren. Fel dyker upp här."
+                        },
+                        "history": {
+                            "title": "Chatthistorik",
+                            "close": "Stäng chatthistoriken",
+                            "groupToday": "Idag",
+                            "groupYesterday": "Igår",
+                            "groupLastSevenDays": "Senaste 7 dagarna",
+                            "groupEarlier": "Tidigare",
+                            "newConversationFallback": "Ny konversation",
+                            "deleteConversationTooltip": "Ta bort konversation",
+                            "deleteDialog": {
+                                "title": "Vill du ta bort den här konversationen?",
+                                "description": "Det går inte att ångra. Konversationen tas bort permanent.",
+                                "cancel": "Avbryt",
+                                "delete": "Ta bort",
+                                "deleteFailed": "Det gick inte att ta bort konversationen."
+                            }
+                        },
+                        "queue": {
+                            "header": "{count} i kö",
+                            "edit": "Redigera",
+                            "moveUp": "Flytta upp",
+                            "moveDown": "Flytta ner",
+                            "remove": "Ta bort från kön",
+                            "saveHint": "Tryck Enter för att spara, Esc för att avbryta",
+                            "drag": "Dra för att ändra ordning"
+                        },
+                        "miniChat": {
+                            "button": "Chatta med AI"
+                        },
+                        "openInCode": {
+                            "button": "Öppna i Kod"
+                        },
+                        "noActiveConversation": "Ingen aktiv konversation",
+                        "startNewConversation": "Starta en ny konversation",
+                        "starters": {
+                            "darkMode": "Lägg till växling för mörkt läge",
+                            "modernizeHero": "Gör hero-sektionen mer modern",
+                            "mobileLayout": "Fixa layouten på mobil",
+                            "polish": "Putsa typografi och avstånd"
+                        },
+                        "askPlaceholder": "Ställ en fråga om ditt projekt...",
+                        "planPlaceholder": "Beskriv vad du vill planera...",
+                        "attachImage": "Bifoga bild",
+                        "effort": {
+                            "label": "Resoneringsnivå",
+                            "tooltip": "Styr hur länge modellen tänker innan den svarar. Fast passar de flesta redigeringar; Deep hjälper på svåra uppgifter.",
+                            "fast": {
+                                "label": "Fast",
+                                "hint": "Hoppa över tänkandet – svara direkt"
+                            },
+                            "light": {
+                                "label": "Light",
+                                "hint": "En kort paus för att planera innan svaret"
+                            },
+                            "balanced": {
+                                "label": "Balanced",
+                                "hint": "Lagom tänkande för vardagsuppgifter"
+                            },
+                            "deep": {
+                                "label": "Deep",
+                                "hint": "Längre tankebudget för svåra uppgifter"
+                            }
+                        },
+                        "restore": {
+                            "ariaLabel": "Återställ kontrollpunkt",
+                            "confirmTitle": "Återställ hit?",
+                            "confirmDescription": "Det här skriver om din arbetskopia till tillståndet vid det här meddelandet. Osparade ändringar i berörda filer går förlorade.",
+                            "dontAskAgain": "Fråga inte igen",
+                            "cancel": "Avbryt",
+                            "confirm": "Återställ"
+                        },
+                        "userMessage": {
+                            "retry": "Försök igen",
+                            "edit": "Redigera meddelandet",
+                            "copy": "Kopiera meddelandet"
+                        },
+                        "toolCall": {
+                            "stalledMessage": "Verktyget returnerade inget resultat.",
+                            "retry": "Försök igen",
+                            "retrying": "Försöker igen…",
+                            "ariaRetry": "Försök igen med stoppat verktygsanrop"
+                        }
+                    },
+                    "styles": {
+                        "name": "Stilar",
+                        "availableInDesignMode": "Tillgängligt i designläget",
+                        "emptyState": "Markera ett element för att redigera dess stilegenskaper",
+                        "emptyStateHint": "Markera ett enskilt element på arbetsytan för att inspektera layout, avstånd, utseende, typografi och position.",
+                        "groups": {
+                            "position": "Position och dimensioner",
+                            "layout": "Flexbox och layout",
+                            "style": "Stilar",
+                            "text": "Text"
+                        },
+                        "tailwind": {
+                            "title": "Tailwind-klasser",
+                            "placeholder": "Lägg till Tailwind-klasser här",
+                            "componentClasses": {
+                                "title": "Klasser för huvudkomponent",
+                                "tooltip": "Ändringarna gäller komponentkoden. Det här är standard."
+                            },
+                            "instanceClasses": {
+                                "title": "Instansklasser",
+                                "tooltip": "Ändringarna gäller instanskoden."
+                            }
+                        }
+                    },
+                    "comments": {
+                        "name": "Kommentarer",
+                        "open": "Öppna",
+                        "resolved": "Lösta",
+                        "emptyOpen": "Inga öppna kommentarer",
+                        "emptyResolved": "Inga lösta kommentarer",
+                        "reply": "Svara",
+                        "resolve": "Markera som löst",
+                        "unresolve": "Markera som olöst",
+                        "delete": "Ta bort",
+                        "edit": "Redigera",
+                        "submit": "Skicka",
+                        "cancel": "Avbryt",
+                        "addComment": "Lägg till en kommentar...",
+                        "addReply": "Lägg till ett svar..."
+                    }
+                }
+            },
+            "layers": {
+                "name": "Lager",
+                "tabs": {
+                    "layers": "Lager",
+                    "insert": "Infoga",
+                    "pages": "Sidor",
+                    "components": "Komponenter",
+                    "images": "Bilder",
+                    "windows": {
+                        "name": "Fönster",
+                        "emptyState": "Välj ett fönster för att redigera dess inställningar"
+                    },
+                    "brand": "Varumärke",
+                    "branches": "Branches",
+                    "apps": "Appar",
+                    "search": "Sök"
+                },
+                "rail": {
+                    "openLeftPanel": "Öppna vänsterpanelen",
+                    "pinPanel": "Fäst panelen",
+                    "unpinPanel": "Lossa panelen",
+                    "collapsePanel": "Fäll ihop panelen"
+                }
+            },
+            "code": {
+                "controls": {
+                    "viewFiles": "Visa filer",
+                    "save": "Spara",
+                    "saving": "Sparar...",
+                    "savingChanges": "Sparar ändringar...",
+                    "saveChanges": "Spara ändringar",
+                    "createOrUploadFile": "Skapa eller ladda upp fil",
+                    "createNewFile": "Skapa ny fil",
+                    "uploadFile": "Ladda upp fil",
+                    "newFolder": "Ny mapp"
+                },
+                "emptyState": "Välj en fil i trädet för att börja redigera.",
+                "fileModal": {
+                    "title": "Skapa ny fil",
+                    "description": "Välj var filen ska läggas och ge den ett namn.",
+                    "location": "Plats",
+                    "fileName": "Filnamn",
+                    "namePlaceholder": "component.tsx",
+                    "fullPath": "Fullständig sökväg:",
+                    "cancel": "Avbryt",
+                    "create": "Skapa fil",
+                    "creating": "Skapar fil..."
+                },
+                "folderModal": {
+                    "title": "Skapa ny mapp",
+                    "description": "Välj var mappen ska läggas och ge den ett namn.",
+                    "folderName": "Mappnamn",
+                    "namePlaceholder": "components",
+                    "create": "Skapa mapp",
+                    "creating": "Skapar mapp..."
+                },
+                "directoryPicker": {
+                    "selected": "Vald:",
+                    "expand": "Expandera",
+                    "collapse": "Fäll ihop"
+                }
+            }
+        },
+        "settings": {
+            "preferences": {
+                "language": "Språk",
+                "theme": "Tema",
+                "deleteWarning": "Varning vid borttagning",
+                "analytics": "Analys",
+                "editor": {
+                    "ide": "Redigerare",
+                    "shouldWarnDelete": "Varna när element tas bort",
+                    "enableAnalytics": "Aktivera analys"
+                },
+                "shortcuts": "Genvägar"
+            },
+            "skillImportDialog": {
+                "title": "Importera skill",
+                "description": "Hämta in en skill från en URL eller klistra in en SKILL.md. Vi tolkar frontmattern, visar en förhandsgranskning och sparar först när du bekräftar.",
+                "tabs": {
+                    "url": "Från URL",
+                    "paste": "Klistra in innehåll"
+                },
+                "urlLabel": "URL till SKILL.md",
+                "urlPlaceholder": "https://raw.githubusercontent.com/.../SKILL.md",
+                "urlHint": "Tillåtna värdar: raw.githubusercontent.com, gist.githubusercontent.com, agentskills.io.",
+                "pasteLabel": "Innehåll i SKILL.md",
+                "pastePlaceholder": "---\nname: my-skill\ndescription: Trigger description\n---\n\nBody…",
+                "preview": "Förhandsgranska",
+                "previewing": "Läser…",
+                "previewSection": {
+                    "name": "Namn",
+                    "description": "Beskrivning",
+                    "body": "Brödtext ({count} tecken)"
+                },
+                "scopeLabel": "Spara till",
+                "scopeGlobal": "Globalt",
+                "scopeProject": "Det här projektet",
+                "cancel": "Avbryt",
+                "import": "Importera skill",
+                "importing": "Importerar…",
+                "toastImported": "Importerade ”{name}”",
+                "toastReadFailed": "Det gick inte att läsa skillen",
+                "toastImportFailed": "Det gick inte att importera skillen"
+            }
+        },
+        "frame": {
+            "startDesigning": {
+                "prefix": "Tryck ",
+                "action": "Play",
+                "suffix": " för att börja designa din app"
+            },
+            "playButton": "Spela",
+            "waitingForApp": "Väntar på att appen ska starta..."
+        },
+        "runButton": {
+            "portInUse": "Porten används",
+            "loading": "Läser in",
+            "play": "Spela",
+            "retry": "Försök igen",
+            "stop": "Stoppa"
+        },
+        "zoom": {
+            "level": "Zoomnivå",
+            "in": "Zooma in",
+            "out": "Zooma ut",
+            "fit": "Anpassa zoom",
+            "reset": "Zooma 100 %",
+            "double": "Zooma 200 %"
+        }
+    },
+    "help": {
+        "menu": {
+            "reloadWeblab": "Ladda om Weblab",
+            "theme": {
+                "title": "Tema",
+                "light": "Ljust",
+                "dark": "Mörkt",
+                "system": "System"
+            },
+            "language": "Språk",
+            "openSettings": "Öppna inställningar",
+            "contactUs": {
+                "title": "Kontakta oss",
+                "website": "Webbplats",
+                "github": "GitHub",
+                "email": "E-post"
+            },
+            "reportIssue": "Rapportera problem",
+            "shortcuts": "Genvägar"
+        }
+    },
+    "aiPromptComposer": {
+        "uploadImageTooltip": "Ladda upp bild"
+    },
+    "seo": {
+        "root": {
+            "title": "Weblab – Visuell AI-webbplatsbyggare för React-team",
+            "description": "Visuell AI-webbplatsbyggare för React- och Next.js-team. Designa med riktiga komponenter, redigera kod visuellt och skicka pull requests istället för prototyper.",
+            "ogImageAlt": "Weblab – visuell AI-webbplatsbyggare för React-team"
+        },
+        "pricing": {
+            "title": "Priser | Weblab – Visuell redigerare för React",
+            "description": "Weblab-priser – börja gratis, skala med ditt team. Visuell redigerare för React med AI som följer ditt designsystem. Transparenta betalplaner.",
+            "ogImageAlt": "Weblab-priser"
+        },
+        "faq": {
+            "title": "FAQ | Weblab – AI-driven visuell redigerare för frontend-utveckling",
+            "description": "Vanliga frågor om Weblab, den AI-drivna visuella redigeraren för frontend-utveckling. Lär dig om stödda ramverk (React, Vue, Angular), komponentbibliotek, AI-funktioner, priser och hur Weblab skiljer sig från andra designverktyg.",
+            "ogImageAlt": "Weblab FAQ"
+        },
+        "about": {
+            "title": "Om Weblab | Den visuella redigeraren för React",
+            "description": "Möt grundaren bakom Weblab – en visuell AI-redigerare för frontend-team. Byggd i Sverige för att överbrygga kreativitet och implementation. Öppen källkod.",
+            "ogImageAlt": "Om Weblab"
+        },
+        "features": {
+            "title": "Funktioner | Weblab – visuell AI-redigerare för React-team",
+            "description": "Utforska Weblabs funktioner: AI som följer ditt designsystem, oändlig canvas, samarbete i realtid, versionshistorik och GitHub PR-output.",
+            "ogImageAlt": "Förhandsgranskning av Weblabs funktioner"
+        },
+        "featuresAi": {
+            "title": "Visuell AI-redigerare | Bygg UI:er med AI och ditt designsystem | Weblab",
+            "description": "Weblab är en AI-driven visuell redigerare som bygger frontend-UI:er med dina riktiga React-komponenter. AI:n är begränsad till ditt designsystem – ingen varumärkesdrift, ingen kastad kod. Ändringar blir mergebara PR:er.",
+            "ogImageAlt": "Förhandsgranskning av Weblabs visuella AI-redigerare"
+        },
+        "featuresBuilder": {
+            "title": "Visuell byggare | Designa med dina riktiga React-komponenter | Weblab",
+            "description": "Weblab är en visuell byggare som fungerar med din befintliga kodbas. Designa med dina riktiga React-, Vue- eller Angular-komponenter på en oändlig canvas. Ändringar blir mergebara pull requests.",
+            "ogImageAlt": "Förhandsgranskning av Weblabs visuella byggare"
+        },
+        "featuresPrototype": {
+            "title": "AI-prototypgenerator | Skapa funktionella React-prototyper | Weblab",
+            "description": "Weblab genererar funktionella React-prototyper med riktiga interaktioner – inte statiska mockups. Från idé till interaktiv prototyp på minuter. Perfekt för snabb prototyputveckling och produktvalidering.",
+            "ogImageAlt": "Förhandsgranskning av Weblabs prototypgenerator"
+        },
+        "featuresAiFrontend": {
+            "title": "AI för frontend-utveckling | Visuell AI-redigerare för React | Weblab",
+            "description": "Weblab är en visuell AI-redigerare för React-, Vue- och Angular-team. AI:n är begränsad till dina riktiga komponenter och designsystem, så ändringar skickas som mergebara PR:er.",
+            "ogImageAlt": "Förhandsgranskning av Weblab AI för frontend-utveckling"
+        },
+        "workflows": {
+            "title": "Arbetsflöden | Integrera Weblab med Claude Code, Cursor och AI-kodverktyg | Weblab",
+            "description": "Koppla Weblab till ditt AI-kodningsarbetsflöde. Lägg till ett visuellt designlager till Claude Code, Cursor och andra AI-verktyg. Designa med dina riktiga komponenter, samarbeta med ditt team, skicka PR:er.",
+            "ogImageAlt": "Förhandsgranskning av Weblabs arbetsflöden"
+        },
+        "workflowsClaudeCode": {
+            "title": "Claude Code för designers: lägg till en visuell canvas i ditt arbetsflöde | Weblab",
+            "description": "Designers som använder Claude Code behöver ett visuellt lager. Weblab ger dig en oändlig canvas för dina AI-byggda UI:er – med dina riktiga komponenter, teamsamarbete och PR-output.",
+            "ogImageAlt": "Förhandsgranskning av Weblab Claude Code-arbetsflöde"
+        },
+        "workflowsVibeCoding": {
+            "title": "Vibe coding för team: lägg till samarbete i ditt AI-arbetsflöde | Weblab",
+            "description": "Vibe coding har ett samarbetsproblem. Weblab löser det. Designa med dina riktiga komponenter på en oändlig canvas, jobba tillsammans i realtid och skicka PR:er – inte engångsprototyper.",
+            "ogImageAlt": "Förhandsgranskning av Weblab vibe coding-arbetsflöde"
+        },
+        "download": {
+            "title": "Ladda ner Weblab | Mac, Windows, Linux och iOS",
+            "description": "Hämta Weblabs desktop-app för macOS, Windows och Linux, eller iOS-appen för iPhone och iPad.",
+            "ogImageAlt": "Ladda ner Weblab"
+        },
+        "changelog": {
+            "title": "Changelog | Weblab",
+            "description": "Senaste uppdateringarna, nya funktioner och förbättringar i Weblab – den visuella AI-redigeraren för React-team.",
+            "ogImageAlt": "Weblab changelog"
+        },
+        "compare": {
+            "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow med fler – Jämför AI-designverktyg",
+            "description": "Jämför Weblab med Lovable, Bolt, v0, Replit, Webflow med fler. Weblab är den visuella redigeraren som fungerar med dina riktiga React-komponenter och skickar pull requests istället för engångskod.",
+            "ogImageAlt": "Jämför Weblab"
+        },
+        "privacyPolicy": {
+            "title": "Integritetspolicy | Weblab",
+            "description": "Weblabs integritetspolicy. Lär dig hur Weblab hanterar din data.",
+            "ogImageAlt": "Weblabs integritetspolicy"
+        },
+        "termsOfService": {
+            "title": "Användarvillkor | Weblab",
+            "description": "Weblabs användarvillkor. Läs de juridiska villkoren som styr din användning av Weblab.",
+            "ogImageAlt": "Weblabs användarvillkor"
+        },
+        "sitemap": {
+            "title": "Webbplatskarta | Weblab",
+            "description": "Komplett webbplatskarta för weblab.build – den AI-drivna visuella redigeraren för frontend-utveckling. Bläddra bland alla sidor inklusive funktioner, arbetsflöden, resurser och dokumentation.",
+            "ogImageAlt": "Weblabs webbplatskarta"
+        },
+        "aiWebsiteBuilder": {
+            "title": "AI-webbplatsbyggare för React- och Next.js-kodbaser | Weblab",
+            "description": "AI-webbplatsbyggare för React-team. AI:n redigerar dina riktiga komponenter, respekterar dina designtokens och skickar varje ändring som en pull request. Öppen källkod.",
+            "ogImageAlt": "Weblab – AI-webbplatsbyggare för React och Next.js"
+        },
+        "visualSiteBuilder": {
+            "title": "Visuell sajtbyggare för React- och Next.js-team | Weblab",
+            "description": "Visuell sajtbyggare för React och Next.js. Designa med dina riktiga komponenter på en oändlig canvas. Skicka pull requests, inte mockups. Öppen källkod.",
+            "ogImageAlt": "Weblab – visuell sajtbyggare för React- och Next.js-team"
+        },
+        "websiteBuilder": {
+            "title": "Webbplatsbyggare för team som äger en kodbas | Weblab",
+            "description": "Webbplatsbyggare för team med en React- eller Next.js-kodbas. Visuell canvas, riktiga komponenter, AI-stöd, pull request-output. Öppen källkod. Gratis att självhosta.",
+            "ogImageAlt": "Weblab – webbplatsbyggare för team med en kodbas"
+        }
+    },
+    "nav": {
+        "brandHomeAria": "Weblab hem",
+        "githubAria": "Visa Weblab på GitHub",
+        "mobileMenu": {
+            "open": "Öppna meny",
+            "close": "Stäng meny",
+            "getStarted": "Kom igång"
+        },
+        "user": {
+            "downloadApp": "Ladda ner appen",
+            "projects": "Projekt",
+            "signIn": "Logga in"
+        },
+        "categories": {
+            "product": {
+                "label": "Produkt",
+                "links": {
+                    "ai": { "title": "AI", "description": "AI-driven design" },
+                    "aiFrontend": { "title": "AI för frontend", "description": "AI som följer ditt designsystem" },
+                    "visualBuilder": { "title": "Visuell byggare", "description": "Skapa på en canvas" },
+                    "prototyping": { "title": "Prototyper", "description": "Snabb prototyputveckling" },
+                    "claudeCode": { "title": "Claude Code", "description": "Visuellt lager för Claude Code" },
+                    "vibeCoding": { "title": "Vibe Coding", "description": "Teamsamarbete för vibe coding" },
+                    "allFeatures": { "title": "Alla funktioner", "description": "Se allt Weblab erbjuder" }
+                }
+            },
+            "resources": {
+                "label": "Resurser",
+                "links": {
+                    "documentation": { "title": "Dokumentation", "description": "Lär dig använda Weblab" },
+                    "blog": { "title": "Blogg", "description": "Nyheter och uppdateringar" },
+                    "github": { "title": "GitHub", "description": "Visa källkoden" }
+                }
+            },
+            "about": {
+                "label": "Om",
+                "links": {
+                    "aboutUs": { "title": "Om oss", "description": "Lär dig mer om vårt uppdrag" },
+                    "faq": { "title": "FAQ", "description": "Vanliga frågor" }
+                }
+            }
+        }
+    },
+    "landing": {
+        "hero": {
+            "headline": "Designa på din riktiga kodbas.",
+            "headlineScript": "Skicka en riktig PR.",
+            "subhead": "Öppna ditt riktiga React- eller Next.js-projekt, redigera visuellt med AI och pusha till GitHub. Öppen källkod. Funkar med Claude Code.",
+            "getStarted": "Kom igång",
+            "continueProjects": "Fortsätt till dina projekt",
+            "downloadApp": "Ladda ner appen",
+            "highDemand": "Just nu är efterfrågan hög. Projekt kan misslyckas att skapas.",
+            "create": {
+                "promptPlaceholder": "Beskriv vad du vill bygga",
+                "signInTooltip": "Logga in för att börja bygga",
+                "failedToCreate": "Det gick inte att skapa projektet",
+                "replacePromptConfirm": "Ersätt din nuvarande prompt med det här förslaget?",
+                "overlayHeading": "Förbereder din sida",
+                "overlayCaption": "Din prompt är sparad. AI:n börjar bygga så snart redigeraren laddas."
+            },
+            "errorBanner": {
+                "tryAgain": "Försök igen",
+                "dismiss": "Stäng"
+            },
+            "cloneWebsite": "Klona en webbplats",
+            "importGithub": "Importera från GitHub",
+            "openLocalFolder": {
+                "importingHeading": "Importerar din mapp",
+                "importingCaption": "Laddar upp dina filer. Större mappar tar längre tid.",
+                "uploadingFiles": "Laddar upp filer ({count})",
+                "uploadingFolder": "Laddar upp mapp",
+                "creatingProject": "Skapar ditt projekt",
+                "openingEditor": "Öppnar redigeraren",
+                "unsupportedTooltip": "Lokal mappåtkomst fungerar bara i Chromium-baserade webbläsare (Chrome, Edge, Arc)."
+            },
+            "mobileEmailCapture": {
+                "notification": "Weblab är optimerat för större skärmar",
+                "cta": "Mejla mig en länk till senare",
+                "formTitle": "Mejla mig en länk till Weblab",
+                "nameLabel": "Namn",
+                "namePlaceholder": "Pablo Picasso",
+                "emailLabel": "E-post",
+                "emailPlaceholder": "Ange din e-post",
+                "submit": "Mejla mig en länk",
+                "submitting": "Skickar...",
+                "success": "Tack, ett mejl med länk till Weblab är skickat till dig!",
+                "errors": {
+                    "missingFields": "Fyll i alla fält",
+                    "invalidEmail": "Ange en giltig e-postadress",
+                    "timeout": "Begäran tog för lång tid. Kontrollera din anslutning och försök igen.",
+                    "server": "Serverfel. Försök igen om en stund.",
+                    "network": "Nätverksfel. Kontrollera din anslutning och försök igen.",
+                    "submit": "Det gick inte att skicka formuläret. Försök igen.",
+                    "generic": "Ett oväntat fel uppstod. Försök igen."
+                }
+            }
+        },
+        "useCases": {
+            "eyebrow": "Byggt för varje slags webbplats",
+            "landingPages": {
+                "label": "Landningssidor",
+                "description": "Sätt ihop en lanseringssida på minuter. Redigera texten, justera layouten och publicera till en riktig URL – ingen design­överlämning, ingen utvecklarbiljett."
+            },
+            "marketingSites": {
+                "label": "Marknadssidor",
+                "description": "Flersidiga webbplatser med delade komponenter, CMS-drivet innehåll och ett varumärkessystem ditt team kan bygga vidare på utan att något går sönder."
+            },
+            "internalTools": {
+                "label": "Interna verktyg",
+                "description": "Dashboards, adminpaneler och driftverktyg kopplade till er riktiga data. Bygg ytan i Weblab, ship samma React-kod ert team redan kör."
+            },
+            "prototypes": {
+                "label": "Prototyper",
+                "description": "Klickbara prototyper som känns som riktig produkt. Testa flöden med användare dag ett och behåll sedan samma kod hela vägen till lansering."
+            },
+            "productionApps": {
+                "label": "Produktionsappar",
+                "description": "Full-stack Next.js-appar med inloggning, databas och AI inbyggt. Visuell redigering på en riktig kodbas – pull requests i slutet, inga överlämningsdokument."
+            },
+            "startBuilding": "Börja bygga"
+        },
+        "modelAgnostic": {
+            "eyebrow": "Modellagnostisk",
+            "headline": "Använd bara de AI-modeller som funkar bäst för dig. Med Weblab kan du välja och växla mellan ledande modeller efter behov.",
+            "models": {
+                "gpt": "GPT-flaggskeppet för komplexa uppgifter",
+                "sonnet": "Anthropics flaggskepp – branschledande på kod",
+                "opus": "Mest kapabla Claude för de svåraste problemen",
+                "gemini": "Googles multimodala frontiermodell",
+                "deepseek": "Open-weight-resonemang i frontierklass",
+                "kimi": "Lång kontext, snabb och kapabel"
+            }
+        },
+        "andSoMuchMore": {
+            "titleLine1": "...och så",
+            "titleLine2": "mycket mer",
+            "worksWithCodebase": {
+                "title": "Fungerar med din kodbas",
+                "body": "Anslut ditt befintliga React-, Next.js- eller Vue-projekt. Ingen ombyggnad. Ingen migrering. Börja designa på minuter."
+            },
+            "builtForTeams": {
+                "title": "Byggt för team",
+                "body": "Dela din arbetsyta. Lämna spatiala kommentarer. Jobba tillsammans på designer som blir riktiga PR:er."
+            },
+            "githubIntegration": {
+                "title": "Direkt GitHub-integration",
+                "body": "Pusha ändringar direkt till ditt repo. Granska diffar innan commit."
+            },
+            "shipPrs": {
+                "title": "Skicka PR:er, inte prototyper",
+                "body": "Dina ändringar blir en riktig pull request. Utvecklare granskar och mergar – ingen överlämning, ingen översättning."
+            },
+            "shortcuts": {
+                "title": "Genvägar för power users",
+                "bodyPrefix": "Alla dina vanliga hotkeys funkar här.",
+                "bodySuffix": "och allt däremellan."
+            },
+            "reference": {
+                "title": "Referera vad som helst i chatten",
+                "body": "Släpp in bilder, mockups eller dokument i konversationen. AI:n använder dem som kontext för bättre resultat."
+            }
+        },
+        "digitalSolutions": {
+            "titleLine1": "Digitala produkter",
+            "titleLine2": "användare älskar &",
+            "titleLine3": "team växer med",
+            "body": "Vill du skicka digitala upplevelser som folk faktiskt använder? Oavsett om det är en sajt som konverterar, en app som får dagliga öppningar eller AI-funktioner som drar sitt strå – tar vi dig hela vägen från idé till mätbar effekt.",
+            "startBuilding": "Börja bygga",
+            "play": "Spela",
+            "pause": "Pausa",
+            "slides": {
+                "aiNative": {
+                    "eyebrow": "AI-integration",
+                    "title": "AI-native-produkter",
+                    "description": "Skicka AI-funktioner som användare faktiskt litar på. Vi hjälper dig koppla in OpenAI, Claude och Gemini med rätt skyddsräcken – så att värdet är på riktigt, inte en demo."
+                },
+                "web": {
+                    "eyebrow": "Webbutveckling",
+                    "title": "Webb som konverterar",
+                    "description": "Marknadssidor, dashboards och SaaS-ytor byggda på en riktig kodbas – pixeltäta i designen, snabba i produktion och lätta för ditt team att fortsätta utveckla."
+                },
+                "apps": {
+                    "eyebrow": "Mobilutveckling",
+                    "title": "Appar folk öppnar",
+                    "description": "Native-känsliga iOS- och Android-appar från en delad kodbas. Tight UX, snabba lanseringar och ett team som skickar till varje enhet dina kunder använder."
+                },
+                "brand": {
+                    "eyebrow": "Varumärke & design",
+                    "title": "Varumärkessystem som skalar",
+                    "description": "Ett levande designsystem istället för en statisk styleguide. Tokens, komponenter och mönster som dina designers och utvecklare delar – likadant på canvas och i kod."
+                }
+            }
+        },
+        "cta": {
+            "defaultHeadingLine1": "Redo att sluta bygga om?",
+            "defaultHeadingLine2": "Ditt designsystem, på en canvas.",
+            "defaultButton": "Kom igång"
+        },
+        "featuresIntro": {
+            "eyebrow": "Native designverktygsfunktioner",
+            "headline": "Bekant för designers. Pålitligt för utvecklare.",
+            "body": "En canvas som känns intuitiv, med riktig kod under huven. Utvecklare kan merga det du skapar direkt – ingen överlämning, ingen ombyggnad."
+        },
+        "featuresGrid": {
+            "components": {
+                "eyebrow": "Dina riktiga komponenter",
+                "title": "Designa med det utvecklarna byggt",
+                "body": "Använd knapparna, korten och layouterna ditt team redan skapat. Inte generisk HTML – ditt riktiga designsystem, redo att dras in på canvasen."
+            },
+            "teams": {
+                "eyebrow": "Byggt för team",
+                "title": "Samarbete i realtid",
+                "body": "Dela din canvas. Lämna spatiala kommentarer. Jobba tillsammans på designer som blir riktiga PR:er. Inget mer ”hur delar jag det här?”"
+            },
+            "prs": {
+                "eyebrow": "Skicka PR:er, inte prototyper",
+                "title": "Ändringar blir pull requests",
+                "body": "Dina ändringar blir en riktig pull request. Utvecklare granskar och mergar – ingen överlämning, ingen översättning, ingen ombyggnad från specs."
+            },
+            "layers": {
+                "eyebrow": "Lagerhantering",
+                "title": "Navigera ditt komponentträd",
+                "body": "Se din React-komponenthierarki i en visuell lagerpanel. Klicka på vilket lager som helst för att markera det på canvasen. Inget mer JSX-letande."
+            },
+            "codebase": {
+                "eyebrow": "Fungerar med din kodbas",
+                "title": "Anslut befintliga projekt",
+                "body": "Anslut ditt befintliga React- eller Next.js-projekt. Ingen ombyggnad. Ingen migrering. Börja designa på minuter."
+            },
+            "history": {
+                "eyebrow": "Versionshistorik",
+                "title": "Förlora aldrig framsteg",
+                "body": "{appName} sparar projektögonblicksbilder automatiskt. Experimentera med självförtroende – rulla tillbaka till en tidigare version med ett klick."
+            }
+        },
+        "aiFeaturesGrid": {
+            "feedback": {
+                "eyebrow": "Visuell feedback i realtid",
+                "title": "Se AI-genererade komponenter dyka upp i realtid",
+                "body": "Se AI-genererade komponenter dyka upp i realtid medan du beskriver dem, med omedelbara visuella uppdateringar för varje ändring du gör"
+            },
+            "library": {
+                "eyebrow": "Komponentbibliotek",
+                "title": "AI:n skapar återanvändbara komponenter automatiskt",
+                "body": "AI:n skapar återanvändbara komponenter från dina designer automatiskt och föreslår smarta kombinationer från ditt befintliga bibliotek"
+            },
+            "globalStyles": {
+                "eyebrow": "Globala stilar",
+                "title": "Definiera varumärkets färger, typsnitt och avstånd en gång",
+                "body": "Definiera varumärkets färger, typsnitt och avstånd en gång – AI:n tillämpar dem konsekvent i varje komponent den genererar"
+            },
+            "responsive": {
+                "eyebrow": "Responsiva breakpoints",
+                "title": "AI:n bygger mobile-first-komponenter",
+                "body": "AI:n bygger mobile-first-komponenter som automatiskt anpassar sig till alla skärmstorlekar med korrekta breakpoints och flexibla layouter"
+            },
+            "layers": {
+                "eyebrow": "Lagerhantering",
+                "title": "Navigera appens struktur via en intuitiv lagerpanel",
+                "body": "Navigera appens struktur via en intuitiv lagerpanel – markera vilket element som helst för att redigera manuellt eller samarbeta med AI"
+            },
+            "templates": {
+                "eyebrow": "Importera mallar",
+                "title": "Börja med valfri Next.js/Tailwind-mall",
+                "body": "Börja med valfri Next.js/Tailwind-mall och låt AI:n förstå dina mönster för att generera matchande komponenter"
+            }
+        },
+        "contributor": {
+            "headingLine1": "Stöttat av dig &",
+            "headingOtherBuilders": "{count} andra byggare",
+            "headingLoading": "...",
+            "body": "Gå med i communityn som bygger open source-Cursor för designers",
+            "contributeButton": "Bidra till Weblab",
+            "avatarAlt": "{name}s avatar"
+        },
+        "codeOneToOne": {
+            "headingLine1": "Verkligen ett-till-ett",
+            "headingLine2": "med koden"
+        },
+        "obsessForHours": {
+            "buildIn": "Bygg på",
+            "seconds": "Sekunder",
+            "obsessFor": "Bli besatt i",
+            "hours": "Timmar",
+            "aiHeading": "Drivet av AI",
+            "aiBody": "Skapa i tankens hastighet",
+            "designHeading": "Byggt för design",
+            "designBody": "Precis styling, oändliga möjligheter, komponent-först"
+        },
+        "aiFeaturesIntro": {
+            "eyebrow": "Designa på en oändlig canvas",
+            "headline": "Peka på det du vill ha. AI:n vet precis vad du menar.",
+            "body": "Inget mer ”knappen uppe till höger” – klicka bara på den. AI:n är begränsad till ditt designsystem, så resultaten håller sig on-brand varje gång."
+        },
+        "aiBenefits": {
+            "codeGen": {
+                "eyebrow": "AI-kodgenerering för designers",
+                "headline": "Bygg produktionsklara appar med naturligt språk",
+                "body": "Beskriv vad du vill ha i klartext och se AI skapa fullt fungerande webbapplikationer med riktiga databaser, användarautentisering och interaktiva funktioner – inte bara statiska mockups eller prototyper."
+            },
+            "collaborate": {
+                "eyebrow": "Visuella AI-designverktyg",
+                "headline": "Samarbeta med AI på en visuell canvas",
+                "body": "Markera vilket element som helst och välj att redigera själv eller samarbeta med AI. Till skillnad från rena chattbaserade verktyg behåller du full visuell kontroll medan AI:n står för det tunga lyftet – ett sömlöst samarbete mellan mänsklig kreativitet och AI-förmåga."
+            },
+            "system": {
+                "eyebrow": "AI-hantering av designsystem",
+                "headline": "Behåll konsekvens i designsystemet",
+                "body": "AI:n tillämpar automatiskt dina varumärkesriktlinjer, komponentmönster och designtokens så att varje element håller sig on-brand och konsekvent i hela appen – ingen designdrift, fortsatt professionell polish."
+            }
+        },
+        "benefits": {
+            "aiContext": {
+                "eyebrow": "AI som förstår sammanhanget",
+                "headline": "AI som följer ditt designsystem",
+                "body": "Referera bilder, designer och dokument i chatten. AI:n ser det du ser – inget mer att förklara från noll. Resultaten använder dina riktiga komponenter, färger och tokens. Ingen drift. Inga off-brand-resultat."
+            },
+            "canvas": {
+                "eyebrow": "Canvas-manipulation",
+                "headline": "Designa på en oändlig canvas",
+                "body": "Dra, ändra storlek och arrangera element direkt på canvasen. Se ändringar i riktig kod direkt – inget bytande mellan verktyg. Peka på det du vill ha. AI:n vet precis vad du menar."
+            },
+            "guardrails": {
+                "eyebrow": "Skyddsräcken för designsystem",
+                "headline": "Dina färger, typsnitt och tokens",
+                "body": "AI:n är begränsad till ditt designsystem. Välj bland dina varumärkesfärger, använd dina typografiska skalor och styla med dina befintliga tokens. Ingen drift. Inga off-brand-resultat.",
+                "features": {
+                    "autoLayout": "Auto Layout och Flexbox",
+                    "borders": "Kantlinjer",
+                    "margins": "Marginaler",
+                    "imageBackgrounds": "Bildbakgrunder",
+                    "typography": "Typografi",
+                    "padding": "Padding",
+                    "gradients": "Gradienter",
+                    "cornerRadii": "Hörnradier"
+                }
+            }
+        },
+        "builderFeaturesIntro": {
+            "eyebrow": "Fungerar med din kodbas",
+            "headline": "Anslut ditt befintliga projekt. Börja designa på minuter.",
+            "body": "Ingen ombyggnad. Ingen migrering. Anslut ditt React-, Next.js- eller Vue-projekt och designa med dina riktiga komponenter – de dina utvecklare redan byggt."
+        },
+        "builderBenefits": {
+            "visualReact": {
+                "eyebrow": "Visuell React-redigering för utvecklare",
+                "headline": "Redigera React-appar visuellt med kodsynk",
+                "body": "Manipulera din React-kodbas visuellt och se ändringarna i koden i realtid. Inget mer bytande mellan redigerare och webbläsare. Bygg, styla och refaktorera din React-app med pixelprecis kontroll och automatisk kodgenerering."
+            },
+            "noCode": {
+                "eyebrow": "No-code React-byggare med utvecklarverktyg",
+                "headline": "Skapa komplexa React-gränssnitt utan att skriva varje rad",
+                "body": "Använd drag-and-drop för layout, komponenter och tillståndshantering medan Weblab genererar produktionsklar React-kod."
+            },
+            "aiAssisted": {
+                "eyebrow": "AI-assisterad React-utveckling",
+                "headline": "Generera och förfina React-kod med AI",
+                "body": "Kombinera visuell byggning med AI-prompter för att skapa anpassade React-komponenter, hooks och mönster som matchar projektets arkitektur – allt typat, optimerat och redo för produktion.",
+                "features": {
+                    "componentGeneration": "Komponentgenerering",
+                    "stateManagement": "Tillståndshantering",
+                    "eventHandlers": "Event-hanterare",
+                    "apiIntegration": "API-integration",
+                    "typescriptSupport": "TypeScript-stöd",
+                    "customHooks": "Egna hooks",
+                    "formValidation": "Formulärvalidering",
+                    "responsiveDesign": "Responsiv design"
+                }
+            }
+        },
+        "builderFeaturesGrid": {
+            "liveCode": {
+                "eyebrow": "Live-kodredigering",
+                "body": "Gör visuella ändringar som direkt uppdaterar dina React-filer med korrekt TSX, props och tillståndshantering"
+            },
+            "layers": {
+                "eyebrow": "Lagerhantering",
+                "body": "Navigera och organisera appens struktur via en intuitiv lagerpanel för precis elementmarkering och redigering"
+            },
+            "components": {
+                "eyebrow": "Komponentbiblioteksintegration",
+                "body": "Använd ditt befintliga React-komponentbibliotek eller importera valfri Next/Tailwind-kit"
+            },
+            "tailwind": {
+                "eyebrow": "TailwindCSS visuell redigerare",
+                "body": "Redigera och applicera Tailwind-klasser visuellt med autokomplettering och stilförhandsgranskning i realtid"
+            },
+            "responsive": {
+                "eyebrow": "Verktyg för responsiv design",
+                "body": "Bygg mobile-first React-appar med breakpoint-förhandsgranskning och automatisk media query-generering"
+            },
+            "templates": {
+                "eyebrow": "Importera mallar",
+                "body": "Börja med valfri Next.js/Tailwind-mall och låt AI:n förstå dina mönster för att generera matchande komponenter"
+            }
+        },
+        "responsiveMockup": {
+            "panel1": {
+                "title": "Designa med AI på en oändlig canvas",
+                "body": "Skapa, förhandsgranska och iterera med AI för att skicka bättre webbplatser och prototyper snabbare än någonsin."
+            },
+            "panel2": {
+                "title": "Native designverktygsfunktioner som funkar 1:1 med koden.",
+                "body": "Ett riktigt utvecklarverktyg för designers som hjälper dig koda utan att kunna något om kod."
+            }
+        },
+        "scrollingVelocity": {
+            "lineTop": "Designa utan gränser.",
+            "lineBottom": "Skicka utan att bygga om."
+        },
+        "justShipped": {
+            "badge": "Nytt i v{version}"
+        },
+        "socialProof": {
+            "title": "Community-statistik:",
+            "contributorsCount": "90+",
+            "contributorsLabel": "bidragsgivare",
+            "openSource": "Öppen källkod",
+            "transparent": "& transparent"
+        },
+        "terminalSection": {
+            "heading": "Riktig kod. Riktig terminal. Riktig kontroll.",
+            "body": "Weblab skickar produktionsklar kod du kan installera, bygga, testa och deploya från din egen terminal – ingen inlåsning, ingen black box."
+        },
+        "whatCanWeblabDoV2": {
+            "headingAi": "AI",
+            "headingCode": "Kod",
+            "headingDesign": "Design",
+            "headingSideBySide": "Sida-vid-sida-vid-sida",
+            "subhead": "Allt på en canvas. Inga flikar, ingen överlämning, ingen översättning som tappar bort något.",
+            "brandVisual": {
+                "tokens": "Tokens",
+                "background": "Bakgrund",
+                "foreground": "Förgrund",
+                "brand": "Varumärke",
+                "onBrand": "Alla förslag följer varumärket"
+            },
+            "layersTitle": "Lager",
+            "revisionToday": "Idag",
+            "revisionCurrent": "Aktuell",
+            "features": {
+                "aiAssistant": {
+                    "subtitle": "AI-assistent",
+                    "title": "AI som förstår sammanhanget",
+                    "paragraph": "Referera bilder, designer och dokument i chatten. AI:n ser det du ser – inget mer att förklara från noll."
+                },
+                "canvas": {
+                    "subtitle": "Canvas",
+                    "title": "Manipulera element direkt",
+                    "paragraph": "Dra, ändra storlek och arrangera element direkt på canvasen. Se ändringar dyka upp i riktig kod direkt."
+                },
+                "components": {
+                    "subtitle": "Komponenter",
+                    "title": "Dina riktiga komponenter",
+                    "paragraph": "Återanvänd ditt befintliga designsystem – knappar, kort, navigationer. Levande komponenter, inte skärmdumpar."
+                },
+                "brand": {
+                    "subtitle": "Varumärke",
+                    "title": "Skyddsräcken för designsystemet",
+                    "paragraph": "Dina tokens förblir dina tokens. AI-förslagen respekterar dina färger, typografi och avstånd."
+                },
+                "structure": {
+                    "subtitle": "Struktur",
+                    "title": "Navigera koden som lager",
+                    "paragraph": "Ett levande träd av din DOM. Klicka på vilken nod som helst för att hoppa till den på canvasen – ingen inspektor att leta i."
+                },
+                "history": {
+                    "subtitle": "Historik",
+                    "title": "Tidsresor för dina designer",
+                    "paragraph": "Varje sparande är en version. Förgrena, återställ och jämför utan att lämna canvasen."
+                }
+            }
+        },
+        "testimonials": {
+            "headingLine1": "Tiotusentals",
+            "headingLine2": "byggare älskar Weblab"
+        },
+        "faq": {
+            "titleLine1": "Vanliga",
+            "titleLine2": "frågor",
+            "readMore": "Läs våra FAQ",
+            "items": {
+                "what": {
+                    "question": "Vad är {appName}?",
+                    "answer": "{appName} är en visuell designcanvas som ansluter till din befintliga kodbas. Designers drar riktiga komponenter till en oändlig canvas, gör ändringar visuellt och skickar pull requests – ingen kod krävs."
+                },
+                "differentDesign": {
+                    "question": "Hur skiljer sig {appName} från andra designverktyg?",
+                    "answer": "Traditionella designverktyg skapar statiska mockups som måste byggas om i kod. {appName} jobbar med dina riktiga komponenter – det du designar ÄR koden. Ändringar blir PR:er, inte specs att lämna över."
+                },
+                "differentAi": {
+                    "question": "Hur skiljer sig {appName} från AI-kodgeneratorer?",
+                    "answer": "AI-generatorer skapar ny kod från noll. {appName} begränsar AI:n till DINA befintliga komponenter, så att resultaten matchar ditt designsystem. Ingen översättning, ingen drift."
+                },
+                "code": {
+                    "question": "Behöver jag kunna koda?",
+                    "answer": "Nej. Designers använder en visuell canvas med bekanta verktyg. Riktig kod körs under huven – du behöver inte röra den om du inte vill."
+                },
+                "collaborate": {
+                    "question": "Kan mitt team samarbeta?",
+                    "answer": "Ja. Dela din canvas, lämna spatiala kommentarer och jobba tillsammans i realtid. Ändringar synkas till koden och kan skickas som PR:er för utvecklare att granska."
+                },
+                "stack": {
+                    "question": "Vilken teknikstack stödjer {appName}?",
+                    "answer": "React, Next.js och valfri CSS-metod (Tailwind, CSS modules, styled-components). Funkar med vilket komponentbibliotek som helst."
+                },
+                "free": {
+                    "question": "Finns det en gratisversion av {appName}?",
+                    "answer": "Ja, {appName} kan självhostas gratis på GitHub. För den värdade molnversionen, kontakta vårt team."
+                },
+                "ownership": {
+                    "question": "Vem äger koden?",
+                    "answer": "Koden du gör med {appName} är helt och hållet din. Exportera lokalt, publicera till GitHub eller deploya till en egen domän."
+                }
+            }
+        },
+        "footer": {
+            "brandHomeAria": "Weblab hem",
+            "company": {
+                "title": "Företag",
+                "about": { "label": "Om oss", "title": "Om Weblab" },
+                "faq": { "label": "FAQ", "title": "Vanliga frågor" },
+                "contact": { "label": "Kontakt", "title": "Kontakta Weblabs support" }
+            },
+            "resources": {
+                "title": "Resurser",
+                "docs": { "label": "Dokumentation", "title": "Visa Weblabs dokumentation" },
+                "blog": { "label": "Blogg", "title": "Läs Weblab-bloggen" },
+                "githubRepo": { "label": "GitHub-repo", "title": "Visa Weblab på GitHub" },
+                "changelog": { "label": "Changelog", "title": "Se vad som är nytt i Weblab" }
+            },
+            "product": {
+                "title": "Produkt",
+                "pricing": { "label": "Priser", "title": "Visa Weblabs priser" },
+                "download": { "label": "Ladda ner", "title": "Ladda ner Weblab för Mac, Windows, Linux och iOS" },
+                "myProjects": { "label": "Mina projekt", "title": "Visa dina projekt" }
+            },
+            "legal": {
+                "title": "Juridik",
+                "terms": { "label": "Användarvillkor", "title": "Läs våra användarvillkor" },
+                "privacy": { "label": "Integritetspolicy", "title": "Läs vår integritetspolicy" },
+                "sitemap": { "label": "Webbplatskarta", "title": "Visa webbplatskartan" },
+                "copyright": "© {year} Weblab"
+            },
+            "workflows": {
+                "title": "Arbetsflöden",
+                "claudeCode": { "label": "Claude Code", "title": "Använd Weblab med Claude Code" },
+                "vibeCoding": { "label": "Vibe Coding", "title": "Vibe coding för team" }
+            },
+            "features": {
+                "title": "Funktioner",
+                "overview": { "label": "Funktionsöversikt", "title": "Visa alla Weblab-funktioner" },
+                "ai": { "label": "AI", "title": "AI-drivna utvecklingsverktyg" },
+                "visualBuilder": { "label": "Visuell byggare", "title": "Verktyg för visuell byggare" },
+                "prototyping": { "label": "Prototyper", "title": "Funktioner för snabb prototyputveckling" },
+                "aiFrontend": { "label": "AI för frontend", "title": "AI som följer ditt designsystem" }
+            },
+            "followUs": {
+                "title": "Följ oss",
+                "github": { "label": "GitHub", "title": "Visa Weblab på GitHub" }
+            },
+            "languageSwitcher": {
+                "label": "Språk"
+            }
+        }
+    }
+}

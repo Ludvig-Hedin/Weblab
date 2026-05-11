@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Icons } from '@weblab/ui/icons/index';
@@ -12,6 +13,7 @@ export function CloneWebsite() {
     const router = useRouter();
     const { data: user } = api.user.get.useQuery();
     const { setIsAuthModalOpen } = useAuthContext();
+    const t = useTranslations('landing.hero');
 
     const handleClick = () => {
         if (!user?.id) {
@@ -27,7 +29,7 @@ export function CloneWebsite() {
             className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
         >
             <Icons.MagicWand className="h-4 w-4" />
-            Clone a website
+            {t('cloneWebsite')}
         </button>
     );
 }

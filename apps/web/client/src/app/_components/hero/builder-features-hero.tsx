@@ -16,7 +16,7 @@ export function BuilderFeaturesHero() {
             <UnicornBackground />
             <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase"
+                    className="heading-style-h6 text-foreground-secondary mb-4"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -25,7 +25,7 @@ export function BuilderFeaturesHero() {
                     React Visual Builder
                 </motion.p>
                 <motion.h1
-                    className="text-center text-4xl !leading-[1] leading-tight font-light text-balance md:text-6xl"
+                    className="heading-style-h1 text-center text-balance"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}

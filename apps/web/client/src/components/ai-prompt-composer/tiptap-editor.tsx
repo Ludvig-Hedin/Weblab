@@ -28,7 +28,17 @@ interface TipTapEditorProps {
     editorRef?: MutableRefObject<Editor | null>;
     mentionConfig?: MentionConfig;
     slashCommands?: SlashCommand[];
+    /**
+     * Hard cap on plain-text characters. Pastes are truncated, keystrokes past
+     * the cap are dropped. Defaults to 8000 — enough for a long prompt but
+     * orders of magnitude under what would break layout or burn tokens.
+     */
+    maxLength?: number;
+    /** Accessible label for the contenteditable; defaults to the placeholder. */
+    ariaLabel?: string;
 }
+
+const DEFAULT_MAX_LENGTH = 8000;
 
 export function TipTapEditor({
     value,
@@ -44,6 +54,8 @@ export function TipTapEditor({
     editorRef,
     mentionConfig,
     slashCommands,
+    maxLength = DEFAULT_MAX_LENGTH,
+    ariaLabel,
 }: TipTapEditorProps) {
     const onKeyDownRef = useRef(onKeyDown);
     onKeyDownRef.current = onKeyDown;
@@ -74,17 +86,40 @@ export function TipTapEditor({
             attributes: {
                 class: cn(
                     'text-small resize-none overflow-auto rounded-none text-left outline-none',
-                    'min-h-[44px] cursor-text px-3 py-1.5',
+                    'min-h-[44px] max-h-[40vh] cursor-text px-3 py-1.5',
                     'text-foreground-primary caret-foreground-brand bg-transparent dark:bg-transparent',
                     'selection:bg-foreground-brand/30 selection:text-foreground-brand',
                     'focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
                     className ?? '',
                 ),
+                role: 'textbox',
+                'aria-multiline': 'true',
+                'aria-label': ariaLabel ?? placeholder ?? 'Message',
             },
-            handleKeyDown(_view, event) {
+            handleKeyDown(view, event) {
                 onKeyDownRef.current?.(event);
-                // Relies on caller calling e.preventDefault() synchronously before returning.
-                return event.defaultPrevented;
+                if (event.defaultPrevented) return true;
+                // Drop printable keystrokes that would push past maxLength. Allow
+                // navigation, deletion, and modifier-key combos through unchanged.
+                if (
+                    maxLength > 0 &&
+                    event.key &&
+                    event.key.length === 1 &&
+                    !event.metaKey &&
+                    !event.ctrlKey &&
+                    !event.altKey
+                ) {
+                    const current = view.state.doc.textBetween(
+                        0,
+                        view.state.doc.content.size,
+                        '\n',
+                    );
+                    if (current.length >= maxLength) {
+                        event.preventDefault();
+                        return true;
+                    }
+                }
+                return false;
             },
             handleDOMEvents: {
                 compositionstart: () => {
@@ -99,6 +134,28 @@ export function TipTapEditor({
                     onPaste?.(event);
                     return false;
                 },
+            },
+            handlePaste(view, event) {
+                if (maxLength <= 0) return false;
+                const text = event.clipboardData?.getData('text/plain');
+                if (!text) return false;
+                const current = view.state.doc.textBetween(
+                    0,
+                    view.state.doc.content.size,
+                    '\n',
+                );
+                const remaining = maxLength - current.length;
+                if (remaining <= 0) {
+                    event.preventDefault();
+                    return true;
+                }
+                if (text.length > remaining) {
+                    event.preventDefault();
+                    const truncated = text.slice(0, remaining);
+                    view.dispatch(view.state.tr.insertText(truncated));
+                    return true;
+                }
+                return false;
             },
         },
         onUpdate({ editor: e }) {

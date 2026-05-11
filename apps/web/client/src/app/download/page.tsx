@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 
 import { APP_NAME } from '@weblab/constants';
@@ -15,7 +16,6 @@ type Platform = 'mac' | 'win' | 'linux' | 'ios' | 'other';
 function detectPlatform(): Platform {
     if (typeof navigator === 'undefined') return 'other';
     const ua = navigator.userAgent.toLowerCase();
-    // Check iOS first — iPadOS reports as Macintosh with TouchEvents.
     const isIPadOS =
         ua.includes('macintosh') &&
         typeof navigator.maxTouchPoints === 'number' &&
@@ -36,26 +36,6 @@ interface DownloadOption {
     available: boolean;
     badge?: string;
 }
-
-const OPTIONS: DownloadOption[] = [
-    {
-        id: 'mac',
-        title: 'macOS',
-        subtitle: 'Universal — Apple Silicon & Intel',
-        cta: 'Download for macOS',
-        href: ExternalRoutes.DOWNLOAD_MAC,
-        available: true,
-        badge: 'BETA',
-    },
-    {
-        id: 'ios',
-        title: 'iOS',
-        subtitle: 'iPhone & iPad — iOS 16 or later',
-        cta: 'Get on TestFlight',
-        href: ExternalRoutes.DOWNLOAD_IOS,
-        available: false,
-    },
-];
 
 function Preview({ platform }: { platform: Platform }) {
     return (
@@ -95,11 +75,38 @@ function Preview({ platform }: { platform: Platform }) {
 }
 
 export default function DownloadPage() {
+    const t = useTranslations('downloadPage') as (
+        key: string,
+        values?: Record<string, string>,
+    ) => string;
     const [detected, setDetected] = useState<Platform>('other');
 
     useEffect(() => {
         setDetected(detectPlatform());
     }, []);
+
+    const options = useMemo<DownloadOption[]>(
+        () => [
+            {
+                id: 'mac',
+                title: t('mac.title'),
+                subtitle: t('mac.subtitle'),
+                cta: t('mac.cta'),
+                href: ExternalRoutes.DOWNLOAD_MAC,
+                available: true,
+                badge: t('beta'),
+            },
+            {
+                id: 'ios',
+                title: t('ios.title'),
+                subtitle: t('ios.subtitle'),
+                cta: t('ios.cta'),
+                href: ExternalRoutes.DOWNLOAD_IOS,
+                available: false,
+            },
+        ],
+        [t],
+    );
 
     return (
         <WebsiteLayout>
@@ -111,16 +118,15 @@ export default function DownloadPage() {
                     className="mb-12 flex flex-col items-center gap-2 text-center"
                 >
                     <h1 className="text-foreground-primary text-4xl !leading-[1.05] font-light tracking-tight">
-                        Download {APP_NAME}
+                        {t('heading', { appName: APP_NAME })}
                     </h1>
                     <p className="text-foreground-secondary max-w-md text-sm leading-relaxed">
-                        The same {APP_NAME}, wrapped natively for your device. Sign in once — your
-                        session syncs with the web app.
+                        {t('subhead', { appName: APP_NAME })}
                     </p>
                 </motion.div>
 
                 <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-                    {OPTIONS.map((option, index) => {
+                    {options.map((option, index) => {
                         const isRecommended = option.id === detected && option.available;
                         return (
                             <motion.div
@@ -152,7 +158,7 @@ export default function DownloadPage() {
                                             )}
                                             {isRecommended && (
                                                 <span className="text-foreground-primary border-foreground-primary/30 rounded-full border px-1.5 py-px text-[9px] font-medium tracking-wider uppercase">
-                                                    Recommended
+                                                    {t('recommended')}
                                                 </span>
                                             )}
                                         </div>
@@ -172,7 +178,7 @@ export default function DownloadPage() {
                                         </a>
                                     ) : (
                                         <span className="border-foreground-secondary/15 text-foreground-tertiary inline-flex w-fit items-center rounded-lg border px-4 py-2 text-sm font-medium">
-                                            Coming soon
+                                            {t('comingSoon')}
                                         </span>
                                     )}
                                 </div>
@@ -187,18 +193,16 @@ export default function DownloadPage() {
                     transition={{ duration: 0.5, delay: 0.3 }}
                     className="text-foreground-tertiary mt-10 max-w-xl text-center text-[11px] leading-relaxed"
                 >
-                    Sign-in works the same as the web app — Google, GitHub or email. Desktop and iOS
-                    apps route OAuth through your system browser, then drop you back in already
-                    signed in. Looking for older versions? Browse the{' '}
+                    {t('footnotePart1')}
                     <a
                         href={ExternalRoutes.DOWNLOAD_PAGE}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-2"
                     >
-                        full release archive
+                        {t('footnoteLink')}
                     </a>
-                    .
+                    {t('footnotePart2')}
                 </motion.div>
             </div>
         </WebsiteLayout>

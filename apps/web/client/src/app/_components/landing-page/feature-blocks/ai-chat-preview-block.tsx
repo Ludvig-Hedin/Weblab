@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
 import { AiChatInteractive } from '../../shared/mockups/ai-chat-interactive';
 
 export function AiChatPreviewBlock() {
+    const t = useTranslations('landing.benefits.aiContext');
     return (
         <div className="flex w-full flex-col gap-6">
             <AiChatInteractive />
@@ -14,12 +16,11 @@ export function AiChatPreviewBlock() {
                         <Icons.Sparkles className="text-foreground-primary h-6 w-6" />
                     </div>
                     <span className="text-foreground-primary text-largePlus font-light">
-                        AI That Understands Context
+                        {t('eyebrow')}
                     </span>
                 </div>
                 <p className="text-foreground-secondary text-regular w-1/2 text-balance">
-                    Reference images, designs, and docs in chat. AI sees what you see — no more
-                    explaining from scratch.
+                    {t('body')}
                 </p>
             </div>
         </div>

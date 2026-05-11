@@ -16,9 +16,7 @@ export default function LoginPage() {
     const searchParams = useSearchParams();
     const returnUrl = searchParams.get(LocalForageKeys.RETURN_URL);
     const missingEmail = searchParams.get('missing') === 'email';
-    const initialEmailError = missingEmail
-        ? 'Verification session expired. Enter your email to try again.'
-        : null;
+    const initialEmailError = missingEmail ? t('loginPage.verificationExpired') : null;
 
     return (
         <div className="flex h-screen w-screen items-center justify-center">

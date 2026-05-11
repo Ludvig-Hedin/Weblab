@@ -1,36 +1,31 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { format, isValid, parseISO } from 'date-fns';
-
-import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
 import { WebsiteLayout } from '@/app/_components/website-layout';
 import { breadcrumbSchema } from '@/app/seo';
 import { CHANGELOG_ENTRIES } from '@/lib/changelog-entries';
+import { buildPageMetadata } from '@/lib/seo-metadata';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Home', path: '/' },
     { name: 'Changelog', path: '/changelog' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Changelog | ${APP_NAME}`,
-    description: `New features, improvements, and fixes — see what the ${APP_NAME} team has shipped.`,
-    openGraph: {
-        title: `Changelog | ${APP_NAME}`,
-        description: `New features, improvements, and fixes — see what the ${APP_NAME} team has shipped.`,
-        type: 'website',
-        url: `https://${APP_DOMAIN}/changelog`,
-        siteName: APP_NAME,
-    },
-    alternates: { canonical: `https://${APP_DOMAIN}/changelog` },
-};
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'changelog',
+        path: '/changelog',
+    });
+}
 
 function formatEntryDate(date: string): string {
     const parsed = parseISO(date);
     return isValid(parsed) ? format(parsed, 'MMM d, yyyy') : date;
 }
 
-export default function ChangelogPage() {
+export default async function ChangelogPage() {
+    const t = await getTranslations('changelogPage');
     return (
         <WebsiteLayout showFooter>
             <script
@@ -40,10 +35,10 @@ export default function ChangelogPage() {
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-24 md:px-8 md:pt-32">
                 <header className="mb-16">
                     <p className="text-foreground-tertiary mb-2 text-xs font-medium tracking-widest uppercase">
-                        Updates
+                        {t('eyebrow')}
                     </p>
                     <h1 className="text-foreground-primary text-3xl font-light tracking-tight md:text-4xl">
-                        Changelog
+                        {t('heading')}
                     </h1>
                 </header>
 

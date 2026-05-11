@@ -56,6 +56,10 @@ export interface TerminalAnimationRootProps {
     hideCursorOnComplete?: boolean;
     alwaysDark?: boolean;
     backgroundImage?: string;
+    /** When true, auto-advance to next tab after each animation completes. */
+    loopTabs?: boolean;
+    /** Pause (ms) after completion before advancing to next tab. */
+    loopDelayMs?: number;
     className?: string;
     children?: ReactNode;
 }
@@ -66,6 +70,8 @@ export function TerminalAnimationRoot({
     hideCursorOnComplete = false,
     alwaysDark = false,
     backgroundImage,
+    loopTabs = false,
+    loopDelayMs = 1800,
     className,
     children,
 }: TerminalAnimationRootProps) {
@@ -120,6 +126,14 @@ export function TerminalAnimationRoot({
         return () => clearTimers();
     }, [activeTabIndex, tabs, clearTimers]);
 
+    useEffect(() => {
+        if (!loopTabs || !isComplete || tabs.length <= 1) return;
+        const t = setTimeout(() => {
+            setActiveTabIndex((i) => (i + 1) % tabs.length);
+        }, loopDelayMs);
+        return () => clearTimeout(t);
+    }, [loopTabs, isComplete, tabs.length, loopDelayMs]);
+
     const value = useMemo<TerminalAnimationContextValue>(
         () => ({
             tabs,
@@ -164,9 +178,8 @@ export function TerminalAnimationBackgroundGradient({ className }: { className?:
         <div
             aria-hidden
             className={cn(
-                'absolute inset-0 -z-0',
-                'bg-[radial-gradient(ellipse_at_top,_rgba(237,66,181,0.18),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(111,247,204,0.12),_transparent_60%)]',
-                'before:absolute before:inset-0 before:bg-black/85',
+                'pointer-events-none absolute inset-0 -z-0',
+                'bg-[radial-gradient(ellipse_at_center,_hsl(var(--foreground-brand)/0.10),_transparent_65%)]',
                 className,
             )}
         />

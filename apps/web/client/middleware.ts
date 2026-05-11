@@ -9,6 +9,7 @@ const SKIP_PREFIXES = [
     '/api/chat',
     '/api/ai',
     '/api/chat-images',
+    '/api/health',
     '/_next/static',
     '/_next/image',
 ];

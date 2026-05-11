@@ -147,7 +147,7 @@ export function LayersBlock() {
     return (
         <div className="flex flex-col gap-6">
             <div className="bg-background-weblab/80 relative h-100 w-full overflow-hidden rounded-lg">
-                <div className="border-foreground-primary/20 absolute top-12 left-1/30 z-20 flex h-100 w-48 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl">
+                <div className="border-foreground-primary/20 absolute top-12 left-2 z-20 flex h-100 w-40 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl sm:left-1/30 sm:w-48">
                     <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">
                         Layers
                     </p>
@@ -155,7 +155,7 @@ export function LayersBlock() {
                         <MockLayersTab />
                     </div>
                 </div>
-                <div className="absolute top-20 left-1/4 z-10 h-80 w-90 overflow-hidden rounded-lg">
+                <div className="absolute top-20 right-0 z-10 h-72 w-60 overflow-hidden rounded-lg sm:top-20 sm:right-auto sm:left-1/4 sm:h-80 sm:w-90">
                     <video
                         autoPlay
                         loop
@@ -181,9 +181,9 @@ export function LayersBlock() {
                     </div>
                 </div>
             </div>
-            <div className="flex w-full flex-row items-start gap-8">
+            <div className="flex w-full flex-col items-start gap-4 sm:flex-row sm:gap-8">
                 {/* Icon + Title */}
-                <div className="flex w-1/2 flex-col items-start">
+                <div className="flex w-full flex-col items-start sm:w-1/2">
                     <div className="mb-2">
                         <Icons.Layers className="text-foreground-primary h-6 w-6" />
                     </div>
@@ -192,7 +192,7 @@ export function LayersBlock() {
                     </span>
                 </div>
                 {/* Description */}
-                <p className="text-foreground-secondary text-regular w-1/2 text-balance">
+                <p className="text-foreground-secondary text-regular w-full text-balance sm:w-1/2">
                     See your component hierarchy. Click any layer to select it on the canvas.
                 </p>
             </div>

@@ -3,6 +3,7 @@
 import './contributor.css';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import { Icons } from '@weblab/ui/icons';
@@ -34,6 +35,7 @@ function parseRepoFromUrl(url: string | undefined): string {
 
 // Floating Circles: two concentric rings
 const FloatingRings = ({ repo }: { repo: string }) => {
+    const t = useTranslations('landing.contributor');
     const [isMd, setIsMd] = useState(false);
     const [contributors, setContributors] = useState<Contributor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +118,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                             {contributor && (
                                 <img
                                     src={contributor.avatar_url}
-                                    alt={`${contributor.login}'s avatar`}
+                                    alt={t('avatarAlt', { name: contributor.login })}
                                     className="h-full w-full object-cover"
                                     loading="lazy"
                                 />
@@ -151,7 +153,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                             {contributor && (
                                 <img
                                     src={contributor.avatar_url}
-                                    alt={`${contributor.login}'s avatar`}
+                                    alt={t('avatarAlt', { name: contributor.login })}
                                     className="h-full w-full object-cover"
                                     loading="lazy"
                                 />
@@ -180,6 +182,7 @@ export function ContributorSection({
     githubLink = 'https://github.com/Ludvig-Hedin/Weblab',
     // discordLink = "https://discord.gg/ZZzadNQtns"
 }: ContributorSectionProps) {
+    const t = useTranslations('landing.contributor');
     const [starCount, setStarCount] = useState<string>('0');
     const [isLoading, setIsLoading] = useState(true);
     const repo = parseRepoFromUrl(githubLink);
@@ -214,12 +217,15 @@ export function ContributorSection({
             >
                 {/* Floating Circles: two concentric rings */}
                 <FloatingRings repo={repo} />
-                <h2 className="text-foreground-primary mb-2 text-center text-3xl font-light md:text-4xl">
-                    Supported by you &<br />
-                    {isLoading ? '...' : starCount} other builders
+                <h2 className="heading-style-h3 text-foreground-primary mb-2 text-center">
+                    {t('headingLine1')}
+                    <br />
+                    {isLoading
+                        ? t('headingLoading')
+                        : t('headingOtherBuilders', { count: starCount })}
                 </h2>
                 <p className="text-foreground-secondary text-regular mb-8 max-w-xl text-center">
-                    Join the community building <br /> the open source Cursor for Designers
+                    {t('body')}
                 </p>
                 <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
                     <Link
@@ -227,7 +233,7 @@ export function ContributorSection({
                         target="_blank"
                         className="bg-foreground-primary text-background-primary text-regularPlus hover:bg-foreground-primary/80 flex cursor-pointer items-center gap-2 rounded-lg px-6 py-3 shadow transition"
                     >
-                        Contribute to Weblab
+                        {t('contributeButton')}
                         <Icons.GitHubLogo className="h-4.5 w-4.5" />
                     </Link>
                     {/* <Link

@@ -12,8 +12,12 @@ import {
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Kbd } from '@weblab/ui/kbd';
 
+import { Button } from '@weblab/ui/button';
+
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
+import { useStateManager } from '@/components/store/state';
+import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
 
 type ModalEntry =
     | { kind: 'single'; hotkey: Hotkey }
@@ -237,6 +241,13 @@ const MultiHotkeyRow = ({
 
 export const KeyboardShortcutsModal = observer(() => {
     const editorEngine = useEditorEngine();
+    const stateManager = useStateManager();
+
+    const openCustomize = () => {
+        editorEngine.state.setHotkeysOpen(false);
+        stateManager.settingsTab = SettingsTabValue.SHORTCUTS;
+        stateManager.isSettingsModalOpen = true;
+    };
 
     return (
         <Dialog
@@ -245,10 +256,25 @@ export const KeyboardShortcutsModal = observer(() => {
         >
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Keyboard shortcuts</DialogTitle>
-                    <DialogDescription>
-                        The fastest editor actions available in the project workspace.
-                    </DialogDescription>
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <DialogTitle>Keyboard shortcuts</DialogTitle>
+                            <DialogDescription>
+                                The fastest editor actions available in the project workspace.
+                            </DialogDescription>
+                        </div>
+                        {/* Inline jump to the customize tab so users who notice
+                            a binding clashes with their IDE can fix it without
+                            hunting through settings. */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={openCustomize}
+                            className="shrink-0"
+                        >
+                            Customize…
+                        </Button>
+                    </div>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
                     {HOTKEY_SECTIONS.map((section) => (

@@ -6,6 +6,7 @@ import { observer } from 'mobx-react-lite';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { OfflineProjectsList } from './_components/offline-projects-list';
+import { ProjectsCommandPalette } from './_components/projects-command-palette';
 import { SelectProject } from './_components/select';
 import { TopBar } from './_components/top-bar';
 
@@ -23,6 +24,7 @@ const Page = observer(() => {
             </div>
             <SubscriptionModal />
             <NonProjectSettingsModal />
+            <ProjectsCommandPalette />
         </div>
     );
 });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 interface TestimonialCardProps {
     text: string;
@@ -58,11 +59,12 @@ function TestimonialCard({
 }
 
 export function TestimonialsSection() {
+    const t = useTranslations('landing.testimonials');
     return (
-        <div className="mx-auto w-full max-w-6xl px-8 py-48">
-            <h2 className="text-foreground-primary mb-16 max-w-4xl text-left text-6xl leading-[1.1] font-light text-balance">
-                Tens of thousands of <br />
-                builders love Weblab
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-48">
+            <h2 className="heading-style-h2 text-foreground-primary mb-16 max-w-4xl text-left text-balance">
+                {t('headingLine1')} <br />
+                {t('headingLine2')}
             </h2>
             <div className="flex w-full flex-col gap-6 md:flex-row md:gap-8">
                 {/* Column 1 */}

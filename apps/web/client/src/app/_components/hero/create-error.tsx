@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
@@ -10,6 +11,7 @@ interface CreateErrorProps {
 export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
     const createManager = useCreateManager();
     const error = createManager.error;
+    const t = useTranslations('landing.hero.errorBanner');
 
     const handleClick = () => {
         createManager.error = null;
@@ -36,7 +38,7 @@ export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
                 onClick={handleClick}
                 className="cursor-pointer rounded-md border border-red-500/60 px-2 py-1 text-xs font-medium tracking-wide text-red-200 uppercase transition-colors hover:bg-red-500/20"
             >
-                {onRetry ? 'Try again' : 'Dismiss'}
+                {onRetry ? t('tryAgain') : t('dismiss')}
             </button>
         </motion.div>
     );

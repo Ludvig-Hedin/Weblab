@@ -2,6 +2,7 @@ import { type Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,64 +10,29 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Workflows', path: '/workflows' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Workflows | Integrate ${APP_NAME} with Claude Code, Cursor & AI Coding Tools | ${APP_NAME}`,
-    description: `Connect ${APP_NAME} to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.`,
-    keywords: [
-        // Primary keywords
-        'claude code visual editor',
-        'cursor visual editor',
-        'AI coding workflow',
-        'visual layer for AI',
-        // Tool integrations
-        'claude code for designers',
-        'cursor for designers',
-        'AI code editor visual',
-        'visual AI coding',
-        // Workflow
-        'design to code workflow',
-        'AI design workflow',
-        'code generation visual',
-        'AI development tools',
-        // Problem/solution
-        'visual canvas AI',
-        'design system AI',
-        'team collaboration AI',
-    ],
-    openGraph: {
-        url: `https://${APP_DOMAIN}/workflows`,
-        type: 'website',
-        siteName: APP_NAME,
-        title: `Workflows | ${APP_NAME}`,
-        description: `Connect ${APP_NAME} to your AI coding workflow. Visual design layer for Claude Code, Cursor, and more.`,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `${APP_NAME} workflows preview`,
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'workflows',
+        path: '/workflows',
+        keywords: [
+            'claude code visual editor',
+            'cursor visual editor',
+            'AI coding workflow',
+            'visual layer for AI',
+            'claude code for designers',
+            'cursor for designers',
+            'AI code editor visual',
+            'visual AI coding',
+            'design to code workflow',
+            'AI design workflow',
+            'code generation visual',
+            'AI development tools',
+            'visual canvas AI',
+            'design system AI',
+            'team collaboration AI',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: `Workflows | ${APP_NAME}`,
-        description: 'Visual design layer for Claude Code, Cursor, and AI coding tools.',
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/workflows`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

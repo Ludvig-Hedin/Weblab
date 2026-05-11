@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 
@@ -13,6 +14,7 @@ export function ImportGitHub() {
     const router = useRouter();
     const { data: user } = api.user.get.useQuery();
     const { setIsAuthModalOpen } = useAuthContext();
+    const t = useTranslations('landing.hero');
 
     const handleClick = async () => {
         if (!user?.id) {
@@ -32,7 +34,7 @@ export function ImportGitHub() {
             className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
         >
             <Icons.GitHubLogo className="h-4 w-4" />
-            Import from GitHub
+            {t('importGithub')}
         </button>
     );
 }

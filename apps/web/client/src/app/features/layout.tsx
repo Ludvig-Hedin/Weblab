@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -9,67 +10,31 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Features', path: '/features' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Features | ${APP_NAME} — AI Visual Editor for React Teams`,
-    description: `Explore ${APP_NAME}'s features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.`,
-    keywords: [
-        // Core features
-        'visual editor features',
-        'AI design tool features',
-        'React visual editor',
-        'design to code features',
-        // Specific features
-        'component library editor',
-        'design system management',
-        'real-time collaboration',
-        'version history',
-        'infinite canvas',
-        'layer management',
-        // Technical
-        'React editor',
-        'Next.js visual editor',
-        'Tailwind visual editor',
-        'shadcn visual editor',
-        // Comparisons
-        'Figma alternative for code',
-        'visual code editor',
-        'design engineer tools',
-    ],
-    openGraph: {
-        title: `Features | ${APP_NAME}`,
-        description:
-            'AI-powered visual editor with infinite canvas, real-time collaboration, component library integration, and direct PR output.',
-        type: 'website',
-        url: `https://${APP_DOMAIN}/features`,
-        siteName: APP_NAME,
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: `${APP_NAME} features preview`,
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'features',
+        path: '/features',
+        keywords: [
+            'visual editor features',
+            'AI design tool features',
+            'React visual editor',
+            'design to code features',
+            'component library editor',
+            'design system management',
+            'real-time collaboration',
+            'version history',
+            'infinite canvas',
+            'layer management',
+            'React editor',
+            'Next.js visual editor',
+            'Tailwind visual editor',
+            'shadcn visual editor',
+            'Figma alternative for code',
+            'visual code editor',
+            'design engineer tools',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: `Features | ${APP_NAME}`,
-        description: 'AI-powered visual editor with infinite canvas, real-time collaboration, and direct PR output.',
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/features`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

@@ -2,6 +2,7 @@ import { type Metadata } from 'next';
 
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -10,73 +11,31 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'Vibe Coding', path: '/workflows/vibe-coding' },
 ]);
 
-export const metadata: Metadata = {
-    title: `Vibe Coding for Teams: Add Collaboration to Your AI Workflow | ${APP_NAME}`,
-    description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.`,
-    keywords: [
-        // Primary keywords
-        'vibe coding',
-        'vibe coding for teams',
-        'vibe coding collaboration',
-        'vibe coding tool',
-        // Related terms
-        'agentic engineering',
-        'AI coding collaboration',
-        'team vibe coding',
-        'collaborative AI coding',
-        // Problem/solution
-        'vibe coding workflow',
-        'vibe coding design system',
-        'vibe coding real components',
-        // Comparisons
-        'AI code generator alternative',
-        'AI code generator team',
-        'solo coding alternative',
-        // Workflow
-        'AI to PR workflow',
-        'design to code team',
-        'visual AI coding',
-    ],
-    openGraph: {
-        url: `https://${APP_DOMAIN}/workflows/vibe-coding`,
-        type: 'website',
-        siteName: APP_NAME,
-        title: `Vibe Coding for Teams | ${APP_NAME}`,
-        description: `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Design with your real components, collaborate in real-time, ship PRs.`,
-        images: [
-            {
-                url: '/favicon.ico',
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'workflowsVibeCoding',
+        path: '/workflows/vibe-coding',
+        keywords: [
+            'vibe coding',
+            'vibe coding for teams',
+            'vibe coding collaboration',
+            'vibe coding tool',
+            'agentic engineering',
+            'AI coding collaboration',
+            'team vibe coding',
+            'collaborative AI coding',
+            'vibe coding workflow',
+            'vibe coding design system',
+            'vibe coding real components',
+            'AI code generator alternative',
+            'AI code generator team',
+            'solo coding alternative',
+            'AI to PR workflow',
+            'design to code team',
+            'visual AI coding',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        site: '@weblab',
-        creator: '@weblab',
-        title: `Vibe Coding for Teams | ${APP_NAME}`,
-        description:
-            `Vibe coding has a collaboration problem. ${APP_NAME} solves it. Real components, real-time collaboration, real PRs.`,
-        images: [
-            {
-                url: '/favicon.ico',
-            },
-        ],
-    }, */
-    alternates: {
-        canonical: `https://${APP_DOMAIN}/workflows/vibe-coding`,
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data
 const jsonLd = {

@@ -405,6 +405,372 @@ declare const messages: {
         },
         "version": "Version {version}"
     },
+    "loginPage": {
+        "verificationExpired": "Verification session expired. Enter your email to try again."
+    },
+    "authCodeError": {
+        "eyebrow": "Authentication error",
+        "backToLogin": "Back to login",
+        "goHome": "Go home",
+        "getHelp": "Get help",
+        "errorCodeLabel": "Error code",
+        "supportSubject": "Authentication error",
+        "reasons": {
+            "missing_email": {
+                "title": "We need your email to sign you in",
+                "body": "Your provider returned no email address — usually because your GitHub email is set to private. Make your primary email public in GitHub settings, or sign in with a magic link instead."
+            },
+            "missing_user_id": {
+                "title": "Sign in is incomplete",
+                "body": "Your provider returned a partial response. Try again — if it keeps failing, sign in with a magic link instead."
+            },
+            "db_upsert_failed": {
+                "title": "We couldn't create your account",
+                "body": "We signed you out for safety. Try again in a moment — if it persists, contact support and include the error code below."
+            },
+            "missing_code": {
+                "title": "Sign-in link is incomplete",
+                "body": "The sign-in link was missing required information. Try signing in again — if the problem persists, request a new link."
+            },
+            "callback_exception": {
+                "title": "Sign-in was interrupted",
+                "body": "Something went wrong on our side while finishing sign-in. Try again in a moment — if it persists, contact support and include the error code below."
+            },
+            "oauth": {
+                "title": "Your provider couldn't complete sign-in",
+                "body": "The provider rejected the request. The link may have expired, or the window closed too early. Try again, or use a magic link instead."
+            },
+            "default": {
+                "title": "We could not finish sign in",
+                "body": "The sign-in link may have expired, or the window closed too early. Try again — if the problem persists, contact support."
+            }
+        }
+    },
+    "notFound": {
+        "body": "Seems like you ventured somewhere unknown on your journey. Let us help you find your way.",
+        "backHome": "Back to home"
+    },
+    "comparePage": {
+        "srBody": "Compare {appName} to Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com, and Onlook — pick the right tool for your team.",
+        "heroHeading": "{appName} vs everyone else",
+        "heroBody": "Most AI design tools generate new code from scratch. {appName} edits your real React components on a visual canvas and ships pull requests engineers can merge.",
+        "tryButton": "Try {appName}",
+        "pickHeading": "Pick a comparison",
+        "vs": "{appName} vs {name}",
+        "readComparison": "Read the comparison →",
+        "ctaLine1": "See for yourself.",
+        "ctaLine2": "Open {appName} on your repo.",
+        "ctaButton": "Get Started",
+        "competitors": {
+            "lovable": {
+                "tagline": "Chat-based AI app builder",
+                "oneLiner": "{appName} works with your existing React codebase and ships PRs. Lovable creates new apps from prompts."
+            },
+            "bolt": {
+                "tagline": "In-browser AI full-stack builder",
+                "oneLiner": "{appName} pairs an infinite design canvas with your real components. Bolt builds new apps end-to-end from a chat."
+            },
+            "v0": {
+                "tagline": "AI component generator",
+                "oneLiner": "{appName} edits your existing components on a canvas. v0 generates new component snippets from prompts."
+            },
+            "webflow": {
+                "tagline": "No-code visual website builder",
+                "oneLiner": "{appName} edits your real React codebase and ships PRs. Webflow generates its own HTML/CSS in a no-code environment."
+            },
+            "framer": {
+                "tagline": "Design-first site builder with AI",
+                "oneLiner": "{appName} connects to your existing codebase and ships PRs. Framer builds sites in its own hosted environment."
+            },
+            "replit": {
+                "tagline": "Browser IDE with AI agent",
+                "oneLiner": "{appName} is a visual canvas for existing React codebases. Replit is a cloud IDE where an AI agent builds and deploys apps from prompts."
+            },
+            "claudeCode": {
+                "tagline": "Anthropic's AI terminal CLI",
+                "oneLiner": "{appName} gives designers a visual canvas; Claude Code gives engineers an AI terminal. They are complementary."
+            },
+            "emergent": {
+                "tagline": "Multi-agent AI full-stack app builder",
+                "oneLiner": "{appName} edits an existing React codebase visually. Emergent builds full-stack apps from scratch via a multi-agent system."
+            },
+            "wix": {
+                "tagline": "Small-business website builder",
+                "oneLiner": "{appName} is for engineering teams with React codebases. Wix is for small businesses who want a website without code."
+            },
+            "oneCom": {
+                "tagline": "Budget hosting and website builder",
+                "oneLiner": "{appName} is a developer tool for React teams. one.com is a budget host for individuals who want a simple website."
+            },
+            "onlook": {
+                "tagline": "Open-source visual editor for React",
+                "oneLiner": "{appName} extends the same foundations with workflows, AI integrations, and team collaboration."
+            }
+        }
+    },
+    "changelogPage": {
+        "eyebrow": "Updates",
+        "heading": "Changelog"
+    },
+    "downloadPage": {
+        "heading": "Download {appName}",
+        "subhead": "The same {appName}, wrapped natively for your device. Sign in once — your session syncs with the web app.",
+        "mac": {
+            "title": "macOS",
+            "subtitle": "Universal — Apple Silicon & Intel",
+            "cta": "Download for macOS"
+        },
+        "ios": {
+            "title": "iOS",
+            "subtitle": "iPhone & iPad — iOS 16 or later",
+            "cta": "Get on TestFlight"
+        },
+        "beta": "BETA",
+        "recommended": "Recommended",
+        "comingSoon": "Coming soon",
+        "footnotePart1": "Sign-in works the same as the web app — Google, GitHub or email. Desktop and iOS apps route OAuth through your system browser, then drop you back in already signed in. Looking for older versions? Browse the ",
+        "footnoteLink": "full release archive",
+        "footnotePart2": "."
+    },
+    "aboutPage": {
+        "srTitle": "About Weblab: The Visual Editor for React",
+        "srBody": "Weblab was founded to obliterate the divide between creativity and implementation. We're building a bridge between designers and developers — a visual editor that works with your real React components. AI is constrained to your design system. Changes become mergeable pull requests. Weblab is open source under Apache 2.0.",
+        "srCompanyFacts": "Company Facts",
+        "srBasedSweden": "Based in Sweden",
+        "srOpenSource": "Open source — Apache 2.0 licensed, public GitHub repository",
+        "srFounder": "Founder",
+        "srFounderItem": "Ludvig Hedin — Founder.",
+        "srValues": "Our Values",
+        "srSpeed": "Speed — Setting an olympic pace, relentlessness, strategy through execution.",
+        "srResilience": "Resilience — Enduring challenges without losing momentum.",
+        "srReinvention": "Reinvention — Creativity in approaching problems, pushing beyond state-of-the-art.",
+        "srCompetence": "Competence — Taking pride in work, inspiring others with taste and technique.",
+        "heroLine1": "Design deserves",
+        "heroLine2": "better tools",
+        "heroBodyPart1": "Weblab was founded to obliterate the divide between creativity and implementation.",
+        "heroBodyPart2": "For too long, the most brilliant creative teams have been severed by the complexity of tools. We're building Weblab from Sweden — a bridge that will end the gap between creativity and implementation.",
+        "heroBodyPart3": "Open source under Apache 2.0. Built in public on ",
+        "heroBodyPart4": ".",
+        "githubLink": "GitHub",
+        "meetThe": "Meet the",
+        "founderScript": "founder",
+        "founderBody": "Frustrated with the status quo of creating software, Ludvig set out to give engineers, builders, designers, and product managers a new way to collaborate in code.",
+        "founderName": "Ludvig Hedin",
+        "founderTitle": "Founder",
+        "githubAria": "Ludvig's GitHub",
+        "linkedinAria": "Ludvig's LinkedIn",
+        "rewardHeading": "What we",
+        "rewardScript": "reward",
+        "values": {
+            "speed": {
+                "title": "Speed",
+                "body": "Setting an olympic pace, relentlessness, strategy through execution."
+            },
+            "resilience": {
+                "title": "Resilience",
+                "body": "Enduring challenges without losing momentum – grit, stamina, and drive."
+            },
+            "reinvention": {
+                "title": "Reinvention",
+                "body": "Creativity in approaching problems, pushing us beyond the state-of-the-art."
+            },
+            "competence": {
+                "title": "Competence",
+                "body": "Taking pride in one's work, inspiring others with your taste and technique."
+            }
+        },
+        "lookForHeading": "What we",
+        "lookForScript": "look for",
+        "lookFor": {
+            "commitment": {
+                "title": "Commitment",
+                "body": "Have you put real time into something you cared about? We're looking for builders who've made long-term bets on themselves."
+            },
+            "passion": {
+                "title": "Passion",
+                "body": "We're allergic to apathy. We want people who give a damn about design, devtools, or AI – and have receipts."
+            },
+            "excellence": {
+                "title": "Excellence",
+                "body": "Bring something rare. We want people who are world-class at something and won't compromise."
+            }
+        },
+        "cta": {
+            "line1": "Ready to stop rebuilding?",
+            "line2": "Your design system, on a canvas.",
+            "button": "Get Started"
+        }
+    },
+    "faqPage": {
+        "heading": "Frequently Asked Questions",
+        "subhead": "Everything you need to know about Weblab — the AI-powered visual editor for frontend development.",
+        "topics": "Topics",
+        "stillQuestions": "Still have questions?",
+        "getStarted": "Get Started",
+        "srTitle": "Weblab Frequently Asked Questions",
+        "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React and Next.js codebases and lets teams design with real components. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab supports React-based frameworks (Next.js, Vite, Remix, Astro, TanStack Start, and static HTML), all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS), and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). It's open source under Apache 2.0.",
+        "sections": {
+            "about": {
+                "title": "About Weblab",
+                "q1": {
+                    "question": "What is Weblab?",
+                    "answer": "Weblab is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. Unlike generic AI code generators, Weblab constrains AI to your design system. Changes become pull requests engineers can merge directly — no export, no translation, no throwaway prototypes."
+                },
+                "q2": {
+                    "question": "Who is Weblab for?",
+                    "answer": "Weblab is for product teams with designers and an existing component library. Ideal users include design engineers, product designers working in code-forward teams, frontend developers who want visual tooling, and teams maintaining design systems who want AI that respects their existing work."
+                },
+                "q3": {
+                    "question": "What makes Weblab different from other design tools?",
+                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. Weblab works with your real components — what you design IS the code. There's no handoff because designers and developers work in the same artifact. Changes become PRs, not specs. AI is constrained to your design system, so there's no brand drift."
+                },
+                "q4": {
+                    "question": "What makes Weblab different from AI code generators?",
+                    "answer": "AI code generators create new code from scratch using generic HTML/CSS. The output needs to be translated to work with your real components. Weblab is different — it connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed."
+                }
+            },
+            "features": {
+                "title": "Features & Capabilities",
+                "q1": {
+                    "question": "What are Weblab's main features?",
+                    "answer": "Weblab offers: (1) An infinite canvas for visual design with real code running underneath, (2) AI that's constrained to your design system — no brand drift, (3) Real-time team collaboration with spatial comments, (4) Direct GitHub integration — changes become mergeable PRs, (5) Support for your existing components, colors, and design tokens, (6) A visual interface that requires no coding for designers."
+                },
+                "q2": {
+                    "question": "How does Weblab's AI work?",
+                    "answer": "Weblab's AI is constrained to your design system. When you ask AI to make changes, it can only use components, colors, and tokens that exist in your codebase. This prevents brand drift and ensures outputs match your design system. You can point at elements visually rather than describing them in text — the AI understands the exact selector, component, and styles."
+                },
+                "q3": {
+                    "question": "Does Weblab support real-time collaboration?",
+                    "answer": "Yes. Weblab has built-in team collaboration. Share your canvas, leave spatial comments, and work together in real-time. Multiple team members can view and edit the same project simultaneously. Changes sync to code and can be submitted as PRs."
+                },
+                "q4": {
+                    "question": "How do I get changes into production?",
+                    "answer": "Changes you make in Weblab become real code changes in your repository. When you're ready, submit them as a pull request for engineers to review and merge. No export, no copy-paste, no translation. The code is production-ready because it uses your actual components."
+                }
+            },
+            "compatibility": {
+                "title": "Technical Compatibility",
+                "q1": {
+                    "question": "What frontend frameworks does Weblab support?",
+                    "answer": "Weblab supports React-based frameworks: Next.js, Vite, Remix, Astro, TanStack Start, and static HTML. We're built on a Babel JSX/TSX parser optimized for the React ecosystem."
+                },
+                "q2": {
+                    "question": "What CSS and styling approaches does Weblab support?",
+                    "answer": "Weblab supports all major CSS approaches: Tailwind CSS, CSS Modules, styled-components, Emotion, SASS/SCSS, Less, Vanilla Extract, Stitches, and plain CSS. Whatever styling approach your codebase uses, Weblab works with it."
+                },
+                "q3": {
+                    "question": "What component libraries does Weblab support?",
+                    "answer": "Weblab works with React component libraries like shadcn/ui, Material UI, Mantine, Chakra UI, Radix UI, Ant Design, Headless UI, and Fluent UI. If your components work in your React/Next.js codebase, they work in Weblab."
+                },
+                "q4": {
+                    "question": "Does Weblab work with my existing React components?",
+                    "answer": "Yes. Weblab connects to your codebase and lets you design with your real components — the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives."
+                },
+                "q5": {
+                    "question": "How does Weblab integrate with GitHub?",
+                    "answer": "Weblab connects directly to your GitHub repository. Changes you make are tracked as real code changes. When you're ready to ship, Weblab creates a pull request with your changes that engineers can review, comment on, and merge using their normal workflow."
+                }
+            },
+            "workflow": {
+                "title": "Workflow & Collaboration",
+                "q1": {
+                    "question": "How do designers and developers collaborate in Weblab?",
+                    "answer": "Designers and developers work in the same artifact — there's no handoff. Designers make visual changes on the canvas, which become real code changes. Developers can review and refine in their IDE. Changes are submitted as PRs for team review. Spatial comments let team members communicate directly on the canvas."
+                },
+                "q2": {
+                    "question": "Can I use Weblab with my existing development workflow?",
+                    "answer": "Yes. Weblab fits into your existing Git workflow. Changes become branches and PRs. Engineers review code in their normal tools. CI/CD pipelines work as expected."
+                },
+                "q3": {
+                    "question": "How does Weblab work with Claude Code or other AI coding tools?",
+                    "answer": "Weblab complements AI coding tools like Claude Code. Claude Code is great for building in the terminal — Weblab adds the visual layer designers need. Use Claude Code to scaffold components, then use Weblab to visually iterate and refine. Changes from both tools merge into the same codebase."
+                },
+                "q4": {
+                    "question": "Can I share my work with stakeholders who don't use Weblab?",
+                    "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI — not static mockups that might not match the final product."
+                }
+            },
+            "company": {
+                "title": "Company",
+                "q1": {
+                    "question": "Who created Weblab?",
+                    "answer": "Weblab was created by Ludvig Hedin. The goal: bridge the gap between design and development with a tool that lets you work directly on your real React components. Weblab is a continuous iteration towards the new state-of-the-art for collaboration in code."
+                },
+                "q2": {
+                    "question": "Why is Weblab open-source?",
+                    "answer": "Developers have historically been second-rate citizens in the design process. Weblab was founded to bridge the divide between design and development, and we wanted to make developers first-class citizens alongside designers. We chose to be open-source to give developers transparency into how we are building Weblab and how the work created through Weblab will complement the work of developers."
+                },
+                "q3": {
+                    "question": "Where is Weblab based?",
+                    "answer": "Weblab is built in Sweden. Our open-source contributors are scattered across the world, bringing their unique perspectives and incredible talent to the project as we continue to push the limits of design and development."
+                }
+            }
+        }
+    },
+    "pricingPage": {
+        "heading": "Pricing",
+        "subhead": "Equip your product team with the power of AI",
+        "forTeamsHeading": "For Teams",
+        "forTeamsSub": "Custom pricing tailored to your team's needs",
+        "contactUs": "Contact us",
+        "getStarted": "Get Started",
+        "andMore": "And more...",
+        "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users – Please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
+        "disclaimerLink": "GitHub repository",
+        "disclaimerPart2": " or reach out to us to schedule a call.",
+        "mailto": {
+            "subject": "[Team Inquiry]: Getting Started with {appName}",
+            "body": "Hi,\n\nI'm interested in setting up {appName} for our team.\n\nLooking forward to hearing from you.\n\nBest regards,\n[Your name]"
+        },
+        "features": {
+            "projectTemplates": {
+                "title": "Project Templates",
+                "description": "Save and reuse your projects as templates across your team"
+            },
+            "branching": {
+                "title": "Branching & Version Control",
+                "description": "Create and manage branches for your projects with full version history"
+            },
+            "designSystem": {
+                "title": "Your Real Design system",
+                "description": "Bring your real components in {appName} and use them in your projects"
+            },
+            "theming": {
+                "title": "Theming & Branding",
+                "description": "Centralized design tokens, color palettes, and typography management"
+            },
+            "layers": {
+                "title": "Built like a design tool",
+                "description": "Navigate your React component tree with precise control over every element"
+            },
+            "models": {
+                "title": "Pick your model — or bring your own key",
+                "description": "Claude Opus 4.7 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
+            },
+            "openSource": {
+                "title": "Open Source",
+                "description": "Built with the community. Customize and extend for your team's needs"
+            },
+            "domains": {
+                "title": "Custom Domains",
+                "description": "Deploy your projects to your own internal domain"
+            },
+            "security": {
+                "title": "Advanced Security",
+                "description": "SSO (SAML/OAuth), advanced security controls, audit logs, and admin controls"
+            }
+        },
+        "enterpriseFeatures": {
+            "unlimited": "Unlimited projects",
+            "customIntegrations": "Custom integrations",
+            "analytics": "Advanced usage analytics",
+            "earlyAccess": "Early access to new features",
+            "dedicatedSupport": "Dedicated support",
+            "accountManager": "Account manager",
+            "slack": "Dedicated Slack channel",
+            "onboarding": "Technical onboarding"
+        }
+    },
     "pricing": {
         "plans": {
             "basic": {
@@ -469,8 +835,8 @@ declare const messages: {
             "upgrade": "Upgrade"
         },
         "freeCard": {
-            "dailyCreditsFeature": "5 AI credits a day",
-            "monthlyCreditsFeature": "15 AI credits a month",
+            "dailyCreditsFeature": "Up to 5 AI credits per day",
+            "monthlyCreditsFeature": "15 AI credits per month",
             "dailyCreditsLabel": "5 Daily Credits"
         },
         "credits": {
@@ -535,6 +901,11 @@ declare const messages: {
                 "name": "Comment",
                 "description": "Add comments to the canvas",
                 "tooltip": "Switch to comment mode"
+            },
+            "cms": {
+                "name": "CMS",
+                "description": "Manage content collections and bindings",
+                "tooltip": "Switch to CMS mode"
             }
         },
         "toolbar": {
@@ -888,6 +1259,679 @@ declare const messages: {
     },
     "aiPromptComposer": {
         "uploadImageTooltip": "Upload image"
+    },
+    "seo": {
+        "root": {
+            "title": "Weblab - AI Visual Website Builder for React Teams",
+            "description": "AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.",
+            "ogImageAlt": "Weblab — AI visual website builder for React teams"
+        },
+        "pricing": {
+            "title": "Pricing | Weblab — Visual Editor for React",
+            "description": "Weblab pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.",
+            "ogImageAlt": "Weblab pricing"
+        },
+        "faq": {
+            "title": "FAQ | Weblab - AI-Powered Visual Editor for Frontend Development",
+            "description": "Frequently asked questions about Weblab, the AI-powered visual editor for frontend development. Learn about supported frameworks (React, Vue, Angular), component libraries, AI features, pricing, and how Weblab differs from other design tools.",
+            "ogImageAlt": "Weblab FAQ"
+        },
+        "about": {
+            "title": "About Weblab | The Visual Editor for React",
+            "description": "Meet the founder behind Weblab — an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.",
+            "ogImageAlt": "About Weblab"
+        },
+        "features": {
+            "title": "Features | Weblab — AI Visual Editor for React Teams",
+            "description": "Explore Weblab's features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.",
+            "ogImageAlt": "Weblab features preview"
+        },
+        "featuresAi": {
+            "title": "AI Visual Editor | Build UIs with AI Using Your Design System | Weblab",
+            "description": "Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system — no brand drift, no throwaway code. Changes become mergeable PRs.",
+            "ogImageAlt": "Weblab AI visual editor preview"
+        },
+        "featuresBuilder": {
+            "title": "Visual Builder | Design with Your Real React Components | Weblab",
+            "description": "Weblab is a visual builder that works with your existing codebase. Design with your real React, Vue, or Angular components on an infinite canvas. Changes become mergeable pull requests.",
+            "ogImageAlt": "Weblab visual builder preview"
+        },
+        "featuresPrototype": {
+            "title": "AI Prototype Generator | Create Functional React Prototypes | Weblab",
+            "description": "Weblab generates functional React prototypes with real interactions — not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.",
+            "ogImageAlt": "Weblab prototype generator preview"
+        },
+        "featuresAiFrontend": {
+            "title": "AI for Frontend Development | Visual AI Editor for React | Weblab",
+            "description": "Weblab is an AI visual editor for React, Vue, and Angular teams. AI is constrained to your real components and design system, so changes ship as mergeable PRs.",
+            "ogImageAlt": "Weblab AI for frontend development preview"
+        },
+        "workflows": {
+            "title": "Workflows | Integrate Weblab with Claude Code, Cursor & AI Coding Tools | Weblab",
+            "description": "Connect Weblab to your AI coding workflow. Add a visual design layer to Claude Code, Cursor, and other AI tools. Design with your real components, collaborate with your team, ship PRs.",
+            "ogImageAlt": "Weblab workflows preview"
+        },
+        "workflowsClaudeCode": {
+            "title": "Claude Code for Designers: Add a Visual Canvas to Your Workflow | Weblab",
+            "description": "Designers using Claude Code need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.",
+            "ogImageAlt": "Weblab Claude Code workflow preview"
+        },
+        "workflowsVibeCoding": {
+            "title": "Vibe Coding for Teams: Add Collaboration to Your AI Workflow | Weblab",
+            "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.",
+            "ogImageAlt": "Weblab vibe coding workflow preview"
+        },
+        "download": {
+            "title": "Download Weblab | Mac, Windows, Linux & iOS",
+            "description": "Get the Weblab desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.",
+            "ogImageAlt": "Download Weblab"
+        },
+        "changelog": {
+            "title": "Changelog | Weblab",
+            "description": "Latest updates, new features, and improvements to Weblab — the AI visual editor for React teams.",
+            "ogImageAlt": "Weblab changelog"
+        },
+        "compare": {
+            "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow, and more — Compare AI Design Tools",
+            "description": "Compare Weblab to Lovable, Bolt, v0, Replit, Webflow, and more. Weblab is the visual editor that works with your real React components and ships pull requests instead of throwaway code.",
+            "ogImageAlt": "Compare Weblab"
+        },
+        "privacyPolicy": {
+            "title": "Privacy Policy | Weblab",
+            "description": "Weblab privacy policy. Learn how Weblab handles your data.",
+            "ogImageAlt": "Weblab privacy policy"
+        },
+        "termsOfService": {
+            "title": "Terms of Service | Weblab",
+            "description": "Weblab terms of service. Read the legal terms governing your use of Weblab.",
+            "ogImageAlt": "Weblab terms of service"
+        },
+        "sitemap": {
+            "title": "Sitemap | Weblab",
+            "description": "Complete sitemap for weblab.build — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
+            "ogImageAlt": "Weblab sitemap"
+        },
+        "aiWebsiteBuilder": {
+            "title": "AI Website Builder for React & Next.js Codebases | Weblab",
+            "description": "AI website builder for React teams. AI edits your real components, respects your design tokens, and ships every change as a pull request. Open source.",
+            "ogImageAlt": "Weblab — AI website builder for React and Next.js"
+        },
+        "visualSiteBuilder": {
+            "title": "Visual Site Builder for React & Next.js Teams | Weblab",
+            "description": "Visual site builder for React and Next.js. Design with your real components on an infinite canvas. Ship pull requests, not mockups. Open source.",
+            "ogImageAlt": "Weblab — visual site builder for React and Next.js teams"
+        },
+        "websiteBuilder": {
+            "title": "Website Builder for Teams Who Own a Codebase | Weblab",
+            "description": "Website builder for teams with a React or Next.js codebase. Visual canvas, real components, AI assistance, pull-request output. Open source. Free to self-host.",
+            "ogImageAlt": "Weblab — website builder for teams with a codebase"
+        }
+    },
+    "nav": {
+        "brandHomeAria": "Weblab home",
+        "githubAria": "View Weblab on GitHub",
+        "mobileMenu": {
+            "open": "Open menu",
+            "close": "Close menu",
+            "getStarted": "Get Started"
+        },
+        "user": {
+            "downloadApp": "Download app",
+            "projects": "Projects",
+            "signIn": "Sign In"
+        },
+        "categories": {
+            "product": {
+                "label": "Product",
+                "links": {
+                    "ai": { "title": "AI", "description": "AI-powered design" },
+                    "aiFrontend": { "title": "AI for Frontend", "description": "AI constrained to your design system" },
+                    "visualBuilder": { "title": "Visual Builder", "description": "Craft on a canvas" },
+                    "prototyping": { "title": "Prototyping", "description": "Rapid prototype creation" },
+                    "claudeCode": { "title": "Claude Code", "description": "Visual layer for Claude Code" },
+                    "vibeCoding": { "title": "Vibe Coding", "description": "Team collaboration for vibe coding" },
+                    "allFeatures": { "title": "All Features", "description": "See everything Weblab offers" }
+                }
+            },
+            "resources": {
+                "label": "Resources",
+                "links": {
+                    "documentation": { "title": "Documentation", "description": "Learn how to use Weblab" },
+                    "blog": { "title": "Blog", "description": "News and updates" },
+                    "github": { "title": "GitHub", "description": "View the source code" }
+                }
+            },
+            "about": {
+                "label": "About",
+                "links": {
+                    "aboutUs": { "title": "About Us", "description": "Learn about our mission" },
+                    "faq": { "title": "FAQ", "description": "Common questions" }
+                }
+            }
+        }
+    },
+    "landing": {
+        "hero": {
+            "headline": "Design on your real codebase.",
+            "headlineScript": "Ship a real PR.",
+            "subhead": "Open your real React or Next.js project, edit visually with AI, and push to GitHub. Open source. Pairs with Claude Code.",
+            "getStarted": "Get started",
+            "continueProjects": "Continue to your projects",
+            "downloadApp": "Download app",
+            "highDemand": "We're currently experiencing high demand. Project may fail to create.",
+            "create": {
+                "promptPlaceholder": "Describe what you want to build",
+                "signInTooltip": "Sign in to start building",
+                "failedToCreate": "Failed to create project",
+                "replacePromptConfirm": "Replace your current prompt with this suggestion?",
+                "overlayHeading": "Getting your site ready",
+                "overlayCaption": "Your prompt is saved. The AI will start building as soon as the editor loads."
+            },
+            "errorBanner": {
+                "tryAgain": "Try again",
+                "dismiss": "Dismiss"
+            },
+            "cloneWebsite": "Clone a website",
+            "importGithub": "Import from GitHub",
+            "openLocalFolder": {
+                "importingHeading": "Importing your folder",
+                "importingCaption": "Uploading your files. Larger folders take longer.",
+                "uploadingFiles": "Uploading files ({count})",
+                "uploadingFolder": "Uploading folder",
+                "creatingProject": "Creating your project",
+                "openingEditor": "Opening editor",
+                "unsupportedTooltip": "Local folder access is only available in Chromium-based browsers (Chrome, Edge, Arc)."
+            },
+            "mobileEmailCapture": {
+                "notification": "Weblab is optimized for larger screens",
+                "cta": "Email me a link for later",
+                "formTitle": "Email me a link to Weblab",
+                "nameLabel": "Name",
+                "namePlaceholder": "Pablo Picasso",
+                "emailLabel": "Email",
+                "emailPlaceholder": "Enter your email",
+                "submit": "Email me a link",
+                "submitting": "Submitting...",
+                "success": "Thanks, an email to use Weblab has been sent to you!",
+                "errors": {
+                    "missingFields": "Please fill in all fields",
+                    "invalidEmail": "Please enter a valid email address",
+                    "timeout": "Request timed out. Please check your connection and try again.",
+                    "server": "Server error. Please try again in a moment.",
+                    "network": "Network error. Please check your connection and try again.",
+                    "submit": "Failed to submit form. Please try again.",
+                    "generic": "An unexpected error occurred. Please try again."
+                }
+            }
+        },
+        "useCases": {
+            "eyebrow": "Built for every kind of site",
+            "landingPages": {
+                "label": "Landing pages",
+                "description": "Spin up a launch page in minutes. Edit copy, tweak layout, and ship to a real URL — no design handoff, no engineering ticket."
+            },
+            "marketingSites": {
+                "label": "Marketing sites",
+                "description": "Multi-page sites with shared components, CMS-backed content, and a brand system your team can extend without breaking anything."
+            },
+            "internalTools": {
+                "label": "Internal tools",
+                "description": "Dashboards, admin panels, and ops tools wired to your real data. Build the surface in Weblab, ship the same React code your team already runs."
+            },
+            "prototypes": {
+                "label": "Prototypes",
+                "description": "Click-through prototypes that feel like the real product. Test flows with users on day one, then keep the same code through to launch."
+            },
+            "productionApps": {
+                "label": "Production apps",
+                "description": "Full-stack Next.js apps with auth, database, and AI baked in. Visual editing on a real codebase — pull requests at the end, not handoff docs."
+            },
+            "startBuilding": "Start building"
+        },
+        "modelAgnostic": {
+            "eyebrow": "Model agnostic",
+            "headline": "Only use the AI models that work best for you. With Weblab, you can choose and switch between leading models as you need.",
+            "models": {
+                "gpt": "Flagship GPT model for complex tasks",
+                "sonnet": "Anthropic's flagship, industry-leading for coding",
+                "opus": "Most capable Claude for the hardest problems",
+                "gemini": "Google's frontier multimodal model",
+                "deepseek": "Open-weight reasoning at frontier quality",
+                "kimi": "Long-context, fast and capable"
+            }
+        },
+        "andSoMuchMore": {
+            "titleLine1": "...and so",
+            "titleLine2": "much more",
+            "worksWithCodebase": {
+                "title": "Works With Your Codebase",
+                "body": "Connect your existing React, Next.js, or Vue project. No rebuilding. No migration. Start designing in minutes."
+            },
+            "builtForTeams": {
+                "title": "Built for Teams",
+                "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs."
+            },
+            "githubIntegration": {
+                "title": "Direct GitHub Integration",
+                "body": "Push changes directly to your repository. Review diffs before committing."
+            },
+            "shipPrs": {
+                "title": "Ship PRs, Not Prototypes",
+                "body": "Your changes become a real pull request. Engineers review and merge — no handoff, no translation."
+            },
+            "shortcuts": {
+                "title": "Power User Shortcuts",
+                "bodyPrefix": "All your familiar hotkeys work here.",
+                "bodySuffix": "and everything in between."
+            },
+            "reference": {
+                "title": "Reference Anything in Chat",
+                "body": "Drop images, mockups, or docs into your conversation. AI uses them as context for better results."
+            }
+        },
+        "digitalSolutions": {
+            "titleLine1": "Digital products",
+            "titleLine2": "users love &",
+            "titleLine3": "teams grow with",
+            "body": "Want to ship digital experiences people actually use? Whether it's a site that converts, an app that earns daily opens, or AI features that pull weight — we take you the full way from idea to measurable impact.",
+            "startBuilding": "Start building",
+            "play": "Play",
+            "pause": "Pause",
+            "slides": {
+                "aiNative": {
+                    "eyebrow": "AI Integration",
+                    "title": "AI-native products",
+                    "description": "Ship AI features users actually trust. We help you wire OpenAI, Claude, and Gemini into your product with the right guardrails — so the value is real, not a demo."
+                },
+                "web": {
+                    "eyebrow": "Web Development",
+                    "title": "Web that converts",
+                    "description": "Marketing sites, dashboards, and SaaS surfaces built on a real codebase — pixel-tight in design, fast in production, and easy for your team to keep shipping."
+                },
+                "apps": {
+                    "eyebrow": "Mobile Development",
+                    "title": "Apps people open",
+                    "description": "Native-feeling iOS and Android apps from one shared codebase. Tight UX, fast launches, and a single team that ships to every device your customers use."
+                },
+                "brand": {
+                    "eyebrow": "Brand & Design",
+                    "title": "Brand systems that scale",
+                    "description": "A living design system instead of a static style guide. Tokens, components, and patterns your designers and developers share — the same on canvas and in code."
+                }
+            }
+        },
+        "cta": {
+            "defaultHeadingLine1": "Ready to stop rebuilding?",
+            "defaultHeadingLine2": "Your design system, on a canvas.",
+            "defaultButton": "Get Started"
+        },
+        "featuresIntro": {
+            "eyebrow": "Native Design Tool Features",
+            "headline": "Familiar to Designers. Trusted by Engineers.",
+            "body": "A canvas that feels intuitive, with real code underneath. Engineers can merge what you create directly — no handoff, no rebuilding."
+        },
+        "featuresGrid": {
+            "components": {
+                "eyebrow": "Your Real Components",
+                "title": "Design with what engineers built",
+                "body": "Use the buttons, cards, and layouts your team already created. Not generic HTML — your actual design system, ready to drag onto the canvas."
+            },
+            "teams": {
+                "eyebrow": "Built for Teams",
+                "title": "Real-time collaboration",
+                "body": "Share your canvas. Leave spatial comments. Work together on designs that become real PRs. No more \"now how do I share this?\""
+            },
+            "prs": {
+                "eyebrow": "Ship PRs, Not Prototypes",
+                "title": "Changes become pull requests",
+                "body": "Your changes become a real pull request. Engineers review and merge — no handoff, no translation, no rebuilding from specs."
+            },
+            "layers": {
+                "eyebrow": "Layer Management",
+                "title": "Navigate your component tree",
+                "body": "See your React component hierarchy in a visual layer panel. Click any layer to select it on the canvas. No more hunting through JSX."
+            },
+            "codebase": {
+                "eyebrow": "Works With Your Codebase",
+                "title": "Connect existing projects",
+                "body": "Connect your existing React or Next.js project. No rebuilding. No migration. Start designing in minutes."
+            },
+            "history": {
+                "eyebrow": "Version History",
+                "title": "Never lose your progress",
+                "body": "{appName} automatically saves project snapshots. Experiment with confidence — roll back to any previous version with one click."
+            }
+        },
+        "aiFeaturesGrid": {
+            "feedback": {
+                "eyebrow": "Instant Visual Feedback",
+                "title": "See AI-generated components appear in real-time",
+                "body": "See AI-generated components appear in real-time as you describe them, with immediate visual updates for every change you make"
+            },
+            "library": {
+                "eyebrow": "Component Library",
+                "title": "AI automatically creates reusable components",
+                "body": "AI automatically creates reusable components from your designs and suggests smart combinations from your existing library"
+            },
+            "globalStyles": {
+                "eyebrow": "Global Styles",
+                "title": "Define your brand colors, fonts, and spacing once",
+                "body": "Define your brand colors, fonts, and spacing once - AI applies them consistently across every component it generates"
+            },
+            "responsive": {
+                "eyebrow": "Responsive Breakpoints",
+                "title": "AI builds mobile-first components",
+                "body": "AI builds mobile-first components that automatically adapt to any screen size with proper breakpoints and fluid layouts"
+            },
+            "layers": {
+                "eyebrow": "Layer Management",
+                "title": "Navigate your app structure through an intuitive layer panel",
+                "body": "Navigate your app structure through an intuitive layer panel - select any element to edit manually or collaborate with AI"
+            },
+            "templates": {
+                "eyebrow": "Import Templates",
+                "title": "Start with any Next.js/Tailwind template",
+                "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
+            }
+        },
+        "contributor": {
+            "headingLine1": "Supported by you &",
+            "headingOtherBuilders": "{count} other builders",
+            "headingLoading": "...",
+            "body": "Join the community building the open source Cursor for Designers",
+            "contributeButton": "Contribute to Weblab",
+            "avatarAlt": "{name}'s avatar"
+        },
+        "codeOneToOne": {
+            "headingLine1": "Truly one-to-one",
+            "headingLine2": "with code"
+        },
+        "obsessForHours": {
+            "buildIn": "Build in",
+            "seconds": "Seconds",
+            "obsessFor": "Obsess for",
+            "hours": "Hours",
+            "aiHeading": "Infused with AI",
+            "aiBody": "Craft at the speed of thought",
+            "designHeading": "Crafted for Design",
+            "designBody": "Precise styling, infinite possibilities, component-first"
+        },
+        "aiFeaturesIntro": {
+            "eyebrow": "Design on an Infinite Canvas",
+            "headline": "Point at what you want. AI knows exactly what you mean.",
+            "body": "No more describing \"the button in the top right\" — just click it. AI is constrained to your design system, so outputs stay on-brand every time."
+        },
+        "aiBenefits": {
+            "codeGen": {
+                "eyebrow": "AI Code Generation for Designers",
+                "headline": "Build Production-Ready Apps with Natural Language",
+                "body": "Describe what you want in plain text and watch AI create fully functional web applications with real databases, user authentication, and interactive features - not just static mockups or prototypes."
+            },
+            "collaborate": {
+                "eyebrow": "Visual AI Design Tools",
+                "headline": "Collaborate with AI on a Visual Canvas",
+                "body": "Select any element and choose to edit it yourself or work together with AI. Unlike pure chat-based tools, you maintain full visual control while AI assists with the heavy lifting, creating a seamless collaboration between human creativity and AI capability."
+            },
+            "system": {
+                "eyebrow": "AI Design System Management",
+                "headline": "Maintain Design System Consistency",
+                "body": "AI automatically applies your brand guidelines, component patterns, and design tokens to ensure every element stays on-brand and consistent across your entire application, eliminating design drift and maintaining professional polish."
+            }
+        },
+        "benefits": {
+            "aiContext": {
+                "eyebrow": "AI That Understands Context",
+                "headline": "AI Constrained to Your Design System",
+                "body": "Reference images, designs, and docs in chat. AI sees what you see — no more explaining from scratch. Outputs use your real components, colors, and tokens. No drift. No off-brand results."
+            },
+            "canvas": {
+                "eyebrow": "Canvas Manipulation",
+                "headline": "Design on an Infinite Canvas",
+                "body": "Drag, resize, and arrange elements directly on the canvas. See changes in real code instantly — no switching between tools. Point at what you want. AI knows exactly what you mean."
+            },
+            "guardrails": {
+                "eyebrow": "Design System Guardrails",
+                "headline": "Your Colors, Fonts, and Tokens",
+                "body": "AI is constrained to your design system. Pick from your brand colors, use your typography scales, and style with your existing tokens. No drift. No off-brand outputs.",
+                "features": {
+                    "autoLayout": "Auto Layout & Flexbox",
+                    "borders": "Borders",
+                    "margins": "Margins",
+                    "imageBackgrounds": "Image backgrounds",
+                    "typography": "Typography",
+                    "padding": "Padding",
+                    "gradients": "Gradients",
+                    "cornerRadii": "Corner Radii"
+                }
+            }
+        },
+        "builderFeaturesIntro": {
+            "eyebrow": "Works With Your Codebase",
+            "headline": "Connect Your Existing Project. Start Designing in Minutes.",
+            "body": "No rebuilding. No migration. Connect your React, Next.js, or Vue project and design with your real components — the ones your engineers already built."
+        },
+        "builderBenefits": {
+            "visualReact": {
+                "eyebrow": "Visual React Editing for Developers",
+                "headline": "Edit React Apps Visually with Code Sync",
+                "body": "Manipulate your React codebase visually while seeing real-time code changes. No more switching between editor and browser. Build, style, and refactor your react app with pixel-perfect control and automatic code generation."
+            },
+            "noCode": {
+                "eyebrow": "No-Code React Builder with Developer Tools",
+                "headline": "Create Complex React UIs Without Writing Every Line",
+                "body": "Use drag-and-drop for layouts, components, and state management while Weblab generates production-ready React code."
+            },
+            "aiAssisted": {
+                "eyebrow": "AI-Assisted React Development",
+                "headline": "Generate and Refine React Code with AI",
+                "body": "Combine visual building with AI prompts to create custom React components, hooks, and patterns that match your project's architecture, ensuring everything is typed, optimized, and ready for production.",
+                "features": {
+                    "componentGeneration": "Component Generation",
+                    "stateManagement": "State Management",
+                    "eventHandlers": "Event Handlers",
+                    "apiIntegration": "API Integration",
+                    "typescriptSupport": "TypeScript Support",
+                    "customHooks": "Custom Hooks",
+                    "formValidation": "Form Validation",
+                    "responsiveDesign": "Responsive Design"
+                }
+            }
+        },
+        "builderFeaturesGrid": {
+            "liveCode": {
+                "eyebrow": "Live Code Editing",
+                "body": "Make visual changes that instantly update your React files with proper TSX, props, and state management"
+            },
+            "layers": {
+                "eyebrow": "Layer Management",
+                "body": "Navigate and organize your app's structure through an intuitive layers panel for precise element selection and editing"
+            },
+            "components": {
+                "eyebrow": "Component Library Integration",
+                "body": "Use your existing React component library or import any next/tailwind kit"
+            },
+            "tailwind": {
+                "eyebrow": "TailwindCSS Visual Editor",
+                "body": "Visually edit and apply Tailwind classes with auto-completion and real-time styling previews"
+            },
+            "responsive": {
+                "eyebrow": "Responsive Design Tools",
+                "body": "Build mobile-first React apps with breakpoint previews and automatic media query generation"
+            },
+            "templates": {
+                "eyebrow": "Import Templates",
+                "body": "Start with any Next.js/Tailwind template and let AI understand your patterns to generate matching components"
+            }
+        },
+        "responsiveMockup": {
+            "panel1": {
+                "title": "Design with AI on an infinite canvas",
+                "body": "Craft, preview, and iterate with AI to ship better websites and prototypes faster than ever."
+            },
+            "panel2": {
+                "title": "Native design tool features that work 1:1 with code.",
+                "body": "A true developer tool for designers, helping you code without knowing anything about code."
+            }
+        },
+        "scrollingVelocity": {
+            "lineTop": "Design without limits.",
+            "lineBottom": "Ship without rebuilding."
+        },
+        "justShipped": {
+            "badge": "New in v{version}"
+        },
+        "socialProof": {
+            "title": "Community Stats:",
+            "contributorsCount": "90+",
+            "contributorsLabel": "contributors",
+            "openSource": "Open source",
+            "transparent": "& transparent"
+        },
+        "terminalSection": {
+            "heading": "Real code. Real terminal. Real control.",
+            "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal — no lock-in, no black box."
+        },
+        "whatCanWeblabDoV2": {
+            "headingAi": "AI",
+            "headingCode": "Code",
+            "headingDesign": "Design",
+            "headingSideBySide": "Side-by-side-by-side",
+            "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
+            "brandVisual": {
+                "tokens": "Tokens",
+                "background": "Background",
+                "foreground": "Foreground",
+                "brand": "Brand",
+                "onBrand": "All proposals on-brand"
+            },
+            "layersTitle": "Layers",
+            "revisionToday": "Today",
+            "revisionCurrent": "Current",
+            "features": {
+                "aiAssistant": {
+                    "subtitle": "AI Assistant",
+                    "title": "AI that understands context",
+                    "paragraph": "Reference images, designs, and docs in chat. AI sees what you see — no more explaining from scratch."
+                },
+                "canvas": {
+                    "subtitle": "Canvas",
+                    "title": "Manipulate elements directly",
+                    "paragraph": "Drag, resize, and arrange elements directly on the canvas. See changes appear in real code instantly."
+                },
+                "components": {
+                    "subtitle": "Components",
+                    "title": "Your real components",
+                    "paragraph": "Reuse your existing design system — buttons, cards, navs. Live components, not screenshots."
+                },
+                "brand": {
+                    "subtitle": "Brand",
+                    "title": "Design system guardrails",
+                    "paragraph": "Your tokens stay your tokens. AI proposals respect your colors, typography, and spacing."
+                },
+                "structure": {
+                    "subtitle": "Structure",
+                    "title": "Navigate your code as layers",
+                    "paragraph": "A live tree of your DOM. Click any node to jump to it on the canvas — no inspector hunting."
+                },
+                "history": {
+                    "subtitle": "History",
+                    "title": "Time travel for your designs",
+                    "paragraph": "Every save is a version. Branch, restore, and compare without leaving the canvas."
+                }
+            }
+        },
+        "testimonials": {
+            "headingLine1": "Tens of thousands of",
+            "headingLine2": "builders love Weblab"
+        },
+        "faq": {
+            "titleLine1": "Frequently",
+            "titleLine2": "asked questions",
+            "readMore": "Read our FAQs",
+            "items": {
+                "what": {
+                    "question": "What is {appName}?",
+                    "answer": "{appName} is a visual design canvas that connects to your existing codebase. Designers drag real components onto an infinite canvas, make changes visually, and submit pull requests — no coding required."
+                },
+                "differentDesign": {
+                    "question": "How is {appName} different from other design tools?",
+                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. {appName} works with your real components — what you design IS the code. Changes become PRs, not handoff specs."
+                },
+                "differentAi": {
+                    "question": "How is {appName} different from AI code generators?",
+                    "answer": "AI generators create new code from scratch. {appName} constrains AI to YOUR existing components, so outputs match your design system. No translation, no drift."
+                },
+                "code": {
+                    "question": "Do I need to know how to code?",
+                    "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath — you don't need to touch it unless you want to."
+                },
+                "collaborate": {
+                    "question": "Can my team collaborate?",
+                    "answer": "Yes. Share your canvas, leave spatial comments, and work together in real-time. Changes sync to code and can be submitted as PRs for engineers to review."
+                },
+                "stack": {
+                    "question": "What tech stack does {appName} support?",
+                    "answer": "React, Next.js, and any CSS approach (Tailwind, CSS modules, styled-components). Works with any component library."
+                },
+                "free": {
+                    "question": "Is there a free version of {appName}?",
+                    "answer": "Yes, {appName} can be self-hosted for free on GitHub. For the hosted cloud version, please contact our team."
+                },
+                "ownership": {
+                    "question": "Who owns the code?",
+                    "answer": "The code you make with {appName} is all yours. Export it locally, publish to GitHub, or deploy to a custom domain."
+                }
+            }
+        },
+        "footer": {
+            "brandHomeAria": "Weblab home",
+            "company": {
+                "title": "Company",
+                "about": { "label": "About" },
+                "faq": { "label": "FAQ", "title": "Frequently Asked Questions" },
+                "contact": { "label": "Contact", "title": "Contact Weblab support" }
+            },
+            "resources": {
+                "title": "Resources",
+                "docs": { "label": "Docs", "title": "View Weblab documentation" },
+                "blog": { "label": "Blog", "title": "Read the Weblab blog" },
+                "githubRepo": { "label": "GitHub Repo", "title": "View Weblab on GitHub" },
+                "changelog": { "label": "Changelog", "title": "See what's new in Weblab" }
+            },
+            "product": {
+                "title": "Product",
+                "pricing": { "label": "Pricing", "title": "View Weblab pricing" },
+                "download": { "label": "Download", "title": "Download Weblab for Mac, Windows, Linux & iOS" },
+                "myProjects": { "label": "My Projects", "title": "View your projects" }
+            },
+            "legal": {
+                "title": "Legal",
+                "terms": { "label": "Terms of Service", "title": "Read our Terms of Service" },
+                "privacy": { "label": "Privacy Policy", "title": "Read our Privacy Policy" },
+                "sitemap": { "label": "Sitemap", "title": "View the sitemap" },
+                "copyright": "© {year} Weblab"
+            },
+            "workflows": {
+                "title": "Workflows",
+                "claudeCode": { "label": "Claude Code", "title": "Use Weblab with Claude Code" },
+                "vibeCoding": { "label": "Vibe Coding", "title": "Vibe coding for teams" }
+            },
+            "features": {
+                "title": "Features",
+                "overview": { "label": "Feature overview", "title": "View all Weblab features" },
+                "ai": { "label": "AI", "title": "AI-powered development tools" },
+                "visualBuilder": { "label": "Visual Builder", "title": "Visual builder tools" },
+                "prototyping": { "label": "Prototyping", "title": "Rapid prototyping features" },
+                "aiFrontend": { "label": "AI for Frontend", "title": "AI constrained to your design system" }
+            },
+            "followUs": {
+                "title": "Follow Us",
+                "github": { "label": "GitHub", "title": "View Weblab on GitHub" }
+            },
+            "languageSwitcher": {
+                "label": "Language"
+            }
+        }
     }
 };
 export default messages;

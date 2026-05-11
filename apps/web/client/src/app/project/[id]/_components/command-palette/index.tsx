@@ -19,6 +19,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
+import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 /**
@@ -41,6 +42,15 @@ export const CommandPalette = observer(() => {
         return () => window.removeEventListener('open-command-palette', handler);
     }, []);
 
+    // Only fetch the project list while the palette is open. Avoids hitting
+    // the list endpoint on every editor mount just to power a feature the
+    // user may never trigger.
+    const { data: switchableProjects } = api.project.list.useQuery(
+        { limit: 25 },
+        { enabled: open },
+    );
+    const activeProjectId = editorEngine.projectId;
+
     const close = () => setOpen(false);
 
     const run = (action: () => void) => {
@@ -61,6 +71,26 @@ export const CommandPalette = observer(() => {
             <CommandInput placeholder="Type a command…" autoFocus />
             <CommandList>
                 <CommandEmpty>No commands found.</CommandEmpty>
+
+                {switchableProjects && switchableProjects.length > 1 && (
+                    <CommandGroup heading="Switch project">
+                        {switchableProjects
+                            .filter((p) => p.id !== activeProjectId)
+                            .slice(0, 12)
+                            .map((p) => (
+                                <CommandItem
+                                    key={p.id}
+                                    value={`Switch to ${p.name} project ${p.id}`}
+                                    onSelect={() =>
+                                        run(() => router.push(`${Routes.PROJECT}/${p.id}`))
+                                    }
+                                >
+                                    <Icons.Cube />
+                                    <span className="truncate">{p.name}</span>
+                                </CommandItem>
+                            ))}
+                    </CommandGroup>
+                )}
 
                 <CommandGroup heading="Navigate">
                     <CommandItem

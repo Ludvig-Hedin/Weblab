@@ -39,6 +39,13 @@ export class Hotkey {
     static readonly MODE_DESIGN = new Hotkey('mod+1', 'Design Mode');
     static readonly MODE_CODE = new Hotkey('mod+2', 'Code Mode');
     static readonly MODE_PREVIEW = new Hotkey('mod+3', 'Preview Mode');
+    static readonly MODE_CMS = new Hotkey('mod+4', 'CMS Mode');
+
+    // Top bar buttons — discoverable shortcuts so the icons in the editor
+    // header carry a real hotkey hint in their tooltip instead of plain text.
+    static readonly OPEN_VERSION_HISTORY = new Hotkey('mod+shift+h', 'Version History');
+    static readonly OPEN_DIFF = new Hotkey('mod+shift+d', 'View Diff');
+    static readonly OPEN_GIT = new Hotkey('alt+g', 'Git Actions');
 
     // Toggles
     static readonly TOGGLE_TERMINAL = new Hotkey('mod+`', 'Toggle Terminal');

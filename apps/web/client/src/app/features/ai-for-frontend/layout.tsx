@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { buildPageMetadata } from '@/lib/seo-metadata';
 import { breadcrumbSchema } from '../../seo';
 
 const breadcrumbsJsonLd = breadcrumbSchema([
@@ -8,81 +9,39 @@ const breadcrumbsJsonLd = breadcrumbSchema([
     { name: 'AI for Frontend', path: '/features/ai-for-frontend' },
 ]);
 
-export const metadata: Metadata = {
-    title: 'AI for Frontend Development | Visual AI Editor for React | Weblab',
-    description:
-        'Weblab is an AI visual editor for React, Vue, and Angular teams. AI is constrained to your real components and design system, so changes ship as mergeable PRs.',
-    keywords: [
-        // Primary keywords
-        'AI for frontend',
-        'AI frontend development',
-        'AI frontend tools',
-        'frontend AI assistant',
-        // Tool comparisons
-        'AI code generator',
-        'visual AI editor',
-        'AI UI builder',
-        'AI component builder',
-        // Framework specific
-        'React AI tools',
-        'Vue AI tools',
-        'Angular AI tools',
-        'Next.js AI tools',
-        // Design system
-        'design system AI',
-        'AI design system constraints',
-        'component library AI',
-        // Styling
-        'Tailwind AI',
-        'shadcn AI',
-        'Material UI AI',
-        // Workflow
-        'AI to PR workflow',
-        'AI code review',
-        'visual to code AI',
-        'design to code AI',
-        // Problem/solution
-        'AI brand drift solution',
-        'constrained AI code generation',
-        'production-ready AI code',
-    ],
-    openGraph: {
-        title: 'AI for Frontend Development | Weblab',
-        description:
-            'Build frontend UIs with AI constrained to your design system. Your real React, Vue, or Angular components. Mergeable PRs, not throwaway code.',
-        type: 'website',
-        url: 'https://weblab.build/features/ai-for-frontend',
-        siteName: 'Weblab',
-        images: [
-            {
-                url: '/og-image.png',
-                width: 1200,
-                height: 630,
-                alt: 'Weblab AI for frontend development preview',
-            },
+export async function generateMetadata(): Promise<Metadata> {
+    return buildPageMetadata({
+        pageKey: 'featuresAiFrontend',
+        path: '/features/ai-for-frontend',
+        keywords: [
+            'AI for frontend',
+            'AI frontend development',
+            'AI frontend tools',
+            'frontend AI assistant',
+            'AI code generator',
+            'visual AI editor',
+            'AI UI builder',
+            'AI component builder',
+            'React AI tools',
+            'Vue AI tools',
+            'Angular AI tools',
+            'Next.js AI tools',
+            'design system AI',
+            'AI design system constraints',
+            'component library AI',
+            'Tailwind AI',
+            'shadcn AI',
+            'Material UI AI',
+            'AI to PR workflow',
+            'AI code review',
+            'visual to code AI',
+            'design to code AI',
+            'AI brand drift solution',
+            'constrained AI code generation',
+            'production-ready AI code',
         ],
-    },
-    /* twitter: {
-        card: 'summary_large_image',
-        title: 'AI for Frontend Development | Weblab',
-        description: 'Build frontend UIs with AI constrained to your design system. Your real components. Mergeable PRs.',
-        images: ['/favicon.ico'],
-    }, */
-    alternates: {
-        canonical: 'https://weblab.build/features/ai-for-frontend',
-    },
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            'max-video-preview': -1,
-            'max-image-preview': 'large',
-            'max-snippet': -1,
-        },
-    },
-};
+    });
+}
 
 // JSON-LD structured data for AI discovery
 const jsonLd = {

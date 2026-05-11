@@ -4,9 +4,11 @@ import { useCallback, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
+import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
+import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { DiffModal } from './diff-modal';
 
@@ -38,7 +40,7 @@ export const DiffButton = observer(() => {
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="mt-1" hideArrow>
-                    View changes
+                    <HotkeyLabel hotkey={Hotkey.OPEN_DIFF} />
                 </TooltipContent>
             </Tooltip>
             <DiffModal open={open} onOpenChange={handleOpenChange} />
