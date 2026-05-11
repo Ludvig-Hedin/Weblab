@@ -1,235 +1,292 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
-import { BrandWordmark } from '@weblab/ui/brand';
+import { BrandSymbol, BrandWordmark } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
 
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { ContactLink } from './contact-link';
+import { LocaleSwitcher } from './locale-switcher';
 
 const linkClass =
-    'relative inline-block text-foreground-secondary transition-colors duration-200 hover:text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
+    'relative inline-block text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
+
+const headingClass = 'text-small uppercase text-foreground-tertiary tracking-wide mb-6';
+
+const columnClass = 'flex flex-col gap-4 text-regular';
 
 export function Footer() {
+    const t = useTranslations('landing.footer');
+
     return (
-        <footer className="text-foreground-primary border-foreground-primary/10 mt-24 w-full border-t pb-24">
-            <div className="mx-auto flex max-w-6xl flex-col gap-24 px-8 pt-16 pb-24 md:flex-row md:items-start">
-                {/* Left: Logo */}
-                <Link href="/" aria-label="Weblab home" className="flex flex-col gap-8">
-                    <BrandWordmark className="text-foreground-primary h-5 w-24" />
-                </Link>
-                {/* Center: Links */}
-                <div className="flex flex-1 flex-col justify-end gap-12 md:flex-row md:gap-12">
-                    <div>
-                        <h3 className="text-regularPlus text-foreground-primary mb-4">Company</h3>
-                        <ul className="text-regular flex flex-col gap-4">
-                            <li>
-                                <a href={Routes.ABOUT} className={linkClass}>
-                                    About
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={ExternalRoutes.DOCS}
-                                    target="_blank"
-                                    className={linkClass}
-                                    title="View Weblab documentation"
-                                >
-                                    Docs
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.FAQ}
-                                    className={linkClass}
-                                    title="Frequently Asked Questions"
-                                >
-                                    FAQ
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.BLOG}
-                                    className={linkClass}
-                                    title="Read the Weblab blog"
-                                >
-                                    Blog
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.CHANGELOG}
-                                    className={linkClass}
-                                    title="See what's new in Weblab"
-                                >
-                                    Changelog
-                                </a>
-                            </li>
-                            <li>
-                                <ContactLink
-                                    user="contact"
-                                    domain="weblab.build"
-                                    className={linkClass}
-                                    title="Contact Weblab support"
-                                >
-                                    Contact
-                                </ContactLink>
-                            </li>
-                        </ul>
+        <footer className="text-foreground-primary border-foreground-primary/10 mt-24 w-full border-t">
+            <div className="mx-auto w-full max-w-7xl px-6 pt-20 pb-10 sm:px-8 lg:pt-24">
+                {/* Giant wordmark */}
+                <BrandWordmark
+                    aria-hidden="true"
+                    className="text-foreground-primary block h-auto w-full"
+                />
+
+                {/* Column groups */}
+                <div className="mt-12 flex flex-col gap-y-12 sm:mt-16 lg:mt-20 lg:flex-row lg:items-start lg:justify-between lg:gap-x-12">
+                    {/* Left group: small mark + Company / Resources / Product / Legal */}
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
+                        <Link
+                            href="/"
+                            aria-label={t('brandHomeAria')}
+                            className="hidden lg:block lg:shrink-0 lg:pt-1"
+                        >
+                            <BrandSymbol className="text-foreground-primary h-8 w-8" />
+                        </Link>
+
+                        <div>
+                            <h3 className={headingClass}>{t('company.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a href={Routes.ABOUT} className={linkClass}>
+                                        {t('company.about.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.FAQ}
+                                        className={linkClass}
+                                        title={t('company.faq.title')}
+                                    >
+                                        {t('company.faq.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <ContactLink
+                                        user="contact"
+                                        domain="weblab.build"
+                                        className={linkClass}
+                                        title={t('company.contact.title')}
+                                    >
+                                        {t('company.contact.label')}
+                                    </ContactLink>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className={headingClass}>{t('resources.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a
+                                        href={ExternalRoutes.DOCS}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={linkClass}
+                                        title={t('resources.docs.title')}
+                                    >
+                                        {t('resources.docs.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.BLOG}
+                                        className={linkClass}
+                                        title={t('resources.blog.title')}
+                                    >
+                                        {t('resources.blog.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={ExternalRoutes.GITHUB}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={linkClass}
+                                        title={t('resources.githubRepo.title')}
+                                    >
+                                        {t('resources.githubRepo.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.CHANGELOG}
+                                        className={linkClass}
+                                        title={t('resources.changelog.title')}
+                                    >
+                                        {t('resources.changelog.label')}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className={headingClass}>{t('product.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a
+                                        href={Routes.PRICING}
+                                        className={linkClass}
+                                        title={t('product.pricing.title')}
+                                    >
+                                        {t('product.pricing.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.DOWNLOAD}
+                                        className={linkClass}
+                                        title={t('product.download.title')}
+                                    >
+                                        {t('product.download.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.PROJECTS}
+                                        className={linkClass}
+                                        title={t('product.myProjects.title')}
+                                    >
+                                        {t('product.myProjects.label')}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className={headingClass}>{t('legal.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a
+                                        href="/terms-of-service"
+                                        className={linkClass}
+                                        title={t('legal.terms.title')}
+                                    >
+                                        {t('legal.terms.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href="/privacy-policy"
+                                        className={linkClass}
+                                        title={t('legal.privacy.title')}
+                                    >
+                                        {t('legal.privacy.label')}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-regularPlus text-foreground-primary mb-4">Product</h3>
-                        <ul className="text-regular flex flex-col gap-4">
-                            <li>
-                                <a
-                                    href={Routes.DOWNLOAD}
-                                    className={linkClass}
-                                    title="Download Weblab for Mac, Windows, Linux & iOS"
-                                >
-                                    Download
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.PROJECTS}
-                                    className={linkClass}
-                                    title="View your projects"
-                                >
-                                    My Projects
-                                </a>
-                            </li>
-                            <li>
+
+                    {/* Right group: Follow Us / Workflows / Features */}
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
+                        <div>
+                            <h3 className={headingClass}>{t('followUs.title')}</h3>
+                            <div className="flex items-center gap-6">
                                 <a
                                     href={ExternalRoutes.GITHUB}
                                     target="_blank"
-                                    className={linkClass}
-                                    title="View Weblab on GitHub"
+                                    rel="noopener noreferrer"
+                                    title={t('followUs.github.title')}
+                                    aria-label={t('followUs.github.title')}
+                                    className="text-foreground-secondary hover:text-foreground-primary transition-colors duration-150 hover:scale-110"
                                 >
-                                    GitHub Repo
+                                    <Icons.GitHubLogo className="h-5 w-5" />
                                 </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="/features"
-                                    className={linkClass}
-                                    title="View Weblab features"
-                                >
-                                    Features
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.FEATURES_AI}
-                                    className={linkClass}
-                                    title="AI-powered development tools"
-                                >
-                                    AI
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.FEATURES_AI_FRONTEND}
-                                    className={linkClass}
-                                    title="AI constrained to your design system"
-                                >
-                                    AI for Frontend
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.FEATURES_PROTOTYPE}
-                                    className={linkClass}
-                                    title="Rapid prototyping features"
-                                >
-                                    Prototyping
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.FEATURES_BUILDER}
-                                    className={linkClass}
-                                    title="Visual builder tools"
-                                >
-                                    Visual Builder
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="/pricing"
-                                    className={linkClass}
-                                    title="View Weblab pricing"
-                                >
-                                    Pricing
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="text-regularPlus text-foreground-primary mb-4">Workflows</h3>
-                        <ul className="text-regular flex flex-col gap-4">
-                            <li>
-                                <a
-                                    href={Routes.WORKFLOWS_CLAUDE_CODE}
-                                    className={linkClass}
-                                    title="Use Weblab with Claude Code"
-                                >
-                                    Claude Code
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href={Routes.WORKFLOWS_VIBE_CODING}
-                                    className={linkClass}
-                                    title="Vibe coding for teams"
-                                >
-                                    Vibe Coding
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="text-regularPlus text-foreground-primary mb-4">Follow Us</h3>
-                        <div className="mt-2 flex items-center gap-6">
-                            <a
-                                href={ExternalRoutes.GITHUB}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="View Weblab on GitHub"
-                                aria-label="View Weblab on GitHub"
-                                className="transition-all duration-150 hover:scale-110"
-                            >
-                                <Icons.GitHubLogo className="text-foreground-secondary hover:text-foreground-primary h-5.5 w-5.5 transition-colors duration-150" />
-                            </a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className={headingClass}>{t('workflows.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a
+                                        href={Routes.WORKFLOWS_CLAUDE_CODE}
+                                        className={linkClass}
+                                        title={t('workflows.claudeCode.title')}
+                                    >
+                                        {t('workflows.claudeCode.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.WORKFLOWS_VIBE_CODING}
+                                        className={linkClass}
+                                        title={t('workflows.vibeCoding.title')}
+                                    >
+                                        {t('workflows.vibeCoding.label')}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h3 className={headingClass}>{t('features.title')}</h3>
+                            <ul className={columnClass}>
+                                <li>
+                                    <a
+                                        href={Routes.FEATURES}
+                                        className={linkClass}
+                                        title={t('features.overview.title')}
+                                    >
+                                        {t('features.overview.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.FEATURES_AI}
+                                        className={linkClass}
+                                        title={t('features.ai.title')}
+                                    >
+                                        {t('features.ai.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.FEATURES_BUILDER}
+                                        className={linkClass}
+                                        title={t('features.visualBuilder.title')}
+                                    >
+                                        {t('features.visualBuilder.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.FEATURES_PROTOTYPE}
+                                        className={linkClass}
+                                        title={t('features.prototyping.title')}
+                                    >
+                                        {t('features.prototyping.label')}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a
+                                        href={Routes.FEATURES_AI_FRONTEND}
+                                        className={linkClass}
+                                        title={t('features.aiFrontend.title')}
+                                    >
+                                        {t('features.aiFrontend.label')}
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
-            </div>
-            {/* Bottom Bar */}
-            <div className="mx-auto max-w-6xl px-8 pt-24 pb-4">
-                <div className="border-foreground-primary/10 flex w-full flex-col items-center justify-center gap-0 border-t pt-6 md:flex-row md:items-center md:justify-between md:gap-4">
-                    {/* Center: Links */}
-                    <div className="text-foreground-tertiary text-small mb-4 flex w-full justify-center gap-8 md:mb-0 md:w-auto">
+
+                {/* Bottom bar */}
+                <div className="border-foreground-primary/10 mt-16 flex flex-col items-start justify-between gap-4 border-t pt-6 sm:flex-row sm:items-center">
+                    <div className="text-foreground-tertiary text-small flex items-center gap-3">
                         <a
-                            href="/terms-of-service"
+                            href={Routes.SITEMAP}
                             className={linkClass}
-                            title="Read our Terms of Service"
+                            title={t('legal.sitemap.title')}
                         >
-                            Terms of Service
+                            {t('legal.sitemap.label')}
                         </a>
-                        <a
-                            href="/privacy-policy"
-                            className={linkClass}
-                            title="Read our Privacy Policy"
-                        >
-                            Privacy Policy
-                        </a>
-                        <a href="/site-map" className={linkClass} title="View the sitemap">
-                            Sitemap
-                        </a>
+                        <span
+                            aria-hidden="true"
+                            className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
+                        />
+                        <LocaleSwitcher />
                     </div>
-                    {/* Right: Copyright */}
-                    <div className="text-foreground-tertiary text-small flex w-full justify-center md:w-auto md:justify-end">
-                        © {new Date().getFullYear()} Weblab
-                    </div>
+                    <span className="text-foreground-tertiary text-small">
+                        {t('legal.copyright', { year: String(new Date().getFullYear()) })}
+                    </span>
                 </div>
             </div>
         </footer>
