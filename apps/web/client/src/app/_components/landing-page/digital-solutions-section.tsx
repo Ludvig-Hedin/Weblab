@@ -2,10 +2,10 @@
 
 import type { PanInfo } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ArrowRight, Pause, Play } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { CarouselNavigator } from '@/components/ui/carousel-navigator';
 import { Routes } from '@/utils/constants';
@@ -18,20 +18,20 @@ interface Slide {
     chips: string[];
 }
 
-const SLIDE_KEYS = ['aiNative', 'web', 'apps', 'brand'] as const;
+const SLIDE_KEYS = ['collab', 'branches', 'cms', 'deploy'] as const;
 
 const SLIDE_VISUALS: Record<(typeof SLIDE_KEYS)[number], React.ReactNode> = {
-    aiNative: <AiVisual />,
-    web: <DashboardVisual />,
-    apps: <PhoneVisual />,
-    brand: <BrandVisual />,
+    collab: <CollabVisual />,
+    branches: <BranchesVisual />,
+    cms: <CmsVisual />,
+    deploy: <DeployVisual />,
 };
 
 const SLIDE_CHIPS: Record<(typeof SLIDE_KEYS)[number], string[]> = {
-    aiNative: ['OpenAI', 'Anthropic', 'Gemini', 'RAG', 'Evals'],
-    web: ['Next.js', 'React', 'Tailwind', 'tRPC', 'Postgres'],
-    apps: ['Swift', 'Kotlin', 'React Native', 'Expo', 'TestFlight'],
-    brand: ['Figma', 'Design Tokens', 'Storybook', 'Motion', 'Accessibility'],
+    collab: ['Live cursors', 'Presence', 'Comments', 'Threads'],
+    branches: ['Branches', 'Checkpoints', 'Diff view', 'Preview URLs'],
+    cms: ['Collections', 'Fields', 'Bindings', 'Payload'],
+    deploy: ['Preview URLs', 'Custom domains', 'One-click deploy'],
 };
 
 const AUTO_DELAY = 6000;
@@ -57,10 +57,13 @@ export function DigitalSolutionsSection() {
     const [progressKey, setProgressKey] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const goTo = useCallback((next: number) => {
-        setIndex(((next % slides.length) + slides.length) % slides.length);
-        setProgressKey((k) => k + 1);
-    }, [slides.length]);
+    const goTo = useCallback(
+        (next: number) => {
+            setIndex(((next % slides.length) + slides.length) % slides.length);
+            setProgressKey((k) => k + 1);
+        },
+        [slides.length],
+    );
 
     const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
     const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
@@ -77,7 +80,7 @@ export function DigitalSolutionsSection() {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [paused, progressKey]);
+    }, [paused, progressKey, slides.length]);
 
     const handleDragEnd = useCallback(
         (_: unknown, info: PanInfo) => {
@@ -106,7 +109,7 @@ export function DigitalSolutionsSection() {
                         {t('titleLine3')}
                     </h2>
                     <div className="flex flex-col items-start justify-end gap-6">
-                        <p className="text-foreground-secondary text-regular max-w-md font-light">
+                        <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight">
                             {t('body')}
                         </p>
                         <Link
@@ -137,7 +140,7 @@ export function DigitalSolutionsSection() {
                             onClick={() => setPaused((p) => !p)}
                             aria-label={paused ? t('play') : t('pause')}
                             aria-pressed={paused}
-                            className="border-foreground-primary/10 bg-background-weblab/60 text-foreground-primary hover:bg-foreground-primary/10 inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-colors"
+                            className="border-foreground-primary/10 bg-background-secondary/40 text-foreground-primary hover:bg-foreground-primary/10 inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition-colors"
                         >
                             {paused ? (
                                 <Play className="h-3.5 w-3.5" />
@@ -206,21 +209,21 @@ function SlideCard({
     return (
         <motion.div
             onClick={isActive ? undefined : onActivate}
-            animate={{ opacity: isActive ? 1 : 0.35, scale: isActive ? 1 : 0.97 }}
+            animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.98 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`border-foreground-primary/10 bg-background-weblab/60 grid h-[30rem] grid-cols-1 gap-6 overflow-hidden rounded-3xl border p-6 backdrop-blur-md md:grid-cols-[1fr_1.4fr] ${
+            className={`border-foreground-primary/10 bg-background-secondary/40 grid h-[30rem] grid-cols-1 gap-6 overflow-hidden rounded-2xl border p-5 backdrop-blur-sm md:grid-cols-[1fr_1.4fr] ${
                 isActive ? '' : 'cursor-pointer'
             }`}
         >
             <div className="flex flex-col justify-between gap-6">
                 <div>
-                    <span className="text-foreground-tertiary text-mini font-mono tracking-[0.18em] uppercase">
+                    <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                         {slide.eyebrow}
                     </span>
-                    <h3 className="heading-style-h4 text-foreground-primary mt-3">
+                    <h3 className="heading-style-h4 text-foreground-primary mt-3 tracking-tight">
                         {slide.title}
                     </h3>
-                    <p className="text-foreground-secondary text-regular mt-4 max-w-sm font-light">
+                    <p className="text-foreground-secondary mt-4 max-w-sm text-base leading-relaxed font-light tracking-tight">
                         {slide.description}
                     </p>
                 </div>
@@ -228,7 +231,7 @@ function SlideCard({
                     {slide.chips.map((chip) => (
                         <span
                             key={chip}
-                            className="border-foreground-primary/10 bg-foreground-primary/[0.04] text-foreground-secondary text-mini rounded-full border px-2.5 py-1 font-mono tracking-tight"
+                            className="border-foreground-primary/8 text-foreground-tertiary text-mini rounded-full border px-2 py-0.5 font-light tracking-tight"
                         >
                             {chip}
                         </span>
@@ -238,10 +241,10 @@ function SlideCard({
             <AnimatePresence mode="wait">
                 <motion.div
                     key={slide.title}
-                    initial={{ opacity: 0, scale: 1.02 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
                     className="h-full min-h-[16rem] w-full"
                 >
                     {slide.visual}
@@ -252,253 +255,441 @@ function SlideCard({
 }
 
 // ─── Visuals ─────────────────────────────────────────────────────────────
+// Calm monochrome miniatures. One whisper of brand blue per visual.
 
-function AiVisual() {
+const BRAND = 'hsl(var(--foreground-brand))';
+const BRAND_SOFT = 'hsl(var(--foreground-brand) / 0.16)';
+const BRAND_RING = 'hsl(var(--foreground-brand) / 0.4)';
+
+function VisualChrome({
+    label,
+    right,
+    children,
+}: {
+    label: string;
+    right?: React.ReactNode;
+    children: React.ReactNode;
+}) {
     return (
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-amber-200 to-blue-400">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,200,120,0.45),transparent_60%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_70%,rgba(80,140,255,0.35),transparent_55%)]" />
-            <div className="absolute bottom-8 left-1/2 flex w-[78%] max-w-md -translate-x-1/2 items-center gap-2 rounded-full border border-white/40 bg-white/15 px-3 py-2 shadow-lg backdrop-blur-xl">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/30 bg-white/30 text-white">
-                    +
-                </div>
-                <span className="flex-1 text-sm text-white/90">Summarize this customer call…</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white">
-                    <ArrowRight className="h-4 w-4" />
-                </div>
+        <div className="border-foreground-primary/8 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
+            <div className="border-foreground-primary/8 flex items-center justify-between border-b px-3 py-2">
+                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                    {label}
+                </span>
+                {right}
             </div>
-            <div className="absolute top-6 right-6 left-6 flex flex-col gap-2">
-                <div className="text-mini font-mono tracking-[0.18em] text-white/70 uppercase">
-                    Agent · gpt-4o · 12ms
-                </div>
-                <div className="space-y-1.5">
-                    <div className="h-2 w-3/4 rounded-full bg-white/40" />
-                    <div className="h-2 w-2/3 rounded-full bg-white/25" />
-                    <div className="h-2 w-1/2 rounded-full bg-white/20" />
-                </div>
-            </div>
+            <div className="relative h-[calc(100%-2rem)]">{children}</div>
         </div>
     );
 }
 
-function DashboardVisual() {
-    const bars = [38, 56, 42, 70, 64, 88, 72, 95, 80, 110, 92, 124];
+function Cursor({
+    name,
+    style,
+    flip = false,
+}: {
+    name: string;
+    style: React.CSSProperties;
+    flip?: boolean;
+}) {
     return (
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-600 to-fuchsia-500">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.25),transparent_55%)]" />
-            <div className="absolute inset-5 rounded-2xl border border-white/15 bg-zinc-950/70 shadow-2xl backdrop-blur-xl">
-                {/* App chrome */}
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-400/80" />
-                        <div className="h-2 w-2 rounded-full bg-yellow-400/80" />
-                        <div className="h-2 w-2 rounded-full bg-green-400/80" />
-                        <div className="ml-3 h-2 w-32 rounded-full bg-white/10" />
-                    </div>
-                    <div className="text-mini font-mono text-white/40">app.weblab.build</div>
+        <div className="pointer-events-none absolute" style={style}>
+            <svg
+                width="12"
+                height="12"
+                viewBox="0 0 14 14"
+                fill="none"
+                style={{ transform: flip ? 'scaleX(-1)' : undefined }}
+            >
+                <path
+                    d="M2 1.5L11 7.5L7 8.5L5.5 12.5L2 1.5Z"
+                    fill={BRAND}
+                    stroke="hsl(var(--background))"
+                    strokeWidth="1.2"
+                />
+            </svg>
+            <span className="border-foreground-primary/10 bg-background text-foreground-secondary ml-2 inline-block rounded border px-1.5 py-0.5 font-mono text-[8px] font-light">
+                {name}
+            </span>
+        </div>
+    );
+}
+
+function CollabVisual() {
+    return (
+        <VisualChrome
+            label="canvas · landing.tsx"
+            right={
+                <div className="flex -space-x-1.5">
+                    <span className="border-background bg-foreground-secondary text-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
+                        A
+                    </span>
+                    <span className="border-background bg-foreground-tertiary text-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
+                        M
+                    </span>
+                    <span className="border-background border-foreground-primary/10 text-foreground-tertiary bg-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
+                        +1
+                    </span>
                 </div>
-                <div className="grid h-[calc(100%-2.75rem)] grid-cols-[120px_1fr]">
-                    {/* Sidebar */}
-                    <div className="space-y-1.5 border-r border-white/10 p-3">
-                        {['Overview', 'Pipeline', 'Reports', 'Settings'].map((label, idx) => (
-                            <div
-                                key={label}
-                                className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${
-                                    idx === 0 ? 'bg-white/15 text-white' : 'text-white/50'
+            }
+        >
+            <div className="flex h-full gap-3 p-3">
+                {/* Artboard 1 — selection */}
+                <div className="border-foreground-primary/8 bg-background relative flex-1 rounded-lg border p-3">
+                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
+                        Home
+                    </div>
+                    <div className="space-y-1.5">
+                        <div className="bg-foreground-primary/15 h-1.5 w-3/4 rounded-full" />
+                        <div className="bg-foreground-primary/15 h-1.5 w-1/2 rounded-full" />
+                    </div>
+                    <div className="relative mt-3 inline-block">
+                        <div className="bg-foreground-primary text-background rounded-md px-2 py-1 text-[8px] font-medium">
+                            Get started
+                        </div>
+                        <div
+                            className="pointer-events-none absolute -inset-1 rounded-md ring-1 ring-inset"
+                            style={{
+                                boxShadow: `inset 0 0 0 1.5px ${BRAND}`,
+                            }}
+                        />
+                    </div>
+                    <Cursor name="Alex" style={{ right: 22, bottom: 30 }} />
+                </div>
+                {/* Artboard 2 — comment */}
+                <div className="border-foreground-primary/8 bg-background relative flex-1 rounded-lg border p-3">
+                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
+                        Pricing
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                        <div className="bg-foreground-primary/8 h-7 rounded" />
+                        <div className="bg-foreground-primary/8 h-7 rounded" />
+                    </div>
+                    <div className="mt-2 space-y-1">
+                        <div className="bg-foreground-primary/15 h-1 w-2/3 rounded-full" />
+                        <div className="bg-foreground-primary/15 h-1 w-1/2 rounded-full" />
+                    </div>
+                    {/* Comment pin */}
+                    <div
+                        className="absolute flex h-5 w-5 items-center justify-center rounded-full rounded-bl-none text-[9px] font-medium text-white"
+                        style={{ top: 22, right: 14, backgroundColor: BRAND }}
+                    >
+                        2
+                    </div>
+                    {/* Thread popover */}
+                    <div className="border-foreground-primary/8 bg-background absolute right-2 bottom-2 left-2 rounded-lg border p-2">
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-medium text-white"
+                                style={{ backgroundColor: BRAND }}
+                            >
+                                M
+                            </span>
+                            <span className="text-foreground-primary text-[9px] font-medium">
+                                Maya
+                            </span>
+                            <span className="text-foreground-quadranary font-mono text-[8px]">
+                                · 2m
+                            </span>
+                        </div>
+                        <p className="text-foreground-secondary mt-0.5 text-[8px] leading-tight font-light">
+                            Can we use the spacing-md token here?
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </VisualChrome>
+    );
+}
+
+function BranchesVisual() {
+    return (
+        <VisualChrome
+            label="branches · 3 active"
+            right={
+                <div className="text-foreground-tertiary flex items-center gap-1.5 font-mono text-[9px]">
+                    <span className="bg-foreground-primary h-1.5 w-1.5 rounded-full" />
+                    main
+                </div>
+            }
+        >
+            <div className="relative px-6 py-5">
+                {/* vertical stem */}
+                <div className="bg-foreground-primary/20 absolute top-8 bottom-6 left-7 w-px" />
+
+                {/* main */}
+                <div className="relative flex items-center gap-3">
+                    <div className="border-foreground-primary bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
+                    <div className="flex flex-1 items-center gap-2.5">
+                        <div className="border-foreground-primary/8 bg-background h-8 w-12 overflow-hidden rounded border">
+                            <div className="bg-foreground-primary/8 h-2" />
+                            <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/4 rounded-full" />
+                            <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/2 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
+                                main
+                            </div>
+                            <div className="text-foreground-quadranary font-mono text-[9px]">
+                                latest release · 12m ago
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* branch 1 — active */}
+                <div className="relative mt-4 flex items-center gap-3 pl-5">
+                    <div className="border-foreground-primary/20 absolute top-1 left-1.5 h-4 w-4 rounded-bl-md border-b border-l" />
+                    <div
+                        className="z-10 h-2.5 w-2.5 rounded-full"
+                        style={{
+                            backgroundColor: BRAND,
+                            boxShadow: `0 0 0 3px ${BRAND_SOFT}`,
+                        }}
+                    />
+                    <div className="flex flex-1 items-center gap-2.5">
+                        <div
+                            className="bg-background h-8 w-12 overflow-hidden rounded border"
+                            style={{ borderColor: BRAND_RING }}
+                        >
+                            <div className="h-2" style={{ backgroundColor: BRAND_SOFT }} />
+                            <div className="bg-foreground-primary/15 m-1.5 h-1 w-2/3 rounded-full" />
+                            <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/2 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
+                                feature/pricing-v2
+                            </div>
+                            <div className="text-foreground-quadranary font-mono text-[9px]">
+                                checkpoint · 4m ago
+                            </div>
+                        </div>
+                        <span
+                            className="rounded-full px-2 py-0.5 font-mono text-[9px] font-medium"
+                            style={{ backgroundColor: BRAND_SOFT, color: BRAND }}
+                        >
+                            restore
+                        </span>
+                    </div>
+                </div>
+
+                {/* branch 2 */}
+                <div className="relative mt-4 flex items-center gap-3 pl-5">
+                    <div className="border-foreground-primary/20 absolute top-1 left-1.5 h-4 w-4 rounded-bl-md border-b border-l" />
+                    <div className="border-foreground-primary/20 bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
+                    <div className="flex flex-1 items-center gap-2.5">
+                        <div className="border-foreground-primary/8 bg-background h-8 w-12 overflow-hidden rounded border">
+                            <div className="bg-foreground-primary/8 h-2" />
+                            <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/5 rounded-full" />
+                            <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/3 rounded-full" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
+                                feature/landing-redo
+                            </div>
+                            <div className="text-foreground-quadranary font-mono text-[9px]">
+                                preview · 2m ago
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* merge */}
+                <div className="relative mt-4 flex items-center gap-3">
+                    <div className="bg-foreground-primary z-10 h-2.5 w-2.5 rounded-full" />
+                    <div className="text-foreground-tertiary font-mono text-[10px]">
+                        merge ready · diff <span className="text-foreground-primary">+124</span>{' '}
+                        <span className="text-foreground-quadranary">/</span>{' '}
+                        <span className="text-foreground-quadranary">-38</span>
+                    </div>
+                </div>
+            </div>
+        </VisualChrome>
+    );
+}
+
+function CmsVisual() {
+    const collections = [
+        { name: 'Posts', count: 28, active: true },
+        { name: 'Authors', count: 6, active: false },
+        { name: 'Pages', count: 12, active: false },
+        { name: 'Tags', count: 19, active: false },
+    ];
+    const fields = [
+        { label: 'Title', value: 'Launch week, day 3' },
+        { label: 'Slug', value: '/blog/launch-week-day-3' },
+        { label: 'Author', value: '↳ authors/maya' },
+    ];
+    return (
+        <VisualChrome
+            label="cms · collections"
+            right={
+                <span className="text-foreground-quadranary font-mono text-[9px]">
+                    last sync · just now
+                </span>
+            }
+        >
+            <div className="grid h-full grid-cols-[110px_1fr]">
+                {/* Collections sidebar */}
+                <div className="border-foreground-primary/8 bg-background/30 space-y-1 border-r p-2">
+                    <div className="text-foreground-quadranary mb-1 px-2 font-mono text-[8px] tracking-wider uppercase">
+                        Collections
+                    </div>
+                    {collections.map((c) => (
+                        <div
+                            key={c.name}
+                            className={`flex items-center justify-between rounded-md px-2 py-1 text-[10px] ${
+                                c.active
+                                    ? 'bg-foreground-primary/[0.06] text-foreground-primary ring-foreground-primary/10 ring-1 ring-inset'
+                                    : 'text-foreground-secondary'
+                            }`}
+                        >
+                            <span className="font-light">{c.name}</span>
+                            <span
+                                className={`font-mono text-[9px] ${
+                                    c.active
+                                        ? 'text-foreground-tertiary'
+                                        : 'text-foreground-quadranary'
                                 }`}
                             >
-                                <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
-                                {label}
-                            </div>
-                        ))}
-                    </div>
-                    {/* Body */}
-                    <div className="flex flex-col gap-3 p-4">
-                        <div className="grid grid-cols-3 gap-3">
-                            {[
-                                { label: 'MRR', value: '$48.2k', delta: '+12%' },
-                                { label: 'Active', value: '1,284', delta: '+3.4%' },
-                                { label: 'Churn', value: '1.8%', delta: '-0.4%' },
-                            ].map((kpi) => (
-                                <div
-                                    key={kpi.label}
-                                    className="rounded-lg border border-white/10 bg-white/5 p-2.5"
-                                >
-                                    <div className="text-mini text-white/40">{kpi.label}</div>
-                                    <div className="mt-1 text-base font-medium text-white">
-                                        {kpi.value}
-                                    </div>
-                                    <div className="text-mini text-emerald-300/90">{kpi.delta}</div>
-                                </div>
-                            ))}
+                                {c.count}
+                            </span>
                         </div>
-                        <div className="flex-1 rounded-lg border border-white/10 bg-white/5 p-3">
-                            <div className="flex h-full items-end gap-1.5">
-                                {bars.map((h, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex-1 rounded-sm bg-gradient-to-t from-fuchsia-400/80 to-indigo-300/80"
-                                        style={{ height: `${(h / 130) * 100}%` }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function PhoneVisual() {
-    const apps = [
-        { name: 'Messages', cls: 'bg-gradient-to-br from-green-400 to-green-600' },
-        { name: 'Calendar', cls: 'bg-white text-zinc-900' },
-        { name: 'Photos', cls: 'bg-gradient-to-br from-pink-400 to-yellow-300' },
-        { name: 'Camera', cls: 'bg-gradient-to-br from-zinc-700 to-zinc-900' },
-        { name: 'Maps', cls: 'bg-gradient-to-br from-emerald-300 to-blue-400' },
-        { name: 'Music', cls: 'bg-gradient-to-br from-pink-500 to-rose-400' },
-        { name: 'Health', cls: 'bg-zinc-900' },
-        { name: 'Wallet', cls: 'bg-gradient-to-br from-zinc-800 to-black' },
-    ];
-    return (
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-teal-300 via-sky-400 to-indigo-500">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.25),transparent_60%)]" />
-            {/* Phone */}
-            <div className="absolute top-1/2 left-1/2 h-[88%] w-[48%] -translate-x-1/2 -translate-y-1/2 rounded-[2.5rem] border border-black/40 bg-black p-2 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)]">
-                <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-gradient-to-b from-sky-300 via-indigo-400 to-violet-500">
-                    {/* Status bar */}
-                    <div className="flex items-center justify-between px-5 pt-2.5 text-[10px] font-semibold text-white">
-                        <span>9:41</span>
-                        <span className="inline-flex h-3 w-12 rounded-full bg-black/40" />
-                        <span className="inline-flex items-center gap-0.5">
-                            <span className="h-2 w-1 rounded-sm bg-white/80" />
-                            <span className="h-2 w-1 rounded-sm bg-white/80" />
-                            <span className="h-2 w-1 rounded-sm bg-white/60" />
-                            <span className="ml-1 h-2 w-4 rounded-sm bg-white/80" />
-                        </span>
+                {/* Item editor */}
+                <div className="overflow-hidden p-3">
+                    <div className="text-foreground-quadranary font-mono text-[9px] tracking-wider uppercase">
+                        Editing · post / launch-week
                     </div>
-                    {/* Widget */}
-                    <div className="mx-3 mt-4 rounded-2xl bg-white/85 p-3 text-zinc-900 shadow">
-                        <div className="text-[9px] tracking-wider text-zinc-500 uppercase">
-                            Today
-                        </div>
-                        <div className="mt-0.5 text-[13px] leading-tight font-semibold">
-                            Standup · 9:30
-                        </div>
-                        <div className="mt-1.5 h-1 w-3/4 rounded-full bg-zinc-200" />
-                        <div className="mt-1 h-1 w-1/2 rounded-full bg-zinc-200" />
-                    </div>
-                    {/* Grid */}
-                    <div className="mt-4 grid grid-cols-4 gap-3 px-4">
-                        {apps.map((app) => (
-                            <div key={app.name} className="flex flex-col items-center gap-1">
-                                <div
-                                    className={`flex h-8 w-8 items-center justify-center rounded-[10px] shadow-md ${app.cls}`}
-                                />
-                                <span className="text-[8px] text-white/85">{app.name}</span>
-                            </div>
-                        ))}
-                    </div>
-                    {/* Dock */}
-                    <div className="absolute inset-x-3 bottom-3 flex justify-around rounded-2xl bg-white/15 p-2 backdrop-blur-md">
-                        {[
-                            'bg-gradient-to-br from-blue-400 to-blue-600',
-                            'bg-gradient-to-br from-zinc-700 to-zinc-900',
-                            'bg-gradient-to-br from-fuchsia-400 to-purple-500',
-                            'bg-gradient-to-br from-emerald-300 to-teal-500',
-                        ].map((cls, i) => (
-                            <div key={i} className={`h-8 w-8 rounded-[10px] shadow ${cls}`} />
-                        ))}
-                    </div>
-                    {/* Home indicator */}
-                    <div className="absolute bottom-1 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-white/70" />
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function BrandVisual() {
-    const palette = [
-        'bg-zinc-900',
-        'bg-orange-400',
-        'bg-amber-200',
-        'bg-emerald-400',
-        'bg-sky-500',
-        'bg-violet-500',
-    ];
-    return (
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-200">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.7),transparent_55%)]" />
-            <div className="absolute inset-5 grid grid-cols-2 grid-rows-3 gap-3">
-                {/* Type sample */}
-                <div className="row-span-2 flex flex-col justify-between rounded-xl bg-white p-4 shadow-sm">
-                    <div className="font-mono text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                        Typography
-                    </div>
-                    <div className="flex items-end gap-2 text-zinc-900">
-                        <span className="leading-none font-light" style={{ fontSize: '6rem' }}>
-                            Aa
-                        </span>
-                        <div className="mb-2 flex flex-col text-[10px] text-zinc-500">
-                            <span>Display · 96</span>
-                            <span>Body · 16</span>
-                            <span>Caption · 12</span>
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <div className="h-1.5 w-4/5 rounded-full bg-zinc-200" />
-                        <div className="h-1.5 w-3/5 rounded-full bg-zinc-200" />
-                    </div>
-                </div>
-                {/* Logo card */}
-                <div className="flex items-center justify-center rounded-xl bg-zinc-900 p-4 text-white shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white text-zinc-900">
-                            <span className="text-base font-semibold">w</span>
-                        </span>
-                        <span className="text-base font-medium tracking-tight">weblab</span>
-                    </div>
-                </div>
-                {/* Component pills */}
-                <div className="flex flex-col gap-2 rounded-xl bg-white p-4 shadow-sm">
-                    <div className="font-mono text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                        Components
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                        <span className="rounded-md bg-zinc-900 px-2 py-1 text-[10px] text-white">
-                            Button
-                        </span>
-                        <span className="rounded-md border border-zinc-200 px-2 py-1 text-[10px] text-zinc-700">
-                            Outline
-                        </span>
-                        <span className="rounded-md bg-orange-400 px-2 py-1 text-[10px] text-white">
-                            Badge
-                        </span>
-                        <span className="rounded-full border border-zinc-200 px-2 py-1 text-[10px] text-zinc-700">
-                            Chip
-                        </span>
-                    </div>
-                </div>
-                {/* Palette */}
-                <div className="col-span-2 flex flex-col gap-2 rounded-xl bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div className="font-mono text-[10px] tracking-[0.2em] text-zinc-400 uppercase">
-                            Palette · Tokens
-                        </div>
-                        <div className="font-mono text-[10px] text-zinc-400">12 / 24</div>
-                    </div>
-                    <div className="grid grid-cols-6 gap-2">
-                        {palette.map((c) => (
+                    <div className="mt-2 space-y-1.5">
+                        {fields.map((f) => (
                             <div
-                                key={c}
-                                className={`aspect-square rounded-md border border-black/5 shadow-sm ${c}`}
-                            />
+                                key={f.label}
+                                className="border-foreground-primary/8 bg-background rounded-md border px-2 py-1.5"
+                            >
+                                <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
+                                    {f.label}
+                                </div>
+                                <div className="text-foreground-primary mt-0.5 text-[10px] font-light">
+                                    {f.value}
+                                </div>
+                            </div>
                         ))}
+                        <div className="border-foreground-primary/8 bg-background rounded-md border px-2 py-1.5">
+                            <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
+                                Body
+                            </div>
+                            <div className="mt-1 space-y-1">
+                                <div className="bg-foreground-primary/15 h-1 w-11/12 rounded-full" />
+                                <div className="bg-foreground-primary/15 h-1 w-10/12 rounded-full" />
+                                <div className="bg-foreground-primary/15 h-1 w-7/12 rounded-full" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </VisualChrome>
+    );
+}
+
+function DeployVisual() {
+    return (
+        <VisualChrome
+            label="deployments"
+            right={
+                <div
+                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: BRAND_SOFT }}
+                >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: BRAND }} />
+                    <span className="font-mono text-[9px] font-medium" style={{ color: BRAND }}>
+                        Live · 14s ago
+                    </span>
+                </div>
+            }
+        >
+            <div className="space-y-2.5 p-3">
+                {/* Active deploy card */}
+                <div className="border-foreground-primary/8 bg-background rounded-xl border p-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-foreground-primary font-mono text-[10px] font-medium">
+                                feature/landing-redo
+                            </span>
+                            <span className="text-foreground-quadranary font-mono text-[9px]">
+                                · 7f3a92c
+                            </span>
+                        </div>
+                        <span
+                            className="rounded-full px-2 py-0.5 text-[9px] font-medium text-white"
+                            style={{ backgroundColor: BRAND }}
+                        >
+                            Live
+                        </span>
+                    </div>
+                    <div className="border-foreground-primary/8 bg-background-secondary/60 mt-2 flex items-center gap-1.5 rounded-md border px-2 py-1.5">
+                        <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 12 12"
+                            className="text-foreground-quadranary"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                        >
+                            <path d="M5 7L3 9C1.7 10.3 1.7 11.7 3 11C4.3 10.3 5 9 5 8" />
+                            <path d="M7 5L9 3C10.3 1.7 11.7 1.7 11 3C10.3 4.3 9 5 8 5" />
+                            <path d="M4.5 7.5L7.5 4.5" />
+                        </svg>
+                        <span className="text-foreground-secondary flex-1 truncate font-mono text-[9px]">
+                            weblab.build/preview/7f3a
+                        </span>
+                        <span className="border-foreground-primary/8 bg-background text-foreground-tertiary rounded border px-1.5 py-0.5 font-mono text-[8px]">
+                            copy
+                        </span>
+                    </div>
+                </div>
+
+                {/* Build log */}
+                <div className="border-foreground-primary/8 bg-background-secondary/60 text-foreground-tertiary rounded-xl border p-3 font-mono text-[9px] leading-tight">
+                    <div className="text-foreground-quadranary">$ bun run build</div>
+                    <div className="text-foreground-secondary mt-0.5">✓ Compiled in 4.2s</div>
+                    <div className="text-foreground-secondary mt-0.5">
+                        ✓ Bundled · 248kb gzipped
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1.5" style={{ color: BRAND }}>
+                        <svg
+                            width="9"
+                            height="9"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path d="M2 6.5L5 9.5L10 3.5" />
+                        </svg>
+                        Deployed to production
+                    </div>
+                </div>
+
+                {/* History */}
+                <div className="text-foreground-tertiary flex items-center gap-2 font-mono text-[9px]">
+                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                        v1.6
+                    </span>
+                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                        v1.5
+                    </span>
+                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                        v1.4
+                    </span>
+                    <span className="text-foreground-quadranary">· domain weblab.build</span>
+                </div>
+            </div>
+        </VisualChrome>
     );
 }
