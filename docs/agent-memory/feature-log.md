@@ -16,6 +16,52 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-11 — Weblab App Figma component library (extracted from code)
+Author: Claude (figma-use)
+Area: design-system / Figma
+Summary: Built a Figma file mirroring the live app component surface from
+`packages/ui` and `apps/web/client/src/**`. Foundations are token-bound
+(Color collection with Light + Dark modes, Radius, Spacing collections,
+text styles, effect styles). All component sets use Figma variants with
+`Variant=` / `Size=` / `State=` properties and reference variables —
+swap modes at any frame to flip light/dark. Token values pulled from
+`packages/ui/src/globals.css`; Tailwind config + button CVA were the
+ground truth for type ramps and button heights/radii.
+Categories created:
+  Foundations · Core UI · Navigation · Feedback + Overlays · Dashboard
+  · Editor · AI Chat · Settings + Auth · QA Notes
+Counts: 1 file · 10 pages · 3 variable collections (66 color + 8 radius
++ 14 spacing) · 14 text styles · 5 effect styles · ~200 component
+variants across 35 component sets, plus 6 example compositions.
+Key token decisions:
+  - Status semantic tokens (`background-success/warning`,
+    `foreground-success/warning`) are kept aliased to blue to match
+    today's `globals.css`. Flagged in QA notes as a decision point.
+  - Editor canvas surfaces (`bg/canvas`, `bg/chrome`, `bg/bar`,
+    `bg/bar-active`, `bg/tab-strip`, `bg/tab-active`) modeled
+    explicitly so Editor mockups can use them directly.
+  - Radius scale uses xs/sm/md/lg/xl/2xl/3xl/full anchored to
+    `--radius = 1rem`.
+Missing / deferred (full list on the QA Notes page in Figma):
+  - Calendar, color-picker, motion-card, shimmer skeleton animations
+  - Streamdown markdown formatting inside AI messages
+  - Real icons (placeholders used — swap when wiring Code Connect)
+  - Real green/amber palette (currently aliased to blue)
+Recommended follow-ups (also captured in QA Notes):
+  1. Rename `foreground-quadranary` → `foreground-quaternary`.
+  2. Resolve green/amber aliasing in `globals.css`.
+  3. Unify the two `alert.tsx` files (`packages/ui` vs `apps/web/client`).
+  4. Reconcile `editor-bar/toolbar-button.tsx` with `Button` `toolbar` size.
+  5. Migrate landing-page inline color overrides to tokens.
+Files: Figma file `Weblab App — Component Library`
+  (key `FrhrPDEJ2BAJS6q6oEVRdJ`,
+   https://www.figma.com/design/FrhrPDEJ2BAJS6q6oEVRdJ)
+Links: source tokens — `apps/web/client/src/styles/globals.css`,
+  `packages/ui/src/globals.css`, `packages/ui/tailwind.config.ts`,
+  `packages/ui/src/components/button.tsx`
+
+---
+
 ## 2026-05-09 — Editor selection state persistence (frame, breakpoint, element)
 
 Author: Claude (agent)

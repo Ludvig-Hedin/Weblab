@@ -612,6 +612,11 @@ export function WeblabInterfaceMockup() {
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const [canvasSelected, setCanvasSelected] = useState<'home' | 'mobile' | null>('home');
+    const [activeRightTab, setActiveRightTab] = useState<RightTabId>('chat');
+    const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'comment'>('cursor');
+    const [zoomPct, setZoomPct] = useState(100);
+    const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
+    const [leftPanelPinned, setLeftPanelPinned] = useState(true);
     const [restyleColor, setRestyleColor] = useState<(typeof RESTYLE_COLORS)[number]['id']>('teal');
     const [showSaved, setShowSaved] = useState(false);
     const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -709,7 +714,7 @@ export function WeblabInterfaceMockup() {
             {/* Canvas content (behind chrome) — Design mode */}
             <div
                 className={cn(
-                    'pointer-events-none absolute inset-0 right-36 z-0 mt-30 flex items-start justify-center gap-12 select-none',
+                    'pointer-events-none absolute inset-0 right-44 z-0 mt-30 flex items-start justify-center gap-12 select-none',
                     activeMode !== 'design' && 'hidden',
                 )}
                 style={{
@@ -820,9 +825,9 @@ export function WeblabInterfaceMockup() {
                         <Icons.Branch className="text-foreground-secondary h-3 w-3" />
                         <span className="text-foreground-secondary text-[10.5px]">main</span>
                     </div>
-                    <div className="bg-emerald-500/10 border-emerald-500/30 ml-1 flex items-center gap-1 rounded-md border px-1.5 py-0.5">
+                    <div className="ml-1 flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgb(52_211_153)]" />
-                        <span className="text-emerald-200 text-[10px] font-medium">Online</span>
+                        <span className="text-[10px] font-medium text-emerald-200">Online</span>
                     </div>
                 </div>
 
@@ -951,42 +956,143 @@ export function WeblabInterfaceMockup() {
                     </div>
                 </div>
 
-                {/* Floating bottom toolbar — Design mode only */}
+                {/* Floating bottom toolbar — Design mode only. Anchored to the
+                    canvas region so it stays visually centered between the
+                    left rail+panel and the right chat panel. */}
                 <div
                     className={cn(
-                        'pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2',
+                        'pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center',
                         activeMode !== 'design' && 'hidden',
                     )}
                 >
-                    <div className="border-border bg-background-chrome pointer-events-auto flex flex-col overflow-hidden rounded-lg border-[0.5px] p-1 drop-shadow-xl backdrop-blur-2xl">
-                        <div className="flex flex-row gap-0.5">
-                            <div className="bg-background-bar-active text-foreground flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.CursorArrow className="h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Hand className="h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Square className="h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Text className="h-4 w-4" />
-                            </div>
-                            <div className="text-foreground-tertiary hover:text-foreground hover:bg-background-secondary flex h-8 w-8 items-center justify-center rounded-md border border-transparent">
-                                <Icons.Terminal className="h-4 w-4" />
-                            </div>
+                    <div className="border-border-bar bg-background-bar pointer-events-auto flex items-center gap-0.5 rounded-lg border p-1 shadow-xl backdrop-blur-2xl">
+                        {/* Selection tools */}
+                        <button
+                            type="button"
+                            onClick={() => setActiveTool('cursor')}
+                            aria-label="Select"
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                                activeTool === 'cursor'
+                                    ? 'bg-background-bar-active text-foreground'
+                                    : 'text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground',
+                            )}
+                        >
+                            <Icons.CursorArrow className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTool('hand')}
+                            aria-label="Pan"
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                                activeTool === 'hand'
+                                    ? 'bg-background-bar-active text-foreground'
+                                    : 'text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground',
+                            )}
+                        >
+                            <Icons.Hand className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTool('comment')}
+                            aria-label="Comment"
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                                activeTool === 'comment'
+                                    ? 'bg-background-bar-active text-foreground'
+                                    : 'text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground',
+                            )}
+                        >
+                            <Icons.ChatBubble className="h-4 w-4" />
+                        </button>
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Zoom controls */}
+                        <button
+                            type="button"
+                            onClick={() => setZoomPct((z) => Math.max(25, Math.round(z / 1.25)))}
+                            aria-label="Zoom out"
+                            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground flex h-7 w-6 items-center justify-center rounded-md"
+                        >
+                            <Icons.Minus className="h-3 w-3" />
+                        </button>
+                        <div className="text-foreground-secondary w-10 text-center text-[11px] tabular-nums">
+                            {zoomPct}%
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => setZoomPct((z) => Math.min(300, Math.round(z * 1.25)))}
+                            aria-label="Zoom in"
+                            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground flex h-7 w-6 items-center justify-center rounded-md"
+                        >
+                            <Icons.Plus className="h-3 w-3" />
+                        </button>
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Preview theme toggle */}
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setPreviewTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+                            }
+                            aria-label="Toggle preview theme"
+                            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md"
+                        >
+                            {previewTheme === 'dark' ? (
+                                <Icons.Moon className="h-4 w-4" />
+                            ) : (
+                                <Icons.Sun className="h-4 w-4" />
+                            )}
+                        </button>
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Errors console */}
+                        <button
+                            type="button"
+                            aria-label="Errors"
+                            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground relative flex h-8 items-center gap-1.5 rounded-md px-2"
+                        >
+                            <Icons.ExclamationTriangle className="h-3.5 w-3.5" />
+                            <span className="text-[10px] tabular-nums">0</span>
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Terminal"
+                            className="text-foreground-tertiary hover:bg-background-bar-active hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md"
+                        >
+                            <Icons.Terminal className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
 
                 {/* Expanded Panel */}
-                <div className="h-full w-52">
-                    <div className="bg-background-chrome border-r flex h-full w-full flex-col items-stretch overflow-hidden border-[0.5px] backdrop-blur-2xl">
-                        <div className="border-border flex items-center justify-between border-b px-2 py-1.5">
+                <div className="h-full w-56">
+                    <div className="bg-background-chrome border-border-bar flex h-full w-full flex-col items-stretch overflow-hidden border-r backdrop-blur-2xl">
+                        <div className="border-border-bar/60 flex h-9 items-center justify-between border-b px-2.5">
                             <span className="text-foreground text-[11px] font-medium">
                                 {TAB_DEFS.find((t) => t.id === activeTab)?.label}
                             </span>
-                            <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+                            <button
+                                type="button"
+                                onClick={() => setLeftPanelPinned((v) => !v)}
+                                aria-label={leftPanelPinned ? 'Unpin panel' : 'Pin panel'}
+                                className={cn(
+                                    'flex h-6 w-6 items-center justify-center rounded-md transition-colors',
+                                    leftPanelPinned
+                                        ? 'bg-background-bar-active text-foreground'
+                                        : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground',
+                                )}
+                            >
+                                {leftPanelPinned ? (
+                                    <Icons.PinFilled className="h-3 w-3" />
+                                ) : (
+                                    <Icons.Pin className="h-3 w-3" />
+                                )}
+                            </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-1.5">
                             {activeTab === 'layers' && (
@@ -1137,7 +1243,96 @@ export function WeblabInterfaceMockup() {
                                     ))}
                                 </div>
                             )}
+                            {activeTab === 'branches' && (
+                                <div className="flex flex-col gap-1">
+                                    {BRANCHES.map((b) => (
+                                        <div
+                                            key={b.id}
+                                            className={cn(
+                                                'flex h-6 cursor-pointer items-center justify-between rounded px-2 text-xs transition-colors',
+                                                b.active
+                                                    ? 'bg-background-bar-active text-foreground'
+                                                    : 'text-foreground-secondary hover:bg-background-secondary',
+                                            )}
+                                        >
+                                            <span className="flex items-center gap-1.5">
+                                                <Icons.Branch className="h-3 w-3" />
+                                                <span className="truncate">{b.name}</span>
+                                            </span>
+                                            {(b.ahead > 0 || b.behind > 0) && (
+                                                <span className="text-foreground-tertiary text-[9px] tabular-nums">
+                                                    {b.ahead > 0 && `↑${b.ahead}`}
+                                                    {b.behind > 0 && `↓${b.behind}`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
+                    </div>
+                </div>
+
+                {/* Floating EditorBar — contextual element style toolbar
+                    centered between the side panels, shown only in Design mode.
+                    Inset values track the left rail (w-11 = 44px) + expanded
+                    panel (w-56 = 224px) = 268px on the left, and the right
+                    chat panel (w-72 = 288px) on the right. Keep in sync if
+                    panel widths change. */}
+                <div
+                    className={cn(
+                        'pointer-events-none absolute top-2 right-[288px] left-[268px] z-20 flex justify-center',
+                        activeMode !== 'design' && 'hidden',
+                    )}
+                >
+                    <div className="border-border-bar bg-background-bar pointer-events-auto flex h-8 items-center gap-0.5 rounded-lg border px-1 shadow-lg backdrop-blur-2xl">
+                        <div className="flex items-center gap-1 px-1.5">
+                            <NodeIcon iconClass="w-3 h-3 shrink-0" tagName="COMPONENT" />
+                            <span className="text-foreground text-[11px]">Hero</span>
+                        </div>
+                        <div className="bg-border-bar/80 mx-0.5 h-4 w-px" />
+                        <button
+                            type="button"
+                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-6 items-center gap-1 rounded px-1.5 text-[10px]"
+                        >
+                            <div className="bg-foreground-brand ring-border/60 h-2.5 w-2.5 rounded-sm ring-1" />
+                            Fill
+                        </button>
+                        <button
+                            type="button"
+                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-6 items-center gap-1 rounded px-1.5 text-[10px]"
+                        >
+                            <div className="bg-foreground/0 border-foreground/80 h-2.5 w-2.5 rounded-sm border" />
+                            Stroke
+                        </button>
+                        <div className="bg-border-bar/80 mx-0.5 h-4 w-px" />
+                        <div className="text-foreground-secondary flex h-6 items-center gap-1 rounded px-1.5 text-[10px]">
+                            <Icons.Frame className="h-3 w-3" />
+                            <span className="text-foreground tabular-nums">12</span>
+                        </div>
+                        <div className="text-foreground-secondary flex h-6 items-center gap-1 rounded px-1.5 text-[10px]">
+                            <Icons.Square className="h-3 w-3" />
+                            <span className="text-foreground tabular-nums">32</span>
+                        </div>
+                        <div className="bg-border-bar/80 mx-0.5 h-4 w-px" />
+                        <button
+                            type="button"
+                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-6 w-6 items-center justify-center rounded"
+                        >
+                            <Icons.AlignLeft className="h-3 w-3" />
+                        </button>
+                        <button
+                            type="button"
+                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-6 w-6 items-center justify-center rounded"
+                        >
+                            <Icons.AlignCenterHorizontally className="h-3 w-3" />
+                        </button>
+                        <button
+                            type="button"
+                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-6 w-6 items-center justify-center rounded"
+                        >
+                            <Icons.AlignRight className="h-3 w-3" />
+                        </button>
                     </div>
                 </div>
 
@@ -1153,53 +1348,150 @@ export function WeblabInterfaceMockup() {
                 {/* Right Chat Panel — hidden in Preview */}
                 <div
                     className={cn(
-                        'bg-background-chrome border-border relative flex w-64 flex-col border-t border-l p-0 backdrop-blur-2xl',
+                        'bg-background-chrome border-border-bar relative flex w-72 flex-col border-l p-0 backdrop-blur-2xl',
                         activeMode === 'preview' && 'hidden',
                     )}
                 >
                     <div className="absolute inset-0 flex flex-col">
-                        <div className="border-border z-20 flex h-9 items-center justify-between border-b px-2">
-                            <button className="text-foreground flex flex-row items-center gap-1.5 rounded text-xs font-semibold">
-                                <Icons.Sparkles className="h-4 w-4" />
-                                Chat
-                            </button>
-                            <button className="hover:bg-background-secondary text-foreground-secondary rounded p-1">
-                                <Icons.Plus className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                        <ScriptedChat />
-                        <div className="border-border bg-background-chrome flex flex-col items-start gap-1 border-t px-2.5 py-2">
-                            <textarea
-                                value={PRESET_SENTENCE}
-                                readOnly
-                                className="text-foreground-primary placeholder-foreground-tertiary mb-3 h-14 w-full flex-1 resize-none rounded-lg bg-transparent px-0.5 pt-1 text-xs outline-none"
-                                rows={2}
-                                disabled
-                            />
-                            <div className="flex w-full flex-row items-center justify-between gap-2">
+                        {/* Tabs strip — Style / Chat / Comments */}
+                        <div className="border-border-bar z-20 flex h-11 items-center justify-between border-b px-2">
+                            <div className="bg-background-tab-strip/70 flex h-8 items-center gap-0 rounded-md p-0.5">
+                                {RIGHT_TABS.map((t, i) => {
+                                    const Icon = Icons[t.icon];
+                                    const active = activeRightTab === t.id;
+                                    return (
+                                        <React.Fragment key={t.id}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setActiveRightTab(t.id)}
+                                                className={cn(
+                                                    'flex h-7 items-center gap-1 rounded-sm border px-2 text-[11px] transition-colors',
+                                                    active
+                                                        ? 'bg-background-tab-active border-border-tab-active text-foreground'
+                                                        : 'text-foreground-secondary hover:text-foreground border-transparent',
+                                                )}
+                                            >
+                                                <Icon className="h-3 w-3" />
+                                                {t.label}
+                                            </button>
+                                            {i < RIGHT_TABS.length - 1 && (
+                                                <div className="bg-border-tab-divider mx-0 h-3 w-px self-center" />
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex items-center gap-0.5">
                                 <button
-                                    className="flex flex-row items-center gap-2 rounded-lg px-1 py-1.5"
-                                    disabled
+                                    aria-label="Chat settings"
+                                    className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
                                 >
-                                    <Icons.Build className="text-foreground-tertiary h-4 w-4" />
-                                    <p className="text-foreground-secondary text-xs">Build</p>
+                                    <Icons.DotsHorizontal className="h-3.5 w-3.5" />
                                 </button>
-                                <div className="flex flex-row gap-1">
-                                    <button
-                                        className="hover:bg-background-secondary rounded-lg px-2 py-1.5"
-                                        disabled
-                                    >
-                                        <Icons.Image className="text-foreground-tertiary h-4 w-4" />
-                                    </button>
-                                    <button
-                                        className="bg-foreground cursor-pointer rounded-full px-2 py-1.5"
-                                        disabled
-                                    >
-                                        <Icons.ArrowRight className="text-background h-3.5 w-3.5" />
-                                    </button>
-                                </div>
+                                <button
+                                    aria-label="Collapse panel"
+                                    className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
+                                >
+                                    <Icons.SidebarLeftCollapse className="h-3.5 w-3.5" />
+                                </button>
                             </div>
                         </div>
+                        {activeRightTab === 'chat' && <ScriptedChat />}
+                        {activeRightTab === 'style' && (
+                            <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+                                <div className="flex items-center gap-2">
+                                    <NodeIcon
+                                        iconClass="w-3.5 h-3.5 shrink-0"
+                                        tagName="COMPONENT"
+                                    />
+                                    <span className="text-foreground truncate text-xs">Hero</span>
+                                    <span className="text-foreground-tertiary ml-auto text-[10px]">
+                                        COMPONENT
+                                    </span>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                        Layout
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1 text-[11px]">
+                                            <span className="text-foreground-tertiary">W</span>
+                                            <span className="text-foreground">1280</span>
+                                        </div>
+                                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1 text-[11px]">
+                                            <span className="text-foreground-tertiary">H</span>
+                                            <span className="text-foreground">auto</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                        Fill
+                                    </div>
+                                    <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
+                                        <div className="bg-foreground-brand ring-border h-3.5 w-3.5 rounded ring-1" />
+                                        <span className="text-foreground font-mono">#4F46E5</span>
+                                        <span className="text-foreground-tertiary ml-auto">
+                                            100%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                        Typography
+                                    </div>
+                                    <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
+                                        <span className="text-foreground-tertiary">Font</span>
+                                        <span className="text-foreground">Inter · 600</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {activeRightTab === 'comments' && (
+                            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+                                <Icons.ChatBubble className="text-foreground-tertiary h-5 w-5" />
+                                <span className="text-foreground-secondary text-[11px]">
+                                    No comments yet
+                                </span>
+                                <span className="text-foreground-tertiary text-[10px]">
+                                    Click anywhere on the canvas to leave a comment.
+                                </span>
+                            </div>
+                        )}
+                        {activeRightTab === 'chat' && (
+                            <div className="border-border bg-background-chrome flex flex-col items-start gap-1 border-t px-2.5 py-2">
+                                <textarea
+                                    value={PRESET_SENTENCE}
+                                    readOnly
+                                    className="text-foreground-primary placeholder-foreground-tertiary mb-3 h-14 w-full flex-1 resize-none rounded-lg bg-transparent px-0.5 pt-1 text-xs outline-none"
+                                    rows={2}
+                                    disabled
+                                />
+                                <div className="flex w-full flex-row items-center justify-between gap-2">
+                                    <button
+                                        className="flex flex-row items-center gap-2 rounded-lg px-1 py-1.5"
+                                        disabled
+                                    >
+                                        <Icons.Build className="text-foreground-tertiary h-4 w-4" />
+                                        <p className="text-foreground-secondary text-xs">Build</p>
+                                    </button>
+                                    <div className="flex flex-row gap-1">
+                                        <button
+                                            className="hover:bg-background-secondary rounded-lg px-2 py-1.5"
+                                            disabled
+                                        >
+                                            <Icons.Image className="text-foreground-tertiary h-4 w-4" />
+                                        </button>
+                                        <button
+                                            className="bg-foreground cursor-pointer rounded-full px-2 py-1.5"
+                                            disabled
+                                        >
+                                            <Icons.ArrowRight className="text-background h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

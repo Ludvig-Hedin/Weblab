@@ -1,172 +1,289 @@
-# Weblab — SEO Action Plan
+# Weblab — SEO Action Plan (2026-05-11)
 
-- **Created**: 2026-05-09 · **Re-audited**: 2026-05-09
-- **Goals**: (A) rank #1 for `weblab`; (B) rank page-1 for `website builder`, `visual site builder`, `react visual editor`, `ai website builder`
 - **Companion**: `FULL-AUDIT-REPORT.md` for evidence
-- **Re-audit reality check**: prior session's "Block C ✅ APPLIED" items are **staged in the working tree** (53 modified files in `git status`) but **not yet committed/deployed**. Live production still serves the pre-fix output. **Step 0 below = ship what's staged.** Then handle the new items C4/C5/C6 surfaced this re-audit.
+- **Goals**: (A) rank #1 for `weblab`; (B) page-1 for `website builder`, `visual site builder`, `react visual editor`, `ai website builder`
+- **Re-audit summary**: prior Block C/T/S/B fixes are **live in production** as of 2026-05-11. Remaining work concentrates on image performance, Cloudflare edge caching, internal linking depth, content E-E-A-T, and off-page authority.
 
-> Items grouped: ✅ in code (staged) · 🚀 deployed · ⏳ open · 🛠 manual (you do it)
-
----
-
-## Step 0 — DEPLOY THE STAGED FIXES (do this first)
-
-`git status` shows 53 modified files including `next.config.ts`, `layout.tsx`, `seo.ts`, `robots.txt`, `sitemap.xml`, hero/about/features/blog/compare layouts, and `publish/manager.ts`. Until these ship, none of the Block C/B/T items below are actually live.
-
-```bash
-# Sanity-check the diff against the items the prior plan claims fixed
-git --no-pager diff --stat | head -60
-
-# Targeted validation before commit
-bun typecheck
-bun lint
-
-# Commit + push (Railway auto-deploys on main)
-git add apps/web/client/next.config.ts apps/web/client/public/robots.txt \
-        apps/web/client/public/sitemap.xml apps/web/client/src/app \
-        apps/web/client/src/lib/blog.ts apps/web/client/src/server/api/routers/publish/manager.ts
-git commit -m "seo: deploy canonical/schema/robots/sitemap/headers fixes"
-git push origin main
-```
-
-After Railway finishes deploying, run the verification block in `FULL-AUDIT-REPORT.md` §11 and the new Step 0a below.
-
-### Step 0a — verify the staged canonical fix actually ships single canonicals
-
-```bash
-for p in / /pricing /compare/lovable /features /features/builder /blog/best-website-builder-2026 /workflows/claude-code; do
-  n=$(curl -sL "https://weblab.build$p" | grep -c 'rel="canonical"')
-  echo "canonicals=$n on $p (expect 1)"
-done
-```
-If any path still returns `2`, the Next.js Metadata API `alternates` is cascading from root → child. **Fix: remove `alternates: { canonical: ... }` from `apps/web/client/src/app/layout.tsx` entirely** and declare the home canonical only on `apps/web/client/src/app/page.tsx`. Re-deploy and re-verify.
+Status legend: ✅ in code · 🚀 deployed/verified live · ⏳ open · 🛠 manual (you do it)
 
 ---
 
-## Block C — Critical Fixes (status after Step 0)
+## Step 0 — Verify live (already passed today)
 
-| Item | Status | What it requires |
-|---|---|---|
-| C1 — Single canonical per page | 🚀 if Step 0a passes; ⏳ rework if not | See Step 0a fallback. |
-| C2 — Single `<meta name="robots">` source of truth | ✅ in code → 🚀 after Step 0 | Centralized via Metadata API in root layout. |
-| C3 — Trailing-slash audit | ⏳ Recommended | Pick canonical form. Add `trailingSlash` to `next.config.ts` if you want enforced redirects. |
-| **C4 — Cache-Control on marketing HTML (NEW)** | ⏳ Open | Live HTML returns `private, no-store, ...` and Cloudflare cannot cache it (`cf-cache-status: DYNAMIC`). Add a `headers()` rule in `apps/web/client/next.config.ts` for non-auth/non-api/non-projects routes: `Cache-Control: public, max-age=0, s-maxage=600, stale-while-revalidate=86400`. Verify with `curl -sLI https://weblab.build/pricing | grep cache-control`. |
-| **C5 — One H1 per page (NEW)** | ⏳ Open | `apps/web/client/src/app/about/page.tsx` (lines 52 + 88) and `apps/web/client/src/app/features/page.tsx` (line 49 + an eyebrow H1 confirmed in live HTML) and `apps/web/client/src/app/features/prototype/page.tsx` (lines 30 + 304) each have two `<h1>`. Demote the duplicates to `<h2>` (semantic) or `<p>` (decorative). Verify `curl -s URL \| grep -c '<h1'` returns `1`. |
-| **C6 — Footer Contact link 404 (NEW)** | ⏳ Open | Cloudflare Email Address Obfuscation rewrites `mailto:contact@weblab.build` (in `apps/web/client/src/app/_components/landing-page/page-footer.tsx:73`) to `/cdn-cgi/l/email-protection`, which 404s on this CF zone. Pick one: (a) **Cloudflare dashboard → Scrape Shield → disable Email Address Obfuscation** (cleanest); or (b) build the address from constants in a small client component so CF's regex doesn't match. Verify with `python3 ~/.claude/skills/seo/scripts/broken_links.py https://weblab.build` → 0 broken. |
-
-**Verification after deploy** (run against production):
 ```bash
+# Single canonical
 for p in / /pricing /compare/lovable /features/builder /blog/best-website-builder-2026; do
-  n=$(curl -s "https://weblab.build$p" | grep -c 'rel="canonical"')
-  echo "canonicals=$n on $p (expect 1)"
+  echo -n "$p: "; curl -s "https://weblab.build$p" | grep -c 'rel="canonical"'
 done
+# Expect 1 each — verified 2026-05-11 ✅
+
+# Single H1
+for p in / /about /features /features/prototype; do
+  echo -n "$p: "; curl -s "https://weblab.build$p" | grep -c '<h1'
+done
+# Expect 1 each — verified 2026-05-11 ✅
+
+# Security headers
+curl -sI https://weblab.build/ | grep -iE 'strict-transport|x-frame|x-content-type|content-security-policy'
+# Verified 2026-05-11 ✅
+
+# AI crawlers
+curl -s https://weblab.build/robots.txt | grep -E 'GPTBot|ClaudeBot|PerplexityBot|Google-Extended'
+# Verified 2026-05-11 ✅
 ```
-Then GSC URL Inspection on each — confirm "Google-selected canonical" = "User-declared canonical".
 
 ---
 
-## Block B — Brand SERP for "weblab" (30 days)
+## Block C — Critical (status today)
 
-### B1 — `Organization.sameAs` and entity unification ✅ APPLIED in code
-- `apps/web/client/src/app/seo.ts` `organizationSchema` now includes:
-  - `@id: ${baseUrl}/#organization` (entity unification)
-  - `legalName`, `alternateName[]`, `slogan`, `description`
-  - `foundingDate: '2024'`
-  - `founders[]` with founder `url` + `sameAs` (LinkedIn)
-  - `numberOfEmployees`, `address` (SE), `contactPoint`
-  - `image` (OG), `logo` (full ImageObject with width/height)
-  - `sameAs[]`: GitHub + LinkedIn + YouTube + Substack
-- `WebSite` schema now references Organization via `@id` and includes `potentialAction: SearchAction` for sitelinks searchbox.
-- `SoftwareApplication` schema injected globally.
-- 🛠 **Still required (you do it)**:
-  1. Claim `@weblab` on X/Twitter, then add to `sameAs` and confirm `twitter.site/creator` in metadata is correct.
-  2. Decide whether to advertise the Substack here or move it to `/blog`.
-  3. Re-issue founder LinkedIn URL once vanity slug is finalized.
+| Item | Status | Notes |
+|---|---|---|
+| C1 — Single canonical per page | 🚀 Verified live | 1 canonical on `/`, `/pricing`, `/compare/lovable`, `/features/builder`, `/blog/best-website-builder-2026`. |
+| C2 — Fake `aggregateRating` removed | 🚀 Verified live | Homepage JSON-LD: Org + WebSite + SoftwareApplication only. |
+| C3 — `Organization` enriched | 🚀 Verified live | `@id`, legalName, alternateName[], slogan, foundingDate, founders[], numberOfEmployees, address, contactPoint, sameAs[] all present. |
+| C4 — Cache-Control header | 🚀 Header live | `public, max-age=0, s-maxage=600, stale-while-revalidate=86400` set on origin. **Follow-up:** `cf-cache-status: DYNAMIC` — see C4a below. |
+| C5 — Single H1 per page | 🚀 Verified live | `/about`, `/features`, `/features/prototype` clean. |
+| C6 — Footer Contact 404 (CF email obfuscation) | 🚀 Verified live | No `cdn-cgi/l/email-protection` or `mailto:` returned on homepage/about/pricing. |
 
-### B2 — Wikidata entry 🛠 Manual (1–3 hours, free)
-- Submit a new item with: label `Weblab`, description `AI visual website builder for React and Next.js teams`, `instance of` software / website builder, official website `https://weblab.build`, GitHub username, founder, inception 2024-MM-DD, logo image.
-- Once approved, add the Q-id back to `Organization.sameAs` in `seo.ts`.
-- This is the single biggest unlock for a Knowledge Panel on `weblab`.
+### C4a — Make Cloudflare honour origin cache headers ⏳ (1 hr, manual)
 
-### B3 — `WebSite.potentialAction: SearchAction` ✅ APPLIED
-- Currently targets `/blog?q={search_term_string}`. If you don't have a server-side `?q=` handler on `/blog`, either: (a) build a simple search route that filters posts client-side, or (b) repoint the SearchAction to a different endpoint you actually serve. Today this exists in schema only — works for sitelinks-searchbox eligibility, but the actual search target should land users somewhere useful.
+Origin sends `public, s-maxage=600, swr=86400` but CF returns `cf-cache-status: DYNAMIC` → every request still hits Railway. Cause: by default, CF only caches static file types (HTML excluded). Fix in Cloudflare dashboard:
 
-### B4 — `SoftwareApplication` schema ✅ APPLIED globally
-- Emitted in root layout `<head>` so every page carries it.
-- 🛠 **Optional**: when product imagery improves, replace `screenshot: '/og-image.png'` with a per-product screenshot.
+1. Cloudflare → `weblab.build` zone → **Rules → Cache Rules → Create rule**.
+2. Condition: `URI Path` does not start with `/api/`, `/auth/`, `/login`, `/projects/`, `/project/`, `/invitation/`, `/design-system`.
+3. Cache eligibility: **Eligible for cache**.
+4. Edge TTL: **Respect origin TTL** (since origin already sends `s-maxage=600`).
+5. Browser TTL: **Respect origin TTL** (or 0 — origin uses `max-age=0`).
+6. Cache by status code: cache `200-299`, bypass `3xx/4xx/5xx`.
+7. Save and deploy.
 
-### B5 — Founder Person schema 🛠 Manual content edit
-- `/about/layout.tsx` now emits `AboutPage` with nested `Person` mainEntity for the founder. Founder schema appears as nested `founders[]` in `Organization`.
-- 🛠 Add a richer founder bio on `/about` if it isn't already there: photo, brief bio paragraph, links to talks/articles. The Person schema is wired; visual content is up to you.
+**Verify**:
+```bash
+curl -sI https://weblab.build/pricing | grep -iE 'cache-control|cf-cache-status'
+# First request: cf-cache-status: MISS or DYNAMIC
+# Second request (within 10 min): cf-cache-status: HIT
+```
 
-### B6 — Branded backlinks burst (10–14 days, parallel) 🛠 Manual
-1. **ProductHunt launch** (Tue/Wed). Pre-warm hunters list. After launch, add `https://www.producthunt.com/products/weblab` to `Organization.sameAs`.
-2. **Hacker News "Show HN"** with a substantive demo or open-source release.
-3. **dev.to article** by founder — cross-post from your blog. Link back to `/features/builder` and `/compare/lovable`.
-4. **YouTube product demo (5–8 min)** — embed on `/features/builder` and `/`. Add `VideoObject` schema (template ready in `seo.ts`).
-5. **Two podcast appearances** (frontend / dev-tooling).
-6. **Guest post on Smashing Magazine, CSS-Tricks, or Frontend Mastery**.
-7. Update **GitHub repo** `Ludvig-Hedin/Weblab`: README starts with "Weblab — AI visual website builder for React teams", topics include `weblab`, `ai-website-builder`, `visual-editor`, `react`, `nextjs`, `design-tools`. Update About text + website URL.
+Impact: TTFB drops from origin-round-trip to edge for non-EU traffic; LCP and INP both benefit.
 
-Track: target +30 referring domains in 30 days.
+---
+
+## Block I — Image Optimization (biggest remaining win)
+
+### I1 — Migrate homepage `<img>` to Next `<Image>` ⏳ (3–4 hr, code)
+
+**Evidence (live, 2026-05-11)**: 91 homepage `<img>`, 0 with `loading="lazy"`, 0 with `srcset`, 0 with `width/height`. All served as `.jpg`, no AVIF/WebP.
+
+**Fix path**:
+
+1. Identify the image-grid component. Likely `apps/web/client/src/app/_components/landing-page/` or `_components/hero/`. Search:
+   ```bash
+   grep -rn '<img ' apps/web/client/src/app/_components apps/web/client/src/app/page.tsx | head
+   ```
+2. Replace each raw `<img src="..." alt="..." />` with:
+   ```tsx
+   import Image from 'next/image';
+
+   <Image
+     src="/assets/the___daniel_...jpg"
+     alt="Minimalist Interior with Dramatic Lighting"
+     width={640}
+     height={800}
+     sizes="(max-width: 768px) 50vw, 25vw"
+     loading="lazy"             // omit on the first 1–2 (LCP)
+     priority={isLcpCandidate}  // true for first 1–2 only
+   />
+   ```
+3. Ensure `apps/web/client/next.config.ts` has `images.formats: ['image/avif', 'image/webp']` (Next default 14+).
+4. For the grid, define a single sizing constant (e.g., `IMG_W=640, IMG_H=800`) to avoid 91 magic numbers.
+
+**Verify**:
+```bash
+curl -s https://weblab.build/ | grep -oE 'loading="lazy"' | wc -l   # expect ≥ 89
+curl -s https://weblab.build/ | grep -oE 'srcset=' | wc -l           # expect ≥ 89
+```
+
+Expected lift: LCP −0.5 to −1.2s on 4G, CLS near 0, bandwidth −40% on first paint.
+
+### I2 — Set `priority` on LCP image only ⏳ (15 min)
+
+Add `priority={true}` to the first hero image (or use `next/image`'s `priority` for the LCP element). All others stay `loading="lazy"`.
+
+### I3 — Per-route OG images ⏳ (2–3 hr)
+
+Add `apps/web/client/src/app/<route>/opengraph-image.tsx` for `/`, `/pricing`, `/features/*`, `/compare/*`, `/blog/[slug]`. Each renders a dynamic OG card. Boosts CTR on share and improves AI-search snippet quality.
+
+---
+
+## Block S — Schema cleanup
+
+### S1 — Fix `SoftwareApplication.offers` ⏳ (30 min)
+
+Current: `offers: { price: "0", priceCurrency: "USD" }` — misleading if paid plans exist on `/pricing`.
+
+Pick one:
+
+- **Free tier + paid tiers** → use `AggregateOffer`:
+  ```ts
+  offers: {
+    '@type': 'AggregateOffer',
+    priceCurrency: 'USD',
+    lowPrice: '0',
+    highPrice: '99',          // top plan
+    offerCount: 3,
+    url: 'https://weblab.build/pricing',
+  }
+  ```
+- **Free forever** → keep current but add `priceValidUntil` and human-readable category.
+
+File: `apps/web/client/src/app/seo.ts` `softwareApplicationSchema`.
+
+### S2 — Canonical trailing-slash consistency ⏳ (20 min)
+
+- Site uses no-trailing-slash (`https://weblab.build`).
+- `Organization.url` and `WebSite.url` in JSON-LD use trailing slash.
+
+Decide: enforce no-trailing-slash everywhere. In `seo.ts`, normalise:
+
+```ts
+const baseUrl = 'https://weblab.build';  // no trailing /
+// Organization.url, WebSite.url, SoftwareApplication.url all use `${baseUrl}` (no /)
+// Per-page URLs use `${baseUrl}${path}`
+```
+
+### S3 — `aggregateRating` once reviews exist ⏳ (manual)
+
+Add to `SoftwareApplication` when public ratings land (G2 / Capterra / ProductHunt / Trustpilot). Use real `ratingValue` and `reviewCount`, never invented.
+
+### S4 — `VideoObject` once demo lands ⏳ (manual)
+
+When a hero/demo video ships, add `VideoObject` JSON-LD on `/features/builder` with `contentUrl`, `thumbnailUrl`, `duration`, `uploadDate`.
+
+---
+
+## Block L — Internal Linking
+
+### L1 — Cross-link orphan blog posts ⏳ (2 hr, content)
+
+20 `/blog/*` posts have 1 inbound link (blog index only).
+
+Auto-pattern:
+- `/compare/<x>` → link to `/blog/weblab-vs-<x>` in a "Read the comparison deep-dive" section.
+- `/blog/weblab-vs-<x>` → link to `/compare/<x>`.
+- `/features/builder` → link to top 3 blog posts (`best-visual-editor-react-2026`, `component-library-editing`, `design-systems-that-scale`).
+- `/` → highlight 3–4 latest posts inline (changelog section already exists; add a blog teaser block).
+
+### L2 — Add `Related posts` to `/blog/[slug]/page.tsx` ⏳ (1 hr, code)
+
+Render 3–4 sibling posts by shared tag. Mechanical:
+
+```ts
+// in apps/web/client/src/app/blog/[slug]/page.tsx
+const related = allPosts
+  .filter(p => p.slug !== slug && p.tags?.some(t => post.tags?.includes(t)))
+  .slice(0, 4);
+```
+
+### L3 — Fix 16 anchorless internal links ⏳ (1 hr, code)
+
+Add `aria-label` to icon/logo `<Link>` components. Search:
+
+```bash
+grep -rn 'aria-label' apps/web/client/src/app/_components | head
+grep -rn '<Link href=' apps/web/client/src/app/_components/landing-page | head
+```
+
+Most likely culprits: footer social icons, header logo link, nav button icons.
+
+---
+
+## Block B — Brand SERP for `weblab` (30 days)
+
+### B1 — `Organization.sameAs` saturation 🚀 Live (GitHub + LinkedIn + YouTube + Substack)
+
+🛠 **Add when claimed**: `@weblab` X/Twitter, ProductHunt page, Crunchbase profile, Wikidata Q-id.
+
+### B2 — Wikidata entry 🛠 Manual (1–3 hr, free) — **biggest unlock**
+
+1. Create Wikidata account.
+2. Submit new item: label `Weblab`, description `AI visual website builder for React and Next.js teams`.
+3. Properties: `instance of` (Q7397 software / Q193424 web application), `official website` (`https://weblab.build`), `founder` (Person item or string `Ludvig Hedin`), `inception` (2024), `programming language` (TypeScript), `country of origin` (Sweden), `logo image` (upload PNG to Commons first).
+4. After approval, add Q-id to `Organization.sameAs` in `seo.ts`.
+
+### B3 — `WebSite.potentialAction: SearchAction` 🚀 Live
+
+Currently targets `/blog?q={search_term_string}`. ⏳ Verify `/blog` actually handles `?q=` query params (else SearchAction is decorative). If not, build a simple client-side filter or repoint to a real search endpoint.
+
+### B4 — Founder content on `/about` ⏳ Manual content
+
+Add: founder photo, 2-paragraph bio, 3–5 links to talks/articles/podcasts. `Person` schema is already wired; visible content is the gap.
+
+### B5 — Branded backlinks burst ⏳ Manual (10–14 days)
+
+1. **ProductHunt launch** (Tue/Wed). Pre-warm hunter list. Post-launch, add PH URL to `sameAs`.
+2. **Hacker News `Show HN`** with demo or open-source slice.
+3. **dev.to article** by founder, cross-posted from blog.
+4. **YouTube product demo (5–8 min)** embedded on `/features/builder` and `/`. Wire `VideoObject` (see S4).
+5. **2 podcast appearances** (frontend / dev-tooling shows).
+6. **Guest post** on Smashing Magazine / CSS-Tricks / Frontend Mastery.
+7. **GitHub repo polish** (`Ludvig-Hedin/Weblab`): README hero, topics (`weblab`, `ai-website-builder`, `visual-editor`, `react`, `nextjs`, `design-tools`), About text, website URL.
+
+Target: +30 referring domains in 30 days.
 
 ---
 
 ## Block P — Page-1 for category terms (60–90 days)
 
-### P1 — Strengthen `/features/builder` and `/features/ai` 🛠 Manual content
-- Add a 60–90 sec demo video with `VideoObject` schema.
-- Add an inline "How it compares to Webflow / Framer / v0" section linking into `/compare/*`.
-- Add customer-quote/testimonial blocks (real attribution required).
-- Add 6–8 internal links to related blog posts at the bottom.
+### P1 — Strengthen `/features/builder` and `/features/ai` ⏳ Manual content
 
-### P2 — `/website-builder` topic hub 🛠 Manual (new page — ASK before creating)
-- Target keyword: `website builder`. Long-form (1,500–2,500 words). Add `Article` + `BreadcrumbList` schema. Link inbound from homepage hero secondary CTA, `/features/builder`, `/blog/best-website-builder-2026`, every `/compare/*`.
+- 60–90s demo video with `VideoObject`.
+- "How it compares to Webflow / Framer / v0" section linking to `/compare/*`.
+- Customer-quote block (real attribution).
+- 6–8 internal links to related blog posts at the bottom.
 
-### P3 — `/visual-site-builder` page 🛠 Manual (new page — ASK before creating)
-- Exact-match for your stated keyword. Title: "Visual Site Builder for React & Next.js Teams | Weblab". Cross-link inbound from `/features/builder`, all `/compare/*`, blog index hero.
+### P2 — `/website-builder` topic hub ⏳ Manual — **ASK before creating**
 
-### P4 — Programmatic SEO matrix (60–80 pages) 🛠 Manual (new pages — ASK)
+Long-form (1,500–2,500 words). `Article` + `BreadcrumbList` schema. Inbound from homepage secondary CTA, `/features/builder`, `/blog/best-website-builder-2026`, every `/compare/*`.
+
+### P3 — `/visual-site-builder` page ⏳ Manual — **ASK before creating**
+
+Exact-match for stated keyword. Title: `Visual Site Builder for React & Next.js Teams | Weblab`.
+
+### P4 — Programmatic SEO matrix (60–80 pages) ⏳ Manual — **ASK before creating**
+
 - `/website-builder/for/{react|next-js|vue|svelte}`
 - `/website-builder/for/{designers|developers|founders|agencies|marketing-teams}`
 - `/website-builder/with/{ai|git|figma|your-design-system}`
-- Each page minimum 600 unique words, real screenshots, real testimonials, no boilerplate.
 
-### P5 — Cross-link the orphans 🛠 Manual content
-21 pages with ≤1 incoming link. Highest priority:
-- `/blog/best-website-builder-2026` — link from `/features/builder`, future `/website-builder`, `/`, every `/compare/*`.
-- `/blog/best-visual-editor-react-2026` — link from `/features/builder`, `/`, `/compare/v0`, `/compare/bolt`.
-- All `weblab-vs-*` blog posts — auto-link from the corresponding `/compare/<x>` page.
-- Add "Related posts" block to `/blog/[slug]/page.tsx` showing 3–4 sibling posts.
+Each minimum 600 unique words, real screenshots, real testimonials.
 
-### P6 — Comparison-page deepening 🛠 Manual content
-For each `/compare/<x>`:
-- Add 15–25-row diff table.
-- "When to choose Weblab" + "When to choose <x>" honesty section (boosts trust + AEO).
+### P5 — `/compare/<x>` deepening ⏳ Manual content (each: 1–2 hr)
+
+For each:
+- 15–25-row diff table.
+- "When to choose Weblab" + "When to choose <x>" honesty section.
 - Customer-quote block.
 - 2-paragraph migration guide.
 - `Article` JSON-LD added to existing `BreadcrumbList`.
 
 ---
 
-## Block T — Technical Polish
+## Block T — Technical polish (open items)
 
 | Item | Status | Notes |
 |---|---|---|
-| T1 — AI crawlers in robots.txt | ✅ APPLIED | GPTBot/ClaudeBot/PerplexityBot/Google-Extended/Applebot-Extended/CCBot/cohere-ai/Meta-ExternalAgent allowed. Bytespider/Diffbot blocked. |
-| T2 — `X-Frame-Options: SAMEORIGIN` + `X-DNS-Prefetch-Control: on` | ✅ APPLIED | `next.config.ts`. |
-| T3 — Hero raw `<img>` → Next `<Image>` | ⏳ Open | 1–2 hr. Replace `<img>` in hero/grid for width/height/lazy/srcset/AVIF. |
-| T4 — Per-route OG images | ⏳ Open | 2–3 hr. Add `opengraph-image.tsx` per route group: `/`, `/pricing`, `/features/*`, `/compare/*`, `/blog/[slug]`. |
-| T5 — Homepage H1 spacing | ✅ APPLIED | `_components/hero/index.tsx` adds `{' '}` after "builder" before `<br/>`. |
-| T6 — `BreadcrumbList` on subpages | ✅ APPLIED | Wired into 15 layouts. Compare pages already had it. |
-| T7 — `BlogPosting.dateModified` from `updated` | ✅ APPLIED | Frontmatter now accepts optional `updated` and `authorUrl`. Wired into BlogPosting + OG. |
-| T8 — Q&A blocks on flagship pages | ⏳ Open (visible content) | Adds AEO eligibility without FAQ schema (which is restricted). Needs author content. |
-| T9 — `lazy/decoding=async` on non-LCP images | ⏳ Open | Auto via T3 once Next `<Image>` lands. |
-| T10 — `<html lang>` consistency | ✅ APPLIED | Defaults to `en` if locale missing. |
-| T11 — Title template inheritance | ✅ APPLIED | Root metadata uses `title: { default, template: '%s \| Weblab' }`. |
-| T12 — Blog index `Blog` schema | ✅ APPLIED | Lists all posts as `BlogPosting` items. |
-| T13 — `AboutPage` schema | ✅ APPLIED | Replaces duplicate Organization schema on `/about`. |
-| T14 — Sitemap dates bumped | ✅ APPLIED | Marketing pages now lastmod=2026-05-09 to signal freshness on next crawl. |
+| T1 — AI crawlers in robots.txt | 🚀 Live | 20 agents explicit. |
+| T2 — Security headers (HSTS / CSP / XFO / Permissions-Policy) | 🚀 Live | Score 100. |
+| T3 — Next `<Image>` migration | ⏳ Open | See Block I. |
+| T4 — Per-route OG images | ⏳ Open | See I3. |
+| T5 — Hero H1 spacing | 🚀 Live | Visual `<br/>` + span. |
+| T6 — `BreadcrumbList` on subpages | 🚀 Live | 15 routes wired. |
+| T7 — `BlogPosting.dateModified` | 🚀 Live | From `updated` frontmatter. |
+| T8 — Q&A blocks on flagship pages (AEO) | ⏳ Open | Visible Q&A on `/features/builder`, `/pricing`, `/compare/*`. AEO eligibility without FAQ schema. |
+| T9 — Trailing-slash enforcement | ⏳ Open | Pick a form. Add `trailingSlash: false` to `next.config.ts` if not already, plus a CF redirect rule for old `/path/` URLs if any indexed. |
+| T10 — Meta description length on `/` | ⏳ Open | Trim from 162 → ≤155 chars. |
+| T11 — Twitter handle `@weblab` | ⏳ Verify | Confirm handle is claimed; unclaim from `twitter.site/creator` if not. |
+| T12 — PSI rate-limit workaround | ⏳ Open | Add `GOOGLE_API_KEY` to env so CWV checks don't get throttled. |
 
 ---
 
@@ -179,74 +296,42 @@ For each `/compare/<x>`:
 | `website builder` position | GSC + Ahrefs/Semrush | Weekly | Top 30 | Top 10 |
 | `visual site builder` position | GSC | Weekly | Top 20 | Top 10 |
 | `react visual editor` position | GSC | Weekly | Top 10 | Top 3 |
-| Indexed pages | GSC > Coverage | Weekly | All 50 sitemap URLs | 80+ (after P4) |
+| Indexed pages | GSC > Coverage | Weekly | All 49 sitemap URLs | 80+ (after P4) |
 | Referring domains | Ahrefs | Weekly | +30 | +120 |
 | CWV mobile (LCP/INP/CLS) | GSC > CWV | Weekly | All Good | All Good |
 | Branded CTR | GSC | Weekly | ≥4% on `weblab` | ≥10% on `weblab` |
-| Bing position for the same set | Bing Webmaster Tools | Monthly | Top 10 | Top 3 |
+| Bing position | Bing Webmaster Tools | Monthly | Top 10 | Top 3 |
+| CF edge cache hit ratio | CF Analytics | Daily | >50% on marketing routes | >80% |
 
 ---
 
-## Recommended order (next 14 days)
+## Recommended 14-day order
 
 | Day | Task |
 |---|---|
-| Today (Day 0) | **Step 0**: commit + push the 53 modified files; let Railway deploy. Run Step 0a verification (single canonical per page). Run §11 verification block. Then GSC URL Inspection on 5 priority pages. |
-| Day 0 (same day) | **C4** — add Cache-Control rule for marketing routes in `next.config.ts`. **C5** — demote duplicate H1s in `/about/page.tsx`, `/features/page.tsx`, `/features/prototype/page.tsx`. **C6** — disable Cloudflare Email Address Obfuscation. Re-deploy. |
-| Day 1 | B5 manual content edits on `/about` (founder bio enrichment). |
-| Day 2 | B2 — submit Wikidata entry. |
-| Day 3 | B6 step 7 — GitHub repo README/topics/about. |
-| Day 4 | P5 — internal-linking pass on orphan blog posts + add `Related posts` to `/blog/[slug]`. |
-| Day 5–7 | T3 (Next `<Image>`) — confirmed open: 91 home `<img>` with no width/height/lazy/srcset. + T4 (per-route OG). |
-| Day 8 | B6 step 1 — schedule ProductHunt launch. Pre-warm hunters list. |
-| Day 9–10 | P3 — `/visual-site-builder` page. |
-| Day 11–14 | P2 — `/website-builder` page. P1 — flagship feature page deepening. Lock B6 dates (PH/HN/dev.to). |
+| Day 0 (today) | C4a — Cloudflare Cache Rule for marketing routes. T10 — trim meta description. T11 — verify `@weblab` handle. |
+| Day 1–2 | I1 — Next `<Image>` migration on homepage grid. I2 — `priority` on LCP. Verify with `loading="lazy"` count. |
+| Day 3 | S1 — fix `SoftwareApplication.offers`. S2 — trailing-slash canonical consistency. |
+| Day 4 | L1 + L2 — cross-link orphans, Related posts on `/blog/[slug]`. |
+| Day 5 | L3 — `aria-label` on anchorless links. B2 — submit Wikidata entry. |
+| Day 6 | B5 step 7 — GitHub repo README/topics/about. |
+| Day 7 | I3 — per-route OG images (start with `/`, `/pricing`, `/features/builder`, `/compare/lovable`). |
+| Day 8 | T8 — Q&A blocks on `/features/builder` + `/pricing` + 2 `/compare/*`. |
+| Day 9–10 | P5 — deepen 3 highest-traffic `/compare/*` pages. |
+| Day 11–12 | P1 — flagship `/features/builder` enrichment + demo video. |
+| Day 13 | B5 step 1 — ProductHunt launch schedule. |
+| Day 14 | Re-run audit. `seo audit` against production. Compare scores. |
 
 ---
 
 ## What success looks like
 
-- **Day 0**: subpages have a single canonical, 200 OK, `index, follow`. GSC URL Inspection returns user-canonical = Google-canonical for all 5 priority pages.
-- **Day 30**: `weblab` ranks ≤3 for the brand. Wikidata Q-id propagating. +30 referring domains. All 50 sitemap URLs indexed.
-- **Day 90**: `weblab` #1 with Knowledge Panel. `visual site builder` and `react visual editor` page-1. `website builder` top-15 (page-1 takes 6–12 months for the head term).
+- **Day 0–7**: CWV all-Good in GSC (after I1). CF cache hit ratio >50%. Single canonical + 1 H1 on every page (already true).
+- **Day 30**: `weblab` ≤3 brand position. Wikidata Q-id propagating. +30 referring domains. All 49 sitemap URLs indexed.
+- **Day 90**: `weblab` #1 with Knowledge Panel. `visual site builder` and `react visual editor` page-1. `website builder` top-15 (head term takes 6–12 months — see caveat).
 
 ---
 
 ## Caveat on "Website builder"
 
-The unbranded head term `website builder` is dominated by Wix, Squarespace, GoDaddy, Hostinger, Webflow, Shopify and aged authority sites. Realistic page-1 timelines: **6–12 months with consistent execution**. The achievable adjacent wins in 90 days are: `visual site builder`, `visual website builder`, `react visual editor`, `ai website builder for react`, `website builder for existing codebase`, `figma to react workflow`, plus all `weblab vs <competitor>` queries. Concentrate effort there first; the head term comes from compounding authority earned by winning the niches.
-
----
-
-## Files changed this session
-
-```
-apps/web/client/next.config.ts
-apps/web/client/public/robots.txt
-apps/web/client/public/sitemap.xml
-apps/web/client/src/app/_components/hero/index.tsx
-apps/web/client/src/app/about/layout.tsx
-apps/web/client/src/app/blog/[slug]/page.tsx
-apps/web/client/src/app/blog/page.tsx
-apps/web/client/src/app/changelog/page.tsx
-apps/web/client/src/app/download/layout.tsx
-apps/web/client/src/app/faq/layout.tsx
-apps/web/client/src/app/features/ai/layout.tsx
-apps/web/client/src/app/features/ai-for-frontend/layout.tsx
-apps/web/client/src/app/features/builder/layout.tsx
-apps/web/client/src/app/features/layout.tsx
-apps/web/client/src/app/features/prototype/layout.tsx
-apps/web/client/src/app/layout.tsx
-apps/web/client/src/app/pricing/layout.tsx
-apps/web/client/src/app/privacy-policy/layout.tsx
-apps/web/client/src/app/seo.ts
-apps/web/client/src/app/site-map/layout.tsx
-apps/web/client/src/app/terms-of-service/layout.tsx
-apps/web/client/src/app/workflows/claude-code/layout.tsx
-apps/web/client/src/app/workflows/layout.tsx
-apps/web/client/src/app/workflows/vibe-coding/layout.tsx
-apps/web/client/src/lib/blog.ts
-apps/web/client/src/server/api/routers/publish/manager.ts
-```
-
-**Validation**: `bun typecheck` clean for the SEO files (one pre-existing unrelated error). `bun lint` clean (exit 0).
+Head term dominated by Wix, Squarespace, GoDaddy, Hostinger, Webflow, Shopify. Realistic page-1 timeline **6–12 months**. Achievable adjacent wins in 90 days: `visual site builder`, `visual website builder`, `react visual editor`, `ai website builder for react`, `website builder for existing codebase`, `figma to react workflow`, and all `weblab vs <competitor>` queries. Concentrate effort there first; head term compounds from niche wins.

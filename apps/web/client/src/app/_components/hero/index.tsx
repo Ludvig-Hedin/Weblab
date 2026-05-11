@@ -75,8 +75,8 @@ export function Hero() {
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                         style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        Open your real React or Next.js project, edit visually with AI, and push
-                        to GitHub. Open source. Pairs with Claude Code.
+                        Open your real React or Next.js project, edit visually with AI, and push to
+                        GitHub. Open source. Pairs with Claude Code.
                     </motion.p>
                     <HighDemand />
                     <JustShippedStrip />

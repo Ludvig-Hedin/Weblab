@@ -121,7 +121,7 @@ const faqSections = [
 ];
 
 export default function FAQPage() {
-    const [currentSection, setCurrentSection] = useState(faqSections[0]?.anchor || '');
+    const [currentSection, setCurrentSection] = useState(faqSections[0]?.anchor ?? '');
     const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
     const faqContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -142,7 +142,7 @@ export default function FAQPage() {
                 faqSections[activeIdx]?.anchor &&
                 faqSections[activeIdx]?.anchor !== currentSection
             ) {
-                setCurrentSection(faqSections[activeIdx]?.anchor || '');
+                setCurrentSection(faqSections[activeIdx]?.anchor ?? '');
             }
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -164,14 +164,13 @@ export default function FAQPage() {
                 <h1>Weblab Frequently Asked Questions</h1>
                 <p>
                     Weblab is an AI-powered visual editor for frontend development. It connects to
-                    existing React and Next.js codebases and lets teams design with real
-                    components. AI is constrained to your design system, preventing brand drift.
-                    Changes become mergeable pull requests. Weblab supports React-based frameworks
-                    (Next.js, Vite, Remix, Astro, TanStack Start, and static HTML), all major
-                    styling approaches (Tailwind, CSS Modules, styled-components, Emotion,
-                    SASS/SCSS), and component libraries (shadcn/ui, Material UI, Chakra UI,
-                    Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). It's open source under
-                    Apache 2.0.
+                    existing React and Next.js codebases and lets teams design with real components.
+                    AI is constrained to your design system, preventing brand drift. Changes become
+                    mergeable pull requests. Weblab supports React-based frameworks (Next.js, Vite,
+                    Remix, Astro, TanStack Start, and static HTML), all major styling approaches
+                    (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS), and component
+                    libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design,
+                    Headless UI, Fluent UI). It's open source under Apache 2.0.
                 </p>
             </section>
 

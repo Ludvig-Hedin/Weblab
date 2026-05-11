@@ -95,7 +95,9 @@ export default function FeaturesPage() {
                             Frame breakpoints — design responsive layouts per frame, classes rebase
                             automatically
                         </li>
-                        <li>Restore last position — editor reopens with last frame and selection</li>
+                        <li>
+                            Restore last position — editor reopens with last frame and selection
+                        </li>
                         <li>Built for Teams — real-time collaboration with spatial comments</li>
                         <li>Ship PRs, Not Prototypes — changes become mergeable pull requests</li>
                         <li>Canvas manipulation — drag, resize, arrange elements visually</li>
