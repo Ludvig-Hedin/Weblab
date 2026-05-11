@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
@@ -19,6 +19,26 @@ const REVEAL = {
     transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
 };
 
+// Ambient idle cycle for visuals — quietly advances an index every interval.
+// Pauses while the user is hovering the visual.
+function useAmbientCycle(length: number, intervalMs: number) {
+    const [index, setIndex] = useState(0);
+    const [paused, setPaused] = useState(false);
+    useEffect(() => {
+        if (paused || length <= 1) return;
+        const id = setInterval(() => {
+            setIndex((i) => (i + 1) % length);
+        }, intervalMs);
+        return () => clearInterval(id);
+    }, [paused, length, intervalMs]);
+    return {
+        index,
+        setIndex,
+        onMouseEnter: () => setPaused(true),
+        onMouseLeave: () => setPaused(false),
+    };
+}
+
 interface FeatureCardProps {
     visual: React.ReactNode;
     subtitle: string;
@@ -35,7 +55,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             whileInView={REVEAL.whileInView}
             viewport={REVEAL.viewport}
             transition={REVEAL.transition}
-            className=""
+            className="border-foreground-primary/10 bg-background-secondary/40 overflow-hidden rounded-2xl border backdrop-blur-sm"
         >
             <div
                 className={cn(
@@ -43,18 +63,20 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                     reverse && 'md:[&>*:first-child]:order-2',
                 )}
             >
-                <div className="bg-background-canvas border-border flex aspect-[4/3] w-full max-w-full items-center justify-center rounded-xl border-b p-8 md:border-r md:border-b-0 md:p-12">
+                <div className="border-foreground-primary/8 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-8 md:border-b-0 md:p-12 md:[.md\\:order-2_~_&]:border-l">
                     <div className="flex w-full items-center justify-center">{visual}</div>
                 </div>
-                <div className="flex flex-col justify-center gap-4 p-8 md:p-14">
-                    <div className="text-foreground-secondary flex items-center gap-2">
+                <div className="flex flex-col justify-center gap-4 p-8 md:p-12">
+                    <div className="text-foreground-tertiary flex items-center gap-2">
                         {icon}
-                        <span className="text-[11px] font-medium tracking-[0.15em] uppercase">
+                        <span className="text-mini font-mono tracking-wider uppercase">
                             {subtitle}
                         </span>
                     </div>
-                    <h3 className="heading-style-h3 text-foreground-primary">{title}</h3>
-                    <p className="text-foreground-secondary max-w-md text-base leading-relaxed text-balance">
+                    <h3 className="heading-style-h4 text-foreground-primary tracking-tight">
+                        {title}
+                    </h3>
+                    <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
                         {paragraph}
                     </p>
                 </div>
@@ -63,26 +85,64 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
     );
 }
 
+// ─── Visuals ─────────────────────────────────────────────────────────────
+// All visuals follow the Model Agnostic recipe: monochrome surface, one
+// brand-blue focal point, mono captions, tight type, subtle ambient cycle.
+
+const BRAND = 'hsl(var(--foreground-brand))';
+const BRAND_SOFT = 'hsl(var(--foreground-brand) / 0.16)';
+
 function ComponentsVisual() {
     const items = [
-        { label: 'Button', icon: 'Component' as const },
-        { label: 'Card', icon: 'Component' as const },
-        { label: 'Hero', icon: 'Component' as const },
-        { label: 'Nav', icon: 'Component' as const },
-        { label: 'Pricing', icon: 'Component' as const },
-        { label: 'Footer', icon: 'Component' as const },
+        { label: 'Button' },
+        { label: 'Card' },
+        { label: 'Hero' },
+        { label: 'Nav' },
+        { label: 'Pricing' },
+        { label: 'Footer' },
     ];
+    const cycle = useAmbientCycle(items.length, 2200);
     return (
-        <div className="grid w-full max-w-sm grid-cols-3 gap-3">
-            {items.map((it) => (
-                <div
-                    key={it.label}
-                    className="bg-background-secondary border-border hover:bg-background-secondary flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border-[0.5px] p-3 transition-colors"
-                >
-                    <Icons.Component className="text-foreground-secondary h-6 w-6" />
-                    <span className="text-foreground text-xs">{it.label}</span>
-                </div>
-            ))}
+        <div
+            className="grid w-full max-w-sm grid-cols-3 gap-2.5"
+            onMouseEnter={cycle.onMouseEnter}
+            onMouseLeave={cycle.onMouseLeave}
+        >
+            {items.map((it, idx) => {
+                const isActive = idx === cycle.index;
+                return (
+                    <button
+                        key={it.label}
+                        type="button"
+                        onClick={() => cycle.setIndex(idx)}
+                        className={cn(
+                            'border-foreground-primary/10 bg-background relative flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-colors',
+                            'hover:bg-foreground-primary/[0.03]',
+                        )}
+                    >
+                        {isActive && (
+                            <motion.span
+                                layoutId="components-active"
+                                transition={{
+                                    type: 'spring',
+                                    stiffness: 380,
+                                    damping: 34,
+                                    mass: 0.45,
+                                }}
+                                className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset"
+                                style={{
+                                    boxShadow: `inset 0 0 0 1.5px ${BRAND}`,
+                                }}
+                                aria-hidden
+                            />
+                        )}
+                        <Icons.Component className="text-foreground-tertiary h-5 w-5" />
+                        <span className="text-foreground-secondary text-mini font-light tracking-tight">
+                            {it.label}
+                        </span>
+                    </button>
+                );
+            })}
         </div>
     );
 }
@@ -104,26 +164,38 @@ function BrandVisual() {
         },
     ] as const;
     return (
-        <div className="bg-background-chrome border-border flex w-full max-w-sm flex-col gap-4 rounded-xl border p-5">
-            <div className="text-foreground-tertiary text-[10px] font-medium tracking-wider uppercase">
+        <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col gap-3.5 rounded-xl border p-5">
+            <div className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                 {t('tokens')}
             </div>
             {palette.map((row) => (
                 <div key={row.nameKey} className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-secondary text-xs">{t(row.nameKey)}</span>
+                    <span className="text-foreground-secondary text-small font-light tracking-tight">
+                        {t(row.nameKey)}
+                    </span>
                     <div className="flex gap-1.5">
                         {row.shades.map((s) => (
                             <div
                                 key={s}
-                                className={cn('ring-border h-6 w-6 rounded-full ring-1', s)}
+                                className={cn(
+                                    'ring-foreground-primary/10 h-5 w-5 rounded-full ring-1 transition-transform hover:scale-110',
+                                    s,
+                                )}
                             />
                         ))}
                     </div>
                 </div>
             ))}
-            <div className="border-border mt-2 flex items-center gap-2 border-t pt-3">
-                <Icons.Check className="text-foreground-brand h-3.5 w-3.5" />
-                <span className="text-foreground-secondary text-xs">{t('onBrand')}</span>
+            <div className="border-foreground-primary/8 mt-1 flex items-center gap-2 border-t pt-3">
+                <span
+                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full"
+                    style={{ backgroundColor: BRAND_SOFT }}
+                >
+                    <Icons.Check className="h-2.5 w-2.5" style={{ color: BRAND }} />
+                </span>
+                <span className="text-foreground-secondary text-small font-light tracking-tight">
+                    {t('onBrand')}
+                </span>
             </div>
         </div>
     );
@@ -134,37 +206,78 @@ function LayersVisual() {
     const layers = [
         { name: 'Home Page', tag: 'DIV', level: 0 },
         { name: 'Top Navigation', tag: 'COMPONENT', level: 1 },
-        { name: 'Hero', tag: 'COMPONENT', level: 1, selected: true },
+        { name: 'Hero', tag: 'COMPONENT', level: 1 },
         { name: 'Image Grid', tag: 'DIV', level: 1 },
         { name: 'Image Card 1', tag: 'COMPONENT', level: 2 },
         { name: 'Image Card 2', tag: 'COMPONENT', level: 2 },
         { name: 'Image Card 3', tag: 'COMPONENT', level: 2 },
         { name: 'Footer', tag: 'COMPONENT', level: 1 },
     ];
+    // Cycle a selection through component-tagged rows (skip plain DIVs)
+    const componentIndices = layers
+        .map((l, i) => (l.tag === 'COMPONENT' ? i : -1))
+        .filter((i) => i >= 0);
+    const cycle = useAmbientCycle(componentIndices.length, 2400);
+    const selectedIdx = componentIndices[cycle.index] ?? 2;
     return (
-        <div className="w-full max-w-sm">
-            <div className="border-border flex items-center justify-between border-b px-2 py-1.5">
-                <span className="text-foreground text-xs font-medium">{t('layersTitle')}</span>
+        <div
+            className="border-foreground-primary/10 bg-background w-full max-w-sm rounded-xl border p-2"
+            onMouseEnter={cycle.onMouseEnter}
+            onMouseLeave={cycle.onMouseLeave}
+        >
+            <div className="border-foreground-primary/8 flex items-center justify-between border-b px-2 pb-2">
+                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                    {t('layersTitle')}
+                </span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-            <div className="mt-1 flex flex-col gap-0.5">
-                {layers.map((l) => (
-                    <div
-                        key={l.name}
-                        className={cn(
-                            'flex h-6 items-center rounded px-1.5 text-xs',
-                            l.selected
-                                ? 'bg-foreground-brand/90 text-white'
-                                : l.tag === 'COMPONENT'
-                                  ? 'text-purple-300'
-                                  : 'text-foreground-secondary',
-                        )}
-                    >
-                        <div style={{ width: `${l.level * 14}px` }} />
-                        <NodeIcon iconClass="w-3 h-3 mr-1.5 shrink-0" tagName={l.tag} />
-                        <span className="truncate">{l.name}</span>
-                    </div>
-                ))}
+            <div className="mt-1.5 flex flex-col gap-0.5">
+                {layers.map((l, idx) => {
+                    const isSelected = idx === selectedIdx;
+                    return (
+                        <button
+                            key={l.name}
+                            type="button"
+                            onClick={() =>
+                                cycle.setIndex(
+                                    componentIndices.includes(idx)
+                                        ? componentIndices.indexOf(idx)
+                                        : cycle.index,
+                                )
+                            }
+                            className={cn(
+                                'text-mini relative flex h-6 w-full items-center rounded-md px-1.5 tracking-tight transition-colors',
+                                isSelected
+                                    ? 'bg-foreground-primary/[0.06] text-foreground-primary'
+                                    : 'text-foreground-secondary hover:bg-foreground-primary/[0.03]',
+                            )}
+                        >
+                            {isSelected && (
+                                <motion.span
+                                    layoutId="layers-active-dot"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="absolute top-1/2 -left-1 h-1 w-1 -translate-y-1/2 rounded-full"
+                                    style={{ backgroundColor: BRAND }}
+                                    aria-hidden
+                                />
+                            )}
+                            <div style={{ width: `${l.level * 14}px` }} />
+                            <NodeIcon
+                                iconClass={cn(
+                                    'mr-1.5 h-3 w-3 shrink-0',
+                                    isSelected ? '' : 'text-foreground-tertiary',
+                                )}
+                                tagName={l.tag}
+                            />
+                            <span className="truncate font-light">{l.name}</span>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -173,39 +286,82 @@ function LayersVisual() {
 function RevisionVisual() {
     const t = useTranslations('landing.whatCanWeblabDoV2');
     const versions = [
-        { title: 'New typography and layout', who: 'Alessandro · 3h ago', active: true },
+        { title: 'New typography and layout', who: 'Alessandro · 3h ago' },
         { title: 'Save before publishing', who: 'Weblab · 10h ago' },
         { title: 'Added new background image', who: 'Sandra · 12h ago' },
         { title: 'Copy improvements and branding', who: 'Jonathan · 3d ago' },
     ];
+    const cycle = useAmbientCycle(versions.length, 3000);
     return (
-        <div className="bg-background-chrome border-border w-full max-w-sm overflow-hidden rounded-xl border">
-            <div className="border-border flex items-center gap-2 border-b px-4 py-3">
-                <Icons.CounterClockwiseClock className="text-foreground-secondary h-4 w-4" />
-                <span className="text-foreground text-xs font-medium">{t('revisionToday')}</span>
+        <div
+            className="border-foreground-primary/10 bg-background w-full max-w-sm overflow-hidden rounded-xl border"
+            onMouseEnter={cycle.onMouseEnter}
+            onMouseLeave={cycle.onMouseLeave}
+        >
+            <div className="border-foreground-primary/8 flex items-center gap-2 border-b px-4 py-3">
+                <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
+                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                    {t('revisionToday')}
+                </span>
             </div>
             <div className="flex flex-col">
-                {versions.map((v) => (
-                    <div
-                        key={v.title}
-                        className={cn(
-                            'border-border flex items-center justify-between border-b px-4 py-3 transition-colors last:border-b-0',
-                            v.active
-                                ? 'bg-background-secondary'
-                                : 'hover:bg-background-secondary/60',
-                        )}
-                    >
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-foreground text-xs font-medium">{v.title}</span>
-                            <span className="text-foreground-tertiary text-[11px]">{v.who}</span>
-                        </div>
-                        {v.active && (
-                            <div className="bg-foreground-brand/20 text-foreground-brand rounded-full px-2 py-0.5 text-[10px] font-medium">
-                                {t('revisionCurrent')}
+                {versions.map((v, idx) => {
+                    const isActive = idx === cycle.index;
+                    return (
+                        <button
+                            key={v.title}
+                            type="button"
+                            onClick={() => cycle.setIndex(idx)}
+                            className={cn(
+                                'border-foreground-primary/8 relative flex items-center justify-between border-b px-4 py-3 text-left transition-colors last:border-b-0',
+                                isActive
+                                    ? 'bg-foreground-primary/[0.04]'
+                                    : 'hover:bg-foreground-primary/[0.02]',
+                            )}
+                        >
+                            {isActive && (
+                                <motion.span
+                                    layoutId="revision-active-dot"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="absolute top-1/2 left-1.5 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+                                    style={{ backgroundColor: BRAND }}
+                                    aria-hidden
+                                />
+                            )}
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-foreground-primary text-small font-light tracking-tight">
+                                    {v.title}
+                                </span>
+                                <span className="text-foreground-tertiary font-mono text-[10px] tracking-tight">
+                                    {v.who}
+                                </span>
                             </div>
-                        )}
-                    </div>
-                ))}
+                            {isActive && (
+                                <motion.span
+                                    layoutId="revision-active-pill"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                    style={{
+                                        backgroundColor: BRAND_SOFT,
+                                        color: BRAND,
+                                    }}
+                                >
+                                    {t('revisionCurrent')}
+                                </motion.span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -270,11 +426,11 @@ export function WhatCanWeblabDoSectionV2() {
                     <br />
                     {t('headingSideBySide')}
                 </h2>
-                <p className="text-foreground-secondary max-w-xl text-base leading-relaxed md:text-lg">
+                <p className="text-foreground-secondary max-w-xl text-base leading-relaxed font-light tracking-tight md:text-lg">
                     {t('subhead')}
                 </p>
             </motion.div>
-            <div className="flex flex-col gap-16">
+            <div className="flex flex-col gap-8">
                 {FEATURE_KEYS.map((key, i) => (
                     <FeatureCard
                         key={key}
