@@ -33,9 +33,16 @@ export const settingsRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            // `input` is the wrapper { projectId, settings }, not a row. Insert
+            // must receive the row shape (input.settings) — passing `input`
+            // matched only the projectId column, leaving runCommand /
+            // buildCommand / installCommand to fall back to their NOT NULL
+            // defaults of `''`. First-time saves silently dropped the user's
+            // commands; subsequent saves worked because the conflict path
+            // (which already used input.settings) overwrote the empty row.
             const [updatedSettings] = await ctx.db
                 .insert(projectSettings)
-                .values(input)
+                .values(input.settings)
                 .onConflictDoUpdate({
                     target: [projectSettings.projectId],
                     set: input.settings,

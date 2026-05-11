@@ -1977,3 +1977,55 @@ in `useStartProject`.
   Added 4 tests covering the new sentinel: shape match, message
   preservation, mutual exclusion with `CreateFlowNotAuthenticatedError`.
   Suite now: 9 pass / 0 fail.
+
+
+## Bug Hunt — 2026-05-11 (project creation/editing)
+
+### Auto-fixed (1 issue)
+
+- `apps/web/client/src/server/api/routers/project/settings.ts:38` —
+  `settings.upsert` passed `input` (the wrapper `{projectId, settings}`)
+  to Drizzle `.values()` instead of the row shape `input.settings`. Only
+  `projectId` matched a column, so first-time saves persisted empty
+  strings for `runCommand` / `buildCommand` / `installCommand` (their
+  NOT NULL defaults). The user-visible symptom: editing the Install /
+  Run / Build commands in the project settings tab silently failed on
+  the first save and only worked from the second save onward (when the
+  ON CONFLICT path — which already used `input.settings` — kicked in).
+  Switched insert to `.values(input.settings)`.
+
+### Needs human review (3 issues)
+
+- `apps/web/client/src/server/api/routers/project/fork.ts:208-219` —
+  `fork` provisions sandboxes for every branch BEFORE opening the DB
+  transaction. A failure inside the transaction (project insert
+  collision, branch/canvas/frame insert error) leaves every sandbox
+  in `branchMapping` orphaned: paid CodeSandbox resources with no
+  project row, so the regular `sandbox.delete` endpoint refuses them
+  and `deleteOrphan` is never invoked. Multi-branch forks compound the
+  leak (N orphans per failed fork). Suggested fix: wrap the
+  transaction in try/catch and call `sandbox.deleteOrphan` for each
+  branch on failure, mirroring the orphan-cleanup pattern in
+  `useCreateBlankProject` and `useImportLocalProject`. TODO comment
+  added inline.
+- `apps/web/client/src/server/api/routers/project/sandbox.ts:108-114` —
+  `sandbox.start` calls `provider.destroy()` outside try/finally,
+  unlike `delete`/`hibernate`/`startOrphan`/`list`. If `destroy()`
+  throws after `createSession` succeeds, the function throws and the
+  caller never receives the session — the editor sees a failed start,
+  may retry, and doubles provider connections. Suggested fix: wrap
+  createSession + destroy in try/finally and swallow destroy errors
+  via `.catch(() => {})`. TODO comment added inline.
+- `apps/web/client/src/components/store/create/manager.ts:299` +
+  `apps/web/client/src/server/api/routers/project/sandbox.ts:323` —
+  Both code paths in `startPublicGitHubTemplate` hardcode port 3000
+  (the fast path passes `port: 3000` to `sandbox.fork`; the slow path
+  via `sandbox.createFromGitHub` uses `DEFAULT_PORT = 3000`). Latent
+  today because the only non-Next external template is `static-html`
+  which also runs on port 3000. Adding any Vite (5173) or Astro (4321)
+  template to `EXTERNAL_TEMPLATES` would persist `frames.url`
+  pointing at port 3000 and the editor first-load would 404. Fix:
+  derive port from `getFrameworkAdapter(input.framework ?? 'nextjs').template.port`
+  (same pattern fork.ts uses at L213-214) and thread it through
+  `createFromGitHub` as an explicit `port` input. TODO comment added
+  to manager.ts.

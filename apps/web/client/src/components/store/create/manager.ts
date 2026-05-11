@@ -295,6 +295,15 @@ export class CreateManager {
 
             if (input.sandboxId) {
                 // Fast path: fork a pre-seeded sandbox template (~2 s).
+                // TODO(bug-hunt): port is hardcoded to 3000. Today's templates
+                // are nextjs/static-html (both port 3000), so this is latent,
+                // but a Vite (5173) or Astro (4321) template added to
+                // EXTERNAL_TEMPLATES would persist `frames.url` pointing at
+                // port 3000 → editor first-load 404. Derive port from
+                // `getFrameworkAdapter(input.framework ?? 'nextjs').template.port`
+                // (same fix as fork.ts L213-214). Same hazard applies to the
+                // slow path: `sandbox.createFromGitHub` ignores framework and
+                // hardcodes DEFAULT_PORT=3000 — fix both call sites together.
                 sandboxResult = await api.sandbox.fork.mutate({
                     sandbox: { id: input.sandboxId, port: 3000 },
                     config: {

@@ -212,6 +212,17 @@ export const fork = protectedProcedure
         // framework, so non-Next templates 404'd on first preview load.
         const sourceFramework = sourceProject.runtimeMetadata?.framework ?? null;
         const sandboxPort = getFrameworkAdapter(sourceFramework).template.port;
+        // TODO(bug-hunt): Sandbox provisioning happens BEFORE the DB
+        // transaction below. If the transaction throws (project insert
+        // collision, branch insert failure, canvas/frame insert error), every
+        // sandbox in `branchMapping` is leaked — paid CodeSandbox resources
+        // with no project row and no `branches` row, so the regular
+        // `sandbox.delete` endpoint will refuse them and `deleteOrphan` is
+        // never called. Multi-branch forks compound the leak (N orphans per
+        // failed fork). Mirror the orphan-cleanup pattern from
+        // `useCreateBlankProject` / `useImportLocalProject`: wrap the
+        // transaction in try/catch and call `sandbox.deleteOrphan` for each
+        // entry in `branchMapping` on failure.
         const branchMapping = await forkAllBranches(
             sourceProject.branches,
             sourceProject.name,

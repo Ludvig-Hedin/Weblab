@@ -105,6 +105,13 @@ export const sandboxRouter = createTRPCRouter({
                 sandboxId: input.sandboxId,
                 userId,
             });
+            // TODO(bug-hunt): provider.destroy() lives outside try/finally
+            // here, unlike `delete`/`hibernate`/`startOrphan`/`list`. If
+            // destroy() throws after createSession succeeds, the function
+            // throws and the caller never gets the session — the editor sees
+            // a failed start and may retry, doubling provider connections.
+            // Wrap in try/finally and swallow destroy errors via .catch(() => {})
+            // for consistency with the surrounding mutations.
             const session = await provider.createSession({
                 args: {
                     id: shortenUuid(userId, 20),
