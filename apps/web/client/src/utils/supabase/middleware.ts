@@ -38,12 +38,20 @@ export async function updateSession(request: NextRequest) {
         },
     );
 
-    // Refresh the auth token, but never let a stalled auth provider block the whole request.
+    // Refresh the auth token, but never let a stalled auth provider block the
+    // whole request. The previous 2s ceiling was racing the refresh on slow
+    // Railway → hosted-Supabase egress: when the timeout fired, the in-flight
+    // `setAll` callback was abandoned, so the rotated access token never made
+    // it back into the response cookies. The next request still presented the
+    // expired cookie, Supabase rejected it, the layout's `getUser()` returned
+    // `null`, and the user got bounced back to /login despite a valid OAuth
+    // sign-in. 8s is large enough for production refresh round-trips while
+    // still preventing a hard hang on a truly dead auth backend.
     try {
         await Promise.race([
             supabase.auth.getUser(),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Supabase auth refresh timed out')), 2000),
+                setTimeout(() => reject(new Error('Supabase auth refresh timed out')), 8000),
             ),
         ]);
     } catch (error) {

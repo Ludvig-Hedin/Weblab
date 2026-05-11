@@ -13,13 +13,28 @@ const SKIP_PREFIXES = [
     '/_next/image',
 ];
 
-const SKIP_EXT = /\.(?:svg|png|jpg|jpeg|gif|webp|ico)$/i;
+// Public root assets that must never trigger a Supabase session refresh.
+// Without this, the SW (`/sw.js`) and PWA manifest install in prod each
+// burned a full middleware Supabase round-trip (and on slow Railway →
+// Supabase egress, hit the 8s refresh timeout) before the browser could
+// even mount, polluting logs and slowing page loads.
+const SKIP_EXACT = new Set([
+    '/favicon.ico',
+    '/sw.js',
+    '/manifest.webmanifest',
+    '/manifest.json',
+    '/robots.txt',
+    '/sitemap.xml',
+    '/weblab-preload-script.js',
+]);
+
+const SKIP_EXT = /\.(?:svg|png|jpg|jpeg|gif|webp|ico|js|json|webmanifest|map|txt|woff|woff2|ttf)$/i;
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     if (
-        pathname === '/favicon.ico' ||
+        SKIP_EXACT.has(pathname) ||
         SKIP_EXT.test(pathname) ||
         SKIP_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
     ) {
