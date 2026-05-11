@@ -430,6 +430,41 @@
         "sortLastViewed": "Last viewed",
         "sortDateCreated": "Date created",
         "sortAlphabetical": "A–Z",
+        "sortLabel": "Sort",
+        "filterLabel": "Filter",
+        "filterStatus": "Publish status",
+        "filterStatusAll": "All projects",
+        "filterStatusPublished": "Published",
+        "filterStatusUnpublished": "Not published",
+        "filterFolder": "Folder",
+        "filterFolderAll": "All folders",
+        "filterFolderNone": "No folder",
+        "filterDate": "Last edited",
+        "filterDateAll": "Any time",
+        "filterDateToday": "Today",
+        "filterDateWeek": "This week",
+        "filterDateMonth": "This month",
+        "filterTech": "Tech stack",
+        "filterReset": "Clear filters",
+        "layoutGrid": "Grid view",
+        "layoutList": "List view",
+        "layoutTable": "Table view",
+        "openInNewTab": "Open site in new tab",
+        "copyLink": "Copy site link",
+        "linkCopied": "Link copied",
+        "freshLive": "Edited just now",
+        "freshCapturing": "Capturing preview…",
+        "backfillProgress": "Refreshing previews · {done} of {total}",
+        "tableColName": "Name",
+        "tableColUrl": "Address",
+        "tableColTech": "Tech",
+        "tableColUpdated": "Last edited",
+        "tableColStatus": "Status",
+        "statusPublished": "Published",
+        "statusDraft": "Draft",
+        "noResultsTitle": "Nothing matches",
+        "noResultsBody": "Try a broader search or clear your filters.",
+        "createFolderEmpty": "No folders yet — group related projects to find them faster.",
         "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
         "moveToFolder": "Move to folder",
         "folderDestination": "Folder destination",
@@ -1628,14 +1663,21 @@
         },
         "modelAgnostic": {
             "eyebrow": "Model agnostic",
-            "headline": "Only use the AI models that work best for you. With Weblab, you can choose and switch between leading models as you need.",
+            "headline": "Only use the AI models that work best for you.",
+            "body": "With Weblab, you can choose and switch between leading models as you need.",
             "models": {
                 "gpt": "Flagship GPT model for complex tasks",
+                "gptMini": "Smaller, faster GPT for everyday work",
+                "gptNano": "Tiny GPT — fastest and cheapest",
                 "sonnet": "Anthropic's flagship, industry-leading for coding",
                 "opus": "Most capable Claude for the hardest problems",
+                "haiku": "Compact Claude — fast and affordable",
                 "gemini": "Google's frontier multimodal model",
+                "geminiFlash": "Speed-tuned Gemini for high throughput",
                 "deepseek": "Open-weight reasoning at frontier quality",
-                "kimi": "Long-context, fast and capable"
+                "deepseekCoder": "DeepSeek tuned for code generation",
+                "kimi": "Long-context, fast and capable",
+                "kimiLong": "Kimi with extended 2M token context"
             }
         },
         "andSoMuchMore": {
@@ -2068,6 +2110,12 @@
             },
             "languageSwitcher": {
                 "label": "Language"
+            },
+            "themeSwitcher": {
+                "label": "Theme",
+                "system": "System",
+                "light": "Light",
+                "dark": "Dark"
             }
         }
     }

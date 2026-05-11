@@ -429,6 +429,41 @@
         "sortLastViewed": "Senast visad",
         "sortDateCreated": "Skapad",
         "sortAlphabetical": "A–Ö",
+        "sortLabel": "Sortera",
+        "filterLabel": "Filter",
+        "filterStatus": "Publiceringsstatus",
+        "filterStatusAll": "Alla projekt",
+        "filterStatusPublished": "Publicerade",
+        "filterStatusUnpublished": "Opublicerade",
+        "filterFolder": "Mapp",
+        "filterFolderAll": "Alla mappar",
+        "filterFolderNone": "Utan mapp",
+        "filterDate": "Senast redigerad",
+        "filterDateAll": "När som helst",
+        "filterDateToday": "Idag",
+        "filterDateWeek": "Den här veckan",
+        "filterDateMonth": "Den här månaden",
+        "filterTech": "Teknikstack",
+        "filterReset": "Rensa filter",
+        "layoutGrid": "Rutnät",
+        "layoutList": "Lista",
+        "layoutTable": "Tabell",
+        "openInNewTab": "Öppna sajten i ny flik",
+        "copyLink": "Kopiera länk",
+        "linkCopied": "Länk kopierad",
+        "freshLive": "Redigerad just nu",
+        "freshCapturing": "Tar förhandsbild…",
+        "backfillProgress": "Uppdaterar förhandsbilder · {done} av {total}",
+        "tableColName": "Namn",
+        "tableColUrl": "Adress",
+        "tableColTech": "Teknik",
+        "tableColUpdated": "Senast redigerad",
+        "tableColStatus": "Status",
+        "statusPublished": "Publicerad",
+        "statusDraft": "Utkast",
+        "noResultsTitle": "Inga träffar",
+        "noResultsBody": "Försök med en bredare sökning eller rensa dina filter.",
+        "createFolderEmpty": "Inga mappar än — gruppera projekt för att hitta dem snabbare.",
         "projectSelected": "{count, plural, one {projekt markerat} other {projekt markerade}}",
         "moveToFolder": "Flytta till mapp",
         "folderDestination": "Målmapp",
@@ -1627,14 +1662,21 @@
         },
         "modelAgnostic": {
             "eyebrow": "Modellagnostisk",
-            "headline": "Använd bara de AI-modeller som funkar bäst för dig. Med Weblab kan du välja och växla mellan ledande modeller efter behov.",
+            "headline": "Använd bara de AI-modeller som funkar bäst för dig.",
+            "body": "Med Weblab kan du välja och växla mellan ledande modeller efter behov.",
             "models": {
                 "gpt": "GPT-flaggskeppet för komplexa uppgifter",
+                "gptMini": "Mindre och snabbare GPT för vardagligt arbete",
+                "gptNano": "Pytte-GPT — snabbast och billigast",
                 "sonnet": "Anthropics flaggskepp – branschledande på kod",
                 "opus": "Mest kapabla Claude för de svåraste problemen",
+                "haiku": "Kompakt Claude — snabb och prisvärd",
                 "gemini": "Googles multimodala frontiermodell",
+                "geminiFlash": "Hastighetstrimmad Gemini för hög genomströmning",
                 "deepseek": "Open-weight-resonemang i frontierklass",
-                "kimi": "Lång kontext, snabb och kapabel"
+                "deepseekCoder": "DeepSeek tränad för kodgenerering",
+                "kimi": "Lång kontext, snabb och kapabel",
+                "kimiLong": "Kimi med 2M tokens utökad kontext"
             }
         },
         "andSoMuchMore": {
@@ -2067,6 +2109,12 @@
             },
             "languageSwitcher": {
                 "label": "Språk"
+            },
+            "themeSwitcher": {
+                "label": "Tema",
+                "system": "System",
+                "light": "Ljust",
+                "dark": "Mörkt"
             }
         }
     }

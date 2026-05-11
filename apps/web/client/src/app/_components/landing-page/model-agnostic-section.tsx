@@ -1,84 +1,181 @@
 'use client';
 
-import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
-import { Icons } from '@weblab/ui/icons';
+import { Reveal } from '@/components/motion/reveal';
+import { SplitText } from '@/components/motion/split-text';
+import { ClaudeIcon, DeepSeekIcon, GeminiIcon, KimiIcon, OpenAIIcon } from './provider-icons';
 
-import {
-    ClaudeIcon,
-    DeepSeekIcon,
-    GeminiIcon,
-    KimiIcon,
-    OpenAIIcon,
-} from './provider-icons';
+type DescriptionKey =
+    | 'gpt'
+    | 'gptMini'
+    | 'gptNano'
+    | 'sonnet'
+    | 'opus'
+    | 'haiku'
+    | 'gemini'
+    | 'geminiFlash'
+    | 'deepseek'
+    | 'deepseekCoder'
+    | 'kimi'
+    | 'kimiLong';
 
 interface ModelOption {
     name: string;
-    descriptionKey: 'gpt' | 'sonnet' | 'opus' | 'gemini' | 'deepseek' | 'kimi';
+    descriptionKey: DescriptionKey;
     icon: React.ReactNode;
-    selected?: boolean;
 }
 
 const MODELS: ModelOption[] = [
+    { name: 'GPT-5.5', descriptionKey: 'gpt', icon: <OpenAIIcon className="h-3.5 w-3.5" /> },
     {
-        name: 'GPT-5.5',
-        descriptionKey: 'gpt',
-        icon: <OpenAIIcon className="text-foreground-primary h-4 w-4" />,
-        selected: true,
+        name: 'GPT-5.5 Mini',
+        descriptionKey: 'gptMini',
+        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
+    },
+    {
+        name: 'GPT-5.5 Nano',
+        descriptionKey: 'gptNano',
+        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
     },
     {
         name: 'Claude Sonnet 4.6',
         descriptionKey: 'sonnet',
-        icon: <ClaudeIcon className="h-4 w-4" />,
+        icon: <ClaudeIcon className="h-3.5 w-3.5" />,
     },
     {
         name: 'Claude Opus 4.7',
         descriptionKey: 'opus',
-        icon: <ClaudeIcon className="h-4 w-4" />,
+        icon: <ClaudeIcon className="h-3.5 w-3.5" />,
+    },
+    {
+        name: 'Claude Haiku 4',
+        descriptionKey: 'haiku',
+        icon: <ClaudeIcon className="h-3.5 w-3.5" />,
     },
     {
         name: 'Gemini 3.1 Pro',
         descriptionKey: 'gemini',
-        icon: <GeminiIcon className="h-4 w-4" />,
+        icon: <GeminiIcon className="h-3.5 w-3.5" />,
+    },
+    {
+        name: 'Gemini 3 Flash',
+        descriptionKey: 'geminiFlash',
+        icon: <GeminiIcon className="h-3.5 w-3.5" />,
     },
     {
         name: 'DeepSeek V4 Pro',
         descriptionKey: 'deepseek',
-        icon: <DeepSeekIcon className="h-4 w-4" />,
+        icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Kimi K2.6',
-        descriptionKey: 'kimi',
-        icon: <KimiIcon className="h-4 w-4" />,
+        name: 'DeepSeek Coder',
+        descriptionKey: 'deepseekCoder',
+        icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
+    },
+    { name: 'Kimi K2.6', descriptionKey: 'kimi', icon: <KimiIcon className="h-3.5 w-3.5" /> },
+    {
+        name: 'Kimi K2 Long',
+        descriptionKey: 'kimiLong',
+        icon: <KimiIcon className="h-3.5 w-3.5" />,
     },
 ];
 
+const CYCLE_MS = 4000;
+
 function ModelPicker() {
     const t = useTranslations('landing.modelAgnostic.models');
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [isHovering, setIsHovering] = useState(false);
+    const rowRefs = useRef<Array<HTMLLIElement | null>>([]);
+    const mountedRef = useRef(false);
+
+    // Auto-cycle when not hovering
+    useEffect(() => {
+        if (isHovering) return;
+        const id = setInterval(() => {
+            setActiveIndex((i) => (i + 1) % MODELS.length);
+        }, CYCLE_MS);
+        return () => clearInterval(id);
+    }, [isHovering]);
+
+    // Auto-scroll active row into view when cycle advances (skip first mount + manual hover)
+    useEffect(() => {
+        if (!mountedRef.current) {
+            mountedRef.current = true;
+            return;
+        }
+        if (isHovering) return;
+        rowRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, [activeIndex, isHovering]);
+
     return (
-        <div className="bg-background-chrome/85 border-border rounded-2xl border p-2 shadow-2xl backdrop-blur-xl">
-            {MODELS.map((m) => (
-                <div
-                    key={m.name}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                        {m.icon}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                        <div className="text-small text-foreground-primary font-medium">
-                            {m.name}
-                        </div>
-                        <div className="text-mini text-foreground-tertiary truncate">
-                            {t(m.descriptionKey)}
-                        </div>
-                    </div>
-                    {m.selected && (
-                        <Icons.Check className="text-foreground-primary h-4 w-4 shrink-0" />
-                    )}
-                </div>
-            ))}
+        <div
+            className="border-foreground-primary/10 bg-background-secondary/40 w-full max-w-sm rounded-2xl border p-1.5 backdrop-blur-sm"
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+        >
+            <ul className="[&::-webkit-scrollbar-thumb]:bg-foreground-primary/10 relative max-h-[320px] overflow-y-auto select-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+                {MODELS.map((m, idx) => {
+                    const isActive = idx === activeIndex;
+                    return (
+                        <li
+                            key={m.name}
+                            ref={(el) => {
+                                rowRefs.current[idx] = el;
+                            }}
+                            className="relative"
+                        >
+                            {isActive && (
+                                <motion.span
+                                    layoutId="model-active-bg"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset"
+                                    aria-hidden
+                                />
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => setActiveIndex(idx)}
+                                aria-pressed={isActive}
+                                className="hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--foreground-brand))]"
+                            >
+                                <span className="text-foreground-secondary flex h-5 w-5 shrink-0 items-center justify-center">
+                                    {m.icon}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-small text-foreground-primary leading-tight font-light tracking-tight">
+                                        {m.name}
+                                    </div>
+                                    <div className="text-mini text-foreground-tertiary mt-0.5 truncate font-light">
+                                        {t(m.descriptionKey)}
+                                    </div>
+                                </div>
+                                {isActive && (
+                                    <motion.span
+                                        layoutId="model-active-dot"
+                                        transition={{
+                                            type: 'spring',
+                                            stiffness: 380,
+                                            damping: 34,
+                                            mass: 0.45,
+                                        }}
+                                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--foreground-brand))]"
+                                        aria-hidden
+                                    />
+                                )}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
         </div>
     );
 }
@@ -86,14 +183,21 @@ function ModelPicker() {
 function Headline() {
     const t = useTranslations('landing.modelAgnostic');
     return (
-        <div className="max-w-md">
-            <div className="text-mini font-mono tracking-wider text-white/70 uppercase">
+        <Reveal className="max-w-md">
+            <div className="text-mini text-foreground-primary/70 font-mono tracking-wider uppercase">
                 {t('eyebrow')}
             </div>
-            <h2 className="heading-style-h3 mt-3 text-balance text-white">
+            <SplitText
+                as="h2"
+                delay={0.05}
+                className="heading-style-h3 text-foreground-primary mt-3 text-balance"
+            >
                 {t('headline')}
-            </h2>
-        </div>
+            </SplitText>
+            <p className="text-foreground-secondary mt-5 max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
+                {t('body')}
+            </p>
+        </Reveal>
     );
 }
 
@@ -103,38 +207,20 @@ export function ModelAgnosticSection() {
             className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32"
             id="model-agnostic"
         >
-            <div className="border-foreground-primary/10 relative overflow-hidden rounded-3xl border">
-                {/* Background image */}
-                <div className="absolute inset-0">
-                    <Image
-                        src="/assets/dunes-create-dark.png"
-                        alt=""
-                        fill
-                        sizes="(max-width: 1152px) 100vw, 1152px"
-                        className="object-cover"
-                        priority={false}
-                    />
-                    {/* Subtle warmth + readability */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_35%,rgba(255,180,120,0.18),transparent_55%)]" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_65%,rgba(140,160,255,0.16),transparent_55%)]" />
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(0,0,0,0.45)_100%)]" />
-                </div>
-
-                {/* Mobile: stacked column */}
-                <div className="relative flex flex-col gap-10 px-6 py-12 md:hidden">
-                    <Headline />
+            {/* Mobile: stacked */}
+            <div className="flex flex-col gap-12 md:hidden">
+                <Headline />
+                <div>
                     <ModelPicker />
                 </div>
+            </div>
 
-                {/* Desktop: overlay layout */}
-                <div className="relative hidden aspect-[16/7] w-full md:block">
-                    <div className="absolute top-1/2 left-12 w-[22rem] max-w-[88%] -translate-y-1/2 lg:left-16">
-                        <ModelPicker />
-                    </div>
-                    <div className="absolute top-1/2 right-12 max-w-md -translate-y-1/2 lg:right-16">
-                        <Headline />
-                    </div>
+            {/* Desktop: split */}
+            <div className="hidden md:grid md:grid-cols-2 md:items-center md:gap-16 lg:gap-24">
+                <div className="flex justify-start lg:pl-4">
+                    <ModelPicker />
                 </div>
+                <Headline />
             </div>
         </section>
     );
