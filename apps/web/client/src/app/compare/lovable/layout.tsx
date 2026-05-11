@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Lovable: ${APP_NAME} edits your existing React codebase on a visual canvas and ships pull requests. Lovable generates new apps from chat. Compare features, workflows, design system support, and team collaboration.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Lovable — Visual Editor for React vs AI App Builder`,
+    title: `${APP_NAME} vs Lovable — Visual Editor for React vs AI App Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs lovable',

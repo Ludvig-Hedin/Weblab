@@ -23,8 +23,12 @@ import { absoluteUrl, organizationSchema, softwareApplicationSchema, websiteSche
 const isProduction = env.NODE_ENV === 'production';
 
 const title = `${APP_NAME} - AI Visual Website Builder for React Teams`;
-const titleTemplate = `%s | ${APP_NAME}`;
-const description = `${APP_NAME} is an AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.`;
+// Per-page metadata is responsible for the brand suffix when desired. A `%s | Weblab`
+// template combined with per-page titles that already say "| Weblab" produced
+// "Blog | Weblab | Weblab" everywhere. Keep template verbatim.
+const titleTemplate = `%s`;
+// 149 chars — under Google's ~155 soft cap. Keep brand+keyword anchor.
+const description = `AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.`;
 const keywords = [
     'Weblab',
     'AI visual website builder',
@@ -126,6 +130,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <html lang={locale || 'en'} className={inter.variable} suppressHydrationWarning>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                {/* Pre-warm connections to third-party origins reached on first paint /
+                    first click (OAuth, Supabase, docs subdomain, UnicornStudio CDN). */}
+                <link rel="preconnect" href="https://accounts.google.com" />
+                <link rel="preconnect" href="https://github.com" />
+                <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+                <link rel="dns-prefetch" href="https://docs.weblab.build" />
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}

@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs v0 by Vercel: ${APP_NAME} edits your real components on a canvas. v0 generates new components from prompts. Compare design-system support, output, and team workflow.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs v0 by Vercel — Visual Editor vs AI Component Generator`,
+    title: `${APP_NAME} vs v0 by Vercel — Visual Editor vs AI Component Generator | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs v0',

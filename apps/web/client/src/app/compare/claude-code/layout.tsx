@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Claude Code: ${APP_NAME} is a visual canvas editor for React. Claude Code is a terminal CLI that edits files via AI prompts. Compare how they handle design systems, UI editing, and team collaboration.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Claude Code — Visual Canvas Editor vs AI Terminal CLI`,
+    title: `${APP_NAME} vs Claude Code — Visual Canvas Editor vs AI Terminal CLI | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs claude code',

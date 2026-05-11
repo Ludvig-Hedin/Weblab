@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Webflow: ${APP_NAME} edits your existing React codebase on a visual canvas and ships pull requests. Webflow is a no-code visual builder that outputs its own HTML/CSS with Webflow hosting. Compare features, workflows, and code ownership.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Webflow — React Visual Editor vs No-Code Website Builder`,
+    title: `${APP_NAME} vs Webflow — React Visual Editor vs No-Code Website Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs webflow',

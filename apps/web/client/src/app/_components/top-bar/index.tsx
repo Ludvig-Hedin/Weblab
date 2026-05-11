@@ -33,6 +33,7 @@ export const TopBar = () => {
                     <Link
                         href={link.href}
                         key={link.href}
+                        aria-label={link.href === Routes.HOME ? 'Weblab home' : undefined}
                         className={cn(
                             'transition-opacity duration-150 hover:opacity-70',
                             currentPath === link.href && 'text-foreground-primary',

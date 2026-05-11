@@ -156,7 +156,25 @@ export function getPostBySlug(slug: string): BlogPost | null {
 }
 
 export function getRelatedPosts(currentSlug: string, count = 3): BlogPostMeta[] {
-    return getAllPosts()
-        .filter((p) => p.slug !== currentSlug)
-        .slice(0, count);
+    const all = getAllPosts();
+    const current = all.find((p) => p.slug === currentSlug);
+    const candidates = all.filter((p) => p.slug !== currentSlug);
+    if (!current?.frontmatter.tags?.length) {
+        // No tags on current post — fall back to most-recent siblings.
+        return candidates.slice(0, count);
+    }
+    const currentTags = new Set(current.frontmatter.tags);
+    // Rank by shared-tag count desc, then by date desc (getAllPosts is newest-first).
+    const scored = candidates
+        .map((p) => {
+            const shared = (p.frontmatter.tags ?? []).filter((t) => currentTags.has(t)).length;
+            return { post: p, shared };
+        })
+        .sort((a, b) => b.shared - a.shared);
+    const matched = scored.filter((s) => s.shared > 0).map((s) => s.post);
+    if (matched.length >= count) return matched.slice(0, count);
+    // Top-up with the newest non-matched posts.
+    const matchedSlugs = new Set(matched.map((p) => p.slug));
+    const topUps = candidates.filter((p) => !matchedSlugs.has(p.slug));
+    return [...matched, ...topUps].slice(0, count);
 }

@@ -1,4 +1,4 @@
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import { BrandWordmark } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
@@ -10,18 +10,13 @@ const linkClass =
     'relative inline-block text-foreground-secondary transition-colors duration-200 hover:text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
 
 export function Footer() {
-    const router = useRouter();
-
     return (
         <footer className="text-foreground-primary border-foreground-primary/10 mt-24 w-full border-t pb-24">
             <div className="mx-auto flex max-w-6xl flex-col gap-24 px-8 pt-16 pb-24 md:flex-row md:items-start">
                 {/* Left: Logo */}
-                <div
-                    className="flex cursor-pointer flex-col gap-8"
-                    onClick={() => router.push('/')}
-                >
+                <Link href="/" aria-label="Weblab home" className="flex flex-col gap-8">
                     <BrandWordmark className="text-foreground-primary h-5 w-24" />
-                </div>
+                </Link>
                 {/* Center: Links */}
                 <div className="flex flex-1 flex-col justify-end gap-12 md:flex-row md:gap-12">
                     <div>

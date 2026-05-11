@@ -33,7 +33,22 @@ export interface ComparisonContent {
     faqs: Array<{ q: string; a: string }>;
 }
 
+// Compare slugs that have a matching /blog/weblab-vs-<slug> deep dive.
+// Keep in sync with apps/web/client/content/blog/weblab-vs-*.mdx.
+const COMPARE_SLUGS_WITH_BLOG_DEEP_DIVE = new Set([
+    'claude-code',
+    'emergent',
+    'framer',
+    'one-com',
+    'replit',
+    'webflow',
+    'wix',
+]);
+
 export function ComparisonPage({ content }: { content: ComparisonContent }) {
+    const hasBlogDeepDive = COMPARE_SLUGS_WITH_BLOG_DEEP_DIVE.has(content.competitorSlug);
+    const blogDeepDiveHref = `/blog/weblab-vs-${content.competitorSlug}`;
+
     return (
         <WebsiteLayout showFooter={true}>
             <main className="bg-background text-foreground-primary">
@@ -192,6 +207,30 @@ export function ComparisonPage({ content }: { content: ComparisonContent }) {
                         </div>
                     </div>
                 </section>
+
+                {/* Deep dive — link to matching blog post */}
+                {hasBlogDeepDive && (
+                    <section className="border-foreground-tertiary/10 border-t py-24">
+                        <div className="mx-auto max-w-4xl px-8">
+                            <p className="text-foreground-tertiary mb-3 text-sm tracking-wider uppercase">
+                                Deep dive
+                            </p>
+                            <h2 className="mb-6 text-3xl font-light md:text-4xl">
+                                Read the long-form comparison
+                            </h2>
+                            <p className="text-foreground-secondary mb-8 max-w-2xl text-lg">
+                                A longer write-up of how {APP_NAME} and {content.competitorName}
+                                compare on workflow, output, and team fit — with real examples.
+                            </p>
+                            <Link
+                                href={blogDeepDiveHref}
+                                className="text-foreground-primary hover:text-foreground-secondary inline-flex items-center gap-2 text-lg underline underline-offset-4 transition-colors"
+                            >
+                                {APP_NAME} vs {content.competitorName}: the long version →
+                            </Link>
+                        </div>
+                    </section>
+                )}
 
                 {/* Other comparisons */}
                 <section className="border-foreground-tertiary/10 border-t py-24">

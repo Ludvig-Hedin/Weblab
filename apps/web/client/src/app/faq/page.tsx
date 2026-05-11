@@ -161,7 +161,7 @@ export default function FAQPage() {
         <WebsiteLayout showFooter={true}>
             {/* Hidden AI-friendly summary */}
             <section className="sr-only" aria-label="FAQ Summary">
-                <h1>Weblab Frequently Asked Questions</h1>
+                <h2>Weblab Frequently Asked Questions</h2>
                 <p>
                     Weblab is an AI-powered visual editor for frontend development. It connects to
                     existing React and Next.js codebases and lets teams design with real components.
@@ -174,8 +174,8 @@ export default function FAQPage() {
                 </p>
             </section>
 
-            <div className="mx-auto w-full max-w-6xl px-4 py-32 md:px-8">
-                <h1 className="text-foreground-primary mb-8 max-w-3xl text-5xl leading-[1.1] font-light text-balance md:text-6xl">
+            <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
+                <h1 className="text-foreground-primary mb-8 max-w-3xl text-4xl leading-[1.1] font-light text-balance sm:text-5xl md:text-6xl">
                     Frequently Asked Questions
                 </h1>
                 <p className="text-foreground-secondary mb-16 max-w-2xl text-lg">

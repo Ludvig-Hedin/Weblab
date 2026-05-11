@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs one.com: ${APP_NAME} is a visual React codebase editor for engineering teams. one.com is a budget hosting and website builder for small businesses. See why developers choose Weblab over drag-and-drop website builders.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs one.com — React Visual Editor vs Budget Website Builder`,
+    title: `${APP_NAME} vs one.com — React Visual Editor vs Budget Website Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs one.com',

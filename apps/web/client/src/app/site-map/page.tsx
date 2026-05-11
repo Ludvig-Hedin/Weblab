@@ -235,33 +235,13 @@ export default function SitemapPage() {
 
     return (
         <WebsiteLayout showFooter={true}>
-            {/* Hidden AI-friendly summary */}
+            {/* Hidden AI-friendly summary — single paragraph, no duplicated headings */}
             <section className="sr-only" aria-label="Sitemap Summary">
-                <h1>Weblab Sitemap</h1>
                 <p>
                     Complete sitemap for Weblab.com — the AI-powered visual editor for frontend
                     development. Browse all pages including features, workflows, resources, and
                     documentation.
                 </p>
-                <h2>Main Pages</h2>
-                <ul>
-                    <li>Home — design with your real components, AI-powered visual editor</li>
-                    <li>Pricing — Plans and pricing for individuals and teams</li>
-                    <li>About — Team, mission, and company story</li>
-                    <li>FAQ — Frequently asked questions</li>
-                </ul>
-                <h2>Features</h2>
-                <ul>
-                    <li>AI — AI-powered visual editing</li>
-                    <li>AI for Frontend — Build UIs with your real components</li>
-                    <li>Visual Builder — Infinite canvas design</li>
-                    <li>Prototyping — Functional React prototypes</li>
-                </ul>
-                <h2>Workflows</h2>
-                <ul>
-                    <li>Claude Code — Visual canvas for Claude Code</li>
-                    <li>Vibe Coding — Team collaboration for AI coding</li>
-                </ul>
             </section>
 
             <div className="mx-auto w-full max-w-6xl px-4 py-32 md:px-8">

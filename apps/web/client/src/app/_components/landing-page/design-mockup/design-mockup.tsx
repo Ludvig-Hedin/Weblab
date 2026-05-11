@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 
 import { vujahdayScript } from '../../../fonts';
 import { DesignMockupIcons } from './design-mockup-icons';
@@ -12,7 +14,19 @@ interface ImageCardProps {
     lightMode?: boolean;
 }
 
+// Decorative thumbnails inside an absolutely-positioned mockup chrome
+// (~120-180px wide on screen). Render at a reasonable intrinsic size for
+// CLS and let next/image generate srcset for AVIF/WebP. Lazy-load all —
+// the whole mockup is below the fold on every viewport we ship today.
+const MOCKUP_IMG_WIDTH = 320;
+const MOCKUP_IMG_HEIGHT = 400;
+
 function ImageCard({ src, alt, caption, isSelected = false, lightMode = false }: ImageCardProps) {
+    const [hidden, setHidden] = useState(false);
+    if (hidden) return null;
+    // Use native <img> to opt out of Next.js Image's automatic preload heuristics —
+    // this whole mockup grid is below the fold and was generating 10+ preload
+    // links that competed with critical fonts and JS chunks.
     return (
         <div
             className={`mb-2 break-inside-avoid ${isSelected ? 'border-1 border-purple-500' : ''}`}
@@ -21,13 +35,16 @@ function ImageCard({ src, alt, caption, isSelected = false, lightMode = false }:
                 <div
                     className={`${lightMode ? 'bg-gray-200' : 'bg-gray-800'} absolute inset-0 mb-1 rounded-xs`}
                 ></div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={src}
                     alt={alt}
-                    className="relative z-10 mb-1.5 w-full object-cover"
-                    onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                    }}
+                    width={MOCKUP_IMG_WIDTH}
+                    height={MOCKUP_IMG_HEIGHT}
+                    loading="lazy"
+                    decoding="async"
+                    className="relative z-10 mb-1.5 h-auto w-full object-cover"
+                    onError={() => setHidden(true)}
                 />
             </div>
             <p

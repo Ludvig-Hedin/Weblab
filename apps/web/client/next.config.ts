@@ -9,10 +9,32 @@ import './src/env';
 
 const nextConfig: NextConfig = {
     devIndicators: false,
+    // Allow dev access from Cloudflare quick tunnels so mobile/other devices
+    // can hit the dev server through a public URL (used for cross-network QA).
+    allowedDevOrigins: ['*.trycloudflare.com'],
     // Prevent Node.js-only packages from being bundled into client/edge chunks.
     // These are loaded via native require() in Route Handlers at runtime.
     serverExternalPackages: ['openai', 'mem0ai'],
     ...(process.env.STANDALONE_BUILD === 'true' && { output: 'standalone' }),
+    async redirects() {
+        return [
+            // Some legacy Android Chrome versions and third-party PWA install
+            // prompts still look up /manifest.json. Redirect to the canonical
+            // /manifest.webmanifest instead of returning 404.
+            {
+                source: '/manifest.json',
+                destination: '/manifest.webmanifest',
+                permanent: true,
+            },
+            // Stale references (old email templates, indexed pages, external links)
+            // sometimes point at /auth/error. The real route is /auth/auth-code-error.
+            {
+                source: '/auth/error',
+                destination: '/auth/auth-code-error',
+                permanent: false,
+            },
+        ];
+    },
     async headers() {
         return [
             {

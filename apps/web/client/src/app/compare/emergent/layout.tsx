@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Emergent: ${APP_NAME} visually edits your existing React codebase and ships pull requests. Emergent generates full-stack apps from natural language using a multi-agent system. Compare code ownership, design system support, and team workflows.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Emergent — React Codebase Editor vs Multi-Agent App Builder`,
+    title: `${APP_NAME} vs Emergent — React Codebase Editor vs Multi-Agent App Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs emergent',

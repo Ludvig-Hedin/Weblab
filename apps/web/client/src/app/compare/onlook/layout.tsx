@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `Looking for an Onlook alternative? ${APP_NAME} is a visual editor for React built on the same open-source foundations, with extended workflows, AI integrations, and team collaboration.`;
 
 export const metadata: Metadata = {
-    title: `Onlook alternative — ${APP_NAME}, a maintained visual editor for React`,
+    title: `Onlook alternative — ${APP_NAME}, a maintained visual editor for React | ${APP_NAME}`,
     description,
     keywords: [
         'onlook alternative',

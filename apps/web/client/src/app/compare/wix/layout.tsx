@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Wix: ${APP_NAME} edits your React codebase visually and ships code you own. Wix is a drag-and-drop website builder for small businesses with no code ownership. Compare who each tool is really built for.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Wix — React Codebase Editor vs Small Business Website Builder`,
+    title: `${APP_NAME} vs Wix — React Codebase Editor vs Small Business Website Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs wix',

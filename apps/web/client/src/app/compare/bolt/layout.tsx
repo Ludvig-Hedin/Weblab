@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Bolt: ${APP_NAME} is a visual editor that works with your real React components. Bolt is an in-browser AI agent that builds full-stack apps from chat. Compare workflows, output, and team fit.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Bolt — Visual Canvas vs Chat-First AI Builder`,
+    title: `${APP_NAME} vs Bolt — Visual Canvas vs Chat-First AI Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs bolt',

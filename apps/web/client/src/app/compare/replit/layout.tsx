@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Replit: ${APP_NAME} is a visual canvas editor for your existing React codebase. Replit is a browser-based IDE with an AI agent that builds and deploys full-stack apps from prompts. Compare features, design system support, and code ownership.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Replit — Visual React Editor vs Browser IDE + AI Agent`,
+    title: `${APP_NAME} vs Replit — Visual React Editor vs Browser IDE + AI Agent | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs replit',

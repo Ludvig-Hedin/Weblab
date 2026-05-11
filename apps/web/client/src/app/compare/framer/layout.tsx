@@ -13,7 +13,7 @@ const breadcrumbsJsonLd = breadcrumbSchema([
 const description = `${APP_NAME} vs Framer: ${APP_NAME} connects to your existing React codebase and ships pull requests. Framer is a design-first site builder with AI layout generation and built-in hosting. Compare features, code ownership, and workflows.`;
 
 export const metadata: Metadata = {
-    title: `${APP_NAME} vs Framer — React Codebase Editor vs Design-First Site Builder`,
+    title: `${APP_NAME} vs Framer — React Codebase Editor vs Design-First Site Builder | ${APP_NAME}`,
     description,
     keywords: [
         'weblab vs framer',

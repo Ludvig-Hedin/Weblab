@@ -28,7 +28,7 @@ export const organizationSchema = {
     name: APP_NAME,
     legalName: APP_NAME,
     alternateName: ['Weblab.build', 'Weblab AI', 'Weblab Visual Builder'],
-    url: `${baseUrl}/`,
+    url: baseUrl,
     logo: {
         '@type': 'ImageObject',
         url: absoluteUrl('/brand/symbol.png'),
@@ -76,7 +76,7 @@ export const websiteSchema = {
     '@id': `${baseUrl}/#website`,
     name: APP_NAME,
     alternateName: 'Weblab.build',
-    url: `${baseUrl}/`,
+    url: baseUrl,
     description: organizationDescription,
     inLanguage: 'en',
     publisher: {
@@ -101,16 +101,21 @@ export const softwareApplicationSchema = {
     applicationCategory: 'DeveloperApplication',
     applicationSubCategory: 'Website Builder',
     operatingSystem: 'Web, macOS, Windows, Linux',
-    url: `${baseUrl}/`,
+    url: baseUrl,
     description: organizationDescription,
     image: absoluteUrl('/og-image.png'),
     screenshot: absoluteUrl('/og-image.png'),
     softwareVersion: '1.0',
     inLanguage: 'en',
+    // AggregateOffer covers Free tier + Pro tiers shown on /pricing.
+    // Enterprise tier excluded (custom pricing). Update lowPrice/highPrice/
+    // offerCount when PRO_PRICES in packages/stripe/src/constants.ts changes.
     offers: {
-        '@type': 'Offer',
-        price: '0',
+        '@type': 'AggregateOffer',
         priceCurrency: 'USD',
+        lowPrice: '0',
+        highPrice: '3750',
+        offerCount: 12,
         availability: 'https://schema.org/InStock',
         url: `${baseUrl}/pricing`,
     },

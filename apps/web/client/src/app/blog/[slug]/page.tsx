@@ -195,6 +195,34 @@ export default async function BlogPostPage({ params }: Props) {
                     />
                 </div>
 
+                {/* Compare-page callout for weblab-vs-<x> posts */}
+                {slug.startsWith('weblab-vs-') &&
+                    (() => {
+                        const competitorSlug = slug.replace(/^weblab-vs-/, '');
+                        const competitorName = competitorSlug
+                            .split('-')
+                            .map((p) => (p === 'vs' ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+                            .join(' ');
+                        return (
+                            <div className="mx-auto mb-12 max-w-3xl">
+                                <Link
+                                    href={`/compare/${competitorSlug}`}
+                                    className="border-foreground-primary/10 hover:border-foreground-primary/30 bg-foreground-primary/[0.02] hover:bg-foreground-primary/[0.04] flex items-center justify-between gap-4 rounded-lg border px-5 py-4 transition-colors"
+                                >
+                                    <div>
+                                        <p className="text-foreground-tertiary text-xs tracking-widest uppercase">
+                                            See the side-by-side
+                                        </p>
+                                        <p className="text-foreground-primary mt-1 text-base">
+                                            {APP_NAME} vs {competitorName} — feature comparison
+                                        </p>
+                                    </div>
+                                    <span className="text-foreground-tertiary text-sm">→</span>
+                                </Link>
+                            </div>
+                        );
+                    })()}
+
                 {/* Content + TOC */}
                 <div className="mx-auto flex max-w-5xl items-start gap-12">
                     <article className="prose prose-invert prose-headings:font-light prose-headings:tracking-tight prose-headings:text-foreground-primary prose-h2:scroll-mt-28 prose-h3:scroll-mt-28 prose-p:text-foreground-secondary prose-p:leading-[1.6] prose-a:text-foreground-primary prose-a:underline-offset-2 prose-strong:text-foreground-primary prose-code:text-foreground-primary prose-code:bg-foreground-primary/5 prose-code:rounded prose-code:px-1 prose-code:text-sm prose-pre:bg-foreground-primary/5 prose-pre:border prose-pre:border-foreground-primary/10 prose-blockquote:border-foreground-primary/30 prose-blockquote:text-foreground-secondary prose-hr:border-foreground-primary/10 prose-li:text-foreground-secondary max-w-2xl min-w-0 flex-1 [&_h2]:mt-8 [&_h2]:mb-2 [&_h3]:mt-5 [&_h3]:mb-1.5 [&_ol]:my-3 [&_p]:my-3 [&_ul]:my-3">
