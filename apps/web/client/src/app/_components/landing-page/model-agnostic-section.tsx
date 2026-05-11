@@ -162,16 +162,16 @@ function ModelPicker() {
                                 type="button"
                                 onClick={() => setActiveIndex(idx)}
                                 aria-pressed={isActive}
-                                className="hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--foreground-brand))]"
+                                className="group/picker-row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--foreground-brand))]"
                             >
-                                <span className="text-foreground-secondary flex h-5 w-5 shrink-0 items-center justify-center">
+                                <span className="text-foreground-secondary flex h-5 w-5 shrink-0 items-center justify-center transition-transform duration-200 group-hover/picker-row:scale-110">
                                     {m.icon}
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <div className="text-small text-foreground-primary leading-tight font-light tracking-tight">
                                         {m.name}
                                     </div>
-                                    <div className="text-mini text-foreground-tertiary mt-0.5 truncate font-light">
+                                    <div className="text-mini text-foreground-tertiary group-hover/picker-row:text-foreground-secondary mt-0.5 truncate font-light transition-colors duration-200">
                                         {t(m.descriptionKey)}
                                     </div>
                                 </div>
@@ -184,9 +184,18 @@ function ModelPicker() {
                                             damping: 34,
                                             mass: 0.45,
                                         }}
-                                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--foreground-brand))]"
+                                        className="relative flex h-1.5 w-1.5 shrink-0"
                                         aria-hidden
-                                    />
+                                    >
+                                        <span
+                                            className="absolute inset-0 animate-ping rounded-full opacity-70"
+                                            style={{
+                                                backgroundColor:
+                                                    'hsl(var(--foreground-brand) / 0.5)',
+                                            }}
+                                        />
+                                        <span className="relative h-1.5 w-1.5 rounded-full bg-[hsl(var(--foreground-brand))]" />
+                                    </motion.span>
                                 )}
                             </button>
                         </li>

@@ -53,11 +53,12 @@ function useTypewriter(lines: string[]) {
         return () => clearTimeout(id);
     }, [text, phase, lineIndex, lines]);
 
-    return text;
+    return { text, phase };
 }
 
 function PromptOnCanvasAsset() {
-    const promptText = useTypewriter(PROMPTS);
+    const { text: promptText, phase } = useTypewriter(PROMPTS);
+    const applied = phase === 'holding';
     return (
         <div className="border-foreground-primary/10 bg-background-secondary/40 mx-auto w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm">
             {/* Canvas region */}
@@ -72,9 +73,16 @@ function PromptOnCanvasAsset() {
                     }}
                     aria-hidden
                 />
-                {/* Small artboard */}
+                {/* Small artboard — pulses brand-blue when AI "applies" prompt */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="border-foreground-primary/10 bg-background w-[68%] rounded-md border p-3 shadow-sm shadow-black/[0.03]">
+                    <div
+                        className="bg-background relative w-[68%] rounded-md p-3 transition-all duration-500"
+                        style={{
+                            boxShadow: applied
+                                ? '0 0 0 1.5px hsl(var(--foreground-brand)), 0 0 0 6px hsl(var(--foreground-brand) / 0.12)'
+                                : '0 0 0 1px hsl(var(--foreground-primary) / 0.10)',
+                        }}
+                    >
                         <div className="bg-foreground-primary/80 mb-2 h-1.5 w-12 rounded-full" />
                         <div className="bg-foreground-primary/15 mb-1 h-1 w-full rounded-full" />
                         <div className="bg-foreground-primary/15 mb-3 h-1 w-3/4 rounded-full" />
@@ -131,6 +139,7 @@ const BUTTON_VARIANTS = [
 function DesignToCodeAsset() {
     const [variantIdx, setVariantIdx] = useState(0);
     const [paused, setPaused] = useState(false);
+    const [flashing, setFlashing] = useState(false);
     useEffect(() => {
         if (paused) return;
         const id = setInterval(() => {
@@ -138,6 +147,14 @@ function DesignToCodeAsset() {
         }, 3500);
         return () => clearInterval(id);
     }, [paused]);
+
+    // Flash the className token briefly each time the variant cycles —
+    // visualizes the "code stays in sync" beat.
+    useEffect(() => {
+        setFlashing(true);
+        const id = setTimeout(() => setFlashing(false), 600);
+        return () => clearTimeout(id);
+    }, [variantIdx]);
 
     const v = BUTTON_VARIANTS[variantIdx]!;
 
@@ -211,7 +228,17 @@ function DesignToCodeAsset() {
                 </div>
                 <pre className="text-foreground-secondary text-mini font-mono leading-relaxed">
                     {'<button className="'}
-                    <span style={{ color: 'hsl(var(--foreground-brand))' }}>{v.radius}</span>
+                    <span
+                        className="rounded-sm px-1 transition-colors duration-500"
+                        style={{
+                            color: 'hsl(var(--foreground-brand))',
+                            backgroundColor: flashing
+                                ? 'hsl(var(--foreground-brand) / 0.18)'
+                                : 'transparent',
+                        }}
+                    >
+                        {v.radius}
+                    </span>
                     {' bg-fg px-4 py-2">'}
                     {'\n  '}
                     <span className="text-foreground-primary">{v.label}</span>

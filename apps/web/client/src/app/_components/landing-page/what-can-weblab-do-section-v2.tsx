@@ -55,7 +55,8 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             whileInView={REVEAL.whileInView}
             viewport={REVEAL.viewport}
             transition={REVEAL.transition}
-            className="border-foreground-primary/10 bg-background-secondary/40 overflow-hidden rounded-2xl border backdrop-blur-sm"
+            whileHover={{ y: -2 }}
+            className="border-foreground-primary/10 bg-background-secondary/40 group/card hover:border-foreground-primary/20 overflow-hidden rounded-2xl border backdrop-blur-sm transition-colors duration-200"
         >
             <div
                 className={cn(
@@ -65,14 +66,14 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             >
                 <div
                     className={cn(
-                        'border-foreground-primary/10 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-8 md:border-b-0 md:p-12',
+                        'border-foreground-primary/10 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-6 md:border-b-0 md:p-10',
                         reverse && 'md:border-l',
                     )}
                 >
                     <div className="flex w-full items-center justify-center">{visual}</div>
                 </div>
-                <div className="flex flex-col justify-center gap-4 p-8 md:p-12">
-                    <div className="text-foreground-tertiary flex items-center gap-2">
+                <div className="flex flex-col justify-center gap-4 p-6 md:p-10">
+                    <div className="text-foreground-tertiary group-hover/card:text-foreground-secondary flex items-center gap-2 transition-colors duration-200">
                         {icon}
                         <span className="text-mini font-mono tracking-wider uppercase">
                             {subtitle}
@@ -121,8 +122,8 @@ function ComponentsVisual() {
                         type="button"
                         onClick={() => cycle.setIndex(idx)}
                         className={cn(
-                            'border-foreground-primary/10 bg-background relative flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-colors',
-                            'hover:bg-foreground-primary/[0.03]',
+                            'group/tile border-foreground-primary/10 bg-background relative flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-all duration-200',
+                            'hover:bg-foreground-primary/[0.04] hover:-translate-y-0.5',
                         )}
                     >
                         {isActive && (
@@ -141,8 +142,8 @@ function ComponentsVisual() {
                                 aria-hidden
                             />
                         )}
-                        <Icons.Component className="text-foreground-tertiary h-5 w-5" />
-                        <span className="text-foreground-secondary text-mini font-light tracking-tight">
+                        <Icons.Component className="text-foreground-tertiary h-5 w-5 transition-transform duration-200 group-hover/tile:scale-110" />
+                        <span className="text-foreground-secondary text-mini group-hover/tile:text-foreground-primary font-light tracking-tight transition-colors duration-200">
                             {it.label}
                         </span>
                     </button>
@@ -251,7 +252,7 @@ function LayersVisual() {
                                 )
                             }
                             className={cn(
-                                'text-mini relative flex h-6 w-full items-center rounded-md px-1.5 tracking-tight transition-colors',
+                                'group/layer text-mini relative flex h-6 w-full items-center rounded-md px-1.5 tracking-tight transition-colors',
                                 isSelected
                                     ? 'bg-foreground-primary/[0.06] text-foreground-primary'
                                     : 'text-foreground-secondary hover:bg-foreground-primary/[0.03]',
@@ -279,7 +280,10 @@ function LayersVisual() {
                                 )}
                                 tagName={l.tag}
                             />
-                            <span className="truncate font-light">{l.name}</span>
+                            <span className="flex-1 truncate font-light">{l.name}</span>
+                            <span className="text-foreground-quadranary ml-1 font-mono text-[9px] opacity-0 transition-opacity duration-200 group-hover/layer:opacity-100">
+                                {l.tag}
+                            </span>
                         </button>
                     );
                 })}
@@ -318,7 +322,7 @@ function RevisionVisual() {
                             type="button"
                             onClick={() => cycle.setIndex(idx)}
                             className={cn(
-                                'border-foreground-primary/10 relative flex items-center justify-between border-b px-4 py-3 text-left transition-colors last:border-b-0',
+                                'group/row border-foreground-primary/10 relative flex items-center justify-between border-b px-4 py-3 text-left transition-colors last:border-b-0',
                                 isActive
                                     ? 'bg-foreground-primary/[0.04]'
                                     : 'hover:bg-foreground-primary/[0.02]',
@@ -346,7 +350,7 @@ function RevisionVisual() {
                                     {v.who}
                                 </span>
                             </div>
-                            {isActive && (
+                            {isActive ? (
                                 <motion.span
                                     layoutId="revision-active-pill"
                                     transition={{
@@ -363,6 +367,10 @@ function RevisionVisual() {
                                 >
                                     {t('revisionCurrent')}
                                 </motion.span>
+                            ) : (
+                                <span className="text-foreground-tertiary border-foreground-primary/10 rounded-full border px-2 py-0.5 text-[10px] font-light opacity-0 transition-opacity duration-200 group-hover/row:opacity-100">
+                                    Restore
+                                </span>
                             )}
                         </button>
                     );
