@@ -27,6 +27,7 @@ import { LayoutDemo } from './_components/demos/layout';
 import { MenusDemo } from './_components/demos/menus';
 import { MotionDemo } from './_components/demos/motion';
 import { OverlaysDemo } from './_components/demos/overlays';
+import { PromoBannerDemo } from './_components/demos/promo-banner';
 import { RadiusDemo } from './_components/demos/radius';
 import { SelectionDemo } from './_components/demos/selection';
 import { SpacingDemo } from './_components/demos/spacing';
@@ -90,6 +91,7 @@ const NAV_ITEMS = [
     { label: 'AI elements', id: 'ai-elements' },
     { label: 'Chat', id: 'chat' },
     { label: 'Brand', id: 'brand' },
+    { label: 'Promo banner', id: 'promo-banner' },
 ];
 
 export default function DesignSystemPage() {
@@ -229,6 +231,8 @@ function Shell() {
                 <ChatDemo />
                 <Separator className="mb-12" />
                 <BrandDemo />
+                <Separator className="mb-12" />
+                <PromoBannerDemo />
 
                 <div className="pb-28" />
             </div>

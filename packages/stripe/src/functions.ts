@@ -19,6 +19,7 @@ export const createCheckoutSession = async ({
     successUrl,
     cancelUrl,
     existing,
+    promotionCodeId,
 }: {
     priceId: string;
     userId: string;
@@ -29,9 +30,23 @@ export const createCheckoutSession = async ({
     };
     successUrl: string;
     cancelUrl: string;
+    /**
+     * Pre-applied Stripe promotion code ID (e.g. `promo_...`). When set, the
+     * discount is locked on the session and `allow_promotion_codes` is
+     * disabled so the user cannot replace it with a different code in the
+     * Stripe-hosted UI.
+     */
+    promotionCodeId?: string;
 }) => {
     const stripe = createStripeClient();
     let session: Stripe.Checkout.Session;
+    // Stripe rejects `allow_promotion_codes` and `discounts` set together.
+    const promoFields: Pick<
+        Stripe.Checkout.SessionCreateParams,
+        'allow_promotion_codes' | 'discounts'
+    > = promotionCodeId
+        ? { discounts: [{ promotion_code: promotionCodeId }] }
+        : { allow_promotion_codes: true };
     if (existing) {
         session = await stripe.checkout.sessions.create({
             mode: 'subscription',
@@ -46,7 +61,7 @@ export const createCheckoutSession = async ({
             metadata: {
                 user_id: userId,
             },
-            allow_promotion_codes: true,
+            ...promoFields,
             success_url: successUrl,
             cancel_url: cancelUrl,
             subscription_data: {
@@ -67,12 +82,33 @@ export const createCheckoutSession = async ({
             metadata: {
                 user_id: userId,
             },
-            allow_promotion_codes: true,
+            ...promoFields,
             success_url: successUrl,
             cancel_url: cancelUrl,
         });
     }
     return session;
+};
+
+/**
+ * Resolve a human-readable Stripe promotion code (e.g. `PROMO60`) to its
+ * internal `promo_...` ID. Cached per-process to avoid hitting the Stripe API
+ * on every checkout request. Returns null when no active promotion code with
+ * that code exists.
+ */
+const promotionCodeIdCache = new Map<string, string>();
+
+export const getPromotionCodeIdByCode = async (code: string): Promise<string | null> => {
+    const cached = promotionCodeIdCache.get(code);
+    if (cached) return cached;
+
+    const stripe = createStripeClient();
+    const result = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
+    const promotionCode = result.data[0];
+    if (!promotionCode) return null;
+
+    promotionCodeIdCache.set(code, promotionCode.id);
+    return promotionCode.id;
 };
 
 export const createBillingPortalSession = async ({

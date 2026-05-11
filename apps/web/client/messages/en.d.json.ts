@@ -2,6 +2,15 @@
 // See: https://next-intl.dev/docs/workflows/typescript#messages-arguments
 
 declare const messages: {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Save 60% on your first month of Pro.",
+            "cta": "Claim offer"
+        },
+        "alreadyOnPlan": "You're already on the Pro plan.",
+        "genericError": "Something went wrong. Please try again.",
+        "dismiss": "Dismiss banner"
+    },
     "cms": {
         "topBar": {
             "tooltip": "CMS"
@@ -1436,6 +1445,167 @@ declare const messages: {
     "aiPromptComposer": {
         "uploadImageTooltip": "Upload image"
     },
+    "security": {
+        "hero": {
+            "eyebrow": "Security",
+            "title": "Security at Weblab",
+            "subtitle": "Your code, your data, on infrastructure aligned with industry standards.",
+            "ctaSubprocessors": "View subprocessors",
+            "ctaReport": "Report a vulnerability"
+        },
+        "data": {
+            "title": "Your data, your control",
+            "subtitle": "Built to keep what's yours, yours.",
+            "learnMore": "Learn more",
+            "items": {
+                "tls": {
+                    "title": "Encrypted in transit",
+                    "body": "All traffic is encrypted over TLS. Sessions live in httpOnly, secure cookies."
+                },
+                "oauth": {
+                    "title": "OAuth sign-in",
+                    "body": "Sign in with Google or GitHub. No passwords stored. Sessions managed by Supabase."
+                },
+                "aiTraining": {
+                    "title": "Code is not used to train AI",
+                    "body": "Prompts and code are not used to train models. Providers retain logs briefly for abuse detection only."
+                },
+                "oss": {
+                    "title": "Open source",
+                    "body": "Weblab is Apache-2.0 licensed. The full source is on GitHub — audit it, fork it, run it yourself."
+                },
+                "supabase": {
+                    "title": "Supabase-backed storage",
+                    "body": "Postgres database on Supabase. Encryption at rest. Row-level security on every table."
+                },
+                "stripe": {
+                    "title": "Payments via Stripe",
+                    "body": "Card data is handled by Stripe — PCI-DSS Level 1. We never see your card number."
+                }
+            }
+        },
+        "compliance": {
+            "title": "Compliance posture",
+            "subtitle": "We follow the controls behind the standards customers expect.",
+            "disclaimer": "Weblab is aligned with these frameworks but is not currently certified against ISO 27001 or SOC 2. Formal audits are on our roadmap.",
+            "items": {
+                "gdpr": {
+                    "title": "GDPR-aligned",
+                    "body": "Data minimization, right to access, right to erasure. Email us to exercise your rights."
+                },
+                "ccpa": {
+                    "title": "CCPA-aligned",
+                    "body": "California residents may opt out of sale or sharing. We do not sell personal data."
+                },
+                "iso": {
+                    "title": "Aligned with ISO 27001 controls",
+                    "body": "Access control, least-privilege secrets, encryption in transit, and incident response practices."
+                },
+                "soc": {
+                    "title": "Modeled on SOC 2 practices",
+                    "body": "Change management, monitoring, vendor review, and access reviews follow SOC 2 trust criteria."
+                },
+                "oss": {
+                    "title": "Open-source codebase",
+                    "body": "Anyone can review our code. Security through transparency, not obscurity."
+                },
+                "disclosure": {
+                    "title": "Coordinated disclosure",
+                    "body": "Report vulnerabilities privately via GitHub Security Advisories. We respond within five business days."
+                }
+            }
+        },
+        "compare": {
+            "title": "How we compare",
+            "subtitle": "Weblab versus typical site builders — where your data stands.",
+            "columns": {
+                "feature": "Feature",
+                "weblab": "Weblab",
+                "typical": "Typical site builder"
+            },
+            "rows": {
+                "code": {
+                    "label": "Your code",
+                    "weblab": "Yours — real React in your Git repo",
+                    "typical": "Locked into a proprietary format"
+                },
+                "source": {
+                    "label": "Source available",
+                    "weblab": "Apache-2.0, public on GitHub",
+                    "typical": "Closed source"
+                },
+                "export": {
+                    "label": "Export your project",
+                    "weblab": "Anytime, full source",
+                    "typical": "Restricted or paid tier"
+                },
+                "aiOptOut": {
+                    "label": "AI training opt-out",
+                    "weblab": "Default — your code is never used",
+                    "typical": "Opt-in by default"
+                },
+                "standards": {
+                    "label": "Open standards",
+                    "weblab": "Real Next.js, real Postgres",
+                    "typical": "Proprietary stack"
+                },
+                "region": {
+                    "label": "Region transparency",
+                    "weblab": "Subprocessors and regions listed",
+                    "typical": "Often hidden"
+                }
+            }
+        },
+        "subprocessors": {
+            "title": "Subprocessors",
+            "subtitle": "The vendors that process data on our behalf.",
+            "columns": {
+                "name": "Name",
+                "purpose": "Purpose",
+                "region": "Region"
+            },
+            "rows": {
+                "supabase": { "name": "Supabase", "purpose": "Auth + Postgres database", "region": "EU" },
+                "openrouter": { "name": "OpenRouter", "purpose": "LLM routing for AI features", "region": "US" },
+                "stripe": { "name": "Stripe", "purpose": "Payment processing", "region": "US / EU" },
+                "railway": { "name": "Railway", "purpose": "Application hosting", "region": "US" },
+                "github": { "name": "GitHub", "purpose": "OAuth sign-in + repository sync", "region": "US" },
+                "posthog": { "name": "PostHog", "purpose": "Product analytics", "region": "EU" },
+                "gleap": { "name": "Gleap", "purpose": "User feedback widget", "region": "EU" },
+                "resend": { "name": "Resend", "purpose": "Transactional email", "region": "EU" }
+            },
+            "note": "* Active only when configured. Disabled integrations send no data to that subprocessor.",
+            "lastUpdated": "Last updated {date}"
+        },
+        "badges": {
+            "eyebrow": "What we follow",
+            "gdpr": "GDPR-aligned",
+            "ccpa": "CCPA-aligned",
+            "apache": "Apache-2.0",
+            "oss": "Open source",
+            "disclosure": "Vulnerability disclosure"
+        },
+        "contact": {
+            "title": "Talk to us about security",
+            "subtitle": "Questions, compliance reviews, or vulnerability reports — we read every message.",
+            "emailCard": {
+                "title": "General security questions",
+                "body": "Reach out for compliance reviews, DPA requests, or anything else.",
+                "cta": "Email security"
+            },
+            "githubCard": {
+                "title": "Report a vulnerability",
+                "body": "Use GitHub Security Advisories for coordinated disclosure. Responses within five business days.",
+                "cta": "Open a security advisory"
+            }
+        },
+        "cookies": {
+            "title": "Cookies on this site",
+            "body": "We use cookies for product analytics and feedback. Accept to help us improve Weblab, or reject to keep only essentials.",
+            "accept": "Accept",
+            "reject": "Reject"
+        }
+    },
     "seo": {
         "root": {
             "title": "Weblab - AI Visual Website Builder for React Teams",
@@ -1522,6 +1692,11 @@ declare const messages: {
             "description": "Weblab terms of service. Read the legal terms governing your use of Weblab.",
             "ogImageAlt": "Weblab terms of service"
         },
+        "security": {
+            "title": "Security & Compliance | Weblab",
+            "description": "How Weblab handles your data — encryption, OAuth sign-in, AI training opt-out, subprocessors, and our compliance posture.",
+            "ogImageAlt": "Weblab security and compliance"
+        },
         "sitemap": {
             "title": "Sitemap | Weblab",
             "description": "Complete sitemap for weblab.build — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
@@ -1581,7 +1756,8 @@ declare const messages: {
                 "label": "About",
                 "links": {
                     "aboutUs": { "title": "About Us", "description": "Learn about our mission" },
-                    "faq": { "title": "FAQ", "description": "Common questions" }
+                    "faq": { "title": "FAQ", "description": "Common questions" },
+                    "security": { "title": "Security", "description": "How we handle your data" }
                 }
             }
         }
@@ -2091,6 +2267,7 @@ declare const messages: {
                 "title": "Legal",
                 "terms": { "label": "Terms of Service", "title": "Read our Terms of Service" },
                 "privacy": { "label": "Privacy Policy", "title": "Read our Privacy Policy" },
+                "security": { "label": "Security", "title": "How Weblab handles your data" },
                 "sitemap": { "label": "Sitemap", "title": "View the sitemap" },
                 "copyright": "© {year} Weblab"
             },

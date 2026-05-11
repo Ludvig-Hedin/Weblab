@@ -1,4 +1,13 @@
 {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Pro 플랜 첫 달 60% 할인.",
+            "cta": "혜택 받기"
+        },
+        "alreadyOnPlan": "이미 Pro 플랜을 사용 중입니다.",
+        "genericError": "문제가 발생했습니다. 다시 시도해주세요.",
+        "dismiss": "배너 닫기"
+    },
     "projects": {
         "create": {
             "settings": {

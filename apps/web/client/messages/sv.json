@@ -1,4 +1,13 @@
 {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Spara 60 % på din första månad av Pro.",
+            "cta": "Hämta erbjudandet"
+        },
+        "alreadyOnPlan": "Du har redan Pro-planen.",
+        "genericError": "Något gick fel. Försök igen.",
+        "dismiss": "Stäng banner"
+    },
     "cms": {
         "topBar": {
             "tooltip": "CMS"
@@ -1432,6 +1441,167 @@
     "aiPromptComposer": {
         "uploadImageTooltip": "Ladda upp bild"
     },
+    "security": {
+        "hero": {
+            "eyebrow": "Säkerhet",
+            "title": "Säkerhet hos Weblab",
+            "subtitle": "Din kod, din data, på infrastruktur i linje med branschstandarder.",
+            "ctaSubprocessors": "Visa underleverantörer",
+            "ctaReport": "Rapportera en sårbarhet"
+        },
+        "data": {
+            "title": "Din data, din kontroll",
+            "subtitle": "Byggt för att hålla det som är ditt – ditt.",
+            "learnMore": "Läs mer",
+            "items": {
+                "tls": {
+                    "title": "Krypterad i transit",
+                    "body": "All trafik krypteras över TLS. Sessioner sparas i httpOnly, säkra cookies."
+                },
+                "oauth": {
+                    "title": "OAuth-inloggning",
+                    "body": "Logga in med Google eller GitHub. Inga lösenord lagras. Sessionerna hanteras av Supabase."
+                },
+                "aiTraining": {
+                    "title": "Din kod tränar inte AI",
+                    "body": "Promptar och kod används inte för att träna modeller. Leverantörer behåller loggar kort tid endast för missbruksdetektering."
+                },
+                "oss": {
+                    "title": "Öppen källkod",
+                    "body": "Weblab licensieras under Apache-2.0. Hela källkoden finns på GitHub – granska den, forka den, kör den själv."
+                },
+                "supabase": {
+                    "title": "Lagring via Supabase",
+                    "body": "Postgres-databas hos Supabase. Kryptering i vila. Row-level security på varje tabell."
+                },
+                "stripe": {
+                    "title": "Betalningar via Stripe",
+                    "body": "Kortdata hanteras av Stripe – PCI-DSS Level 1. Vi ser aldrig ditt kortnummer."
+                }
+            }
+        },
+        "compliance": {
+            "title": "Efterlevnad",
+            "subtitle": "Vi följer kontrollerna bakom standarderna som kunder förväntar sig.",
+            "disclaimer": "Weblab är i linje med dessa ramverk men är för närvarande inte certifierat mot ISO 27001 eller SOC 2. Formella revisioner finns på vår roadmap.",
+            "items": {
+                "gdpr": {
+                    "title": "GDPR-anpassad",
+                    "body": "Dataminimering, rätt till åtkomst, rätt till radering. Mejla oss för att utöva dina rättigheter."
+                },
+                "ccpa": {
+                    "title": "CCPA-anpassad",
+                    "body": "Boende i Kalifornien kan välja bort försäljning eller delning. Vi säljer inte personuppgifter."
+                },
+                "iso": {
+                    "title": "I linje med ISO 27001-kontroller",
+                    "body": "Åtkomstkontroll, least-privilege-hemligheter, kryptering i transit och incidenthanteringsrutiner."
+                },
+                "soc": {
+                    "title": "Modellerat på SOC 2-praxis",
+                    "body": "Change management, övervakning, leverantörsgranskning och åtkomstgranskning följer SOC 2 trust criteria."
+                },
+                "oss": {
+                    "title": "Öppen källkod",
+                    "body": "Vem som helst kan granska vår kod. Säkerhet genom transparens, inte genom dolt utförande."
+                },
+                "disclosure": {
+                    "title": "Koordinerad rapportering",
+                    "body": "Rapportera sårbarheter privat via GitHub Security Advisories. Vi svarar inom fem arbetsdagar."
+                }
+            }
+        },
+        "compare": {
+            "title": "Så jämför vi oss",
+            "subtitle": "Weblab kontra typiska webbplatsbyggare – var står din data.",
+            "columns": {
+                "feature": "Funktion",
+                "weblab": "Weblab",
+                "typical": "Typisk webbplatsbyggare"
+            },
+            "rows": {
+                "code": {
+                    "label": "Din kod",
+                    "weblab": "Din – riktig React i ditt Git-repo",
+                    "typical": "Inlåst i ett proprietärt format"
+                },
+                "source": {
+                    "label": "Källkod tillgänglig",
+                    "weblab": "Apache-2.0, offentlig på GitHub",
+                    "typical": "Sluten källkod"
+                },
+                "export": {
+                    "label": "Exportera ditt projekt",
+                    "weblab": "När som helst, full källkod",
+                    "typical": "Begränsad eller betalplan"
+                },
+                "aiOptOut": {
+                    "label": "AI-träning opt-out",
+                    "weblab": "Standard – din kod används aldrig",
+                    "typical": "Opt-in som standard"
+                },
+                "standards": {
+                    "label": "Öppna standarder",
+                    "weblab": "Riktig Next.js, riktig Postgres",
+                    "typical": "Proprietär stack"
+                },
+                "region": {
+                    "label": "Transparens kring region",
+                    "weblab": "Underleverantörer och regioner listas",
+                    "typical": "Ofta dolda"
+                }
+            }
+        },
+        "subprocessors": {
+            "title": "Underleverantörer",
+            "subtitle": "Leverantörerna som behandlar data åt oss.",
+            "columns": {
+                "name": "Namn",
+                "purpose": "Syfte",
+                "region": "Region"
+            },
+            "rows": {
+                "supabase": { "name": "Supabase", "purpose": "Autentisering + Postgres-databas", "region": "EU" },
+                "openrouter": { "name": "OpenRouter", "purpose": "LLM-routing för AI-funktioner", "region": "USA" },
+                "stripe": { "name": "Stripe", "purpose": "Betalningshantering", "region": "USA / EU" },
+                "railway": { "name": "Railway", "purpose": "Applikationshosting", "region": "USA" },
+                "github": { "name": "GitHub", "purpose": "OAuth-inloggning + repository-sync", "region": "USA" },
+                "posthog": { "name": "PostHog", "purpose": "Produktanalys", "region": "EU" },
+                "gleap": { "name": "Gleap", "purpose": "Användarfeedback-widget", "region": "EU" },
+                "resend": { "name": "Resend", "purpose": "Transaktionell e-post", "region": "EU" }
+            },
+            "note": "* Aktiv endast vid konfiguration. Inaktiverade integrationer skickar ingen data till den underleverantören.",
+            "lastUpdated": "Senast uppdaterad {date}"
+        },
+        "badges": {
+            "eyebrow": "Vad vi följer",
+            "gdpr": "GDPR-anpassad",
+            "ccpa": "CCPA-anpassad",
+            "apache": "Apache-2.0",
+            "oss": "Öppen källkod",
+            "disclosure": "Sårbarhetsrapportering"
+        },
+        "contact": {
+            "title": "Prata med oss om säkerhet",
+            "subtitle": "Frågor, efterlevnadsgranskningar eller sårbarhetsrapporter – vi läser varje meddelande.",
+            "emailCard": {
+                "title": "Allmänna säkerhetsfrågor",
+                "body": "Hör av dig för efterlevnadsgranskningar, DPA-förfrågningar eller annat.",
+                "cta": "Mejla säkerhet"
+            },
+            "githubCard": {
+                "title": "Rapportera en sårbarhet",
+                "body": "Använd GitHub Security Advisories för koordinerad rapportering. Svar inom fem arbetsdagar.",
+                "cta": "Öppna en säkerhetsadvisory"
+            }
+        },
+        "cookies": {
+            "title": "Cookies på den här sidan",
+            "body": "Vi använder cookies för produktanalys och feedback. Acceptera för att hjälpa oss förbättra Weblab, eller avvisa för att bara behålla det nödvändiga.",
+            "accept": "Acceptera",
+            "reject": "Avvisa"
+        }
+    },
     "seo": {
         "root": {
             "title": "Weblab – Visuell AI-webbplatsbyggare för React-team",
@@ -1518,6 +1688,11 @@
             "description": "Weblabs användarvillkor. Läs de juridiska villkoren som styr din användning av Weblab.",
             "ogImageAlt": "Weblabs användarvillkor"
         },
+        "security": {
+            "title": "Säkerhet & efterlevnad | Weblab",
+            "description": "Hur Weblab hanterar din data – kryptering, OAuth-inloggning, AI-träningsskydd, underleverantörer och vår efterlevnadsposition.",
+            "ogImageAlt": "Weblabs säkerhet och efterlevnad"
+        },
         "sitemap": {
             "title": "Webbplatskarta | Weblab",
             "description": "Komplett webbplatskarta för weblab.build – den AI-drivna visuella redigeraren för frontend-utveckling. Bläddra bland alla sidor inklusive funktioner, arbetsflöden, resurser och dokumentation.",
@@ -1577,7 +1752,8 @@
                 "label": "Om",
                 "links": {
                     "aboutUs": { "title": "Om oss", "description": "Lär dig mer om vårt uppdrag" },
-                    "faq": { "title": "FAQ", "description": "Vanliga frågor" }
+                    "faq": { "title": "FAQ", "description": "Vanliga frågor" },
+                    "security": { "title": "Säkerhet", "description": "Så hanterar vi din data" }
                 }
             }
         }
@@ -2087,6 +2263,7 @@
                 "title": "Juridik",
                 "terms": { "label": "Användarvillkor", "title": "Läs våra användarvillkor" },
                 "privacy": { "label": "Integritetspolicy", "title": "Läs vår integritetspolicy" },
+                "security": { "label": "Säkerhet", "title": "Så hanterar Weblab din data" },
                 "sitemap": { "label": "Webbplatskarta", "title": "Visa webbplatskartan" },
                 "copyright": "© {year} Weblab"
             },

@@ -1,4 +1,13 @@
 {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Pro 套餐首月立享 60% 优惠。",
+            "cta": "立即领取"
+        },
+        "alreadyOnPlan": "您已订阅 Pro 套餐。",
+        "genericError": "出错了，请重试。",
+        "dismiss": "关闭横幅"
+    },
     "projects": {
         "create": {
             "settings": {

@@ -1,4 +1,13 @@
 {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Ahorra un 60 % en tu primer mes de Pro.",
+            "cta": "Aprovechar oferta"
+        },
+        "alreadyOnPlan": "Ya tienes el plan Pro.",
+        "genericError": "Algo salió mal. Inténtalo de nuevo.",
+        "dismiss": "Cerrar banner"
+    },
     "projects": {
         "create": {
             "settings": {

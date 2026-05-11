@@ -1,4 +1,13 @@
 {
+    "promoBanner": {
+        "pro60FirstMonth": {
+            "message": "Proプランの初月が60%オフ。",
+            "cta": "オファーを受け取る"
+        },
+        "alreadyOnPlan": "すでにProプランをご利用中です。",
+        "genericError": "問題が発生しました。もう一度お試しください。",
+        "dismiss": "バナーを閉じる"
+    },
     "pricing": {
         "plans": {
             "basic": {

@@ -8,8 +8,10 @@ import {
     createBillingPortalSession,
     createCheckoutSession,
     createCustomer,
+    getPromotionCodeIdByCode,
     isTierUpgrade,
     PriceKey,
+    ProductType,
     releaseSubscriptionSchedule,
     SubscriptionStatus,
     updateSubscription,
@@ -17,7 +19,14 @@ import {
 } from '@weblab/stripe';
 
 import { Routes } from '@/utils/constants';
-import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../../trpc';
+
+/**
+ * Default Pro tier used when the user enters checkout from a promo banner.
+ * Tier 1 is the entry-level monthly Pro plan (100 credits). Banners send
+ * users into the cheapest tier — they can manage/upgrade later from billing.
+ */
+const PROMO_DEFAULT_PRO_PRICE_KEY = PriceKey.PRO_MONTHLY_TIER_1;
 
 export const subscriptionRouter = createTRPCRouter({
     getLegacySubscriptions: protectedProcedure.query(async ({ ctx }) => {
@@ -224,6 +233,95 @@ export const subscriptionRouter = createTRPCRouter({
                     .where(eq(subscriptions.stripeSubscriptionItemId, stripeSubscriptionItemId))
                     .returning();
             }
+        }),
+
+    /**
+     * Start a Stripe Checkout session for the Pro monthly plan with a
+     * promotion code pre-applied. Designed for the promo banner CTA on
+     * marketing pages. Public-procedure so the client can introspect the
+     * `errorCode` (unauthenticated / already-subscribed) without throwing.
+     */
+    startPromoCheckout: publicProcedure
+        .input(
+            z.object({
+                plan: z.literal('pro-monthly'),
+                promotionCode: z.string().min(1).max(64),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            if (!ctx.user || !ctx.user.email) {
+                return { errorCode: 'not_authenticated' as const };
+            }
+            const userId = ctx.user.id;
+
+            // Reject if the caller already has an active Pro subscription —
+            // a discount code on top of a live subscription would be either
+            // a no-op or a double-charge depending on Stripe rules.
+            const activeSub = await ctx.db.query.subscriptions.findFirst({
+                where: and(
+                    eq(subscriptions.userId, userId),
+                    eq(subscriptions.status, SubscriptionStatus.ACTIVE),
+                ),
+                with: { product: true },
+            });
+            if (activeSub && activeSub.product.type === ProductType.PRO) {
+                return { errorCode: 'already_subscribed' as const };
+            }
+
+            // Resolve plan → Stripe price.
+            const price = await ctx.db.query.prices.findFirst({
+                where: eq(prices.key, PROMO_DEFAULT_PRO_PRICE_KEY),
+            });
+            if (!price) {
+                return { errorCode: 'plan_not_found' as const };
+            }
+
+            // Resolve human-readable promotion code → Stripe `promo_...` ID.
+            const promotionCodeId = await getPromotionCodeIdByCode(input.promotionCode);
+            if (!promotionCodeId) {
+                return { errorCode: 'promotion_code_not_found' as const };
+            }
+
+            // Ensure the caller has a Stripe customer.
+            const userData = await ctx.db.query.users.findFirst({
+                where: eq(users.id, userId),
+            });
+            if (!userData) {
+                return { errorCode: 'user_not_found' as const };
+            }
+            let stripeCustomerId = userData.stripeCustomerId;
+            if (!stripeCustomerId) {
+                const customer = await createCustomer({
+                    name:
+                        (userData.firstName
+                            ? userData.firstName + ' ' + userData.lastName
+                            : userData.displayName) || '',
+                    email: ctx.user.email ?? userData.email,
+                });
+                await ctx.db
+                    .update(users)
+                    .set({ stripeCustomerId: customer.id })
+                    .where(eq(users.id, userId));
+                stripeCustomerId = customer.id;
+            }
+
+            const originUrl = (await headers()).get('origin');
+            if (!originUrl) {
+                return { errorCode: 'origin_missing' as const };
+            }
+            const session = await createCheckoutSession({
+                priceId: price.stripePriceId,
+                userId,
+                stripeCustomerId,
+                promotionCodeId,
+                successUrl: `${originUrl}${Routes.CALLBACK_STRIPE_SUCCESS}`,
+                cancelUrl: `${originUrl}${Routes.CALLBACK_STRIPE_CANCEL}`,
+            });
+
+            if (!session.url) {
+                return { errorCode: 'session_url_missing' as const };
+            }
+            return { redirectUrl: session.url };
         }),
 
     releaseSubscriptionSchedule: protectedProcedure
