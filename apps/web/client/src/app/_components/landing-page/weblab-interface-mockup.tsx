@@ -17,13 +17,12 @@ type TabId =
     | 'pages'
     | 'images'
     | 'branches';
-type ModeId = 'design' | 'styles' | 'code' | 'preview';
+type ModeId = 'design' | 'code' | 'preview';
 type RightTabId = 'style' | 'chat' | 'comments';
 type PreviewTheme = 'light' | 'dark';
 
 const MODES: { id: ModeId; label: string }[] = [
     { id: 'design', label: 'Design' },
-    { id: 'styles', label: 'Styles' },
     { id: 'code', label: 'Code' },
     { id: 'preview', label: 'Preview' },
 ];
@@ -149,155 +148,273 @@ const RESTYLE_COLORS = [
     { id: 'amber', className: 'border-amber-400', swatch: 'bg-amber-400' },
 ] as const;
 
-function StylesModePanel() {
-    return (
-        <div className="bg-background-canvas absolute inset-0 top-10 z-[5] flex">
-            <div className="flex flex-1 items-start justify-center gap-12 px-6 pt-12">
-                <div className="border-border bg-background-chrome flex w-72 flex-col gap-3 rounded-lg border p-3 shadow-xl">
-                    <div className="border-border flex items-center justify-between border-b pb-2">
-                        <span className="text-foreground text-xs font-medium">Hero</span>
-                        <span className="text-foreground-tertiary text-[10px]">COMPONENT</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
-                            Typography
-                        </div>
-                        <div className="grid grid-cols-2 gap-1.5">
-                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                                <span className="text-foreground-tertiary">Font</span>
-                                <span className="text-foreground">Inter</span>
-                            </div>
-                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                                <span className="text-foreground-tertiary">Size</span>
-                                <span className="text-foreground">48</span>
-                            </div>
-                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                                <span className="text-foreground-tertiary">Weight</span>
-                                <span className="text-foreground">300</span>
-                            </div>
-                            <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                                <span className="text-foreground-tertiary">Track</span>
-                                <span className="text-foreground">-0.02</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
-                            Color
-                        </div>
-                        <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
-                            <div className="bg-foreground ring-border h-3.5 w-3.5 rounded-full ring-1" />
-                            <span className="text-foreground font-mono">#FFFFFF</span>
-                            <span className="text-foreground-tertiary ml-auto">100%</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
-                            Spacing
-                        </div>
-                        <div className="grid grid-cols-4 gap-1">
-                            {['T 64', 'R 32', 'B 64', 'L 32'].map((s) => (
-                                <div
-                                    key={s}
-                                    className="border-border bg-background-secondary/60 rounded px-1.5 py-1 text-center text-[10px]"
-                                >
-                                    <span className="text-foreground-tertiary mr-1">
-                                        {s.split(' ')[0]}
-                                    </span>
-                                    <span className="text-foreground">{s.split(' ')[1]}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
-                            Effects
-                        </div>
-                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                            <span className="text-foreground-tertiary">Radius</span>
-                            <span className="text-foreground">12</span>
-                        </div>
-                        <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">
-                            <span className="text-foreground-tertiary">Shadow</span>
-                            <span className="text-foreground">lg</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="border-border bg-background-chrome relative aspect-[4/3] w-96 overflow-hidden rounded-lg border shadow-xl">
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8">
-                        <div className="text-foreground text-3xl leading-tight font-light tracking-tight">
-                            Selected element
-                        </div>
-                        <div className="text-foreground-secondary text-sm">
-                            Edit any property on the left
-                        </div>
-                    </div>
-                    <div className="border-foreground-brand pointer-events-none absolute inset-4 rounded-md border-2" />
-                </div>
-            </div>
-        </div>
-    );
-}
+type CodeToken = { t: string; c: string };
+type CodeLine = { tokens: CodeToken[] };
 
-const CODE_LINES = [
-    {
-        tokens: [
-            { t: 'export default function ', c: 'kw' },
-            { t: 'Hero', c: 'fn' },
-            { t: '() {', c: 'p' },
-        ],
-    },
-    {
-        tokens: [
-            { t: '  return ', c: 'kw' },
-            { t: '(', c: 'p' },
-        ],
-    },
-    {
-        tokens: [
-            { t: '    <', c: 'p' },
-            { t: 'section', c: 'tag' },
-            { t: ' className=', c: 'attr' },
-            { t: '"py-32"', c: 'str' },
-            { t: '>', c: 'p' },
-        ],
-    },
-    {
-        tokens: [
-            { t: '      <', c: 'p' },
-            { t: 'h1', c: 'tag' },
-            { t: ' className=', c: 'attr' },
-            { t: '"text-6xl font-light"', c: 'str' },
-            { t: '>', c: 'p' },
-        ],
-    },
-    { tokens: [{ t: '        AI visual website builder', c: 'text' }] },
-    {
-        tokens: [
-            { t: '      </', c: 'p' },
-            { t: 'h1', c: 'tag' },
-            { t: '>', c: 'p' },
-        ],
-    },
-    {
-        tokens: [
-            { t: '      <', c: 'p' },
-            { t: 'Pricing', c: 'comp' },
-            { t: ' tiers=', c: 'attr' },
-            { t: '{', c: 'p' },
-            { t: '3', c: 'num' },
-            { t: '} />', c: 'p' },
-        ],
-    },
-    {
-        tokens: [
-            { t: '    </', c: 'p' },
-            { t: 'section', c: 'tag' },
-            { t: '>', c: 'p' },
-        ],
-    },
-    { tokens: [{ t: '  )', c: 'p' }] },
-    { tokens: [{ t: '}', c: 'p' }] },
+const CODE_FILES: Record<string, CodeLine[]> = {
+    'Hero.tsx': [
+        {
+            tokens: [
+                { t: 'export default function ', c: 'kw' },
+                { t: 'Hero', c: 'fn' },
+                { t: '() {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '(', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '    <', c: 'p' },
+                { t: 'section', c: 'tag' },
+                { t: ' className=', c: 'attr' },
+                { t: '"py-32"', c: 'str' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '      <', c: 'p' },
+                { t: 'h1', c: 'tag' },
+                { t: ' className=', c: 'attr' },
+                { t: '"text-6xl font-light"', c: 'str' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '        AI visual website builder', c: 'text' }] },
+        {
+            tokens: [
+                { t: '      </', c: 'p' },
+                { t: 'h1', c: 'tag' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '      <', c: 'p' },
+                { t: 'Pricing', c: 'comp' },
+                { t: ' tiers=', c: 'attr' },
+                { t: '{', c: 'p' },
+                { t: '3', c: 'num' },
+                { t: '} />', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '    </', c: 'p' },
+                { t: 'section', c: 'tag' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '  )', c: 'p' }] },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+    'Pricing.tsx': [
+        {
+            tokens: [
+                { t: 'export function ', c: 'kw' },
+                { t: 'Pricing', c: 'fn' },
+                { t: '({ ', c: 'p' },
+                { t: 'tiers', c: 'attr' },
+                { t: ' }: { ', c: 'p' },
+                { t: 'tiers', c: 'attr' },
+                { t: ': ', c: 'p' },
+                { t: 'number', c: 'kw' },
+                { t: ' }) {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '(', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '    <', c: 'p' },
+                { t: 'section', c: 'tag' },
+                { t: ' className=', c: 'attr' },
+                { t: '"grid grid-cols-3 gap-6"', c: 'str' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '      {[', c: 'p' },
+                { t: "'Starter'", c: 'str' },
+                { t: ', ', c: 'p' },
+                { t: "'Pro'", c: 'str' },
+                { t: ', ', c: 'p' },
+                { t: "'Enterprise'", c: 'str' },
+                { t: '].map((name) => (', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '        <', c: 'p' },
+                { t: 'Card', c: 'comp' },
+                { t: ' key=', c: 'attr' },
+                { t: '{name}', c: 'p' },
+                { t: ' tier=', c: 'attr' },
+                { t: '{name}', c: 'p' },
+                { t: ' />', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '      ))}', c: 'p' }] },
+        {
+            tokens: [
+                { t: '    </', c: 'p' },
+                { t: 'section', c: 'tag' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '  )', c: 'p' }] },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+    'Home.tsx': [
+        {
+            tokens: [
+                { t: 'import ', c: 'kw' },
+                { t: 'Hero', c: 'comp' },
+                { t: ' from ', c: 'kw' },
+                { t: "'./Hero'", c: 'str' },
+            ],
+        },
+        {
+            tokens: [
+                { t: 'import ', c: 'kw' },
+                { t: 'Pricing', c: 'comp' },
+                { t: ' from ', c: 'kw' },
+                { t: "'./Pricing'", c: 'str' },
+            ],
+        },
+        { tokens: [{ t: '', c: 'p' }] },
+        {
+            tokens: [
+                { t: 'export default function ', c: 'kw' },
+                { t: 'Home', c: 'fn' },
+                { t: '() {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '(', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '    <>', c: 'p' }] },
+        {
+            tokens: [
+                { t: '      <', c: 'p' },
+                { t: 'Hero', c: 'comp' },
+                { t: ' />', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '      <', c: 'p' },
+                { t: 'Pricing', c: 'comp' },
+                { t: ' tiers=', c: 'attr' },
+                { t: '{', c: 'p' },
+                { t: '3', c: 'num' },
+                { t: '} />', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '    </>', c: 'p' }] },
+        { tokens: [{ t: '  )', c: 'p' }] },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+    'page.tsx': [
+        {
+            tokens: [
+                { t: 'import ', c: 'kw' },
+                { t: 'Home', c: 'comp' },
+                { t: ' from ', c: 'kw' },
+                { t: "'@/components/Home'", c: 'str' },
+            ],
+        },
+        { tokens: [{ t: '', c: 'p' }] },
+        {
+            tokens: [
+                { t: 'export default function ', c: 'kw' },
+                { t: 'Page', c: 'fn' },
+                { t: '() {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '<', c: 'p' },
+                { t: 'Home', c: 'comp' },
+                { t: ' />', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+    'layout.tsx': [
+        {
+            tokens: [
+                { t: 'export default function ', c: 'kw' },
+                { t: 'Layout', c: 'fn' },
+                { t: '({ ', c: 'p' },
+                { t: 'children', c: 'attr' },
+                { t: ' }) {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '<', c: 'p' },
+                { t: 'html', c: 'tag' },
+                { t: '>', c: 'p' },
+                { t: '{children}', c: 'p' },
+                { t: '</', c: 'p' },
+                { t: 'html', c: 'tag' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+    'Footer.tsx': [
+        {
+            tokens: [
+                { t: 'export function ', c: 'kw' },
+                { t: 'Footer', c: 'fn' },
+                { t: '() {', c: 'p' },
+            ],
+        },
+        {
+            tokens: [
+                { t: '  return ', c: 'kw' },
+                { t: '<', c: 'p' },
+                { t: 'footer', c: 'tag' },
+                { t: '>© 2026 Villainterest</', c: 'text' },
+                { t: 'footer', c: 'tag' },
+                { t: '>', c: 'p' },
+            ],
+        },
+        { tokens: [{ t: '}', c: 'p' }] },
+    ],
+};
+type CodeFileName = keyof typeof CODE_FILES;
+const FILE_TREE: {
+    name: string;
+    indent: number;
+    isDir?: boolean;
+    file?: CodeFileName;
+    badge?: string;
+}[] = [
+    { name: 'app/', indent: 0, isDir: true },
+    { name: 'page.tsx', indent: 1, file: 'page.tsx' },
+    { name: 'layout.tsx', indent: 1, file: 'layout.tsx' },
+    { name: 'components/', indent: 0, isDir: true },
+    { name: 'Hero.tsx', indent: 1, file: 'Hero.tsx' },
+    { name: 'Pricing.tsx', indent: 1, file: 'Pricing.tsx', badge: 'new' },
+    { name: 'Home.tsx', indent: 1, file: 'Home.tsx' },
+    { name: 'Footer.tsx', indent: 1, file: 'Footer.tsx' },
 ];
 
 const TOKEN_COLOR: Record<string, string> = {
@@ -313,51 +430,147 @@ const TOKEN_COLOR: Record<string, string> = {
 };
 
 function CodeModePanel() {
+    const [activeFile, setActiveFile] = useState<CodeFileName>('Hero.tsx');
+    const [openTabs, setOpenTabs] = useState<CodeFileName[]>(['Hero.tsx', 'Pricing.tsx']);
+    const [dirtyFiles, setDirtyFiles] = useState<Set<CodeFileName>>(new Set(['Hero.tsx']));
+    const [selectedLine, setSelectedLine] = useState<number | null>(null);
+
+    const openFile = (file: CodeFileName) => {
+        setActiveFile(file);
+        setOpenTabs((tabs) => (tabs.includes(file) ? tabs : [...tabs, file]));
+    };
+    const closeTab = (file: CodeFileName, e: React.MouseEvent | React.KeyboardEvent) => {
+        e.stopPropagation();
+        setOpenTabs((tabs) => {
+            const next = tabs.filter((t) => t !== file);
+            if (file === activeFile && next[0]) setActiveFile(next[0]);
+            return next;
+        });
+        setDirtyFiles((d) => {
+            const next = new Set(d);
+            next.delete(file);
+            return next;
+        });
+    };
+
+    const lines = CODE_FILES[activeFile] ?? [];
+
     return (
-        <div className="bg-background-canvas absolute inset-0 top-10 z-[5] flex">
-            <div className="border-border bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
+        <div className="bg-background-canvas absolute inset-0 top-11 z-[5] flex">
+            {/* Explorer */}
+            <div className="border-border-bar bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
                 <div className="text-foreground-tertiary mb-1 px-1 text-[10px] tracking-wider uppercase">
                     Explorer
                 </div>
-                {[
-                    { name: 'app/', open: true },
-                    { name: '  page.tsx', indent: 1 },
-                    { name: '  layout.tsx', indent: 1 },
-                    { name: 'components/', open: true, indent: 0 },
-                    { name: '  Hero.tsx', indent: 1, active: true },
-                    { name: '  Pricing.tsx', indent: 1, badge: 'new' },
-                    { name: '  Footer.tsx', indent: 1 },
-                ].map((f) => (
-                    <div
-                        key={f.name}
-                        className={cn(
-                            'flex items-center gap-1.5 rounded px-1.5 py-0.5',
-                            f.active
-                                ? 'bg-background-bar-active text-foreground'
-                                : 'text-foreground-secondary hover:bg-background-secondary',
-                        )}
-                    >
-                        <span className="truncate font-mono">{f.name}</span>
-                        {f.badge && (
-                            <span className="bg-foreground-brand/20 text-foreground-brand ml-auto rounded-sm px-1 text-[9px] font-medium uppercase">
-                                {f.badge}
-                            </span>
-                        )}
-                    </div>
-                ))}
+                {FILE_TREE.map((f) => {
+                    const isActive = f.file === activeFile;
+                    return (
+                        <button
+                            key={f.name + f.indent}
+                            type="button"
+                            disabled={f.isDir}
+                            onClick={() => f.file && openFile(f.file)}
+                            className={cn(
+                                'flex items-center gap-1.5 rounded px-1.5 py-0.5 text-left',
+                                isActive
+                                    ? 'bg-background-bar-active text-foreground'
+                                    : 'text-foreground-secondary hover:bg-background-secondary',
+                                f.isDir && 'cursor-default font-medium',
+                            )}
+                            style={{ paddingLeft: `${6 + f.indent * 10}px` }}
+                        >
+                            {f.isDir ? (
+                                <Icons.ChevronDown className="h-3 w-3 shrink-0" />
+                            ) : (
+                                <Icons.File className="h-3 w-3 shrink-0" />
+                            )}
+                            <span className="truncate font-mono">{f.name}</span>
+                            {f.badge && (
+                                <span className="bg-foreground-brand/20 text-foreground-brand ml-auto rounded-sm px-1 text-[9px] font-medium uppercase">
+                                    {f.badge}
+                                </span>
+                            )}
+                            {f.file && dirtyFiles.has(f.file) && !f.badge && (
+                                <span className="bg-foreground-secondary ml-auto h-1.5 w-1.5 rounded-full" />
+                            )}
+                        </button>
+                    );
+                })}
             </div>
+            {/* Editor with file tabs */}
             <div className="bg-background-canvas flex flex-1 flex-col">
-                <div className="border-border bg-background-chrome flex h-8 items-center gap-2 border-b px-3 text-[11px]">
-                    <Icons.File className="text-foreground-secondary h-3 w-3" />
-                    <span className="text-foreground font-mono">Hero.tsx</span>
-                    <span className="text-foreground-tertiary">·</span>
-                    <span className="text-foreground-tertiary">unsaved</span>
+                <div className="border-border-bar bg-background-chrome flex h-8 items-center border-b text-[11px]">
+                    {openTabs.map((tab) => {
+                        const isActive = tab === activeFile;
+                        const isDirty = dirtyFiles.has(tab);
+                        return (
+                            <div
+                                key={tab}
+                                role="tab"
+                                tabIndex={0}
+                                aria-selected={isActive}
+                                onClick={() => setActiveFile(tab)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setActiveFile(tab);
+                                    }
+                                }}
+                                className={cn(
+                                    'border-border-bar group flex h-full cursor-pointer items-center gap-1.5 border-r px-3 outline-none',
+                                    isActive
+                                        ? 'bg-background-canvas text-foreground'
+                                        : 'text-foreground-secondary hover:bg-background-secondary/60 hover:text-foreground',
+                                )}
+                            >
+                                <Icons.File className="h-3 w-3" />
+                                <span className="font-mono">{tab}</span>
+                                {isDirty && (
+                                    <span className="bg-foreground/70 ml-0.5 h-1.5 w-1.5 rounded-full" />
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => closeTab(tab, e)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            closeTab(tab, e);
+                                        }
+                                    }}
+                                    className="hover:bg-background-secondary text-foreground-tertiary hover:text-foreground ml-0.5 flex h-4 w-4 items-center justify-center rounded"
+                                    aria-label={`Close ${tab}`}
+                                >
+                                    <Icons.CrossL className="h-2.5 w-2.5" />
+                                </button>
+                            </div>
+                        );
+                    })}
+                    <div className="ml-auto flex items-center gap-2 px-3">
+                        <span className="text-foreground-tertiary">UTF-8</span>
+                        <span className="text-foreground-tertiary">·</span>
+                        <span className="text-foreground-tertiary">TSX</span>
+                    </div>
                 </div>
-                <div className="font-mono text-[11px] leading-[1.6]">
-                    {CODE_LINES.map((line, i) => (
+                {/* Line area */}
+                <div
+                    className="font-mono text-[11px] leading-[1.6]"
+                    onClick={() => {
+                        setDirtyFiles((d) => {
+                            const next = new Set(d);
+                            next.add(activeFile);
+                            return next;
+                        });
+                    }}
+                >
+                    {lines.map((line, i) => (
                         <div
                             key={i}
-                            className="hover:bg-background-secondary/40 flex items-baseline gap-3 px-3"
+                            onClick={() => setSelectedLine(i)}
+                            className={cn(
+                                'flex cursor-text items-baseline gap-3 px-3',
+                                selectedLine === i
+                                    ? 'bg-foreground-brand/15'
+                                    : 'hover:bg-background-secondary/40',
+                            )}
                         >
                             <span className="text-foreground-tertiary w-5 shrink-0 text-right text-[10px]">
                                 {i + 1}
@@ -371,34 +584,73 @@ function CodeModePanel() {
                                         {tok.t}
                                     </span>
                                 ))}
+                                {selectedLine === i && (
+                                    <span className="bg-foreground ml-0.5 inline-block h-3 w-px animate-pulse align-middle" />
+                                )}
                             </div>
                         </div>
                     ))}
+                </div>
+                {/* Status bar */}
+                <div className="border-border-bar bg-background-bar/80 mt-auto flex h-6 items-center justify-between border-t px-3 text-[10px]">
+                    <div className="text-foreground-tertiary flex items-center gap-3">
+                        <span>{lines.length} lines</span>
+                        <span>Ln {(selectedLine ?? 0) + 1}, Col 1</span>
+                    </div>
+                    <div className="text-foreground-tertiary flex items-center gap-2">
+                        {dirtyFiles.has(activeFile) ? (
+                            <span className="text-amber-300">● Unsaved</span>
+                        ) : (
+                            <span className="text-emerald-300">✓ Saved</span>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-function PreviewModePanel() {
+function PreviewModePanel({ onExit }: { onExit: () => void }) {
     return (
-        <div className="bg-background-canvas absolute inset-0 z-30 flex items-start justify-center pt-16">
-            <div className="border-border bg-background-chrome relative w-[80%] max-w-3xl overflow-hidden rounded-lg border shadow-2xl">
-                <div className="border-border bg-background-bar/80 flex h-7 items-center gap-2 border-b px-3">
-                    <div className="flex gap-1.5">
-                        <div className="h-2.5 w-2.5 rounded-full bg-rose-400/60" />
-                        <div className="h-2.5 w-2.5 rounded-full bg-amber-300/60" />
-                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
-                    </div>
-                    <div className="border-border bg-background-secondary/60 mx-2 flex h-4 flex-1 items-center gap-1.5 rounded-sm border-[0.5px] px-2">
-                        <Icons.LockClosed className="text-foreground-tertiary h-2.5 w-2.5" />
-                        <span className="text-foreground-tertiary truncate text-[10px]">
-                            villainterest.weblab.app
-                        </span>
-                    </div>
+        <div className="bg-background-canvas absolute inset-0 z-30 flex flex-col items-stretch">
+            {/* Exit bar pinned to top of preview */}
+            <div className="border-border bg-background-chrome flex h-10 shrink-0 items-center justify-between border-b px-3">
+                <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgb(52_211_153)]" />
+                    <span className="text-foreground-secondary text-[11px]">Preview</span>
                 </div>
-                <div className="bg-background-canvas relative aspect-[16/10] overflow-hidden">
-                    <DesignMockup />
+                <button
+                    type="button"
+                    onClick={onExit}
+                    className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px]"
+                >
+                    <Icons.CrossL className="h-3 w-3" />
+                    Exit preview
+                </button>
+            </div>
+            <div className="flex flex-1 items-start justify-center overflow-auto pt-8">
+                <div className="border-border bg-background-chrome relative w-[80%] max-w-3xl overflow-hidden rounded-lg border shadow-2xl">
+                    <div className="border-border bg-background-bar/80 flex h-7 items-center gap-2 border-b px-3">
+                        <div className="flex gap-1.5">
+                            <button
+                                type="button"
+                                onClick={onExit}
+                                aria-label="Close preview"
+                                className="h-2.5 w-2.5 rounded-full bg-rose-400/60 transition-transform hover:scale-125"
+                            />
+                            <div className="h-2.5 w-2.5 rounded-full bg-amber-300/60" />
+                            <div className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+                        </div>
+                        <div className="border-border bg-background-secondary/60 mx-2 flex h-4 flex-1 items-center gap-1.5 rounded-sm border-[0.5px] px-2">
+                            <Icons.LockClosed className="text-foreground-tertiary h-2.5 w-2.5" />
+                            <span className="text-foreground-tertiary truncate text-[10px]">
+                                villainterest.weblab.app
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-background-canvas relative aspect-[16/10] overflow-hidden">
+                        <DesignMockup />
+                    </div>
                 </div>
             </div>
         </div>
@@ -617,6 +869,10 @@ export function WeblabInterfaceMockup() {
     const [zoomPct, setZoomPct] = useState(100);
     const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
     const [leftPanelPinned, setLeftPanelPinned] = useState(true);
+    const [comments, setComments] = useState<{ id: number; x: number; y: number; text: string }[]>(
+        () => [{ id: Date.now(), x: 32, y: 38, text: 'Make this image larger' }],
+    );
+    const [openCommentId, setOpenCommentId] = useState<number | null>(null);
     const [restyleColor, setRestyleColor] = useState<(typeof RESTYLE_COLORS)[number]['id']>('teal');
     const [showSaved, setShowSaved] = useState(false);
     const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -626,17 +882,25 @@ export function WeblabInterfaceMockup() {
         savedTimerRef.current = setTimeout(() => setShowSaved(false), 1400);
     }, []);
 
-    const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'live'>('live');
+    const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'published' | 'live'>(
+        'live',
+    );
     const publishTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const publishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const handlePublish = useCallback(() => {
         if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+        if (publishedTimerRef.current) clearTimeout(publishedTimerRef.current);
         setPublishState('publishing');
-        publishTimerRef.current = setTimeout(() => setPublishState('live'), 1200);
+        publishTimerRef.current = setTimeout(() => {
+            setPublishState('published');
+            publishedTimerRef.current = setTimeout(() => setPublishState('live'), 1800);
+        }, 1200);
     }, []);
     useEffect(() => {
         return () => {
             if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
             if (publishTimerRef.current) clearTimeout(publishTimerRef.current);
+            if (publishedTimerRef.current) clearTimeout(publishedTimerRef.current);
         };
     }, []);
 
@@ -699,6 +963,7 @@ export function WeblabInterfaceMockup() {
 
     const selectedRestyle = RESTYLE_COLORS.find((c) => c.id === restyleColor) ?? RESTYLE_COLORS[0];
     const homeBorderClass = canvasSelected === 'home' ? selectedRestyle.className : 'border-border';
+    const selectedLayerData = layers.find((l) => l.id === selectedLayer) ?? layers[0];
 
     return (
         <div
@@ -708,9 +973,10 @@ export function WeblabInterfaceMockup() {
             )}
         >
             {/* Mode-swapped canvas content */}
-            {activeMode === 'styles' && <StylesModePanel />}
             {activeMode === 'code' && <CodeModePanel />}
-            {activeMode === 'preview' && <PreviewModePanel />}
+            {activeMode === 'preview' && (
+                <PreviewModePanel onExit={() => setActiveMode('design')} />
+            )}
             {/* Canvas content (behind chrome) — Design mode */}
             <div
                 className={cn(
@@ -891,17 +1157,27 @@ export function WeblabInterfaceMockup() {
                         type="button"
                         className={cn(
                             'ml-1.5 flex flex-row items-center gap-1.5 rounded-md border-[1px] px-2.5 py-1 text-xs transition-colors',
-                            publishState === 'publishing'
-                                ? 'border-amber-300/60 bg-amber-300/10 text-amber-200'
-                                : 'border-teal-200/70 bg-teal-900/40 text-teal-100 hover:bg-teal-900/60',
+                            publishState === 'publishing' &&
+                                'border-amber-300/60 bg-amber-300/10 text-amber-200',
+                            publishState === 'published' &&
+                                'border-emerald-300/70 bg-emerald-500/15 text-emerald-200',
+                            (publishState === 'live' || publishState === 'idle') &&
+                                'border-teal-200/70 bg-teal-900/40 text-teal-100 hover:bg-teal-900/60',
                         )}
                     >
-                        {publishState === 'publishing' ? (
+                        {publishState === 'publishing' && (
                             <>
                                 <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
                                 Publishing
                             </>
-                        ) : (
+                        )}
+                        {publishState === 'published' && (
+                            <>
+                                <Icons.Check className="h-3 w-3" />
+                                Published
+                            </>
+                        )}
+                        {(publishState === 'live' || publishState === 'idle') && (
                             <>
                                 <Icons.Globe className="h-3 w-3" />
                                 Publish
@@ -1114,7 +1390,10 @@ export function WeblabInterfaceMockup() {
                                                 onDragEnd={onLayerDragEnd}
                                                 onMouseEnter={() => setHoveredLayer(layer.id)}
                                                 onMouseLeave={() => setHoveredLayer(null)}
-                                                onClick={() => setSelectedLayer(layer.id)}
+                                                onClick={() => {
+                                                    setSelectedLayer(layer.id);
+                                                    setActiveRightTab('style');
+                                                }}
                                                 className={cn(
                                                     'flex h-5.5 cursor-grab items-center rounded px-1.5 text-xs transition-colors select-none active:cursor-grabbing',
                                                     isSelected &&
@@ -1132,7 +1411,7 @@ export function WeblabInterfaceMockup() {
                                                         'text-foreground-secondary',
                                                     isDragging && 'opacity-40',
                                                     isDragOver &&
-                                                        'border-foreground-brand border-t',
+                                                        'border-foreground-brand shadow-foreground-brand/40 -mt-px border-t-2 shadow-[0_-2px_4px_-2px]',
                                                 )}
                                                 style={{ userSelect: 'none' }}
                                             >
@@ -1287,8 +1566,13 @@ export function WeblabInterfaceMockup() {
                 >
                     <div className="border-border-bar bg-background-bar pointer-events-auto flex h-8 items-center gap-0.5 rounded-lg border px-1 shadow-lg backdrop-blur-2xl">
                         <div className="flex items-center gap-1 px-1.5">
-                            <NodeIcon iconClass="w-3 h-3 shrink-0" tagName="COMPONENT" />
-                            <span className="text-foreground text-[11px]">Hero</span>
+                            <NodeIcon
+                                iconClass="w-3 h-3 shrink-0"
+                                tagName={selectedLayerData?.tagName ?? 'COMPONENT'}
+                            />
+                            <span className="text-foreground max-w-[100px] truncate text-[11px]">
+                                {selectedLayerData?.name ?? 'Hero'}
+                            </span>
                         </div>
                         <div className="bg-border-bar/80 mx-0.5 h-4 w-px" />
                         <button
@@ -1338,12 +1622,64 @@ export function WeblabInterfaceMockup() {
 
                 {/* Canvas */}
                 <div
-                    className="relative flex flex-1 cursor-grab flex-col items-center justify-start active:cursor-grabbing"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                />
+                    className={cn(
+                        'relative flex flex-1 flex-col items-center justify-start',
+                        activeTool === 'cursor' && 'cursor-default',
+                        activeTool === 'hand' && 'cursor-grab active:cursor-grabbing',
+                        activeTool === 'comment' && 'cursor-crosshair',
+                    )}
+                    onMouseDown={activeTool === 'hand' ? handleMouseDown : undefined}
+                    onMouseMove={activeTool === 'hand' ? handleMouseMove : undefined}
+                    onMouseUp={activeTool === 'hand' ? handleMouseUp : undefined}
+                    onMouseLeave={activeTool === 'hand' ? handleMouseUp : undefined}
+                    onClick={(e) => {
+                        if (activeTool !== 'comment') return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = ((e.clientX - rect.left) / rect.width) * 100;
+                        const y = ((e.clientY - rect.top) / rect.height) * 100;
+                        setComments((c) => [...c, { id: Date.now(), x, y, text: 'New comment' }]);
+                        setActiveRightTab('comments');
+                    }}
+                >
+                    {activeMode === 'design' &&
+                        comments.map((c) => (
+                            <div
+                                key={c.id}
+                                style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full"
+                            >
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenCommentId((id) => (id === c.id ? null : c.id));
+                                    }}
+                                    className="bg-foreground-brand text-background hover:bg-foreground-brand/90 flex h-6 w-6 items-center justify-center rounded-full rounded-bl-none shadow-lg ring-2 ring-white/20"
+                                    aria-label="Comment"
+                                >
+                                    <Icons.ChatBubble className="h-3 w-3" />
+                                </button>
+                                {openCommentId === c.id && (
+                                    <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-44 rounded-md border p-2 shadow-xl">
+                                        <p className="text-foreground text-[11px]">{c.text}</p>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setComments((arr) =>
+                                                    arr.filter((x) => x.id !== c.id),
+                                                );
+                                                setOpenCommentId(null);
+                                            }}
+                                            className="text-foreground-tertiary hover:text-foreground mt-1 text-[10px]"
+                                        >
+                                            Resolve
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                </div>
 
                 {/* Right Chat Panel — hidden in Preview */}
                 <div
@@ -1353,9 +1689,10 @@ export function WeblabInterfaceMockup() {
                     )}
                 >
                     <div className="absolute inset-0 flex flex-col">
-                        {/* Tabs strip — Style / Chat / Comments */}
-                        <div className="border-border-bar z-20 flex h-11 items-center justify-between border-b px-2">
-                            <div className="bg-background-tab-strip/70 flex h-8 items-center gap-0 rounded-md p-0.5">
+                        {/* Tabs strip — Style / Chat / Comments. Icon-only when
+                            inactive to fit the panel width; active tab shows label. */}
+                        <div className="border-border-bar z-20 flex h-11 items-center justify-between gap-1 border-b px-2">
+                            <div className="bg-background-tab-strip/70 flex h-8 min-w-0 items-center gap-0 rounded-md p-0.5">
                                 {RIGHT_TABS.map((t, i) => {
                                     const Icon = Icons[t.icon];
                                     const active = activeRightTab === t.id;
@@ -1364,15 +1701,16 @@ export function WeblabInterfaceMockup() {
                                             <button
                                                 type="button"
                                                 onClick={() => setActiveRightTab(t.id)}
+                                                aria-label={t.label}
                                                 className={cn(
-                                                    'flex h-7 items-center gap-1 rounded-sm border px-2 text-[11px] transition-colors',
+                                                    'flex h-7 items-center gap-1 rounded-sm border text-[11px] transition-all',
                                                     active
-                                                        ? 'bg-background-tab-active border-border-tab-active text-foreground'
-                                                        : 'text-foreground-secondary hover:text-foreground border-transparent',
+                                                        ? 'bg-background-tab-active border-border-tab-active text-foreground px-2'
+                                                        : 'text-foreground-secondary hover:text-foreground border-transparent px-1.5',
                                                 )}
                                             >
                                                 <Icon className="h-3 w-3" />
-                                                {t.label}
+                                                {active && <span>{t.label}</span>}
                                             </button>
                                             {i < RIGHT_TABS.length - 1 && (
                                                 <div className="bg-border-tab-divider mx-0 h-3 w-px self-center" />
@@ -1381,7 +1719,7 @@ export function WeblabInterfaceMockup() {
                                     );
                                 })}
                             </div>
-                            <div className="flex items-center gap-0.5">
+                            <div className="flex shrink-0 items-center gap-0.5">
                                 <button
                                     aria-label="Chat settings"
                                     className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md"
@@ -1402,11 +1740,13 @@ export function WeblabInterfaceMockup() {
                                 <div className="flex items-center gap-2">
                                     <NodeIcon
                                         iconClass="w-3.5 h-3.5 shrink-0"
-                                        tagName="COMPONENT"
+                                        tagName={selectedLayerData?.tagName ?? 'COMPONENT'}
                                     />
-                                    <span className="text-foreground truncate text-xs">Hero</span>
+                                    <span className="text-foreground truncate text-xs">
+                                        {selectedLayerData?.name ?? 'Hero'}
+                                    </span>
                                     <span className="text-foreground-tertiary ml-auto text-[10px]">
-                                        COMPONENT
+                                        {selectedLayerData?.tagName ?? 'COMPONENT'}
                                     </span>
                                 </div>
                                 <div className="flex flex-col gap-1.5">

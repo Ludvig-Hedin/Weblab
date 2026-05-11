@@ -75,22 +75,22 @@ export function HeroV2() {
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
             <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 lg:max-w-6xl lg:grid-cols-2 lg:gap-12">
-            <div className="flex w-full max-w-[580px]] flex-col items-start gap-5 lg:justify-self-start">
-                <motion.h1
-                    className="text-left text-4xl !leading-[0.95] font-light tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl"
-                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                    style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
-                >
-                    AI visual website builder{' '}
-                    <span
-                        className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.0] sm:text-[3.6rem] lg:text-[4rem]`}
+                <div className="flex w-full max-w-[545px] flex-col items-start gap-5 lg:justify-self-start">
+                    <motion.h1
+                        className="heading-style-h1 text-left"
+                        initial={{ opacity: 0, filter: 'blur(4px)' }}
+                        animate={{ opacity: 1, filter: 'blur(0px)' }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        for builders
-                    </span>
-                </motion.h1>
-                <motion.p
+                        AI visual website builder{' '}
+                        <span
+                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.0] sm:text-[3.6rem] lg:text-[4rem]`}
+                        >
+                            for builders
+                        </span>
+                    </motion.h1>
+                    <motion.p
                         className="text-foreground-secondary text-left text-sm leading-snug text-balance md:text-base"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -101,7 +101,7 @@ export function HeroV2() {
                     </motion.p>
                 </div>
 
-                <div className="flex w-full max-w-[580px]] flex-col items-start gap-5 lg:justify-self-start">
+                <div className="flex w-full max-w-[450px] flex-col items-start gap-5 lg:justify-self-start">
                     <motion.div
                         className="relative z-20 w-full"
                         initial={{ opacity: 0, y: 8 }}

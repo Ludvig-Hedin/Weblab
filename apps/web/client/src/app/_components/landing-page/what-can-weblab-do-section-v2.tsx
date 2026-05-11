@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
@@ -42,7 +43,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                     reverse && 'md:[&>*:first-child]:order-2',
                 )}
             >
-                <div className="bg-background-canvas rounded-xl border-border flex items-center justify-center border-b p-8 md:border-r md:border-b-0 md:p-12 aspect-4/3 w-full max-w-full">
+                <div className="bg-background-canvas border-border flex aspect-[4/3] w-full max-w-full items-center justify-center rounded-xl border-b p-8 md:border-r md:border-b-0 md:p-12">
                     <div className="flex w-full items-center justify-center">{visual}</div>
                 </div>
                 <div className="flex flex-col justify-center gap-4 p-8 md:p-14">
@@ -52,9 +53,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                             {subtitle}
                         </span>
                     </div>
-                    <h3 className="text-foreground-primary text-3xl leading-[1.1] font-light tracking-tight md:text-4xl">
-                        {title}
-                    </h3>
+                    <h3 className="heading-style-h3 text-foreground-primary">{title}</h3>
                     <p className="text-foreground-secondary max-w-md text-base leading-relaxed text-balance">
                         {paragraph}
                     </p>
@@ -78,7 +77,7 @@ function ComponentsVisual() {
             {items.map((it) => (
                 <div
                     key={it.label}
-                    className="bg-background-secondary border border-border hover:bg-background-secondary flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border-[0.5px] p-3 transition-colors"
+                    className="bg-background-secondary border-border hover:bg-background-secondary flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border-[0.5px] p-3 transition-colors"
                 >
                     <Icons.Component className="text-foreground-secondary h-6 w-6" />
                     <span className="text-foreground text-xs">{it.label}</span>
@@ -89,28 +88,29 @@ function ComponentsVisual() {
 }
 
 function BrandVisual() {
+    const t = useTranslations('landing.whatCanWeblabDoV2.brandVisual');
     const palette = [
         {
-            name: 'Background',
+            nameKey: 'background',
             shades: ['bg-background', 'bg-background-secondary', 'bg-background-tertiary'],
         },
         {
-            name: 'Foreground',
+            nameKey: 'foreground',
             shades: ['bg-foreground', 'bg-foreground-secondary', 'bg-foreground-tertiary'],
         },
         {
-            name: 'Brand',
+            nameKey: 'brand',
             shades: ['bg-foreground-brand', 'bg-foreground-brand/70', 'bg-foreground-brand/40'],
         },
-    ];
+    ] as const;
     return (
         <div className="bg-background-chrome border-border flex w-full max-w-sm flex-col gap-4 rounded-xl border p-5">
             <div className="text-foreground-tertiary text-[10px] font-medium tracking-wider uppercase">
-                Tokens
+                {t('tokens')}
             </div>
             {palette.map((row) => (
-                <div key={row.name} className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-secondary text-xs">{row.name}</span>
+                <div key={row.nameKey} className="flex items-center justify-between gap-3">
+                    <span className="text-foreground-secondary text-xs">{t(row.nameKey)}</span>
                     <div className="flex gap-1.5">
                         {row.shades.map((s) => (
                             <div
@@ -123,13 +123,14 @@ function BrandVisual() {
             ))}
             <div className="border-border mt-2 flex items-center gap-2 border-t pt-3">
                 <Icons.Check className="text-foreground-brand h-3.5 w-3.5" />
-                <span className="text-foreground-secondary text-xs">All proposals on-brand</span>
+                <span className="text-foreground-secondary text-xs">{t('onBrand')}</span>
             </div>
         </div>
     );
 }
 
 function LayersVisual() {
+    const t = useTranslations('landing.whatCanWeblabDoV2');
     const layers = [
         { name: 'Home Page', tag: 'DIV', level: 0 },
         { name: 'Top Navigation', tag: 'COMPONENT', level: 1 },
@@ -143,7 +144,7 @@ function LayersVisual() {
     return (
         <div className="w-full max-w-sm">
             <div className="border-border flex items-center justify-between border-b px-2 py-1.5">
-                <span className="text-foreground text-xs font-medium">Layers</span>
+                <span className="text-foreground text-xs font-medium">{t('layersTitle')}</span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
             <div className="mt-1 flex flex-col gap-0.5">
@@ -170,6 +171,7 @@ function LayersVisual() {
 }
 
 function RevisionVisual() {
+    const t = useTranslations('landing.whatCanWeblabDoV2');
     const versions = [
         { title: 'New typography and layout', who: 'Alessandro · 3h ago', active: true },
         { title: 'Save before publishing', who: 'Weblab · 10h ago' },
@@ -180,7 +182,7 @@ function RevisionVisual() {
         <div className="bg-background-chrome border-border w-full max-w-sm overflow-hidden rounded-xl border">
             <div className="border-border flex items-center gap-2 border-b px-4 py-3">
                 <Icons.CounterClockwiseClock className="text-foreground-secondary h-4 w-4" />
-                <span className="text-foreground text-xs font-medium">Today</span>
+                <span className="text-foreground text-xs font-medium">{t('revisionToday')}</span>
             </div>
             <div className="flex flex-col">
                 {versions.map((v) => (
@@ -199,7 +201,7 @@ function RevisionVisual() {
                         </div>
                         {v.active && (
                             <div className="bg-foreground-brand/20 text-foreground-brand rounded-full px-2 py-0.5 text-[10px] font-medium">
-                                Current
+                                {t('revisionCurrent')}
                             </div>
                         )}
                     </div>
@@ -209,66 +211,43 @@ function RevisionVisual() {
     );
 }
 
-const FEATURES: Omit<FeatureCardProps, 'reverse'>[] = [
-    {
-        icon: <Icons.Sparkles className="h-4 w-4" />,
-        subtitle: 'AI Assistant',
-        title: 'AI that understands context',
-        paragraph:
-            'Reference images, designs, and docs in chat. AI sees what you see — no more explaining from scratch.',
-        visual: (
-            <div className="w-full max-w-sm">
-                <AiChatInteractive />
-            </div>
-        ),
-    },
-    {
-        icon: <Icons.DirectManipulation className="h-4 w-4" />,
-        subtitle: 'Canvas',
-        title: 'Manipulate elements directly',
-        paragraph:
-            'Drag, resize, and arrange elements directly on the canvas. See changes appear in real code instantly.',
-        visual: (
-            <div className="w-full max-w-sm">
-                <DirectEditingInteractive />
-            </div>
-        ),
-    },
-    {
-        icon: <Icons.Component className="h-4 w-4" />,
-        subtitle: 'Components',
-        title: 'Your real components',
-        paragraph:
-            'Reuse your existing design system — buttons, cards, navs. Live components, not screenshots.',
-        visual: <ComponentsVisual />,
-    },
-    {
-        icon: <Icons.Brand className="h-4 w-4" />,
-        subtitle: 'Brand',
-        title: 'Design system guardrails',
-        paragraph:
-            'Your tokens stay your tokens. AI proposals respect your colors, typography, and spacing.',
-        visual: <BrandVisual />,
-    },
-    {
-        icon: <Icons.Layers className="h-4 w-4" />,
-        subtitle: 'Structure',
-        title: 'Navigate your code as layers',
-        paragraph:
-            'A live tree of your DOM. Click any node to jump to it on the canvas — no inspector hunting.',
-        visual: <LayersVisual />,
-    },
-    {
-        icon: <Icons.CounterClockwiseClock className="h-4 w-4" />,
-        subtitle: 'History',
-        title: 'Time travel for your designs',
-        paragraph:
-            'Every save is a version. Branch, restore, and compare without leaving the canvas.',
-        visual: <RevisionVisual />,
-    },
-];
+const FEATURE_KEYS = [
+    'aiAssistant',
+    'canvas',
+    'components',
+    'brand',
+    'structure',
+    'history',
+] as const;
+
+const FEATURE_ICONS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = {
+    aiAssistant: <Icons.Sparkles className="h-4 w-4" />,
+    canvas: <Icons.DirectManipulation className="h-4 w-4" />,
+    components: <Icons.Component className="h-4 w-4" />,
+    brand: <Icons.Brand className="h-4 w-4" />,
+    structure: <Icons.Layers className="h-4 w-4" />,
+    history: <Icons.CounterClockwiseClock className="h-4 w-4" />,
+};
+
+const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = {
+    aiAssistant: (
+        <div className="w-full max-w-sm">
+            <AiChatInteractive />
+        </div>
+    ),
+    canvas: (
+        <div className="w-full max-w-sm">
+            <DirectEditingInteractive />
+        </div>
+    ),
+    components: <ComponentsVisual />,
+    brand: <BrandVisual />,
+    structure: <LayersVisual />,
+    history: <RevisionVisual />,
+};
 
 export function WhatCanWeblabDoSectionV2() {
+    const t = useTranslations('landing.whatCanWeblabDoV2') as (key: string) => string;
     return (
         <section className="mx-auto w-full max-w-6xl px-4 py-32 md:px-8">
             <motion.div
@@ -278,26 +257,34 @@ export function WhatCanWeblabDoSectionV2() {
                 transition={REVEAL.transition}
                 className="mb-20 flex flex-col items-start gap-4"
             >
-                <h2 className="text-foreground-primary text-4xl leading-[1.05] font-light tracking-tight md:text-5xl lg:text-6xl">
-                    <span className="text-foreground-primary">AI</span>{' '}
+                <h2 className="heading-style-h2 text-foreground-primary">
+                    <span className="text-foreground-primary">{t('headingAi')}</span>{' '}
                     <span className="text-foreground-tertiary">•</span>{' '}
-                    <span className="font-mono">Code</span>{' '}
+                    <span className="font-mono">{t('headingCode')}</span>{' '}
                     <span className="text-foreground-tertiary">•</span>{' '}
                     <span
                         className={`${vujahdayScript.className} text-5xl not-italic md:text-6xl lg:text-7xl`}
                     >
-                        Design
+                        {t('headingDesign')}
                     </span>
                     <br />
-                    Side-by-side-by-side
+                    {t('headingSideBySide')}
                 </h2>
                 <p className="text-foreground-secondary max-w-xl text-base leading-relaxed md:text-lg">
-                    Everything in one canvas. No tabs, no handoffs, no translation losses.
+                    {t('subhead')}
                 </p>
             </motion.div>
             <div className="flex flex-col gap-16">
-                {FEATURES.map((f, i) => (
-                    <FeatureCard key={f.subtitle} {...f} reverse={i % 2 === 1} />
+                {FEATURE_KEYS.map((key, i) => (
+                    <FeatureCard
+                        key={key}
+                        icon={FEATURE_ICONS[key]}
+                        subtitle={t(`features.${key}.subtitle`)}
+                        title={t(`features.${key}.title`)}
+                        paragraph={t(`features.${key}.paragraph`)}
+                        visual={FEATURE_VISUALS[key]}
+                        reverse={i % 2 === 1}
+                    />
                 ))}
             </div>
         </section>

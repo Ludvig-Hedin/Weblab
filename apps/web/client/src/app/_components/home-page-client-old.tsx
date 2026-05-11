@@ -6,7 +6,7 @@ import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-proj
 import { Routes } from '@/utils/constants';
 import { AuthModal } from './auth-modal';
 import { ChangelogGrid } from './changelog-grid';
-import { HeroV2 } from './hero-v2';
+import { Hero } from './hero';
 import { CTASection } from './landing-page/cta-section';
 import { DigitalSolutionsSection } from './landing-page/digital-solutions-section';
 import { FAQSection } from './landing-page/faq-section';
@@ -15,20 +15,20 @@ import { ResponsiveMockupSection } from './landing-page/responsive-mockup-sectio
 import { ScrollingVelocitySection } from './landing-page/scrolling-velocity-section';
 import { TerminalSection } from './landing-page/terminal-section';
 import { UseCasesSection } from './landing-page/use-cases-section';
-import { WhatCanWeblabDoSectionV2 } from './landing-page/what-can-weblab-do-section-v2';
+import { WhatCanWeblabDoSection } from './landing-page/what-can-weblab-do-section';
 import { WebsiteLayout } from './website-layout';
 
-export function HomePageClient() {
+export function HomePageClientOld() {
     return (
         <CreateManagerProvider>
             <WebsiteLayout showFooter={true}>
-                <div className="flex w-full items-center justify-center pt-24" id="hero">
-                    <HeroV2 />
+                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                    <Hero />
                 </div>
                 <ResponsiveMockupSection />
                 <DigitalSolutionsSection />
                 <UseCasesSection />
-                <WhatCanWeblabDoSectionV2 />
+                <WhatCanWeblabDoSection />
                 <ModelAgnosticSection />
                 <TerminalSection />
                 <ScrollingVelocitySection />
