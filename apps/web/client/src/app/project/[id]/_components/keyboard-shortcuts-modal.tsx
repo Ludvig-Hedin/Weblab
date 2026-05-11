@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { observer } from 'mobx-react-lite';
 
 import {
@@ -23,34 +24,34 @@ type ModalEntry =
     | { kind: 'single'; hotkey: Hotkey }
     | {
           kind: 'multi';
-          description: string;
+          descriptionKey: string;
           hotkeys: readonly Hotkey[];
       };
 
 const single = (hotkey: Hotkey): ModalEntry => ({ kind: 'single', hotkey });
-const multi = (description: string, hotkeys: readonly Hotkey[]): ModalEntry => ({
+const multi = (descriptionKey: string, hotkeys: readonly Hotkey[]): ModalEntry => ({
     kind: 'multi',
-    description,
+    descriptionKey,
     hotkeys,
 });
 
 // Canonical hotkey list. The two `MODE_*` pairs (e.g. SELECT=v + MODE_DESIGN=mod+1)
 // are merged into single rows so users see both bindings without two
 // near-identical entries.
-const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
+const HOTKEY_SECTIONS: { titleKey: string; entries: ModalEntry[] }[] = [
     {
-        title: 'Modes',
+        titleKey: 'modes',
         entries: [
-            multi('Design Mode', [Hotkey.SELECT, Hotkey.MODE_DESIGN]),
-            multi('Code Mode', [Hotkey.CODE, Hotkey.MODE_CODE]),
-            multi('Preview Mode', [Hotkey.PREVIEW, Hotkey.MODE_PREVIEW]),
+            multi('designMode', [Hotkey.SELECT, Hotkey.MODE_DESIGN]),
+            multi('codeMode', [Hotkey.CODE, Hotkey.MODE_CODE]),
+            multi('previewMode', [Hotkey.PREVIEW, Hotkey.MODE_PREVIEW]),
             single(Hotkey.PAN),
             single(Hotkey.COMMENT),
             single(Hotkey.TOGGLE_COMMENTS),
         ],
     },
     {
-        title: 'Navigation',
+        titleKey: 'navigation',
         entries: [
             single(Hotkey.OPEN_COMMAND_PALETTE),
             single(Hotkey.OPEN_FILE_FINDER),
@@ -62,7 +63,7 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
         ],
     },
     {
-        title: 'Panels',
+        titleKey: 'panels',
         entries: [
             single(Hotkey.SIDEBAR_LAYERS),
             single(Hotkey.SIDEBAR_BRAND),
@@ -77,7 +78,7 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
         ],
     },
     {
-        title: 'Insert',
+        titleKey: 'insert',
         entries: [
             single(Hotkey.OPEN_ELEMENT_PALETTE),
             single(Hotkey.INSERT_DIV),
@@ -87,20 +88,20 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
         ],
     },
     {
-        title: 'Canvas',
+        titleKey: 'canvas',
         entries: [single(Hotkey.ZOOM_FIT), single(Hotkey.ZOOM_IN), single(Hotkey.ZOOM_OUT)],
     },
     {
-        title: 'Layers',
+        titleKey: 'layers',
         entries: [
-            multi('Bring Forward', [Hotkey.BRING_FORWARD, Hotkey.MOVE_LAYER_UP]),
-            multi('Send Backward', [Hotkey.SEND_BACKWARD, Hotkey.MOVE_LAYER_DOWN]),
+            multi('bringForward', [Hotkey.BRING_FORWARD, Hotkey.MOVE_LAYER_UP]),
+            multi('sendBackward', [Hotkey.SEND_BACKWARD, Hotkey.MOVE_LAYER_DOWN]),
             single(Hotkey.GROUP),
             single(Hotkey.UNGROUP),
         ],
     },
     {
-        title: 'Editor',
+        titleKey: 'editor',
         entries: [
             single(Hotkey.UNDO),
             single(Hotkey.REDO),
@@ -115,7 +116,7 @@ const HOTKEY_SECTIONS: { title: string; entries: ModalEntry[] }[] = [
         ],
     },
     {
-        title: 'AI',
+        titleKey: 'ai',
         entries: [
             single(Hotkey.ADD_AI_CHAT),
             single(Hotkey.NEW_AI_CHAT),
@@ -217,16 +218,20 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
 const MultiHotkeyRow = ({
     description,
     hotkeys,
+    orLabel,
 }: {
     description: string;
     hotkeys: readonly Hotkey[];
+    orLabel: string;
 }) => (
     <span className="flex w-full items-center justify-between gap-2">
         <span>{description}</span>
         <span className="flex items-center gap-1">
             {hotkeys.map((h, i) => (
                 <span key={h.command} className="flex items-center gap-1">
-                    {i > 0 && <span className="text-foreground-tertiary text-mini">or</span>}
+                    {i > 0 && (
+                        <span className="text-foreground-tertiary text-mini">{orLabel}</span>
+                    )}
                     <Kbd>
                         <span
                             className="text-mini inline-grid auto-cols-max grid-flow-col items-center gap-1.5 [&_kbd]:text-[1.1em]"
@@ -240,6 +245,7 @@ const MultiHotkeyRow = ({
 );
 
 export const KeyboardShortcutsModal = observer(() => {
+    const t = useTranslations('editor.shortcutsModal') as (key: string) => string;
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
 
@@ -258,40 +264,35 @@ export const KeyboardShortcutsModal = observer(() => {
                 <DialogHeader>
                     <div className="flex items-start justify-between gap-3">
                         <div>
-                            <DialogTitle>Keyboard shortcuts</DialogTitle>
-                            <DialogDescription>
-                                The fastest editor actions available in the project workspace.
-                            </DialogDescription>
+                            <DialogTitle>{t('title')}</DialogTitle>
+                            <DialogDescription>{t('description')}</DialogDescription>
                         </div>
-                        {/* Inline jump to the customize tab so users who notice
-                            a binding clashes with their IDE can fix it without
-                            hunting through settings. */}
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={openCustomize}
                             className="shrink-0"
                         >
-                            Customize…
+                            {t('customize')}
                         </Button>
                     </div>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
                     {HOTKEY_SECTIONS.map((section) => (
                         <div
-                            key={section.title}
+                            key={section.titleKey}
                             className="border-border/60 bg-background-secondary/40 rounded-lg border p-4"
                         >
                             <h3 className="text-foreground text-small mb-3 font-medium">
-                                {section.title}
+                                {t(`sections.${section.titleKey}`)}
                             </h3>
                             <div className="space-y-2">
                                 {section.entries.map((entry, index) => (
                                     <div
                                         key={
                                             entry.kind === 'single'
-                                                ? `${section.title}-${entry.hotkey.command}`
-                                                : `${section.title}-multi-${index}`
+                                                ? `${section.titleKey}-${entry.hotkey.command}`
+                                                : `${section.titleKey}-multi-${index}`
                                         }
                                         className="flex items-center justify-between gap-3 rounded-md px-2 py-1.5"
                                     >
@@ -302,8 +303,9 @@ export const KeyboardShortcutsModal = observer(() => {
                                             />
                                         ) : (
                                             <MultiHotkeyRow
-                                                description={entry.description}
+                                                description={t(`rows.${entry.descriptionKey}`)}
                                                 hotkeys={entry.hotkeys}
+                                                orLabel={t('or')}
                                             />
                                         )}
                                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { observer } from 'mobx-react-lite';
 
 import { Icons } from '@weblab/ui/icons';
@@ -17,6 +18,10 @@ import { getDeadLetterDepth, getQueueDepth } from '@/services/offline/write-queu
  * adjacent OfflineBanner — this chip is read-only signal density.
  */
 export const ConnectionChip = observer(() => {
+    const t = useTranslations('editor.topBar.connection') as (
+        key: string,
+        values?: Record<string, number>,
+    ) => string;
     const editorEngine = useEditorEngine();
     const online = useOnlineStatus();
     const isOfflineSession = editorEngine.activeSandbox.session.isOffline;
@@ -49,19 +54,18 @@ export const ConnectionChip = observer(() => {
     let dotClass: string;
     let labelClass: string;
     if (offline) {
-        label = pending > 0 ? `Offline · ${pending} pending` : 'Offline';
+        label = pending > 0 ? t('offlinePending', { count: pending }) : t('offline');
         dotClass = 'bg-red-400';
         labelClass = 'text-red-300';
     } else if (syncing) {
-        label = `Syncing · ${pending}`;
+        label = t('syncing', { count: pending });
         dotClass = 'bg-amber-400';
         labelClass = 'text-amber-200';
     } else if (dead > 0) {
-        label = `${dead} sync error${dead === 1 ? '' : 's'}`;
+        label = t('syncErrors', { count: dead });
         dotClass = 'bg-amber-400';
         labelClass = 'text-amber-200';
     } else {
-        // Hide entirely on the happy path — keeps the topbar quiet.
         return null;
     }
 
@@ -75,10 +79,10 @@ export const ConnectionChip = observer(() => {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="mt-1" hideArrow>
                 {offline
-                    ? "You're offline. Changes save locally and sync on reconnect."
+                    ? t('offlineTooltip')
                     : syncing
-                      ? 'Syncing offline changes to the cloud.'
-                      : 'Some offline changes failed. Open the offline panel from the corner banner.'}
+                      ? t('syncingTooltip')
+                      : t('syncErrorsTooltip')}
             </TooltipContent>
         </Tooltip>
     );

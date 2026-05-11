@@ -53,7 +53,7 @@ export const TopBar = observer(() => {
         'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 h-8 w-8 rounded-md';
 
     return (
-        <div className="bg-background-chrome border-border flex h-14 flex-row items-center justify-center border-b px-3">
+        <div className="bg-background-chrome border-border desktop-drag-region flex h-14 flex-row items-center justify-center border-b px-3">
             <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1">
                 <ProjectBreadcrumb />
                 <span className="text-foreground-secondary/50 text-small">/</span>
@@ -136,7 +136,7 @@ export const TopBar = observer(() => {
                             </div>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="mt-1" hideArrow>
-                            <p>Profile</p>
+                            <p>{t('editor.topBar.profile')}</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>

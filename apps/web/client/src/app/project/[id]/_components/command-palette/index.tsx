@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
@@ -22,15 +23,8 @@ import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
-/**
- * Global Command Palette — `cmd+k` / `ctrl+k`.
- *
- * Mirrors the modal+Command pattern from element-palette/index.tsx. Opens via
- * an `open-command-palette` window event dispatched by the canvas hotkey
- * registration so it's reachable from any focus context (canvas, chat input,
- * code editor, etc.).
- */
 export const CommandPalette = observer(() => {
+    const t = useTranslations('editor.commandPalette');
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
     const router = useRouter();
@@ -42,9 +36,6 @@ export const CommandPalette = observer(() => {
         return () => window.removeEventListener('open-command-palette', handler);
     }, []);
 
-    // Only fetch the project list while the palette is open. Avoids hitting
-    // the list endpoint on every editor mount just to power a feature the
-    // user may never trigger.
     const { data: switchableProjects } = api.project.list.useQuery(
         { limit: 25 },
         { enabled: open },
@@ -54,9 +45,6 @@ export const CommandPalette = observer(() => {
     const close = () => setOpen(false);
 
     const run = (action: () => void) => {
-        // Defer the action a tick so the dialog close transition doesn't
-        // race with focus restoration into the panel/route we're navigating
-        // to. Matches the pattern other shadcn-cmdk hosts use.
         close();
         setTimeout(action, 0);
     };
@@ -65,15 +53,15 @@ export const CommandPalette = observer(() => {
         <CommandDialog
             open={open}
             onOpenChange={setOpen}
-            title="Command Palette"
-            description="Run a command, switch modes, or jump to a page."
+            title={t('title')}
+            description={t('description')}
         >
-            <CommandInput placeholder="Type a command…" autoFocus />
+            <CommandInput placeholder={t('placeholder')} autoFocus />
             <CommandList>
-                <CommandEmpty>No commands found.</CommandEmpty>
+                <CommandEmpty>{t('noResults')}</CommandEmpty>
 
                 {switchableProjects && switchableProjects.length > 1 && (
-                    <CommandGroup heading="Switch project">
+                    <CommandGroup heading={t('headingSwitch')}>
                         {switchableProjects
                             .filter((p) => p.id !== activeProjectId)
                             .slice(0, 12)
@@ -92,13 +80,13 @@ export const CommandPalette = observer(() => {
                     </CommandGroup>
                 )}
 
-                <CommandGroup heading="Navigate">
+                <CommandGroup heading={t('headingNavigate')}>
                     <CommandItem
                         value="Go to Projects projects dashboard home"
                         onSelect={() => run(() => router.push(Routes.PROJECTS))}
                     >
                         <Icons.Cube />
-                        <span>Go to Projects</span>
+                        <span>{t('goToProjects')}</span>
                     </CommandItem>
                     <CommandItem
                         value="Go to Settings settings preferences"
@@ -109,7 +97,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Gear />
-                        <span>Go to Settings</span>
+                        <span>{t('goToSettings')}</span>
                     </CommandItem>
                     <CommandItem
                         value="Open Keyboard Shortcuts hotkeys help"
@@ -120,12 +108,12 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Keyboard />
-                        <span>Open Keyboard Shortcuts</span>
+                        <span>{t('openShortcuts')}</span>
                         <CommandShortcut>{Hotkey.SHOW_HOTKEYS.readableCommand}</CommandShortcut>
                     </CommandItem>
                 </CommandGroup>
 
-                <CommandGroup heading="Mode">
+                <CommandGroup heading={t('headingMode')}>
                     <CommandItem
                         value="Switch to Design Mode design canvas"
                         onSelect={() =>
@@ -133,7 +121,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.CursorArrow />
-                        <span>Switch to Design Mode</span>
+                        <span>{t('switchToDesign')}</span>
                         <CommandShortcut>{Hotkey.MODE_DESIGN.readableCommand}</CommandShortcut>
                     </CommandItem>
                     <CommandItem
@@ -143,7 +131,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Code />
-                        <span>Switch to Code Mode</span>
+                        <span>{t('switchToCode')}</span>
                         <CommandShortcut>{Hotkey.MODE_CODE.readableCommand}</CommandShortcut>
                     </CommandItem>
                     <CommandItem
@@ -153,12 +141,12 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.EyeOpen />
-                        <span>Switch to Preview Mode</span>
+                        <span>{t('switchToPreview')}</span>
                         <CommandShortcut>{Hotkey.MODE_PREVIEW.readableCommand}</CommandShortcut>
                     </CommandItem>
                 </CommandGroup>
 
-                <CommandGroup heading="Actions">
+                <CommandGroup heading={t('headingActions')}>
                     <CommandItem
                         value="Toggle Terminal terminal console"
                         onSelect={() =>
@@ -166,7 +154,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Terminal />
-                        <span>Toggle Terminal</span>
+                        <span>{t('toggleTerminal')}</span>
                         <CommandShortcut>{Hotkey.TOGGLE_TERMINAL.readableCommand}</CommandShortcut>
                     </CommandItem>
                     <CommandItem
@@ -174,7 +162,7 @@ export const CommandPalette = observer(() => {
                         onSelect={() => run(() => editorEngine.state.setElementPaletteOpen(true))}
                     >
                         <Icons.Plus />
-                        <span>Insert Element…</span>
+                        <span>{t('insertElement')}</span>
                         <CommandShortcut>
                             {Hotkey.OPEN_ELEMENT_PALETTE.readableCommand}
                         </CommandShortcut>
@@ -186,7 +174,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.MagnifyingGlass />
-                        <span>Search Files…</span>
+                        <span>{t('searchFiles')}</span>
                         <CommandShortcut>{Hotkey.OPEN_FILE_FINDER.readableCommand}</CommandShortcut>
                     </CommandItem>
                     <CommandItem
@@ -199,7 +187,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Sparkles />
-                        <span>New Chat</span>
+                        <span>{t('newChat')}</span>
                         <CommandShortcut>{Hotkey.NEW_AI_CHAT.readableCommand}</CommandShortcut>
                     </CommandItem>
                     <CommandItem
@@ -209,7 +197,7 @@ export const CommandPalette = observer(() => {
                         }
                     >
                         <Icons.Reload />
-                        <span>Restart Sandbox</span>
+                        <span>{t('restartSandbox')}</span>
                     </CommandItem>
                 </CommandGroup>
             </CommandList>

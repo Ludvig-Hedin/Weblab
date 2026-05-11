@@ -960,6 +960,64 @@
         "popupBlocked": "Ett popup-fönster blockerades. Tillåt popup-fönster för den här webbplatsen och försök igen."
     },
     "editor": {
+        "topBar": {
+            "profile": "Profil",
+            "undo": "Ångra",
+            "redo": "Gör om",
+            "connection": {
+                "offline": "Offline",
+                "offlinePending": "Offline · {count} väntande",
+                "syncing": "Synkar · {count}",
+                "syncErrors": "{count, plural, one {# synkfel} other {# synkfel}}",
+                "offlineTooltip": "Du är offline. Ändringar sparas lokalt och synkas vid återanslutning.",
+                "syncingTooltip": "Synkar offline-ändringar till molnet.",
+                "syncErrorsTooltip": "Vissa offline-ändringar misslyckades. Öppna offline-panelen från bannern i hörnet."
+            }
+        },
+        "commandPalette": {
+            "title": "Kommandopalett",
+            "description": "Kör ett kommando, byt läge eller hoppa till en sida.",
+            "placeholder": "Skriv ett kommando…",
+            "noResults": "Inga kommandon hittades.",
+            "headingSwitch": "Byt projekt",
+            "headingNavigate": "Navigera",
+            "headingMode": "Läge",
+            "headingActions": "Åtgärder",
+            "goToProjects": "Till projekt",
+            "goToSettings": "Till inställningar",
+            "openShortcuts": "Öppna tangentbordsgenvägar",
+            "switchToDesign": "Byt till designläge",
+            "switchToCode": "Byt till kodläge",
+            "switchToPreview": "Byt till förhandsgranskningsläge",
+            "toggleTerminal": "Växla terminal",
+            "insertElement": "Infoga element…",
+            "searchFiles": "Sök filer…",
+            "newChat": "Ny chatt",
+            "restartSandbox": "Starta om sandbox"
+        },
+        "shortcutsModal": {
+            "title": "Tangentbordsgenvägar",
+            "description": "De snabbaste redigeraråtgärderna i projektets arbetsyta.",
+            "customize": "Anpassa…",
+            "or": "eller",
+            "sections": {
+                "modes": "Lägen",
+                "navigation": "Navigering",
+                "panels": "Paneler",
+                "insert": "Infoga",
+                "canvas": "Canvas",
+                "layers": "Lager",
+                "editor": "Redigerare",
+                "ai": "AI"
+            },
+            "rows": {
+                "designMode": "Designläge",
+                "codeMode": "Kodläge",
+                "previewMode": "Förhandsgranskningsläge",
+                "bringForward": "Flytta fram",
+                "sendBackward": "Skicka bakåt"
+            }
+        },
         "modes": {
             "design": {
                 "name": "Design",
@@ -1609,33 +1667,33 @@
             }
         },
         "digitalSolutions": {
-            "titleLine1": "Digitala produkter",
-            "titleLine2": "användare älskar &",
-            "titleLine3": "team växer med",
-            "body": "Vill du skicka digitala upplevelser som folk faktiskt använder? Oavsett om det är en sajt som konverterar, en app som får dagliga öppningar eller AI-funktioner som drar sitt strå – tar vi dig hela vägen från idé till mätbar effekt.",
+            "titleLine1": "Byggt för jobbet",
+            "titleLine2": "mellan \"ser bra ut\"",
+            "titleLine3": "och \"det är live.\"",
+            "body": "När första skärmen ligger på canvasen börjar det riktiga arbetet. Multiplayer, branchning, innehåll, deploys — de delarna av leveransen som andra verktyg lämnar över, håller Weblab på ett ställe.",
             "startBuilding": "Börja bygga",
             "play": "Spela",
             "pause": "Pausa",
             "slides": {
-                "aiNative": {
-                    "eyebrow": "AI-integration",
-                    "title": "AI-native-produkter",
-                    "description": "Skicka AI-funktioner som användare faktiskt litar på. Vi hjälper dig koppla in OpenAI, Claude och Gemini med rätt skyddsräcken – så att värdet är på riktigt, inte en demo."
+                "collab": {
+                    "eyebrow": "Teamet på en canvas",
+                    "title": "Se varandra jobba, i realtid.",
+                    "description": "Live-pekare, närvaro och inline-kommentarer på riktiga komponenter. Nämn en kollega, lös en tråd och förvandla feedback till en commit utan att lämna canvasen."
                 },
-                "web": {
-                    "eyebrow": "Webbutveckling",
-                    "title": "Webb som konverterar",
-                    "description": "Marknadssidor, dashboards och SaaS-ytor byggda på en riktig kodbas – pixeltäta i designen, snabba i produktion och lätta för ditt team att fortsätta utveckla."
+                "branches": {
+                    "eyebrow": "Säkra experiment",
+                    "title": "Branscha canvasen som du branschar koden.",
+                    "description": "Testa en redesign på en branch, förhandsgranska den live, och merga bara när du är nöjd. Varje ändring är en checkpoint — återställ när som helst."
                 },
-                "apps": {
-                    "eyebrow": "Mobilutveckling",
-                    "title": "Appar folk öppnar",
-                    "description": "Native-känsliga iOS- och Android-appar från en delad kodbas. Tight UX, snabba lanseringar och ett team som skickar till varje enhet dina kunder använder."
+                "cms": {
+                    "eyebrow": "Innehåll, native",
+                    "title": "Redigera innehåll där du redigerar design.",
+                    "description": "Collections, fält och bindningar lever bredvid dina komponenter. Hämta från Payload, Strapi eller ett inbyggt lager — och skicka copy-ändringar utan en kodpush."
                 },
-                "brand": {
-                    "eyebrow": "Varumärke & design",
-                    "title": "Varumärkessystem som skalar",
-                    "description": "Ett levande designsystem istället för en statisk styleguide. Tokens, komponenter och mönster som dina designers och utvecklare delar – likadant på canvas och i kod."
+                "deploy": {
+                    "eyebrow": "Skicka till produktion",
+                    "title": "Publicera till en live-URL med ett klick.",
+                    "description": "Förhandsgranska varje branch på en egen URL. Promota till din egen domän när den är klar. Riktig kod, riktiga byggen, riktig produktion — inget exportsteg."
                 }
             }
         },

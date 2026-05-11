@@ -961,6 +961,64 @@
         "popupBlocked": "A popup was blocked. Please allow popups for this site and try again."
     },
     "editor": {
+        "topBar": {
+            "profile": "Profile",
+            "undo": "Undo",
+            "redo": "Redo",
+            "connection": {
+                "offline": "Offline",
+                "offlinePending": "Offline · {count} pending",
+                "syncing": "Syncing · {count}",
+                "syncErrors": "{count, plural, one {# sync error} other {# sync errors}}",
+                "offlineTooltip": "You're offline. Changes save locally and sync on reconnect.",
+                "syncingTooltip": "Syncing offline changes to the cloud.",
+                "syncErrorsTooltip": "Some offline changes failed. Open the offline panel from the corner banner."
+            }
+        },
+        "commandPalette": {
+            "title": "Command Palette",
+            "description": "Run a command, switch modes, or jump to a page.",
+            "placeholder": "Type a command…",
+            "noResults": "No commands found.",
+            "headingSwitch": "Switch project",
+            "headingNavigate": "Navigate",
+            "headingMode": "Mode",
+            "headingActions": "Actions",
+            "goToProjects": "Go to Projects",
+            "goToSettings": "Go to Settings",
+            "openShortcuts": "Open Keyboard Shortcuts",
+            "switchToDesign": "Switch to Design Mode",
+            "switchToCode": "Switch to Code Mode",
+            "switchToPreview": "Switch to Preview Mode",
+            "toggleTerminal": "Toggle Terminal",
+            "insertElement": "Insert Element…",
+            "searchFiles": "Search Files…",
+            "newChat": "New Chat",
+            "restartSandbox": "Restart Sandbox"
+        },
+        "shortcutsModal": {
+            "title": "Keyboard shortcuts",
+            "description": "The fastest editor actions available in the project workspace.",
+            "customize": "Customize…",
+            "or": "or",
+            "sections": {
+                "modes": "Modes",
+                "navigation": "Navigation",
+                "panels": "Panels",
+                "insert": "Insert",
+                "canvas": "Canvas",
+                "layers": "Layers",
+                "editor": "Editor",
+                "ai": "AI"
+            },
+            "rows": {
+                "designMode": "Design Mode",
+                "codeMode": "Code Mode",
+                "previewMode": "Preview Mode",
+                "bringForward": "Bring Forward",
+                "sendBackward": "Send Backward"
+            }
+        },
         "modes": {
             "design": {
                 "name": "Design",
@@ -1610,33 +1668,33 @@
             }
         },
         "digitalSolutions": {
-            "titleLine1": "Digital products",
-            "titleLine2": "users love &",
-            "titleLine3": "teams grow with",
-            "body": "Want to ship digital experiences people actually use? Whether it's a site that converts, an app that earns daily opens, or AI features that pull weight — we take you the full way from idea to measurable impact.",
+            "titleLine1": "Built for the work",
+            "titleLine2": "between \"looks good\"",
+            "titleLine3": "and \"it's live.\"",
+            "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys — the parts of shipping that other tools hand off, Weblab keeps in one place.",
             "startBuilding": "Start building",
             "play": "Play",
             "pause": "Pause",
             "slides": {
-                "aiNative": {
-                    "eyebrow": "AI Integration",
-                    "title": "AI-native products",
-                    "description": "Ship AI features users actually trust. We help you wire OpenAI, Claude, and Gemini into your product with the right guardrails — so the value is real, not a demo."
+                "collab": {
+                    "eyebrow": "Team on one canvas",
+                    "title": "See each other work, in real time.",
+                    "description": "Live cursors, presence, and inline comments on real components. Mention a teammate, resolve a thread, and turn feedback into a commit without leaving the canvas."
                 },
-                "web": {
-                    "eyebrow": "Web Development",
-                    "title": "Web that converts",
-                    "description": "Marketing sites, dashboards, and SaaS surfaces built on a real codebase — pixel-tight in design, fast in production, and easy for your team to keep shipping."
+                "branches": {
+                    "eyebrow": "Safe experiments",
+                    "title": "Branch the canvas like you branch the code.",
+                    "description": "Try a redesign on a branch, preview it live, and merge only when you're happy. Every change is a checkpoint — restore any time."
                 },
-                "apps": {
-                    "eyebrow": "Mobile Development",
-                    "title": "Apps people open",
-                    "description": "Native-feeling iOS and Android apps from one shared codebase. Tight UX, fast launches, and a single team that ships to every device your customers use."
+                "cms": {
+                    "eyebrow": "Content, native",
+                    "title": "Edit content where you edit design.",
+                    "description": "Collections, fields, and bindings live next to your components. Pull from Payload, Strapi, or a built-in store — and ship copy changes without a code push."
                 },
-                "brand": {
-                    "eyebrow": "Brand & Design",
-                    "title": "Brand systems that scale",
-                    "description": "A living design system instead of a static style guide. Tokens, components, and patterns your designers and developers share — the same on canvas and in code."
+                "deploy": {
+                    "eyebrow": "Ship to production",
+                    "title": "Publish to a live URL in one click.",
+                    "description": "Preview every branch on its own URL. Promote to your custom domain when it's ready. Real code, real builds, real production — no export step."
                 }
             }
         },
