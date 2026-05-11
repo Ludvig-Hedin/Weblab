@@ -83,10 +83,10 @@ function PromptOnCanvasAsset() {
                 </div>
             </div>
             {/* Divider */}
-            <div className="border-foreground-primary/8 border-t" aria-hidden />
+            <div className="border-foreground-primary/10 border-t" aria-hidden />
             {/* Prompt input region */}
             <div className="p-2.5">
-                <div className="bg-background border-foreground-primary/8 rounded-xl border px-3 py-2.5">
+                <div className="bg-background border-foreground-primary/10 rounded-xl border px-3 py-2.5">
                     {/* Typed prompt line */}
                     <div className="text-small text-foreground-primary min-h-[20px] leading-tight font-light tracking-tight">
                         {promptText}
@@ -198,10 +198,15 @@ function DesignToCodeAsset() {
                 </div>
             </div>
             {/* Divider */}
-            <div className="border-foreground-primary/8 border-t" aria-hidden />
+            <div className="border-foreground-primary/10 border-t" aria-hidden />
             {/* Code region */}
-            <div className="p-3">
-                <div className="text-foreground-quadranary mb-1.5 font-mono text-[10px] tracking-wider uppercase">
+            <div className="bg-background-secondary/30 p-3">
+                <div className="text-foreground-quadranary mb-1.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+                    <span
+                        className="h-1 w-1 rounded-full"
+                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        aria-hidden
+                    />
                     Button.tsx
                 </div>
                 <pre className="text-foreground-secondary text-mini font-mono leading-relaxed">

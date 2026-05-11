@@ -125,7 +125,7 @@ export function DigitalSolutionsSection() {
                 </div>
 
                 {/* Navigator row */}
-                <div className="mt-16 flex items-center justify-between gap-3">
+                <div className="mt-12 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <CarouselNavigator
                             totalSlides={slides.length}
@@ -158,7 +158,7 @@ export function DigitalSolutionsSection() {
             </div>
 
             {/* Carousel viewport — extends beyond container so neighboring cards peek */}
-            <div className="mt-8 select-none">
+            <div className="mt-6 select-none">
                 <motion.div
                     className="flex cursor-grab pr-[max(2rem,calc((100vw-72rem)/2+2rem))] pl-[max(2rem,calc((100vw-72rem)/2+2rem))] active:cursor-grabbing"
                     drag="x"
@@ -231,7 +231,7 @@ function SlideCard({
                     {slide.chips.map((chip) => (
                         <span
                             key={chip}
-                            className="border-foreground-primary/8 text-foreground-tertiary text-mini rounded-full border px-2 py-0.5 font-light tracking-tight"
+                            className="border-foreground-primary/10 text-foreground-tertiary text-mini rounded-full border px-2 py-0.5 font-light tracking-tight"
                         >
                             {chip}
                         </span>
@@ -271,8 +271,8 @@ function VisualChrome({
     children: React.ReactNode;
 }) {
     return (
-        <div className="border-foreground-primary/8 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
-            <div className="border-foreground-primary/8 flex items-center justify-between border-b px-3 py-2">
+        <div className="border-foreground-primary/10 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
                 <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                     {label}
                 </span>
@@ -335,7 +335,7 @@ function CollabVisual() {
         >
             <div className="flex h-full gap-3 p-3">
                 {/* Artboard 1 — selection */}
-                <div className="border-foreground-primary/8 bg-background relative flex-1 rounded-lg border p-3">
+                <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
                     <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
                         Home
                     </div>
@@ -357,13 +357,13 @@ function CollabVisual() {
                     <Cursor name="Alex" style={{ right: 22, bottom: 30 }} />
                 </div>
                 {/* Artboard 2 — comment */}
-                <div className="border-foreground-primary/8 bg-background relative flex-1 rounded-lg border p-3">
+                <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
                     <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
                         Pricing
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
-                        <div className="bg-foreground-primary/8 h-7 rounded" />
-                        <div className="bg-foreground-primary/8 h-7 rounded" />
+                        <div className="bg-foreground-primary/10 h-7 rounded" />
+                        <div className="bg-foreground-primary/10 h-7 rounded" />
                     </div>
                     <div className="mt-2 space-y-1">
                         <div className="bg-foreground-primary/15 h-1 w-2/3 rounded-full" />
@@ -377,7 +377,7 @@ function CollabVisual() {
                         2
                     </div>
                     {/* Thread popover */}
-                    <div className="border-foreground-primary/8 bg-background absolute right-2 bottom-2 left-2 rounded-lg border p-2">
+                    <div className="border-foreground-primary/10 bg-background absolute right-2 bottom-2 left-2 rounded-lg border p-2">
                         <div className="flex items-center gap-1.5">
                             <span
                                 className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-medium text-white"
@@ -421,8 +421,8 @@ function BranchesVisual() {
                 <div className="relative flex items-center gap-3">
                     <div className="border-foreground-primary bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
                     <div className="flex flex-1 items-center gap-2.5">
-                        <div className="border-foreground-primary/8 bg-background h-8 w-12 overflow-hidden rounded border">
-                            <div className="bg-foreground-primary/8 h-2" />
+                        <div className="border-foreground-primary/10 bg-background h-8 w-12 overflow-hidden rounded border">
+                            <div className="bg-foreground-primary/10 h-2" />
                             <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/4 rounded-full" />
                             <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/2 rounded-full" />
                         </div>
@@ -478,8 +478,8 @@ function BranchesVisual() {
                     <div className="border-foreground-primary/20 absolute top-1 left-1.5 h-4 w-4 rounded-bl-md border-b border-l" />
                     <div className="border-foreground-primary/20 bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
                     <div className="flex flex-1 items-center gap-2.5">
-                        <div className="border-foreground-primary/8 bg-background h-8 w-12 overflow-hidden rounded border">
-                            <div className="bg-foreground-primary/8 h-2" />
+                        <div className="border-foreground-primary/10 bg-background h-8 w-12 overflow-hidden rounded border">
+                            <div className="bg-foreground-primary/10 h-2" />
                             <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/5 rounded-full" />
                             <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/3 rounded-full" />
                         </div>
@@ -531,7 +531,7 @@ function CmsVisual() {
         >
             <div className="grid h-full grid-cols-[110px_1fr]">
                 {/* Collections sidebar */}
-                <div className="border-foreground-primary/8 bg-background/30 space-y-1 border-r p-2">
+                <div className="border-foreground-primary/10 bg-background/30 space-y-1 border-r p-2">
                     <div className="text-foreground-quadranary mb-1 px-2 font-mono text-[8px] tracking-wider uppercase">
                         Collections
                     </div>
@@ -566,7 +566,7 @@ function CmsVisual() {
                         {fields.map((f) => (
                             <div
                                 key={f.label}
-                                className="border-foreground-primary/8 bg-background rounded-md border px-2 py-1.5"
+                                className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5"
                             >
                                 <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
                                     {f.label}
@@ -576,7 +576,7 @@ function CmsVisual() {
                                 </div>
                             </div>
                         ))}
-                        <div className="border-foreground-primary/8 bg-background rounded-md border px-2 py-1.5">
+                        <div className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5">
                             <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
                                 Body
                             </div>
@@ -611,7 +611,7 @@ function DeployVisual() {
         >
             <div className="space-y-2.5 p-3">
                 {/* Active deploy card */}
-                <div className="border-foreground-primary/8 bg-background rounded-xl border p-3">
+                <div className="border-foreground-primary/10 bg-background rounded-xl border p-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="text-foreground-primary font-mono text-[10px] font-medium">
@@ -628,7 +628,7 @@ function DeployVisual() {
                             Live
                         </span>
                     </div>
-                    <div className="border-foreground-primary/8 bg-background-secondary/60 mt-2 flex items-center gap-1.5 rounded-md border px-2 py-1.5">
+                    <div className="border-foreground-primary/10 bg-background-secondary/60 mt-2 flex items-center gap-1.5 rounded-md border px-2 py-1.5">
                         <svg
                             width="10"
                             height="10"
@@ -646,14 +646,14 @@ function DeployVisual() {
                         <span className="text-foreground-secondary flex-1 truncate font-mono text-[9px]">
                             weblab.build/preview/7f3a
                         </span>
-                        <span className="border-foreground-primary/8 bg-background text-foreground-tertiary rounded border px-1.5 py-0.5 font-mono text-[8px]">
+                        <span className="border-foreground-primary/10 bg-background text-foreground-tertiary rounded border px-1.5 py-0.5 font-mono text-[8px]">
                             copy
                         </span>
                     </div>
                 </div>
 
                 {/* Build log */}
-                <div className="border-foreground-primary/8 bg-background-secondary/60 text-foreground-tertiary rounded-xl border p-3 font-mono text-[9px] leading-tight">
+                <div className="border-foreground-primary/10 bg-background-secondary/60 text-foreground-tertiary rounded-xl border p-3 font-mono text-[9px] leading-tight">
                     <div className="text-foreground-quadranary">$ bun run build</div>
                     <div className="text-foreground-secondary mt-0.5">✓ Compiled in 4.2s</div>
                     <div className="text-foreground-secondary mt-0.5">
@@ -678,13 +678,13 @@ function DeployVisual() {
 
                 {/* History */}
                 <div className="text-foreground-tertiary flex items-center gap-2 font-mono text-[9px]">
-                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                    <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.6
                     </span>
-                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                    <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.5
                     </span>
-                    <span className="border-foreground-primary/8 bg-background rounded border px-1.5 py-0.5">
+                    <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.4
                     </span>
                     <span className="text-foreground-quadranary">· domain weblab.build</span>

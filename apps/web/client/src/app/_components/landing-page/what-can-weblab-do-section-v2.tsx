@@ -63,7 +63,12 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                     reverse && 'md:[&>*:first-child]:order-2',
                 )}
             >
-                <div className="border-foreground-primary/8 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-8 md:border-b-0 md:p-12 md:[.md\\:order-2_~_&]:border-l">
+                <div
+                    className={cn(
+                        'border-foreground-primary/10 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-8 md:border-b-0 md:p-12',
+                        reverse && 'md:border-l',
+                    )}
+                >
                     <div className="flex w-full items-center justify-center">{visual}</div>
                 </div>
                 <div className="flex flex-col justify-center gap-4 p-8 md:p-12">
@@ -186,7 +191,7 @@ function BrandVisual() {
                     </div>
                 </div>
             ))}
-            <div className="border-foreground-primary/8 mt-1 flex items-center gap-2 border-t pt-3">
+            <div className="border-foreground-primary/10 mt-1 flex items-center gap-2 border-t pt-3">
                 <span
                     className="flex h-3.5 w-3.5 items-center justify-center rounded-full"
                     style={{ backgroundColor: BRAND_SOFT }}
@@ -225,7 +230,7 @@ function LayersVisual() {
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/8 flex items-center justify-between border-b px-2 pb-2">
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-2 pb-2">
                 <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                     {t('layersTitle')}
                 </span>
@@ -298,7 +303,7 @@ function RevisionVisual() {
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/8 flex items-center gap-2 border-b px-4 py-3">
+            <div className="border-foreground-primary/10 flex items-center gap-2 border-b px-4 py-3">
                 <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
                 <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                     {t('revisionToday')}
@@ -313,7 +318,7 @@ function RevisionVisual() {
                             type="button"
                             onClick={() => cycle.setIndex(idx)}
                             className={cn(
-                                'border-foreground-primary/8 relative flex items-center justify-between border-b px-4 py-3 text-left transition-colors last:border-b-0',
+                                'border-foreground-primary/10 relative flex items-center justify-between border-b px-4 py-3 text-left transition-colors last:border-b-0',
                                 isActive
                                     ? 'bg-foreground-primary/[0.04]'
                                     : 'hover:bg-foreground-primary/[0.02]',

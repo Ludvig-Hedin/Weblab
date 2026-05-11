@@ -167,8 +167,8 @@ function VisualFrame({
 
 function BrowserChrome({ url, children }: { url: string; children: React.ReactNode }) {
     return (
-        <div className="bg-background border-foreground-primary/8 w-full overflow-hidden rounded-lg border">
-            <div className="border-foreground-primary/8 flex items-center justify-center border-b px-3 py-2">
+        <div className="bg-background border-foreground-primary/10 w-full overflow-hidden rounded-lg border">
+            <div className="border-foreground-primary/10 flex items-center justify-center border-b px-3 py-2">
                 <div className="text-foreground-tertiary bg-foreground-primary/[0.04] flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[10px]">
                     <Icons.Globe className="h-2.5 w-2.5" />
                     {url}
@@ -318,7 +318,9 @@ function InternalToolsVisual() {
                         </div>
                         <div className="text-foreground-tertiary flex items-center gap-2 text-[10px]">
                             <span>Last 30 days</span>
-                            <span className="bg-foreground-primary/8 rounded px-1.5 py-0.5">▾</span>
+                            <span className="bg-foreground-primary/10 rounded px-1.5 py-0.5">
+                                ▾
+                            </span>
                         </div>
                     </div>
                     {/* Stats */}
@@ -402,7 +404,7 @@ function PrototypesVisual() {
                             {['Browse', 'Continue · Onboarding', 'Settings'].map((row, i) => (
                                 <div
                                     key={row}
-                                    className={`border-foreground-primary/8 flex items-center justify-between rounded-md border p-2 text-[10px] ${
+                                    className={`border-foreground-primary/10 flex items-center justify-between rounded-md border p-2 text-[10px] ${
                                         i === 1
                                             ? 'bg-foreground-primary/[0.06] ring-1 ring-[hsl(var(--foreground-brand)/0.6)]'
                                             : ''
@@ -451,7 +453,7 @@ function PrototypesVisual() {
                 />
             </svg>
             {/* Hotspot label */}
-            <div className="border-foreground-primary/8 bg-background/80 absolute top-6 left-6 flex items-center gap-1.5 rounded-full border px-2 py-1 backdrop-blur">
+            <div className="border-foreground-primary/10 bg-background/80 absolute top-6 left-6 flex items-center gap-1.5 rounded-full border px-2 py-1 backdrop-blur">
                 <span className="relative flex h-1.5 w-1.5">
                     <span className="absolute inset-0 animate-ping rounded-full bg-[hsl(var(--foreground-brand))] opacity-70" />
                     <span className="relative h-1.5 w-1.5 rounded-full bg-[hsl(var(--foreground-brand))]" />
@@ -479,9 +481,9 @@ function ProductionAppsVisual() {
     return (
         <VisualFrame accent="radial-gradient(circle at 70% 70%, rgba(99,102,241,0.10), transparent 55%)">
             <div className="absolute inset-x-8 top-10 bottom-10 flex items-center justify-center">
-                <div className="bg-background border-foreground-primary/8 w-full overflow-hidden rounded-lg border">
+                <div className="bg-background border-foreground-primary/10 w-full overflow-hidden rounded-lg border">
                     {/* Tabs */}
-                    <div className="border-foreground-primary/8 bg-background-secondary/60 flex items-center gap-1 border-b px-2 pt-1.5">
+                    <div className="border-foreground-primary/10 bg-background-secondary/60 flex items-center gap-1 border-b px-2 pt-1.5">
                         <Tab active>app/page.tsx</Tab>
                         <Tab>checkout.ts</Tab>
                         <Tab>schema.sql</Tab>
@@ -533,7 +535,7 @@ function ProductionAppsVisual() {
                 </div>
             </div>
             {/* PR toast */}
-            <div className="border-foreground-primary/8 bg-background absolute right-6 bottom-6 flex items-center gap-2 rounded-md border px-3 py-2">
+            <div className="border-foreground-primary/10 bg-background absolute right-6 bottom-6 flex items-center gap-2 rounded-md border px-3 py-2">
                 <div
                     className="flex h-5 w-5 items-center justify-center rounded-full"
                     style={{

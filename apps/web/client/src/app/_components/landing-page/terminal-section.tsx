@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 import type { TabContent, TerminalLine } from '@/components/ui/terminal-animation';
+import { Reveal } from '@/components/motion/reveal';
 import {
     TerminalAnimationBackgroundGradient,
     TerminalAnimationBlinkingCursor,
@@ -128,14 +129,14 @@ export function TerminalSection() {
         >
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-6 md:flex-row md:gap-16">
                 {/* Copy — left */}
-                <div className="w-full max-w-md text-left">
+                <Reveal className="w-full max-w-md text-left">
                     <h2 className="heading-style-h3 text-foreground-primary mb-4 tracking-tight text-balance">
                         {t('heading')}
                     </h2>
                     <p className="text-foreground-secondary max-w-sm text-base leading-relaxed font-light tracking-tight">
                         {t('body')}
                     </p>
-                </div>
+                </Reveal>
 
                 {/* Terminal — right */}
                 <div className="w-full flex-1">
