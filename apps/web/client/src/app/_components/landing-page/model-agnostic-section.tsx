@@ -89,6 +89,7 @@ function ModelPicker() {
     const t = useTranslations('landing.modelAgnostic.models');
     const [activeIndex, setActiveIndex] = useState(0);
     const [isHovering, setIsHovering] = useState(false);
+    const listRef = useRef<HTMLUListElement | null>(null);
     const rowRefs = useRef<Array<HTMLLIElement | null>>([]);
     const mountedRef = useRef(false);
 
@@ -101,14 +102,27 @@ function ModelPicker() {
         return () => clearInterval(id);
     }, [isHovering]);
 
-    // Auto-scroll active row into view when cycle advances (skip first mount + manual hover)
+    // Auto-scroll active row inside the list (NEVER scroll the page).
+    // scrollIntoView would bubble up to the window and hijack page scroll —
+    // scroll the <ul> directly via scrollTop math.
     useEffect(() => {
         if (!mountedRef.current) {
             mountedRef.current = true;
             return;
         }
         if (isHovering) return;
-        rowRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const ul = listRef.current;
+        const row = rowRefs.current[activeIndex];
+        if (!ul || !row) return;
+        const rowTop = row.offsetTop;
+        const rowBottom = rowTop + row.offsetHeight;
+        const viewTop = ul.scrollTop;
+        const viewBottom = viewTop + ul.clientHeight;
+        if (rowTop < viewTop) {
+            ul.scrollTo({ top: rowTop, behavior: 'smooth' });
+        } else if (rowBottom > viewBottom) {
+            ul.scrollTo({ top: rowBottom - ul.clientHeight, behavior: 'smooth' });
+        }
     }, [activeIndex, isHovering]);
 
     return (
@@ -117,7 +131,10 @@ function ModelPicker() {
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
         >
-            <ul className="[&::-webkit-scrollbar-thumb]:bg-foreground-primary/10 relative max-h-[320px] overflow-y-auto select-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+            <ul
+                ref={listRef}
+                className="[&::-webkit-scrollbar-thumb]:bg-foreground-primary/10 relative max-h-[320px] overflow-y-auto select-none [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+            >
                 {MODELS.map((m, idx) => {
                     const isActive = idx === activeIndex;
                     return (
