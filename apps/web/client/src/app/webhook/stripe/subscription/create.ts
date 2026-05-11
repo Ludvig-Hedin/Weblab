@@ -39,6 +39,18 @@ export const handleSubscriptionCreated = async (
 
     // Update or create subscription
     const [sub, rateLimit] = await db.transaction(async (tx) => {
+        // TODO(bug-hunt): Stripe webhooks are at-least-once. The subscription
+        // upsert below is idempotent (unique stripeSubscriptionItemId), but
+        // the rateLimits insert further down is NOT — it has no unique key
+        // and no onConflict clause, so a retried `customer.subscription.created`
+        // delivery inserts a duplicate row. `getSubscriptionUsage` SUMs all
+        // active rate_limits for the user (apps/web/client/src/server/api/routers/usage/index.ts:210),
+        // so a duplicate doubles the user's monthly message limit on first
+        // sign-up. The original comment ("cases have to be separated") matches
+        // the intended fix: split the path — only insert the rate_limit when
+        // the subscription row was actually new (e.g. SELECT first; INSERT
+        // both only on miss; on hit, UPDATE the subscription and skip the
+        // rate_limit insert).
         // If it does not exist then we create it and we create the rate limit.
         // The cases have to be separated because the code would otherwise add additional rate limits.
         const [data] = await tx

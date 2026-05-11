@@ -2029,3 +2029,38 @@ in `useStartProject`.
   (same pattern fork.ts uses at L213-214) and thread it through
   `createFromGitHub` as an explicit `port` input. TODO comment added
   to manager.ts.
+
+
+## Bug Hunt — 2026-05-11 (main user flows)
+
+Scope: end-to-end audit of auth, project creation, editor, AI chat,
+publish/billing flows. Files reviewed: ~20 critical-path modules.
+
+### Auto-fixed (0 issues)
+
+(none — all findings touch billing logic and warrant human review)
+
+### Needs human review (1 issue)
+
+- `apps/web/client/src/app/webhook/stripe/subscription/create.ts:41-94`
+  — `handleSubscriptionCreated` upserts the subscription row with
+  `onConflictDoUpdate` (idempotent on the unique
+  `stripeSubscriptionItemId`), but then unconditionally inserts a row
+  into `rate_limits` with no unique key and no `onConflict` clause.
+  Stripe webhooks are at-least-once delivery (Stripe retries on
+  timeouts or non-2xx). A retried `customer.subscription.created`
+  delivery therefore inserts a **duplicate `rate_limits` row** for the
+  same period. `getSubscriptionUsage`
+  (`apps/web/client/src/server/api/routers/usage/index.ts:209-222`)
+  SUMs `max` and `left` across all active rate-limit rows for the
+  user — a duplicate row doubles the user's billed monthly message
+  limit on first sign-up. The original code comment ("the cases have
+  to be separated because the code would otherwise add additional
+  rate limits") matches the intended fix: split the path — `SELECT`
+  the subscription first; on miss INSERT both subscription and rate
+  limit, on hit UPDATE the subscription and skip the rate-limit
+  insert. TODO comment added inline.
+  Risk: silent credit over-grant for any user whose initial Stripe
+  webhook is retried (timeouts, deploys mid-delivery, etc.).
+  Severity: high — direct billing impact, hard to detect without
+  manually inspecting rate_limits rows.
