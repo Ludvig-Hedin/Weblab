@@ -23,6 +23,7 @@ interface CodeEditorAreaProps {
     onCancelUnsaved: () => void;
     fileCountToClose?: number;
     onSelectionChange?: (selection: { from: number; to: number; text: string } | null) => void;
+    onCursorChange?: (info: { line: number; column: number; selectionLength: number }) => void;
     onAddSelectionToChat?: (selection: { from: number; to: number; text: string }) => void;
     onFocusChatInput?: () => void;
 }
@@ -40,6 +41,7 @@ export const CodeEditorArea = ({
     onCancelUnsaved,
     fileCountToClose,
     onSelectionChange,
+    onCursorChange,
     onAddSelectionToChat,
     onFocusChatInput,
 }: CodeEditorAreaProps) => {
@@ -74,6 +76,9 @@ export const CodeEditorArea = ({
                                 pathsEqual(activeFile?.path, file.path)
                                     ? onSelectionChange
                                     : undefined
+                            }
+                            onCursorChange={
+                                pathsEqual(activeFile?.path, file.path) ? onCursorChange : undefined
                             }
                             onAddSelectionToChat={
                                 pathsEqual(activeFile?.path, file.path)

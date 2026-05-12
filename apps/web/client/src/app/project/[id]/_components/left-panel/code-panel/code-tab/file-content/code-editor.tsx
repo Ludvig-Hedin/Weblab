@@ -49,6 +49,7 @@ interface CodeEditorProps {
     onSaveFile: () => Promise<void>;
     onUpdateFileContent: (fileId: string, content: string) => void;
     onSelectionChange?: (selection: { from: number; to: number; text: string } | null) => void;
+    onCursorChange?: (info: { line: number; column: number; selectionLength: number }) => void;
     onAddSelectionToChat?: (selection: { from: number; to: number; text: string }) => void;
     onFocusChatInput?: () => void;
 }
@@ -62,6 +63,7 @@ export const CodeEditor = observer(
         onSaveFile,
         onUpdateFileContent,
         onSelectionChange,
+        onCursorChange,
         onAddSelectionToChat,
         onFocusChatInput,
     }: CodeEditorProps) => {
@@ -89,6 +91,16 @@ export const CodeEditor = observer(
         const selectionExtension = useMemo(() => {
             return [
                 EditorView.updateListener.of((update: ViewUpdate) => {
+                    if (update.selectionSet || update.docChanged) {
+                        const selection = update.state.selection.main;
+                        const doc = update.state.doc;
+                        const lineObj = doc.lineAt(selection.head);
+                        onCursorChange?.({
+                            line: lineObj.number,
+                            column: selection.head - lineObj.from + 1,
+                            selectionLength: Math.abs(selection.to - selection.from),
+                        });
+                    }
                     if (update.selectionSet) {
                         const selection = update.state.selection.main;
                         const selectedText = update.state.sliceDoc(selection.from, selection.to);
@@ -158,7 +170,7 @@ export const CodeEditor = observer(
                     },
                 ]),
             ];
-        }, [onSelectionChange, onAddSelectionToChat, onFocusChatInput]);
+        }, [onSelectionChange, onCursorChange, onAddSelectionToChat, onFocusChatInput]);
 
         const onCreateEditor = (editor: EditorView) => {
             editorViewsRef.current?.set(file.path, editor);
@@ -293,7 +305,8 @@ export const CodeEditor = observer(
                 lastNavigationTargetRef.current = navigationTarget;
                 handleNavigation(editor, navigationTarget);
             }
-        }, [navigationTarget, isActive, file.type, file.path, editorViewsRef.current]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [navigationTarget, isActive, file.type, file.path]);
 
         const handleNavigation = (editor: EditorView, target: CodeNavigationTarget) => {
             const { range } = target;
@@ -372,7 +385,7 @@ export const CodeEditor = observer(
                                     theme="dark"
                                     extensions={[
                                         ...getBasicSetup(onSaveFile),
-                                        ...getExtensions(file.path.split('.').pop() || ''),
+                                        ...getExtensions(getLanguageFromFileName(file.path)),
                                         ...selectionExtension,
                                     ]}
                                     onChange={(value) => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -38,6 +38,9 @@ export const UploadModal = ({
     const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    // dragenter/dragleave fire for every descendant; a counter is the only
+    // way to know when the drag truly left the drop zone without flicker.
+    const dragDepthRef = useRef(0);
 
     // Update currentPath when basePath prop changes
     useEffect(() => {
@@ -50,6 +53,7 @@ export const UploadModal = ({
 
     const handleDrop = useCallback((event: React.DragEvent) => {
         event.preventDefault();
+        dragDepthRef.current = 0;
         setIsDragging(false);
         const files = event.dataTransfer.files;
         if (files.length > 0) {
@@ -58,13 +62,21 @@ export const UploadModal = ({
     }, []);
 
     const handleDragOver = useCallback((event: React.DragEvent) => {
+        // dragover must be prevented to allow drop; do NOT toggle state here
+        // (fires every ~16ms and causes the flicker we're trying to kill).
         event.preventDefault();
-        setIsDragging(true);
+    }, []);
+
+    const handleDragEnter = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        dragDepthRef.current += 1;
+        if (dragDepthRef.current === 1) setIsDragging(true);
     }, []);
 
     const handleDragLeave = useCallback((event: React.DragEvent) => {
         event.preventDefault();
-        setIsDragging(false);
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setIsDragging(false);
     }, []);
 
     const handleSubmit = async () => {
@@ -175,6 +187,7 @@ export const UploadModal = ({
                             )}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
+                            onDragEnter={handleDragEnter}
                             onDragLeave={handleDragLeave}
                             onClick={() => document.getElementById('file-upload')?.click()}
                         >

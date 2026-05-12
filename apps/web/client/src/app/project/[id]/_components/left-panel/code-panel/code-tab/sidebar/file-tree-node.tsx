@@ -75,31 +75,21 @@ export const FileTreeNode = ({
     };
 
     useEffect(() => {
+        if (!isEditing) return;
         const input = inputRef.current;
-        if (!input) {
-            return;
-        }
+        if (!input) return;
 
-        if (!isEditing) {
-            return;
-        }
-
-        // Don't focus if already focused
-        if (document.activeElement === input) {
-            return;
-        }
+        if (document.activeElement === input) return;
 
         input.focus();
         const filename = node.data.name;
         const lastDotIndex = filename.lastIndexOf('.');
         if (lastDotIndex > 0 && !isDirectory) {
-            // Select from start to before the last dot (extension)
-            input?.setSelectionRange(0, lastDotIndex);
+            input.setSelectionRange(0, lastDotIndex);
         } else {
-            // If no extension or is directory, select all
-            input?.select();
+            input.select();
         }
-    }, [inputRef.current]);
+    }, [isEditing, isDirectory, node.data.name]);
 
     const handleBlur = () => {
         const trimmed = editingName.trim();

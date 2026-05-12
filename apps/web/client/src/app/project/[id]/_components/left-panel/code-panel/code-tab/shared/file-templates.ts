@@ -40,7 +40,7 @@ export default function ${componentName}({ className, children }: ${componentNam
     // Add your interface properties here
 }
 
-export defaultfunction ${functionName}(options?: ${functionName}Options): void {
+export default function ${functionName}(options?: ${functionName}Options): void {
     // Add your logic here
 }
 `;

@@ -12,7 +12,7 @@ import {
 import { motion } from 'motion/react';
 
 import { useDirectory, useFile } from '@weblab/file-system/hooks';
-import { MessageContextType } from '@weblab/models';
+import { EditorMode, MessageContextType } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 import { pathsEqual } from '@weblab/utility';
 
@@ -27,6 +27,7 @@ import { CodeControls } from './header-controls';
 import { useCodeNavigation } from './hooks/use-code-navigation';
 import { isDirty } from './shared/utils';
 import { FileTree } from './sidebar/file-tree';
+import { StatusBar } from './status-bar';
 
 // Keep the number of opened files below the soft limit to avoid performance issues
 const SOFT_MAX_OPENED_FILES = 7;
@@ -77,7 +78,10 @@ export const CodeTab = memo(
         const editorViewsRef = useRef<Map<string, EditorView>>(new Map());
         // Pending scroll-to-search-term request from the file-tree search.
         // Resolved by the effect below once the EditorView for the file mounts.
-        const pendingScrollTermRef = useRef<{ filePath: string; term: string } | null>(null);
+        const pendingScrollTermRef = useRef<{
+            filePath: string;
+            term: string;
+        } | null>(null);
         const navigationTarget = useCodeNavigation();
 
         const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
@@ -85,6 +89,11 @@ export const CodeTab = memo(
         const [openedEditorFiles, setOpenedEditorFiles] = useState<EditorFile[]>([]);
         const openedEditorFilesRef = useRef<EditorFile[]>([]);
         openedEditorFilesRef.current = openedEditorFiles;
+        // Monotonic id assigned to each loadedContent processing pass so a
+        // slow load can't overwrite state set by a faster, later load.
+        const processFileSeqRef = useRef(0);
+        // Last-closed file paths for Cmd+Shift+T reopen (LIFO, capped).
+        const recentlyClosedRef = useRef<string[]>([]);
         const [showLocalUnsavedDialog, setShowLocalUnsavedDialog] = useState(false);
         const [filesToClose, setFilesToClose] = useState<string[]>([]);
         const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -93,6 +102,12 @@ export const CodeTab = memo(
             to: number;
             text: string;
         } | null>(null);
+        const [cursorInfo, setCursorInfo] = useState<{
+            line: number;
+            column: number;
+            selectionLength: number;
+        } | null>(null);
+        const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
         // This is a workaround to allow code controls to access the hasUnsavedChanges state
         const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -109,11 +124,18 @@ export const CodeTab = memo(
         useEffect(() => {
             if (!selectedFilePath || !loadedContent) return;
 
+            const seq = ++processFileSeqRef.current;
+            const targetPath = selectedFilePath;
+
+            const isStale = () =>
+                seq !== processFileSeqRef.current || !pathsEqual(targetPath, selectedFilePath);
+
             const processFile = async () => {
-                const newLocalFile = await createEditorFile(selectedFilePath, loadedContent);
+                const newLocalFile = await createEditorFile(targetPath, loadedContent);
+                if (isStale()) return;
                 const currentFiles = openedEditorFilesRef.current;
                 const existingFileIndex = currentFiles.findIndex((f) =>
-                    pathsEqual(f.path, selectedFilePath),
+                    pathsEqual(f.path, targetPath),
                 );
 
                 if (existingFileIndex >= 0) {
@@ -132,6 +154,7 @@ export const CodeTab = memo(
                 if (!existingFile) return;
 
                 const updatedFile = createUpdatedFile(existingFile, newFile);
+                if (isStale()) return;
                 const updatedFiles = [...currentFiles];
                 updatedFiles[index] = updatedFile;
 
@@ -148,16 +171,24 @@ export const CodeTab = memo(
                             dirty: await isDirty(file),
                         })),
                     );
+                    if (isStale()) return;
 
-                    // Find first non-dirty file
-                    const fileToClose = dirtyChecks.find((check) => !check.dirty)?.file;
+                    // Find first non-dirty file (not the one we're about to open)
+                    const fileToClose = dirtyChecks.find(
+                        (check) => !check.dirty && !pathsEqual(check.file.path, newFile.path),
+                    )?.file;
 
                     if (fileToClose) {
                         closeFileInternal(fileToClose.path);
                     }
                 }
 
-                setOpenedEditorFiles((prev) => [...prev, newFile]);
+                if (isStale()) return;
+                setOpenedEditorFiles((prev) => {
+                    // Re-check inside updater to handle concurrent inserts.
+                    if (prev.some((f) => pathsEqual(f.path, newFile.path))) return prev;
+                    return [...prev, newFile];
+                });
                 setActiveEditorFile(newFile);
             };
 
@@ -194,19 +225,24 @@ export const CodeTab = memo(
 
         // Track dirty state of opened files
         useEffect(() => {
+            let cancelled = false;
             const checkDirtyState = async () => {
                 if (openedEditorFiles.length === 0) {
-                    setHasUnsavedChanges(false);
+                    if (!cancelled) setHasUnsavedChanges(false);
                     return;
                 }
 
                 const dirtyChecks = await Promise.all(
                     openedEditorFiles.map((file) => isDirty(file)),
                 );
+                if (cancelled) return;
                 setHasUnsavedChanges(dirtyChecks.some((dirty) => dirty));
             };
 
-            checkDirtyState();
+            void checkDirtyState();
+            return () => {
+                cancelled = true;
+            };
         }, [openedEditorFiles]);
 
         const [refreshKey, setRefreshKey] = useState(0);
@@ -317,6 +353,7 @@ export const CodeTab = memo(
                     );
                     setOpenedEditorFiles(updatedFiles);
                     setActiveEditorFile(formattedFile);
+                    setLastSavedAt(Date.now());
 
                     // Restore scroll position after content update with multiple attempts to ensure it sticks
                     if (scrollPos && editorView) {
@@ -433,6 +470,12 @@ export const CodeTab = memo(
                 editorView.destroy();
                 editorViewsRef.current.delete(filePath);
             }
+
+            // Remember this path for Mod+Shift+T reopen (LIFO, cap 10).
+            recentlyClosedRef.current = [
+                filePath,
+                ...recentlyClosedRef.current.filter((p) => !pathsEqual(p, filePath)),
+            ].slice(0, 10);
 
             setOpenedEditorFiles((prev) => {
                 const updatedFiles = prev.filter((f) => !pathsEqual(f.path, filePath));
@@ -654,6 +697,54 @@ export const CodeTab = memo(
             };
         }, []);
 
+        // Code-tab keyboard shortcuts. Browser-reserved chords (Cmd+W, Cmd+T)
+        // are deliberately avoided — we use Cmd+\ to close and Cmd+Shift+T
+        // (works while focus is in the editor; the browser ignores it then).
+        useEffect(() => {
+            const handler = (e: KeyboardEvent) => {
+                if (editorEngine.state.editorMode !== EditorMode.CODE) return;
+                // Don't fight typing inside non-code inputs (modals, search).
+                const target = e.target as HTMLElement | null;
+                const inFreeInput =
+                    target &&
+                    (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') &&
+                    !target.closest('.cm-editor');
+                const mod = e.metaKey || e.ctrlKey;
+                if (!mod) return;
+
+                // Cmd+\ — close active tab
+                if (!e.shiftKey && !e.altKey && e.key === '\\') {
+                    const active = activeEditorFile;
+                    if (!active) return;
+                    e.preventDefault();
+                    closeLocalFile(active.path);
+                    return;
+                }
+                // Cmd+Shift+T — reopen most recently closed
+                if (e.shiftKey && !e.altKey && (e.key === 'T' || e.key === 't')) {
+                    const next = recentlyClosedRef.current.shift();
+                    if (!next) return;
+                    e.preventDefault();
+                    setSelectedFilePath(next);
+                    return;
+                }
+                // Cmd+Alt+ArrowRight / ArrowLeft — next / prev tab
+                if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+                    if (inFreeInput) return;
+                    const files = openedEditorFilesRef.current;
+                    if (files.length < 2 || !activeEditorFile) return;
+                    e.preventDefault();
+                    const idx = files.findIndex((f) => pathsEqual(f.path, activeEditorFile.path));
+                    const delta = e.key === 'ArrowRight' ? 1 : -1;
+                    const next = files[(idx + delta + files.length) % files.length];
+                    if (next) handleLocalFileTabSelect(next);
+                }
+            };
+            window.addEventListener('keydown', handler);
+            return () => window.removeEventListener('keydown', handler);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [activeEditorFile, editorEngine.state.editorMode]);
+
         // Handle adding file to chat
         const handleAddFileToChat = useCallback(
             async (filePath: string) => {
@@ -756,8 +847,15 @@ export const CodeTab = memo(
                             }}
                             fileCountToClose={filesToClose.length}
                             onSelectionChange={setEditorSelection}
+                            onCursorChange={setCursorInfo}
                             onAddSelectionToChat={handleAddSelectionToChat}
                             onFocusChatInput={() => editorEngine.chat.focusChatInput()}
+                        />
+                        <StatusBar
+                            activeFile={activeEditorFile}
+                            cursorInfo={cursorInfo}
+                            hasUnsavedChanges={hasUnsavedChanges}
+                            lastSavedAt={lastSavedAt}
                         />
                     </div>
                 </div>

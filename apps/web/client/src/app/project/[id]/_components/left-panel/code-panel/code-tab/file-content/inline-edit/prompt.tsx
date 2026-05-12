@@ -116,13 +116,32 @@ export const InlineEditPrompt = ({
             projectId,
         });
 
+        const abortableDelay = (ms: number, signal: AbortSignal) =>
+            new Promise<void>((resolve, reject) => {
+                if (signal.aborted) {
+                    reject(new DOMException('Aborted', 'AbortError'));
+                    return;
+                }
+                const timeoutId = setTimeout(() => {
+                    signal.removeEventListener('abort', onAbort);
+                    resolve();
+                }, ms);
+                const onAbort = () => {
+                    clearTimeout(timeoutId);
+                    reject(new DOMException('Aborted', 'AbortError'));
+                };
+                signal.addEventListener('abort', onAbort, { once: true });
+            });
+
         let lastErr: string | null = null;
         for (let attempt = 0; attempt < 2; attempt++) {
             if (ctrl.signal.aborted) return;
             if (attempt > 0) {
-                // Brief pause before the one allowed retry.
-                await new Promise((r) => setTimeout(r, 500));
-                if (ctrl.signal.aborted) return;
+                try {
+                    await abortableDelay(500, ctrl.signal);
+                } catch {
+                    return;
+                }
                 editor.dispatch({
                     effects: updateInlineEditEffect.of({
                         streaming: true,
@@ -144,7 +163,6 @@ export const InlineEditPrompt = ({
                         .json()
                         .then((j: { error?: string }) => j.error)
                         .catch(() => 'Request failed');
-                    // Don't retry on auth / rate-limit errors.
                     if (res.status === 401 || res.status === 429) {
                         editor.dispatch({
                             effects: updateInlineEditEffect.of({
@@ -163,13 +181,19 @@ export const InlineEditPrompt = ({
                 let buffer = '';
 
                 while (true) {
+                    if (ctrl.signal.aborted) {
+                        await reader.cancel().catch(() => {});
+                        return;
+                    }
                     const { value, done } = await reader.read();
                     if (done) break;
+                    if (ctrl.signal.aborted) return;
                     buffer += decoder.decode(value, { stream: true });
                     editor.dispatch({
                         effects: updateInlineEditEffect.of({ preview: buffer }),
                     });
                 }
+                if (ctrl.signal.aborted) return;
                 editor.dispatch({
                     effects: updateInlineEditEffect.of({ streaming: false }),
                 });
@@ -180,6 +204,7 @@ export const InlineEditPrompt = ({
             }
         }
 
+        if (ctrl.signal.aborted) return;
         editor.dispatch({
             effects: updateInlineEditEffect.of({
                 streaming: false,

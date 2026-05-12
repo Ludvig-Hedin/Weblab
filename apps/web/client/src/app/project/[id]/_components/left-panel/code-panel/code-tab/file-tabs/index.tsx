@@ -31,28 +31,31 @@ export const FileTabs = ({
 }: FileTabsProps) => {
     const ref = useRef<HTMLDivElement>(null);
 
-    // Scroll to active tab when it changes
+    // Scroll to active tab when it changes — wait one paint via rAF so the
+    // new tab has its final layout, then scroll. Smoother than a fixed
+    // setTimeout and cancellable if the active file flips again first.
     useEffect(() => {
         const container = ref.current;
         if (!container || !activeFile?.path) return;
 
-        // Wait for the file tabs to be rendered
-        setTimeout(() => {
+        const rafId = requestAnimationFrame(() => {
             const activeTab = container.querySelector('[data-active="true"]');
-            if (activeTab) {
-                const containerRect = container.getBoundingClientRect();
-                const tabRect = activeTab.getBoundingClientRect();
-
-                // Calculate if the tab is outside the visible area
-                if (tabRect.left < containerRect.left) {
-                    // Tab is to the left of the visible area
-                    container.scrollLeft += tabRect.left - containerRect.left;
-                } else if (tabRect.right > containerRect.right) {
-                    // Tab is to the right of the visible area
-                    container.scrollLeft += tabRect.right - containerRect.right;
-                }
+            if (!activeTab) return;
+            const containerRect = container.getBoundingClientRect();
+            const tabRect = activeTab.getBoundingClientRect();
+            if (tabRect.left < containerRect.left) {
+                container.scrollTo({
+                    left: container.scrollLeft + tabRect.left - containerRect.left,
+                    behavior: 'smooth',
+                });
+            } else if (tabRect.right > containerRect.right) {
+                container.scrollTo({
+                    left: container.scrollLeft + tabRect.right - containerRect.right,
+                    behavior: 'smooth',
+                });
             }
-        }, 100);
+        });
+        return () => cancelAnimationFrame(rafId);
     }, [activeFile?.path]);
 
     return (

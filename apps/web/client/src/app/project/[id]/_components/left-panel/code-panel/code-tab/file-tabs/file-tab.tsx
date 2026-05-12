@@ -22,7 +22,7 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
 
     useEffect(() => {
         isDirty(file).then(setIsFileDirty);
-    }, [file.path, file.content, file.type, file.type === 'text' ? file.originalHash : null]);
+    }, [file.path, file.content, file.type, file.originalHash]);
 
     return (
         <div
@@ -34,6 +34,13 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
                 isActive && 'bg-background-bar-active',
             )}
             data-active={dataActive}
+            title={file.path}
+            onMouseDown={(e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    onClose?.();
+                }
+            }}
         >
             <div className="bg-border-tab-divider absolute top-1/2 right-0 h-[50%] w-[0.5px] -translate-y-1/2"></div>
             <div className="relative flex h-full items-center overflow-hidden">
