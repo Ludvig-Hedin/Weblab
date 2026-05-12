@@ -16,6 +16,11 @@ export async function isLocalhostClient(): Promise<boolean> {
     return isLocalhost();
 }
 
+export async function getRepoRoot(): Promise<string> {
+    // apps/web/client is the cwd at runtime; repo root is three levels up.
+    return path.resolve(process.cwd(), '../../..');
+}
+
 interface ApplyPayload {
     overrides: Record<string, string>;
     radiusScale: number;

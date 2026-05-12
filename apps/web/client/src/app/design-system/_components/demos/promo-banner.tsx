@@ -1,8 +1,7 @@
 'use client';
 
-import { PromoBanner } from '@/app/_components/promo-banner';
 import type { PromoBanner as PromoBannerConfig } from '@/lib/promo-banners';
-
+import { PromoBanner } from '@/app/_components/promo-banner';
 import { Section } from '../section';
 
 const PREVIEW_BANNER: PromoBannerConfig = {
@@ -29,7 +28,8 @@ export function PromoBannerDemo() {
             <div className="space-y-3">
                 <p className="text-foreground-tertiary text-xs">
                     Sticky announcement bar rendered above the TopBar on marketing pages. Config
-                    lives in <code className="text-foreground-secondary">src/lib/promo-banners.ts</code>.
+                    lives in{' '}
+                    <code className="text-foreground-secondary">src/lib/promo-banners.ts</code>.
                     Visibility is driven by <code>enabled</code> + the <code>startsAt</code>/
                     <code>endsAt</code> window. Dismissals persist in localStorage per banner ID.
                 </p>

@@ -66,7 +66,8 @@ export function MotionDemo() {
                                 cls,
                             )}
                             style={{
-                                transitionDuration: `var(--ds-anim-duration, 200ms)`,
+                                transitionDuration: `var(--ds-anim-duration, 300ms)`,
+                                transitionTimingFunction: 'ease-in-out',
                                 transitionProperty: prop,
                             }}
                         >
@@ -78,7 +79,7 @@ export function MotionDemo() {
                             className="text-foreground-tertiary h-5 w-5 animate-spin"
                             style={
                                 {
-                                    animationDuration: `var(--ds-anim-duration, 200ms)`,
+                                    animationDuration: `var(--ds-anim-duration, 300ms)`,
                                 } as React.CSSProperties
                             }
                         />
@@ -87,7 +88,7 @@ export function MotionDemo() {
                 </div>
                 <p className="text-foreground-tertiary mt-3 text-xs">
                     Duration:{' '}
-                    <span className="font-mono">{Math.round(transitionSpeed * 200)}ms</span>
+                    <span className="font-mono">{Math.round(transitionSpeed * 300)}ms</span>
                 </p>
             </Section>
 

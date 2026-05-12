@@ -3,12 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-import { BrandLogo, BrandWordmark } from '@weblab/ui/brand';
-import { Separator } from '@weblab/ui/separator';
+import { BrandWordmark } from '@weblab/ui/brand';
 import { Skeleton } from '@weblab/ui/skeleton';
 import { Toaster } from '@weblab/ui/sonner';
 import { TooltipProvider } from '@weblab/ui/tooltip';
-import { cn } from '@weblab/ui/utils';
 
 import { ControlBar } from './_components/control-bar';
 import { AccordionsDemo } from './_components/demos/accordions';
@@ -18,9 +16,11 @@ import { BrandDemo } from './_components/demos/brand';
 import { ButtonsDemo } from './_components/demos/buttons';
 import { ChatDemo } from './_components/demos/chat';
 import { ColorsDemo } from './_components/demos/colors';
+import { ComboboxDemo } from './_components/demos/combobox';
 import { ControlsDemo } from './_components/demos/controls';
 import { DataDisplayDemo } from './_components/demos/data-display';
 import { FeedbackDemo } from './_components/demos/feedback';
+import { FormsDemo } from './_components/demos/forms';
 import { InputsDemo } from './_components/demos/inputs';
 import { KeyboardDemo } from './_components/demos/keyboard';
 import { LayoutDemo } from './_components/demos/layout';
@@ -33,11 +33,14 @@ import { SelectionDemo } from './_components/demos/selection';
 import { SpacingDemo } from './_components/demos/spacing';
 import { TabsDemo } from './_components/demos/tabs';
 import { TypographyDemo } from './_components/demos/typography';
+import { DesignSidebar } from './_components/design-sidebar';
+import { GroupHeader } from './_components/group-header';
 import { InspectorSheet } from './_components/inspector/inspector-sheet';
 import {
     EditModeProvider,
     InspectorProvider,
     OverridesProvider,
+    RepoRootProvider,
     useOverrides,
 } from './_components/overrides-context';
 
@@ -64,50 +67,296 @@ const AIElementsDemo = dynamic(
     { ssr: false, loading: () => lazyFallback },
 );
 
-const NAV_ITEMS = [
-    { label: 'Colors', id: 'colors' },
-    { label: 'Typography', id: 'typography' },
-    { label: 'Radius', id: 'radius' },
-    { label: 'Spacing', id: 'spacing' },
-    { label: 'Buttons', id: 'buttons' },
-    { label: 'Badges', id: 'badges' },
-    { label: 'Avatars', id: 'avatars' },
-    { label: 'Inputs', id: 'inputs' },
-    { label: 'Controls', id: 'controls' },
-    { label: 'Selection', id: 'selection' },
-    { label: 'Overlays', id: 'overlays' },
-    { label: 'Menus', id: 'menus' },
-    { label: 'Tabs', id: 'tabs' },
-    { label: 'Accordions', id: 'accordions' },
-    { label: 'Layout', id: 'layout' },
-    { label: 'Data', id: 'data' },
-    { label: 'Feedback', id: 'feedback' },
-    { label: 'Motion', id: 'motion' },
-    { label: 'Keyboard', id: 'keyboard' },
-    { label: 'Command', id: 'command' },
-    { label: 'Calendar', id: 'calendar' },
-    { label: 'Chart', id: 'chart' },
-    { label: 'Color picker', id: 'color-picker' },
-    { label: 'AI elements', id: 'ai-elements' },
-    { label: 'Chat', id: 'chat' },
-    { label: 'Brand', id: 'brand' },
-    { label: 'Promo banner', id: 'promo-banner' },
+interface GroupSpec {
+    id: string;
+    label: string;
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+    filePath?: string;
+}
+
+const GROUPS: (GroupSpec & { Demo: React.ComponentType })[] = [
+    {
+        id: 'colors',
+        label: 'Colors',
+        eyebrow: 'Tokens',
+        title: 'Colors',
+        description: 'Semantic, surface, and palette tokens. Click any swatch to edit live.',
+        filePath: 'packages/ui/src/globals.css',
+        Demo: ColorsDemo,
+    },
+    {
+        id: 'typography',
+        label: 'Typography',
+        eyebrow: 'Tokens',
+        title: 'Typography',
+        description: 'App + marketing scales, weights, leading, and tracking.',
+        filePath: 'packages/ui/src/globals.css',
+        Demo: TypographyDemo,
+    },
+    {
+        id: 'radius',
+        label: 'Radius',
+        eyebrow: 'Tokens',
+        title: 'Radius',
+        description: 'Corner radius scale and global multiplier.',
+        filePath: 'packages/ui/src/globals.css',
+        Demo: RadiusDemo,
+    },
+    {
+        id: 'spacing',
+        label: 'Spacing',
+        eyebrow: 'Tokens',
+        title: 'Spacing',
+        description: '4px-based scale used across the product.',
+        Demo: SpacingDemo,
+    },
+    {
+        id: 'buttons',
+        label: 'Buttons',
+        eyebrow: 'Actions',
+        title: 'Buttons',
+        description: 'Every variant, size, and state of the primary action component.',
+        filePath: 'packages/ui/src/components/button.tsx',
+        Demo: ButtonsDemo,
+    },
+    {
+        id: 'badges',
+        label: 'Badges',
+        eyebrow: 'Status',
+        title: 'Badges',
+        description: 'Compact status, count, and label affordances.',
+        filePath: 'packages/ui/src/components/badge.tsx',
+        Demo: BadgesDemo,
+    },
+    {
+        id: 'avatars',
+        label: 'Avatars',
+        eyebrow: 'Identity',
+        title: 'Avatars',
+        description: 'User and entity avatars, sizes, fallbacks, and groups.',
+        filePath: 'packages/ui/src/components/avatar.tsx',
+        Demo: AvatarsDemo,
+    },
+    {
+        id: 'inputs',
+        label: 'Inputs',
+        eyebrow: 'Forms',
+        title: 'Inputs',
+        description: 'Text, textarea, number, OTP, input group, draftable, and prefixed inputs.',
+        filePath: 'packages/ui/src/components/input.tsx',
+        Demo: InputsDemo,
+    },
+    {
+        id: 'controls',
+        label: 'Controls',
+        eyebrow: 'Forms',
+        title: 'Controls',
+        description: 'Checkbox, radio, switch, slider, toggle, and toggle groups.',
+        filePath: 'packages/ui/src/components/checkbox.tsx',
+        Demo: ControlsDemo,
+    },
+    {
+        id: 'forms',
+        label: 'Forms',
+        eyebrow: 'Forms',
+        title: 'Forms',
+        description:
+            'react-hook-form scaffold — FormField + FormControl + FormMessage. Canonical replacement for hand-rolled validation markup.',
+        filePath: 'packages/ui/src/components/form.tsx',
+        Demo: FormsDemo,
+    },
+    {
+        id: 'selection',
+        label: 'Selection',
+        eyebrow: 'Forms',
+        title: 'Selection',
+        description: 'Select dropdowns and grouped, icon, and disabled variants.',
+        filePath: 'packages/ui/src/components/select.tsx',
+        Demo: SelectionDemo,
+    },
+    {
+        id: 'combobox',
+        label: 'Combobox',
+        eyebrow: 'Forms',
+        title: 'Combobox & search',
+        description:
+            'Command palettes inside popovers — project pickers, @mentions, slash commands, async loading.',
+        filePath: 'packages/ui/src/components/command.tsx',
+        Demo: ComboboxDemo,
+    },
+    {
+        id: 'overlays',
+        label: 'Overlays',
+        eyebrow: 'Layers',
+        title: 'Overlays',
+        description: 'Dialogs, sheets, drawers, popovers, hover cards, and tooltips.',
+        filePath: 'packages/ui/src/components/dialog.tsx',
+        Demo: OverlaysDemo,
+    },
+    {
+        id: 'menus',
+        label: 'Menus',
+        eyebrow: 'Layers',
+        title: 'Menus',
+        description: 'Dropdown, context, menubar, and navigation menus.',
+        filePath: 'packages/ui/src/components/dropdown-menu.tsx',
+        Demo: MenusDemo,
+    },
+    {
+        id: 'tabs',
+        label: 'Tabs',
+        eyebrow: 'Navigation',
+        title: 'Tabs',
+        description: 'Horizontal segmented tabs with icons and disabled states.',
+        filePath: 'packages/ui/src/components/tabs.tsx',
+        Demo: TabsDemo,
+    },
+    {
+        id: 'accordions',
+        label: 'Accordions',
+        eyebrow: 'Disclosure',
+        title: 'Accordions',
+        description: 'Single and multiple expandable rows.',
+        filePath: 'packages/ui/src/components/accordion.tsx',
+        Demo: AccordionsDemo,
+    },
+    {
+        id: 'layout',
+        label: 'Layout',
+        eyebrow: 'Structure',
+        title: 'Layout',
+        description: 'Cards, separators, scroll areas, aspect ratios, collapsibles, and sidebar.',
+        filePath: 'packages/ui/src/components/card.tsx',
+        Demo: LayoutDemo,
+    },
+    {
+        id: 'data',
+        label: 'Data',
+        eyebrow: 'Display',
+        title: 'Data display',
+        description: 'Table, pagination, and breadcrumb patterns.',
+        filePath: 'packages/ui/src/components/table.tsx',
+        Demo: DataDisplayDemo,
+    },
+    {
+        id: 'feedback',
+        label: 'Feedback',
+        eyebrow: 'Status',
+        title: 'Feedback',
+        description: 'Alerts, toasts, progress, and skeleton loaders.',
+        filePath: 'packages/ui/src/components/alert.tsx',
+        Demo: FeedbackDemo,
+    },
+    {
+        id: 'motion',
+        label: 'Motion',
+        eyebrow: 'Motion',
+        title: 'Motion',
+        description: 'Transitions, animated cards, and shine borders.',
+        Demo: MotionDemo,
+    },
+    {
+        id: 'keyboard',
+        label: 'Keyboard',
+        eyebrow: 'Hints',
+        title: 'Keyboard',
+        description: 'Keycaps and hotkey labels for shortcuts.',
+        filePath: 'packages/ui/src/components/kbd.tsx',
+        Demo: KeyboardDemo,
+    },
+    {
+        id: 'command',
+        label: 'Command',
+        eyebrow: 'Forms',
+        title: 'Command palette',
+        description: 'cmdk-based search and shortcut palette.',
+        filePath: 'packages/ui/src/components/command.tsx',
+        Demo: CommandDemo,
+    },
+    {
+        id: 'calendar',
+        label: 'Calendar',
+        eyebrow: 'Display',
+        title: 'Calendar',
+        description: 'react-day-picker calendar with single date and disabled day patterns.',
+        filePath: 'packages/ui/src/components/calendar.tsx',
+        Demo: CalendarDemo,
+    },
+    {
+        id: 'chart',
+        label: 'Chart',
+        eyebrow: 'Display',
+        title: 'Chart',
+        description: 'Bar and line charts via the recharts wrapper.',
+        filePath: 'packages/ui/src/components/chart.tsx',
+        Demo: ChartDemo,
+    },
+    {
+        id: 'color-picker',
+        label: 'Color picker',
+        eyebrow: 'Forms',
+        title: 'Color picker',
+        description: 'Full HSL / HSV / RGB / Hex color picker.',
+        filePath: 'packages/ui/src/components/color-picker',
+        Demo: ColorPickerDemo,
+    },
+    {
+        id: 'ai-elements',
+        label: 'AI elements',
+        eyebrow: 'AI',
+        title: 'AI elements',
+        description: 'Response, reasoning, tool, and code block primitives for chat UIs.',
+        filePath: 'packages/ui/src/components/ai-elements',
+        Demo: AIElementsDemo,
+    },
+    {
+        id: 'chat',
+        label: 'Chat',
+        eyebrow: 'AI',
+        title: 'Chat',
+        description: 'Chat bubbles, tool-call rows, and reasoning effort control.',
+        filePath: 'apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab',
+        Demo: ChatDemo,
+    },
+    {
+        id: 'brand',
+        label: 'Brand',
+        eyebrow: 'Brand',
+        title: 'Brand',
+        description: 'Logo and wordmark at every size.',
+        filePath: 'packages/ui/src/components/brand.tsx',
+        Demo: BrandDemo,
+    },
+    {
+        id: 'promo-banner',
+        label: 'Promo banner',
+        eyebrow: 'Brand',
+        title: 'Promo banner',
+        description: 'Marketing banner with editable copy and CTA.',
+        Demo: PromoBannerDemo,
+    },
 ];
+
+const NAV_ITEMS = GROUPS.map((g) => ({ id: g.id, label: g.label }));
 
 export default function DesignSystemPage() {
     return (
-        <OverridesProvider>
-            <EditModeProvider>
-                <InspectorProvider>
-                    <TooltipProvider>
-                        <Shell />
-                        <InspectorSheet />
-                        <ControlBar />
-                        <Toaster />
-                    </TooltipProvider>
-                </InspectorProvider>
-            </EditModeProvider>
-        </OverridesProvider>
+        <RepoRootProvider>
+            <OverridesProvider>
+                <EditModeProvider>
+                    <InspectorProvider>
+                        <TooltipProvider>
+                            <Shell />
+                            <InspectorSheet />
+                            <ControlBar />
+                            <Toaster />
+                        </TooltipProvider>
+                    </InspectorProvider>
+                </EditModeProvider>
+            </OverridesProvider>
+        </RepoRootProvider>
     );
 }
 
@@ -120,122 +369,85 @@ function Shell() {
         document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, []);
 
+    // Track the most-visible section[id] anywhere on the page. Includes the group
+    // anchors (set on GroupHeader) and every sub-section produced by Section.
     useEffect(() => {
+        const visible = new Map<string, number>();
         const observer = new IntersectionObserver(
-            (entries) =>
+            (entries) => {
                 entries.forEach((e) => {
-                    if (e.isIntersecting) setActiveSection(e.target.id);
-                }),
-            { rootMargin: '-15% 0px -75% 0px', threshold: 0 },
+                    if (e.isIntersecting) {
+                        visible.set(e.target.id, e.intersectionRatio);
+                    } else {
+                        visible.delete(e.target.id);
+                    }
+                });
+                let bestId: string | null = null;
+                let bestRatio = -1;
+                visible.forEach((ratio, id) => {
+                    if (ratio > bestRatio) {
+                        bestId = id;
+                        bestRatio = ratio;
+                    }
+                });
+                if (bestId) setActiveSection(bestId);
+            },
+            { rootMargin: '-20% 0px -70% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
         );
-        NAV_ITEMS.forEach(({ id }) => {
-            const el = document.getElementById(id);
-            if (el) observer.observe(el);
+        document.querySelectorAll('section[id], [data-toc-anchor]').forEach((el) => {
+            observer.observe(el);
         });
-        return () => observer.disconnect();
+        // Refresh observed targets when DOM changes (lazy demos load late).
+        const mut = new MutationObserver(() => {
+            document.querySelectorAll('section[id], [data-toc-anchor]').forEach((el) => {
+                observer.observe(el);
+            });
+        });
+        mut.observe(document.body, { childList: true, subtree: true });
+        return () => {
+            observer.disconnect();
+            mut.disconnect();
+        };
     }, []);
 
     return (
-        <div className="bg-background min-h-screen">
-            <header className="border-border sticky top-0 z-40 border-b bg-black/80 backdrop-blur-md">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-                    <div className="flex items-center gap-3">
-                        <BrandLogo className="h-4" />
-                        <span className="text-foreground-tertiary text-xs">/</span>
-                        <span className="text-foreground text-xs font-medium">design system</span>
-                        {totalEdited > 0 && (
-                            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
-                                {totalEdited} custom
-                            </span>
-                        )}
+        <div className="bg-background flex min-h-screen">
+            <DesignSidebar groups={NAV_ITEMS} activeId={activeSection} onJump={scrollTo} />
+
+            <main className="min-w-0 flex-1">
+                <div className="mx-auto max-w-6xl px-6 py-10 pt-14 lg:pt-10">
+                    <div className="mb-16">
+                        <div className="mb-3 flex items-center gap-3">
+                            <BrandWordmark className="h-6" />
+                            {totalEdited > 0 && (
+                                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                                    {totalEdited} custom
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-foreground-tertiary text-sm">
+                            Component library, visual tokens, and design language reference. Toggle{' '}
+                            <em>Edit mode</em> in the bottom-right to expose the per-component
+                            inspector. Open file paths in Cursor with the link beside each title.
+                        </p>
                     </div>
-                    <nav className="hidden items-center gap-0.5 overflow-x-auto lg:flex">
-                        {NAV_ITEMS.map((item) => (
-                            <button
-                                key={item.id}
-                                onClick={() => scrollTo(item.id)}
-                                className={cn(
-                                    'rounded px-2 py-1 text-xs whitespace-nowrap transition-colors',
-                                    activeSection === item.id
-                                        ? 'text-foreground'
-                                        : 'text-foreground-tertiary hover:text-foreground',
-                                )}
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
+
+                    {GROUPS.map(({ id, eyebrow, title, description, filePath, Demo }) => (
+                        <div key={id} className="mb-20">
+                            <GroupHeader
+                                id={id}
+                                eyebrow={eyebrow}
+                                title={title ?? id}
+                                description={description}
+                                filePath={filePath}
+                            />
+                            <Demo />
+                        </div>
+                    ))}
+
+                    <div className="pb-28" />
                 </div>
-            </header>
-
-            <div className="mx-auto max-w-7xl px-6 py-10">
-                <div className="mb-12">
-                    <div className="mb-3 flex items-center gap-3">
-                        <BrandWordmark className="h-6" />
-                    </div>
-                    <p className="text-foreground-tertiary text-sm">
-                        Component library, visual tokens, and design language reference. Toggle{' '}
-                        <em>Edit mode</em> in the bottom-right to expose the per-component
-                        inspector.
-                    </p>
-                </div>
-
-                <ColorsDemo />
-                <Separator className="mb-12" />
-                <TypographyDemo />
-                <Separator className="mb-12" />
-                <RadiusDemo />
-                <Separator className="mb-12" />
-                <SpacingDemo />
-                <Separator className="mb-12" />
-                <ButtonsDemo />
-                <Separator className="mb-12" />
-                <BadgesDemo />
-                <Separator className="mb-12" />
-                <AvatarsDemo />
-                <Separator className="mb-12" />
-                <InputsDemo />
-                <Separator className="mb-12" />
-                <ControlsDemo />
-                <Separator className="mb-12" />
-                <SelectionDemo />
-                <Separator className="mb-12" />
-                <OverlaysDemo />
-                <Separator className="mb-12" />
-                <MenusDemo />
-                <Separator className="mb-12" />
-                <TabsDemo />
-                <Separator className="mb-12" />
-                <AccordionsDemo />
-                <Separator className="mb-12" />
-                <LayoutDemo />
-                <Separator className="mb-12" />
-                <DataDisplayDemo />
-                <Separator className="mb-12" />
-                <FeedbackDemo />
-                <Separator className="mb-12" />
-                <MotionDemo />
-                <Separator className="mb-12" />
-                <KeyboardDemo />
-                <Separator className="mb-12" />
-                <CommandDemo />
-                <Separator className="mb-12" />
-                <CalendarDemo />
-                <Separator className="mb-12" />
-                <ChartDemo />
-                <Separator className="mb-12" />
-                <ColorPickerDemo />
-                <Separator className="mb-12" />
-                <AIElementsDemo />
-                <Separator className="mb-12" />
-                <ChatDemo />
-                <Separator className="mb-12" />
-                <BrandDemo />
-                <Separator className="mb-12" />
-                <PromoBannerDemo />
-
-                <div className="pb-28" />
-            </div>
+            </main>
         </div>
     );
 }

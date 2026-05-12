@@ -14,19 +14,20 @@ import {
 
 import { Section } from '../section';
 
+// Brand-aligned: neutral Response sample, no embedded fenced code block (the
+// upstream Streamdown renderer uses Prism's oneDark which is too saturated for
+// Weblab chrome). The dedicated Code block section below shows the proper
+// `<CodeBlock>` primitive in a tight container.
 const sample = `## Why Weblab
 
-Weblab makes shipping a **visual diff** that runs on your code:
+Weblab makes shipping a **visual diff** that runs on your code.
 
 - React, Next.js, Vue, Svelte
 - Tailwind, CSS Modules, styled-components
 - AI-assisted edits with a single click
 
-\`\`\`tsx
-export function Hero() {
-  return <h1 className="text-title1">Design at the speed of thought.</h1>;
-}
-\`\`\`
+Visual edits commit back to your branch as a regular PR — no lock-in, no
+proprietary format. Connect your repo, open a file in the canvas, ship.
 `;
 
 export function AIElementsDemo() {
@@ -49,12 +50,19 @@ export function AIElementsDemo() {
                 inspectId="ai-elements"
                 filePath="packages/ui/src/components/ai-elements/code-block.tsx"
             >
-                <CodeBlock
-                    code={`const greet = (name: string) => \`Hello, \${name}!\`;\n\nconsole.log(greet('Weblab'));`}
-                    language="ts"
-                >
-                    <CodeBlockCopyButton />
-                </CodeBlock>
+                <div className="max-w-xl">
+                    <CodeBlock
+                        code={`const greet = (name: string) => \`Hello, \${name}!\`;`}
+                        language="ts"
+                        className="border-border bg-background-secondary [&_pre]:!bg-background-secondary [&_pre]:!p-3 [&_code]:!text-[12px] [&_code]:!leading-relaxed [&_*]:!text-foreground [&_.token.keyword]:!text-foreground-secondary [&_.token.function]:!text-foreground [&_.token.string]:!text-foreground-tertiary [&_.token.punctuation]:!text-foreground-tertiary [&_.token.operator]:!text-foreground-tertiary [&_.token.template-string]:!text-foreground-tertiary"
+                    >
+                        <CodeBlockCopyButton className="h-6 w-6 [&>svg]:!size-3" />
+                    </CodeBlock>
+                </div>
+                <p className="text-foreground-tertiary mt-2 max-w-xl text-xs">
+                    Brand override: tokens collapse to <code>--foreground</code> + tertiary, no
+                    library accents. Pass <code>className</code> to scope.
+                </p>
             </Section>
 
             <Section

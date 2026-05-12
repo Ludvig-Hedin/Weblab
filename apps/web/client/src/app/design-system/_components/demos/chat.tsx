@@ -15,7 +15,7 @@ export function ChatDemo() {
             >
                 <div className="flex max-w-xl flex-col gap-3">
                     <div className="flex justify-end">
-                        <div className="bg-background-primary text-small flex flex-col rounded-xl px-3 py-2 leading-snug tracking-[-0.005em] shadow-sm">
+                        <div className="bg-background-muted text-small flex flex-col rounded-xl px-3 py-2 leading-snug tracking-[-0.005em]">
                             Add dark mode support to the editor.
                         </div>
                     </div>

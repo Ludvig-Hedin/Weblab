@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { getRepoRoot } from '../actions';
+
 export type TokenOverrides = Record<string, string>;
 
 interface PersistedShape {
@@ -39,11 +41,16 @@ interface InspectorContextValue {
     close: () => void;
 }
 
+interface RepoContextValue {
+    repoRoot: string | null;
+}
+
 const STORAGE_KEY = 'weblab-ds-overrides';
 
 const OverridesContext = createContext<OverridesContextValue | null>(null);
 const EditModeContext = createContext<EditModeContextValue | null>(null);
 const InspectorContext = createContext<InspectorContextValue | null>(null);
+const RepoContext = createContext<RepoContextValue>({ repoRoot: null });
 
 function loadPersisted(): PersistedShape {
     const defaults: PersistedShape = { overrides: {}, radiusScale: 1, transitionSpeed: 1 };
@@ -94,7 +101,7 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
                 return s;
             })();
         const radiusVars = `--radius: ${radiusScale}rem;`;
-        const animVars = `--ds-anim-duration: ${Math.round(transitionSpeed * 200)}ms;`;
+        const animVars = `--ds-anim-duration: ${Math.round(transitionSpeed * 300)}ms;`;
         const overrideVars = Object.entries(overrides)
             .map(([k, v]) => `${k}: ${v};`)
             .join('\n');
@@ -200,6 +207,20 @@ export function InspectorProvider({ children }: { children: ReactNode }) {
     );
 }
 
+export function RepoRootProvider({ children }: { children: ReactNode }) {
+    const [repoRoot, setRepoRoot] = useState<string | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        void getRepoRoot().then((root) => {
+            if (!cancelled) setRepoRoot(root);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+    return <RepoContext.Provider value={{ repoRoot }}>{children}</RepoContext.Provider>;
+}
+
 export function useOverrides() {
     const ctx = useContext(OverridesContext);
     if (!ctx) throw new Error('useOverrides must be used inside OverridesProvider');
@@ -216,4 +237,8 @@ export function useInspector() {
     const ctx = useContext(InspectorContext);
     if (!ctx) throw new Error('useInspector must be used inside InspectorProvider');
     return ctx;
+}
+
+export function useRepoRoot(): string | null {
+    return useContext(RepoContext).repoRoot;
 }

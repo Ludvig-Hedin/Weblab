@@ -93,8 +93,8 @@ export function TypographyDemo() {
                 filePath="apps/web/client/src/styles/globals.css"
                 controls={
                     <p className="text-foreground-tertiary text-xs">
-                        Tag-agnostic — apply{' '}
-                        <code className="font-mono">heading-style-h*</code> to any element
+                        Tag-agnostic — apply <code className="font-mono">heading-style-h*</code> to
+                        any element
                     </p>
                 }
             >
@@ -163,9 +163,8 @@ export function TypographyDemo() {
                         — not <code className="font-mono">text-muted-foreground text-sm</code> ✗.
                     </li>
                     <li>
-                        Landing headings use{' '}
-                        <code className="font-mono">heading-style-h1…h6</code>. Raw{' '}
-                        <code className="font-mono">text-4xl font-light leading-[…]</code> is no
+                        Landing headings use <code className="font-mono">heading-style-h1…h6</code>.
+                        Raw <code className="font-mono">text-4xl font-light leading-[…]</code> is no
                         longer allowed.
                     </li>
                     <li>

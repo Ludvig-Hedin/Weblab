@@ -4,7 +4,7 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
 import { COMPONENT_TOKENS } from './inspector/component-tokens';
-import { useEditMode, useInspector } from './overrides-context';
+import { useEditMode, useInspector, useRepoRoot } from './overrides-context';
 
 interface SectionProps {
     title: string;
@@ -31,7 +31,9 @@ export function Section({
 }: SectionProps) {
     const { editMode } = useEditMode();
     const { open } = useInspector();
-    const editUrl = filePath ? `cursor://file/${filePath}` : undefined;
+    const repoRoot = useRepoRoot();
+    const absPath = filePath ? (repoRoot ? `${repoRoot}/${filePath}` : filePath) : null;
+    const editUrl = absPath ? `cursor://file/${absPath}` : undefined;
     const sectionId = id ?? title.toLowerCase().replace(/\s+/g, '-');
     const canInspect = inspectId && COMPONENT_TOKENS[inspectId];
 
@@ -66,11 +68,11 @@ export function Section({
                     {editUrl && (
                         <a
                             href={editUrl}
-                            className="text-foreground-tertiary hover:text-foreground flex items-center gap-1 text-xs opacity-0 transition-opacity group-hover/section:opacity-100"
-                            title="Open in Cursor"
+                            className="border-border text-foreground-tertiary hover:border-foreground/40 hover:text-foreground inline-flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[10px] transition-colors"
+                            title={absPath ?? filePath}
                         >
-                            <Icons.Pencil className="h-3 w-3" />
-                            edit
+                            <Icons.ExternalLink className="h-3 w-3" />
+                            Open
                         </a>
                     )}
                 </div>

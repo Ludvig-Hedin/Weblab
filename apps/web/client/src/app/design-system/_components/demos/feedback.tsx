@@ -51,6 +51,35 @@ export function FeedbackDemo() {
                     </Button>
                     <Button
                         variant="outline"
+                        onClick={() => toast.warning('Heads up — check your spelling.')}
+                    >
+                        Warning
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => toast.info('New version is available.')}
+                    >
+                        Info
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => toast.loading('Uploading file…', { duration: 2000 })}
+                    >
+                        Loading
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() =>
+                            toast('Project deleted', {
+                                description: 'You can restore it within 30 days.',
+                                action: { label: 'Undo', onClick: () => undefined },
+                            })
+                        }
+                    >
+                        With action
+                    </Button>
+                    <Button
+                        variant="outline"
                         onClick={() =>
                             toast.promise(new Promise((resolve) => setTimeout(resolve, 1500)), {
                                 loading: 'Saving…',
@@ -107,6 +136,20 @@ export function FeedbackDemo() {
                         <Skeleton className="h-32 w-48 rounded-xl" />
                         <Skeleton className="h-3 w-32" />
                         <Skeleton className="h-3 w-24" />
+                    </div>
+                    <div className="border-border w-72 space-y-3 rounded-xl border p-4">
+                        <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9 rounded-full" />
+                            <div className="flex-1 space-y-1.5">
+                                <Skeleton className="h-3 w-32" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-24 w-full rounded-md" />
+                        <div className="flex gap-2">
+                            <Skeleton className="h-7 w-16 rounded-md" />
+                            <Skeleton className="h-7 w-7 rounded-md" />
+                        </div>
                     </div>
                 </div>
             </Section>
