@@ -59,3 +59,22 @@ mise.toml
 packages/ui/.t3/
 reference/
 .gstack/
+
+# Agent tool configuration (per-user)
+.agent/
+.agents/
+.codex/
+.cursor/
+.opencode/
+.claude/skills/design-system/
+
+# Docs build artifacts
+docs/.next/
+docs/.source/
+docs/tsconfig.tsbuildinfo
+
+# Local template sources (large, regenerated)
+template-sources/
+
+# Local throwaway scripts
+fix_hsl.py
