@@ -115,6 +115,11 @@ export class StyleManager {
             })),
         };
         this.editorEngine.action.run(formattedAction);
+        // updateStyleNoAction mirrors `selectedStyle.styles` — that map holds
+        // resolved CSS values (e.g. "Inter, sans-serif"), not the internal
+        // Font id, so callers reading it for display don't get a slug.
+        // recordOverrides keeps the id because overrides are keyed by font id.
+        this.updateStyleNoAction({ [style]: convertFontString(value.id) });
         this.recordOverrides({ [style]: value.id });
     }
 
