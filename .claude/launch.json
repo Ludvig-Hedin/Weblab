@@ -7,7 +7,7 @@
       "runtimeArgs": ["dev"],
       "cwd": "apps/web/client",
       "port": 3000,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }

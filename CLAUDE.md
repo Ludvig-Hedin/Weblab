@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > - The folder name on disk (`onlook/`) is intentionally unchanged — it's a local path, not a user-facing identifier.
 > - Allowed remaining "Onlook" references (do not strip):
 >   - `LICENSE.md` — legal attribution to On Off, Inc. (original Onlook team) per Apache-2.0 derivative-work requirements
->   - `CODE_REVIEW_BACKLOG.md` — historical bug reports
+>   - `docs/archive/code-review-backlog.md` — historical bug reports
 >   - `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts` — legacy CDN URLs the parser must still recognize and remove from old customer code
 >   - Test fixtures with intentionally-deprecated inputs (e.g., `packages/parser/test/data/layout/does-not-duplicate/input.tsx`)
 > - Any other "Onlook" mention in code, docs, or UI is a bug — replace it.
@@ -48,7 +48,11 @@ bun db:reset         # Reset schema + reseed
 
 ## Deployment
 
-`apps/web/client` is deployed on **Railway** (not Vercel). When verifying deployments or checking production logs, use the Railway dashboard or CLI — do not look in Vercel. The GitHub remote is `https://github.com/Ludvig-Hedin/Weblab.git`.
+`apps/web/client` (main web app) and `apps/docs` (documentation site, docs.weblab.build) are both deployed on **Railway** (not Vercel). When verifying deployments or checking production logs, use the Railway dashboard or CLI — do not look in Vercel. The GitHub remote is `https://github.com/Ludvig-Hedin/Weblab.git`.
+
+## Documentation Map
+
+All repository documentation is indexed in [`docs/README.md`](docs/README.md) — agent docs, human guides, audits, working notes, product/marketing, feature plans, and archive. Use it as a fast TOC when you don't know where something lives.
 
 ## Agent Memory — Read First (Every Session)
 

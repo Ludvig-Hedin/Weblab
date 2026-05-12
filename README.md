@@ -34,6 +34,8 @@
 [![LinkedIn][linkedin-shield]][linkedin-url]
 [![Twitter][twitter-shield]][twitter-url]
 
+> 📚 **Looking for documentation?** See [`docs/README.md`](./docs/README.md) for the master table of contents covering agent docs, guides, audits, working notes, product/marketing, feature plans, and archive. The published documentation site source lives in [`apps/docs`](./apps/docs).
+
 [中文](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=zh) |
 [Español](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=es) |
 [Deutsch](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=de) |

@@ -67,7 +67,7 @@ For deeper agent context, see `../../../docs/agent-context/`.
 
 Recent durable context is documented in:
 
-- `../../../docs/project-runtime-modes.md`
-- `../../../docs/user-settings-migration-2026-05-06.md`
-- `../../../docs/ai-chat-input-unification-2026-05-06.md`
-- `../../../docs/editor-project-flow-fixes-2026-05-06.md`
+- `../../../docs/notes/2026-05-06-project-runtime-modes.md`
+- `../../../docs/notes/2026-05-06-user-settings-migration.md`
+- `../../../docs/notes/2026-05-06-ai-chat-input-unification.md`
+- `../../../docs/notes/2026-05-06-editor-project-flow-fixes.md`

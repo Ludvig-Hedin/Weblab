@@ -11,7 +11,7 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 > - The repo folder on disk is named `onlook/` for backward compatibility with shell history and tooling — it's a local path, not a user-facing identifier.
 > - Allowed remaining "Onlook" references (do not strip):
 >   - `LICENSE.md` — Apache-2.0 derivative-work attribution to On Off, Inc.
->   - `CODE_REVIEW_BACKLOG.md` — historical bug reports
+>   - `docs/archive/code-review-backlog.md` — historical bug reports
 >   - `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts` — legacy CDN URLs the parser still recognizes and removes from old customer code
 >   - Test fixtures with intentionally-deprecated inputs
 > - Any other "Onlook" mention in code, docs, or UI is a bug — replace with `{APP_NAME}` (JSX) or `${APP_NAME}` (template literal).
@@ -21,6 +21,10 @@ Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 - Audience: automated coding agents working within this repository.
 - Goal: small, correct diffs aligned with the project’s architecture.
 - Non-goals: editing generated artifacts, lockfiles, or `node_modules`.
+
+### Documentation Map
+
+All repository documentation is indexed in [`docs/README.md`](docs/README.md) — agent docs, human guides, audits, working notes, product/marketing, feature plans, and archive. Use it as a fast TOC when you don't know where something lives.
 
 ### Agent Memory — Read First (Every Session)
 
