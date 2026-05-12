@@ -12,7 +12,7 @@ class NotImplementedAdapter implements CliAdapter {
         signal: AbortSignal;
     }): Promise<void> {
         const { streamId } = request;
-        const message = `${this.kind} adapter is not implemented yet — port from reference/t3code`;
+        const message = `${this.kind} adapter is not implemented yet — port from docs/archive/t3code`;
         emit({ streamId, kind: 'error', payload: { message, code: 'not_implemented' } });
     }
 }

@@ -14,8 +14,7 @@
         "packages/*",
         "apps/*",
         "tooling/*",
-        "apps/web/*",
-        "docs"
+        "apps/web/*"
     ],
     "scripts": {
         "build": "bun --filter @weblab/web build:client",

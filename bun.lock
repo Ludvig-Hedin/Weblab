@@ -30,6 +30,31 @@
         "electron-builder": "^25.1.8",
       },
     },
+    "apps/docs": {
+      "name": "@weblab/docs",
+      "version": "0.0.0",
+      "dependencies": {
+        "fumadocs-core": "16.0.2",
+        "fumadocs-mdx": "13.0.0",
+        "fumadocs-ui": "16.0.2",
+        "next": "16.0.7",
+        "next-sitemap": "4.2.3",
+        "react": "19.2.0",
+        "react-dom": "19.2.0",
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "4.1.5",
+        "@types/mdx": "2.0.13",
+        "@types/node": "22.15.12",
+        "@types/react": "19.2.2",
+        "@types/react-dom": "19.2.2",
+        "eslint": "9.0.0",
+        "postcss": "8.5.3",
+        "tailwindcss": "4.1.5",
+        "typescript": "5.5.4",
+        "typescript-eslint": "8.46.2",
+      },
+    },
     "apps/video": {
       "name": "@weblab/video",
       "version": "0.0.0",
@@ -249,31 +274,6 @@
       },
       "peerDependencies": {
         "typescript": "^5",
-      },
-    },
-    "docs": {
-      "name": "@weblab/docs",
-      "version": "0.0.0",
-      "dependencies": {
-        "fumadocs-core": "16.0.2",
-        "fumadocs-mdx": "13.0.0",
-        "fumadocs-ui": "16.0.2",
-        "next": "16.0.7",
-        "next-sitemap": "4.2.3",
-        "react": "19.2.0",
-        "react-dom": "19.2.0",
-      },
-      "devDependencies": {
-        "@tailwindcss/postcss": "4.1.5",
-        "@types/mdx": "2.0.13",
-        "@types/node": "22.15.12",
-        "@types/react": "19.2.2",
-        "@types/react-dom": "19.2.2",
-        "eslint": "9.0.0",
-        "postcss": "8.5.3",
-        "tailwindcss": "4.1.5",
-        "typescript": "5.5.4",
-        "typescript-eslint": "8.46.2",
       },
     },
     "packages/ai": {
@@ -2561,7 +2561,7 @@
 
     "@weblab/desktop": ["@weblab/desktop@workspace:apps/desktop"],
 
-    "@weblab/docs": ["@weblab/docs@workspace:docs"],
+    "@weblab/docs": ["@weblab/docs@workspace:apps/docs"],
 
     "@weblab/email": ["@weblab/email@workspace:packages/email"],
 
