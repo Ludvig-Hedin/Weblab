@@ -66,11 +66,14 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
         setTimeout(reset, 200);
     };
 
-    const updateCred = (key: string, value: string) =>
+    const updateCred = (key: string, value: string) => {
+        // Reset test status — stale "ok" must not let bad creds pass Save.
+        setTestStatus(null);
         setCreds((prev) => ({
             ...prev,
             [type]: { ...prev[type], [key]: value },
         }));
+    };
 
     const handleTest = async () => {
         setTestStatus(null);

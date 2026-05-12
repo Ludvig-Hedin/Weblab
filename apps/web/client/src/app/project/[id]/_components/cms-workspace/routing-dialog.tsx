@@ -119,7 +119,7 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                             ? // We avoid ICU placeholder interpolation here because
                               // adding new placeholder keys requires a project build
                               // to refresh next-intl's TypeScript declarations.
-                              `${collection.name} → ${existing.pagePath} (· ${existing.matchFieldKey})`
+                              `${collection.name} → ${existing.pagePath} · ${existing.matchFieldKey}`
                             : t(transKeys.cms.routing.noneBody)}
                     </DialogDescription>
                 </DialogHeader>

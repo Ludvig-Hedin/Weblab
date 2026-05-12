@@ -14,6 +14,7 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
+import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -161,7 +162,14 @@ export const SourcesTab = observer(() => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-foreground-positive text-mini capitalize">
+                                    <span
+                                        className={cn(
+                                            'text-mini capitalize',
+                                            s.status === 'connected'
+                                                ? 'text-foreground-positive'
+                                                : 'text-red',
+                                        )}
+                                    >
                                         {s.status}
                                     </span>
                                     {s.type !== CmsSourceType.WEBLAB ? (

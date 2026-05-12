@@ -44,6 +44,10 @@ const SORT_DIR_OPTIONS = [
     { value: 'desc', label: 'Descending' },
 ] as const;
 
+// Radix Select disallows empty-string values; use a sentinel for the
+// "no sort" option and translate it back to '' before persisting.
+const SORT_NONE = '__none__';
+
 export const BindDialog = observer(() => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId;
@@ -656,15 +660,17 @@ function RepeatForm({
             <div className="space-y-1.5">
                 <Label htmlFor="repeat-sort-field">{t(transKeys.cms.bind.repeat.sortField)}</Label>
                 <Select
-                    value={sortFieldKey}
-                    onValueChange={setSortFieldKey}
+                    value={sortFieldKey === '' ? SORT_NONE : sortFieldKey}
+                    onValueChange={(v) => setSortFieldKey(v === SORT_NONE ? '' : v)}
                     disabled={!collectionId || fields.length === 0}
                 >
                     <SelectTrigger id="repeat-sort-field">
                         <SelectValue placeholder={t(transKeys.cms.bind.repeat.sortNone)} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">{t(transKeys.cms.bind.repeat.sortNone)}</SelectItem>
+                        <SelectItem value={SORT_NONE}>
+                            {t(transKeys.cms.bind.repeat.sortNone)}
+                        </SelectItem>
                         {fields.map((f) => (
                             <SelectItem key={f.id} value={f.key}>
                                 {f.name}

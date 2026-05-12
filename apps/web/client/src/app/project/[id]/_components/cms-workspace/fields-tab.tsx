@@ -17,6 +17,7 @@ import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 
@@ -32,6 +33,28 @@ const FIELD_TYPE_LABEL_KEYS = {
     [CmsFieldType.REFERENCE]: transKeys.cms.fields.types.reference,
 } as const;
 
+// Icon per CMS field type. Rendered next to the type label in the field list
+// and in the type Select. The icon set is intentionally drawn from the
+// existing @weblab/ui Icons surface — no new svgs introduced.
+const FIELD_TYPE_ICONS: Record<CmsFieldType, keyof typeof Icons> = {
+    [CmsFieldType.TEXT]: 'Text',
+    [CmsFieldType.RICH_TEXT]: 'Pilcrow',
+    [CmsFieldType.NUMBER]: 'Tokens',
+    [CmsFieldType.BOOLEAN]: 'CheckCircled',
+    [CmsFieldType.DATE]: 'CounterClockwiseClock',
+    [CmsFieldType.IMAGE]: 'Image',
+    [CmsFieldType.SLUG]: 'Link',
+    [CmsFieldType.OPTION]: 'DropdownMenu',
+    [CmsFieldType.REFERENCE]: 'ExternalLink',
+};
+
+function FieldTypeIcon({ type, className }: { type: CmsFieldType; className?: string }) {
+    const iconKey = FIELD_TYPE_ICONS[type];
+    const Icon = Icons[iconKey] as React.ComponentType<{ className?: string }> | undefined;
+    if (!Icon) return null;
+    return <Icon className={className ?? 'h-3.5 w-3.5'} />;
+}
+
 export const FieldsTab = observer(() => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId;
@@ -44,6 +67,7 @@ export const FieldsTab = observer(() => {
     const utils = api.useUtils();
     const reorderMutation = api.cms.field.reorder.useMutation();
     const deleteMutation = api.cms.field.delete.useMutation();
+    const { confirm, dialog: confirmDialog } = useConfirm();
 
     const moveField = async (fieldId: string, direction: -1 | 1) => {
         if (!collectionId) return;
@@ -74,13 +98,14 @@ export const FieldsTab = observer(() => {
 
     const removeField = async (fieldId: string, name: string) => {
         if (!projectId || !collectionId) return;
-        if (
-            !confirm(
-                `Remove the "${name}" field? Items keep their stored value, but it will no longer appear in the editor.`,
-            )
-        ) {
-            return;
-        }
+        const ok = await confirm({
+            title: `Remove the "${name}" field?`,
+            description:
+                'Items keep their stored value, but it will no longer appear in the editor.',
+            confirmLabel: 'Remove',
+            destructive: true,
+        });
+        if (!ok) return;
         try {
             await deleteMutation.mutateAsync({ projectId, fieldId });
             await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
@@ -165,7 +190,11 @@ export const FieldsTab = observer(() => {
                                             </span>
                                         ) : null}
                                     </span>
-                                    <span className="text-foreground-tertiary text-mini">
+                                    <span className="text-foreground-tertiary text-mini inline-flex items-center gap-1">
+                                        <FieldTypeIcon
+                                            type={f.type}
+                                            className="h-3 w-3 shrink-0"
+                                        />
                                         {t(FIELD_TYPE_LABEL_KEYS[f.type])}
                                         {' · '}
                                         <code className="font-mono">{f.key}</code>
@@ -232,6 +261,7 @@ export const FieldsTab = observer(() => {
                 field={fields.find((f) => f.id === editingFieldId) ?? null}
                 onClose={() => setEditingFieldId(null)}
             />
+            {confirmDialog}
         </div>
     );
 });
@@ -328,12 +358,26 @@ function AddFieldDialog({
                         <Label htmlFor="field-type">{t(transKeys.cms.fields.addDialog.type)}</Label>
                         <Select value={type} onValueChange={(v) => setType(v as CmsFieldType)}>
                             <SelectTrigger id="field-type">
-                                <SelectValue />
+                                <SelectValue>
+                                    <span className="inline-flex items-center gap-2">
+                                        <FieldTypeIcon
+                                            type={type}
+                                            className="text-foreground-tertiary h-3.5 w-3.5"
+                                        />
+                                        {t(FIELD_TYPE_LABEL_KEYS[type])}
+                                    </span>
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {Object.entries(FIELD_TYPE_LABEL_KEYS).map(([value, labelKey]) => (
                                     <SelectItem key={value} value={value}>
-                                        {t(labelKey)}
+                                        <span className="inline-flex items-center gap-2">
+                                            <FieldTypeIcon
+                                                type={value as CmsFieldType}
+                                                className="text-foreground-tertiary h-3.5 w-3.5"
+                                            />
+                                            {t(labelKey)}
+                                        </span>
                                     </SelectItem>
                                 ))}
                             </SelectContent>
