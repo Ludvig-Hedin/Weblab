@@ -21,9 +21,16 @@ export function SecurityDataFeatures() {
             heading={t('title')}
             description={t('subtitle')}
             badges={[
-                { alt: 'GDPR-aligned' },
-                { alt: 'CCPA-aligned' },
-                { alt: 'Apache-2.0' },
+                {
+                    image:
+                        'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/GDPR.svg',
+                    alt: 'GDPR-aligned',
+                },
+                {
+                    image:
+                        'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/CCPA.svg',
+                    alt: 'CCPA-aligned',
+                },
             ]}
             features={features}
         />

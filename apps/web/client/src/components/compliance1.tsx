@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface ComplianceBadge {
@@ -71,10 +70,10 @@ const Compliance1 = ({
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 md:px-8">
         <div className="grid gap-9 lg:grid-cols-2">
           <div className="flex flex-col gap-5">
-            <Badge variant="outline" className="border-foreground-primary/15 text-foreground-tertiary gap-1.5 bg-transparent w-fit">
+            <span className="border-foreground-primary/15 text-foreground-tertiary inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-small uppercase tracking-wide">
               <span className="size-1.5 rounded-full bg-foreground-primary" />
               {tagline}
-            </Badge>
+            </span>
             <h2 className="heading-style-h3 text-foreground-primary text-balance">
               {heading}
             </h2>
