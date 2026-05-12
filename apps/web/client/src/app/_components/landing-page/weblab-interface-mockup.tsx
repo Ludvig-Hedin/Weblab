@@ -418,14 +418,14 @@ const FILE_TREE: {
 ];
 
 const TOKEN_COLOR: Record<string, string> = {
-    kw: 'text-purple-300',
-    fn: 'text-amber-200',
-    tag: 'text-rose-300',
+    kw: 'text-purple-700 dark:text-purple-300',
+    fn: 'text-amber-700 dark:text-amber-200',
+    tag: 'text-rose-700 dark:text-rose-300',
     attr: 'text-foreground-secondary',
-    str: 'text-emerald-300',
+    str: 'text-emerald-700 dark:text-emerald-300',
     text: 'text-foreground',
-    comp: 'text-sky-300',
-    num: 'text-amber-300',
+    comp: 'text-sky-700 dark:text-sky-300',
+    num: 'text-amber-700 dark:text-amber-300',
     p: 'text-foreground-tertiary',
 };
 
@@ -599,9 +599,9 @@ function CodeModePanel() {
                     </div>
                     <div className="text-foreground-tertiary flex items-center gap-2">
                         {dirtyFiles.has(activeFile) ? (
-                            <span className="text-amber-300">● Unsaved</span>
+                            <span className="text-amber-700 dark:text-amber-300">● Unsaved</span>
                         ) : (
-                            <span className="text-emerald-300">✓ Saved</span>
+                            <span className="text-emerald-700 dark:text-emerald-300">✓ Saved</span>
                         )}
                     </div>
                 </div>
@@ -1397,14 +1397,14 @@ export function WeblabInterfaceMockup() {
                                                 className={cn(
                                                     'flex h-5.5 cursor-grab items-center rounded px-1.5 text-xs transition-colors select-none active:cursor-grabbing',
                                                     isSelected &&
-                                                        'bg-foreground-brand/90 text-white',
+                                                        'bg-foreground-brand/90 text-background-primary',
                                                     !isSelected &&
                                                         isHovered &&
                                                         'bg-background-secondary text-foreground',
                                                     !isSelected &&
                                                         !isHovered &&
                                                         isComponent &&
-                                                        'text-purple-300',
+                                                        'text-purple-700 dark:text-purple-300',
                                                     !isSelected &&
                                                         !isHovered &&
                                                         !isComponent &&

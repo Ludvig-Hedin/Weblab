@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 export function ComponentsMockup() {
@@ -287,28 +288,14 @@ export function ComponentsMockup() {
                     <div className="mx-2 mb-3 flex items-center justify-between">
                         <Icons.ArrowLeft className="text-foreground-primary h-4 w-4" />
                         <div className="flex gap-1">
-                            <button className="text-foreground-primary flex items-center rounded bg-zinc-900 px-2 py-0.5 text-xs">
+                            <Button variant="chip" size="compact" tabIndex={-1}>
                                 {new Date().toLocaleString('default', { month: 'short' })}
-                                <svg width="8" height="8" className="ml-1">
-                                    <path
-                                        d="M2 3l2 2 2-2"
-                                        stroke="white"
-                                        strokeWidth="1"
-                                        fill="none"
-                                    />
-                                </svg>
-                            </button>
-                            <button className="text-foreground-primary flex items-center rounded bg-zinc-900 px-2 py-0.5 text-xs">
+                                <Icons.ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                            <Button variant="chip" size="compact" tabIndex={-1}>
                                 {new Date().getFullYear()}
-                                <svg width="8" height="8" className="ml-1">
-                                    <path
-                                        d="M2 3l2 2 2-2"
-                                        stroke="white"
-                                        strokeWidth="1"
-                                        fill="none"
-                                    />
-                                </svg>
-                            </button>
+                                <Icons.ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
                         </div>
                         <Icons.ArrowRight className="text-foreground-primary h-4 w-4" />
                     </div>

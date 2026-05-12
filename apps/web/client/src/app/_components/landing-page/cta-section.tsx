@@ -1,9 +1,13 @@
 'use client';
 
+import { Fragment } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@weblab/ui/button';
+
+import { Reveal } from '@/components/motion/reveal';
+import { SplitText } from '@/components/motion/split-text';
 
 interface CTASectionProps {
     href?: string;
@@ -57,13 +61,15 @@ export function CTASection({
             <div className="flex flex-1 flex-col items-end justify-center text-right">
                 <h2 className="heading-style-h2 text-foreground-primary mb-8 max-w-4xl text-balance">
                     {headingLines.map((line, index) => (
-                        <span key={index}>
-                            {line}
+                        <Fragment key={index}>
+                            <SplitText as="span" delay={index * 0.08}>
+                                {line}
+                            </SplitText>
                             {index < headingLines.length - 1 && <br />}
-                        </span>
+                        </Fragment>
                     ))}
                 </h2>
-                <div className="flex w-full flex-row items-center justify-end gap-3">
+                <Reveal delay={0.2} className="flex w-full flex-row items-center justify-end gap-3">
                     <Button
                         variant="secondary"
                         size="lg"
@@ -72,7 +78,7 @@ export function CTASection({
                     >
                         {resolvedButton}
                     </Button>
-                </div>
+                </Reveal>
             </div>
         </div>
     );

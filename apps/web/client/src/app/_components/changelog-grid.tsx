@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { format, isValid, parseISO } from 'date-fns';
 
+import { Reveal } from '@/components/motion/reveal';
 import { CHANGELOG_ENTRIES } from '@/lib/changelog-entries';
 import { Routes } from '@/utils/constants';
 
@@ -36,9 +37,9 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {entries.map((entry) => (
+                {entries.map((entry, idx) => (
+                    <Reveal key={entry.slug} delay={idx * 0.06}>
                     <Link
-                        key={entry.slug}
                         href={Routes.CHANGELOG}
                         className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-xl p-5 ring-1 transition-colors"
                     >
@@ -66,6 +67,7 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
                             </div>
                         )}
                     </Link>
+                    </Reveal>
                 ))}
             </div>
         </section>

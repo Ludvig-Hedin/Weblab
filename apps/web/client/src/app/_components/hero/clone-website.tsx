@@ -5,13 +5,17 @@ import { useRouter } from 'next/navigation';
 
 import { Icons } from '@weblab/ui/icons/index';
 
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { useAuthContext } from '../../auth/auth-context';
 
 export function CloneWebsite() {
     const router = useRouter();
-    const { data: user } = api.user.get.useQuery();
+    const hasAuthCookie = useHasAuthCookie();
+    const { data: user } = api.user.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const { setIsAuthModalOpen } = useAuthContext();
     const t = useTranslations('landing.hero');
 

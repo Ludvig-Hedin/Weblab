@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { APP_NAME } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons';
 
+import { Reveal } from '@/components/motion/reveal';
 import { Routes } from '@/utils/constants';
 import { ButtonLink } from '../button-link';
 import { FAQDropdown } from './faq-dropdown';
@@ -61,24 +62,26 @@ export function FAQSection({
         >
             <div className="mx-auto flex max-w-6xl flex-col items-start gap-16 sm:gap-24 md:flex-row md:gap-12">
                 <div className="flex flex-1 flex-col items-start">
-                    <h2 className="heading-style-h2 text-foreground-primary mt-4 mb-12 max-w-3xl text-balance">
+                    <Reveal as="h2" className="heading-style-h2 text-foreground-primary mt-4 mb-12 max-w-3xl text-balance">
                         {resolvedTitle.split('\n').map((line, index) => (
                             <React.Fragment key={index}>
                                 {line}
                                 {index < resolvedTitle.split('\n').length - 1 && <br />}
                             </React.Fragment>
                         ))}
-                    </h2>
-                    <ButtonLink
-                        href={buttonHref}
-                        rightIcon={<Icons.ArrowRight className="h-5 w-5" />}
-                    >
-                        {resolvedButton}
-                    </ButtonLink>
+                    </Reveal>
+                    <Reveal delay={0.15}>
+                        <ButtonLink
+                            href={buttonHref}
+                            rightIcon={<Icons.ArrowRight className="h-5 w-5" />}
+                        >
+                            {resolvedButton}
+                        </ButtonLink>
+                    </Reveal>
                 </div>
-                <div className="flex flex-1 flex-col gap-6">
+                <Reveal delay={0.1} className="flex flex-1 flex-col gap-6">
                     <FAQDropdown faqs={resolvedFaqs} />
-                </div>
+                </Reveal>
             </div>
         </div>
     );

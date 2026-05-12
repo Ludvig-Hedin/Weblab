@@ -8,6 +8,8 @@ import Link from 'next/link';
 
 import { Icons } from '@weblab/ui/icons';
 
+import { Reveal } from '@/components/motion/reveal';
+
 interface Contributor {
     login: string;
     avatar_url: string;
@@ -106,7 +108,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                     return (
                         <div
                             key={`inner-${i}`}
-                            className="border-foreground-primary/40 counter-spin absolute overflow-hidden rounded-full border border-[0.5px] bg-white/20 shadow-lg"
+                            className="border-foreground-primary/40 counter-spin absolute overflow-hidden rounded-full border border-[0.5px] bg-foreground-primary/20 shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
@@ -141,7 +143,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                     return (
                         <div
                             key={`outer-${i}`}
-                            className="border-foreground-primary/40 counter-spin-reverse absolute overflow-hidden rounded-full border border-[0.5px] bg-white/20 shadow-lg"
+                            className="border-foreground-primary/40 counter-spin-reverse absolute overflow-hidden rounded-full border border-[0.5px] bg-foreground-primary/20 shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
@@ -217,17 +219,21 @@ export function ContributorSection({
             >
                 {/* Floating Circles: two concentric rings */}
                 <FloatingRings repo={repo} />
-                <h2 className="heading-style-h3 text-foreground-primary mb-2 text-center">
+                <Reveal as="h2" className="heading-style-h3 text-foreground-primary mb-2 text-center">
                     {t('headingLine1')}
                     <br />
                     {isLoading
                         ? t('headingLoading')
                         : t('headingOtherBuilders', { count: starCount })}
-                </h2>
-                <p className="text-foreground-secondary text-regular mb-8 max-w-xl text-center">
+                </Reveal>
+                <Reveal
+                    as="p"
+                    delay={0.1}
+                    className="text-foreground-secondary text-regular mb-8 max-w-xl text-center"
+                >
                     {t('body')}
-                </p>
-                <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
+                </Reveal>
+                <Reveal delay={0.2} className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
                     <Link
                         href={githubLink}
                         target="_blank"
@@ -244,7 +250,7 @@ export function ContributorSection({
                         Join the Discord
                         <Icons.DiscordLogo className="w-4.5 h-4.5" />
                     </Link> */}
-                </div>
+                </Reveal>
             </div>
         </div>
     );

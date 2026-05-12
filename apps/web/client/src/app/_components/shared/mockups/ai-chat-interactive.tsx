@@ -23,7 +23,7 @@ const PRESET_SENTENCE = 'Add a section for baristas to upsell new seasonal flavo
 function UserMessage({ text }: { text: string }) {
     return (
         <div className="group relative flex w-full flex-row justify-end px-2">
-            <div className="bg-background-secondary text-foreground-secondary relative ml-8 flex w-[80%] flex-col rounded-lg rounded-br-none border-[0.5px] p-2 shadow-sm">
+            <div className="bg-background-secondary text-foreground-secondary relative ml-8 flex w-[80%] flex-col rounded-lg p-2 shadow-sm">
                 <div className="text-small">{text ?? ''}</div>
             </div>
         </div>
@@ -118,9 +118,9 @@ export function AiChatInteractive() {
     };
 
     return (
-        <div className="bg-background-weblab/80 relative h-100 w-full overflow-hidden rounded-lg">
-            <div className="border-foreground-primary/20 absolute bottom-8 left-1/2 flex w-80 -translate-x-1/2 flex-col overflow-hidden rounded-xl border bg-black/85 shadow-lg">
-                <div className="space-y-2 py-2 pt-24">
+        <div className="relative h-100 w-auto overflow-hidden rounded-lg">
+            <div className="border-foreground-primary/20 absolute bottom-0 left-1/2 flex w-80 -translate-x-1/2 flex-col overflow-hidden rounded-xl border bg-black/85 shadow-lg max-h-full">
+                <div className="space-y-2 py-2 pt-2">
                     {chatMessages.map((msg, idx) => {
                         if (msg.type === 'text' && msg.sender === 'user') {
                             return <UserMessage key={idx} text={msg.text ?? ''} />;

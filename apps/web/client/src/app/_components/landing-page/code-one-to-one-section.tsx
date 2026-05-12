@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 
+import { Reveal } from '@/components/motion/reveal';
+
 const mockDivs = [
     { id: 1, label: 'Header', codeLines: [2, 3] },
     { id: 2, label: 'Main', codeLines: [4] },
@@ -65,24 +67,25 @@ export function CodeOneToOneSection() {
 
     return (
         <section className="relative mx-auto flex min-h-[480px] w-full max-w-6xl justify-center bg-transparent px-8">
-            <div className="pointer-events-none absolute top-0 left-0 z-10 mx-auto w-full max-w-6xl">
-                <h2 className="heading-style-h2 ml-12 max-w-4xl text-left text-white drop-shadow-xl">
+            <Reveal className="pointer-events-none absolute top-0 left-0 z-10 mx-auto w-full max-w-6xl">
+                <h2 className="heading-style-h2 ml-12 max-w-4xl text-left text-foreground-primary drop-shadow-xl">
                     {t('headingLine1')}
                     <br />
                     {t('headingLine2')}
                 </h2>
-            </div>
+            </Reveal>
+            <Reveal delay={0.1}>
             <div
                 className="relative mx-auto mt-24 flex min-h-[420px] w-full max-w-6xl items-center justify-start"
                 style={{ paddingTop: '7vw' }}
             >
                 {/* Left: Mock Website */}
-                <div className="relative z-10 flex h-[320px] w-full max-w-[800px] flex-col items-center justify-center rounded-2xl bg-white shadow-xl">
+                <div className="relative z-10 flex h-[320px] w-full max-w-[800px] flex-col items-center justify-center rounded-2xl bg-card shadow-xl">
                     <div className="flex h-full w-full flex-col justify-between gap-6 p-8">
                         {mockDivs.map((div) => (
                             <div
                                 key={div.id}
-                                className={`border-border/10 flex h-14 w-full cursor-pointer items-center justify-end rounded-lg border pr-8 text-xl font-light transition ${selectedDiv === div.id ? 'border-blue-500 bg-blue-50' : 'bg-white hover:border-blue-300'}`}
+                                className={`border-border/10 flex h-14 w-full cursor-pointer items-center justify-end rounded-lg border pr-8 text-xl font-light transition ${selectedDiv === div.id ? 'border-foreground-brand bg-background-brand/10' : 'bg-card hover:border-foreground-brand/50'}`}
                                 onClick={() => setSelectedDiv(div.id)}
                                 style={{
                                     boxShadow:
@@ -91,7 +94,7 @@ export function CodeOneToOneSection() {
                                             : undefined,
                                 }}
                             >
-                                <span className="text-gray-800">{div.label}</span>
+                                <span className="text-foreground-primary">{div.label}</span>
                             </div>
                         ))}
                     </div>
@@ -102,7 +105,7 @@ export function CodeOneToOneSection() {
                     style={{ transform: 'translateY(-50%) translateX(20%)' }}
                 >
                     <div className="bg-background/80 border-border/10 text-small text-foreground-secondary relative flex h-[400px] w-[440px] flex-col overflow-hidden rounded-2xl border border-[0.5px] p-3 text-left font-mono shadow-xl shadow-black/40 backdrop-blur-xl">
-                        <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/10 p-5 shadow-2xl">
+                        <div className="pointer-events-none absolute inset-0 rounded-2xl border border-foreground-primary/10 p-5 shadow-2xl">
                             <pre className="relative z-10 whitespace-pre-wrap">
                                 {mockCode.map((line, idx) => {
                                     // Highlight lines if selectedDiv matches
@@ -114,7 +117,7 @@ export function CodeOneToOneSection() {
                                     return (
                                         <div
                                             key={idx}
-                                            className={`text-small flex flex-row items-start rounded px-0 transition ${highlight ? 'bg-blue-900/60 text-blue-200' : ''}`}
+                                            className={`text-small flex flex-row items-start rounded px-0 transition ${highlight ? 'bg-foreground-brand/20 text-foreground-brand' : ''}`}
                                         >
                                             <span
                                                 className="text-small text-foreground-tertiary/50 mr-2 w-6 pt-0.5 text-left font-mono select-none"
@@ -135,6 +138,7 @@ export function CodeOneToOneSection() {
                     </div>
                 </div>
             </div>
+            </Reveal>
         </section>
     );
 }

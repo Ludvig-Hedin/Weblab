@@ -212,7 +212,7 @@ function SlideCard({
             animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.98 }}
             whileHover={isActive ? undefined : { opacity: 0.7, scale: 0.99 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`border-foreground-primary/10 bg-background-secondary/40 grid h-[30rem] grid-cols-1 gap-6 overflow-hidden rounded-2xl border p-5 backdrop-blur-sm md:grid-cols-[1fr_1.4fr] ${
+            className={`bg-background-secondary/60 grid h-[30rem] grid-cols-1 gap-6 overflow-hidden rounded-2xl p-5 backdrop-blur-sm md:grid-cols-[1fr_1.4fr] ${
                 isActive ? '' : 'cursor-pointer'
             }`}
         >

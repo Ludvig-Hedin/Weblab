@@ -1,6 +1,9 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 
+import { Reveal } from '@/components/motion/reveal';
+import { SplitText } from '@/components/motion/split-text';
+
 interface TestimonialCardProps {
     text: string;
     name: string;
@@ -34,7 +37,7 @@ function TestimonialCard({
                         />
                     ) : (
                         <div
-                            className="flex h-full w-full items-center justify-center bg-white/10"
+                            className="flex h-full w-full items-center justify-center bg-foreground-primary/10"
                             style={{ background: profileColor }}
                         ></div>
                     )}
@@ -63,73 +66,92 @@ export function TestimonialsSection() {
     return (
         <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-48">
             <h2 className="heading-style-h2 text-foreground-primary mb-16 max-w-4xl text-left text-balance">
-                {t('headingLine1')} <br />
-                {t('headingLine2')}
+                <SplitText as="span">{t('headingLine1')}</SplitText>
+                <br />
+                <SplitText as="span" delay={0.1}>
+                    {t('headingLine2')}
+                </SplitText>
             </h2>
             <div className="flex w-full flex-col gap-6 md:flex-row md:gap-8">
                 {/* Column 1 */}
                 <div className="flex flex-1 flex-col gap-8">
-                    <TestimonialCard
-                        text="What is this, something like Figma and v0 fused into a devilish combo? There's something called 'weblab' trending on GitHub, and it's so insanely cool it's scary."
-                        name="Koder@海外Tech速報"
-                        label=""
-                        profileImage="/assets/testimonials-koder.png"
-                        href="https://x.com/koder_dev/status/1884179672847847522"
-                    />
-                    <TestimonialCard
-                        text="From an era where web designers were synonymous with Photoshop and XD, we've moved into the Figma era. And now, a new tool powered by AI has emerged! Its name is 'Weblab'. In summary, it seems you can publish your designs directly."
-                        name="Ryutaro"
-                        label="Studio Nika"
-                        profileImage="/assets/testimonials-ryutaro.png"
-                        href="https://x.com/ryutar02ka/status/1884542011706912900"
-                    />
+                    <Reveal delay={0}>
+                        <TestimonialCard
+                            text="What is this, something like Figma and v0 fused into a devilish combo? There's something called 'weblab' trending on GitHub, and it's so insanely cool it's scary."
+                            name="Koder@海外Tech速報"
+                            label=""
+                            profileImage="/assets/testimonials-koder.png"
+                            href="https://x.com/koder_dev/status/1884179672847847522"
+                        />
+                    </Reveal>
+                    <Reveal delay={0.08}>
+                        <TestimonialCard
+                            text="From an era where web designers were synonymous with Photoshop and XD, we've moved into the Figma era. And now, a new tool powered by AI has emerged! Its name is 'Weblab'. In summary, it seems you can publish your designs directly."
+                            name="Ryutaro"
+                            label="Studio Nika"
+                            profileImage="/assets/testimonials-ryutaro.png"
+                            href="https://x.com/ryutar02ka/status/1884542011706912900"
+                        />
+                    </Reveal>
                 </div>
                 {/* Column 2 */}
                 <div className="mt-0 flex flex-1 flex-col gap-8 md:mt-12">
-                    <TestimonialCard
-                        text="lookin' rad!"
-                        name="Adam Argyle"
-                        label="Chrome CSS Developer Advocate at Google"
-                        profileImage="/assets/testimonials-adam.png"
-                    />
-                    <TestimonialCard
-                        text="Promising new tool for designers – gives you a Figma-like front end to visually edit your React app."
-                        name="Aaron Epstein"
-                        label="Cofounder of Creative Market"
-                        profileImage="/assets/testimonials-aaron.png"
-                        href="https://x.com/aaron_epstein/status/1851299967752945967"
-                    />
-                    <TestimonialCard
-                        text="Your products have helped me a lot. Thank you from the bottom of my heart."
-                        name="Utsumura Fuki"
-                        label=""
-                        profileImage="/assets/testimonials-utsumaru.png"
-                        href="https://x.com/w5927a1/status/1887822962776326602"
-                    />
+                    <Reveal delay={0.04}>
+                        <TestimonialCard
+                            text="lookin' rad!"
+                            name="Adam Argyle"
+                            label="Chrome CSS Developer Advocate at Google"
+                            profileImage="/assets/testimonials-adam.png"
+                        />
+                    </Reveal>
+                    <Reveal delay={0.12}>
+                        <TestimonialCard
+                            text="Promising new tool for designers – gives you a Figma-like front end to visually edit your React app."
+                            name="Aaron Epstein"
+                            label="Cofounder of Creative Market"
+                            profileImage="/assets/testimonials-aaron.png"
+                            href="https://x.com/aaron_epstein/status/1851299967752945967"
+                        />
+                    </Reveal>
+                    <Reveal delay={0.2}>
+                        <TestimonialCard
+                            text="Your products have helped me a lot. Thank you from the bottom of my heart."
+                            name="Utsumura Fuki"
+                            label=""
+                            profileImage="/assets/testimonials-utsumaru.png"
+                            href="https://x.com/w5927a1/status/1887822962776326602"
+                        />
+                    </Reveal>
                 </div>
                 {/* Column 3 */}
                 <div className="mt-0 flex flex-1 flex-col gap-8 md:mt-24">
-                    <TestimonialCard
-                        text="this is getting pretty ergonomically close to the synthesis of generative code & design. great product @weblab 🐣"
-                        name="Tina He"
-                        label="Product Lead, Developer Tools at Coinbase"
-                        profileImage="/assets/testimonials-tina.png"
-                        href="https://x.com/fkpxls/status/1887319067884716109"
-                    />
-                    <TestimonialCard
-                        text="V nice!"
-                        name="John Maeda"
-                        label="Head of Computational Design / AI Platform at Microsoft"
-                        profileImage="/assets/testimonials-john.png"
-                        href="https://x.com/johnmaeda/status/1855091938828968112"
-                    />
-                    <TestimonialCard
-                        text="While playing with it, I once again thought, 'The boundary between design and development is melting away.'"
-                        name="Kawai Design"
-                        label=""
-                        profileImage="/assets/testimonials-kawai.png"
-                        href="https://x.com/kawai_design/status/1884908670343086376"
-                    />
+                    <Reveal delay={0.08}>
+                        <TestimonialCard
+                            text="this is getting pretty ergonomically close to the synthesis of generative code & design. great product @weblab 🐣"
+                            name="Tina He"
+                            label="Product Lead, Developer Tools at Coinbase"
+                            profileImage="/assets/testimonials-tina.png"
+                            href="https://x.com/fkpxls/status/1887319067884716109"
+                        />
+                    </Reveal>
+                    <Reveal delay={0.16}>
+                        <TestimonialCard
+                            text="V nice!"
+                            name="John Maeda"
+                            label="Head of Computational Design / AI Platform at Microsoft"
+                            profileImage="/assets/testimonials-john.png"
+                            href="https://x.com/johnmaeda/status/1855091938828968112"
+                        />
+                    </Reveal>
+                    <Reveal delay={0.24}>
+                        <TestimonialCard
+                            text="While playing with it, I once again thought, 'The boundary between design and development is melting away.'"
+                            name="Kawai Design"
+                            label=""
+                            profileImage="/assets/testimonials-kawai.png"
+                            href="https://x.com/kawai_design/status/1884908670343086376"
+                        />
+                    </Reveal>
                 </div>
             </div>
         </div>
