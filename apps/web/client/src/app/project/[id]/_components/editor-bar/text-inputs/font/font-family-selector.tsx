@@ -35,9 +35,15 @@ export const FontFamilySelector = observer(() => {
         if (!editorEngine.activeSandbox.session.provider) {
             return;
         }
-        void Promise.resolve(editorEngine.font.init()).catch((err) =>
-            console.error('font.init failed', err),
-        );
+        // Wrap in an async IIFE: `Promise.resolve(fn())` would still throw
+        // synchronously if `init()` is not actually async.
+        void (async () => {
+            try {
+                await editorEngine.font.init();
+            } catch (err) {
+                console.error('font.init failed', err);
+            }
+        })();
     }, [editorEngine.activeSandbox.session.provider]);
 
     // Run Google Fonts search whenever the query changes. The font store

@@ -44,9 +44,15 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
     useEffect(() => {
         if (!open) return;
         if (!editorEngine.activeSandbox.session.provider) return;
-        void Promise.resolve(editorEngine.font.init()).catch((err) =>
-            console.error('font.init failed', err),
-        );
+        // Wrap in an async IIFE: `Promise.resolve(fn())` would still throw
+        // synchronously if `init()` is not actually async.
+        void (async () => {
+            try {
+                await editorEngine.font.init();
+            } catch (err) {
+                console.error('font.init failed', err);
+            }
+        })();
     }, [open, editorEngine.activeSandbox.session.provider, editorEngine.font]);
 
     // Run Google Fonts search whenever the query changes — store debounces.
@@ -67,6 +73,18 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
         if (!q) return installed;
         return installed.filter((f) => f.family.toLowerCase().includes(q));
     }, [installed, query]);
+
+    // `value` can be either a bare font id (Tailwind-emitted `inter`) or a
+    // raw CSS font-family stack (`"Inter", sans-serif`). Strip quotes + the
+    // fallback chain so the active-font highlight matches in both cases.
+    const primaryFamilyKey = useMemo(
+        () =>
+            (value.split(',')[0] ?? '')
+                .trim()
+                .replace(/^['"]|['"]$/g, '')
+                .toLowerCase(),
+        [value],
+    );
 
     const googleFonts = useMemo(() => {
         const q = query.trim();
@@ -148,7 +166,10 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                                     <FontFamily
                                         name={font.family}
                                         onSetFont={() => void applyFont(font, true)}
-                                        isActive={value.toLowerCase() === font.id.toLowerCase()}
+                                        isActive={
+                                            primaryFamilyKey === font.id.toLowerCase() ||
+                                            primaryFamilyKey === font.family.toLowerCase()
+                                        }
                                     />
                                 </div>
                             ))}
@@ -164,7 +185,10 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                                     <FontFamily
                                         name={font.family}
                                         onSetFont={() => void applyFont(font, false)}
-                                        isActive={value.toLowerCase() === font.id.toLowerCase()}
+                                        isActive={
+                                            primaryFamilyKey === font.id.toLowerCase() ||
+                                            primaryFamilyKey === font.family.toLowerCase()
+                                        }
                                     />
                                 </div>
                             ))}
