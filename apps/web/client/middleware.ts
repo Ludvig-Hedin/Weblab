@@ -42,6 +42,17 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // Desktop Electron shell tags its WebContents UA with `WeblabDesktop/<v>`
+    // (apps/desktop/main.js). When that shell lands on `/` — the marketing
+    // landing — bounce it to `/login` so it feels like an app, not a browser
+    // bookmark. `/login` already routes authed users to `/projects`, so a
+    // single hop covers both states.
+    if (pathname === '/' && request.headers.get('user-agent')?.includes('WeblabDesktop')) {
+        const redirectUrl = new URL('/login', request.url);
+        redirectUrl.searchParams.set('native', '1');
+        return NextResponse.redirect(redirectUrl);
+    }
+
     // /api/auth/* is intentionally NOT skipped — the cookie refresh completes
     // the Supabase sign-in handshake. tRPC/chat/AI run their own auth via
     // createTRPCContext and don't need middleware-level refresh.

@@ -8,6 +8,17 @@ const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'weblab.build';
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${APP_DOMAIN}`;
 const APP_ORIGIN = new URL(APP_URL).origin;
 
+// Boot the desktop shell straight into the auth flow instead of the marketing
+// landing. /login server-redirects already-signed-in users to /projects, so a
+// single load handles both cases. `?native=1` mirrors the flag main.js already
+// stamps on deep-link callbacks (see handleDeepLink) so the web side can show
+// desktop-specific UI without UA sniffing.
+const DEFAULT_LAUNCH_URL = (() => {
+    const u = new URL('/login', APP_URL);
+    u.searchParams.set('native', '1');
+    return u.toString();
+})();
+
 // Origins the IPC layer accepts requests from. Mirrors the preload's allow-list
 // so dev (localhost:3000) and production (the configured site URL) both work.
 // The CLI bridge handlers re-check senderFrame.url against this set on every
@@ -132,6 +143,10 @@ function createWindow(initialURL) {
         height: WINDOW_HEIGHT,
         minWidth: 800,
         minHeight: 600,
+        // Match the dark theme served by the web app so the empty window
+        // between BrowserWindow creation and first paint doesn't flash white.
+        backgroundColor: '#0a0a0a',
+        title: APP_NAME,
         titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -146,7 +161,44 @@ function createWindow(initialURL) {
         show: false,
     });
 
-    mainWindow.loadURL(initialURL || APP_URL);
+    // Tag the WebContents UA so the Next.js middleware can recognize requests
+    // from the desktop shell (used to redirect `/` → `/login` so an in-app
+    // logo click or reload doesn't drop the user back on the marketing site).
+    try {
+        const baseUA = mainWindow.webContents.userAgent;
+        mainWindow.webContents.userAgent = `${baseUA} WeblabDesktop/${app.getVersion()} Platform/${process.platform}`;
+    } catch {
+        // Non-fatal: missing UA marker just means middleware falls through to
+        // its normal behavior and the user sees the marketing page on `/`.
+    }
+
+    mainWindow.loadURL(initialURL || DEFAULT_LAUNCH_URL);
+
+    // Lock the window title to the app name. Without this, macOS `hiddenInset`
+    // surfaces the page <title> (e.g. marketing meta titles like
+    // "Weblab — AI visual website builder…") in the chrome, which feels like a
+    // browser tab rather than a native app.
+    mainWindow.setTitle(APP_NAME);
+    mainWindow.on('page-title-updated', (event) => {
+        event.preventDefault();
+        mainWindow.setTitle(APP_NAME);
+    });
+
+    // Toggle a root data attribute so the web side can drop the macOS
+    // traffic-light inset (80px left padding) when the user fullscreens — the
+    // lights are hidden in that mode and the inset becomes wasted space.
+    const setFullscreenFlag = (on) => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        const script = on
+            ? `document.documentElement.dataset.desktopFullscreen='true'`
+            : `delete document.documentElement.dataset.desktopFullscreen`;
+        mainWindow.webContents.executeJavaScript(script).catch(() => {
+            // Page may be mid-navigation; the next paint will pick up the
+            // correct state from the next listener call.
+        });
+    };
+    mainWindow.on('enter-full-screen', () => setFullscreenFlag(true));
+    mainWindow.on('leave-full-screen', () => setFullscreenFlag(false));
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();

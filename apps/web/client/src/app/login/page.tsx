@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -11,6 +12,11 @@ import { LocalForageKeys, Routes } from '@/utils/constants';
 import { AuthForm } from '../_components/auth-form';
 import pkg from '../../../package.json';
 
+interface WeblabDesktopBridge {
+    target?: string;
+    version?: string;
+}
+
 export default function LoginPage() {
     const t = useTranslations();
     const searchParams = useSearchParams();
@@ -18,13 +24,34 @@ export default function LoginPage() {
     const missingEmail = searchParams.get('missing') === 'email';
     const initialEmailError = missingEmail ? t('loginPage.verificationExpired') : null;
 
+    // In the desktop shell, clicking the logo to `/` triggers the middleware
+    // redirect back to `/login` (extra hop + URL bar flash). And the in-app
+    // version that matters to the user is the Electron build, not the bundled
+    // web `pkg.version`. Read both from the preload bridge after mount so SSR
+    // output stays identical for normal browser visitors.
+    const [desktop, setDesktop] = useState<{ isDesktop: boolean; version: string | null }>({
+        isDesktop: false,
+        version: null,
+    });
+    useEffect(() => {
+        const bridge = (window as unknown as { weblabDesktop?: WeblabDesktopBridge })
+            .weblabDesktop;
+        if (bridge?.target === 'desktop') {
+            setDesktop({ isDesktop: true, version: bridge.version ?? null });
+        }
+    }, []);
+
     return (
         <div className="flex h-screen w-screen items-center justify-center">
-            <div className="flex h-full w-full max-w-xl flex-col justify-between space-y-8 overflow-auto p-16">
+            <div className="flex h-full w-full flex-col justify-between space-y-8 overflow-auto px-6 py-10 sm:max-w-xl sm:px-16 sm:py-16">
                 <div className="flex items-center space-x-2">
-                    <Link href={Routes.HOME} className="transition-opacity hover:opacity-80">
+                    {desktop.isDesktop ? (
                         <BrandLogo className="h-5" />
-                    </Link>
+                    ) : (
+                        <Link href={Routes.HOME} className="transition-opacity hover:opacity-80">
+                            <BrandLogo className="h-5" />
+                        </Link>
+                    )}
                 </div>
                 <div className="space-y-8">
                     <div className="space-y-4">
@@ -58,7 +85,11 @@ export default function LoginPage() {
                     </p>
                 </div>
                 <div className="text-small text-foreground-tertiary flex flex-row space-x-1">
-                    <p>{t(transKeys.welcome.version, { version: pkg.version })}</p>
+                    <p>
+                        {t(transKeys.welcome.version, {
+                            version: desktop.version ?? pkg.version,
+                        })}
+                    </p>
                 </div>
             </div>
         </div>

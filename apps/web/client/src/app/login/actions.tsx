@@ -69,7 +69,7 @@ export async function login(
     redirect(data.url);
 }
 
-export async function devLogin() {
+export async function devLogin(returnUrl?: string | null) {
     if (process.env.NODE_ENV === 'production') {
         throw new Error('Dev login is disabled in production');
     }
@@ -77,8 +77,8 @@ export async function devLogin() {
         throw new Error('Dev login is disabled in this environment');
     }
 
-    const localBackendHint =
-        'Local Supabase backend is unavailable. Start it with `bun backend:start` and wait for ports 54321 and 54322 to be ready.';
+    const fetchFailedHint =
+        'Supabase backend is unavailable. Check that SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are correct and the project is reachable.';
 
     const supabase = await createClient();
     const {
@@ -90,85 +90,62 @@ export async function devLogin() {
     }
 
     const adminSupabase = createAdminClient();
-    const { data: existingUser } = await adminSupabase.auth.admin.getUserById(SEED_USER.ID);
 
+    // Ensure the seed user exists. If not found by UUID, create it.
+    // If creation fails because the email is already taken by a different
+    // user, proceed anyway — generateLink works on the email regardless of UUID.
+    const { data: existingUser } = await adminSupabase.auth.admin.getUserById(SEED_USER.ID);
     if (!existingUser.user) {
         const { error: createUserError } = await adminSupabase.auth.admin.createUser({
             id: SEED_USER.ID,
             email: SEED_USER.EMAIL,
-            password: SEED_USER.PASSWORD,
             email_confirm: true,
             user_metadata: {
+                name: SEED_USER.DISPLAY_NAME,
+                display_name: SEED_USER.DISPLAY_NAME,
                 first_name: SEED_USER.FIRST_NAME,
                 last_name: SEED_USER.LAST_NAME,
-                display_name: SEED_USER.DISPLAY_NAME,
                 avatar_url: SEED_USER.AVATAR_URL,
             },
         });
-
-        if (createUserError) {
-            if (createUserError.message === 'fetch failed') {
-                throw new Error(localBackendHint);
-            }
-            throw new Error(`Failed to create demo user: ${createUserError.message}`);
+        if (createUserError && createUserError.message === 'fetch failed') {
+            throw new Error(fetchFailedHint);
         }
-    } else {
-        // Reset password to known value — user may exist from a previous seed
-        // with a different or corrupted password, causing signInWithPassword to fail.
-        const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
-            SEED_USER.ID,
-            { password: SEED_USER.PASSWORD },
-        );
-        if (updateError) {
-            throw new Error(`Failed to reset demo user password: ${updateError.message}`);
-        }
+        // Ignore "User already registered" — email exists with a different UUID;
+        // generateLink below will still work.
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Build the callback URL so Supabase redirects back after verifying the
+    // magic link, matching the same pattern the OAuth login() action uses.
+    const origin = env.NEXT_PUBLIC_SITE_URL;
+    const callbackUrl = new URL(`${origin}${Routes.AUTH_CALLBACK}`);
+    const sanitizedReturnUrl = sanitizeReturnUrl(returnUrl ?? null, { origin });
+    if (sanitizedReturnUrl !== Routes.HOME) {
+        callbackUrl.searchParams.set('returnUrl', sanitizedReturnUrl);
+    }
+
+    const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+        type: 'magiclink',
         email: SEED_USER.EMAIL,
-        password: SEED_USER.PASSWORD,
+        options: { redirectTo: callbackUrl.toString() },
     });
 
-    if (error) {
-        // devLogin guards `NODE_ENV === 'production'` at the top; this branch
-        // only runs in non-prod environments so logging is always safe.
-        console.error('Error signing in with password:', error);
-        if (error.message === 'fetch failed') {
-            throw new Error(localBackendHint);
+    if (linkError) {
+        console.error('devLogin: generateLink failed', linkError);
+        if (linkError.message === 'fetch failed') {
+            throw new Error(fetchFailedHint);
         }
-        throw new Error(error.message);
+        throw new Error(`Demo sign-in failed: ${linkError.message}`);
     }
 
-    const signedInUser = data.user;
-    if (!signedInUser) {
-        throw new Error('Demo user sign-in succeeded without a user payload.');
+    if (!linkData?.properties?.action_link) {
+        throw new Error('Demo sign-in failed: no action link returned.');
     }
 
-    await db
-        .insert(users)
-        .values({
-            id: signedInUser.id,
-            email: signedInUser.email ?? SEED_USER.EMAIL,
-            firstName: SEED_USER.FIRST_NAME,
-            lastName: SEED_USER.LAST_NAME,
-            displayName: SEED_USER.DISPLAY_NAME,
-            avatarUrl: signedInUser.user_metadata.avatar_url ?? SEED_USER.AVATAR_URL,
-        })
-        .onConflictDoUpdate({
-            target: [users.id],
-            set: {
-                email: signedInUser.email ?? SEED_USER.EMAIL,
-                firstName: SEED_USER.FIRST_NAME,
-                lastName: SEED_USER.LAST_NAME,
-                displayName: SEED_USER.DISPLAY_NAME,
-                avatarUrl: signedInUser.user_metadata.avatar_url ?? SEED_USER.AVATAR_URL,
-                updatedAt: new Date(),
-            },
-        });
-
-    return {
-        redirectTo: Routes.AUTH_REDIRECT,
-    };
+    // Redirect the browser through the Supabase magic-link verify URL.
+    // Supabase will verify the token and redirect to callbackUrl with ?code=,
+    // which the existing /auth/callback route exchanges for a session.
+    redirect(linkData.properties.action_link);
 }
 
 export async function sendEmailOtp(email: string): Promise<{ error?: string }> {

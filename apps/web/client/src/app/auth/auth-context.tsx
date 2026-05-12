@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 
 import { SignInMethod } from '@weblab/models/auth';
@@ -28,7 +27,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const router = useRouter();
     const [lastSignInMethod, setLastSignInMethod] = useState<SignInMethod | null>(null);
     const [signingInMethod, setSigningInMethod] = useState<SignInMethod | null>(null);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -88,21 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 returnUrl ?? (await localforage.getItem<string>(LocalForageKeys.RETURN_URL));
             await localforage.removeItem(LocalForageKeys.RETURN_URL);
             await localforage.setItem(LAST_SIGN_IN_METHOD_KEY, SignInMethod.DEV);
-            const result = await devLogin();
-
-            if (result?.redirectTo) {
-                // Pass returnUrl through the URL query so /auth/redirect can read it.
-                let target: string = result.redirectTo;
-                if (stagedReturnUrl) {
-                    const url = new URL(result.redirectTo, window.location.origin);
-                    url.searchParams.set('returnUrl', stagedReturnUrl);
-                    target = url.toString();
-                }
-                router.replace(target);
-            }
+            // devLogin redirects the browser via Next.js redirect() — it never
+            // returns a value. The page navigates away through Supabase magic-link
+            // → /auth/callback → app, identical to the OAuth flow.
+            await devLogin(stagedReturnUrl);
         } catch (error) {
             if (process.env.NODE_ENV !== 'production') {
-                console.error('Error signing in with password:', error);
+                console.error('Error signing in (demo):', error);
             }
             const message = error instanceof Error ? error.message : 'Unknown error';
             toast.error('Demo sign-in failed', { description: message });
