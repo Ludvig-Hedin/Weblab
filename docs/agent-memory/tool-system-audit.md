@@ -72,7 +72,7 @@ Prerequisite for the AI tool system rollout (registry, image gen/edit, server-si
 - **Production loading is zero-config**: a build-time codegen (`bun run generate:skills` from `packages/ai`) scans `skills/*/SKILL.md` and emits `packages/ai/src/skills/embedded.ts`. Wired into `apps/web/client`'s `prebuild` script so Railway picks it up automatically.
 - **Dev hot-iteration**: `loadSkills()` first walks up from cwd looking for a `skills/` dir (catches edits without regen); falls through to `EMBEDDED_SKILLS` when nothing is found.
 - **No env vars** required to enable Agent Skills.
-- Reference impl: `reference/t3code/apps/server/src/skills/SkillService.ts` (uses the Effect runtime — adapt parser/discovery, do not copy).
+- Reference impl: `docs/archive/t3code/apps/server/src/skills/SkillService.ts` (uses the Effect runtime — adapt parser/discovery, do not copy).
 
 ## What is missing
 
@@ -98,7 +98,7 @@ Prerequisite for the AI tool system rollout (registry, image gen/edit, server-si
 - `Tool, ToolHeader, ToolContent, ToolOutput` from `@weblab/ui/ai-elements` → reused for the new image-result renderer.
 - `ActionsGroup` collapsible wrapper → reused.
 - `tool-call-display.tsx` dispatcher → extended (new branch for image-gen/edit), not replaced.
-- SkillService parser regex + discovery from `reference/t3code/apps/server/src/skills/SkillService.ts` → ported, not copied (rewrite as plain async TS).
+- SkillService parser regex + discovery from `docs/archive/t3code/apps/server/src/skills/SkillService.ts` → ported, not copied (rewrite as plain async TS).
 
 ## What we will not touch
 

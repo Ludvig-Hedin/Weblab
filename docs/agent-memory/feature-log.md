@@ -16,6 +16,23 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-11 — Performance + production-readiness audit
+Author: Claude (performance audit)
+Area: apps/web/client (landing + editor + tRPC + providers)
+Summary: Closed real-prod issues across landing and editor: gated
+anonymous-reachable `user.get` / `user.settings.get` / `provider.connectionsList`
+calls behind a Supabase auth-cookie heuristic; extracted `parseRepoUrl`
+so the `@weblab/parser` bundle no longer leaks into the landing chunk;
+added `loading.tsx` + `error.tsx` for `/project/[id]` and a root
+`error.tsx`; lazy-loaded editor modals (settings, subscription,
+keyboard shortcuts, command/file palettes, project search, CMS dialogs);
+disabled React Query `refetchOnWindowFocus`; closed a cross-project
+access gap on `userCanvas.get` / `getWithFrames` / `update`; capped
+unbounded `comment.list` and `chat.conversation.getAll`. Surfaced the
+silent-failure path on `userCanvas.update` instead of swallowing errors.
+Files: see `docs/agent-memory/performance-audit.md` for the full list.
+Links: docs/agent-memory/performance-audit.md
+
 ## 2026-05-11 — Weblab App Figma component library (extracted from code)
 Author: Claude (figma-use)
 Area: design-system / Figma
@@ -91,11 +108,11 @@ Links:
 Author: Claude (agent)
 Area: `apps/web/product-video/` (new), `docs/`
 
-Summary: Planned and implemented the homepage product explainer. Plan doc covers positioning, format, five storyboards, asset plan, and HyperFrames implementation strategy (`docs/product-video-plan.md`). Built the chosen storyboard A — "From prompt to polished site" — as a deterministic HyperFrames composition: 75s, 1920×1080, 10 scene sub-comps + captions overlay, brand-faithful product UI recreations using real Weblab tokens (`#131314` bg, `#3d8bfd` accent, Inter, 16px radius). Renders byte-deterministically to a 2.6 MB MP4 via `npx hyperframes render`. Voiceover not generated (no ElevenLabs key in env) — script in `voiceover-script.md`, captions ship without audio. Lint passes 0-error; 210 cosmetic selector warnings + 250 small-label contrast warnings documented as known limitations. Real screen recordings deferred — substituted with stylized HTML/CSS recreations per plan §6.
+Summary: Planned and implemented the homepage product explainer. Plan doc covers positioning, format, five storyboards, asset plan, and HyperFrames implementation strategy (`docs/product/product-video-plan.md`). Built the chosen storyboard A — "From prompt to polished site" — as a deterministic HyperFrames composition: 75s, 1920×1080, 10 scene sub-comps + captions overlay, brand-faithful product UI recreations using real Weblab tokens (`#131314` bg, `#3d8bfd` accent, Inter, 16px radius). Renders byte-deterministically to a 2.6 MB MP4 via `npx hyperframes render`. Voiceover not generated (no ElevenLabs key in env) — script in `voiceover-script.md`, captions ship without audio. Lint passes 0-error; 210 cosmetic selector warnings + 250 small-label contrast warnings documented as known limitations. Real screen recordings deferred — substituted with stylized HTML/CSS recreations per plan §6.
 
 Files:
-- `docs/product-video-plan.md`
-- `docs/product-video-implementation-notes.md`
+- `docs/product/product-video-plan.md`
+- `docs/product/product-video-implementation-notes.md`
 - `apps/web/product-video/index.html`
 - `apps/web/product-video/design.md`
 - `apps/web/product-video/voiceover-script.md`

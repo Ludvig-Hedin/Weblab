@@ -94,4 +94,4 @@ For the full list and detailed purposes, see `packages-reference.md`.
 - `hybrid` mode is planned and must include explicit sync controls. Never
   silently overwrite local repo changes.
 
-Read `docs/project-runtime-modes.md` before changing runtime-mode behavior.
+Read `docs/notes/2026-05-06-project-runtime-modes.md` before changing runtime-mode behavior.

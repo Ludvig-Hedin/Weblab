@@ -2067,6 +2067,178 @@ publish/billing flows. Files reviewed: ~20 critical-path modules.
 
 ---
 
+## Review batch — 2026-05-12 (`/caveman-review` on full local tree)
+
+Scope: ~4.3k uncommitted insertions across 86 files + last 3 commits
+(840bfdd2, 0ac4d578, 7a6bce6d). Focused on auth/routing, server routers,
+stores, async flows, UI logic. No auto-fixes applied — owner asked to be
+super cautious; every finding below is left as a backlog entry for explicit
+review.
+
+| ID | Status |
+|----|--------|
+| CR-139 | open — 🔴 anon-user crash on `/project/[id]` |
+| CR-140 | open — 🟡 captureScreenshot soft-fail not honored by ScreenshotManager |
+| CR-141 | open — 🟡 raw `<button>` violations (Button enforcement) |
+| CR-142 | open — 🟡 BranchManager parallel init: one bad branch breaks all |
+| CR-143 | open — 🟡 mobile-layout hidden tabs leak to a11y tree |
+| CR-144 | open — 🔵 use-chat auto-regenerate uses fragile setTimeout(800ms) |
+| CR-145 | open — 🔵 defensive `limit` caps silently truncate without pagination UI |
+| CR-146 | open — 🔵 Ollama probe timeout missing on browsers without `AbortSignal.any` |
+
+### CR-139 — anon user hitting `/project/[id]` crashes instead of redirecting to /login
+
+- Area/Scope: `apps/web/client/src/app/project/[id]/layout.tsx:18-30`
+- Type: bug
+- Impact: user-facing (regression)
+- Risk: high
+- Summary: Layout switched from sequential `getUser → redirect → hasAccess`
+  to `Promise.all([getUser, hasAccess])`. `api.project.hasAccess` is a
+  `protectedProcedure` and throws `UNAUTHORIZED` for anonymous callers
+  (`apps/web/client/src/server/api/trpc.ts:141-148`). With `Promise.all`, the
+  rejection fires before the `if (!userResult.data.user) redirect(...)`
+  branch runs, so anonymous visitors hitting a direct project URL now see
+  the Next.js error boundary instead of being bounced to `/login`. Direct
+  links from emails, share links, deep-links — all regress.
+- Suggested approach: revert to sequential (`await supabase.auth.getUser()`
+  → redirect on null → `await api.project.hasAccess`). The single extra
+  round-trip is cheap. Or, if the parallel speedup matters, wrap the
+  `hasAccess` call in a `try/catch` that maps `UNAUTHORIZED` → `false` and
+  let the existing redirect handle it. Owner should pick the simpler revert
+  unless there is measured perf data justifying the parallel form.
+- Status: open
+
+### CR-140 — captureScreenshot soft-fail return shape not honored by ScreenshotManager
+
+- Area/Scope: `apps/web/client/src/server/api/routers/project/project.ts:80-95`
+  (router return), `apps/web/client/src/components/store/editor/screenshot/index.tsx:40-50`
+  (caller)
+- Type: refactor (minor consistency)
+- Impact: internal — extra console.error noise, no functional regression
+- Risk: low
+- Summary: The router was reshaped to soft-fail when `FIRECRAWL_API_KEY` is
+  unset, returning `{ success: false, error, skipped: 'no-api-key' }`
+  instead of throwing. The editor's `ScreenshotManager.debouncedCaptureScreenshot`
+  still does `if (!result?.success) throw new Error('Failed to capture screenshot')`,
+  so the soft-fail still logs an error from the editor (just not a thrown
+  HTTP error). The new dashboard backfill hook correctly tolerates it.
+  Functionally equivalent to before; just inconsistent.
+- Suggested approach: in `ScreenshotManager`, when `result.skipped === 'no-api-key'`
+  or `'recent'`, treat as success and skip the warning. Optionally update
+  `lastScreenshotAt` on `skipped: 'recent'` to avoid re-attempting.
+- Status: open
+
+### CR-141 — raw `<button>` violations of the Button-enforcement rule
+
+- Area/Scope:
+  - `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v2/controls/inline-button.tsx:16`
+    (new file) — raw `<button>` with bespoke className
+  - `apps/web/client/src/app/project/[id]/_components/top-bar/mode-toggle.tsx:62-72` —
+    mobile dropdown trigger raw `<button>`
+  - `apps/web/client/src/app/project/[id]/_components/mobile-layout.tsx` —
+    preview zoom buttons (pre-existing, not introduced by this batch, but
+    still drift)
+- Type: design debt
+- Impact: internal (consistency with `/design-system` source of truth)
+- Risk: low
+- Summary: `docs/agent-context/button-enforcement.md` requires every
+  button-shaped affordance to use `<Button>` from `@weblab/ui/button`. The
+  new InlineButton control re-introduces an off-spec `<button>` with custom
+  className. ModeToggle's mobile DropdownMenuTrigger also uses a raw
+  `<button>`.
+- Suggested approach: migrate `inline-button.tsx` to
+  `<Button variant="ghost" size="compact" />`. For DropdownMenuTrigger,
+  pass `asChild` and a `<Button>` per the audit doc. If a current Button
+  variant cannot satisfy a real need, add the variant to `@weblab/ui` and
+  document the deviation.
+- Status: open
+
+### CR-142 — BranchManager parallel init: a single failing branch breaks editor
+
+- Area/Scope: `apps/web/client/src/components/store/editor/branch/manager.ts:53-65`
+- Type: refactor
+- Impact: internal — editor may render empty on a one-branch failure
+- Risk: medium
+- Summary: `Promise.all` over all branches' `codeEditor.initialize()` +
+  `sandbox.init()`. If one branch's IndexedDB/ZenFS init throws (corrupt
+  file-system state, quota exceeded), the whole `Promise.all` rejects and
+  `init()` itself throws — leaving all other branches uninitialized and
+  `setupActiveFrameReaction()` never called.
+- Suggested approach: replace with `Promise.allSettled` and log per-branch
+  failures, so a single bad branch does not poison the editor session. The
+  editor already shows a per-frame error state — siblings should still
+  load.
+- Status: open
+
+### CR-143 — mobile-layout hidden tabs leak to assistive tech
+
+- Area/Scope: `apps/web/client/src/app/project/[id]/_components/mobile-layout.tsx`
+  tabpanel divs
+- Type: a11y
+- Impact: user-facing (screen-reader users)
+- Risk: low
+- Summary: Switched from conditional render to `className: 'hidden'` so the
+  ChatTab does not unmount mid-stream. But `role="tabpanel"` + `aria-labelledby`
+  remain on hidden panels, so screen readers see three tabpanels at once
+  and may read all of them.
+- Suggested approach: add the `hidden` HTML attribute (or `aria-hidden="true"`)
+  to inactive tabpanels alongside the Tailwind `hidden` class so AT skips
+  them. Could also gate `aria-labelledby` on `activeTab`.
+- Status: open
+
+### CR-144 — use-chat auto-regenerate uses fragile `setTimeout(800ms)`
+
+- Area/Scope: `apps/web/client/src/app/project/[id]/_hooks/use-chat/index.tsx:455-468`
+- Type: refactor
+- Impact: internal — fragile on slow hydration
+- Risk: low
+- Summary: On mount, if a stream was interrupted, the hook waits 800ms and
+  calls `regenerateLastAssistant()`. The number is a guess at "hydration is
+  done." On a slow page (cold cache, slow CDN), the regen still fires
+  against stale state; on a fast page, it adds artificial latency.
+- Suggested approach: drive the regen off a hydration-ready signal — e.g.
+  the conversation messages query's `isSuccess`, or a `useEffect` that
+  watches `messagesRef.current.length > 0`. Empty-deps `useEffect` + a
+  hard-coded delay is the riskiest combo because it strands you with stale
+  closures and no retry path.
+- Status: open
+
+### CR-145 — defensive `limit` caps silently truncate without pagination UI
+
+- Area/Scope: `apps/web/client/src/server/api/routers/{chat/conversation,
+  cms/binding, comment/comment, project/invitation, user/user-canvas}.ts`
+- Type: refactor (latent UX risk)
+- Impact: user-facing on heavy projects
+- Risk: low
+- Summary: New defensive caps (200 conversations, 2000 bindings, 500
+  comments, 200 pending invitations, etc.) prevent payload bloat — good —
+  but the UI does not surface "showing 500 of N" or paginate. A user with
+  600 comments will silently see the oldest 500 or newest 500 (depending
+  on `orderBy`) and not know the rest exist.
+- Suggested approach: pair each cap with a "Load older / Showing N of M"
+  affordance in the consuming UI, and switch the router to cursor-based
+  paging. Track each as a follow-up before any single user realistically
+  exceeds a cap.
+- Status: open
+
+### CR-146 — Ollama probe still hangs on browsers without `AbortSignal.any`
+
+- Area/Scope: `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-tab-content/index.tsx:86-100`
+- Type: refactor
+- Impact: internal — affects only outdated browsers
+- Risk: low
+- Summary: The new 5s timeout is wired via `AbortSignal.any([controller.signal,
+  AbortSignal.timeout(5000)])`, gated on feature detection. Browsers
+  without `AbortSignal.any` (older Safari, etc.) fall back to a
+  no-timeout signal, so a hung Ollama daemon will still leave the picker
+  in "loading" forever there.
+- Suggested approach: implement a manual timeout fallback —
+  `const t = setTimeout(() => controller.abort(), 5000); ... clearTimeout(t)`
+  — for browsers without `AbortSignal.any`. One line.
+- Status: open
+
+---
+
 ## Review batch — 2026-05-12 (`/caveman-review` on cmd+click / alt+drag work)
 
 Scope: 14 files changed in commit `7217a0b8` (Phase A/B/C power-user
@@ -2141,3 +2313,53 @@ swallowing inner-button clicks) were patched in the same commit.
   reading the live `selected[0]`. Option (b) is the cleanest because
   it makes undo a single history entry, which Figma users expect.
 - Status: open
+
+## Bug Hunt — 2026-05-13 (CMS workspace)
+
+### Auto-fixed (2 issues)
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/bind-dialog.tsx:667` — `<SelectItem value="">` crashed Radix Select on render of REPEAT sort form. Replaced with `__none__` sentinel; mapped back to '' on save.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/fields-tab.tsx:100` — Native blocking `confirm()` dialog replaced with `useConfirm()` to match the rest of the CMS surface.
+
+### Needs human review (2 issues)
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/bind-dialog.tsx:222` — `useEffect` pre-fill is missing `pagesQuery.data` in deps. When opening an existing PAGE_ITEM_FIELD binding before the pages query resolves, `itemCollectionId` is initialized to '' and the field picker is empty until the user re-opens the dialog. Add `pagesQuery.data` to the dep list (or split into a second effect that runs once pages arrive).
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/edit-source-dialog.tsx:69` — `sourceQuery.data\!.type as Exclude<...>` non-null assertion. If the user clicks Test before `sourceQuery.data` resolves, this throws. Guard with `if (\!sourceQuery.data) return;` before calling `testNewMutation`.
+
+## Bug Hunt — 2026-05-13 (code tab in editor)
+
+Scope: `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/**`. Both /bug-hunt and /ux-polish on the code editor surface (file tree, tabs, CodeMirror area, modals, inline-edit prompt).
+
+### Auto-fixed (5 issues)
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/shared/file-templates.ts:43` — `.ts` template emitted `export defaultfunction` (missing space). Generated invalid TS for every new `.ts` file. Fixed to `export default function`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-editor.tsx:376` — `getExtensions(file.path.split('.').pop() || '')` passed the raw extension (`'tsx'`, `'css'`, `'json'`, `'md'`) to a function that switches on language names (`'typescript'`, `'css'`, …). All non-JS files fell through to the JS default branch and lost their language-specific highlighting/linting. Replaced with `getExtensions(getLanguageFromFileName(file.path))` (helper already imported).
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/code-editor.tsx:296` — useEffect dep list contained `editorViewsRef.current`. Refs don't trigger re-runs and using `.current` in deps is meaningless. Removed it and added the standard `eslint-disable-next-line react-hooks/exhaustive-deps` used elsewhere in the file.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-tabs/index.tsx:40` — `setTimeout(…, 100)` scroll-to-active-tab had no cleanup; rapid tab switches stacked pending timeouts that ran against possibly-unmounted refs. Added `clearTimeout` in cleanup.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-tabs/file-tab.tsx:25` — `useEffect` deps array had a ternary (`file.type === 'text' ? file.originalHash : null`) — a `react-hooks/exhaustive-deps` smell and an unstable element. Flattened to `[file.path, file.content, file.type, file.originalHash]`; `originalHash` is `null` for binary so the dep is stable across both branches.
+
+### UX polish (2 wins)
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-tabs/file-tab.tsx` — added `title={file.path}` so truncated tab labels reveal the full path on hover, and middle-click (auxclick / button === 1) now closes the tab — both standard editor affordances users expect.
+
+### Needs human review (5 issues)
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/sidebar/file-tree-node.tsx:102` — `useEffect(…, [inputRef.current])` is a known React anti-pattern. Works incidentally because the ref reassigns between renders, but the dep list isn't statically analyzable and silently breaks if React's dep-comparison semantics change. Fix: depend on `isEditing` instead and read the ref inside the effect.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/inline-edit/prompt.tsx:120-181` — streaming retry/reader loop: (a) the 500ms retry pause (`await new Promise(r => setTimeout(r, 500))`) isn't cancellable — aborting during the pause still waits the full delay; (b) the SSE `while (true)` reader never re-checks `ctrl.signal.aborted` between chunks, so dispatches keep landing after the user closed the prompt. Wrap setTimeout in an abortable promise and add a `signal.aborted` short-circuit inside the read loop.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:182` — `void processFile().catch(console.error)`: opening a second file before the first resolves can race; `openedEditorFilesRef.current` is read at the start of each call but state writes from the earlier call may not have landed, so the second file can be added against a stale list (and the SOFT_MAX eviction can drop the wrong file). Sequence with a queue or guard against the file already being present at write time.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:196-210` — `checkDirtyState` effect: async work fires off `Promise.all(openedEditorFiles.map(isDirty))` with no cancellation. Rapid content updates can resolve out of order; the last `setHasUnsavedChanges` to land wins, which can be a stale value. Add a `cancelled` flag in the cleanup and bail before calling `setHasUnsavedChanges`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/modals/upload-modal.tsx:60-67` — `handleDragOver` sets `isDragging=true` on every dragover event (fires every few ms). Throttle or only flip when transitioning from false. Cosmetic but produces unnecessary re-renders during a drag.
+
+## Bug Hunt — 2026-05-13 (editor, design mode)
+
+Scope: changed files under editor design-mode surfaces — `right-panel/style-tab-v2/*`, `left-panel/design-panel/*`, `editor-bar/text-inputs/font/*`, `canvas/overlay/*`, `top-bar/mode-toggle.tsx`, and supporting stores (`style`, `font`, `overlay/prosemirror`).
+
+### Auto-fixed (1 issue)
+- `apps/web/client/src/app/project/[id]/_components/editor-bar/text-inputs/font/font-family-selector.tsx:170` — empty-state showed `No fonts match ""` on first open before the font store had loaded `systemFonts`. Now shows `Loading fonts…` when the query is empty; only falls back to `No fonts match "<query>"` once the user has typed.
+
+### Needs human review (3 issues)
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v2/hooks/use-style-setter.ts:52-56` — short-circuit on `value === current` skips write-target migration. If the user switches the default write target (Tailwind / inline / class) and then commits the same value, the property stays on the old target with no signal the change was a no-op. Acceptable today, but revisit when the target picker becomes more discoverable. TODO added inline.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v2/sections/element-header.tsx` (`ClassChipsField.removeAt`) — focus race after removing a chip. `onChange` → `commitClassName` is async; `queueMicrotask` re-focuses via `chipRefs.current[index]` before the parent re-renders, so focus may land on an about-to-unmount node (or no node). Symptom: pressing Delete/Backspace on a chip occasionally drops focus. Fix: store next-focus target in state and apply it from a `useEffect` keyed on `classes.length`. TODO added inline.
+- `apps/web/client/src/components/store/editor/chat/context.ts:31-46` — reaction now tracks identity key (`frameId:domId`) of selected elements but the body still re-reads `editorEngine.elements.selected`. If a user keeps the same element selected and edits id/className from the panel, the AI-chat context chip will not refresh. Probably fine for the resize-flicker bug it was intended to fix; flag if anyone wires class-edit context into the chat input later.
+
+### Notes / non-bugs
+- `apps/web/client/src/app/project/[id]/_components/canvas/overlay/elements/rect/resize.tsx:357-431` — overlay-rect rAF coalescing correct; `flushOverlay` on mouseup lands the final rect before `commitTransaction`. OK.
+- `apps/web/client/src/components/store/editor/overlay/prosemirror/index.ts:50-79` — fontSize/lineHeight `NaN` guard fixes "edit box grows" regression cleanly. OK.
+- `apps/web/client/src/app/project/[id]/_components/top-bar/mode-toggle.tsx:42-100` — measured-indicator + ResizeObserver pattern is sound. Initial `{x:0,width:0}` may flash one frame on first paint but `useLayoutEffect` runs synchronously after mount.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/index.tsx:18-32` — eight dynamic tab imports verified against named exports (`InsertTab`, `ComponentsTab`, `LayersTab`, `SearchTab`, `BrandTab`, `PagesTab`, `ImagesTab`, `BranchesTab`). No broken imports.
+- `apps/web/client/src/components/store/editor/pages/helper.ts` — `parseRepoUrl` move verified; callers in `create/manager.ts` and `server/api/routers/github.ts` (local copy) still resolve.

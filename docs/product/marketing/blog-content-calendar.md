@@ -13,7 +13,7 @@
 
 1. Each post has: target keyword, working title, intent, hook, outline, internal links, CTA, format/format-rules, and word count.
 2. Drafts go in a Notion doc, get a 24h review pass, then ship.
-3. After publishing, log the URL + GSC-tracked keyword rank weekly in `/docs/marketing/seo-tracking.md` (create when you start).
+3. After publishing, log the URL + GSC-tracked keyword rank weekly in `/docs/product/marketing/seo-tracking.md` (create when you start).
 4. Posts marked "comparison page support" are the SEO companion content for the `/compare/*` landing pages — always link them together.
 5. Posts marked "showcase" are designed for social/Twitter virality more than search; use them to spike branded search.
 
@@ -348,7 +348,7 @@
 
 ## Tracking
 
-After each post ships, add a row to `/docs/marketing/seo-tracking.md`:
+After each post ships, add a row to `/docs/product/marketing/seo-tracking.md`:
 
 | URL | Target keyword | Published | Week 1 rank | Week 4 rank | Week 12 rank | Conversions |
 |---|---|---|---|---|---|---|

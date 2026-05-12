@@ -64,5 +64,6 @@ Read before touching any UI affordance:
 - When you ship a major feature, add an entry to
   `agent-memory/feature-log.md` and (if architectural) to
   `agent-memory/architecture-decisions.md`.
-- Keep timestamped working notes in `docs/<topic>-YYYY-MM-DD.md`. Link to
-  them from `current-progress.md` when relevant.
+- Keep timestamped working notes in `docs/notes/YYYY-MM-DD-<topic>.md`
+  (see [`../notes/README.md`](../notes/README.md)). Link to them from
+  `current-progress.md` when relevant.

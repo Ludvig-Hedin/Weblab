@@ -49,7 +49,7 @@ and structured context.
 
 - Inline structured context (mentions, pills) without parsing string syntax.
 - No layout shift on focus — preserves border/size from
-  `docs/ai-chat-input-unification-2026-05-06.md`.
+  `docs/notes/2026-05-06-ai-chat-input-unification.md`.
 - Same editor on every surface → consistent shortcuts and accessibility.
 
 ### Common Files
@@ -125,5 +125,5 @@ provider SDKs directly inside an app or router.
 
 ## Related Notes
 
-- `docs/ai-chat-input-unification-2026-05-06.md` — initial unification work
+- `docs/notes/2026-05-06-ai-chat-input-unification.md` — initial unification work
 - `docs/agent-context/editor-architecture.md` — `chat` manager context

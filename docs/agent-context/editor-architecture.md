@@ -76,7 +76,7 @@ Important rules:
 - Local/hybrid modes must never overwrite a user's local repo changes without
   explicit user action.
 
-Read `docs/project-runtime-modes.md` before changing runtime logic.
+Read `docs/notes/2026-05-06-project-runtime-modes.md` before changing runtime logic.
 
 ## AI Chat In The Editor
 
@@ -96,7 +96,7 @@ with `@` mention popup and `/` slash command palette. **Read
 routing.**
 
 Preserve the no-layout-shift focus behavior described in
-`docs/ai-chat-input-unification-2026-05-06.md`.
+`docs/notes/2026-05-06-ai-chat-input-unification.md`.
 
 ## CMS Workspace
 

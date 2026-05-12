@@ -71,16 +71,16 @@ Observed active areas:
 
 Useful progress notes already exist in:
 
-- `docs/project-runtime-modes.md`
-- `docs/user-settings-migration-2026-05-06.md`
-- `docs/dev-log-debug-2026-05-07.md`
-- `docs/ai-chat-input-unification-2026-05-06.md`
-- `docs/editor-project-flow-fixes-2026-05-06.md`
-- `docs/project-card-interactions-2026-05-06.md`
-- `docs/projects-page-previews-and-folders-2026-04-29.md`
-- `docs/ux-qa-audit-2026-04-29.md`
-- `docs/ux-qa-fixes-2026-04-29.md`
-- `docs/seo-growth-plan-2026-05-08.md`
+- `docs/notes/2026-05-06-project-runtime-modes.md`
+- `docs/notes/2026-05-06-user-settings-migration.md`
+- `docs/notes/2026-05-07-dev-log-debug.md`
+- `docs/notes/2026-05-06-ai-chat-input-unification.md`
+- `docs/notes/2026-05-06-editor-project-flow-fixes.md`
+- `docs/notes/2026-05-06-project-card-interactions.md`
+- `docs/notes/2026-04-29-projects-page-previews-and-folders.md`
+- `docs/notes/2026-04-29-ux-qa-audit.md`
+- `docs/notes/2026-04-29-ux-qa-fixes.md`
+- `docs/notes/2026-05-08-seo-growth-plan.md`
 
 ## Safety Rules For Current Work
 

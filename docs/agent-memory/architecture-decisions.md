@@ -111,7 +111,7 @@ Decision: Three runtime modes — `cloud` (CodeSandbox, production), `local`
 (desktop-first), `hybrid` (planned, with explicit sync controls).
 Rationale: Different users want different tradeoffs (zero-setup vs. full
 local control). Hybrid must never silently overwrite local repo changes.
-See `docs/project-runtime-modes.md`.
+See `docs/notes/2026-05-06-project-runtime-modes.md`.
 Status: Active. Hybrid still planned.
 
 ---
