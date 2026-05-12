@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -33,7 +34,9 @@ export const ProjectBreadcrumb = observer(() => {
     const stateManager = useStateManager();
     const posthog = usePostHog();
     const router = useRouter();
-    const { data: project } = api.project.get.useQuery({ projectId: editorEngine.projectId });
+    const { data: project } = api.project.get.useQuery({
+        projectId: editorEngine.projectId,
+    });
     const { data: subscription } = api.subscription.get.useQuery();
     const isPro = subscription?.product.type === ProductType.PRO;
     const t = useTranslations();
@@ -136,16 +139,21 @@ export const ProjectBreadcrumb = observer(() => {
                         }, 300);
                     }}
                 >
-                    <DropdownMenuItem
-                        onClick={() => {
-                            void handleNavigateToProjects();
-                        }}
-                        className="cursor-pointer"
-                    >
-                        <div className="center group flex flex-row items-center">
-                            <Icons.Tokens className="mr-2" />
-                            {t(transKeys.projects.actions.goToAllProjects)}
-                        </div>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link
+                            href={Routes.PROJECTS}
+                            onClick={(e) => {
+                                // cmd/ctrl/shift/middle handled by browser → new tab/window.
+                                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                                e.preventDefault();
+                                void handleNavigateToProjects();
+                            }}
+                        >
+                            <div className="center group flex flex-row items-center">
+                                <Icons.Tokens className="mr-2" />
+                                {t(transKeys.projects.actions.goToAllProjects)}
+                            </div>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <RecentProjectsMenu />

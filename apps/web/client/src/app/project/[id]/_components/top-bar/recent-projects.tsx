@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -33,7 +34,9 @@ export const RecentProjectsMenu = observer(() => {
 
     const recentProjects = projects?.filter((project) => project.id !== currentProjectId) || [];
 
-    const handleProjectClick = async (projectId: string) => {
+    const handleProjectClick = (e: React.MouseEvent, projectId: string) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return; // browser handles new tab/window
+        e.preventDefault();
         setLoadingProjectId(projectId);
         router.push(`${Routes.PROJECT}/${projectId}`);
     };
@@ -84,14 +87,13 @@ export const RecentProjectsMenu = observer(() => {
                         </div>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={() => router.push(Routes.PROJECTS)}
-                        className="cursor-pointer"
-                    >
-                        <div className="center flex flex-row items-center">
-                            <Icons.Tokens className="mr-2" />
-                            {t(transKeys.projects.actions.goToAllProjects)}
-                        </div>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link href={Routes.PROJECTS}>
+                            <div className="center flex flex-row items-center">
+                                <Icons.Tokens className="mr-2" />
+                                {t(transKeys.projects.actions.goToAllProjects)}
+                            </div>
+                        </Link>
                     </DropdownMenuItem>
                 </DropdownMenuSubContent>
             </DropdownMenuSub>
@@ -110,20 +112,25 @@ export const RecentProjectsMenu = observer(() => {
                 {recentProjects.map((project) => (
                     <DropdownMenuItem
                         key={project.id}
-                        onClick={() => handleProjectClick(project.id)}
-                        onMouseEnter={() => handleProjectHover(project.id)}
-                        onFocus={() => handleProjectHover(project.id)}
+                        asChild
                         disabled={loadingProjectId === project.id}
                         className="cursor-pointer"
                     >
-                        <div className="center group flex flex-row items-center">
-                            {loadingProjectId === project.id ? (
-                                <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Icons.Cube className="mr-2" />
-                            )}
-                            <span className="max-w-[120px] truncate">{project.name}</span>
-                        </div>
+                        <Link
+                            href={`${Routes.PROJECT}/${project.id}`}
+                            onClick={(e) => handleProjectClick(e, project.id)}
+                            onMouseEnter={() => handleProjectHover(project.id)}
+                            onFocus={() => handleProjectHover(project.id)}
+                        >
+                            <div className="center group flex flex-row items-center">
+                                {loadingProjectId === project.id ? (
+                                    <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Icons.Cube className="mr-2" />
+                                )}
+                                <span className="max-w-[120px] truncate">{project.name}</span>
+                            </div>
+                        </Link>
                     </DropdownMenuItem>
                 ))}
             </DropdownMenuSubContent>

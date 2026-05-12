@@ -17,6 +17,7 @@ interface MoveManagerState {
     dragTarget: DomElement;
     originalIndex: number | null;
     dragState: DragState;
+    altDuplicate: boolean;
 }
 
 export class MoveManager {
@@ -49,7 +50,12 @@ export class MoveManager {
 
     private dragPreparationTimer: ReturnType<typeof setTimeout> | null = null;
 
-    startDragPreparation(el: DomElement, pos: ElementPosition, frameData: FrameData) {
+    startDragPreparation(
+        el: DomElement,
+        pos: ElementPosition,
+        frameData: FrameData,
+        altDuplicate = false,
+    ) {
         if (this.dragPreparationTimer) {
             clearTimeout(this.dragPreparationTimer);
         }
@@ -59,6 +65,7 @@ export class MoveManager {
             dragTarget: el,
             originalIndex: null,
             dragState: DragState.PREPARING,
+            altDuplicate,
         };
 
         this.dragPreparationTimer = setTimeout(() => {
@@ -190,6 +197,12 @@ export class MoveManager {
             return;
         }
 
+        // Alt+drag = Figma-style duplicate. Falls back to a normal move when
+        // multiple elements are selected — multi-element clone-on-drag is a
+        // follow-up.
+        const altDuplicate =
+            savedState.altDuplicate && this.editorEngine.elements.selected.length === 1;
+
         try {
             const targetDomId = savedState.dragTarget.domId;
 
@@ -200,18 +213,47 @@ export class MoveManager {
 
                 if (res) {
                     const { left, top } = res;
-                    this.editorEngine.style.updateMultiple({
-                        left: left,
-                        top: top,
-                        transform: 'none',
-                    });
+                    if (altDuplicate) {
+                        // Re-assert the original's source position so its
+                        // dragged inline styles are wiped on the next
+                        // refresh, then drop a duplicate at the release
+                        // position.
+                        const origLeft = savedState.dragTarget.styles?.computed?.left;
+                        const origTop = savedState.dragTarget.styles?.computed?.top;
+                        if (origLeft != null && origTop != null) {
+                            this.editorEngine.style.updateMultiple({
+                                left: origLeft,
+                                top: origTop,
+                                transform: 'none',
+                            });
+                        }
+                        await this.editorEngine.copy.duplicate();
+                        this.editorEngine.style.updateMultiple({
+                            left: left,
+                            top: top,
+                            transform: 'none',
+                        });
+                    } else {
+                        this.editorEngine.style.updateMultiple({
+                            left: left,
+                            top: top,
+                            transform: 'none',
+                        });
+                    }
                 }
             } else {
                 // Handle regular drag with index changes
                 const res = await frameData.view.endDrag(targetDomId);
                 if (res && savedState.originalIndex !== null) {
                     const { child, parent, newIndex } = res;
-                    if (newIndex !== savedState.originalIndex) {
+                    if (altDuplicate) {
+                        // For in-flow elements, alt+drag drops a sibling copy
+                        // next to the original. The drop-target index is
+                        // ignored in v1 — the duplicate is inserted at
+                        // originalIndex + 1 by CopyManager.paste(). The
+                        // original stays where it started.
+                        await this.editorEngine.copy.duplicate();
+                    } else if (newIndex !== savedState.originalIndex) {
                         const moveAction = this.createMoveAction(
                             frameData.frame.id,
                             child,

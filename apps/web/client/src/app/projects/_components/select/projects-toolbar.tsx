@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
@@ -102,7 +102,6 @@ export const ProjectsToolbar = ({
 }: ProjectsToolbarProps) => {
     const t = useTranslations('selectProject');
     const tNav = useTranslations('projectsTopBar');
-    const router = useRouter();
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -403,14 +402,11 @@ export const ProjectsToolbar = ({
                     {t('createFolder')}
                 </Button>
 
-                <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => router.push(Routes.NEW_PROJECT)}
-                    className="h-8 gap-1 text-xs"
-                >
-                    <Icons.Plus className="h-4 w-4" />
-                    <span>{tNav('newProject')}</span>
+                <Button variant="default" size="sm" asChild className="h-8 gap-1 text-xs">
+                    <Link href={Routes.NEW_PROJECT}>
+                        <Icons.Plus className="h-4 w-4" />
+                        <span>{tNav('newProject')}</span>
+                    </Link>
                 </Button>
             </div>
         </div>

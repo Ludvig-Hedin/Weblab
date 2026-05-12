@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import type { FrameworkId } from '@weblab/framework';
@@ -22,24 +21,32 @@ interface ChooserCardProps {
     title: string;
     description: string;
     cta: string;
-    onClick: () => void;
+    onClick?: () => void;
+    href?: string;
     disabled?: boolean;
     busy?: boolean;
 }
 
-function ChooserCard({ icon, title, description, cta, onClick, disabled, busy }: ChooserCardProps) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled === true || busy === true}
-            className={cn(
-                'group border-foreground/10 bg-foreground/4 hover:border-foreground/20 hover:bg-foreground/8',
-                'flex h-full min-h-[180px] flex-col justify-between rounded-xl border p-5 text-left transition-colors',
-                'backdrop-blur-[10px]',
-                'disabled:cursor-not-allowed disabled:opacity-60',
-            )}
-        >
+function ChooserCard({
+    icon,
+    title,
+    description,
+    cta,
+    onClick,
+    href,
+    disabled,
+    busy,
+}: ChooserCardProps) {
+    const className = cn(
+        'group border-foreground/10 bg-foreground/4 hover:border-foreground/20 hover:bg-foreground/8',
+        'flex h-full min-h-[180px] flex-col justify-between rounded-xl border p-5 text-left transition-colors',
+        'backdrop-blur-[10px]',
+        'disabled:cursor-not-allowed disabled:opacity-60',
+        disabled && 'pointer-events-none opacity-60',
+    );
+
+    const inner = (
+        <>
             <div className="flex flex-col gap-3">
                 <div className="border-foreground/10 bg-background flex h-10 w-10 items-center justify-center rounded-full border">
                     {busy ? <Icons.LoadingSpinner className="h-4 w-4 animate-spin" /> : icon}
@@ -53,6 +60,25 @@ function ChooserCard({ icon, title, description, cta, onClick, disabled, busy }:
                 {cta}
                 <Icons.ArrowRight className="h-4 w-4" />
             </div>
+        </>
+    );
+
+    if (href && !disabled && !busy) {
+        return (
+            <Link href={href} className={className}>
+                {inner}
+            </Link>
+        );
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled === true || busy === true}
+            className={className}
+        >
+            {inner}
         </button>
     );
 }
@@ -73,7 +99,6 @@ export function ProjectChooserCards({
     aiBusy = false,
     showDesktopFooter = true,
 }: ProjectChooserCardsProps) {
-    const router = useRouter();
     const t = useTranslations();
     const [showFrameworkDialog, setShowFrameworkDialog] = useState(false);
     const [showCloneDialog, setShowCloneDialog] = useState(false);
@@ -135,7 +160,7 @@ export function ProjectChooserCards({
                     title="Import from GitHub"
                     description="Bring an existing repo. Connect your account once, then pick any repo to open in the editor."
                     cta="Open GitHub import"
-                    onClick={() => router.push(Routes.IMPORT_GITHUB)}
+                    href={Routes.IMPORT_GITHUB}
                     disabled={isBusy}
                 />
                 <ChooserCard

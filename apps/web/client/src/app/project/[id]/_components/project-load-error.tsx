@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
@@ -126,12 +127,8 @@ export const ProjectLoadError = observer(
                             {isRetryAction && isRetrying ? 'Retrying…' : copy.primaryLabel}
                         </Button>
                         {copy.primaryAction !== 'home' && (
-                            <Button
-                                variant="ghost"
-                                onClick={() => router.push(Routes.PROJECTS)}
-                                disabled={isRetryAction && isRetrying}
-                            >
-                                Go to projects
+                            <Button variant="ghost" asChild disabled={isRetryAction && isRetrying}>
+                                <Link href={Routes.PROJECTS}>Go to projects</Link>
                             </Button>
                         )}
                     </div>

@@ -116,7 +116,12 @@ export const GestureScreen = observer(
                                     !editorEngine.state.isDragSelecting &&
                                     !editorEngine.insert.isDrawing
                                 ) {
-                                    editorEngine.move.startDragPreparation(el, pos, frameData);
+                                    editorEngine.move.startDragPreparation(
+                                        el,
+                                        pos,
+                                        frameData,
+                                        e.altKey,
+                                    );
                                 }
                             }
                             break;

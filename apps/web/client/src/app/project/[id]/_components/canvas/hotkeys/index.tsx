@@ -47,7 +47,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
                 y: DefaultSettings.PAN_POSITION.y,
             };
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('ZOOM_FIT')],
     );
     useHotkeys(
@@ -103,7 +107,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             }
             void editorEngine.ide.openInlineEditFromCanvas(oid);
         },
-        { preventDefault: true, enableOnFormTags: false, enableOnContentEditable: false },
+        {
+            preventDefault: true,
+            enableOnFormTags: false,
+            enableOnContentEditable: false,
+        },
         [editorEngine, getKey('INLINE_EDIT_FROM_CANVAS')],
     );
     useHotkeys(
@@ -251,7 +259,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('MODE_DESIGN'),
         () => editorEngine.state.setEditorMode(EditorMode.DESIGN),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('MODE_DESIGN')],
     );
     useHotkeys(
@@ -267,7 +279,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('MODE_PREVIEW'),
         () => editorEngine.state.setEditorMode(EditorMode.PREVIEW),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('MODE_PREVIEW')],
     );
 
@@ -278,7 +294,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         () => {
             editorEngine.frames.reloadAllViews();
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('RELOAD_APP')],
     );
 
@@ -288,7 +308,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         () => {
             window.dispatchEvent(new Event('toggle-terminal'));
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('TOGGLE_TERMINAL')],
     );
 
@@ -298,7 +322,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         () => {
             window.dispatchEvent(new Event('open-model-selector'));
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('OPEN_MODEL_PICKER')],
     );
     useHotkeys(
@@ -325,7 +353,9 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         undefined,
         [getKey('INSERT_TEXT')],
     );
-    useHotkeys('space', () => editorEngine.state.setEditorMode(EditorMode.PAN), { keydown: true });
+    useHotkeys('space', () => editorEngine.state.setEditorMode(EditorMode.PAN), {
+        keydown: true,
+    });
     // Releasing space mid-pan flipped the editor straight back to DESIGN even
     // when an active middle-mouse / space-drag pan was in flight, breaking the
     // gesture. Skip the flip while a canvas pan is active — the pan-end
@@ -338,8 +368,19 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         },
         { keyup: true },
     );
-    useHotkeys('alt', () => editorEngine.overlay.showMeasurement(), { keydown: true });
-    useHotkeys('alt', () => editorEngine.overlay.removeMeasurement(), { keyup: true });
+    useHotkeys(
+        'alt',
+        () => {
+            // Suppress measurement during alt+drag (Figma-style duplicate) so
+            // distance lines don't flash over the dragging element.
+            if (editorEngine.move.isDragInProgress || editorEngine.move.isPreparing) return;
+            editorEngine.overlay.showMeasurement();
+        },
+        { keydown: true },
+    );
+    useHotkeys('alt', () => editorEngine.overlay.removeMeasurement(), {
+        keyup: true,
+    });
 
     // Actions
     useHotkeys(
@@ -520,7 +561,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
                 editorEngine.state.setEditorMode(EditorMode.PREVIEW);
             }
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('TOGGLE_DESIGN_PREVIEW')],
     );
 
@@ -540,7 +585,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('SHOW_HOTKEYS'),
         () => editorEngine.state.setHotkeysOpen(!editorEngine.state.hotkeysOpen),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('SHOW_HOTKEYS')],
     );
 
@@ -549,7 +598,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('OPEN_ELEMENT_PALETTE'),
         () => editorEngine.state.setElementPaletteOpen(!editorEngine.state.elementPaletteOpen),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('OPEN_ELEMENT_PALETTE')],
     );
 
@@ -577,7 +630,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('OPEN_FILE_FINDER'),
         () => window.dispatchEvent(new Event('open-file-finder')),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('OPEN_FILE_FINDER')],
     );
 
@@ -590,7 +647,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
                 editorEngine.ide.openCodeBlock(oid);
             }
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('OPEN_IN_IDE')],
     );
 
@@ -622,7 +683,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
                 y: H / 2 - cy * newScale,
             };
         },
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('ZOOM_TO_SELECTION')],
     );
 
@@ -652,7 +717,11 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     useHotkeys(
         getKey('OPEN_PROJECT_SEARCH'),
         () => window.dispatchEvent(new Event('open-project-search')),
-        { preventDefault: true, enableOnFormTags: true, enableOnContentEditable: true },
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
         [getKey('OPEN_PROJECT_SEARCH')],
     );
 

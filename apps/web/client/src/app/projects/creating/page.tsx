@@ -27,13 +27,21 @@ interface StepDef {
 }
 
 const STEPS: StepDef[] = [
-    { phase: 'initialising', label: 'Looking up template', detail: 'Fetching template details…' },
+    {
+        phase: 'initialising',
+        label: 'Looking up template',
+        detail: 'Fetching template details…',
+    },
     {
         phase: 'importing',
         label: 'Setting up sandbox',
         detail: 'Preparing your sandbox…',
     },
-    { phase: 'saving', label: 'Creating project', detail: 'Saving to your workspace…' },
+    {
+        phase: 'saving',
+        label: 'Creating project',
+        detail: 'Saving to your workspace…',
+    },
     { phase: 'redirecting', label: 'Opening workspace', detail: 'Almost there…' },
 ];
 
@@ -331,8 +339,6 @@ function ErrorCard({
     backLabel: string;
     retryHref: string | null;
 }) {
-    const router = useRouter();
-
     return (
         <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -351,8 +357,8 @@ function ErrorCard({
                     <Link href={backHref}>{backLabel}</Link>
                 </Button>
                 {retryHref && (
-                    <Button size="sm" onClick={() => router.push(retryHref)}>
-                        Try again
+                    <Button size="sm" asChild>
+                        <Link href={retryHref}>Try again</Link>
                     </Button>
                 )}
             </div>

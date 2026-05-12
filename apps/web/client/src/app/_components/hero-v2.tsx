@@ -20,12 +20,25 @@ import { WeblabInterfaceMockup } from './landing-page/weblab-interface-mockup';
 const PILL_BASE =
     'inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-background';
 
-function PrimaryButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function PrimaryButton({
+    onClick,
+    href,
+    children,
+}: {
+    onClick?: () => void;
+    href?: string;
+    children: React.ReactNode;
+}) {
+    const cls = `${PILL_BASE} bg-foreground text-background hover:bg-foreground/90`;
+    if (href) {
+        return (
+            <Link href={href} className={cls}>
+                {children}
+            </Link>
+        );
+    }
     return (
-        <button
-            onClick={onClick}
-            className={`${PILL_BASE} bg-foreground text-background hover:bg-foreground/90`}
-        >
+        <button onClick={onClick} className={cls}>
             {children}
         </button>
     );
@@ -133,7 +146,7 @@ export function HeroV2() {
                     >
                         {user?.id ? (
                             <>
-                                <PrimaryButton onClick={() => router.push(Routes.PROJECTS)}>
+                                <PrimaryButton href={Routes.PROJECTS}>
                                     Continue to projects
                                 </PrimaryButton>
                                 <SecondaryButton href={Routes.DOWNLOAD}>

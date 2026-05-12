@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -18,27 +18,28 @@ interface NewProjectMenuProps {
 export const NewProjectMenu = observer(({ onShowCloneDialog }: NewProjectMenuProps) => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
-    const router = useRouter();
 
-    const handleNewProject = () => {
-        // Best-effort screenshot of the current project before navigating away —
-        // matches the pre-existing behavior so the project card thumbnail
-        // refreshes when the user comes back to the projects list.
+    const handleNewProjectClick = (e: React.MouseEvent) => {
+        // cmd/ctrl/shift → let the browser handle new tab/window. We skip the
+        // screenshot capture in that case because the current project is not
+        // navigating away.
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
         try {
             void editorEngine.screenshot.captureScreenshot();
         } catch (error) {
             console.error('Failed to capture screenshot:', error);
         }
-        router.push(Routes.NEW_PROJECT);
     };
 
     return (
         <>
-            <DropdownMenuItem onClick={handleNewProject} className="cursor-pointer">
-                <div className="center flex flex-row items-center">
-                    <Icons.Plus className="mr-2" />
-                    {t(transKeys.projects.actions.newProject)}
-                </div>
+            <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href={Routes.NEW_PROJECT} onClick={handleNewProjectClick}>
+                    <div className="center flex flex-row items-center">
+                        <Icons.Plus className="mr-2" />
+                        {t(transKeys.projects.actions.newProject)}
+                    </div>
+                </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onShowCloneDialog(true)} className="cursor-pointer">
                 <div className="center group flex flex-row items-center">

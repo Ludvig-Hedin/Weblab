@@ -13,6 +13,7 @@ import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
 import { SettingsDropdown } from '../settings';
+import { ProjectCardContextMenu } from './project-card-context-menu';
 import {
     getDisplayUrl,
     getFaviconUrl,
@@ -76,20 +77,32 @@ export const ProjectRow = ({
     // Row-level navigation. In selection mode the same click toggles the
     // checkbox instead. Buttons / dropdowns inside the row stop propagation
     // so they never reach this handler.
-    const handleRowActivate = () => {
+    const handleRowActivate = (event?: React.MouseEvent | React.KeyboardEvent) => {
         if (selectionMode) {
             onSelectionChange?.(!selected);
-        } else {
-            setIsOpening(true);
-            router.push(projectHref);
+            return;
         }
+        if (event && (event.metaKey || event.ctrlKey || event.shiftKey)) {
+            window.open(projectHref, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        setIsOpening(true);
+        router.push(projectHref);
     };
 
     const handleRowKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            handleRowActivate();
+            handleRowActivate(event);
         }
+    };
+
+    // Middle-click → new tab. Right-click is ignored here so the context menu
+    // (Phase B) can take over.
+    const handleRowAuxClick = (event: React.MouseEvent) => {
+        if (selectionMode || event.button !== 1) return;
+        event.preventDefault();
+        window.open(projectHref, '_blank', 'noopener,noreferrer');
     };
 
     const handleHoverPrefetch = useCallback(() => {
@@ -239,6 +252,54 @@ export const ProjectRow = ({
 
     if (variant === 'list') {
         return (
+            <ProjectCardContextMenu project={project as Project} refetch={refetch}>
+                <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                    onMouseEnter={handleHoverPrefetch}
+                    onFocus={handleHoverPrefetch}
+                    className="relative"
+                >
+                    <div
+                        role={rowRole}
+                        tabIndex={0}
+                        aria-label={rowAriaLabel}
+                        onClick={handleRowActivate}
+                        onAuxClick={handleRowAuxClick}
+                        onKeyDown={handleRowKeyDown}
+                        className="group/row hover:bg-foreground/4 focus-visible:bg-foreground/4 focus-visible:outline-foreground/20 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors focus-visible:outline-2"
+                    >
+                        {checkbox}
+                        {thumb}
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                            {nameCell}
+                            {displayUrl ? (
+                                <span className="text-foreground-tertiary flex items-center gap-1 truncate text-xs">
+                                    <Icons.ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+                                    <span className="truncate">{displayUrl}</span>
+                                </span>
+                            ) : (
+                                <span className="text-foreground-tertiary truncate text-xs">
+                                    {t('statusDraft')}
+                                </span>
+                            )}
+                        </div>
+                        <div className="hidden sm:block">{statusPill}</div>
+                        <span className="text-foreground-tertiary hidden w-20 shrink-0 text-right text-xs sm:inline">
+                            {lastUpdated} ago
+                        </span>
+                        {actions}
+                    </div>
+                    {openingOverlay}
+                </motion.div>
+            </ProjectCardContextMenu>
+        );
+    }
+
+    return (
+        <ProjectCardContextMenu project={project as Project} refetch={refetch}>
             <motion.div
                 layout
                 initial={{ opacity: 0, y: 4 }}
@@ -253,70 +314,30 @@ export const ProjectRow = ({
                     tabIndex={0}
                     aria-label={rowAriaLabel}
                     onClick={handleRowActivate}
+                    onAuxClick={handleRowAuxClick}
                     onKeyDown={handleRowKeyDown}
-                    className="group/row hover:bg-foreground/4 focus-visible:bg-foreground/4 focus-visible:outline-foreground/20 flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors focus-visible:outline-2"
+                    className="group/row hover:bg-foreground/4 focus-visible:bg-foreground/4 focus-visible:outline-foreground/20 grid cursor-pointer grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 rounded-lg px-2 py-2 transition-colors focus-visible:outline-2"
                 >
                     {checkbox}
                     {thumb}
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        {nameCell}
-                        {displayUrl ? (
-                            <span className="text-foreground-tertiary flex items-center gap-1 truncate text-xs">
-                                <Icons.ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-                                <span className="truncate">{displayUrl}</span>
-                            </span>
-                        ) : (
-                            <span className="text-foreground-tertiary truncate text-xs">
-                                {t('statusDraft')}
-                            </span>
-                        )}
-                    </div>
-                    <div className="hidden sm:block">{statusPill}</div>
-                    <span className="text-foreground-tertiary hidden w-20 shrink-0 text-right text-xs sm:inline">
+                    {nameCell}
+                    <span className="text-foreground-tertiary truncate text-xs">
+                        {displayUrl ?? '—'}
+                    </span>
+                    <span className="text-foreground-tertiary truncate text-xs">
+                        {framework ?? '—'}
+                    </span>
+                    <span className="text-foreground-tertiary truncate text-xs">
                         {lastUpdated} ago
                     </span>
-                    {actions}
+                    <div className="flex items-center justify-end gap-2">
+                        {statusPill}
+                        {actions}
+                    </div>
                 </div>
                 {openingOverlay}
             </motion.div>
-        );
-    }
-
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            onMouseEnter={handleHoverPrefetch}
-            onFocus={handleHoverPrefetch}
-            className="relative"
-        >
-            <div
-                role={rowRole}
-                tabIndex={0}
-                aria-label={rowAriaLabel}
-                onClick={handleRowActivate}
-                onKeyDown={handleRowKeyDown}
-                className="group/row hover:bg-foreground/4 focus-visible:bg-foreground/4 focus-visible:outline-foreground/20 grid cursor-pointer grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 rounded-lg px-2 py-2 transition-colors focus-visible:outline-2"
-            >
-                {checkbox}
-                {thumb}
-                {nameCell}
-                <span className="text-foreground-tertiary truncate text-xs">
-                    {displayUrl ?? '—'}
-                </span>
-                <span className="text-foreground-tertiary truncate text-xs">
-                    {framework ?? '—'}
-                </span>
-                <span className="text-foreground-tertiary truncate text-xs">{lastUpdated} ago</span>
-                <div className="flex items-center justify-end gap-2">
-                    {statusPill}
-                    {actions}
-                </div>
-            </div>
-            {openingOverlay}
-        </motion.div>
+        </ProjectCardContextMenu>
     );
 };
 
