@@ -8,6 +8,8 @@ import { motion } from 'motion/react';
 import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
+import { SplitText } from '@/components/motion/split-text';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../fonts';
@@ -55,7 +57,13 @@ function SecondaryButton({
 
 export function HeroV2() {
     const router = useRouter();
-    const { data: user } = api.user.get.useQuery();
+    const hasAuthCookie = useHasAuthCookie();
+    // Skip the user fetch on anonymous landing visits. The CTA falls back
+    // to opening the auth modal when there's no user, so we don't need to
+    // pre-fetch identity until the visitor signs in.
+    const { data: user } = api.user.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const { setIsAuthModalOpen } = useAuthContext();
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
@@ -76,20 +84,20 @@ export function HeroV2() {
         >
             <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 lg:max-w-6xl lg:grid-cols-2 lg:gap-12">
                 <div className="flex w-full max-w-[545px] flex-col items-start gap-5 lg:justify-self-start">
-                    <motion.h1
+                    <SplitText
+                        as="h1"
+                        mode="mount"
+                        stagger={0.06}
+                        duration={0.6}
                         className="heading-style-h1 text-left"
-                        initial={{ opacity: 0, filter: 'blur(4px)' }}
-                        animate={{ opacity: 1, filter: 'blur(0px)' }}
-                        transition={{ duration: 0.6, ease: 'easeOut' }}
-                        style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                     >
-                        AI visual website builder{' '}
+                        {'AI visual website builder '}
                         <span
                             className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.0] sm:text-[3.6rem] lg:text-[4rem]`}
                         >
                             for builders
                         </span>
-                    </motion.h1>
+                    </SplitText>
                     <motion.p
                         className="text-foreground-secondary text-left text-sm leading-snug text-balance md:text-base"
                         initial={{ opacity: 0, y: 8 }}
@@ -151,12 +159,16 @@ export function HeroV2() {
             </section>
 
             <motion.div
-                className="w-full max-w-7xl"
+                className="w-full max-w-7xl overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
             >
-                <div className="relative">
+                {/* On mobile the editor chrome has fixed pixel offsets
+                    (EditorBar, panel widths) that collapse below ~720px wide.
+                    Pin the mockup to a min desktop width and clip overflow so
+                    it shows cropped-but-readable on phones instead of squished. */}
+                <div className="relative min-w-[1100px] sm:min-w-0">
                     <WeblabInterfaceMockup />
                     <div className="from-background pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t to-transparent lg:h-24" />
                 </div>
