@@ -52,7 +52,12 @@ export class FontManager {
     init() {
         this.loadInitialFonts();
         this.getCurrentDefaultFont();
-        this.syncFontsWithConfigs();
+        // Best-effort on boot — sync errors here aren't user-actionable; the
+        // upload path surfaces them explicitly. Avoid creating an unhandled
+        // rejection now that syncFontsWithConfigs rethrows.
+        this.syncFontsWithConfigs().catch((error) => {
+            console.error('Initial font sync failed:', error);
+        });
     }
 
     private async loadInitialFonts(): Promise<void> {
@@ -263,6 +268,19 @@ export class FontManager {
                     return false;
                 }
                 await this.editorEngine.fileSystem.writeFile(fontConfigPath, code);
+
+                // Re-scan + diff so the new local font lands in this._fonts,
+                // gets a Tailwind entry, and is wired into the root layout.
+                // If sync fails, the on-disk config is ahead of in-memory state
+                // and Tailwind/layout won't see the new font — surface as a
+                // failed upload so the caller can show an error instead of a
+                // silent half-success.
+                try {
+                    await this.syncFontsWithConfigs();
+                } catch (syncError) {
+                    console.error('Failed to sync fonts after upload:', syncError);
+                    return false;
+                }
             }
 
             return result.success;
@@ -383,6 +401,10 @@ export class FontManager {
             this.previousFonts = currentFonts;
         } catch (error) {
             console.error('Error syncing fonts:', error);
+            // Rethrow so uploadFonts can surface the failure to the user
+            // instead of returning a misleading success after the on-disk
+            // config diverges from in-memory state.
+            throw error;
         }
     }
 
