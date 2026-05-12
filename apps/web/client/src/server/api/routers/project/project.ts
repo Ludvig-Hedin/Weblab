@@ -251,10 +251,11 @@ export const projectRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
             // Defensive cap. The dashboard renders project cards inline; an
             // unbounded list on a heavy user balloons the round-trip and the
-            // hydrated client cache. Callers needing infinite scrolling
-            // should pass a finite `limit` and add cursor-based paging.
-            const DEFAULT_PROJECTS_LIMIT = 200;
-            const effectiveLimit = input?.limit ?? DEFAULT_PROJECTS_LIMIT;
+            // hydrated client cache. Math.min enforces the ceiling so a client
+            // passing limit: 10_000 doesn't bypass the defense. Callers needing
+            // infinite scrolling should add cursor-based paging.
+            const MAX_PROJECTS_LIMIT = 200;
+            const effectiveLimit = Math.min(input?.limit ?? MAX_PROJECTS_LIMIT, MAX_PROJECTS_LIMIT);
             const fetchedUserProjects = await ctx.db.query.userProjects.findMany({
                 where: input?.excludeProjectId
                     ? and(
