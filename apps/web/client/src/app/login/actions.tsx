@@ -112,6 +112,16 @@ export async function devLogin() {
             }
             throw new Error(`Failed to create demo user: ${createUserError.message}`);
         }
+    } else {
+        // Reset password to known value — user may exist from a previous seed
+        // with a different or corrupted password, causing signInWithPassword to fail.
+        const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
+            SEED_USER.ID,
+            { password: SEED_USER.PASSWORD },
+        );
+        if (updateError) {
+            throw new Error(`Failed to reset demo user password: ${updateError.message}`);
+        }
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({

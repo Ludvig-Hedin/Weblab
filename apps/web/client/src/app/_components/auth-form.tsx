@@ -110,7 +110,8 @@ export function AuthForm({
     const showGithub = AUTH_PROVIDERS.has('github');
     const showGoogle = AUTH_PROVIDERS.has('google');
     const showDevLogin = env.NEXT_PUBLIC_SHOW_DEV_LOGIN;
-    const hasAnyProvider = showGithub || showGoogle || showDevLogin;
+    const hasOAuthProvider = showGithub || showGoogle;
+    const hasAnyProvider = hasOAuthProvider || showDevLogin;
 
     async function handleSendCode(e: React.FormEvent) {
         e.preventDefault();
@@ -154,7 +155,7 @@ export function AuthForm({
 
     return (
         <div className="flex flex-col space-y-4">
-            {hasAnyProvider && (
+            {hasOAuthProvider && (
                 <div
                     className={
                         providerLayout === 'row'
@@ -182,10 +183,10 @@ export function AuthForm({
                             providerName="Google"
                         />
                     )}
-                    {showDevLogin && (
-                        <DevLoginButton className={providerButtonClassName} returnUrl={returnUrl} />
-                    )}
                 </div>
+            )}
+            {showDevLogin && (
+                <DevLoginButton className={providerButtonClassName} returnUrl={returnUrl} />
             )}
             {hasAnyProvider && (
                 <div className="flex items-center gap-3">
@@ -209,6 +210,10 @@ export function AuthForm({
                     required
                     autoComplete="email"
                     inputMode="email"
+                    // /login is the page's sole primary action — focus the
+                    // input so desktop users (window opens directly here) can
+                    // start typing without a click. Web visitors benefit too.
+                    autoFocus
                     // RFC 5321: full address ≤ 254 chars. Anything longer is
                     // either a bug or an abuse attempt.
                     maxLength={254}
