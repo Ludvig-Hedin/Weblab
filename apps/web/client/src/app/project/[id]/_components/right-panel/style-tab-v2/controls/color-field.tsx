@@ -1,10 +1,15 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import type { TailwindColor } from '@weblab/models/style';
+import { Button } from '@weblab/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { cn } from '@weblab/ui/utils';
 import { Color } from '@weblab/utility';
 
 import { ColorPickerContent } from '../../../editor-bar/inputs/color-picker';
+import { FIELD_BASE_CLASSES } from './constants';
 
 function toHexString(c: Color | TailwindColor): string {
     return c instanceof Color ? c.toHex() : (c.lightColor ?? '#000000');
@@ -27,25 +32,28 @@ export interface ColorFieldProps {
  */
 export function ColorField({ value, onCommit, placeholder = 'transparent' }: ColorFieldProps) {
     const isEmpty = !value;
-    const safeColor = (() => {
+    // Memoize on `value` — otherwise `ColorPickerContent` receives a fresh
+    // Color reference every render and resets internal HSV state mid-drag.
+    const safeColor = useMemo(() => {
         try {
             return Color.from(value || '#00000000');
         } catch {
             return Color.from('#00000000');
         }
-    })();
+    }, [value]);
 
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <button
-                    type="button"
-                    className="border-input bg-background hover:border-ring/50 text-mini flex h-7 w-full items-center gap-2 rounded-md border px-2"
+                <Button
+                    variant="outline"
+                    // Matches the shared row geometry — see FIELD_BASE_CLASSES.
+                    className={cn(FIELD_BASE_CLASSES, 'justify-start gap-2 shadow-none')}
                     aria-label="Open color picker"
                 >
                     <span
                         aria-hidden
-                        className="h-4 w-4 rounded-sm border border-black/10"
+                        className="border-foreground/10 ring-foreground/5 h-4 w-4 rounded-sm border ring-1 transition-transform duration-150 ring-inset group-hover/control:scale-[1.08]"
                         style={{
                             backgroundColor: isEmpty ? 'transparent' : safeColor.toHex(),
                             backgroundImage: isEmpty
@@ -56,7 +64,7 @@ export function ColorField({ value, onCommit, placeholder = 'transparent' }: Col
                         }}
                     />
                     <span className="truncate">{value || placeholder}</span>
-                </button>
+                </Button>
             </PopoverTrigger>
             <PopoverContent
                 side="left"

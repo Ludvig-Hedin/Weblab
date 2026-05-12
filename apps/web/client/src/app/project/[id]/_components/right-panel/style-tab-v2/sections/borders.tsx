@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Square } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
@@ -9,7 +9,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@webla
 import { cn } from '@weblab/ui/utils';
 
 import { ColorField } from '../controls/color-field';
+import { InlineButton } from '../controls/inline-button';
 import { PropertyControl } from '../controls/property-control';
+import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
+import { PropertyLabel } from '../controls/property-label';
 import { SelectField } from '../controls/select-field';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
@@ -92,40 +95,31 @@ function CornerRadius() {
 
     return (
         <TooltipProvider delayDuration={400}>
-            <div className="flex flex-col gap-1.5 px-3 py-1">
+            <div className="group/control flex flex-col gap-1.5 px-3 py-1">
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
+                    <PropertyLabel
+                        label="Radius"
+                        isSet={anySet}
                         onClick={handleToggle}
                         title={expanded ? 'Collapse radius' : 'Expand to per-corner'}
-                        className={cn(
-                            'text-mini flex w-[72px] shrink-0 items-center gap-1 text-left transition-colors',
-                            anySet
-                                ? 'text-foreground-primary font-medium'
-                                : 'text-foreground-tertiary hover:text-foreground-secondary font-normal',
-                        )}
-                    >
-                        <ChevronDown
-                            className={cn(
-                                'size-3 shrink-0 transition-transform duration-150',
-                                expanded ? 'rotate-180' : 'rotate-0',
-                            )}
-                        />
-                        <span className="truncate">Radius</span>
-                    </button>
+                        icon={
+                            <ChevronDown
+                                className={cn(
+                                    'size-3 shrink-0 transition-transform duration-150',
+                                    expanded ? 'rotate-180' : 'rotate-0',
+                                )}
+                            />
+                        }
+                    />
                     <div className="min-w-0 flex-1">
                         {!expanded && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <NumberInput
-                                        compact
                                         value={linkedValue}
                                         placeholder={placeholder}
                                         onCommit={setAll}
-                                        className={cn(
-                                            'w-full',
-                                            linkedIsSet && 'border-foreground-brand/40',
-                                        )}
+                                        className="w-full"
                                         aria-label="Corner radius (all corners)"
                                     />
                                 </TooltipTrigger>
@@ -139,7 +133,7 @@ function CornerRadius() {
                     </div>
                 </div>
                 {expanded && (
-                    <div className="flex items-end gap-1.5 pl-[84px]">
+                    <div className={cn('flex items-end gap-1.5', PROPERTY_LABEL_OFFSET_CLASS)}>
                         {CORNERS.map(({ property, label }) => (
                             <CornerInput key={property} property={property} label={label} />
                         ))}
@@ -154,18 +148,17 @@ function CornerInput({ property, label }: { property: CornerProperty; label: str
     const styleValue = useStyleValue(property);
     const setter = useStyleSetter(property);
     return (
-        <div className="flex flex-1 flex-col items-center gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+            {/* Same reasoning as Spacing.SideInput — drop the unit pill so four
+                corner inputs fit the panel width. */}
             <NumberInput
-                compact
                 value={styleValue.value}
                 onCommit={setter.set}
-                className={cn(
-                    'w-full text-center',
-                    styleValue.isSet && 'border-foreground-brand/40',
-                )}
+                units={[]}
+                className="text-center"
                 aria-label={`Radius ${label}`}
             />
-            <span className="text-foreground-tertiary text-[9px] leading-none uppercase">
+            <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
                 {label}
             </span>
         </div>
@@ -186,26 +179,18 @@ function PerSideWidths({ onHide }: { onHide: () => void }) {
     return (
         <>
             <PropertyControl property="border-top-width" label="Top">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="border-right-width" label="Right">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="border-bottom-width" label="Bottom">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="border-left-width" label="Left">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
-            {!anySet && (
-                <button
-                    type="button"
-                    onClick={onHide}
-                    className="text-foreground-secondary hover:text-foreground-primary mx-3 mb-1 self-start text-[11px]"
-                >
-                    Hide per-side
-                </button>
-            )}
+            {!anySet && <InlineButton onClick={onHide}>Hide per-side</InlineButton>}
         </>
     );
 }
@@ -241,7 +226,7 @@ export const BordersSection = observer(function BordersSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="borders" title="Borders" setCount={setCount}>
+        <Section id="borders" title="Borders" icon={Square} setCount={setCount}>
             <CornerRadius />
             <PropertyControl property="border-style" label="Style">
                 {({ value, commit }) => (
@@ -249,7 +234,7 @@ export const BordersSection = observer(function BordersSection() {
                 )}
             </PropertyControl>
             <PropertyControl property="border-width" label="Width">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="border-color" label="Color">
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
@@ -259,13 +244,7 @@ export const BordersSection = observer(function BordersSection() {
             {showPerSide ? (
                 <PerSideWidths onHide={() => setShowPerSide(false)} />
             ) : (
-                <button
-                    type="button"
-                    onClick={() => setShowPerSide(true)}
-                    className="text-foreground-secondary hover:text-foreground-primary mx-3 mb-1 self-start text-[11px]"
-                >
-                    + Per-side widths
-                </button>
+                <InlineButton onClick={() => setShowPerSide(true)}>+ Per-side</InlineButton>
             )}
         </Section>
     );

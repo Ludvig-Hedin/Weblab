@@ -1,5 +1,6 @@
 'use client';
 
+import { Zap } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
@@ -49,7 +50,7 @@ export const TransitionsSection = observer(function TransitionsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="transitions" title="Transitions" setCount={setCount}>
+        <Section id="transitions" title="Transitions" icon={Zap} setCount={setCount}>
             <PropertyControl property="transition" label="Shorthand">
                 {({ value, commit }) => (
                     <TextField value={value} onCommit={commit} placeholder="all 200ms ease" />
@@ -67,7 +68,6 @@ export const TransitionsSection = observer(function TransitionsSection() {
             <PropertyControl property="transition-duration" label="Duration">
                 {({ value, commit }) => (
                     <NumberInput
-                        compact
                         value={value}
                         onCommit={commit}
                         defaultUnit="ms"
@@ -83,7 +83,6 @@ export const TransitionsSection = observer(function TransitionsSection() {
             <PropertyControl property="transition-delay" label="Delay">
                 {({ value, commit }) => (
                     <NumberInput
-                        compact
                         value={value}
                         onCommit={commit}
                         defaultUnit="ms"

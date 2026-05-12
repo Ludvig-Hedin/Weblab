@@ -1,5 +1,6 @@
 'use client';
 
+import { Move } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
@@ -52,7 +53,7 @@ export const PositionSection = observer(function PositionSection() {
         positionValue === 'sticky';
 
     return (
-        <Section id="position" title="Position" setCount={setCount}>
+        <Section id="position" title="Position" icon={Move} setCount={setCount}>
             <PropertyControl property="position" label="Type">
                 {({ value, commit }) => (
                     <SelectField value={value} options={POSITION_OPTIONS} onCommit={commit} />
@@ -62,22 +63,22 @@ export const PositionSection = observer(function PositionSection() {
                 <>
                     <PropertyControl property="top" label="Top">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
                     <PropertyControl property="right" label="Right">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
                     <PropertyControl property="bottom" label="Bottom">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
                     <PropertyControl property="left" label="Left">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
                 </>
@@ -85,7 +86,6 @@ export const PositionSection = observer(function PositionSection() {
             <PropertyControl property="z-index" label="Z-index">
                 {({ value, commit }) => (
                     <NumberInput
-                        compact
                         value={value}
                         onCommit={commit}
                         defaultUnit=""

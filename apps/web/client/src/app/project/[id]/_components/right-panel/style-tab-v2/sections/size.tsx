@@ -1,11 +1,14 @@
 'use client';
 
+import { Maximize2 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
 import { PropertyControl } from '../controls/property-control';
+import { PropertyLabel } from '../controls/property-label';
 import { SelectField } from '../controls/select-field';
+import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -29,6 +32,54 @@ const BOX_SIZING_OPTIONS = [
     { value: 'content-box', label: 'Content box' },
 ];
 
+interface PairedRowProps {
+    label: string;
+    widthProperty: string;
+    heightProperty: string;
+}
+
+/** Two-input row used for Min and Max width/height pairs. */
+function PairedRow({ label, widthProperty, heightProperty }: PairedRowProps) {
+    const width = useStyleValue(widthProperty);
+    const height = useStyleValue(heightProperty);
+    const widthSetter = useStyleSetter(widthProperty);
+    const heightSetter = useStyleSetter(heightProperty);
+    const anySet = width.isSet || height.isSet;
+    return (
+        <div className="group/control flex items-center gap-3 px-3 py-1">
+            <PropertyLabel label={label} isSet={anySet} title={label} />
+            <div className="flex min-w-0 flex-1 items-end gap-1.5">
+                {/* Two NumberInputs in one row — drop the per-input unit pill
+                    or they collectively overflow the panel width. */}
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+                    <NumberInput
+                        value={width.value}
+                        onCommit={widthSetter.set}
+                        units={[]}
+                        className="text-center"
+                        aria-label={widthProperty}
+                    />
+                    <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
+                        W
+                    </span>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+                    <NumberInput
+                        value={height.value}
+                        onCommit={heightSetter.set}
+                        units={[]}
+                        className="text-center"
+                        aria-label={heightProperty}
+                    />
+                    <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
+                        H
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export const SizeSection = observer(function SizeSection() {
     const props = [
         useStyleValue('width'),
@@ -46,29 +97,18 @@ export const SizeSection = observer(function SizeSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="size" title="Size" setCount={setCount}>
+        <Section id="size" title="Size" icon={Maximize2} setCount={setCount}>
             <PropertyControl property="width" label="Width">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="height" label="Height">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
-            <PropertyControl property="min-width" label="Min W">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
-            </PropertyControl>
-            <PropertyControl property="min-height" label="Min H">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
-            </PropertyControl>
-            <PropertyControl property="max-width" label="Max W">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
-            </PropertyControl>
-            <PropertyControl property="max-height" label="Max H">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
-            </PropertyControl>
+            <PairedRow label="Min" widthProperty="min-width" heightProperty="min-height" />
+            <PairedRow label="Max" widthProperty="max-width" heightProperty="max-height" />
             <PropertyControl property="aspect-ratio" label="Ratio">
                 {({ value, commit }) => (
                     <NumberInput
-                        compact
                         value={value}
                         onCommit={commit}
                         defaultUnit=""

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import type { StyleBinding } from '@weblab/models/style';
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
@@ -54,14 +55,14 @@ export const ConnectButton = observer(function ConnectButton({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
                     aria-label={binding ? `Bound to ${binding.displayName}` : 'Connect to token'}
                     className={cn(
-                        'text-mini flex h-5 shrink-0 items-center gap-1 rounded-sm px-1 transition-colors',
+                        'text-mini h-5 shrink-0 gap-1 rounded-sm px-1 transition-colors',
                         binding
                             ? 'bg-foreground/8 text-foreground-primary'
-                            : 'text-foreground-secondary hover:bg-foreground/5 opacity-0 group-hover/control:opacity-100',
+                            : 'text-foreground-secondary opacity-0 group-hover/control:opacity-100',
                     )}
                 >
                     {binding ? (
@@ -72,7 +73,7 @@ export const ConnectButton = observer(function ConnectButton({
                     ) : (
                         <Icons.Plus className="h-3 w-3" />
                     )}
-                </button>
+                </Button>
             </PopoverTrigger>
             <PopoverContent
                 side="left"

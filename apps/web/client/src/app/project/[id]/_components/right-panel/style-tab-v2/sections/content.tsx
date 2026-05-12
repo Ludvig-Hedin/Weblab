@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { AlignLeft } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -144,7 +145,12 @@ export const ContentSection = observer(function ContentSection() {
     };
 
     return (
-        <Section id="content" title={t(transKeys.cms.list.contentSection)} setCount={setCount}>
+        <Section
+            id="content"
+            title={t(transKeys.cms.list.contentSection)}
+            icon={AlignLeft}
+            setCount={setCount}
+        >
             <div className="flex flex-col gap-3 px-3 py-1">
                 <div className="space-y-1.5">
                     <Label

@@ -44,6 +44,24 @@ export function useStyleSetter(property: string): StyleSetter {
             const value = rawValue ?? '';
             const target = resolveTarget();
 
+            // Short-circuit when the incoming value matches the current
+            // defined value — toggling an IconToggleField back-and-forth
+            // would otherwise queue a fresh AST write + iframe sync per
+            // click, which surfaced as a multi-second flicker once the
+            // change reached the canvas reload step.
+            // TODO(bug-hunt 2026-05-13): this short-circuit ignores write-target
+            // migration. If `value === current` but the user switched the write
+            // target (e.g. from inline to tailwind), no re-write is queued, so
+            // the property silently stays on the old target. Acceptable today
+            // because target migration on an unchanged value is an edge case,
+            // but the assumption should be revisited if a user-visible "switch
+            // target" affordance is added.
+            const defined = editorEngine.style.selectedStyle?.styles.defined ?? {};
+            const currentRaw = defined[property];
+            const current =
+                currentRaw === undefined || currentRaw === null ? '' : String(currentRaw);
+            if (value === current) return;
+
             // Empty string => StyleManager treats it as "remove from defined"
             // for inline values, and the parser's tailwind path strips the
             // matching class. Either is the desired "reset" behavior.

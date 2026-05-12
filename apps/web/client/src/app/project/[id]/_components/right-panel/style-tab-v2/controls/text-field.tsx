@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
+import { FIELD_BASE_CLASSES } from './constants';
+
 export interface TextFieldProps {
     value: string;
     onCommit: (value: string) => void;
@@ -11,7 +13,14 @@ export interface TextFieldProps {
     className?: string;
 }
 
-/** A draftable text input that commits on blur or Enter. */
+/**
+ * Style panel text input. Geometry comes from FIELD_BASE_CLASSES — that's the
+ * single source of truth for height (30px), radius (8px), padding (10px),
+ * dark fill (rgb(43,43,43)), border, hover, and focus ring. Edit only that
+ * constant when you want to retune the look — every row editor follows.
+ *
+ * Commits on blur or Enter; resets on Escape.
+ */
 export function TextField({ value, onCommit, placeholder, className }: TextFieldProps) {
     const [draft, setDraft] = useState(value);
     const lastValueRef = useRef(value);
@@ -51,10 +60,7 @@ export function TextField({ value, onCommit, placeholder, className }: TextField
                     e.currentTarget.blur();
                 }
             }}
-            className={cn(
-                'border-input bg-background placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 text-small h-7 w-full min-w-0 rounded-md border px-2 shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px]',
-                className,
-            )}
+            className={cn(FIELD_BASE_CLASSES, 'min-w-0', className)}
         />
     );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { Image as ImageIcon } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { ColorField } from '../controls/color-field';
@@ -56,7 +57,7 @@ export const BackgroundsSection = observer(function BackgroundsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="backgrounds" title="Backgrounds" setCount={setCount}>
+        <Section id="backgrounds" title="Backgrounds" icon={ImageIcon} setCount={setCount}>
             <PropertyControl property="background-color" label="Color">
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>

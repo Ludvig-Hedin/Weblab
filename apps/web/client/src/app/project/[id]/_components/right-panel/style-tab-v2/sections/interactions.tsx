@@ -1,5 +1,6 @@
 'use client';
 
+import { MousePointerClick } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { PropertyControl } from '../controls/property-control';
@@ -61,7 +62,7 @@ export const InteractionsSection = observer(function InteractionsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="interactions" title="Interactions" setCount={setCount}>
+        <Section id="interactions" title="Interactions" icon={MousePointerClick} setCount={setCount}>
             <PropertyControl property="cursor" label="Cursor">
                 {({ value, commit }) => (
                     <SelectField value={value} options={CURSOR_OPTIONS} onCommit={commit} />

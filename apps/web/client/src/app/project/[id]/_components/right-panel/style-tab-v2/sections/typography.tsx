@@ -1,16 +1,37 @@
 'use client';
 
 import { useState } from 'react';
+import {
+    AlignCenter,
+    AlignJustify,
+    AlignLeft,
+    AlignRight,
+    ArrowLeftRight,
+    CaseLower,
+    CaseSensitive,
+    CaseUpper,
+    Italic,
+    Minus,
+    Strikethrough,
+    Type,
+    Underline,
+    type LucideIcon,
+} from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 
 import { ColorField } from '../controls/color-field';
+import { FontField } from '../controls/font-field';
+import { IconToggleField } from '../controls/icon-toggle-field';
+import { InlineButton } from '../controls/inline-button';
 import { PropertyControl } from '../controls/property-control';
 import { SelectField } from '../controls/select-field';
 import { TextField } from '../controls/text-field';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
+
+const Icon = ({ icon: I }: { icon: LucideIcon }) => <I className="size-3.5" />;
 
 const FONT_WEIGHT_OPTIONS = [
     { value: '100', label: '100 — Thin' },
@@ -24,39 +45,39 @@ const FONT_WEIGHT_OPTIONS = [
     { value: '900', label: '900 — Black' },
 ];
 
-const TEXT_ALIGN_OPTIONS = [
-    { value: 'left', label: 'Left' },
-    { value: 'center', label: 'Center' },
-    { value: 'right', label: 'Right' },
-    { value: 'justify', label: 'Justify' },
-    { value: 'start', label: 'Start' },
-    { value: 'end', label: 'End' },
-];
+const TEXT_ALIGN_ICONS = [
+    { value: 'left', label: 'Left', icon: <Icon icon={AlignLeft} /> },
+    { value: 'center', label: 'Center', icon: <Icon icon={AlignCenter} /> },
+    { value: 'right', label: 'Right', icon: <Icon icon={AlignRight} /> },
+    { value: 'justify', label: 'Justify', icon: <Icon icon={AlignJustify} /> },
+] as const;
 
-const TEXT_TRANSFORM_OPTIONS = [
-    { value: 'none', label: 'None' },
-    { value: 'uppercase', label: 'Uppercase' },
-    { value: 'lowercase', label: 'Lowercase' },
-    { value: 'capitalize', label: 'Capitalize' },
-];
+const TEXT_TRANSFORM_ICONS = [
+    { value: 'none', label: 'None', icon: <Icon icon={Minus} /> },
+    { value: 'uppercase', label: 'Uppercase', icon: <Icon icon={CaseUpper} /> },
+    { value: 'lowercase', label: 'Lowercase', icon: <Icon icon={CaseLower} /> },
+    { value: 'capitalize', label: 'Capitalize', icon: <Icon icon={CaseSensitive} /> },
+] as const;
 
-const TEXT_DECORATION_OPTIONS = [
-    { value: 'none', label: 'None' },
-    { value: 'underline', label: 'Underline' },
-    { value: 'overline', label: 'Overline' },
-    { value: 'line-through', label: 'Strikethrough' },
-];
+const TEXT_DECORATION_ICONS = [
+    { value: 'none', label: 'None', icon: <Icon icon={Minus} /> },
+    { value: 'underline', label: 'Underline', icon: <Icon icon={Underline} /> },
+    { value: 'line-through', label: 'Strikethrough', icon: <Icon icon={Strikethrough} /> },
+] as const;
 
-const FONT_STYLE_OPTIONS = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'italic', label: 'Italic' },
-    { value: 'oblique', label: 'Oblique' },
-];
+const FONT_STYLE_ICONS = [
+    { value: 'normal', label: 'Normal', icon: <Icon icon={Minus} /> },
+    { value: 'italic', label: 'Italic', icon: <Icon icon={Italic} /> },
+] as const;
 
-const DIRECTION_OPTIONS = [
-    { value: 'ltr', label: 'Left to right' },
-    { value: 'rtl', label: 'Right to left' },
-];
+const DIRECTION_ICONS = [
+    { value: 'ltr', label: 'Left to right', icon: <Icon icon={ArrowLeftRight} /> },
+    {
+        value: 'rtl',
+        label: 'Right to left',
+        icon: <ArrowLeftRight className="size-3.5 -scale-x-100" />,
+    },
+] as const;
 
 const WHITE_SPACE_OPTIONS = [
     { value: 'normal', label: 'Normal' },
@@ -123,12 +144,10 @@ export const TypographySection = observer(function TypographySection() {
     const displayAdvanced = showAdvanced || advancedSetCount > 0;
 
     return (
-        <Section id="typography" title="Typography" setCount={setCount}>
+        <Section id="typography" title="Typography" icon={Type} setCount={setCount}>
             {/* ── Core ──────────────────────────────────────── */}
             <PropertyControl property="font-family" label="Font">
-                {({ value, commit }) => (
-                    <TextField value={value} onCommit={commit} placeholder="Inter, sans-serif" />
-                )}
+                {({ value, commit }) => <FontField value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="font-weight" label="Weight">
                 {({ value, commit }) => (
@@ -136,12 +155,11 @@ export const TypographySection = observer(function TypographySection() {
                 )}
             </PropertyControl>
             <PropertyControl property="font-size" label="Size">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
-            <PropertyControl property="line-height" label="Line H">
+            <PropertyControl property="line-height" label="Line height">
                 {({ value, commit }) => (
                     <NumberInput
-                        compact
                         value={value}
                         onCommit={commit}
                         defaultUnit=""
@@ -149,60 +167,72 @@ export const TypographySection = observer(function TypographySection() {
                     />
                 )}
             </PropertyControl>
-            <PropertyControl property="letter-spacing" label="Spacing">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+            <PropertyControl property="letter-spacing" label="Letter">
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="color" label="Color">
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="text-align" label="Align">
                 {({ value, commit }) => (
-                    <SelectField value={value} options={TEXT_ALIGN_OPTIONS} onCommit={commit} />
-                )}
-            </PropertyControl>
-            <PropertyControl property="text-transform" label="Transform">
-                {({ value, commit }) => (
-                    <SelectField value={value} options={TEXT_TRANSFORM_OPTIONS} onCommit={commit} />
-                )}
-            </PropertyControl>
-            <PropertyControl property="text-decoration-line" label="Decor">
-                {({ value, commit }) => (
-                    <SelectField
+                    <IconToggleField
                         value={value}
-                        options={TEXT_DECORATION_OPTIONS}
+                        options={TEXT_ALIGN_ICONS}
                         onCommit={commit}
+                        ariaLabel="Text alignment"
+                    />
+                )}
+            </PropertyControl>
+            <PropertyControl property="text-decoration-line" label="Decoration">
+                {({ value, commit }) => (
+                    <IconToggleField
+                        value={value}
+                        options={TEXT_DECORATION_ICONS}
+                        onCommit={commit}
+                        ariaLabel="Text decoration"
+                    />
+                )}
+            </PropertyControl>
+            <PropertyControl property="text-transform" label="Case">
+                {({ value, commit }) => (
+                    <IconToggleField
+                        value={value}
+                        options={TEXT_TRANSFORM_ICONS}
+                        onCommit={commit}
+                        ariaLabel="Text case"
                     />
                 )}
             </PropertyControl>
             <PropertyControl property="font-style" label="Style">
                 {({ value, commit }) => (
-                    <SelectField value={value} options={FONT_STYLE_OPTIONS} onCommit={commit} />
+                    <IconToggleField
+                        value={value}
+                        options={FONT_STYLE_ICONS}
+                        onCommit={commit}
+                        ariaLabel="Font style"
+                    />
                 )}
             </PropertyControl>
 
             {/* ── Advanced toggle ───────────────────────────── */}
             {!displayAdvanced && (
-                <button
-                    type="button"
-                    onClick={() => setShowAdvanced(true)}
-                    className="text-foreground-secondary hover:text-foreground-primary mx-3 mt-0.5 mb-1 self-start text-[11px]"
-                >
-                    + More options
-                </button>
+                <InlineButton onClick={() => setShowAdvanced(true)} className="mt-0.5">
+                    + More type options
+                </InlineButton>
             )}
 
             {/* ── Advanced ──────────────────────────────────── */}
             {displayAdvanced && (
                 <>
                     <div className="border-border/30 mx-3 mt-1 mb-0.5 flex items-center gap-2 border-t pt-1">
-                        <span className="text-foreground-secondary text-[10px] tracking-wider uppercase">
+                        <span className="text-foreground-secondary text-micro tracking-wider uppercase">
                             Advanced
                         </span>
                         {!advancedSetCount && (
                             <button
                                 type="button"
                                 onClick={() => setShowAdvanced(false)}
-                                className="text-foreground-secondary hover:text-foreground-primary ml-auto text-[10px]"
+                                className="text-foreground-secondary hover:text-foreground-primary text-micro ml-auto transition-colors"
                             >
                                 Hide
                             </button>
@@ -210,10 +240,11 @@ export const TypographySection = observer(function TypographySection() {
                     </div>
                     <PropertyControl property="direction" label="Direction">
                         {({ value, commit }) => (
-                            <SelectField
+                            <IconToggleField
                                 value={value}
-                                options={DIRECTION_OPTIONS}
+                                options={DIRECTION_ICONS}
                                 onCommit={commit}
+                                ariaLabel="Text direction"
                             />
                         )}
                     </PropertyControl>
@@ -226,7 +257,7 @@ export const TypographySection = observer(function TypographySection() {
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="word-break" label="Word brk">
+                    <PropertyControl property="word-break" label="Word break">
                         {({ value, commit }) => (
                             <SelectField
                                 value={value}
@@ -235,7 +266,7 @@ export const TypographySection = observer(function TypographySection() {
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="line-break" label="Line brk">
+                    <PropertyControl property="line-break" label="Line break">
                         {({ value, commit }) => (
                             <SelectField
                                 value={value}
@@ -255,13 +286,12 @@ export const TypographySection = observer(function TypographySection() {
                     </PropertyControl>
                     <PropertyControl property="text-indent" label="Indent">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
                     <PropertyControl property="column-count" label="Columns">
                         {({ value, commit }) => (
                             <NumberInput
-                                compact
                                 value={value}
                                 onCommit={commit}
                                 defaultUnit=""
@@ -270,12 +300,12 @@ export const TypographySection = observer(function TypographySection() {
                             />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="-webkit-text-stroke-width" label="Stroke W">
+                    <PropertyControl property="-webkit-text-stroke-width" label="Stroke">
                         {({ value, commit }) => (
-                            <NumberInput compact value={value} onCommit={commit} />
+                            <NumberInput value={value} onCommit={commit} />
                         )}
                     </PropertyControl>
-                    <PropertyControl property="-webkit-text-stroke-color" label="Stroke C">
+                    <PropertyControl property="-webkit-text-stroke-color" label="Stroke color">
                         {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="text-shadow" label="Shadow">

@@ -4,11 +4,8 @@ import { observer } from 'mobx-react-lite';
 
 import { Accordion } from '@weblab/ui/accordion';
 import { ScrollArea } from '@weblab/ui/scroll-area';
-import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
-import type { WriteTarget } from '@/components/store/editor/style/preferences';
 import { useEditorEngine } from '@/components/store/editor';
-import { ALL_WRITE_TARGETS } from '@/components/store/editor/style/preferences';
 import { useResetHotkey } from './hooks/use-reset-hotkey';
 import { useSectionState } from './hooks/use-section-state';
 import { BackgroundsSection } from './sections/backgrounds';
@@ -26,50 +23,18 @@ import { TransformsSection } from './sections/transforms';
 import { TransitionsSection } from './sections/transitions';
 import { TypographySection } from './sections/typography';
 
-const DEFAULT_OPEN_SECTIONS = ['content', 'layout', 'spacing', 'size', 'typography'] as const;
-
-const TARGET_LABEL: Record<WriteTarget, string> = {
-    tailwind: 'Tailwind',
-    'custom-class': 'Class',
-    inline: 'Inline',
-};
+const DEFAULT_OPEN_SECTIONS = ['layout', 'spacing', 'typography'] as const;
 
 const StyleTabV2Empty = () => (
     <div className="flex h-full items-center justify-center px-6 text-center">
         <div className="space-y-2">
             <p className="text-foreground-primary text-small font-medium">No element selected</p>
             <p className="text-foreground-tertiary text-mini">
-                Pick an element in the canvas to inspect and edit its styles.
+                Select an element on the canvas to edit its styles.
             </p>
         </div>
     </div>
 );
-
-const WriteTargetToolbar = observer(function WriteTargetToolbar() {
-    const editorEngine = useEditorEngine();
-    const target = editorEngine.stylePreferences.defaultWriteTarget;
-    return (
-        <div className="border-border/40 flex items-center gap-3 border-b px-3 py-2">
-            <span className="text-foreground-tertiary text-mini">Write as</span>
-            <ToggleGroup
-                type="single"
-                size="sm"
-                value={target}
-                onValueChange={(value) => {
-                    if (!value) return;
-                    editorEngine.stylePreferences.setDefaultWriteTarget(value as WriteTarget);
-                }}
-                className="h-6"
-            >
-                {ALL_WRITE_TARGETS.map((value) => (
-                    <ToggleGroupItem key={value} value={value} className="h-6 px-2 text-[11px]">
-                        {TARGET_LABEL[value]}
-                    </ToggleGroupItem>
-                ))}
-            </ToggleGroup>
-        </div>
-    );
-});
 
 export const StyleTabV2 = observer(function StyleTabV2() {
     const editorEngine = useEditorEngine();
@@ -81,9 +46,11 @@ export const StyleTabV2 = observer(function StyleTabV2() {
 
     return (
         <ScrollArea className="h-full">
+            {/* Element header scrolls with everything else — the panel reads as
+                one continuous column. The first Section renders its own
+                top-border hairline, so we don't add a divider here. */}
             <ElementHeaderSection />
-            <WriteTargetToolbar />
-            <Accordion type="multiple" value={open} onValueChange={setOpen} className="px-0">
+            <Accordion type="multiple" value={open} onValueChange={setOpen} className="px-0 pb-6">
                 <ContentSection />
                 <LayoutSection />
                 <SpacingSection />

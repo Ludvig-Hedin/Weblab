@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Variable } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
@@ -101,6 +102,7 @@ export const CustomPropertiesSection = observer(function CustomPropertiesSection
         <Section
             id="custom-properties"
             title="Custom properties"
+            icon={Variable}
             setCount={setCount}
             actions={
                 <Button

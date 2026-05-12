@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, SquareDashed } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
+import { PropertyLabel } from '../controls/property-label';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
@@ -31,19 +33,19 @@ function SideInput({ side, type }: SideInputProps) {
     const styleValue = useStyleValue(property);
     const setter = useStyleSetter(property);
     return (
-        <div className="flex flex-col items-center gap-0.5">
+        <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+            {/* Drop the unit pill on the per-side inputs — four NumberInputs with
+                their own 52px unit boxes would overflow the panel. The linked
+                row above keeps the unit picker; users set the unit there. */}
             <NumberInput
-                compact
                 value={styleValue.value}
                 allowKeywords={type === 'margin'}
                 onCommit={(value) => setter.set(value)}
-                className={cn(
-                    'w-full text-center',
-                    styleValue.isSet && 'border-foreground-brand/40',
-                )}
+                units={[]}
+                className="text-center"
                 aria-label={`${type} ${side}`}
             />
-            <span className="text-foreground-tertiary text-[9px] leading-none uppercase">
+            <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
                 {SIDE_LABEL[side]}
             </span>
         </div>
@@ -68,7 +70,6 @@ function BoxModel({ type, label }: BoxModelProps) {
 
     const anySet = top.isSet || right.isSet || bottom.isSet || left.isSet;
     const linkedValue = allEqual ? top.value : '';
-    const linkedIsSet = allEqual && top.isSet;
 
     // Auto-expand only when values transition from converged to divergent.
     // Once the user explicitly collapses, don't re-open on later edits.
@@ -107,41 +108,32 @@ function BoxModel({ type, label }: BoxModelProps) {
 
     return (
         <TooltipProvider delayDuration={400}>
-            <div className="flex flex-col gap-1.5 px-3 py-1">
+            <div className="group/control flex flex-col gap-1.5 px-3 py-1">
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
+                    <PropertyLabel
+                        label={label}
+                        isSet={anySet}
                         onClick={handleToggle}
-                        title={expanded ? `Collapse ${label.toLowerCase()}` : `Expand to per-side`}
-                        className={cn(
-                            'text-mini flex w-[72px] shrink-0 items-center gap-1 text-left transition-colors',
-                            anySet
-                                ? 'text-foreground-primary font-medium'
-                                : 'text-foreground-tertiary hover:text-foreground-secondary font-normal',
-                        )}
-                    >
-                        <ChevronDown
-                            className={cn(
-                                'size-3 shrink-0 transition-transform duration-150',
-                                expanded ? 'rotate-180' : 'rotate-0',
-                            )}
-                        />
-                        <span className="truncate">{label}</span>
-                    </button>
+                        title={expanded ? `Collapse ${label.toLowerCase()}` : 'Expand to per-side'}
+                        icon={
+                            <ChevronDown
+                                className={cn(
+                                    'size-3 shrink-0 transition-transform duration-150',
+                                    expanded ? 'rotate-180' : 'rotate-0',
+                                )}
+                            />
+                        }
+                    />
                     <div className="min-w-0 flex-1">
                         {!expanded && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <NumberInput
-                                        compact
                                         value={linkedValue}
                                         placeholder={placeholder}
                                         allowKeywords={type === 'margin'}
                                         onCommit={(value) => setAll(value)}
-                                        className={cn(
-                                            'w-full',
-                                            linkedIsSet && 'border-foreground-brand/40',
-                                        )}
+                                        className="w-full"
                                         aria-label={`${type} (all sides)`}
                                     />
                                 </TooltipTrigger>
@@ -155,7 +147,7 @@ function BoxModel({ type, label }: BoxModelProps) {
                     </div>
                 </div>
                 {expanded && (
-                    <div className="flex items-end gap-1.5 pl-[84px]">
+                    <div className={cn('flex items-end gap-1.5', PROPERTY_LABEL_OFFSET_CLASS)}>
                         <SideInput side="top" type={type} />
                         <SideInput side="right" type={type} />
                         <SideInput side="bottom" type={type} />
@@ -186,7 +178,7 @@ export const SpacingSection = observer(function SpacingSection() {
     ).length;
 
     return (
-        <Section id="spacing" title="Spacing" setCount={setCount}>
+        <Section id="spacing" title="Spacing" icon={SquareDashed} setCount={setCount}>
             <BoxModel type="padding" label="Padding" />
             <BoxModel type="margin" label="Margin" />
         </Section>

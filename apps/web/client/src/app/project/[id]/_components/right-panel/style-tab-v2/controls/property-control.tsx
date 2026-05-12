@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { X } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import {
@@ -20,17 +21,12 @@ import { useEditorEngine } from '@/components/store/editor';
 import { ALL_WRITE_TARGETS } from '@/components/store/editor/style/preferences';
 import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
+import { PropertyLabel } from './property-label';
 
 const TARGET_LABELS: Record<WriteTarget, string> = {
     tailwind: 'Tailwind class',
     'custom-class': 'Custom class',
     inline: 'Inline style',
-};
-
-const TARGET_CHIPS: Record<WriteTarget, string> = {
-    tailwind: 'tw',
-    'custom-class': 'css',
-    inline: 'inline',
 };
 
 export interface PropertyControlProps {
@@ -46,31 +42,28 @@ export interface PropertyControlProps {
     }) => React.ReactNode;
     /** Optional extra class for the row container. */
     className?: string;
-    /**
-     * When true, the row hides the write-target chip even if the target is non-default.
-     * Useful for compound rows where the chip is rendered once for the group.
-     */
-    hideTargetChip?: boolean;
 }
 
 /**
  * Standard wrapper around every individual style control. Owns:
  *
- * - The "is set" status dot (blue when set, neutral otherwise).
- * - Alt/Option-click on the dot or label to reset the property.
- * - Right-click context menu (Reset, Copy, Paste, Convert to Tailwind/Inline/Custom class, Override).
- * - The write-target chip ("tw" / "css" / "inline" / "override") with a tooltip explaining what's
- *   actually being written.
+ * - The "is set" status dot (brand when set, neutral otherwise).
+ * - Alt/Option-click on the label to reset the property.
+ * - Hover-revealed `X` reset button for users who don't know about ⌥-click.
+ * - Right-click context menu (Reset · Copy · Paste · Write target · Override).
  *
- * The actual editor (number input, select, color picker, ...) is provided by the caller via
- * `children` so this primitive stays unopinionated about the input shape.
+ * Write-target mode is reached via the row context menu and the element
+ * header `⋯` dropdown; the always-visible inline chip was removed in the
+ * Round 7 polish pass.
+ *
+ * The actual editor is provided by the caller via `children` so this
+ * primitive stays unopinionated about the input shape.
  */
 export const PropertyControl = observer(function PropertyControl({
     property,
     label,
     children,
     className,
-    hideTargetChip,
 }: PropertyControlProps) {
     const editorEngine = useEditorEngine();
     const styleValue = useStyleValue(property);
@@ -80,7 +73,7 @@ export const PropertyControl = observer(function PropertyControl({
         setter.set('');
     }, [setter]);
 
-    const handleLabelClick = useCallback<React.MouseEventHandler>(
+    const handleLabelClick = useCallback<React.MouseEventHandler<HTMLButtonElement>>(
         (event) => {
             if (event.altKey) {
                 event.preventDefault();
@@ -132,45 +125,24 @@ export const PropertyControl = observer(function PropertyControl({
         }
     }, [setter]);
 
-    const showChip =
-        !hideTargetChip &&
-        styleValue.isSet &&
-        (styleValue.override ||
-            styleValue.writeTarget !== editorEngine.stylePreferences.defaultWriteTarget);
-
-    const targetChipText = styleValue.override ? 'override' : TARGET_CHIPS[styleValue.writeTarget];
-
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
                 <div
                     data-style-property={property}
-                    className={cn('group/control flex items-center gap-3 px-3 py-1', className)}
+                    className={cn(
+                        // Row padding aligns with the section header's `px-3` —
+                        // subordination comes from header weight, not indent.
+                        // No row hover fill; only the input itself lifts on hover.
+                        'group/control flex items-center gap-3 px-3 py-1',
+                        className,
+                    )}
                 >
-                    <button
-                        type="button"
+                    <PropertyLabel
+                        label={label}
+                        isSet={styleValue.isSet}
                         onClick={handleLabelClick}
-                        title={`${label} — alt-click to reset`}
-                        className={cn(
-                            'text-mini flex w-[72px] shrink-0 items-center gap-1.5 text-left transition-colors',
-                            styleValue.isSet
-                                ? 'text-foreground-primary font-medium'
-                                : 'text-foreground-tertiary group-hover/control:text-foreground-secondary font-normal',
-                        )}
-                    >
-                        {/* Non-color "is set" signal so colorblind users have a
-                            second cue beyond the label tint. */}
-                        <span
-                            aria-hidden
-                            className={cn(
-                                'h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
-                                styleValue.isSet
-                                    ? 'bg-foreground-brand'
-                                    : 'bg-foreground-secondary/25 group-hover/control:bg-foreground-secondary/50',
-                            )}
-                        />
-                        <span className="truncate">{label}</span>
-                    </button>
+                    />
                     <div className="min-w-0 flex-1">
                         {children({
                             value: styleValue.value,
@@ -178,25 +150,25 @@ export const PropertyControl = observer(function PropertyControl({
                             commit: setter.set,
                         })}
                     </div>
-                    {showChip && (
-                        <TooltipProvider>
+                    {/* Right edge holds a single hover-revealed reset button when
+                        the property is set. The write-target chip was removed —
+                        target mode now lives in the right-click menu (kept) and
+                        the element-header `⋯` dropdown. Less crowding, faster scan. */}
+                    {styleValue.isSet && (
+                        <TooltipProvider delayDuration={400}>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span
-                                        className={cn(
-                                            'text-micro shrink-0 rounded-sm px-1 uppercase',
-                                            styleValue.override
-                                                ? 'bg-foreground/12 text-foreground-primary'
-                                                : 'bg-foreground/5 text-foreground-tertiary',
-                                        )}
+                                    <button
+                                        type="button"
+                                        onClick={reset}
+                                        aria-label={`Clear ${label}`}
+                                        className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary active:bg-foreground/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-sm opacity-0 transition-[opacity,color,background-color] duration-150 ease-out group-hover/control:opacity-100 focus-visible:opacity-100"
                                     >
-                                        {targetChipText}
-                                    </span>
+                                        <X className="size-3" />
+                                    </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="text-mini">
-                                    {styleValue.override
-                                        ? `Inline override (this element only)`
-                                        : `Writing as ${TARGET_LABELS[styleValue.writeTarget]}`}
+                                    Clear (⌥-click)
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>

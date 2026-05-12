@@ -1,5 +1,6 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
@@ -61,7 +62,7 @@ export const EffectsSection = observer(function EffectsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="effects" title="Effects" setCount={setCount}>
+        <Section id="effects" title="Effects" icon={Sparkles} setCount={setCount}>
             <PropertyControl property="opacity" label="Opacity">
                 {({ value, commit }) => (
                     <SliderField
@@ -90,13 +91,13 @@ export const EffectsSection = observer(function EffectsSection() {
                 )}
             </PropertyControl>
             <PropertyControl property="outline-width" label="O width">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="outline-color" label="O color">
                 {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="outline-offset" label="O offset">
-                {({ value, commit }) => <NumberInput compact value={value} onCommit={commit} />}
+                {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
             </PropertyControl>
             <PropertyControl property="box-shadow" label="Shadow">
                 {({ value, commit }) => (

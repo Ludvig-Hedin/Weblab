@@ -209,7 +209,6 @@ export function InputsDemo() {
                             value="12"
                             onCommit={() => undefined}
                             defaultUnit="px"
-                            compact
                             className="min-w-[6rem]"
                         />
                     </div>
@@ -233,7 +232,6 @@ export function InputsDemo() {
                                 value={num}
                                 onCommit={(v) => setNum(v)}
                                 defaultUnit="px"
-                                compact
                                 className="min-w-[6rem]"
                             />
                             <Button

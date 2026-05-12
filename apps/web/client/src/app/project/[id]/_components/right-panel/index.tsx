@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -21,8 +22,19 @@ import { ChatControls } from './chat-tab/controls';
 import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
-import { CommentsTab } from './comments-tab';
-import { StyleTabV2 as StyleTab } from './style-tab-v2';
+
+// Style and Comments tabs are not the default active tab — defer their module
+// load until the user switches to them. Each tab is only rendered when its
+// value is active (see TabsContent guards below), so this is a pure
+// bundle-split win with no UX cost.
+const StyleTab = dynamic(
+    () => import('./style-tab-v2').then((m) => m.StyleTabV2),
+    { ssr: false },
+);
+const CommentsTab = dynamic(
+    () => import('./comments-tab').then((m) => m.CommentsTab),
+    { ssr: false },
+);
 
 type RightPanelTab = 'style' | 'chat' | 'comments';
 
@@ -131,7 +143,13 @@ export const RightPanel = observer(() => {
                                                 value="style"
                                                 disabled={isCodeMode}
                                                 className={cn(
-                                                    'data-[state=active]:bg-background-tab-active/50 data-[state=active]:border-border-tab-active/50 relative h-8 gap-1.5 rounded-sm border border-transparent px-2.5 text-xs',
+                                                    // The active fill comes from `--background-tab-active` (#383838),
+                                                    // which only gives ~1.2:1 contrast against the strip (#262626).
+                                                    // Force a stronger overlay via `bg-foreground/10` so the active
+                                                    // state actually pops. The shared TabsTrigger primitive sets
+                                                    // `dark:data-[state=active]:bg-none` (image only) — that doesn't
+                                                    // touch background-color but harmlessly co-exists.
+                                                    'data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini relative h-8 gap-1.5 rounded-sm border border-transparent px-2.5',
                                                     isCodeMode && 'cursor-not-allowed opacity-40',
                                                 )}
                                             >
@@ -155,7 +173,7 @@ export const RightPanel = observer(() => {
                                     <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                     <TabsTrigger
                                         value="chat"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
                                     >
                                         <Icons.Sparkles className="h-3.5 w-3.5" />
                                         {t(transKeys.editor.panels.edit.tabs.chat.name)}
@@ -163,7 +181,7 @@ export const RightPanel = observer(() => {
                                     <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                     <TabsTrigger
                                         value="comments"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
                                     >
                                         <Icons.ChatBubble className="h-3.5 w-3.5" />
                                         {t(transKeys.editor.panels.edit.tabs.comments.name)}
@@ -231,7 +249,11 @@ export const RightPanel = observer(() => {
                             />
 
                             <TabsContent value="style" className="min-h-0 flex-1 overflow-hidden">
-                                <StyleTab />
+                                {/* Only mount when active — the dynamic import
+                                    above already keeps it out of the initial
+                                    chunk; gating render avoids paying for the
+                                    observer subtree on first paint. */}
+                                {activeTab === 'style' && <StyleTab />}
                             </TabsContent>
 
                             <TabsContent value="chat" className="min-h-0 flex-1 overflow-hidden">
@@ -270,7 +292,7 @@ export const RightPanel = observer(() => {
                                 value="comments"
                                 className="min-h-0 flex-1 overflow-hidden"
                             >
-                                <CommentsTab />
+                                {activeTab === 'comments' && <CommentsTab />}
                             </TabsContent>
                         </Tabs>
                     </DropdownManagerProvider>

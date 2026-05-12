@@ -1,5 +1,6 @@
 'use client';
 
+import { RotateCw } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { NumberInput } from '@weblab/ui/number-input';
@@ -27,7 +28,7 @@ export const TransformsSection = observer(function TransformsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="transforms" title="Transforms" setCount={setCount}>
+        <Section id="transforms" title="Transforms" icon={RotateCw} setCount={setCount}>
             <PropertyControl property="transform" label="Transform">
                 {({ value, commit }) => (
                     <TextField
@@ -44,7 +45,7 @@ export const TransformsSection = observer(function TransformsSection() {
             </PropertyControl>
             <PropertyControl property="perspective" label="Perspective">
                 {({ value, commit }) => (
-                    <NumberInput compact value={value} onCommit={commit} defaultUnit="px" />
+                    <NumberInput value={value} onCommit={commit} defaultUnit="px" />
                 )}
             </PropertyControl>
             <PropertyControl property="perspective-origin" label="P origin">
