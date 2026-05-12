@@ -65,18 +65,38 @@ export class CanvasManager {
     // 5 second debounce. Database is used to save working state per user, so we don't need to save too often.
     saveCanvas = debounce(this.undebouncedSaveCanvas, 5000);
 
+    // Track the last logged error so a sustained failure (e.g., userCanvas row
+    // not yet seeded, network blip) doesn't spam the console every 5s.
+    private lastSaveErrorMessage: string | null = null;
+
     private async undebouncedSaveCanvas() {
-        const success = await api.userCanvas.update.mutate({
-            projectId: this.editorEngine.projectId,
-            canvasId: this.id,
-            canvas: {
-                scale: this.scale.toString(),
-                x: this.position.x.toString(),
-                y: this.position.y.toString(),
-            },
-        });
-        if (!success) {
-            console.error('Failed to update canvas');
+        const attempt = async () =>
+            api.userCanvas.update.mutate({
+                projectId: this.editorEngine.projectId,
+                canvasId: this.id,
+                canvas: {
+                    scale: this.scale.toString(),
+                    x: this.position.x.toString(),
+                    y: this.position.y.toString(),
+                },
+            });
+
+        try {
+            await attempt();
+            this.lastSaveErrorMessage = null;
+        } catch {
+            try {
+                await new Promise((resolve) => setTimeout(resolve, 750));
+                await attempt();
+                this.lastSaveErrorMessage = null;
+            } catch (retryError) {
+                const message =
+                    retryError instanceof Error ? retryError.message : String(retryError);
+                if (message !== this.lastSaveErrorMessage) {
+                    console.error('Failed to update canvas', retryError);
+                    this.lastSaveErrorMessage = message;
+                }
+            }
         }
     }
 
