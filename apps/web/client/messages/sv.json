@@ -473,6 +473,8 @@
         "noResultsTitle": "Inga träffar",
         "noResultsBody": "Försök med en bredare sökning eller rensa dina filter.",
         "createFolderEmpty": "Inga mappar än — gruppera projekt för att hitta dem snabbare.",
+        "opening": "Öppnar {name}…",
+        "openProjectAria": "Öppna {name}",
         "projectSelected": "{count, plural, one {projekt markerat} other {projekt markerade}}",
         "moveToFolder": "Flytta till mapp",
         "folderDestination": "Målmapp",

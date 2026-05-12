@@ -474,6 +474,8 @@
         "noResultsTitle": "Nothing matches",
         "noResultsBody": "Try a broader search or clear your filters.",
         "createFolderEmpty": "No folders yet — group related projects to find them faster.",
+        "opening": "Opening {name}…",
+        "openProjectAria": "Open {name}",
         "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
         "moveToFolder": "Move to folder",
         "folderDestination": "Folder destination",

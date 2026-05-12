@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
 import { Checkbox } from '@weblab/ui/checkbox';
@@ -41,7 +43,18 @@ export function ProjectCard({
     onSelectionChange?: (selected: boolean) => void;
     isBackfilling?: boolean;
 }) {
+    const t = useTranslations('selectProject') as (
+        key: string,
+        values?: Record<string, string | number>,
+    ) => string;
+    const router = useRouter();
     const [faviconFailed, setFaviconFailed] = useState(false);
+    // Instant-feedback state. Flips on `onClick` for the project link and
+    // stays true until the parent route swaps this component out — gives
+    // the user a per-card "Opening…" overlay instead of an empty wait while
+    // the editor route hydrates.
+    const [isOpening, setIsOpening] = useState(false);
+    const [hasPrefetched, setHasPrefetched] = useState(false);
 
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
@@ -73,11 +86,30 @@ export function ProjectCard({
         }
     };
 
+    // Warm the editor route on first hover so the click → render gap is
+    // dominated by data, not by JS chunk download. Next's <Link> already
+    // prefetches on viewport entry but only the page boundary — calling
+    // router.prefetch explicitly ensures the loader chunk is hot.
+    const handleHoverPrefetch = useCallback(() => {
+        if (hasPrefetched || selectionMode) return;
+        router.prefetch(projectHref);
+        setHasPrefetched(true);
+    }, [hasPrefetched, projectHref, router, selectionMode]);
+
+    const handleOpenClick = useCallback(() => {
+        // Skip overlay while in selection mode — click toggles the checkbox
+        // instead of navigating.
+        if (selectionMode) return;
+        setIsOpening(true);
+    }, [selectionMode]);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+            onMouseEnter={handleHoverPrefetch}
+            onFocus={handleHoverPrefetch}
             className="group/card w-full"
         >
             <div
@@ -105,8 +137,10 @@ export function ProjectCard({
                     ) : (
                         <Link
                             href={projectHref}
+                            prefetch
+                            onClick={handleOpenClick}
                             className="block overflow-hidden rounded-xl"
-                            aria-label={`Open ${project.name}`}
+                            aria-label={t('openProjectAria', { name: project.name })}
                         >
                             <ProjectPreviewSurface
                                 projectName={project.name}
@@ -174,6 +208,25 @@ export function ProjectCard({
                             </div>
                         </>
                     )}
+
+                    {/* Opening overlay — fires the moment the user clicks
+                        the card / name. Stays mounted until the editor
+                        route swaps this component out, so the user never
+                        sees a blank gap between click and editor paint. */}
+                    {isOpening && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.12 }}
+                            className="bg-background/72 pointer-events-none absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 rounded-xl backdrop-blur-sm"
+                            aria-live="polite"
+                        >
+                            <Icons.LoadingSpinner className="text-foreground/70 h-5 w-5 animate-spin" />
+                            <span className="text-foreground-secondary px-3 text-center text-xs">
+                                {t('opening', { name: project.name })}
+                            </span>
+                        </motion.div>
+                    )}
                 </div>
 
                 <div className="mt-3 flex items-start justify-between gap-3 px-1">
@@ -208,7 +261,12 @@ export function ProjectCard({
                                 </span>
                             </button>
                         ) : (
-                            <Link href={projectHref} className="flex max-w-full items-center gap-2">
+                            <Link
+                                href={projectHref}
+                                prefetch
+                                onClick={handleOpenClick}
+                                className="flex max-w-full items-center gap-2"
+                            >
                                 {faviconUrl && !faviconFailed ? (
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
@@ -263,6 +321,8 @@ export function ProjectCard({
                     ) : (
                         <Link
                             href={projectHref}
+                            prefetch
+                            onClick={handleOpenClick}
                             className="text-foreground-tertiary mt-0.5 flex-shrink-0 text-xs"
                         >
                             {lastUpdated} ago

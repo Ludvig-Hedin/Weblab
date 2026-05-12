@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -49,9 +49,12 @@ export const ProjectRow = ({
     onSelectionChange,
     isBackfilling = false,
 }: ProjectRowProps) => {
-    const t = useTranslations('selectProject');
+    const tBase = useTranslations('selectProject');
+    const t = tBase as (key: string, values?: Record<string, string | number>) => string;
     const router = useRouter();
     const [faviconFailed, setFaviconFailed] = useState(false);
+    const [isOpening, setIsOpening] = useState(false);
+    const [hasPrefetched, setHasPrefetched] = useState(false);
     const lastUpdated = useMemo(
         () => timeAgo(project.metadata?.updatedAt),
         [project.metadata?.updatedAt],
@@ -77,6 +80,7 @@ export const ProjectRow = ({
         if (selectionMode) {
             onSelectionChange?.(!selected);
         } else {
+            setIsOpening(true);
             router.push(projectHref);
         }
     };
@@ -87,6 +91,12 @@ export const ProjectRow = ({
             handleRowActivate();
         }
     };
+
+    const handleHoverPrefetch = useCallback(() => {
+        if (hasPrefetched || selectionMode) return;
+        router.prefetch(projectHref);
+        setHasPrefetched(true);
+    }, [hasPrefetched, projectHref, router, selectionMode]);
 
     const thumb = (
         <div className="bg-background-canvas relative h-10 w-14 shrink-0 overflow-hidden rounded-md">
@@ -208,7 +218,24 @@ export const ProjectRow = ({
     // invalid HTML when the row also rendered an action <a> and a settings
     // dropdown button.
     const rowRole = selectionMode ? 'button' : 'link';
-    const rowAriaLabel = selectionMode ? `Select ${project.name}` : `Open ${project.name}`;
+    const rowAriaLabel = selectionMode
+        ? `Select ${project.name}`
+        : t('openProjectAria', { name: project.name });
+
+    const openingOverlay = isOpening && !selectionMode && (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.12 }}
+            className="bg-background/72 pointer-events-none absolute inset-0 z-30 flex items-center justify-center gap-2 rounded-lg backdrop-blur-sm"
+            aria-live="polite"
+        >
+            <Icons.LoadingSpinner className="text-foreground/70 h-4 w-4 animate-spin" />
+            <span className="text-foreground-secondary text-xs">
+                {t('opening', { name: project.name })}
+            </span>
+        </motion.div>
+    );
 
     if (variant === 'list') {
         return (
@@ -217,6 +244,9 @@ export const ProjectRow = ({
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                onMouseEnter={handleHoverPrefetch}
+                onFocus={handleHoverPrefetch}
+                className="relative"
             >
                 <div
                     role={rowRole}
@@ -247,6 +277,7 @@ export const ProjectRow = ({
                     </span>
                     {actions}
                 </div>
+                {openingOverlay}
             </motion.div>
         );
     }
@@ -257,6 +288,9 @@ export const ProjectRow = ({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            onMouseEnter={handleHoverPrefetch}
+            onFocus={handleHoverPrefetch}
+            className="relative"
         >
             <div
                 role={rowRole}
@@ -281,6 +315,7 @@ export const ProjectRow = ({
                     {actions}
                 </div>
             </div>
+            {openingOverlay}
         </motion.div>
     );
 };
