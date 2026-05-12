@@ -2064,3 +2064,80 @@ publish/billing flows. Files reviewed: ~20 critical-path modules.
   webhook is retried (timeouts, deploys mid-delivery, etc.).
   Severity: high — direct billing impact, hard to detect without
   manually inspecting rate_limits rows.
+
+---
+
+## Review batch — 2026-05-12 (`/caveman-review` on cmd+click / alt+drag work)
+
+Scope: 14 files changed in commit `7217a0b8` (Phase A/B/C power-user
+shortcuts — cmd/ctrl+click new-tab nav, project-card right-click menu,
+editor alt+drag duplicate). Two findings left as backlog entries; the
+high-impact bugs surfaced during the same review (anchor navigation
+swallowing inner-button clicks) were patched in the same commit.
+
+| ID | Status |
+|----|--------|
+| CR-147 | open — 🟡 `<button>` descendants of `<a>` in `SquareProjectCard` (validateDOMNesting) |
+| CR-148 | open — 🟡 alt+drag `style.updateMultiple` chain not awaited (race / order-sensitive) |
+
+### CR-147 — `<button>` descendants of `<a>` in `SquareProjectCard` (validateDOMNesting)
+
+- Area/Scope: `apps/web/client/src/app/projects/_components/select/square-project-card.tsx`
+  (Phase A power-user shortcuts work, commit `7217a0b8`)
+- Type: refactor / a11y hygiene
+- Impact: internal — React dev console warns, no runtime regression
+- Risk: low
+- Summary: The card body is wrapped in Next.js `<Link>` (an `<a>`) so that
+  cmd/ctrl+click opens the project in a new tab natively. The card still
+  renders `<EditAppButton>` and `<SettingsDropdown>` overlays inside the
+  anchor, both of which emit `<button>` elements. HTML disallows
+  interactive content inside an `<a>`, and React's
+  `validateDOMNesting` will log:
+  `Warning: <button> cannot appear as a descendant of <a>`. The bugs that
+  would actually fire (button click navigating the wrapping anchor)
+  were patched in the same commit (`e.preventDefault()` on EditAppButton
+  onClick + `onClickCapture` on the settings wrapper), so behavior is
+  correct — only the spec-conformance and dev-console-noise remain.
+- Suggested approach: either (a) lift the buttons out of the anchor by
+  rendering the card as a CSS-grid where the `<Link>` and the buttons
+  are siblings under a non-interactive parent (a `<Link>` overlay
+  positioned `absolute inset-0` + buttons positioned on top with
+  higher `z-index`), or (b) switch to the modifier-key + `onAuxClick`
+  pattern used by `ProjectRow` and drop the `<Link>` entirely. Option
+  (a) keeps native browser features (right-click → "Open in new tab",
+  hover URL preview); option (b) is simpler. Pick (a) unless we're
+  already churning the card markup.
+- Status: open
+
+### CR-148 — alt+drag `style.updateMultiple` chain not awaited (race / order-sensitive)
+
+- Area/Scope: `apps/web/client/src/components/store/editor/move/index.ts:223-235`
+  (Phase C power-user shortcuts work, commit `7217a0b8`)
+- Type: refactor
+- Impact: user-facing edge case — could misplace original or duplicate
+  if action-queue ordering shifts
+- Risk: medium
+- Summary: For absolute-positioned alt+drag, the implementation calls
+  `style.updateMultiple({ left: origLeft, top: origTop, transform: 'none' })`
+  on the original element, then immediately
+  `await editorEngine.copy.duplicate()`, then
+  `style.updateMultiple({ left, top, transform: 'none' })` on the
+  newly-selected duplicate. `style.updateMultiple` returns void (it
+  fires an action via `editorEngine.action.run` without exposing the
+  promise), so the first call is not awaited. The flow works today
+  because `copy.duplicate()` reads ActionElement from the iframe DOM
+  before the source-side action propagates back, but it's order-
+  sensitive: any change to action queueing (batching, transactional
+  bundling, debounced refresh, optimistic DOM mutation) could swap the
+  original and duplicate positions, leave the original at the
+  drag-end position, or leave the duplicate at the start position.
+- Suggested approach: either (a) thread an awaitable return through
+  `StyleManager.updateMultiple` so we can sequence the writes
+  explicitly; (b) introduce a `MoveManager.commitAltDuplicate(
+  startPos, endPos)` that constructs one composite action covering the
+  revert + duplicate insert + duplicate move; or (c) snapshot the
+  duplicate's domId returned from `CopyManager.duplicate()` and target
+  the two style writes against explicit element ids rather than
+  reading the live `selected[0]`. Option (b) is the cleanest because
+  it makes undo a single history entry, which Figma users expect.
+- Status: open
