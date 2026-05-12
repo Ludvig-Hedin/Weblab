@@ -132,6 +132,48 @@ function stripScripts(root: Element): void {
     }
 }
 
+const SENSITIVE_ATTR_RE = /^(auth|token|session|apikey|api-key|secret|password|credential)/i;
+
+function redactSensitiveContent(root: Element): void {
+    // Clear form field values — prevents passwords, tokens, or PII from leaking.
+    root.querySelectorAll('input, textarea, select').forEach((el) => {
+        if (el instanceof HTMLInputElement) {
+            el.removeAttribute('value');
+            el.value = '';
+            // Email/password inputs sometimes carry user data in placeholder
+            // (autocomplete hints) or title attributes — strip both.
+            if (el.type === 'email' || el.type === 'password') {
+                el.removeAttribute('placeholder');
+                el.removeAttribute('title');
+            }
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                el.checked = false;
+                el.removeAttribute('checked');
+            }
+        } else if (el instanceof HTMLTextAreaElement) {
+            el.textContent = '';
+        } else if (el instanceof HTMLSelectElement) {
+            // Clearing .value alone leaves `selected` attributes on <option>
+            // elements, which survive outerHTML serialization and leak the
+            // user's selection. Strip selection state from each option.
+            el.querySelectorAll('option').forEach((opt) => {
+                opt.selected = false;
+                opt.removeAttribute('selected');
+            });
+            el.selectedIndex = -1;
+        }
+    });
+    // Drop attributes whose names match sensitive patterns (including data-* variants).
+    root.querySelectorAll('*').forEach((el) => {
+        for (const attr of Array.from(el.attributes)) {
+            const name = attr.name.startsWith('data-') ? attr.name.slice(5) : attr.name;
+            if (SENSITIVE_ATTR_RE.test(name)) {
+                el.removeAttribute(attr.name);
+            }
+        }
+    });
+}
+
 export function serializeDocumentForOffline(): {
     html: string;
     baseUrl: string;
@@ -143,6 +185,7 @@ export function serializeDocumentForOffline(): {
     // structurally aligned during the lockstep walk.
     inlineComputedStylesLockstep(document.documentElement, cloned);
     stripScripts(cloned);
+    redactSensitiveContent(cloned);
 
     // Ensure relative URLs resolve against the live dev-server origin so
     // referenced images/links keep working when the network is back.

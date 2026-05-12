@@ -113,11 +113,21 @@ function updateTextContent(el: HTMLElement, content: string): void {
 
 function extractTextContent(el: HTMLElement): string {
     let content = el.innerHTML;
+    // Browsers' contenteditable can insert block elements (e.g. <div>) on
+    // Enter or paste — preserve their boundaries as newlines before stripping
+    // tags, otherwise multi-line edits collapse onto one line.
     content = content.replace(/<br\s*\/?>/gi, '\n');
+    content = content.replace(/<\/(div|p|h[1-6]|li|tr|blockquote|pre)>/gi, '\n');
     content = content.replace(/<[^>]*>/g, '');
     const textArea = document.createElement('textarea');
     textArea.innerHTML = content;
-    return textArea.value;
+    // Trim trailing newlines added by the block-close replacement above so
+    // `<p>Hello</p>` returns "Hello", not "Hello\n". Leading whitespace is
+    // similarly meaningless for edit-roundtrip and would create phantom
+    // diffs against the source.
+    return textArea.value
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/^\s+|\s+$/g, '');
 }
 
 export function isChildTextEditable(oid: string): boolean | null {
