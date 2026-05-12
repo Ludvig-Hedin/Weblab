@@ -56,7 +56,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             viewport={REVEAL.viewport}
             transition={REVEAL.transition}
             className={cn(
-                'grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-16',
+                'grid grid-cols-1 items-center gap-4 md:grid-cols-2',
                 reverse && 'md:[&>*:first-child]:order-2',
             )}
         >
@@ -64,7 +64,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             <div
                 className={cn(
                     'group/imgcard relative w-full overflow-hidden',
-                    'border-foreground-primary/10 bg-background-secondary/40 rounded-2xl border backdrop-blur-sm',
+                    'rounded-2xl backdrop-blur-sm',
                     'hover:border-foreground-primary/20 transition-colors duration-200',
                     'flex items-center justify-center',
                     'aspect-[5/4] p-5 md:aspect-[4/3] md:p-10',
@@ -83,13 +83,13 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                 <div className="relative flex w-full items-center justify-center">{visual}</div>
             </div>
             {/* Text side — flat, no card */}
-            <div className="flex flex-col gap-4">
+            <div className="flex w-full max-w-md flex-col items-center justify-center gap-4 justify-self-center text-center">
                 <div className="text-foreground-tertiary flex items-center gap-2">
                     {icon}
                     <span className="text-mini font-mono tracking-wider uppercase">{subtitle}</span>
                 </div>
                 <h3 className="heading-style-h4 text-foreground-primary tracking-tight">{title}</h3>
-                <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
+                <p className="text-foreground-secondary text-base leading-relaxed font-light tracking-tight text-balance">
                     {paragraph}
                 </p>
             </div>
@@ -286,7 +286,7 @@ function LayersVisual() {
                                 )}
                                 tagName={l.tag}
                             />
-                            <span className="flex-1 truncate font-light">{l.name}</span>
+                            <span className="flex-1 truncate text-left font-light">{l.name}</span>
                             <span className="text-foreground-quadranary ml-1 font-mono text-[9px] opacity-0 transition-opacity duration-200 group-hover/layer:opacity-100">
                                 {l.tag}
                             </span>
