@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import type { CmsCollection } from '@weblab/db';
@@ -52,8 +52,21 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
     const upsertMutation = api.cms.collectionPage.upsert.useMutation();
     const deleteMutation = api.cms.collectionPage.delete.useMutation();
 
+    // Pre-fill once per open, but only after the first data arrival —
+    // otherwise we'd lock in empty defaults before the queries resolve and
+    // permanently ignore the existing record. After init, a background
+    // refetch must not overwrite the user's in-progress edits.
+    const initializedRef = useRef(false);
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+            initializedRef.current = false;
+            return;
+        }
+        if (initializedRef.current) return;
+        // Wait for both queries to finish their first load. `data` is
+        // undefined until the first response (success or empty array).
+        if (pagesQuery.isLoading || fieldsQuery.isLoading) return;
+        initializedRef.current = true;
         if (existing) {
             setPagePath(existing.pagePath);
             setMatchFieldKey(existing.matchFieldKey);
@@ -66,7 +79,14 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
         const slugField =
             fields.find((f) => f.key === 'slug') ?? fields.find((f) => f.type === 'slug');
         setMatchFieldKey(slugField?.key ?? fields[0]?.key ?? '');
-    }, [open, existing, fieldsQuery.data, collection.slug]);
+    }, [
+        open,
+        existing,
+        fieldsQuery.data,
+        fieldsQuery.isLoading,
+        pagesQuery.isLoading,
+        collection.slug,
+    ]);
 
     const fields = fieldsQuery.data ?? [];
 

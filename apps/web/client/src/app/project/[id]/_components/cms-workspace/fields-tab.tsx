@@ -91,10 +91,10 @@ export const FieldsTab = observer(() => {
 
     const moveField = async (fieldId: string, direction: -1 | 1) => {
         if (!collectionId) return;
-        const current = (await utils.cms.field.listByCollection.fetch({
-            projectId: projectId ?? '',
-            collectionId,
-        })) as { id: string }[];
+        // Use the displayed list (cached query data), not a fresh fetch —
+        // a server-side concurrent reorder would cause the splice to operate
+        // on a different order than what the user just clicked.
+        const current = fieldsQuery.data ?? [];
         const idx = current.findIndex((f) => f.id === fieldId);
         const nextIdx = idx + direction;
         if (idx === -1 || nextIdx < 0 || nextIdx >= current.length) return;

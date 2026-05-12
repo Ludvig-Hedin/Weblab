@@ -29,7 +29,11 @@ const BLOCK_CATEGORIES: { value: ShadcnBlockCategory; label: string }[] = [
     { value: 'primitive', label: 'UI Primitives' },
 ];
 
-const BLOCK_CATALOG = [...SHADCN_BLOCKS, ...SHADCN_CORE_COMPONENTS];
+// Dedupe by `registryName` — if a primitive ships in both lists, the
+// groupedBlocks loop would produce duplicate React keys and stale DOM reuse.
+const BLOCK_CATALOG = [...SHADCN_BLOCKS, ...SHADCN_CORE_COMPONENTS].filter(
+    (block, idx, arr) => arr.findIndex((b) => b.registryName === block.registryName) === idx,
+);
 
 export const InsertTab = observer(() => {
     const editorEngine = useEditorEngine();
@@ -112,10 +116,17 @@ export const InsertTab = observer(() => {
         return groups;
     }, [filteredBlocks]);
 
-    // Drag-only insert: starting a drag clears any stale "click-to-place"
-    // pending state and ensures we're back in DESIGN mode so the gesture
-    // screen accepts the drop. The canvas-level drop handler routes drops
-    // landing outside any frame to the nearest frame.
+    // Two ways to insert from the panel:
+    //   1. Drag a card onto the canvas — handled by the canvas/frame drop
+    //      listeners which read `application/json` from the dataTransfer.
+    //   2. Click a card to "arm" it; the next click on a frame drops it. The
+    //      gesture screen reads `pendingInsertElement` / `pendingInsertBlock`
+    //      and places at the cursor. This is the click-to-add fallback.
+    // Drag start clears any armed click-to-place state so the two flows can't
+    // collide.
+    const pendingElement = editorEngine.state.pendingInsertElement;
+    const pendingBlock = editorEngine.state.pendingInsertBlock;
+
     const handlePresetDragStart = useCallback(
         (event: React.DragEvent<HTMLButtonElement>, properties: DropElementProperties) => {
             event.dataTransfer.setData('application/json', JSON.stringify(properties));
@@ -149,12 +160,67 @@ export const InsertTab = observer(() => {
         [editorEngine.state],
     );
 
+    const handlePresetClick = useCallback(
+        (preset: ElementPreset) => {
+            // Reference equality is exact here because `ELEMENT_PRESETS` is a
+            // module-scope const and we stash `preset.properties` (the same
+            // ref) into state on arm. Compares-by-fields would collide for
+            // two presets that happen to share `tagName + textContent`.
+            if (pendingElement === preset.properties) {
+                editorEngine.state.setPendingInsertElement(null);
+                return;
+            }
+            editorEngine.state.setPendingInsertBlock(null);
+            editorEngine.state.setPendingInsertComponent(null);
+            editorEngine.state.setInsertMode(null);
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            editorEngine.state.setPendingInsertElement(preset.properties);
+            toast(`Click anywhere on a frame to place ${preset.label}`, {
+                description: 'Press Esc to cancel.',
+                duration: 4000,
+            });
+        },
+        [editorEngine.state, pendingElement],
+    );
+
+    const handleBlockClick = useCallback(
+        (block: ShadcnBlockManifestItem) => {
+            if (pendingBlock?.registryName === block.registryName) {
+                editorEngine.state.setPendingInsertBlock(null);
+                return;
+            }
+            editorEngine.state.setPendingInsertElement(null);
+            editorEngine.state.setPendingInsertComponent(null);
+            editorEngine.state.setInsertMode(null);
+            editorEngine.state.setEditorMode(EditorMode.DESIGN);
+            editorEngine.state.setPendingInsertBlock(block);
+            toast(`Click anywhere on a frame to place ${block.label}`, {
+                description: 'Press Esc to cancel.',
+                duration: 4000,
+            });
+        },
+        [editorEngine.state, pendingBlock?.registryName],
+    );
+
     /** Click-handling for non-installed blocks: surface the install command. */
     const handleUninstalledBlockClick = useCallback((block: ShadcnBlockManifestItem) => {
         toast.error('Block is not installed', {
             description: `Run bunx --bun shadcn@latest add @shadcnblocks/${block.registryName}`,
         });
     }, []);
+
+    // Esc cancels an armed click-to-place.
+    useEffect(() => {
+        if (!pendingElement && !pendingBlock) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                editorEngine.state.setPendingInsertElement(null);
+                editorEngine.state.setPendingInsertBlock(null);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [editorEngine.state, pendingElement, pendingBlock]);
 
     useEffect(() => {
         setSearchQuery('');
@@ -241,13 +307,19 @@ export const InsertTab = observer(() => {
                                     </button>
                                     {!isCollapsed && (
                                         <div className="grid grid-cols-3 gap-1.5">
-                                            {presets.map((preset) => (
-                                                <PresetCard
-                                                    key={preset.key}
-                                                    preset={preset}
-                                                    onDragStart={handlePresetDragStart}
-                                                />
-                                            ))}
+                                            {presets.map((preset) => {
+                                                const isArmed =
+                                                    pendingElement === preset.properties;
+                                                return (
+                                                    <PresetCard
+                                                        key={preset.key}
+                                                        preset={preset}
+                                                        isArmed={isArmed}
+                                                        onDragStart={handlePresetDragStart}
+                                                        onClick={handlePresetClick}
+                                                    />
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -292,7 +364,12 @@ export const InsertTab = observer(() => {
                                                 <BlockCard
                                                     key={block.registryName}
                                                     block={block}
+                                                    isArmed={
+                                                        pendingBlock?.registryName ===
+                                                        block.registryName
+                                                    }
                                                     onDragStart={handleBlockDragStart}
+                                                    onClick={handleBlockClick}
                                                     onUninstalledClick={handleUninstalledBlockClick}
                                                 />
                                             ))}
@@ -315,16 +392,19 @@ export const InsertTab = observer(() => {
 
 interface PresetCardProps {
     preset: ElementPreset;
+    isArmed: boolean;
     onDragStart: (
         event: React.DragEvent<HTMLButtonElement>,
         properties: DropElementProperties,
     ) => void;
+    onClick: (preset: ElementPreset) => void;
 }
 
-// Drag-only card for an element preset. The previous click-to-place fallback
-// was removed because it was both confusing (the user had no signal what to do
-// next after clicking) and crash-prone in some frame states.
-const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
+// Card for an element preset. Two interaction paths:
+//   - drag onto canvas to drop at the cursor location
+//   - click to "arm" — next click on a frame places it at the cursor
+// `isArmed` lifts the card so users can see which preset will be placed.
+const PresetCard = ({ preset, isArmed, onDragStart, onClick }: PresetCardProps) => {
     const Icon = Icons[preset.icon] as React.ComponentType<{ className?: string }> | undefined;
     const disabled = Boolean(preset.comingSoon);
 
@@ -333,6 +413,7 @@ const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
             type="button"
             draggable={!disabled}
             aria-disabled={disabled}
+            aria-pressed={isArmed}
             onDragStart={(event) => {
                 if (disabled) {
                     event.preventDefault();
@@ -340,12 +421,16 @@ const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
                 }
                 onDragStart(event, preset.properties);
             }}
+            onClick={() => {
+                if (disabled) return;
+                onClick(preset);
+            }}
             disabled={disabled}
             className={cn(
-                // Subtle background lifts each item out of the panel; hover deepens
-                // it. cursor-grab/grabbing is the universal "drag me" affordance.
                 'group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-md border p-2 transition-colors',
-                disabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
+                disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+                isArmed &&
+                    'border-foreground-brand bg-foreground-brand/10 ring-foreground-brand/20 hover:bg-foreground-brand/15 ring-2 ring-offset-0',
             )}
         >
             {Icon ? (
@@ -373,7 +458,11 @@ const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
                     </span>
                 )}
                 <span className="text-muted-foreground mt-0.5 block text-[10px]">
-                    {disabled ? 'Coming soon' : 'Drag to canvas to insert'}
+                    {disabled
+                        ? 'Coming soon'
+                        : isArmed
+                          ? 'Armed — click on a frame to place. Esc to cancel.'
+                          : 'Drag onto a frame, or click then click on a frame'}
                 </span>
             </TooltipContent>
         </Tooltip>
@@ -382,17 +471,25 @@ const PresetCard = ({ preset, onDragStart }: PresetCardProps) => {
 
 interface BlockCardProps {
     block: ShadcnBlockManifestItem;
+    isArmed: boolean;
     onDragStart: (
         event: React.DragEvent<HTMLButtonElement>,
         block: ShadcnBlockManifestItem,
     ) => void;
+    onClick: (block: ShadcnBlockManifestItem) => void;
     onUninstalledClick: (block: ShadcnBlockManifestItem) => void;
 }
 
-// Block card with a category-aware preview thumbnail. Drag-only for installed
-// blocks; click on an uninstalled one surfaces the install command so the user
-// has a path forward instead of a silent no-op.
-const BlockCard = ({ block, onDragStart, onUninstalledClick }: BlockCardProps) => {
+// Block card with a category-aware preview thumbnail. Installed blocks support
+// both drag-onto-canvas and click-to-arm placement. Uninstalled blocks surface
+// the install command on click so the user has a path forward.
+const BlockCard = ({
+    block,
+    isArmed,
+    onDragStart,
+    onClick,
+    onUninstalledClick,
+}: BlockCardProps) => {
     const disabled = !block.installed;
 
     const card = (
@@ -400,6 +497,7 @@ const BlockCard = ({ block, onDragStart, onUninstalledClick }: BlockCardProps) =
             type="button"
             draggable={!disabled}
             aria-disabled={disabled}
+            aria-pressed={isArmed}
             onDragStart={(event) => {
                 if (disabled) {
                     event.preventDefault();
@@ -408,11 +506,17 @@ const BlockCard = ({ block, onDragStart, onUninstalledClick }: BlockCardProps) =
                 onDragStart(event, block);
             }}
             onClick={() => {
-                if (disabled) onUninstalledClick(block);
+                if (disabled) {
+                    onUninstalledClick(block);
+                    return;
+                }
+                onClick(block);
             }}
             className={cn(
                 'group bg-background-tab-strip/60 hover:bg-background-tab-active border-border/60 hover:border-border relative flex flex-col gap-2 overflow-hidden rounded-md border p-2 text-left transition-colors',
-                disabled ? 'cursor-help opacity-60' : 'cursor-grab active:cursor-grabbing',
+                disabled ? 'cursor-help opacity-60' : 'cursor-pointer',
+                isArmed &&
+                    'border-foreground-brand bg-foreground-brand/10 ring-foreground-brand/20 hover:bg-foreground-brand/15 ring-2 ring-offset-0',
             )}
         >
             <BlockPreview category={block.category} seed={block.registryName} />
@@ -439,7 +543,11 @@ const BlockCard = ({ block, onDragStart, onUninstalledClick }: BlockCardProps) =
                 <span className="block font-medium">{block.label}</span>
                 <span className="text-muted-foreground block text-[10px]">{block.description}</span>
                 <span className="text-muted-foreground mt-0.5 block text-[10px]">
-                    {disabled ? 'Click to see install command' : 'Drag to canvas to insert'}
+                    {disabled
+                        ? 'Click to see install command'
+                        : isArmed
+                          ? 'Armed — click on a frame to place. Esc to cancel.'
+                          : 'Drag onto a frame, or click then click on a frame'}
                 </span>
             </TooltipContent>
         </Tooltip>

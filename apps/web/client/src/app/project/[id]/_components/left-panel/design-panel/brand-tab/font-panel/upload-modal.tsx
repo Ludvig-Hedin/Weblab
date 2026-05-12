@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { toast } from 'sonner';
 
 import {
     AlertDialog,
@@ -13,6 +14,36 @@ import { extractFontParts } from '@weblab/utility';
 
 import type { FontFile } from './font-files';
 import FontFiles from './font-files';
+
+const MAX_FONT_FILE_BYTES = 5 * 1024 * 1024;
+
+const filterAndWarnOversized = (files: File[]): File[] => {
+    const accepted: File[] = [];
+    for (const file of files) {
+        if (file.size > MAX_FONT_FILE_BYTES) {
+            toast.error(`${file.name} is too large`, {
+                description: 'Font files must be 5 MB or smaller.',
+            });
+            continue;
+        }
+        accepted.push(file);
+    }
+    return accepted;
+};
+
+const readFontFile = async (file: File): Promise<FontFile> => {
+    const buffer = await file.arrayBuffer();
+    const parts = extractFontParts(file.name);
+    return {
+        name: parts.family,
+        file: {
+            name: file.name,
+            buffer: Array.from(new Uint8Array(buffer)),
+        },
+        weight: parts.weight,
+        style: parts.style,
+    };
+};
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -28,22 +59,11 @@ const UploadModal = observer(
 
         const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
             if (event.target.files) {
-                const newFiles = await Promise.all(
-                    Array.from(event.target.files).map(async (file) => {
-                        const buffer = await file.arrayBuffer();
-                        const parts = extractFontParts(file.name);
-                        return {
-                            name: parts.family,
-                            file: {
-                                name: file.name,
-                                buffer: Array.from(new Uint8Array(buffer)),
-                            },
-                            weight: parts.weight,
-                            style: parts.style,
-                        };
-                    }),
-                );
-                setFontFiles([...fontFiles, ...newFiles]);
+                const accepted = filterAndWarnOversized(Array.from(event.target.files));
+                const newFiles = await Promise.all(accepted.map(readFontFile));
+                if (newFiles.length > 0) {
+                    setFontFiles([...fontFiles, ...newFiles]);
+                }
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }
@@ -53,22 +73,11 @@ const UploadModal = observer(
         const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
             event.preventDefault();
             if (event.dataTransfer.files) {
-                const newFiles = await Promise.all(
-                    Array.from(event.dataTransfer.files).map(async (file) => {
-                        const buffer = await file.arrayBuffer();
-                        const parts = extractFontParts(file.name);
-                        return {
-                            name: parts.family,
-                            file: {
-                                name: file.name,
-                                buffer: Array.from(new Uint8Array(buffer)),
-                            },
-                            weight: parts.weight,
-                            style: parts.style,
-                        };
-                    }),
-                );
-                setFontFiles([...fontFiles, ...newFiles]);
+                const accepted = filterAndWarnOversized(Array.from(event.dataTransfer.files));
+                const newFiles = await Promise.all(accepted.map(readFontFile));
+                if (newFiles.length > 0) {
+                    setFontFiles([...fontFiles, ...newFiles]);
+                }
                 if (fileInputRef.current) {
                     fileInputRef.current.value = '';
                 }

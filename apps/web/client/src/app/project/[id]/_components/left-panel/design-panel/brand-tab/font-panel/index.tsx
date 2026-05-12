@@ -10,7 +10,6 @@ import { Input } from '@weblab/ui/input';
 
 import type { FontFile } from './font-files';
 import { useEditorEngine } from '@/components/store/editor';
-import { env } from '@/env';
 import { FontFamily } from './font-family';
 import UploadModal from './upload-modal';
 
@@ -300,30 +299,23 @@ const FontPanel = observer(() => {
                 </div>
             </div>
 
-            {/* Upload Button - Fixed at bottom. Gated behind a flag because
-                custom-font discovery from the project file system is still TODO
-                (see useEffect above) — exposing the button here promises a
-                feature that only partially works without that wiring. */}
-            {env.NEXT_PUBLIC_CUSTOM_FONTS_ENABLED && (
-                <div className="border-border mt-auto border-t p-4">
-                    <Button
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-11 w-full rounded-lg border"
-                        onClick={handleUploadFont}
-                    >
-                        Upload a custom font
-                    </Button>
-                </div>
-            )}
+            {/* Upload Button - Fixed at bottom */}
+            <div className="border-border mt-auto border-t p-4">
+                <Button
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-11 w-full rounded-lg border"
+                    onClick={handleUploadFont}
+                >
+                    Upload a custom font
+                </Button>
+            </div>
 
-            {env.NEXT_PUBLIC_CUSTOM_FONTS_ENABLED && (
-                <UploadModal
-                    isOpen={isUploadModalOpen}
-                    onOpenChange={setIsUploadModalOpen}
-                    onUpload={handleFontUpload}
-                    isUploading={fontManager.isUploading}
-                />
-            )}
+            <UploadModal
+                isOpen={isUploadModalOpen}
+                onOpenChange={setIsUploadModalOpen}
+                onUpload={handleFontUpload}
+                isUploading={fontManager.isUploading}
+            />
         </div>
     );
 });

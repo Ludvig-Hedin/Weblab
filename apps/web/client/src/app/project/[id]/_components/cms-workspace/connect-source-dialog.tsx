@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 
 import { CmsSourceType } from '@weblab/models';
@@ -49,6 +49,9 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     const [testStatus, setTestStatus] = useState<
         { ok: true } | { ok: false; reason: string } | null
     >(null);
+    // Monotonic id used to invalidate in-flight test results when the user
+    // edits creds or switches tabs while a test is pending.
+    const testReqRef = useRef(0);
 
     const utils = api.useUtils();
     const testMutation = api.cms.source.testConnection.useMutation();
@@ -60,15 +63,40 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
         setCreds(DEFAULT_CREDS);
         setTestStatus(null);
     };
+    const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const close = () => {
         onOpenChange(false);
         // Defer reset until the dialog has animated closed.
-        setTimeout(reset, 200);
+        resetTimerRef.current = setTimeout(() => {
+            reset();
+            resetTimerRef.current = null;
+        }, 200);
+    };
+    // Cancel a pending reset if the user reopens the dialog before the
+    // animation finishes — otherwise the timer would wipe their freshly
+    // typed input.
+    useEffect(() => {
+        if (open && resetTimerRef.current !== null) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+        return () => {
+            if (resetTimerRef.current !== null) {
+                clearTimeout(resetTimerRef.current);
+                resetTimerRef.current = null;
+            }
+        };
+    }, [open]);
+
+    const invalidatePendingTest = () => {
+        testReqRef.current += 1;
+        setTestStatus(null);
     };
 
     const updateCred = (key: string, value: string) => {
-        // Reset test status — stale "ok" must not let bad creds pass Save.
-        setTestStatus(null);
+        // Invalidate any in-flight test — stale "ok" must not let bad creds
+        // pass Save (also covers tab-switch via the same ref).
+        invalidatePendingTest();
         setCreds((prev) => ({
             ...prev,
             [type]: { ...prev[type], [key]: value },
@@ -76,6 +104,7 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     };
 
     const handleTest = async () => {
+        const reqId = ++testReqRef.current;
         setTestStatus(null);
         try {
             const result = await testMutation.mutateAsync({
@@ -83,9 +112,11 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
                 type,
                 credentials: stripBlank(creds[type]),
             });
+            if (reqId !== testReqRef.current) return; // stale — user edited creds mid-test
             setTestStatus(result);
             if (!result.ok) toast.error(result.reason);
         } catch (err) {
+            if (reqId !== testReqRef.current) return;
             const reason = err instanceof Error ? err.message : 'Unknown error';
             setTestStatus({ ok: false, reason });
             toast.error(reason);
@@ -134,7 +165,7 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
                         value={type}
                         onValueChange={(v) => {
                             setType(v as ExternalSourceType);
-                            setTestStatus(null);
+                            invalidatePendingTest();
                         }}
                     >
                         <TabsList>

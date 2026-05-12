@@ -26,6 +26,12 @@ export const CmsWorkspace = observer(() => {
     const tab = editorEngine.state.cmsTab;
     const t = useTranslations();
 
+    // Pill-style tab styling lifted from the editor right-panel tabs (Style /
+    // Chat / Comments). Matches the rounded pill, soft strip background, equal
+    // border radius on every corner, and 14px-tall dividers between tabs.
+    const tabTriggerClass =
+        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5';
+
     return (
         <div
             className={cn(
@@ -33,19 +39,24 @@ export const CmsWorkspace = observer(() => {
                 'border-border border-t',
             )}
         >
-            <div className="border-border flex h-12 items-center justify-between border-b px-4">
+            <div className="border-border flex h-14 items-center justify-between border-b px-4">
                 <Tabs
                     value={tab}
                     onValueChange={(v) => editorEngine.state.setCmsTab(v as CmsTabValue)}
                 >
-                    <TabsList>
-                        <TabsTrigger value={CmsTabValue.COLLECTIONS}>
+                    <TabsList className="bg-background-tab-strip/70 h-9 gap-0 rounded-md p-0.5">
+                        <TabsTrigger value={CmsTabValue.COLLECTIONS} className={tabTriggerClass}>
+                            <Icons.ListBullet className="h-3.5 w-3.5" />
                             {t(transKeys.cms.workspace.tabs.collections)}
                         </TabsTrigger>
-                        <TabsTrigger value={CmsTabValue.FIELDS}>
+                        <div className="bg-border-tab-divider h-3.5 w-px self-center" />
+                        <TabsTrigger value={CmsTabValue.FIELDS} className={tabTriggerClass}>
+                            <Icons.Tokens className="h-3.5 w-3.5" />
                             {t(transKeys.cms.workspace.tabs.fields)}
                         </TabsTrigger>
-                        <TabsTrigger value={CmsTabValue.SOURCES}>
+                        <div className="bg-border-tab-divider h-3.5 w-px self-center" />
+                        <TabsTrigger value={CmsTabValue.SOURCES} className={tabTriggerClass}>
+                            <Icons.Layers className="h-3.5 w-3.5" />
                             {t(transKeys.cms.workspace.tabs.sources)}
                         </TabsTrigger>
                     </TabsList>

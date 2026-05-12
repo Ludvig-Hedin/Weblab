@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -135,9 +135,22 @@ export const BindDialog = observer(() => {
     // Detect the element's role on dialog open. Async because the iframe
     // call is over Penpal.
     useEffect(() => {
-        if (!open || !oid) return;
+        // Reset to 'unknown' on close/no-target so a previously-detected
+        // mode (list/list-descendant/item) cannot leak into the next open
+        // before async detection completes — otherwise Save could persist
+        // the wrong binding shape against a fresh element.
+        if (!open || !oid) {
+            setMode('unknown');
+            setParentListOid(null);
+            return;
+        }
+        setMode('unknown');
         const selected = editorEngine.elements.selected[0];
-        if (!selected) return;
+        if (!selected) {
+            setMode('item');
+            setParentListOid(null);
+            return;
+        }
         const view = editorEngine.frames.get(selected.frameId)?.view;
         if (!view) {
             setMode('item');
@@ -178,8 +191,19 @@ export const BindDialog = observer(() => {
 
     // Pre-fill from existing binding when opening on an already-bound oid.
     // Mode is set by the DOM detection above; this only fills form fields.
+    // Lock after first fill so a background refetch (window focus,
+    // mutation invalidation) doesn't overwrite the user's in-progress edits.
+    const preFillRef = useRef(false);
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+            preFillRef.current = false;
+            return;
+        }
+        if (preFillRef.current) return;
+        // Wait for both queries to finish their first load so PAGE_ITEM_FIELD
+        // bindings can resolve their collection from pagesQuery.data.
+        if (bindingsQuery.isLoading || pagesQuery.isLoading) return;
+        preFillRef.current = true;
         if (!existingBinding) {
             setItemCollectionId('');
             setItemFieldKey('');
@@ -219,7 +243,20 @@ export const BindDialog = observer(() => {
         } else if (b.kind === CmsBindingKind.CURRENT_FIELD) {
             setCurrentFieldKey(b.fieldKey);
         }
-    }, [open, existingBinding]);
+    }, [open, existingBinding, pagesQuery.data, bindingsQuery.isLoading, pagesQuery.isLoading]);
+
+    // When the user picks a collection without a registered detail page,
+    // the PAGE_ITEM_FIELD radio gets disabled but the kind state can stay on
+    // it. Reset to ITEM_FIELD so handleSave doesn't persist an unreachable
+    // binding for the new collection.
+    useEffect(() => {
+        if (itemBindKind !== CmsBindingKind.PAGE_ITEM_FIELD) return;
+        if (!itemCollectionId) return;
+        const mappedIds = (pagesQuery.data ?? []).map((p) => p.collectionId);
+        if (!mappedIds.includes(itemCollectionId)) {
+            setItemBindKind(CmsBindingKind.ITEM_FIELD);
+        }
+    }, [itemBindKind, itemCollectionId, pagesQuery.data]);
 
     const close = () => editorEngine.state.closeCmsBindDialog();
 
@@ -233,7 +270,7 @@ export const BindDialog = observer(() => {
                 }
                 const trimmedLimit = repeatLimit.trim();
                 const limit = trimmedLimit === '' ? undefined : Number(trimmedLimit);
-                if (limit !== undefined && (!Number.isFinite(limit) || limit < 1)) {
+                if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
                     toast.error(t(transKeys.cms.bind.repeat.invalidLimit));
                     return;
                 }
@@ -426,7 +463,10 @@ export const BindDialog = observer(() => {
                         <Button variant="ghost" onClick={close}>
                             {t(transKeys.cms.bind.cancel)}
                         </Button>
-                        <Button onClick={handleSave} disabled={upsertMutation.isPending}>
+                        <Button
+                            onClick={handleSave}
+                            disabled={upsertMutation.isPending || mode === 'unknown'}
+                        >
                             {existingBinding
                                 ? t(transKeys.cms.bind.update)
                                 : t(transKeys.cms.bind.bind)}

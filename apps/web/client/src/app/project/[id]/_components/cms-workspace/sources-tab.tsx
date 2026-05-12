@@ -229,7 +229,10 @@ export const SourcesTab = observer(() => {
                                                 variant="ghost"
                                                 className="text-red"
                                                 onClick={() => void handleDelete(s.id)}
-                                                disabled={deleteMutation.isPending}
+                                                disabled={
+                                                    deleteMutation.isPending ||
+                                                    syncingId === s.id
+                                                }
                                             >
                                                 <Icons.Trash className="h-3.5 w-3.5" />
                                             </Button>

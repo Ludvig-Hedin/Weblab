@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
+import type { LayerNode } from '@weblab/models';
 import { EditorMode } from '@weblab/models';
 import {
     CommandDialog,
@@ -22,6 +23,8 @@ import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
+
+const MAX_ELEMENT_RESULTS = 150;
 
 export const CommandPalette = observer(() => {
     const t = useTranslations('editor.commandPalette');
@@ -49,6 +52,49 @@ export const CommandPalette = observer(() => {
         setTimeout(action, 0);
     };
 
+    // Flatten every layer in the currently-visible frames into a searchable
+    // list. cmdk fuzzy-matches against each item's `value` string, so we
+    // include tag, text content, and component name in that string. Selecting
+    // an item resolves it to a DomElement via the iframe view and clicks.
+    const elementResults = useMemo(() => {
+        if (!open) return [] as { layer: LayerNode; tag: string; preview: string }[];
+        const layersManager = editorEngine.ast.mappings;
+        const roots = layersManager.filteredLayers;
+        const out: { layer: LayerNode; tag: string; preview: string }[] = [];
+        for (const root of roots) {
+            const mapping = layersManager.getMapping(root.frameId);
+            if (!mapping) continue;
+            const walk = (node: LayerNode) => {
+                if (out.length >= MAX_ELEMENT_RESULTS) return;
+                if (node.isVisible) {
+                    const tag = (node.component ?? node.tagName ?? '').toString().toLowerCase();
+                    const preview = (node.textContent ?? '').trim().slice(0, 60);
+                    out.push({ layer: node, tag, preview });
+                }
+                for (const childId of node.children ?? []) {
+                    if (out.length >= MAX_ELEMENT_RESULTS) return;
+                    const child = mapping.get(childId);
+                    if (child) walk(child);
+                }
+            };
+            walk(root);
+        }
+        return out;
+    }, [open, editorEngine.ast.mappings.frameIdToLayerMetadata]);
+
+    const selectElement = async (layer: LayerNode) => {
+        close();
+        const frameData = editorEngine.frames.get(layer.frameId);
+        if (!frameData?.view) return;
+        try {
+            const el = await frameData.view.getElementByDomId(layer.domId, true);
+            if (!el) return;
+            editorEngine.elements.click([el]);
+        } catch (error) {
+            console.error('Failed to select element from command palette', error);
+        }
+    };
+
     return (
         <CommandDialog
             open={open}
@@ -59,6 +105,29 @@ export const CommandPalette = observer(() => {
             <CommandInput placeholder={t('placeholder')} autoFocus />
             <CommandList>
                 <CommandEmpty>{t('noResults')}</CommandEmpty>
+
+                {elementResults.length > 0 && (
+                    <CommandGroup heading="Elements">
+                        {elementResults.map(({ layer, tag, preview }) => (
+                            <CommandItem
+                                key={`${layer.frameId}:${layer.domId}`}
+                                value={`element ${tag} ${preview} ${layer.htmlId ?? ''} ${layer.component ?? ''}`}
+                                onSelect={() => void selectElement(layer)}
+                            >
+                                <Icons.Cube />
+                                <span className="text-muted-foreground text-xs">{tag}</span>
+                                {preview && (
+                                    <span className="text-foreground truncate">{preview}</span>
+                                )}
+                                {layer.component && (
+                                    <span className="text-muted-foreground ml-auto text-xs">
+                                        {layer.component}
+                                    </span>
+                                )}
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
+                )}
 
                 {switchableProjects && switchableProjects.length > 1 && (
                     <CommandGroup heading={t('headingSwitch')}>

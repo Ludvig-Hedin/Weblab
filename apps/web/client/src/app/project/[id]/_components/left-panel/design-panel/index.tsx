@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -14,16 +15,24 @@ import { cn } from '@weblab/ui/utils';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { BranchesTab } from './branches-tab';
-import { BrandTab } from './brand-tab';
-import { ComponentsTab } from './components-tab';
 import { HelpButton } from './help-button';
-import { ImagesTab } from './image-tab';
-import { InsertTab } from './insert-tab';
-import { LayersTab } from './layers-tab';
-import { PagesTab } from './page-tab';
-import { SearchTab } from './search-tab';
 import { ZoomControls } from './zoom-controls';
+
+// Tab contents are gated by `selectedTab === X` below, so only one renders at
+// a time. Lazy-loading keeps the eight tab modules out of the initial editor
+// chunk — users rarely open all of them in a session.
+const InsertTab = dynamic(() => import('./insert-tab').then((m) => m.InsertTab), { ssr: false });
+const ComponentsTab = dynamic(() => import('./components-tab').then((m) => m.ComponentsTab), {
+    ssr: false,
+});
+const LayersTab = dynamic(() => import('./layers-tab').then((m) => m.LayersTab), { ssr: false });
+const SearchTab = dynamic(() => import('./search-tab').then((m) => m.SearchTab), { ssr: false });
+const BrandTab = dynamic(() => import('./brand-tab').then((m) => m.BrandTab), { ssr: false });
+const PagesTab = dynamic(() => import('./page-tab').then((m) => m.PagesTab), { ssr: false });
+const ImagesTab = dynamic(() => import('./image-tab').then((m) => m.ImagesTab), { ssr: false });
+const BranchesTab = dynamic(() => import('./branches-tab').then((m) => m.BranchesTab), {
+    ssr: false,
+});
 
 const PANEL_DEFAULT_WIDTH = 272;
 const PANEL_MIN_WIDTH = 240;
