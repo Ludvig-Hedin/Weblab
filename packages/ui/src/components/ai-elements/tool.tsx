@@ -14,7 +14,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
     <Collapsible
-        className={cn('text-foreground-tertiary/80 my-2 flex flex-col p-0', className)}
+        className={cn('text-foreground-tertiary/80 my-1 flex flex-col p-0', className)}
         {...props}
         data-oid="840dd1de45"
     />
@@ -78,7 +78,7 @@ export const ToolHeader = ({
             )}
             <span
                 className={cn(
-                    'text-regularPlus hover:text-foreground-tertiary truncate',
+                    'text-small hover:text-foreground-tertiary truncate',
                     loading &&
                         'animate-shimmer bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter',
                 )}
@@ -110,17 +110,7 @@ export type ToolInputProps = ComponentProps<'div'> & {
 };
 
 const ToolInputComponent = ({ className, input, isStreaming, ...props }: ToolInputProps) => (
-    <div
-        className={cn('space-y-2 overflow-hidden p-1', className)}
-        {...props}
-        data-oid="6323cc8a64"
-    >
-        <h4
-            className="text-muted-foreground text-xs font-medium tracking-wide capitalize"
-            data-oid="2758716d14"
-        >
-            Parameters
-        </h4>
+    <div className={cn('overflow-hidden p-1', className)} {...props} data-oid="6323cc8a64">
         <CodeBlock
             className="m-0 p-0"
             code={JSON.stringify(input, null, 2)}
@@ -173,13 +163,7 @@ const ToolOutputComponent = ({
     }
 
     return (
-        <div className={cn('space-y-2 p-1', className)} {...props} data-oid="dc98148a78">
-            <h4
-                className="text-muted-foreground text-xs font-medium tracking-wide capitalize"
-                data-oid="3e3de2b95f"
-            >
-                {errorText ? 'Error' : 'Result'}
-            </h4>
+        <div className={cn('p-1', className)} {...props} data-oid="dc98148a78">
             <div
                 className={cn(
                     'overflow-x-auto rounded-md text-xs [&_table]:w-full',

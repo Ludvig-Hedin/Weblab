@@ -271,8 +271,8 @@
     --foreground-weblab: #333333; /* #333333 */
     --foreground-brand: #0f9bff; /* #0f9bff blue[400] */
     --foreground-primary: #1a1a1a; /* #1a1a1a */
-    --foreground-secondary: #333333; /* #333333 */
-    --foreground-tertiary: #545454; /* #545454 */
+    --foreground-secondary: rgba(10, 18, 23, 0.6); /* #333333 */
+    --foreground-tertiary: rgba(10, 18, 23, 0.5); /* #545454 */
     --foreground-quadranary: #787878; /* #787878 */
     --foreground-positive: #0062b8; /* #0062b8 blue[600] */
     --foreground-success: #0062b8; /* #0062b8 — semantic alias for "added/ok" */
@@ -548,8 +548,8 @@
     --foreground-weblab: #ababab; /* #ababab gray[200] */
     --foreground-brand: #0f9bff; /* #0f9bff blue[400] */
     --foreground-primary: #ffffff; /* #ffffff gray[50] */
-    --foreground-secondary: #ababab; /* #ababab gray[200] */
-    --foreground-tertiary: #919191; /* #919191 gray[300] */
+    --foreground-secondary: rgba(232, 232, 232, 0.6); /* #ababab gray[200] */
+    --foreground-tertiary: rgba(232, 232, 232, 0.4); /* #919191 gray[300] */
     --foreground-quadranary: #616161; /* #616161 gray[500] */
     --foreground-positive: #8fd4ff; /* #8fd4ff blue[200] */
     --foreground-success: #007fe0; /* #007fe0 blue[500] — semantic alias for "added/ok" */

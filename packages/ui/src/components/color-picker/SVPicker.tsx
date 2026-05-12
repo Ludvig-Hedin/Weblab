@@ -38,12 +38,17 @@ function hueToRgba(hueDeg: number): string {
     const s = h / 60;
     const x = Math.round(255 * (1 - Math.abs((s % 2) - 1)));
     const [r, g, b] =
-        s < 1 ? [255, x, 0] :
-        s < 2 ? [x, 255, 0] :
-        s < 3 ? [0, 255, x] :
-        s < 4 ? [0, x, 255] :
-        s < 5 ? [x, 0, 255] :
-                [255, 0, x];
+        s < 1
+            ? [255, x, 0]
+            : s < 2
+              ? [x, 255, 0]
+              : s < 3
+                ? [0, 255, x]
+                : s < 4
+                  ? [0, x, 255]
+                  : s < 5
+                    ? [x, 0, 255]
+                    : [255, 0, x];
     return `rgba(${r},${g},${b},1)`;
 }
 

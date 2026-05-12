@@ -16,7 +16,7 @@ interface ShineBorderProps {
 
 /**
  * @name Shine Border
- * @description It is an animated background border effect component with easy to use and configurable props.
+ * @description Animated background border effect component.
  * @param borderRadius defines the radius of the border.
  * @param borderWidth defines the width of the border.
  * @param duration defines the animation duration to be applied on the shining border
@@ -28,7 +28,7 @@ export function ShineBorder({
     borderRadius = 8,
     borderWidth = 1,
     duration = 14,
-    color = '#000000',
+    color = 'rgba(255,255,255,0.6)',
     className,
     children,
     autoShine = false,
@@ -37,7 +37,6 @@ export function ShineBorder({
 
     useEffect(() => {
         if (autoShine) {
-            // Small delay before starting the shine effect
             const timer = setTimeout(() => {
                 setIsShining(true);
             }, 100);
@@ -54,7 +53,7 @@ export function ShineBorder({
                 } as React.CSSProperties
             }
             className={cn(
-                'min-h-[60px] w-fit min-w-[300px] place-items-center rounded-(--border-radius) bg-white p-3 text-black dark:bg-black dark:text-white',
+                'relative min-h-[60px] w-fit min-w-[300px] place-items-center rounded-(--border-radius)',
                 className,
             )}
             data-oid="113dc3afbc"
@@ -70,11 +69,12 @@ export function ShineBorder({
                     } as React.CSSProperties
                 }
                 className={cn(
+                    'pointer-events-none absolute inset-0 rounded-(--border-radius)',
                     `before:bg-shine-size motion-safe:before:animate-shine before:absolute before:inset-0 before:aspect-square before:size-full before:rounded-(--border-radius) before:[background-image:var(--background-radial-gradient)] before:[background-size:300%_300%] before:[mask-composite:exclude]! before:p-(--border-width) before:opacity-0 before:transition-opacity before:duration-1000 before:will-change-[background-position] before:content-[""] before:[-webkit-mask-composite:xor]! before:[mask:var(--mask-linear-gradient)]`,
                     isShining && 'before:opacity-100',
                 )}
                 data-oid="a32d3ad2c2"
-            ></div>
+            />
             {children}
         </div>
     );
