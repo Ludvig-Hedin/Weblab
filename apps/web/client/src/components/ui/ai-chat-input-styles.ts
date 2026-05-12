@@ -1,5 +1,5 @@
 export const AI_CHAT_INPUT_SURFACE_CLASS =
-    'bg-[#1F1F1F] border-white/5 flex w-full cursor-text flex-col rounded-xl border transition-colors duration-200';
+    'bg-background-secondary border-foreground-primary/5 flex w-full cursor-text flex-col rounded-xl border transition-colors duration-200';
 
 export const AI_CHAT_INPUT_DRAG_CLASS =
     '[&[data-weblab-dragging-image=true]]:bg-foreground-brand/30';

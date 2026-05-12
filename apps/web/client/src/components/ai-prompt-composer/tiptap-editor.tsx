@@ -114,7 +114,13 @@ export function TipTapEditor({
                         view.state.doc.content.size,
                         '\n',
                     );
-                    if (current.length >= maxLength) {
+                    const { from, to } = view.state.selection;
+                    const selectedLength =
+                        from !== to
+                            ? view.state.doc.textBetween(from, to, '\n').length
+                            : 0;
+                    const effectiveLength = current.length - selectedLength;
+                    if (effectiveLength >= maxLength) {
                         event.preventDefault();
                         return true;
                     }
@@ -144,7 +150,10 @@ export function TipTapEditor({
                     view.state.doc.content.size,
                     '\n',
                 );
-                const remaining = maxLength - current.length;
+                const { from, to } = view.state.selection;
+                const selectedLength =
+                    from !== to ? view.state.doc.textBetween(from, to, '\n').length : 0;
+                const remaining = maxLength - (current.length - selectedLength);
                 if (remaining <= 0) {
                     event.preventDefault();
                     return true;

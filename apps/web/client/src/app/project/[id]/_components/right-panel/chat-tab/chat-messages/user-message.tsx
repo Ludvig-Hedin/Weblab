@@ -318,7 +318,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                         </div>
                     </div>
                 )}
-                <div className="bg-background-primary relative flex flex-col rounded-xl px-3 py-2 shadow-sm">
+                <div className="bg-background-muted relative flex flex-col rounded-xl px-3 py-2">
                     <div className="text-small leading-snug tracking-[-0.005em]">
                         {isEditing ? (
                             renderEditingInput()
@@ -341,7 +341,9 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                             <TooltipTrigger asChild>
                                 <button
                                     onClick={requestRestoreLegacy}
-                                    aria-label={t(transKeys.editor.panels.edit.tabs.chat.restore.ariaLabel)}
+                                    aria-label={t(
+                                        transKeys.editor.panels.edit.tabs.chat.restore.ariaLabel,
+                                    )}
                                     className={cn(
                                         'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
                                         isRestoring ? 'opacity-100' : 'opacity-0',
@@ -365,10 +367,15 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                 <DropdownMenu>
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
-                                            <button
-                                                aria-label={t(transKeys.editor.panels.edit.tabs.chat.restore.ariaLabel)}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={t(
+                                                    transKeys.editor.panels.edit.tabs.chat.restore
+                                                        .ariaLabel,
+                                                )}
                                                 className={cn(
-                                                    'text-mini rounded-md p-2 opacity-0 group-hover:opacity-100 hover:opacity-80',
+                                                    'text-mini h-8 w-8 rounded-md opacity-0 group-hover:opacity-100 hover:opacity-80',
                                                     isRestoring ? 'opacity-100' : 'opacity-0',
                                                 )}
                                                 disabled={isRestoring}
@@ -378,7 +385,7 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
                                                 ) : (
                                                     <Icons.Reset className="h-4 w-4" />
                                                 )}
-                                            </button>
+                                            </Button>
                                         </DropdownMenuTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent side="top" sideOffset={5}>

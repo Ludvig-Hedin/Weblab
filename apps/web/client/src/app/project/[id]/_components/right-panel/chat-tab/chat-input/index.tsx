@@ -130,6 +130,13 @@ export const ChatInput = observer(
                 onSuccess: (nextSuggestions) => {
                     setSuggestions(nextSuggestions);
                 },
+                onError: () => {
+                    // Clear the dedupe signature so the next identical-state
+                    // tick is allowed to retry. Without this, a single
+                    // transient network blip permanently silences
+                    // suggestions for the rest of the conversation.
+                    lastSuggestionSignatureRef.current = null;
+                },
             });
 
         const focusInput = () => {

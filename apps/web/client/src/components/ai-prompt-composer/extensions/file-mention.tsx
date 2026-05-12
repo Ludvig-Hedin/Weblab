@@ -11,7 +11,7 @@ import { MentionList } from '../mention-list';
 export function buildFileMentionExtension(config: MentionConfig) {
     return Mention.configure({
         HTMLAttributes: {
-            class: 'bg-blue-500/10 text-blue-400 rounded px-1 py-0.5 text-sm font-medium cursor-default select-none',
+            class: 'bg-accent text-accent-foreground rounded px-1 py-0.5 text-sm font-medium cursor-default select-none',
         },
         renderText({ node }) {
             return `@${node.attrs.id ?? node.attrs.label ?? ''}`;

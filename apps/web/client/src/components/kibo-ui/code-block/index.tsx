@@ -85,15 +85,9 @@ import {
 } from 'react-icons/si';
 import { codeToHtml } from 'shiki';
 
-import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { Button } from '@weblab/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
+import { cn } from '@weblab/ui/utils';
 
 export type { BundledLanguage } from 'shiki';
 

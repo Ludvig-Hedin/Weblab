@@ -10,6 +10,7 @@ import {
     getProviderManifest,
 } from '@weblab/ai/client';
 
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 
 type StatusMap = Record<ProviderKind, ProviderStatus>;
@@ -57,10 +58,17 @@ export function useProviderStatuses({
     // Bumped to force the desktop probe useEffect to re-run; tRPC handles its
     // own refetch via the returned `refetch` function.
     const [probeNonce, setProbeNonce] = useState(0);
+    const hasAuthCookie = useHasAuthCookie();
     const { data: webConnections, refetch: refetchWebConnections } =
         api.provider.connectionsList.useQuery(undefined, {
-            // Only fire on hosted web — desktop uses the IPC bridge instead.
-            enabled: typeof window !== 'undefined' && !window.weblabNative?.cli,
+            // Only fire on hosted web for signed-in users — desktop uses the
+            // IPC bridge instead, and anonymous visitors have no providers to
+            // list. This composer is reachable from the public landing page,
+            // so skipping the call avoids a 401 round-trip there.
+            enabled:
+                typeof window !== 'undefined' &&
+                !window.weblabNative?.cli &&
+                hasAuthCookie === true,
             staleTime: 30_000,
         });
 

@@ -56,6 +56,42 @@ export function saveQueue(conversationId: string, queue: QueuedMessage[]): void 
     }
 }
 
+// ---------------------------------------------------------------------------
+// In-flight stream persistence
+// When the page unloads mid-stream, we save a flag so the next mount knows
+// to auto-regenerate the last assistant turn instead of waiting silently.
+// ---------------------------------------------------------------------------
+
+const inflightKey = (conversationId: string) =>
+    `weblab:chat:inflight:${QUEUE_VERSION}:${conversationId}`;
+
+export function markStreamInFlight(conversationId: string): void {
+    if (!isBrowser() || !conversationId) return;
+    try {
+        window.localStorage.setItem(inflightKey(conversationId), '1');
+    } catch {
+        // Quota exceeded / private mode — silently no-op.
+    }
+}
+
+export function clearStreamInFlight(conversationId: string): void {
+    if (!isBrowser() || !conversationId) return;
+    try {
+        window.localStorage.removeItem(inflightKey(conversationId));
+    } catch {
+        // Ignore.
+    }
+}
+
+export function wasStreamInFlight(conversationId: string): boolean {
+    if (!isBrowser() || !conversationId) return false;
+    try {
+        return window.localStorage.getItem(inflightKey(conversationId)) === '1';
+    } catch {
+        return false;
+    }
+}
+
 export function clearQueue(conversationId: string): void {
     if (!isBrowser() || !conversationId) return;
     try {
