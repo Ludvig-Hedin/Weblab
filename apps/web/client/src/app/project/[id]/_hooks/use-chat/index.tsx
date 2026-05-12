@@ -23,7 +23,13 @@ import { handleToolCall } from '@/components/tools';
 import { api } from '@/trpc/client';
 import { WeblabCliTransport } from './cli-transport';
 import { OllamaWebTransport } from './ollama-web-transport';
-import { loadQueue, saveQueue } from './queue-storage';
+import {
+    clearStreamInFlight,
+    loadQueue,
+    markStreamInFlight,
+    saveQueue,
+    wasStreamInFlight,
+} from './queue-storage';
 import { RoutingChatTransport } from './routing-transport';
 import { createCheckpointsForAllBranches, getUserChatMessageFromString } from './utils';
 
@@ -187,6 +193,16 @@ export function useChat({
     useEffect(() => {
         editorEngine.chat.setIsStreaming(isStreaming);
     }, [editorEngine.chat, isStreaming]);
+
+    // Persist in-flight flag so a page reload can detect an interrupted stream
+    // and auto-regenerate instead of silently leaving an incomplete response.
+    useEffect(() => {
+        if (status === 'streaming' || status === 'submitted') {
+            markStreamInFlight(conversationId);
+        } else {
+            clearStreamInFlight(conversationId);
+        }
+    }, [status, conversationId]);
 
     // Store messages in a ref to avoid re-rendering sendMessage/editMessage
     const messagesRef = useRef(messages);
@@ -439,6 +455,26 @@ export function useChat({
         });
     }, [isStreaming, posthog, regenerate, conversationId, model, ollamaBaseUrl, reasoningEffort]);
 
+    // Auto-regenerate on mount if the stream was interrupted by a page reload.
+    // Runs once after the first render; the flag is already cleared by the
+    // status effect above once the new stream settles. Guards:
+    //   - messages must be hydrated (length > 0) so regen targets a real turn,
+    //   - status must be settled (status === 'ready') so we don't stomp on an
+    //     in-flight stream that some other init path already kicked off.
+    const autoRegenAttemptedRef = useRef(false);
+    useEffect(() => {
+        if (autoRegenAttemptedRef.current) return;
+        if (!wasStreamInFlight(conversationId)) return;
+        if (messages.length === 0) return;
+        if (status !== 'ready') return;
+        autoRegenAttemptedRef.current = true;
+        clearStreamInFlight(conversationId);
+        const t = setTimeout(() => {
+            void regenerateLastAssistant();
+        }, 800);
+        return () => clearTimeout(t);
+    }, [conversationId, messages.length, status, regenerateLastAssistant]);
+
     // Listen for the global "retry stalled tool" event dispatched by
     // ToolCallSimple. Surgical retry: re-run only the stalled tool — not the
     // whole assistant turn — so the model's reasoning and any sibling tool
@@ -584,6 +620,21 @@ export function useChat({
     useEffect(() => {
         editorEngine.chat.setChatActions(sendMessage);
     }, [editorEngine.chat, sendMessage]);
+
+    // Stop any in-flight stream on unmount. ChatTab uses `key={conversationId}`
+    // to force-remount when the user switches conversations, so this fires
+    // for both tab teardown and conversation switching — preventing an
+    // orphaned upstream LLM stream (which keeps consuming usage credits)
+    // from outliving the UI it was painting into.
+    useEffect(() => {
+        return () => {
+            try {
+                stop();
+            } catch {
+                // stop() is a no-op if the stream has already settled — ignore.
+            }
+        };
+    }, [stop]);
 
     return {
         status,

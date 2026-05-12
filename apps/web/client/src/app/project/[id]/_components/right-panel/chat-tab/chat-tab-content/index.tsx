@@ -86,12 +86,31 @@ export const ChatTabContent = ({
         const baseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
         const params = new URLSearchParams({ baseUrl });
         const controller = new AbortController();
+        // Either probe should resolve quickly. If Ollama is hung (firewall,
+        // wrong port, networking issue), we don't want the model list to sit
+        // in "loading" forever — fall back to "no local models" after 5s so
+        // the picker still settles to a useful state.
+        const OLLAMA_PROBE_TIMEOUT_MS = 5_000;
+        const probeSignal: AbortSignal =
+            typeof AbortSignal !== 'undefined' && 'any' in AbortSignal
+                ? AbortSignal.any([
+                      controller.signal,
+                      AbortSignal.timeout(OLLAMA_PROBE_TIMEOUT_MS),
+                  ])
+                : controller.signal;
+        // Fallback timeout for browsers without AbortSignal.any (older Safari,
+        // older Firefox ESR). Aborts via the same controller so the .catch
+        // path treats it like the AbortSignal.timeout case.
+        const fallbackTimeoutId =
+            typeof AbortSignal !== 'undefined' && 'any' in AbortSignal
+                ? null
+                : setTimeout(() => controller.abort(), OLLAMA_PROBE_TIMEOUT_MS);
         setLocalModelsLoading(true);
 
         const probeBrowser = async (): Promise<LocalModelOption[]> => {
             try {
                 const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/tags`, {
-                    signal: controller.signal,
+                    signal: probeSignal,
                 });
                 if (!res.ok) return [];
                 const data = (await res.json()) as {
@@ -109,7 +128,7 @@ export const ChatTabContent = ({
             }
         };
 
-        fetch(`/api/models/local?${params.toString()}`, { signal: controller.signal })
+        fetch(`/api/models/local?${params.toString()}`, { signal: probeSignal })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 return (await r.json()) as { available: boolean; models: LocalModelOption[] };
@@ -127,7 +146,10 @@ export const ChatTabContent = ({
                 setLocalModels(await probeBrowser());
             })
             .finally(() => setLocalModelsLoading(false));
-        return () => controller.abort();
+        return () => {
+            if (fallbackTimeoutId !== null) clearTimeout(fallbackTimeoutId);
+            controller.abort();
+        };
     }, [userSettings?.chat.ollamaBaseUrl]);
 
     const ollamaBaseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
