@@ -6,6 +6,7 @@ import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 
 import { env } from '@/env';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 
 // TelemetryProvider
@@ -18,12 +19,27 @@ import { api } from '@/trpc/react';
 let gleapSingleton: any | null = null;
 let hasWarnedMissingPostHogKey = false;
 
+function hasCookieConsent(): boolean {
+    if (typeof document === 'undefined') return false;
+    return /(?:^|;\s*)weblab\.consent=accepted(?:;|$)/.test(document.cookie);
+}
+
 export function TelemetryProvider({ children }: { children: React.ReactNode }) {
-    const { data: user } = api.user.get.useQuery();
+    const hasAuthCookie = useHasAuthCookie();
+    // Skip the network call on anonymous public surfaces. Once the user
+    // signs in (cookie appears on next focus tick), the query enables and
+    // identifies them in PostHog/Gleap.
+    const { data: user } = api.user.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const pathname = usePathname();
 
-    // Initialize SDKs once
+    // Initialize SDKs once, only after user has granted cookie consent.
+    // Until consent is granted, no analytics/feedback SDK loads or fires.
     useEffect(() => {
+        if (!hasCookieConsent()) {
+            return;
+        }
         if (env.NEXT_PUBLIC_POSTHOG_KEY) {
             try {
                 posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {

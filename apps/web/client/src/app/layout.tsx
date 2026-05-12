@@ -15,6 +15,7 @@ import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { TRPCReactProvider } from '@/trpc/react';
+import { CookieConsent } from './_components/cookie-consent';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
 import { AuthProvider } from './auth/auth-context';
@@ -138,6 +139,46 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <html lang={locale || 'en'} className={inter.variable} suppressHydrationWarning>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                {/* Desktop (Electron) chrome wiring.
+
+                    The inline <script> promotes the `weblabDesktop` preload
+                    bridge into a root data attribute *before* React hydrates,
+                    so drag-region CSS applies on the first paint instead of
+                    flashing in after useEffect. The preload always runs ahead
+                    of any renderer scripts, so the bridge is reliably present
+                    when this tag executes.
+
+                    The inline <style> ships the drag rules as raw CSS so
+                    Tailwind v4's Lightning CSS pipeline doesn't strip the
+                    non-standard `-webkit-app-region` property the way it does
+                    when these rules live in globals.css. The selectors mark
+                    the chrome container *and* its non-interactive descendants
+                    as drag, then carve out every interactive role/element as
+                    `no-drag` so clicks still land. */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;})();`,
+                    }}
+                />
+                <style
+                    dangerouslySetInnerHTML={{
+                        __html: `
+[data-desktop='true'] :is(.top-bar, .desktop-drag-region),
+[data-desktop='true'] :is(.top-bar, .desktop-drag-region) :is(div, span, h1, h2, h3, h4, h5, h6, p, section, header, nav, img, svg, ul, ol, li) {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+[data-desktop='true'] :is(.top-bar, .desktop-drag-region) :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
+[data-desktop='true'] .desktop-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+[data-desktop='true'][data-desktop-platform='darwin']:not([data-desktop-fullscreen='true']) :is(.top-bar, .desktop-drag-region) {
+  padding-left: 80px;
+}
+`,
+                    }}
+                />
                 {/* Pre-warm connections to third-party origins reached on first paint /
                     first click (OAuth, Supabase, docs subdomain, UnicornStudio CDN). */}
                 <link rel="preconnect" href="https://accounts.google.com" />
@@ -176,6 +217,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                         <NextIntlClientProvider>
                                             {children}
                                             <Toaster />
+                                            <CookieConsent />
                                         </NextIntlClientProvider>
                                     </AuthProvider>
                                 </AppearanceProvider>

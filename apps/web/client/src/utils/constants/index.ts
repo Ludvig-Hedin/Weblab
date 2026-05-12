@@ -8,6 +8,7 @@ export const Routes = {
     DOWNLOAD: '/download',
     BLOG: '/blog',
     CHANGELOG: '/changelog',
+    SECURITY: '/security',
     FEATURES: '/features',
     FEATURES_AI: '/features/ai',
     FEATURES_AI_FRONTEND: '/features/ai-for-frontend',

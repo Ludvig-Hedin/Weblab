@@ -1,160 +1,112 @@
-import React from 'react';
+'use client';
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { type ReactNode } from 'react';
+
+import { Reveal } from '@/components/motion/reveal';
 import { cn } from '@/lib/utils';
 
-interface CompareRow {
+interface Compare7Row {
     feature: string;
     primary: string;
     secondary: string;
-    secondaryTooltip?: {
-        title: string;
-        description: string;
-    };
+    primaryIcon?: ReactNode;
 }
 
 interface Compare7Props {
-    heading?: string;
+    eyebrow?: string;
+    heading: string;
     description?: string;
-    primaryLabel?: string;
-    secondaryLabel?: string;
-    rows?: CompareRow[];
+    featureColumnLabel?: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    rows: Compare7Row[];
     className?: string;
 }
 
+/**
+ * Weblab-themed comparison table. Two columns: "you" (primary, highlighted)
+ * vs "them" (secondary, muted). Single shared border, primary column gets a
+ * subtle background tint. Monospace feature labels for typographic interest.
+ */
 const Compare7 = ({
-    heading = 'Compare',
-    description = 'A modern framework for building websites that is better than the competition.',
-    primaryLabel = 'Shadcn',
-    secondaryLabel = 'Bootstrap',
-    rows = [
-        {
-            feature: 'Design System',
-            primary: 'Modern, Utility-first',
-            secondary: 'Classic, Component-based',
-        },
-        {
-            feature: 'Customization',
-            primary: 'Highly customizable',
-            secondary: 'Limited by default',
-        },
-        {
-            feature: 'Dark Mode',
-            primary: 'Built-in',
-            secondary: 'Requires extra setup',
-        },
-        {
-            feature: 'TypeScript Support',
-            primary: 'First-class',
-            secondary: 'Partial',
-        },
-        {
-            feature: 'Accessibility',
-            primary: 'Focus on a11y',
-            secondary: 'Basic',
-        },
-        {
-            feature: 'Component Count',
-            primary: '30+',
-            secondary: '25+',
-        },
-        {
-            feature: 'License',
-            primary: 'MIT',
-            secondary: 'MIT',
-        },
-        {
-            feature: 'Premium Components',
-            primary: 'Available',
-            secondary: 'Not included',
-            secondaryTooltip: {
-                title: 'Premium Only',
-                description:
-                    'Some advanced components are only available in paid versions or require third-party libraries.',
-            },
-        },
-        {
-            feature: 'Figma Kit',
-            primary: 'Yes',
-            secondary: 'No',
-            secondaryTooltip: {
-                title: 'Figma Kit Unavailable',
-                description:
-                    'Bootstrap does not provide an official Figma kit, but community kits may exist.',
-            },
-        },
-    ],
+    eyebrow,
+    heading,
+    description,
+    featureColumnLabel = 'Feature',
+    primaryLabel,
+    secondaryLabel,
+    rows,
     className,
 }: Compare7Props) => {
     return (
-        <TooltipProvider>
-            <section className={cn('py-32', className)}>
-                <div className="container">
-                    <h2 className="mb-4 text-center text-4xl font-semibold">{heading}</h2>
-                    <p className="mb-8 text-center text-slate-500 dark:text-slate-400">
-                        {description}
-                    </p>
-                    <div className="mx-auto max-w-3xl overflow-x-auto">
-                        <Table className="rounded border border-slate-200 text-left shadow-lg dark:border-slate-800">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="px-6 py-4 font-semibold">
-                                        Feature
-                                    </TableHead>
-                                    <TableHead className="bg-slate-100 px-6 py-4 font-semibold dark:bg-slate-800">
-                                        {primaryLabel}
-                                    </TableHead>
-                                    <TableHead className="px-6 py-4 font-semibold">
-                                        {secondaryLabel}
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="text-slate-950 dark:text-slate-50">
-                                {rows.map((row, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="px-6 py-4">{row.feature}</TableCell>
-                                        <TableCell className="bg-slate-100 px-6 py-4 dark:bg-slate-800">
-                                            {row.primary}
-                                        </TableCell>
-                                        <TableCell className="relative px-6 py-4">
-                                            {row.secondaryTooltip ? (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <span className="cursor-pointer underline decoration-dotted">
-                                                            {row.secondary}
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent
-                                                        sideOffset={8}
-                                                        className="max-w-xs"
-                                                    >
-                                                        <span className="mb-1 block font-semibold">
-                                                            {row.secondaryTooltip.title}
-                                                        </span>
-                                                        {row.secondaryTooltip.description}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            ) : (
-                                                row.secondary
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+        <section className={cn(className)}>
+            <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
+                <div className="mb-12 max-w-3xl">
+                    {eyebrow ? (
+                        <Reveal as="p" delay={0} y={12} className="heading-style-h6 text-foreground-secondary mb-4">
+                            {eyebrow}
+                        </Reveal>
+                    ) : null}
+                    <Reveal as="h2" delay={0.1} y={16} className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                        {heading}
+                    </Reveal>
+                    {description ? (
+                        <Reveal as="p" delay={0.2} y={12} className="text-foreground-secondary text-regularPlus text-balance">
+                            {description}
+                        </Reveal>
+                    ) : null}
                 </div>
-            </section>
-        </TooltipProvider>
+                <Reveal delay={0.3} y={20}>
+                    <div className="border-foreground-primary/10 overflow-hidden rounded-lg border">
+                        <table className="w-full border-collapse text-left">
+                            <thead>
+                                <tr className="border-foreground-primary/10 border-b">
+                                    <th className="text-foreground-tertiary text-small px-5 py-4 font-normal uppercase tracking-wide">
+                                        {featureColumnLabel}
+                                    </th>
+                                    <th className="text-foreground-primary text-regular bg-foreground-primary/5 px-5 py-4 font-normal">
+                                        <span className="inline-flex items-center gap-2">
+                                            <span className="bg-foreground-primary h-1.5 w-1.5 rounded-full" />
+                                            {primaryLabel}
+                                        </span>
+                                    </th>
+                                    <th className="text-foreground-tertiary text-regular px-5 py-4 font-normal">
+                                        {secondaryLabel}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row, i) => (
+                                    <tr
+                                        key={i}
+                                        className={
+                                            i !== rows.length - 1
+                                                ? 'border-foreground-primary/10 border-b'
+                                                : ''
+                                        }
+                                    >
+                                        <td className="text-foreground-secondary px-5 py-4 font-mono text-small">
+                                            {row.feature}
+                                        </td>
+                                        <td className="text-foreground-primary text-regular bg-foreground-primary/5 px-5 py-4">
+                                            <span className="inline-flex items-center gap-2">
+                                                {row.primaryIcon}
+                                                <span>{row.primary}</span>
+                                            </span>
+                                        </td>
+                                        <td className="text-foreground-tertiary text-regular px-5 py-4">
+                                            {row.secondary}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Reveal>
+            </div>
+        </section>
     );
 };
 
 export { Compare7 };
+export type { Compare7Props, Compare7Row };

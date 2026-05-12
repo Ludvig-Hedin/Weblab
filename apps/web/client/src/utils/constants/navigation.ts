@@ -76,6 +76,11 @@ export const ABOUT_LINKS: NavigationLink[] = [
         href: Routes.FAQ,
         descriptionKey: 'nav.categories.about.links.faq.description',
     },
+    {
+        titleKey: 'nav.categories.about.links.security.title',
+        href: Routes.SECURITY,
+        descriptionKey: 'nav.categories.about.links.security.description',
+    },
 ];
 
 export interface NavigationCategory {

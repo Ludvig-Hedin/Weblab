@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v1-8-security-page',
+        version: '1.8',
+        title: 'Security & Compliance Page',
+        description:
+            'A new /security page explains how Weblab handles your data — encryption in transit, OAuth sign-in, AI training opt-out, named subprocessors, and our compliance posture. A minimal cookie consent toast now gates analytics and feedback tools so nothing loads before you agree.',
+        date: '2026-05-12',
+        tags: ['Security', 'Compliance', 'Trust', 'GDPR'],
+    },
+    {
         slug: 'v1-7-chat-polish',
         version: '1.7',
         title: 'Faster, Cleaner AI Chat',

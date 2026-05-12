@@ -7,6 +7,7 @@ import { Icons } from '@weblab/ui/icons';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { ContactLink } from './contact-link';
 import { LocaleSwitcher } from './locale-switcher';
+import { ThemeSwitcher } from './theme-switcher';
 
 const linkClass =
     'relative inline-block text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
@@ -169,6 +170,15 @@ export function Footer() {
                                         {t('legal.privacy.label')}
                                     </a>
                                 </li>
+                                <li>
+                                    <a
+                                        href={Routes.SECURITY}
+                                        className={linkClass}
+                                        title={t('legal.security.title')}
+                                    >
+                                        {t('legal.security.label')}
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -283,6 +293,11 @@ export function Footer() {
                             className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
                         />
                         <LocaleSwitcher />
+                        <span
+                            aria-hidden="true"
+                            className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
+                        />
+                        <ThemeSwitcher />
                     </div>
                     <span className="text-foreground-tertiary text-small">
                         {t('legal.copyright', { year: String(new Date().getFullYear()) })}

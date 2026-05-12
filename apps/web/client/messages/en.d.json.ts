@@ -1454,6 +1454,7 @@ declare const messages: {
             "ctaReport": "Report a vulnerability"
         },
         "data": {
+            "eyebrow": "Your data",
             "title": "Your data, your control",
             "subtitle": "Built to keep what's yours, yours.",
             "learnMore": "Learn more",
@@ -1485,6 +1486,7 @@ declare const messages: {
             }
         },
         "compliance": {
+            "eyebrow": "Compliance",
             "title": "Compliance posture",
             "subtitle": "We follow the controls behind the standards customers expect.",
             "disclaimer": "Weblab is aligned with these frameworks but is not currently certified against ISO 27001 or SOC 2. Formal audits are on our roadmap.",
@@ -1516,6 +1518,7 @@ declare const messages: {
             }
         },
         "compare": {
+            "eyebrow": "Vs typical builders",
             "title": "How we compare",
             "subtitle": "Weblab versus typical site builders — where your data stands.",
             "columns": {
@@ -1557,8 +1560,9 @@ declare const messages: {
             }
         },
         "subprocessors": {
-            "title": "Subprocessors",
-            "subtitle": "The vendors that process data on our behalf.",
+            "eyebrow": "Subprocessors",
+            "title": "Vendors that process data on our behalf",
+            "subtitle": "Every external system that touches customer data, what it does, and where it runs.",
             "columns": {
                 "name": "Name",
                 "purpose": "Purpose",
@@ -1578,7 +1582,9 @@ declare const messages: {
             "lastUpdated": "Last updated {date}"
         },
         "badges": {
-            "eyebrow": "What we follow",
+            "eyebrow": "Standards",
+            "title": "What Weblab is built to meet",
+            "subtitle": "We design to the bar customers expect — without overstating audits we have not completed.",
             "gdpr": "GDPR-aligned",
             "ccpa": "CCPA-aligned",
             "apache": "Apache-2.0",
