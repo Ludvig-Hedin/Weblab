@@ -151,7 +151,7 @@ export function HeroV2() {
                                 </PrimaryButton>
                                 <SecondaryButton href={Routes.DOWNLOAD}>
                                     <Icons.Download className="h-4 w-4" />
-                                    Download app
+                                    Download
                                 </SecondaryButton>
                             </>
                         ) : (
@@ -161,7 +161,7 @@ export function HeroV2() {
                                 </PrimaryButton>
                                 <SecondaryButton href={Routes.DOWNLOAD}>
                                     <Icons.Download className="h-4 w-4" />
-                                    Download app
+                                    Download
                                 </SecondaryButton>
                             </>
                         )}
@@ -172,7 +172,7 @@ export function HeroV2() {
             </section>
 
             <motion.div
-                className="w-full max-w-7xl overflow-hidden"
+                className="w-full max-w-7xl overflow-x-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}

@@ -114,7 +114,7 @@ export function DigitalSolutionsSection() {
                         </p>
                         <Link
                             href={Routes.PROJECTS}
-                            className="text-foreground-primary group border-foreground-primary/15 bg-foreground-primary/5 hover:bg-foreground-primary/10 inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+                            className="text-foreground-primary group border-foreground-primary/15 bg-foreground-primary/5 hover:bg-foreground-primary/10 inline-flex items-center gap-3 rounded-full border py-1 pr-1 pl-4 text-sm font-medium transition-colors"
                         >
                             {t('startBuilding')}
                             <span className="bg-foreground-primary text-background inline-flex h-7 w-7 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5">

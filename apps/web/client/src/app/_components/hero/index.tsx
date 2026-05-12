@@ -120,7 +120,7 @@ export function Hero() {
                                 className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                             >
                                 <Icons.Download className="h-4 w-4" />
-                                {t('downloadApp')}
+                                {t('download')}
                             </Link>
                         </>
                     ) : (
@@ -138,7 +138,7 @@ export function Hero() {
                                 className="text-foreground-secondary hover:text-foreground flex items-center gap-2 text-sm transition-colors duration-200"
                             >
                                 <Icons.Download className="h-4 w-4" />
-                                {t('downloadApp')}
+                                {t('download')}
                             </Link>
                         </>
                     )}

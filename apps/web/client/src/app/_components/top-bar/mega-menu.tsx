@@ -84,7 +84,7 @@ export function DropdownMenu({ labelKey, links }: DropdownMenuProps) {
                 onClick={() => setIsOpen((v) => !v)}
                 onKeyDown={handleTriggerKeyDown}
                 className={cn(
-                    'text-foreground-secondary hover:text-foreground-primary focus-visible:text-foreground-primary focus-visible:outline-foreground-primary/40 -mx-1 flex items-center gap-1 px-1 py-2 text-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
+                    'text-foreground-secondary hover:text-foreground-primary focus-visible:text-foreground-primary focus-visible:outline-foreground-primary/40 -mx-1 flex items-center gap-1 px-1 py-2 text-sm transition-colors duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2',
                 )}
             >
                 {label}
@@ -111,7 +111,7 @@ export function DropdownMenu({ labelKey, links }: DropdownMenuProps) {
                             id={menuId}
                             role="menu"
                             aria-label={label}
-                            className="bg-background-primary border-foreground-primary/10 min-w-[200px] rounded-lg border p-1 shadow-lg"
+                            className="bg-background-primary border-foreground/8 min-w-[200px] rounded-lg border p-1 shadow-lg"
                         >
                             <ul className="space-y-1">
                                 {links.map((link, i) => (
@@ -132,7 +132,7 @@ export function DropdownMenu({ labelKey, links }: DropdownMenuProps) {
                                             href={link.href}
                                             target={link.external ? '_blank' : undefined}
                                             rel={link.external ? 'noopener noreferrer' : undefined}
-                                            className="hover:bg-foreground-primary/5 focus-visible:bg-foreground-primary/5 focus-visible:outline-foreground-primary/40 active:bg-foreground-primary/10 block rounded-md px-2 py-2 transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-1"
+                                            className="hover:bg-foreground-primary/5 focus-visible:bg-foreground-primary/5 focus-visible:outline-foreground-primary/40 active:bg-foreground-primary/10 block rounded-md px-2 py-2 transition-colors duration-150 focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-1"
                                             whileHover={{ x: 2 }}
                                             transition={{ duration: 0.12 }}
                                             onClick={() => setIsOpen(false)}

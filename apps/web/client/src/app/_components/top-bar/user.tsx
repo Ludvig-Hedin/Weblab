@@ -26,7 +26,7 @@ export const AuthButton = () => {
                 className="text-foreground-secondary hover:text-foreground hidden items-center gap-1.5 text-sm transition-colors duration-150 lg:inline-flex"
             >
                 <Icons.Download className="h-4 w-4" />
-                {t('downloadApp')}
+                {t('download')}
             </Link>
             {user ? (
                 <>

@@ -52,7 +52,7 @@ export function UseCasesSection() {
             <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-20">
                 {/* Left: visual */}
                 <div className="border-foreground-primary/10 bg-background-secondary/40 relative aspect-[4/5] w-full overflow-hidden rounded-2xl border backdrop-blur-sm md:aspect-auto md:min-h-[36rem]">
-                    <AnimatePresence mode="wait">
+                    <AnimatePresence initial={false}>
                         <motion.div
                             key={active.key}
                             initial={{ opacity: 0, scale: 1.02 }}
@@ -103,7 +103,7 @@ export function UseCasesSection() {
                     </ul>
 
                     <div className="mt-auto pt-10">
-                        <AnimatePresence mode="wait">
+                        <AnimatePresence initial={false}>
                             <motion.p
                                 key={active.key}
                                 initial={{ opacity: 0, y: 6 }}
@@ -118,7 +118,7 @@ export function UseCasesSection() {
 
                         <Link
                             href={Routes.PROJECTS}
-                            className="text-foreground-primary group border-foreground-primary/15 bg-foreground-primary/5 hover:bg-foreground-primary/10 mt-8 inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+                            className="text-foreground-primary group border-foreground-primary/15 bg-foreground-primary/5 hover:bg-foreground-primary/10 mt-8 inline-flex items-center gap-3 rounded-full border py-1 pr-1 pl-4 text-sm font-medium transition-colors"
                         >
                             {t('startBuilding')}
                             <span className="bg-foreground-primary text-background inline-flex h-7 w-7 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5">
@@ -157,47 +157,15 @@ function VisualFrame({ children }: { children: React.ReactNode }) {
     );
 }
 
-function BrowserChrome({ url, children }: { url: string; children: React.ReactNode }) {
-    return (
-        <div className="bg-background border-foreground-primary/10 w-full overflow-hidden rounded-lg border">
-            <div className="border-foreground-primary/10 flex items-center justify-center border-b px-3 py-2">
-                <div className="text-foreground-tertiary bg-foreground-primary/[0.04] flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[10px]">
-                    <Icons.Globe className="h-2.5 w-2.5" />
-                    {url}
-                </div>
-            </div>
-            {children}
-        </div>
-    );
-}
-
-function SelectionRing({ label, className }: { label?: string; className?: string }) {
-    return (
-        <div
-            className={`pointer-events-none absolute rounded-md ring-1 ring-[var(--foreground-brand)] ring-inset ${className ?? ''}`}
-        >
-            <span className="absolute -top-1.5 -left-1 h-2 w-2 rounded-sm bg-[var(--foreground-brand)]" />
-            <span className="absolute -top-1.5 -right-1 h-2 w-2 rounded-sm bg-[var(--foreground-brand)]" />
-            <span className="absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-[var(--foreground-brand)]" />
-            <span className="absolute -right-1 -bottom-1 h-2 w-2 rounded-sm bg-[var(--foreground-brand)]" />
-            {label && (
-                <span className="absolute -top-5 left-0 rounded-sm bg-[var(--foreground-brand)] px-1.5 py-0.5 font-mono text-[9px] text-white">
-                    {label}
-                </span>
-            )}
-        </div>
-    );
-}
-
 /* ----------------------------- 1. References ----------------------------- */
 
 function ReferencesVisual() {
     return (
         <VisualFrame>
-            <div className="absolute inset-x-8 top-10 bottom-10 flex items-center justify-center">
-                <div className="bg-background border-foreground-primary/10 w-full overflow-hidden rounded-xl border">
+            <div className="absolute inset-x-8 top-8 bottom-8 flex items-center justify-center">
+                <div className="bg-background border-foreground-primary/10 w-full overflow-hidden rounded-xl border shadow-2xl shadow-black/30">
                     {/* Header */}
-                    <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
+                    <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3.5 py-2.5">
                         <div className="text-foreground-secondary flex items-center gap-1.5 text-[11px]">
                             <Icons.Sparkles className="h-3 w-3" />
                             <span className="font-medium">Ask AI</span>
@@ -207,63 +175,96 @@ function ReferencesVisual() {
                         </span>
                     </div>
 
-                    {/* Reference strip */}
-                    <div className="px-3 pt-3">
-                        <div className="flex items-center gap-2">
-                            {/* Dominant image thumbnail w/ mini hero mock inside */}
-                            <div className="border-foreground-primary/15 bg-foreground-primary/[0.04] relative h-16 w-24 shrink-0 overflow-hidden rounded-md border">
-                                <div className="absolute inset-1.5 flex flex-col justify-center gap-1">
-                                    <div className="bg-foreground-primary/30 h-1 w-12 rounded-full" />
-                                    <div className="bg-foreground-primary/50 h-1.5 w-16 rounded-full" />
-                                    <div className="bg-foreground-primary/15 h-1 w-10 rounded-full" />
-                                    <div className="bg-foreground-brand mt-0.5 h-1.5 w-5 rounded-full" />
+                    {/* References row: big thumbnail + stacked chips */}
+                    <div className="flex items-start gap-3 px-3.5 pt-3.5">
+                        {/* Thumbnail — mini hero mock inside */}
+                        <div className="border-foreground-primary/15 bg-background-secondary relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border shadow-md shadow-black/40">
+                            <div className="absolute inset-0 flex flex-col px-2 pt-2">
+                                <div className="bg-foreground-primary/30 h-[3px] w-6 rounded-full" />
+                                <div className="mt-auto flex flex-col gap-0.5 pb-2">
+                                    <div className="bg-foreground-primary/85 h-[5px] w-14 rounded-full" />
+                                    <div className="bg-foreground-primary/85 h-[5px] w-10 rounded-full" />
+                                    <div className="bg-foreground-primary/30 mt-1 h-[3px] w-12 rounded-full" />
+                                    <div className="mt-1.5 flex items-center gap-1">
+                                        <div className="bg-foreground-brand h-[5px] w-5 rounded-full" />
+                                        <div className="bg-foreground-primary/15 h-[5px] w-3 rounded-full" />
+                                    </div>
                                 </div>
-                                <span className="bg-background/70 text-foreground-tertiary absolute right-1 bottom-1 rounded-sm px-1 py-0.5 font-mono text-[8px] backdrop-blur">
-                                    PNG
-                                </span>
                             </div>
+                            <span className="bg-background/80 text-foreground-tertiary absolute top-1 right-1 rounded-sm px-1 py-0.5 font-mono text-[8px] backdrop-blur">
+                                PNG
+                            </span>
+                        </div>
 
-                            {/* Doc chip */}
-                            <div className="border-foreground-primary/10 bg-foreground-primary/[0.03] flex items-center gap-1.5 rounded-md border px-2 py-1.5">
-                                <Icons.File className="text-foreground-secondary h-3 w-3" />
-                                <span className="text-foreground-secondary text-[10px]">
-                                    brand-guide.pdf
-                                </span>
-                            </div>
-                            {/* Link chip */}
-                            <div className="border-foreground-primary/10 bg-foreground-primary/[0.03] flex items-center gap-1.5 rounded-md border px-2 py-1.5">
-                                <Icons.Figma className="text-foreground-secondary h-3 w-3" />
-                                <span className="text-foreground-secondary text-[10px]">
-                                    Figma frame
-                                </span>
-                            </div>
+                        {/* Chip stack */}
+                        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
+                            <RefChip
+                                icon={<Icons.File className="h-3 w-3" />}
+                                title="brand-guide.pdf"
+                                meta="p. 4–6"
+                            />
+                            <RefChip
+                                icon={<Icons.Figma className="h-3 w-3" />}
+                                title="Figma · hero-frame"
+                                meta="frame 12"
+                            />
+                            <RefChip
+                                icon={<Icons.Link className="h-3 w-3" />}
+                                title="acme.com/about"
+                                meta="link"
+                                muted
+                            />
                         </div>
                     </div>
 
                     {/* Composer */}
-                    <div className="px-3 pt-3 pb-3">
-                        <div className="text-foreground-primary text-[12px] leading-relaxed">
-                            Match the hero to this image, and follow the spacing in the brand
-                            guide.
+                    <div className="px-3.5 pt-3.5 pb-3.5">
+                        <div className="text-foreground-primary text-[12.5px] leading-[1.55] tracking-tight">
+                            Match the hero to this image, and follow the spacing in the brand guide.
                         </div>
                     </div>
 
                     {/* AI breadcrumb */}
-                    <div className="border-foreground-primary/10 bg-foreground-primary/[0.02] border-t px-3 py-2">
+                    <div className="border-foreground-primary/10 bg-foreground-primary/[0.02] border-t px-3.5 py-2.5">
                         <div className="text-foreground-tertiary flex items-center gap-1.5 font-mono text-[10px]">
-                            <span className="bg-foreground-brand relative flex h-1.5 w-1.5">
+                            <span className="relative flex h-1.5 w-1.5">
                                 <span className="bg-foreground-brand/60 absolute inset-0 animate-ping rounded-full" />
                                 <span className="bg-foreground-brand relative h-1.5 w-1.5 rounded-full" />
                             </span>
-                            <span>
-                                Reading 3 references… hero-ref.png · brand-guide.pdf p.4–6 · Figma
-                                frame
-                            </span>
+                            <span>Reading 3 references…</span>
                         </div>
                     </div>
                 </div>
             </div>
         </VisualFrame>
+    );
+}
+
+function RefChip({
+    icon,
+    title,
+    meta,
+    muted,
+}: {
+    icon: React.ReactNode;
+    title: string;
+    meta: string;
+    muted?: boolean;
+}) {
+    return (
+        <div
+            className={`border-foreground-primary/10 flex items-center justify-between gap-2 rounded-md border px-2 py-1.5 ${
+                muted ? 'bg-foreground-primary/[0.01]' : 'bg-foreground-primary/[0.03]'
+            }`}
+        >
+            <span className="flex min-w-0 items-center gap-1.5">
+                <span className="text-foreground-secondary">{icon}</span>
+                <span className="text-foreground-secondary truncate text-[10.5px]">{title}</span>
+            </span>
+            <span className="text-foreground-tertiary font-mono text-[9px] tracking-wide whitespace-nowrap">
+                {meta}
+            </span>
+        </div>
     );
 }
 
@@ -272,46 +273,38 @@ function ReferencesVisual() {
 function PagesVisual() {
     return (
         <VisualFrame>
-            <div className="absolute inset-x-6 top-8 bottom-8 flex items-center justify-center">
-                <div className="bg-background border-foreground-primary/10 relative w-full overflow-hidden rounded-xl border px-5 py-5">
-                    {/* Eyebrow */}
-                    <div className="text-foreground-tertiary mb-4 flex items-center justify-between">
-                        <span className="font-mono text-[10px] tracking-wide uppercase">
-                            Sitemap
-                        </span>
-                        <span className="font-mono text-[10px]">6 pages</span>
-                    </div>
-
-                    {/* Sitemap */}
-                    <div className="flex flex-col items-center gap-3">
-                        <SitemapNode label="Home" />
-                        <Connector />
-                        <div className="grid w-full grid-cols-3 gap-3">
-                            <div className="flex flex-col items-center gap-2">
-                                <SitemapNode label="Pricing" />
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="relative">
-                                    <SitemapNode label="Blog" selected />
-                                    <span className="border-foreground-primary/10 bg-background absolute top-1/2 left-[calc(100%+0.5rem)] -translate-y-1/2 rounded-full border px-1.5 py-0.5 font-mono text-[9px] whitespace-nowrap text-[var(--foreground-brand)]">
-                                        /blog/the-launch
-                                    </span>
-                                </div>
-                                <Connector short />
-                                <SitemapNode label="Post" small />
-                            </div>
-                            <div className="flex flex-col items-center gap-2">
-                                <SitemapNode label="Dashboard" />
-                                <Connector short />
-                                <SitemapNode label="Settings" small />
-                            </div>
+            <div className="absolute inset-x-8 top-8 bottom-8 flex items-center justify-center">
+                <div className="bg-background border-foreground-primary/10 relative w-full overflow-hidden rounded-xl border shadow-2xl shadow-black/30">
+                    {/* Header */}
+                    <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3.5 py-2.5">
+                        <div className="text-foreground-secondary flex items-center gap-1.5 text-[11px]">
+                            <Icons.Directory className="h-3 w-3" />
+                            <span className="font-medium">Pages</span>
                         </div>
+                        <span className="text-foreground-tertiary font-mono text-[10px]">
+                            6 routes
+                        </span>
                     </div>
 
-                    {/* New page button */}
-                    <div className="border-foreground-primary/10 bg-foreground-primary/5 text-foreground-secondary absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px]">
-                        <Icons.Plus className="h-2.5 w-2.5" />
-                        <span>New page</span>
+                    {/* Page list */}
+                    <div className="flex flex-col py-2">
+                        <PageRow label="Home" path="/" />
+                        <PageRow label="Pricing" path="/pricing" />
+                        <PageRow label="Blog" path="/blog" selected />
+                        <PageRow label="Post" path="/blog/[slug]" indent />
+                        <PageRow label="Dashboard" path="/dashboard" />
+                        <PageRow label="Settings" path="/dashboard/settings" indent />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="border-foreground-primary/10 flex items-center justify-between border-t px-3.5 py-2.5">
+                        <span className="text-foreground-tertiary font-mono text-[10px]">
+                            App Router · file-based
+                        </span>
+                        <span className="border-foreground-primary/15 bg-foreground-primary/5 text-foreground-secondary inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]">
+                            <Icons.Plus className="h-2.5 w-2.5" />
+                            New page
+                        </span>
                     </div>
                 </div>
             </div>
@@ -319,45 +312,48 @@ function PagesVisual() {
     );
 }
 
-function SitemapNode({
+function PageRow({
     label,
+    path,
     selected,
-    small,
+    indent,
 }: {
     label: string;
+    path: string;
     selected?: boolean;
-    small?: boolean;
+    indent?: boolean;
 }) {
     return (
         <div
-            className={`relative flex flex-col gap-1 rounded-md border px-2 py-1.5 ${
-                small ? 'w-16' : 'w-20'
-            } ${
+            className={`relative mx-1.5 flex items-center gap-2 rounded-md px-2 py-1.5 ${
                 selected
-                    ? 'border-[var(--foreground-brand)] bg-[color-mix(in_srgb,_var(--foreground-brand)_4%,_transparent)]'
-                    : 'border-foreground-primary/15 bg-foreground-primary/[0.03]'
+                    ? 'bg-foreground-primary/[0.04] ring-1 ring-[color-mix(in_srgb,_var(--foreground-brand)_40%,_transparent)] ring-inset'
+                    : ''
             }`}
         >
-            <div className="bg-foreground-primary/40 h-0.5 w-3/5 rounded-full" />
-            <div className="bg-foreground-primary/15 h-0.5 w-4/5 rounded-full" />
-            <div className="bg-foreground-primary/15 h-0.5 w-2/3 rounded-full" />
-            <div
-                className={`mt-0.5 text-center ${small ? 'text-[8.5px]' : 'text-[9.5px]'} ${
-                    selected ? 'text-foreground-primary' : 'text-foreground-secondary'
-                } font-medium`}
+            {indent && (
+                <span aria-hidden className="text-foreground-tertiary ml-1 font-mono text-[10px]">
+                    └
+                </span>
+            )}
+            <PageGlyph />
+            <span
+                className={`text-[11px] ${
+                    selected ? 'text-foreground-primary font-medium' : 'text-foreground-secondary'
+                }`}
             >
                 {label}
-            </div>
+            </span>
+            <span className="text-foreground-tertiary ml-auto font-mono text-[10px]">{path}</span>
         </div>
     );
 }
 
-function Connector({ short }: { short?: boolean }) {
+function PageGlyph() {
     return (
-        <span
-            className={`bg-foreground-primary/15 inline-block w-px ${short ? 'h-3' : 'h-4'}`}
-            aria-hidden
-        />
+        <span className="border-foreground-primary/20 bg-foreground-primary/[0.05] inline-flex h-4 w-4 items-center justify-center overflow-hidden rounded-[3px] border">
+            <span className="bg-foreground-primary/40 h-[1.5px] w-2 rounded-full" />
+        </span>
     );
 }
 
@@ -601,13 +597,7 @@ function ConnectVisual() {
     );
 }
 
-function DetectionChip({
-    children,
-    muted,
-}: {
-    children: React.ReactNode;
-    muted?: boolean;
-}) {
+function DetectionChip({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
     return (
         <span
             className={`rounded-full border px-2 py-0.5 font-mono text-[10px] ${
