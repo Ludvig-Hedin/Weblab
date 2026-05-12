@@ -41,9 +41,9 @@ export const OfflineBanner = observer(() => {
         return null;
     }
 
-    const bgClass = online ? 'bg-amber-500/10' : 'bg-red-500/10';
-    const borderClass = online ? 'border-amber-500/30' : 'border-red-500/30';
-    const textClass = online ? 'text-amber-200' : 'text-red-200';
+    const bgClass = online ? 'bg-background-warning' : 'bg-destructive/10';
+    const borderClass = online ? 'border-border-warning' : 'border-destructive/30';
+    const textClass = online ? 'text-foreground-warning' : 'text-destructive';
 
     return (
         <>

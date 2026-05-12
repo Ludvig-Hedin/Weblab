@@ -14,7 +14,7 @@ export const NoCustomDomain = () => {
                 </span>
             </div>
 
-            <Button onClick={openCustomDomain} variant="default" className="w-full rounded-md p-3">
+            <Button onClick={openCustomDomain} variant="default" size="lg" className="w-full">
                 Link a Custom Domain
             </Button>
         </>

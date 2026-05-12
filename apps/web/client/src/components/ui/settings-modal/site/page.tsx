@@ -373,12 +373,12 @@ export const PageTab = ({ metadata, path }: { metadata?: PageMetadata; path: str
                 <div className="flex items-center gap-3">
                     <h2 className="text-largePlus">Page Settings</h2>
                     {!isPublished && (
-                        <Button variant="outline" size="sm" className="text-mini h-7 px-2" disabled>
+                        <Button variant="outline" size="compact" disabled>
                             Unpublished
                         </Button>
                     )}
                     {isDraft && (
-                        <Button variant="outline" size="sm" className="text-mini h-7 px-2" disabled>
+                        <Button variant="outline" size="compact" disabled>
                             Draft
                         </Button>
                     )}

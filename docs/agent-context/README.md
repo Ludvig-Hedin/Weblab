@@ -21,6 +21,17 @@ related area.
 - `trpc-routers-reference.md` — every tRPC router and its purpose.
 - `routes-reference.md` — every top-level Next.js App Router route.
 
+## Design system enforcement
+
+Read before touching any UI affordance:
+
+- `button-enforcement.md` — when (and when not) to use `<Button>`, allowed
+  overrides, how to add new variants without breaking the system.
+- `audit-dropdowns-popovers-menus.md` — canonical primitives + ready-to-paste
+  audit prompt for dropdown / popover / menu drift.
+- `audit-inputs-forms.md` — canonical primitives + ready-to-paste audit prompt
+  for input / search / form drift.
+
 ## Deep dives
 
 - `editor-architecture.md` — editor canvas, iframe, MobX engine, sandbox, and

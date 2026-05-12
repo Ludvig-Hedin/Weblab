@@ -43,7 +43,7 @@ export const ActionSection = () => {
                             {stripAnsi(deployment?.error)}
                         </p>
                     )}
-                    <Button variant="outline" className="w-full p-3" onClick={retry}>
+                    <Button variant="outline" size="lg" className="w-full" onClick={retry}>
                         Try Updating Again
                     </Button>
                 </div>

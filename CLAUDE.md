@@ -302,6 +302,9 @@ The living design system lives at **`/design-system`** (source: `apps/web/client
 - TailwindCSS 4.x-first; global styles imported in `src/app/layout.tsx`.
 - Prefer `@weblab/ui` components and local patterns over custom implementations.
 - Preserve dark theme defaults via `ThemeProvider` in layout.
+- **Buttons** — every clickable button-shaped affordance must use `<Button>` from `@weblab/ui/button`. Pick a variant + size; do not override colors, radius, or height via `className`. Full rules + escape hatches: [docs/agent-context/button-enforcement.md](docs/agent-context/button-enforcement.md). Visual reference: `/design-system#buttons`.
+- **Dropdowns / popovers / menus** — audit guide and canonical primitives: [docs/agent-context/audit-dropdowns-popovers-menus.md](docs/agent-context/audit-dropdowns-popovers-menus.md).
+- **Inputs / search / forms** — audit guide and canonical primitives: [docs/agent-context/audit-inputs-forms.md](docs/agent-context/audit-inputs-forms.md).
 
 ## Internationalization
 
@@ -317,6 +320,7 @@ The living design system lives at **`/design-system`** (source: `apps/web/client
 - Importing server-only code into client components causes bundling errors.
 - Bypassing i18n by hardcoding strings.
 - `useMemo` for MobX stores risks lost references; synchronous cleanup on route change risks race conditions.
+- Writing raw `<button className="bg-... rounded-... px-...">` instead of `<Button>` — see [button-enforcement.md](docs/agent-context/button-enforcement.md). Same trap applies to raw `<input>`, `<select>`, hand-rolled dropdowns. Pick the canonical primitive; if a variant is missing, add one to `@weblab/ui` rather than overriding via utilities.
 
 ## Context Discipline
 
