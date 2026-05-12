@@ -55,37 +55,43 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             whileInView={REVEAL.whileInView}
             viewport={REVEAL.viewport}
             transition={REVEAL.transition}
-            whileHover={{ y: -2 }}
-            className="border-foreground-primary/10 bg-background-secondary/40 group/card hover:border-foreground-primary/20 overflow-hidden rounded-2xl border backdrop-blur-sm transition-colors duration-200"
+            className={cn(
+                'grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-16',
+                reverse && 'md:[&>*:first-child]:order-2',
+            )}
         >
+            {/* Image side — only this gets a card */}
             <div
                 className={cn(
-                    'grid grid-cols-1 items-stretch md:grid-cols-2',
-                    reverse && 'md:[&>*:first-child]:order-2',
+                    'group/imgcard relative w-full overflow-hidden',
+                    'border-foreground-primary/10 bg-background-secondary/40 rounded-2xl border backdrop-blur-sm',
+                    'hover:border-foreground-primary/20 transition-colors duration-200',
+                    'flex items-center justify-center',
+                    'aspect-[5/4] p-5 md:aspect-[4/3] md:p-10',
                 )}
             >
+                {/* Subtle dot grid backdrop — adds texture without competing with the widget */}
                 <div
-                    className={cn(
-                        'border-foreground-primary/10 flex aspect-[4/3] w-full max-w-full items-center justify-center border-b p-6 md:border-b-0 md:p-10',
-                        reverse && 'md:border-l',
-                    )}
-                >
-                    <div className="flex w-full items-center justify-center">{visual}</div>
+                    className="pointer-events-none absolute inset-0 opacity-40"
+                    style={{
+                        backgroundImage:
+                            'radial-gradient(circle, hsl(var(--foreground-primary) / 0.06) 1px, transparent 1px)',
+                        backgroundSize: '18px 18px',
+                    }}
+                    aria-hidden
+                />
+                <div className="relative flex w-full items-center justify-center">{visual}</div>
+            </div>
+            {/* Text side — flat, no card */}
+            <div className="flex flex-col gap-4">
+                <div className="text-foreground-tertiary flex items-center gap-2">
+                    {icon}
+                    <span className="text-mini font-mono tracking-wider uppercase">{subtitle}</span>
                 </div>
-                <div className="flex flex-col justify-center gap-4 p-6 md:p-10">
-                    <div className="text-foreground-tertiary group-hover/card:text-foreground-secondary flex items-center gap-2 transition-colors duration-200">
-                        {icon}
-                        <span className="text-mini font-mono tracking-wider uppercase">
-                            {subtitle}
-                        </span>
-                    </div>
-                    <h3 className="heading-style-h4 text-foreground-primary tracking-tight">
-                        {title}
-                    </h3>
-                    <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
-                        {paragraph}
-                    </p>
-                </div>
+                <h3 className="heading-style-h4 text-foreground-primary tracking-tight">{title}</h3>
+                <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
+                    {paragraph}
+                </p>
             </div>
         </motion.div>
     );
@@ -443,7 +449,7 @@ export function WhatCanWeblabDoSectionV2() {
                     {t('subhead')}
                 </p>
             </motion.div>
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-20 md:gap-28">
                 {FEATURE_KEYS.map((key, i) => (
                     <FeatureCard
                         key={key}
