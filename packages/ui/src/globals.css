@@ -246,187 +246,191 @@
     --np-secondary-icon-background: #AE4AFF; /* purple-500*/
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
-    --background: 0 0% 100%; /* white */
-    --background-weblab: 0 0% 90%; /* light gray */
-    --background-brand: 206 100% 66%; /* blue[300] */
-    --background-brand-secondary: 206 100% 78%; /* blue[200] */
-    --background-primary: 0 0% 100%; /* white */
-    --background-secondary: 0 0% 95%; /* very light gray */
-    --background-positive: 203 100% 94%; /* blue[100] */
-    --background-success: 203 100% 94%; /* blue[100] — semantic alias for "added/ok" */
-    --background-success-secondary: 206 100% 78%; /* blue[200] */
-    --background-warning: 206 100% 94%; /* blue[100] — semantic alias for "modified/attention" */
-    --background-warning-secondary: 206 100% 78%; /* blue[200] */
-    --background-tertiary: 0 0% 90%; /* light gray */
-    --background-toolbar-base: 0 0% 100%; /* white */
-    --background-hover: 0 0% 95%; /* very light gray */
-    --background-active: 0 0% 90%; /* light gray */
-    --background-disabled: 0 0% 95%; /* very light gray */
+    --background: 0 0% 100%; /* #ffffff */
+    --background-weblab: 0 0% 90%; /* #e6e6e6 */
+    --background-brand: 206 100% 66%; /* #52b4ff blue[300] */
+    --background-brand-secondary: 206 100% 78%; /* #8fceff blue[200] */
+    --background-primary: 0 0% 100%; /* #ffffff */
+    --background-secondary: 0 0% 95%; /* #f2f2f2 */
+    --background-positive: 203 100% 94%; /* #e0f3ff blue[100] */
+    --background-success: 203 100% 94%; /* #e0f3ff — semantic alias for "added/ok" */
+    --background-success-secondary: 206 100% 78%; /* #8fceff blue[200] */
+    --background-warning: 206 100% 94%; /* #e0f2ff — semantic alias for "modified/attention" */
+    --background-warning-secondary: 206 100% 78%; /* #8fceff blue[200] */
+    --background-tertiary: 0 0% 90%; /* #e6e6e6 */
+    --background-toolbar-base: 0 0% 100%; /* #ffffff */
+    --background-hover: 0 0% 95%; /* #f2f2f2 */
+    --background-active: 0 0% 90%; /* #e6e6e6 */
+    --background-disabled: 0 0% 95%; /* #f2f2f2 */
 
-    --foreground: 0 0% 10%; /* black */
-    --foreground-weblab: 0 0% 20%; /* dark gray */
-    --foreground-brand: 205 100% 53%; /* blue[400] */
-    --foreground-primary: 0 0% 10%; /* black */
-    --foreground-secondary: 0 0% 20%; /* dark gray */
-    --foreground-tertiary: 0 0% 33%; /* medium gray */
-    --foreground-quadranary: 0 0% 47%; /* gray */
-    --foreground-positive: 208 100% 36%; /* blue[600] */
-    --foreground-success: 208 100% 36%; /* blue[600] — semantic alias for "added/ok" */
-    --foreground-warning: 206 100% 35%; /* blue[600] — semantic alias for "modified/attention" */
-    --foreground-hover: 0 0% 12%; /* very dark gray */
-    --foreground-active: 0 0% 10%; /* black */
-    --foreground-disabled: 0 0% 90%; /* light gray */
+    /* Landing-page mockup illustration accents (sky / orange) — keep parity in dark */
+    --accent-sky: 199 89% 48%; /* #0da2e7 sky-500 */
+    --accent-orange: 25 95% 53%; /* #f97415 orange-500 */
 
-    --primary: 0 0% 10%; /* black */
-    --primary-foreground: 0 0% 100%; /* white */
+    --foreground: 0 0% 10%; /* #1a1a1a */
+    --foreground-weblab: 0 0% 20%; /* #333333 */
+    --foreground-brand: 205 100% 53%; /* #0f9bff blue[400] */
+    --foreground-primary: 0 0% 10%; /* #1a1a1a */
+    --foreground-secondary: 0 0% 20%; /* #333333 */
+    --foreground-tertiary: 0 0% 33%; /* #545454 */
+    --foreground-quadranary: 0 0% 47%; /* #787878 */
+    --foreground-positive: 208 100% 36%; /* #0062b8 blue[600] */
+    --foreground-success: 208 100% 36%; /* #0062b8 — semantic alias for "added/ok" */
+    --foreground-warning: 206 100% 35%; /* #0065b3 — semantic alias for "modified/attention" */
+    --foreground-hover: 0 0% 12%; /* #1f1f1f */
+    --foreground-active: 0 0% 10%; /* #1a1a1a */
+    --foreground-disabled: 0 0% 90%; /* #e6e6e6 */
 
-    --secondary: 0 0% 95%; /* very light gray */
-    --secondary-foreground: 0 0% 10%; /* black */
+    --primary: 0 0% 10%; /* #1a1a1a */
+    --primary-foreground: 0 0% 100%; /* #ffffff */
 
-    --destructive: 0 72% 51%; /* red */
-    --destructive-foreground: 0 0% 100%; /* white */
+    --secondary: 0 0% 95%; /* #f2f2f2 */
+    --secondary-foreground: 0 0% 10%; /* #1a1a1a */
 
-    --card: 0 0% 100%; /* white */
-    --card-foreground: 0 0% 10%; /* black */
+    --destructive: 0 72% 51%; /* #dc2828 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
 
-    --popover: 0 0% 100%; /* white */
-    --popover-foreground: 0 0% 10%; /* black */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 0 0% 10%; /* #1a1a1a */
 
-    --icon: 0 0% 33%; /* medium gray */
-    --icon-hover: 0 0% 10%; /* black */
-    --icon-active: 0 0% 10%; /* black */
-    --icon-disabled: 0 0% 20%; /* dark gray */
+    --popover: 0 0% 100%; /* #ffffff */
+    --popover-foreground: 0 0% 10%; /* #1a1a1a */
 
-    --border: 0 0% 90%; /* light gray */
-    --border-active: 0 0% 67%; /* medium gray */
-    --border-hover: 0 0% 57%; /* gray */
-    --border-success: 206 100% 44%; /* blue[500] — semantic */
-    --border-warning: 206 100% 66%; /* blue[300] — semantic */
+    --icon: 0 0% 33%; /* #545454 */
+    --icon-hover: 0 0% 10%; /* #1a1a1a */
+    --icon-active: 0 0% 10%; /* #1a1a1a */
+    --icon-disabled: 0 0% 20%; /* #333333 */
+
+    --border: 0 0% 90%; /* #e6e6e6 */
+    --border-active: 0 0% 67%; /* #ababab */
+    --border-hover: 0 0% 57%; /* #919191 */
+    --border-success: 206 100% 44%; /* #007fe0 blue[500] — semantic */
+    --border-warning: 206 100% 66%; /* #52b4ff blue[300] — semantic */
 
     /* Canvas editor surfaces (light mode) — see docs in /design-system */
-    --background-canvas: 0 0% 92%; /* #EBEBEB — main canvas viewport */
-    --background-chrome: 0 0% 100%; /* #FFFFFF — top bar, side panels */
-    --background-bar: 0 0% 100%; /* #FFFFFF — bottom toolbar */
-    --background-bar-active: 0 0% 95%; /* #F1F1F1 — pressed/active toolbar button */
-    --background-tab-strip: 0 0% 95%; /* #F2F2F2 — tab list container */
-    --background-tab-active: 0 0% 100%; /* #FFFFFF — active tab fill */
-    --border-canvas: 0 0% 88%; /* ~#E0E0E0 — 1px frame around canvas */
-    --border-bar: 60 4% 94%; /* #EFEFEE — bottom toolbar border */
-    --border-tab-active: 0 0% 88%; /* ~#E0E0E0 — active tab border */
-    --border-tab-divider: 0 0% 86%; /* ~#DCDCDC — 1×14 vertical divider in tab strip */
+    --background-canvas: 0 0% 92%; /* #ebebeb — main canvas viewport */
+    --background-chrome: 0 0% 100%; /* #ffffff — top bar, side panels */
+    --background-bar: 0 0% 100%; /* #ffffff — bottom toolbar */
+    --background-bar-active: 0 0% 95%; /* #f2f2f2 — pressed/active toolbar button */
+    --background-tab-strip: 0 0% 95%; /* #f2f2f2 — tab list container */
+    --background-tab-active: 0 0% 100%; /* #ffffff — active tab fill */
+    --border-canvas: 0 0% 88%; /* #e0e0e0 — 1px frame around canvas */
+    --border-bar: 0 0% 94%; /* #f0f0f0 — bottom toolbar border (neutralized from warm 60 4% 94%) */
+    --border-tab-active: 0 0% 88%; /* #e0e0e0 — active tab border */
+    --border-tab-divider: 0 0% 86%; /* #dbdbdb — 1×14 vertical divider in tab strip */
 
-    --muted: 0 0% 95%; /* very light gray */
-    --muted-foreground: 0 0% 20%; /* dark gray */
+    --muted: 0 0% 95%; /* #f2f2f2 */
+    --muted-foreground: 0 0% 20%; /* #333333 */
 
-    --accent: 0 0% 95%; /* very light gray */
-    --accent-foreground: 0 0% 10%; /* black */
+    --accent: 0 0% 95%; /* #f2f2f2 */
+    --accent-foreground: 0 0% 10%; /* #1a1a1a */
 
-    --input: 0 0% 95%; /* very light gray */
-    --ring: 0 0% 90%; /* light gray */
+    --input: 0 0% 95%; /* #f2f2f2 */
+    --ring: 0 0% 90%; /* #e6e6e6 */
 
-    --radius: 1rem; /* shadcn */
+    --radius: 1rem;
 
     /* Color Tokens */
-    --color-amber-default: 206 100% 78%; /* #90D1FF */
-    --color-amber-100: 206 100% 94%; /* #E3F3FF */
-    --color-amber-200: 206 100% 78%; /* #90D1FF */
-    --color-amber-300: 206 100% 66%; /* #53B8FF */
-    --color-amber-400: 206 100% 53%; /* #109BFF */
-    --color-amber-500: 206 100% 44%; /* #0081DE */
-    --color-amber-600: 206 100% 35%; /* #006AB5 */
-    --color-amber-700: 206 100% 28%; /* #00538F */
-    --color-amber-800: 206 100% 20%; /* #003E69 */
-    --color-amber-900: 206 100% 14%; /* #002A48 */
-    --color-amber-950: 206 100% 9%; /* #001B2E */
+    --color-amber-default: 206 100% 78%; /* #8fceff */
+    --color-amber-100: 206 100% 94%; /* #e0f2ff */
+    --color-amber-200: 206 100% 78%; /* #8fceff */
+    --color-amber-300: 206 100% 66%; /* #52b4ff */
+    --color-amber-400: 206 100% 53%; /* #0f97ff */
+    --color-amber-500: 206 100% 44%; /* #007fe0 */
+    --color-amber-600: 206 100% 35%; /* #0065b3 */
+    --color-amber-700: 206 100% 28%; /* #00518f */
+    --color-amber-800: 206 100% 20%; /* #003a66 */
+    --color-amber-900: 206 100% 14%; /* #002847 */
+    --color-amber-950: 206 100% 9%; /* #001a2e */
 
-    --color-black-default: oklch(0 0 0);
-    --color-black-30: oklch(0 0 0 / 0.3);
-    --color-black-60: oklch(0 0 0 / 0.6);
-    --color-black-85: oklch(0 0 0 / 0.85);
+    --color-black-default: #000000;
+    --color-black-30: rgba(0,0,0,0.3);
+    --color-black-60: rgba(0,0,0,0.6);
+    --color-black-85: rgba(0,0,0,0.85);
 
-    --color-purple-default: oklch(0.75 0.2 300);
-    --color-purple-100: oklch(0.95 0.05 300);
-    --color-purple-200: oklch(0.85 0.1 300);
-    --color-purple-300: oklch(0.8 0.15 300);
-    --color-purple-400: oklch(0.75 0.2 300);
-    --color-purple-500: oklch(0.65 0.25 300);
-    --color-purple-600: oklch(0.55 0.3 300);
-    --color-purple-700: oklch(0.45 0.35 300);
-    --color-purple-800: oklch(0.35 0.4 300);
-    --color-purple-900: oklch(0.25 0.45 300);
-    --color-purple-950: oklch(0.15 0.5 300);
+    --color-purple-default: #c38bff;
+    --color-purple-100: #f3e8ff;
+    --color-purple-200: #d8bfff;
+    --color-purple-300: #cda6ff;
+    --color-purple-400: #c38bff;
+    --color-purple-500: #aa5aff;
+    --color-purple-600: #9300ff;
+    --color-purple-700: #7e00f3;
+    --color-purple-800: #6b00e4;
+    --color-purple-900: #5c00d4;
+    --color-purple-950: #4f00c4;
 
-    --color-red-default: 0 72% 51%; /* #e53e3e */
-    --color-red-100: 0 93% 94%; /* #fee2e2 */
-    --color-red-200: 0 96% 89%; /* #fecaca */
-    --color-red-300: 0 94% 82%; /* #fca5a5 */
-    --color-red-400: 0 91% 71%; /* #f87171 */
-    --color-red-500: 0 84% 60%; /* #ef4444 */
-    --color-red-600: 0 72% 51%; /* #dc2626 */
-    --color-red-700: 0 74% 42%; /* #b91c1c */
-    --color-red-800: 0 70% 35%; /* #991b1b */
-    --color-red-900: 0 63% 31%; /* #7f1d1d */
-    --color-red-950: 0 75% 15%; /* #450a0a */
+    --color-red-default: 0 72% 51%; /* #dc2828 */
+    --color-red-100: 0 93% 94%; /* #fee1e1 */
+    --color-red-200: 0 96% 89%; /* #fec8c8 */
+    --color-red-300: 0 94% 82%; /* #fca6a6 */
+    --color-red-400: 0 91% 71%; /* #f87272 */
+    --color-red-500: 0 84% 60%; /* #ef4343 */
+    --color-red-600: 0 72% 51%; /* #dc2828 */
+    --color-red-700: 0 74% 42%; /* #ba1c1c */
+    --color-red-800: 0 70% 35%; /* #981b1b */
+    --color-red-900: 0 63% 31%; /* #811d1d */
+    --color-red-950: 0 75% 15%; /* #430a0a */
 
-    --color-blue-default: 206 100% 78%; /* #90D1FF */
-    --color-blue-100: 206 100% 94%; /* #E3F3FF */
-    --color-blue-200: 206 100% 78%; /* #90D1FF */
-    --color-blue-300: 206 100% 66%; /* #53B8FF */
-    --color-blue-400: 206 100% 53%; /* #109BFF */
-    --color-blue-500: 206 100% 44%; /* #0081DE */
-    --color-blue-600: 206 100% 35%; /* #006AB5 */
-    --color-blue-700: 206 100% 28%; /* #00538F */
-    --color-blue-800: 206 100% 20%; /* #003E69 */
-    --color-blue-900: 206 100% 14%; /* #002A48 */
-    --color-blue-950: 206 100% 9%; /* #001B2E */
+    --color-blue-default: 206 100% 78%; /* #8fceff */
+    --color-blue-100: 206 100% 94%; /* #e0f2ff */
+    --color-blue-200: 206 100% 78%; /* #8fceff */
+    --color-blue-300: 206 100% 66%; /* #52b4ff */
+    --color-blue-400: 206 100% 53%; /* #0f97ff */
+    --color-blue-500: 206 100% 44%; /* #007fe0 */
+    --color-blue-600: 206 100% 35%; /* #0065b3 */
+    --color-blue-700: 206 100% 28%; /* #00518f */
+    --color-blue-800: 206 100% 20%; /* #003a66 */
+    --color-blue-900: 206 100% 14%; /* #002847 */
+    --color-blue-950: 206 100% 9%; /* #001a2e */
 
-    --color-gray-default: 0 0% 29%; /* #494949 */
+    --color-gray-default: 0 0% 29%; /* #4a4a4a */
     --color-gray-50: 0 0% 100%; /* #ffffff */
     --color-gray-100: 0 0% 78%; /* #c7c7c7 */
-    --color-gray-200: 0 0% 67%; /* #acacac */
-    --color-gray-300: 0 0% 57%; /* #929292 */
+    --color-gray-200: 0 0% 67%; /* #ababab */
+    --color-gray-300: 0 0% 57%; /* #919191 */
     --color-gray-400: 0 0% 47%; /* #787878 */
-    --color-gray-500: 0 0% 38%; /* #606060 */
-    --color-gray-600: 0 0% 29%; /* #494949 */
+    --color-gray-500: 0 0% 38%; /* #616161 */
+    --color-gray-600: 0 0% 29%; /* #4a4a4a */
     --color-gray-700: 0 0% 20%; /* #333333 */
     --color-gray-800: 0 0% 12%; /* #1f1f1f */
     --color-gray-900: 0 0% 10%; /* #1a1a1a */
 
-    --color-green-default: 206 100% 78%; /* #90D1FF */
-    --color-green-100: 206 100% 94%; /* #E3F3FF */
-    --color-green-200: 206 100% 78%; /* #90D1FF */
-    --color-green-300: 206 100% 66%; /* #53B8FF */
-    --color-green-400: 206 100% 53%; /* #109BFF */
-    --color-green-500: 206 100% 44%; /* #0081DE */
-    --color-green-600: 206 100% 35%; /* #006AB5 */
-    --color-green-700: 206 100% 28%; /* #00538F */
-    --color-green-800: 206 100% 20%; /* #003E69 */
-    --color-green-900: 206 100% 14%; /* #002A48 */
-    --color-green-950: 206 100% 9%; /* #001B2E */
+    --color-green-default: 206 100% 78%; /* #8fceff */
+    --color-green-100: 206 100% 94%; /* #e0f2ff */
+    --color-green-200: 206 100% 78%; /* #8fceff */
+    --color-green-300: 206 100% 66%; /* #52b4ff */
+    --color-green-400: 206 100% 53%; /* #0f97ff */
+    --color-green-500: 206 100% 44%; /* #007fe0 */
+    --color-green-600: 206 100% 35%; /* #0065b3 */
+    --color-green-700: 206 100% 28%; /* #00518f */
+    --color-green-800: 206 100% 20%; /* #003a66 */
+    --color-green-900: 206 100% 14%; /* #002847 */
+    --color-green-950: 206 100% 9%; /* #001a2e */
 
-    --color-teal-default: 206 100% 78%; /* #90D1FF */
-    --color-teal-100: 206 100% 94%; /* #E3F3FF */
-    --color-teal-200: 206 100% 78%; /* #90D1FF */
-    --color-teal-300: 206 100% 66%; /* #53B8FF */
-    --color-teal-400: 206 100% 53%; /* #109BFF */
-    --color-teal-500: 206 100% 44%; /* #0081DE */
-    --color-teal-600: 206 100% 35%; /* #006AB5 */
-    --color-teal-700: 206 100% 28%; /* #00538F */
-    --color-teal-800: 206 100% 20%; /* #003E69 */
-    --color-teal-900: 206 100% 14%; /* #002A48 */
-    --color-teal-950: 206 100% 9%; /* #001B2E */
+    --color-teal-default: 206 100% 78%; /* #8fceff */
+    --color-teal-100: 206 100% 94%; /* #e0f2ff */
+    --color-teal-200: 206 100% 78%; /* #8fceff */
+    --color-teal-300: 206 100% 66%; /* #52b4ff */
+    --color-teal-400: 206 100% 53%; /* #0f97ff */
+    --color-teal-500: 206 100% 44%; /* #007fe0 */
+    --color-teal-600: 206 100% 35%; /* #0065b3 */
+    --color-teal-700: 206 100% 28%; /* #00518f */
+    --color-teal-800: 206 100% 20%; /* #003a66 */
+    --color-teal-900: 206 100% 14%; /* #002847 */
+    --color-teal-950: 206 100% 9%; /* #001a2e */
 
-    --color-yellow-default: 206 100% 78%; /* #90D1FF */
-    --color-yellow-100: 206 100% 94%; /* #E3F3FF */
-    --color-yellow-200: 206 100% 78%; /* #90D1FF */
-    --color-yellow-300: 206 100% 66%; /* #53B8FF */
-    --color-yellow-400: 206 100% 53%; /* #109BFF */
-    --color-yellow-500: 206 100% 44%; /* #0081DE */
-    --color-yellow-600: 206 100% 35%; /* #006AB5 */
-    --color-yellow-700: 206 100% 28%; /* #00538F */
-    --color-yellow-800: 206 100% 20%; /* #003E69 */
-    --color-yellow-900: 206 100% 14%; /* #002A48 */
-    --color-yellow-950: 206 100% 9%; /* #001B2E */
+    --color-yellow-default: 206 100% 78%; /* #8fceff */
+    --color-yellow-100: 206 100% 94%; /* #e0f2ff */
+    --color-yellow-200: 206 100% 78%; /* #8fceff */
+    --color-yellow-300: 206 100% 66%; /* #52b4ff */
+    --color-yellow-400: 206 100% 53%; /* #0f97ff */
+    --color-yellow-500: 206 100% 44%; /* #007fe0 */
+    --color-yellow-600: 206 100% 35%; /* #0065b3 */
+    --color-yellow-700: 206 100% 28%; /* #00518f */
+    --color-yellow-800: 206 100% 20%; /* #003a66 */
+    --color-yellow-900: 206 100% 14%; /* #002847 */
+    --color-yellow-950: 206 100% 9%; /* #001a2e */
 
     /* Font Size Tokens */
     --font-size-title1: 2.25rem;
@@ -490,14 +494,14 @@
     --font-leading-micro: normal;
     --font-weight-micro: var(--font-weight-normal);
     --font-tracking-micro: 0.005rem;
-    --sidebar: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(240 5.9% 10%);
-    --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(240 4.8% 95.9%);
-    --sidebar-accent-foreground: hsl(240 5.9% 10%);
-    --sidebar-border: hsl(220 13% 91%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --sidebar: #fafafa;
+    --sidebar-foreground: #3f3f46;
+    --sidebar-primary: #18181b;
+    --sidebar-primary-foreground: #fafafa;
+    --sidebar-accent: #f4f4f5;
+    --sidebar-accent-foreground: #18181b;
+    --sidebar-border: #e5e7eb;
+    --sidebar-ring: #3b82f6;
 }
 
 .dark {
@@ -520,90 +524,94 @@
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
     --background: 240 2.6% 7.6%; /* #131314 */
-    --background-weblab: 0 0% 10%; /* gray[900] */
-    --background-brand: 206 100% 28%; /* blue[700] */
-    --background-brand-secondary: 206 100% 44%; /* blue[500] */
-    --background-primary: 0 0% 10%; /* gray[900] */
-    --background-secondary: 0 0% 12%; /* gray[800] */
-    --background-positive: 208 100% 16%; /* blue[900] */
-    --background-success: 208 100% 16%; /* blue[900] — semantic alias for "added/ok" */
-    --background-success-secondary: 206 100% 28%; /* blue[700] */
-    --background-warning: 206 100% 14%; /* blue[900] — semantic alias for "modified/attention" */
-    --background-warning-secondary: 206 100% 28%; /* blue[700] */
-    --background-tertiary: 0 0% 20%; /* gray[700] */
-    --background-toolbar-base: 0 0% 0% 0.85; /* black[85] */
-    --background-hover: 0 0% 12%; /* gray[800] */
-    --background-active: 0 0% 20%; /* gray[700] */
-    --background-disabled: 0 0% 10%; /* gray[900] */
+    --background-weblab: 0 0% 10%; /* #1a1a1a gray[900] */
+    --background-brand: 206 100% 28%; /* #00518f blue[700] */
+    --background-brand-secondary: 206 100% 44%; /* #007fe0 blue[500] */
+    --background-primary: 0 0% 10%; /* #1a1a1a gray[900] */
+    --background-secondary: 0 0% 12%; /* #1f1f1f gray[800] */
+    --background-positive: 208 100% 16%; /* #002c52 blue[900] */
+    --background-success: 208 100% 16%; /* #002c52 — semantic alias for "added/ok" */
+    --background-success-secondary: 206 100% 28%; /* #00518f blue[700] */
+    --background-warning: 206 100% 14%; /* #002847 — semantic alias for "modified/attention" */
+    --background-warning-secondary: 206 100% 28%; /* #00518f blue[700] */
+    --background-tertiary: 0 0% 20%; /* #333333 gray[700] */
+    --background-toolbar-base: 0 0% 0% / 0.85; /* black[85] (alpha syntax) */
+    --background-hover: 0 0% 12%; /* #1f1f1f gray[800] */
+    --background-active: 0 0% 20%; /* #333333 gray[700] */
+    --background-disabled: 0 0% 10%; /* #1a1a1a gray[900] */
 
-    --foreground: 60 9.1% 97.8%; /* shadcn */
-    --foreground-weblab: 0 0% 67%; /* gray[200] */
-    --foreground-brand: 205 100% 53%; /* blue[400] */
-    --foreground-primary: 0 0% 100%; /* gray[50] */
-    --foreground-secondary: 0 0% 67%; /* gray[200] */
-    --foreground-tertiary: 0 0% 57%; /* gray[300] */
-    --foreground-quadranary: 0 0% 38%; /* gray[500] */
-    --foreground-positive: 203 100% 78%; /* blue[200] */
-    --foreground-success: 206 100% 44%; /* blue[500] — semantic alias for "added/ok" */
-    --foreground-warning: 206 100% 66%; /* blue[300] — semantic alias for "modified/attention" */
-    --foreground-hover: 0 0% 78%; /* gray[100] */
-    --foreground-active: 0 0% 100%; /* gray[50] */
-    --foreground-disabled: 0 0% 10%; /* gray[900] */
+    /* Landing-page mockup illustration accents (sky / orange) — slightly brighter for dark surfaces */
+    --accent-sky: 199 89% 60%; /* #3ebaf4 sky-400 */
+    --accent-orange: 25 95% 60%; /* #fa8938 orange-400 */
 
-    --primary: 60 9.1% 97.8%; /* shadcn */
-    --primary-foreground: 24 9.8% 10%; /* shadcn */
+    --foreground: 0 0% 97.8%; /* #f9f9f9 — neutralized from 60 9.1% 97.8% (warm) */
+    --foreground-weblab: 0 0% 67%; /* #ababab gray[200] */
+    --foreground-brand: 205 100% 53%; /* #0f9bff blue[400] */
+    --foreground-primary: 0 0% 100%; /* #ffffff gray[50] */
+    --foreground-secondary: 0 0% 67%; /* #ababab gray[200] */
+    --foreground-tertiary: 0 0% 57%; /* #919191 gray[300] */
+    --foreground-quadranary: 0 0% 38%; /* #616161 gray[500] */
+    --foreground-positive: 203 100% 78%; /* #8fd4ff blue[200] */
+    --foreground-success: 206 100% 44%; /* #007fe0 blue[500] — semantic alias for "added/ok" */
+    --foreground-warning: 206 100% 66%; /* #52b4ff blue[300] — semantic alias for "modified/attention" */
+    --foreground-hover: 0 0% 78%; /* #c7c7c7 gray[100] */
+    --foreground-active: 0 0% 100%; /* #ffffff gray[50] */
+    --foreground-disabled: 0 0% 10%; /* #1a1a1a gray[900] */
 
-    --secondary: 12 6.5% 15.1%; /* shadcn */
-    --secondary-foreground: 60 9.1% 97.8%; /* shadcn */
+    --primary: 0 0% 97.8%; /* #f9f9f9 — neutralized from 60 9.1% 97.8% (warm) */
+    --primary-foreground: 0 0% 10%; /* #1a1a1a — neutralized from 24 9.8% 10% (brown) */
 
-    --destructive: 0 72% 51%; /* red */
-    --destructive-foreground: 0 0% 100%; /* white */
+    --secondary: 0 0% 15.1%; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
+    --secondary-foreground: 0 0% 97.8%; /* #f9f9f9 — neutralized from warm */
+
+    --destructive: 0 72% 51%; /* #dc2828 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
 
     --card: 240 2.6% 7.6%; /* #131314 */
-    --card-foreground: 60 9.1% 97.8%; /* shadcn */
+    --card-foreground: 0 0% 97.8%; /* #f9f9f9 — neutralized from warm */
 
     --popover: 240 2.6% 7.6%; /* #131314 */
-    --popover-foreground: 60 9.1% 97.8%; /* shadcn */
+    --popover-foreground: 0 0% 97.8%; /* #f9f9f9 — neutralized from warm */
 
-    --icon: 0 0% 57%; /* gray[300] */
-    --icon-hover: 0 0% 100%; /* gray[50] */
-    --icon-active: 0 0% 100%; /* gray[50] */
-    --icon-disabled: 0 0% 67%; /* gray[200] */
+    --icon: 0 0% 57%; /* #919191 gray[300] */
+    --icon-hover: 0 0% 100%; /* #ffffff gray[50] */
+    --icon-active: 0 0% 100%; /* #ffffff gray[50] */
+    --icon-disabled: 0 0% 67%; /* #ababab gray[200] */
 
-    --border: 0 0% 12%; /* gray[800] */
-    --border-active: 0 0% 47%; /* gray[400] */
-    --border-hover: 0 0% 38%; /* gray[500] */
-    --border-success: 206 100% 44%; /* blue[500] — semantic */
-    --border-warning: 206 100% 66%; /* blue[300] — semantic */
+    --border: 0 0% 12%; /* #1f1f1f gray[800] */
+    --border-active: 0 0% 47%; /* #787878 gray[400] */
+    --border-hover: 0 0% 38%; /* #616161 gray[500] */
+    --border-success: 206 100% 44%; /* #007fe0 blue[500] — semantic */
+    --border-warning: 206 100% 66%; /* #52b4ff blue[300] — semantic */
 
     /* Canvas editor surfaces (dark mode) — see docs in /design-system */
-    --background-canvas: 0 0% 11%; /* #1B1B1B — main canvas viewport */
+    --background-canvas: 0 0% 11%; /* #1c1c1c — main canvas viewport */
     --background-chrome: 0 0% 7%; /* #121212 — top bar, side panels */
     --background-bar: 0 0% 7%; /* #121212 — bottom toolbar */
-    --background-bar-active: 0 0% 18%; /* #2D2D2D — pressed/active toolbar button */
+    --background-bar-active: 0 0% 18%; /* #2e2e2e — pressed/active toolbar button */
     --background-tab-strip: 0 0% 15%; /* #262626 — tab list container */
     --background-tab-active: 0 0% 22%; /* #383838 — active tab fill */
     --border-canvas: 0 0% 13%; /* #212121 — 1px frame around canvas */
-    --border-bar: 0 0% 14%; /* #232323 — bottom toolbar border */
+    --border-bar: 0 0% 14%; /* #242424 — bottom toolbar border */
     --border-tab-active: 0 0% 27%; /* #454545 — active tab border */
-    --border-tab-divider: 0 0% 24%; /* #3C3C3C — 1×14 vertical divider in tab strip */
+    --border-tab-divider: 0 0% 24%; /* #3d3d3d — 1×14 vertical divider in tab strip */
 
-    --muted: 12 6.5% 15.1%; /* shadcn */
-    --muted-foreground: 24 5.4% 63.9%; /* shadcn */
+    --muted: 0 0% 15.1%; /* #262626 (fixed malformed value) */
+    --muted-foreground: 0 0% 63.9%; /* #a3a3a3 — neutralized from 24 5.4% 63.9% (warm taupe) */
 
-    --accent: 12 6.5% 15.1%; /* shadcn */
-    --accent-foreground: 60 9.1% 97.8%; /* shadcn */
+    --accent: 0 0% 15.1%; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
+    --accent-foreground: 0 0% 97.8%; /* #f9f9f9 — neutralized from warm */
 
-    --input: 12 6.5% 15.1%; /* shadcn */
-    --ring: 24 5.7% 82.9%; /* shadcn */
-    --sidebar: hsl(240 5.9% 10%);
-    --sidebar-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-primary: hsl(224.3 76.3% 48%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(240 3.7% 15.9%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(240 3.7% 15.9%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --input: 0 0% 15.1%; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
+    --ring: 0 0% 82.9%; /* #d4d4d4 — neutralized from 24 5.7% 82.9% (warm) */
+    --sidebar: #18181b;
+    --sidebar-foreground: #f4f4f5;
+    --sidebar-primary: #1d4ed8;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #27272a;
+    --sidebar-accent-foreground: #f4f4f5;
+    --sidebar-border: #27272a;
+    --sidebar-ring: #3b82f6;
 }
 
 @layer base {
@@ -660,6 +668,10 @@
     --color-background-success: hsl(var(--background-success));
     --color-background-warning: hsl(var(--background-warning));
     --color-background-brand: hsl(var(--background-brand));
+
+    /* Landing-page accent tokens — exposed as bg-accent-sky, text-accent-orange, etc. */
+    --color-accent-sky: hsl(var(--accent-sky));
+    --color-accent-orange: hsl(var(--accent-orange));
 
     /* Radius scale — anchored to --radius (1rem) */
     --radius-xs: 0.25rem;

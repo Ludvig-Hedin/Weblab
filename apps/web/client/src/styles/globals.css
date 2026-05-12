@@ -24,13 +24,18 @@ body {
     view-transition-name: top-bar;
 }
 
+/* Desktop (Electron) drag-region rules live in apps/web/client/src/app/layout.tsx
+   as raw <style> markup. They have to bypass Lightning CSS, which strips the
+   non-standard `-webkit-app-region` property when these rules are processed
+   through this file. */
+
 /* ── Appearance system ──────────────────────────────────────────────── */
 
 /* Accent colors */
-[data-accent='blue']    { --accent: oklch(0.623 0.214 255); --accent-foreground: oklch(1 0 0); }
-[data-accent='red']     { --accent: oklch(0.637 0.237 25.3); --accent-foreground: oklch(1 0 0); }
-[data-accent='green']   { --accent: oklch(0.723 0.19 142.5); --accent-foreground: oklch(1 0 0); }
-[data-accent='neutral'] { --accent: oklch(0.556 0 0); --accent-foreground: oklch(1 0 0); }
+[data-accent='blue']    { --accent: #0083ff; --accent-foreground: #ffffff; }
+[data-accent='red']     { --accent: #fb2c36; --accent-foreground: #ffffff; }
+[data-accent='green']   { --accent: #50c24a; --accent-foreground: #ffffff; }
+[data-accent='neutral'] { --accent: #737373; --accent-foreground: #ffffff; }
 
 /* UI density */
 [data-density='compact']     { --spacing-unit: 0.75; }
