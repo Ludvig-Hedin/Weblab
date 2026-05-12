@@ -17,7 +17,6 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
-import { cn } from '@weblab/ui/utils';
 import { getInitials } from '@weblab/utility';
 
 import { transKeys } from '@/i18n/keys';
@@ -152,34 +151,22 @@ export const TopBarPresentation = ({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent sideOffset={8} className="translate-x-[-12px]">
                         <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
+                            className="group cursor-pointer select-none"
                             onSelect={onCreateBlank}
                             disabled={isCreatingProject}
                         >
                             {isCreatingProject ? (
-                                <Icons.LoadingSpinner className="text-foreground-secondary mr-1 h-4 w-4 animate-spin group-hover:text-blue-900 dark:group-hover:text-blue-100" />
+                                <Icons.LoadingSpinner className="text-foreground-secondary mr-1 h-4 w-4 animate-spin" />
                             ) : (
-                                <Icons.FilePlus className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-900 dark:group-hover:text-blue-100" />
+                                <Icons.FilePlus className="text-foreground-secondary mr-1 h-4 w-4" />
                             )}
                             {t(transKeys.projects.actions.blankProject)}
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                            className={cn(
-                                'focus:bg-blue-100 focus:text-blue-900',
-                                'hover:bg-blue-100 hover:text-blue-900',
-                                'dark:focus:bg-blue-900 dark:focus:text-blue-100',
-                                'dark:hover:bg-blue-900 dark:hover:text-blue-100',
-                                'group cursor-pointer select-none',
-                            )}
+                            className="group cursor-pointer select-none"
                             onSelect={onImport}
                         >
-                            <Icons.Upload className="text-foreground-secondary mr-1 h-4 w-4 group-hover:text-blue-900 dark:group-hover:text-blue-100" />
+                            <Icons.Upload className="text-foreground-secondary mr-1 h-4 w-4" />
                             <p className="text-microPlus">{t(transKeys.projects.actions.import)}</p>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

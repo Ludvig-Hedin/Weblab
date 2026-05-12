@@ -39,7 +39,7 @@ export const Verified = () => {
                 <div className="flex flex-1 gap-2">
                     <Input value={baseUrl ?? ''} readOnly className="bg-muted" />
                     <div className="flex items-center gap-1">
-                        <Icons.CheckCircled className="h-4 w-4 text-green-500" />
+                        <Icons.CheckCircled className="text-foreground-success h-4 w-4" />
                         <span className="text-xs">Verified</span>
                     </div>
                     <DropdownMenu>
@@ -50,8 +50,9 @@ export const Verified = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem
+                                variant="destructive"
                                 onClick={removeDomain}
-                                className="hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer text-red-500"
+                                className="cursor-pointer"
                                 disabled={isLoading}
                             >
                                 {isLoading && (

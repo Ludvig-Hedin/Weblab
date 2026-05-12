@@ -1,10 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
 import { Carousel } from './carousel';
@@ -99,9 +108,6 @@ export const SelectProjectPresentation = ({
         'Last viewed',
     );
 
-    // Settings
-    const [isSettingsDropdownOpen, setIsSettingsDropdownOpen] = useState(false);
-    const settingsDropdownRef = useRef<HTMLDivElement>(null);
     const [layoutMode, setLayoutMode] = useState<'masonry' | 'grid'>('masonry');
     const [spacing] = useState<number>(24);
 
@@ -194,22 +200,6 @@ export const SelectProjectPresentation = ({
         { value: 'Oldest first', label: 'Oldest first' },
         { value: 'Newest first', label: 'Newest first' },
     ] as const;
-
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (
-                settingsDropdownRef.current &&
-                !settingsDropdownRef.current.contains(event.target as Node)
-            ) {
-                setIsSettingsDropdownOpen(false);
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
 
     if (isLoading) {
         return (
@@ -387,77 +377,53 @@ export const SelectProjectPresentation = ({
                                 )}
                             </button>
 
-                            <div className="relative" ref={settingsDropdownRef}>
-                                <button
-                                    onClick={() =>
-                                        setIsSettingsDropdownOpen(!isSettingsDropdownOpen)
-                                    }
-                                    className="hover:bg-secondary hover:text-foreground text-foreground-tertiary rounded p-2 transition-colors"
-                                    aria-haspopup="menu"
-                                    aria-expanded={isSettingsDropdownOpen}
-                                >
-                                    <Icons.Gear className="h-4 w-4" />
-                                </button>
-
-                                <AnimatePresence>
-                                    {isSettingsDropdownOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                                            transition={{
-                                                duration: 0.18,
-                                                ease: [0.25, 0.46, 0.45, 0.94],
-                                            }}
-                                            className="bg-background border-border absolute top-full right-0 z-50 mt-2 w-48 rounded-md border shadow-lg"
-                                        >
-                                            <div className="p-2">
-                                                <div className="text-foreground-tertiary mb-2 px-2 text-xs font-medium">
-                                                    Sort by
-                                                </div>
-                                                {sortOptions.map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => {
-                                                            setFilesSortBy(option.value);
-                                                            setIsSettingsDropdownOpen(false);
-                                                        }}
-                                                        className={`hover:bg-secondary w-full rounded px-2 py-1.5 text-left text-sm transition-colors ${
-                                                            filesSortBy === option.value
-                                                                ? 'text-foreground bg-secondary'
-                                                                : 'text-foreground-secondary'
-                                                        }`}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
-
-                                                <div className="border-border my-2 border-t"></div>
-
-                                                <div className="text-foreground-tertiary mb-2 px-2 text-xs font-medium">
-                                                    Order
-                                                </div>
-                                                {orderOptions.map((option) => (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => {
-                                                            setFilesOrderBy(option.value);
-                                                            setIsSettingsDropdownOpen(false);
-                                                        }}
-                                                        className={`hover:bg-secondary w-full rounded px-2 py-1.5 text-left text-sm transition-colors ${
-                                                            filesOrderBy === option.value
-                                                                ? 'text-foreground bg-secondary'
-                                                                : 'text-foreground-secondary'
-                                                        }`}
-                                                    >
-                                                        {option.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label="Sort & order"
+                                        className="text-foreground-tertiary hover:text-foreground"
+                                    >
+                                        <Icons.Gear className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={filesSortBy}
+                                        onValueChange={(v) =>
+                                            setFilesSortBy(v as typeof filesSortBy)
+                                        }
+                                    >
+                                        {sortOptions.map((option) => (
+                                            <DropdownMenuRadioItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel>Order</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={filesOrderBy}
+                                        onValueChange={(v) =>
+                                            setFilesOrderBy(v as typeof filesOrderBy)
+                                        }
+                                    >
+                                        {orderOptions.map((option) => (
+                                            <DropdownMenuRadioItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                     </div>
 

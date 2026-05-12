@@ -477,6 +477,8 @@ declare const messages: {
         "noResultsTitle": "Nothing matches",
         "noResultsBody": "Try a broader search or clear your filters.",
         "createFolderEmpty": "No folders yet — group related projects to find them faster.",
+        "opening": "Opening {name}…",
+        "openProjectAria": "Open {name}",
         "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
         "moveToFolder": "Move to folder",
         "folderDestination": "Folder destination",
@@ -1733,7 +1735,7 @@ declare const messages: {
             "getStarted": "Get Started"
         },
         "user": {
-            "downloadApp": "Download app",
+            "download": "Download",
             "projects": "Projects",
             "signIn": "Sign In"
         },
@@ -1775,7 +1777,7 @@ declare const messages: {
             "subhead": "Open your real React or Next.js project, edit visually with AI, and push to GitHub. Open source. Pairs with Claude Code.",
             "getStarted": "Get started",
             "continueProjects": "Continue to your projects",
-            "downloadApp": "Download app",
+            "download": "Download",
             "highDemand": "We're currently experiencing high demand. Project may fail to create.",
             "create": {
                 "promptPlaceholder": "Describe what you want to build",

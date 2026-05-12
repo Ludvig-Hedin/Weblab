@@ -4,10 +4,14 @@ import { useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
 import { useStateManager } from '@/components/store/state';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
-    const { data: userSettings } = api.user.settings.get.useQuery();
+    const hasAuthCookie = useHasAuthCookie();
+    const { data: userSettings } = api.user.settings.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const { setTheme } = useTheme();
     const stateManager = useStateManager();
 

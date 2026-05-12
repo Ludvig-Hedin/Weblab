@@ -200,9 +200,9 @@ export const SettingsModalWithProjects = observer(() => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center"
+                        className="pointer-events-none fixed inset-0 z-50 flex items-start justify-center sm:items-center"
                     >
-                        <div className="bg-background pointer-events-auto h-[700px] max-h-screen w-[900px] max-w-4xl rounded-lg border p-0 shadow-lg">
+                        <div className="bg-background pointer-events-auto h-[100dvh] w-screen rounded-none border p-0 shadow-lg sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg">
                             <div className="flex h-full flex-col overflow-hidden">
                                 {/* Top bar - fixed height */}
                                 <div className="ml-1 flex shrink-0 items-center p-5 pb-4 select-none">

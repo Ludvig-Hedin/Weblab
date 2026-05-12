@@ -7,7 +7,12 @@ export type ExternalTemplateCategory =
     | 'portfolio'
     | 'marketing'
     | 'dashboard'
-    | 'blog';
+    | 'blog'
+    | 'saas'
+    | 'agency'
+    | 'docs'
+    | 'app'
+    | 'ecommerce';
 
 export interface ExternalTemplate {
     id: string;
@@ -218,6 +223,47 @@ export const EXTERNAL_TEMPLATES: ExternalTemplate[] = [
         gradientClassName: 'from-rose-950 via-red-950 to-stone-800',
     },
 ];
+
+/**
+ * STAGED Weblab-owned templates. Each entry corresponds to a repo under
+ * `github.com/Ludvig-Hedin` scaffolded from `template-sources/<id>/`. Entries
+ * stay commented out until:
+ *   1. The repo exists on GitHub (`gh repo create Ludvig-Hedin/<id> --public`).
+ *   2. A CodeSandbox template is seeded from the repo and the ID recorded as
+ *      `sandboxId` (also added to `PUBLIC_TEMPLATE_SANDBOX_IDS` in
+ *      `packages/constants/src/csb.ts`).
+ *   3. A thumbnail PNG exists at `public/assets/templates/<id>.png`.
+ *
+ * Source-of-truth for the catalog (16 templates) and per-template build
+ * prompts: `template-sources/_PROMPTS.md`. Reference template already built:
+ * `template-sources/weblab-template-saas-nextjs/` — Alloyd brand.
+ */
+// const STAGED_WEBLAB_TEMPLATES: ExternalTemplate[] = [
+//     {
+//         id: 'weblab-template-saas-nextjs',
+//         name: 'SaaS (Next.js)',
+//         shortDescription: 'Clean SaaS marketing template with restrained mono + slate-blue accent.',
+//         description:
+//             'A tight Next.js 15 marketing site for a B2B SaaS product. Restrained mono palette, slate-blue whisper accent, dark mode, shadcn/ui primitives. Sections: nav, hero, features, pricing, testimonials, CTA, footer.',
+//         category: 'saas',
+//         tags: ['Next.js', 'SaaS', 'Tailwind v4', 'shadcn/ui'],
+//         sourceUrl: 'https://github.com/Ludvig-Hedin/weblab-template-saas-nextjs',
+//         repoUrl: 'https://github.com/Ludvig-Hedin/weblab-template-saas-nextjs',
+//         previewUrl: 'https://weblab-template-saas-nextjs.vercel.app/',
+//         branch: 'main',
+//         highlights: [
+//             'Restrained mono base, slate-blue whisper accent',
+//             'Next.js 15 App Router + Tailwind v4 + shadcn/ui',
+//             'Dark mode out of the box',
+//         ],
+//         bestFor: 'B2B SaaS marketing sites that want to look intentional, not loud.',
+//         accentClassName: 'text-blue-200',
+//         gradientClassName: 'from-slate-950 via-blue-950 to-indigo-800',
+//     },
+//     // ... 15 more staged entries follow the same shape. See
+//     // `template-sources/_PROMPTS.md` for the catalog (saas/portfolio/blog/
+//     // dashboard/ecommerce/agency/docs/app × nextjs/html).
+// ];
 
 export function getExternalTemplate(id: string): ExternalTemplate | undefined {
     return EXTERNAL_TEMPLATES.find((template) => template.id === id);

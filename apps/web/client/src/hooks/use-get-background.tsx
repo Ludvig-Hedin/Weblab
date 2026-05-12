@@ -7,22 +7,21 @@ const loginDark = '/assets/dunes-login-dark.png';
 const loginLight = '/assets/dunes-login-light.png';
 
 export const useGetBackground = (type: 'create' | 'login') => {
-    const [backgroundImage, setBackgroundImage] = useState<string>(createDark);
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
+    // Default to dark assets matches the app's dark-first ThemeProvider; avoids
+    // a flash to the light asset on first paint when resolvedTheme is undefined.
+    const [backgroundImage, setBackgroundImage] = useState<string>(
+        type === 'login' ? loginDark : createDark,
+    );
 
     useEffect(() => {
-        const determineBackgroundImage = () => {
-            // Force dark theme for now
-            const isDark = true;
-            // const isDark = theme === Theme.Dark || (theme === Theme.System && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            const images = {
-                create: isDark ? createDark : createLight,
-                login: isDark ? loginDark : loginLight,
-            };
-            return images[type];
+        if (!resolvedTheme) return;
+        const isDark = resolvedTheme === 'dark';
+        const images = {
+            create: isDark ? createDark : createLight,
+            login: isDark ? loginDark : loginLight,
         };
-
-        setBackgroundImage(determineBackgroundImage());
-    }, [theme]);
+        setBackgroundImage(images[type]);
+    }, [resolvedTheme, type]);
     return backgroundImage;
 };

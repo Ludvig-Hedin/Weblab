@@ -1732,7 +1732,7 @@
             "getStarted": "Get Started"
         },
         "user": {
-            "downloadApp": "Download app",
+            "download": "Download",
             "projects": "Projects",
             "signIn": "Sign In"
         },
@@ -1774,7 +1774,7 @@
             "subhead": "Open your real React or Next.js project, edit visually with AI, and push to GitHub. Open source. Pairs with Claude Code.",
             "getStarted": "Get started",
             "continueProjects": "Continue to your projects",
-            "downloadApp": "Download app",
+            "download": "Download",
             "highDemand": "We're currently experiencing high demand. Project may fail to create.",
             "create": {
                 "promptPlaceholder": "Describe what you want to build",

@@ -121,7 +121,7 @@ export function ProjectModeDialog({
                             className="pointer-events-auto mt-4 w-fit"
                         >
                             <a href={ExternalRoutes.DOWNLOAD_PAGE} target="_blank" rel="noreferrer">
-                                Download app
+                                Download
                             </a>
                         </Button>
                     </div>
