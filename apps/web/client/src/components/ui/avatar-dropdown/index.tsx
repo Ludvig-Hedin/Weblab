@@ -5,6 +5,7 @@ import localforage from 'localforage';
 import { useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
+import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -55,7 +56,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         user?.firstName ||
         (displayNameLooksLikeEmail ? null : user?.displayName) ||
         deriveFirstNameFromEmail(user?.email) ||
-        'You';
+        t(transKeys.projects.actions.you);
     const initials = getInitials(friendlyName);
     const [open, setOpen] = useState(false);
 
@@ -103,8 +104,6 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         setOpen(false);
     };
 
-    // i18n: signOut, subscriptions, settings keys exist under projects.actions.
-    // No "Send Feedback" key in en.json yet — leave hardcoded for now.
     const BUTTONS = [
         {
             label: t(transKeys.projects.actions.subscriptions),
@@ -117,7 +116,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
             onClick: handleOpenSettings,
         },
         {
-            label: 'Send Feedback', // TODO: add transKeys.projects.actions.sendFeedback
+            label: t(transKeys.projects.actions.sendFeedback),
             icon: Icons.MessageSquare,
             onClick: () => {
                 void openFeedbackWidget();
@@ -134,12 +133,18 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger asChild>
-                <button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full p-0"
+                    aria-label={`Open account menu${friendlyName ? ` for ${friendlyName}` : ''}`}
+                    aria-haspopup="menu"
+                >
                     <Avatar className={className}>
                         {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={initials} />}
                         <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
-                </button>
+                </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-72 p-0">
                 <div className="flex items-center gap-2 p-3 select-none">
