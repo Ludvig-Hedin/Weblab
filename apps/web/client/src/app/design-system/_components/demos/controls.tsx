@@ -8,6 +8,7 @@ import { Label } from '@weblab/ui/label';
 import { RadioGroup, RadioGroupItem } from '@weblab/ui/radio-group';
 import { Slider } from '@weblab/ui/slider';
 import { Switch } from '@weblab/ui/switch';
+import { Toggle } from '@weblab/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
 import { Section } from '../section';
@@ -38,26 +39,63 @@ export function ControlsDemo() {
                             </Label>
                         </div>
                     ))}
+                    <div className="flex items-center gap-2">
+                        <div
+                            aria-hidden
+                            className="border-input bg-primary text-primary-foreground flex size-4 shrink-0 items-center justify-center rounded-[4px] border shadow-xs"
+                            title="Indeterminate (mock — Phase B will render minus icon)"
+                        >
+                            <Icons.Minus className="size-3" />
+                        </div>
+                        <Label>Indeterminate</Label>
+                    </div>
                 </div>
+                <p className="text-foreground-tertiary mt-2 text-xs">
+                    Indeterminate state shown as mock — Checkbox primitive renders CheckIcon for
+                    both checked + indeterminate today. Phase B: branch on
+                    <code className="mx-1">data-state="indeterminate"</code> to render minus.
+                </p>
             </Section>
 
             <Section title="Radio" tag="controls" inspectId="radio">
-                <RadioGroup defaultValue="r1" className="flex gap-6">
-                    <div className="flex items-center gap-2">
-                        <RadioGroupItem value="r1" id="dr1" />
-                        <Label htmlFor="dr1">Option 1</Label>
+                <div className="grid gap-8 sm:grid-cols-2">
+                    <div className="space-y-3">
+                        <Label className="text-foreground-tertiary text-xs">Horizontal</Label>
+                        <RadioGroup defaultValue="r1" className="flex gap-6">
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="r1" id="dr1" />
+                                <Label htmlFor="dr1">Option 1</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="r2" id="dr2" />
+                                <Label htmlFor="dr2">Option 2</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="r3" id="dr3" disabled />
+                                <Label htmlFor="dr3" className="opacity-50">
+                                    Disabled
+                                </Label>
+                            </div>
+                        </RadioGroup>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <RadioGroupItem value="r2" id="dr2" />
-                        <Label htmlFor="dr2">Option 2</Label>
+                    <div className="space-y-3">
+                        <Label className="text-foreground-tertiary text-xs">Vertical</Label>
+                        <RadioGroup defaultValue="rv1" className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="rv1" id="drv1" />
+                                <Label htmlFor="drv1">Light</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="rv2" id="drv2" />
+                                <Label htmlFor="drv2">Dark</Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <RadioGroupItem value="rv3" id="drv3" />
+                                <Label htmlFor="drv3">System</Label>
+                            </div>
+                        </RadioGroup>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <RadioGroupItem value="r3" id="dr3" disabled />
-                        <Label htmlFor="dr3" className="opacity-50">
-                            Disabled
-                        </Label>
-                    </div>
-                </RadioGroup>
+                </div>
             </Section>
 
             <Section title="Switch" tag="controls" inspectId="switch">
@@ -96,11 +134,84 @@ export function ControlsDemo() {
                         <Label>Range</Label>
                         <Slider defaultValue={[20, 80]} />
                     </div>
+                    <div className="space-y-3">
+                        <Label>Stepped (step = 25)</Label>
+                        <Slider defaultValue={[50]} min={0} max={100} step={25} />
+                        <div className="text-foreground-tertiary flex justify-between font-mono text-[10px]">
+                            <span>0</span>
+                            <span>25</span>
+                            <span>50</span>
+                            <span>75</span>
+                            <span>100</span>
+                        </div>
+                    </div>
                     <div className="space-y-2">
                         <Label>Disabled</Label>
                         <Slider defaultValue={[30]} disabled />
                     </div>
                 </div>
+            </Section>
+
+            <Section
+                title="Toggle"
+                tag="controls"
+                inspectId="toggle"
+                filePath="packages/ui/src/components/toggle.tsx"
+            >
+                <div className="grid gap-6">
+                    <div className="space-y-2">
+                        <Label className="text-foreground-tertiary text-xs">
+                            default variant · sizes
+                        </Label>
+                        <div className="flex items-center gap-3">
+                            <Toggle size="sm" aria-label="Underline small">
+                                <Icons.TextUnderline className="h-3.5 w-3.5" />
+                            </Toggle>
+                            <Toggle aria-label="Underline default">
+                                <Icons.TextUnderline className="h-4 w-4" />
+                            </Toggle>
+                            <Toggle size="lg" aria-label="Underline large">
+                                <Icons.TextUnderline className="h-4 w-4" />
+                            </Toggle>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-foreground-tertiary text-xs">outline variant</Label>
+                        <div className="flex items-center gap-3">
+                            <Toggle variant="outline" size="sm" aria-label="Strike sm">
+                                <Icons.TextStrikeThrough className="h-3.5 w-3.5" />
+                            </Toggle>
+                            <Toggle variant="outline" aria-label="Strike default">
+                                <Icons.TextStrikeThrough className="h-4 w-4" />
+                            </Toggle>
+                            <Toggle variant="outline" size="lg" aria-label="Strike lg">
+                                <Icons.TextStrikeThrough className="h-4 w-4" />
+                            </Toggle>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-foreground-tertiary text-xs">states</Label>
+                        <div className="flex items-center gap-3">
+                            <Toggle aria-label="Off">
+                                <Icons.TextOverline className="h-4 w-4" />
+                            </Toggle>
+                            <Toggle defaultPressed aria-label="On">
+                                <Icons.TextOverline className="h-4 w-4" />
+                            </Toggle>
+                            <Toggle disabled aria-label="Disabled">
+                                <Icons.TextOverline className="h-4 w-4" />
+                            </Toggle>
+                            <Toggle defaultPressed disabled aria-label="Disabled on">
+                                <Icons.TextOverline className="h-4 w-4" />
+                            </Toggle>
+                        </div>
+                    </div>
+                </div>
+                <p className="text-foreground-tertiary mt-3 text-xs">
+                    Use for single binary controls (bold, italic, lock). 4 hand-rolled
+                    <code className="mx-1">aria-pressed</code> buttons across the app today should
+                    migrate to this.
+                </p>
             </Section>
 
             <Section
