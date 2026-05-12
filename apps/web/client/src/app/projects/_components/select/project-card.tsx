@@ -17,6 +17,7 @@ import {
     getDisplayUrl,
     getFaviconUrl,
     getProjectPreviewImageUrl,
+    getProjectSandboxPreviewUrl,
     getProjectSiteUrl,
 } from './project-card-utils';
 import { ProjectPreviewSurface } from './project-preview-surface';
@@ -29,6 +30,7 @@ export function ProjectCard({
     selectionMode = false,
     selected = false,
     onSelectionChange,
+    isBackfilling = false,
 }: {
     project: ProjectListItem;
     refetch: () => void | Promise<unknown>;
@@ -37,6 +39,7 @@ export function ProjectCard({
     selectionMode?: boolean;
     selected?: boolean;
     onSelectionChange?: (selected: boolean) => void;
+    isBackfilling?: boolean;
 }) {
     const [faviconFailed, setFaviconFailed] = useState(false);
 
@@ -44,8 +47,17 @@ export function ProjectCard({
         () => timeAgo(project.metadata?.updatedAt),
         [project.metadata?.updatedAt],
     );
+    // "Recently active" surfaces a green dot when the project was touched in
+    // the last 5 minutes — gives the dashboard a heartbeat for parallel work.
+    const isRecentlyActive = useMemo(() => {
+        const updated = project.metadata?.updatedAt;
+        if (!updated) return false;
+        const ts = new Date(updated).getTime();
+        return Number.isFinite(ts) && Date.now() - ts < 5 * 60 * 1000;
+    }, [project.metadata?.updatedAt]);
     const previewImageUrl = useMemo(() => getProjectPreviewImageUrl(project), [project]);
     const siteUrl = useMemo(() => getProjectSiteUrl(project), [project]);
+    const sandboxPreviewUrl = useMemo(() => getProjectSandboxPreviewUrl(project), [project]);
     const displayUrl = useMemo(() => getDisplayUrl(siteUrl), [siteUrl]);
     const faviconUrl = useMemo(() => getFaviconUrl(siteUrl), [siteUrl]);
 
@@ -86,6 +98,7 @@ export function ProjectCard({
                                 projectName={project.name}
                                 imageUrl={previewImageUrl}
                                 siteUrl={siteUrl}
+                                sandboxPreviewUrl={sandboxPreviewUrl}
                                 className="aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
                             />
                         </button>
@@ -99,6 +112,7 @@ export function ProjectCard({
                                 projectName={project.name}
                                 imageUrl={previewImageUrl}
                                 siteUrl={siteUrl}
+                                sandboxPreviewUrl={sandboxPreviewUrl}
                                 className="aspect-[4/2.75] rounded-[inherit] transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
                             />
                         </Link>
@@ -122,6 +136,28 @@ export function ProjectCard({
                             className="border-foreground/20 bg-foreground/5 data-[state=checked]:border-foreground/30 data-[state=checked]:bg-foreground data-[state=checked]:text-background rounded-full"
                         />
                     </div>
+
+                    {/* Status / freshness indicator — recently active wins
+                        over the backfill pulse so a live edit isn't hidden by
+                        a stale screenshot refresh happening in parallel. */}
+                    {(isRecentlyActive || isBackfilling) && !selectionMode && (
+                        <div
+                            className={cn(
+                                'pointer-events-none absolute top-3 left-3 z-20 flex h-8 w-8 items-center justify-center transition-opacity',
+                                selectionMode || selected
+                                    ? 'opacity-0'
+                                    : 'group-hover/card:opacity-0',
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    'h-1.5 w-1.5 animate-pulse rounded-full',
+                                    isRecentlyActive ? 'bg-emerald-400/90' : 'bg-emerald-400/70',
+                                )}
+                                aria-hidden
+                            />
+                        </div>
+                    )}
 
                     {!selectionMode && (
                         <>

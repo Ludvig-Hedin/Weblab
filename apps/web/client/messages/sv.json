@@ -1819,26 +1819,26 @@
             }
         },
         "useCases": {
-            "eyebrow": "Byggt för varje slags webbplats",
-            "landingPages": {
-                "label": "Landningssidor",
-                "description": "Sätt ihop en lanseringssida på minuter. Redigera texten, justera layouten och publicera till en riktig URL – ingen design­överlämning, ingen utvecklarbiljett."
+            "eyebrow": "Ser enkelt ut. Går djupt.",
+            "references": {
+                "label": "Referenser",
+                "description": "Släpp in en skärmbild, ett dokument, en länk. Weblab läser det som du skulle göra och bygger sedan utifrån det."
             },
-            "marketingSites": {
-                "label": "Marknadssidor",
-                "description": "Flersidiga webbplatser med delade komponenter, CMS-drivet innehåll och ett varumärkessystem ditt team kan bygga vidare på utan att något går sönder."
+            "pages": {
+                "label": "Sidor",
+                "description": "Planera din sajt som en sajtkarta. Lägg till en sida, sätt dess route, dela en layout – utan att lämna canvasen."
             },
-            "internalTools": {
-                "label": "Interna verktyg",
-                "description": "Dashboards, adminpaneler och driftverktyg kopplade till er riktiga data. Bygg ytan i Weblab, ship samma React-kod ert team redan kör."
+            "code": {
+                "label": "Kod",
+                "description": "Under varje skärm finns riktig kod. Öppna en fil, ändra en rad, se canvasen uppdateras. Samma kod som ditt team skulle skeppa."
             },
-            "prototypes": {
-                "label": "Prototyper",
-                "description": "Klickbara prototyper som känns som riktig produkt. Testa flöden med användare dag ett och behåll sedan samma kod hela vägen till lansering."
+            "search": {
+                "label": "Sök",
+                "description": "Hitta vad som helst i ditt projekt. En sida, en komponent, ett ord i en knapp. En sökning, allt indexerat."
             },
-            "productionApps": {
-                "label": "Produktionsappar",
-                "description": "Full-stack Next.js-appar med inloggning, databas och AI inbyggt. Visuell redigering på en riktig kodbas – pull requests i slutet, inga överlämningsdokument."
+            "connect": {
+                "label": "Anslut",
+                "description": "Har du redan ett projekt? Öppna ditt repo, redigera på canvasen, skicka tillbaka som commits. Ingen ombyggnation. Ingen migrering."
             },
             "startBuilding": "Börja bygga"
         },

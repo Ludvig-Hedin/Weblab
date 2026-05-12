@@ -67,12 +67,45 @@ export const projectRouter = createTRPCRouter({
     createRequest: projectCreateRequestRouter,
     offline: offlineRouter,
     captureScreenshot: protectedProcedure
-        .input(z.object({ projectId: z.string() }))
+        .input(
+            z.object({
+                projectId: z.string(),
+                // Lets a foreground action (manual refresh, post-clone, etc.)
+                // bypass the 30-min skip — used by the editor today and kept
+                // here for future explicit "Refresh preview" buttons.
+                force: z.boolean().optional(),
+            }),
+        )
         .mutation(async ({ ctx, input }) => {
             try {
                 await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
                 if (!env.FIRECRAWL_API_KEY) {
-                    throw new Error('FIRECRAWL_API_KEY is not configured');
+                    // Soft-fail: dashboards keep working with their existing
+                    // previews / fallback initial, and we don't spam the
+                    // client with a thrown error every list refresh.
+                    return {
+                        success: false,
+                        error: 'FIRECRAWL_API_KEY is not configured',
+                        skipped: 'no-api-key' as const,
+                    };
+                }
+
+                // Server-side dedupe: belt-and-suspenders against multiple
+                // tabs (or the dashboard backfill hook) firing the same
+                // project within the refresh window. Client-side gating
+                // would let a second tab through.
+                if (!input.force) {
+                    const existing = await ctx.db.query.projects.findFirst({
+                        where: eq(projects.id, input.projectId),
+                        columns: { updatedPreviewImgAt: true },
+                    });
+                    const lastCaptured = existing?.updatedPreviewImgAt;
+                    if (
+                        lastCaptured &&
+                        Date.now() - new Date(lastCaptured).getTime() < 30 * 60 * 1000
+                    ) {
+                        return { success: true, skipped: 'recent' as const };
+                    }
                 }
 
                 // Single round-trip — pulls the branch, its frames, AND the
@@ -216,6 +249,12 @@ export const projectRouter = createTRPCRouter({
                 .optional(),
         )
         .query(async ({ ctx, input }) => {
+            // Defensive cap. The dashboard renders project cards inline; an
+            // unbounded list on a heavy user balloons the round-trip and the
+            // hydrated client cache. Callers needing infinite scrolling
+            // should pass a finite `limit` and add cursor-based paging.
+            const DEFAULT_PROJECTS_LIMIT = 200;
+            const effectiveLimit = input?.limit ?? DEFAULT_PROJECTS_LIMIT;
             const fetchedUserProjects = await ctx.db.query.userProjects.findMany({
                 where: input?.excludeProjectId
                     ? and(
@@ -237,7 +276,7 @@ export const projectRouter = createTRPCRouter({
                         },
                     },
                 },
-                limit: input?.limit,
+                limit: effectiveLimit,
             });
             return fetchedUserProjects
                 .map((userProject) => {
@@ -248,14 +287,36 @@ export const projectRouter = createTRPCRouter({
                     const previewUrl = previewDomain ? `https://${previewDomain}` : null;
                     const publishedUrl = publishedDomain ? `https://${publishedDomain}` : null;
 
+                    // Internal live-preview URL — the running dev server for
+                    // the project's sandbox. Used by the dashboard preview
+                    // surface as an iframe fallback while a fresh screenshot
+                    // backfills. Not user-shareable: do not expose in
+                    // social meta / "Copy link" / OG cards. The frame URL is
+                    // preferred when present because it has the resolved
+                    // port; otherwise we synthesize from sandboxId + the
+                    // framework adapter's default port.
+                    let sandboxPreviewUrl: string | null = null;
+                    if (defaultBranch?.sandboxId) {
+                        const frameUrl = defaultBranch.frames?.[0]?.url ?? null;
+                        if (frameUrl) {
+                            sandboxPreviewUrl = frameUrl;
+                        } else {
+                            const framework = project.runtimeMetadata?.framework ?? null;
+                            const adapterPort = framework
+                                ? getFrameworkAdapter(framework).template.port
+                                : null;
+                            const port = adapterPort ?? 3000;
+                            sandboxPreviewUrl = getSandboxPreviewUrl(defaultBranch.sandboxId, port);
+                        }
+                    }
+
                     return {
                         ...fromDbProject(project),
                         previewUrl,
                         publishedUrl,
-                        // Only surface user-facing weblab domains. The raw CSB sandbox
-                        // URL (frameUrl) is an internal dev-server address that should
-                        // never appear in the project card or be shared externally.
+                        // User-facing weblab domain. Stays null until publish.
                         siteUrl: publishedUrl ?? previewUrl ?? null,
+                        sandboxPreviewUrl,
                     };
                 })
                 .sort(

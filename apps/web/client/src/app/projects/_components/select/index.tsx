@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
@@ -32,12 +31,12 @@ import { Skeleton } from '@weblab/ui/skeleton';
 
 import type { StaticTemplate } from '../templates/static-templates';
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';
+import type { ProjectFilters, ProjectSort, ProjectView } from './projects-toolbar';
 import type { CreateSuggestion } from '@/app/_components/hero/create';
 import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
 import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { ProjectChooserCards } from '../project-chooser-cards';
 import { Templates } from '../templates';
@@ -52,6 +51,15 @@ import {
     moveProjectIdsToFolder,
     sanitizeFolders,
 } from './project-card-utils';
+import { ProjectRow, ProjectTableHeader } from './project-row';
+import { countActiveFilters, DEFAULT_FILTERS, ProjectsToolbar } from './projects-toolbar';
+import { useScreenshotBackfill } from './use-screenshot-backfill';
+
+const VIEW_STORAGE_KEY = 'weblab_projects_view_v1';
+const getViewStorageKey = (userId?: string | null) =>
+    `${VIEW_STORAGE_KEY}:${userId ?? 'anonymous'}`;
+const isProjectView = (value: unknown): value is ProjectView =>
+    value === 'grid' || value === 'list' || value === 'table';
 
 const STARRED_TEMPLATES_KEY = 'weblab_starred_templates';
 
@@ -223,18 +231,11 @@ function PendingLocalImportBanner({
     );
 }
 
-export const SelectProject = ({
-    externalSearchQuery,
-    onClearSearch,
-}: {
-    externalSearchQuery?: string;
-    onClearSearch?: () => void;
-} = {}) => {
+export const SelectProject = () => {
     const t = useTranslations('selectProject') as (
         key: string,
         values?: Record<string, string | number>,
     ) => string;
-    const router = useRouter();
     const utils = api.useUtils();
     const { data: user } = api.user.get.useQuery();
     const { data: fetchedProjects, isLoading, refetch } = api.project.list.useQuery();
@@ -247,17 +248,17 @@ export const SelectProject = ({
         clearPendingLocalImport,
     } = useImportLocalProject();
 
+    const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-    const searchQuery = externalSearchQuery ?? '';
 
     // Drives the full-screen ProjectCreationLoader inside <Create> while
     // the sandbox forks (5–30s). Without real state the overlay never
     // mounts and first-time users think the page hung.
     const [isCreatingProject, setIsCreatingProject] = useState(false);
 
-    const [filesSortBy, setFilesSortBy] = useState<'Alphabetical' | 'Date created' | 'Last viewed'>(
-        'Last viewed',
-    );
+    const [filesSortBy, setFilesSortBy] = useState<ProjectSort>('Last viewed');
+    const [filters, setFilters] = useState<ProjectFilters>(DEFAULT_FILTERS);
+    const [view, setView] = useState<ProjectView>('grid');
     const [selectedTemplate, setSelectedTemplate] = useState<Project | null>(null);
     const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
     const [starredTemplates, setStarredTemplates] = useState<Set<string>>(new Set());
@@ -389,18 +390,33 @@ export const SelectProject = ({
         })();
     }, [foldersStorageKey]);
 
+    // Load + persist layout view across sessions, scoped per-user so two
+    // accounts on the same machine don't fight over the same key.
+    const viewStorageKey = useMemo(() => getViewStorageKey(user?.id), [user?.id]);
+    useEffect(() => {
+        void (async () => {
+            try {
+                const saved = await localforage.getItem<string>(viewStorageKey);
+                if (isProjectView(saved)) {
+                    setView(saved);
+                }
+            } catch (error) {
+                console.error('Failed to load view preference:', error);
+            }
+        })();
+    }, [viewStorageKey]);
+
+    const handleViewChange = (next: ProjectView) => {
+        setView(next);
+        void localforage.setItem(viewStorageKey, next).catch(() => undefined);
+    };
+
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearchQuery(searchQuery);
         }, 100);
         return () => clearTimeout(timer);
     }, [searchQuery]);
-
-    const sortOptions = [
-        { value: 'Last viewed' as const, label: t('sortLastViewed') },
-        { value: 'Date created' as const, label: t('sortDateCreated') },
-        { value: 'Alphabetical' as const, label: t('sortAlphabetical') },
-    ];
 
     const sortedProjects = useMemo(() => {
         return [...projects].sort((a, b) => {
@@ -422,20 +438,91 @@ export const SelectProject = ({
         });
     }, [projects, filesSortBy]);
 
+    const availableTechStacks = useMemo(() => {
+        const stacks = new Set<string>();
+        for (const project of projects) {
+            const framework = project.metadata?.runtime?.framework;
+            if (framework) {
+                stacks.add(framework);
+            }
+        }
+        return Array.from(stacks).sort();
+    }, [projects]);
+
+    const dateBoundary = (range: ProjectFilters['dateRange']): number | null => {
+        const now = Date.now();
+        switch (range) {
+            case 'today':
+                return now - 24 * 60 * 60 * 1000;
+            case 'week':
+                return now - 7 * 24 * 60 * 60 * 1000;
+            case 'month':
+                return now - 30 * 24 * 60 * 60 * 1000;
+            default:
+                return null;
+        }
+    };
+
+    const folderAssignmentLookup = useMemo(() => {
+        const assignments = new Map<string, string>();
+        folders.forEach((folder) => {
+            folder.projectIds.forEach((projectId) => {
+                assignments.set(projectId, folder.id);
+            });
+        });
+        return assignments;
+    }, [folders]);
+
+    const filteredProjects = useMemo(() => {
+        const cutoff = dateBoundary(filters.dateRange);
+        return sortedProjects.filter((project) => {
+            if (filters.status !== 'all') {
+                const item = project;
+                const siteUrl = item.publishedUrl ?? item.previewUrl ?? item.siteUrl ?? null;
+                const hasSite = Boolean(siteUrl);
+                if (filters.status === 'published' && !hasSite) return false;
+                if (filters.status === 'unpublished' && hasSite) return false;
+            }
+            if (filters.folderId !== 'all') {
+                const folderId = folderAssignmentLookup.get(project.id) ?? null;
+                if (filters.folderId === 'none' && folderId !== null) return false;
+                if (filters.folderId !== 'none' && folderId !== filters.folderId) {
+                    return false;
+                }
+            }
+            if (cutoff !== null) {
+                const updated = new Date(project.metadata.updatedAt).getTime();
+                if (!Number.isFinite(updated) || updated < cutoff) {
+                    return false;
+                }
+            }
+            if (filters.techStacks.length > 0) {
+                const fw = project.metadata?.runtime?.framework ?? null;
+                if (!fw || !filters.techStacks.includes(fw)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [sortedProjects, filters, folderAssignmentLookup]);
+
     const visibleProjects = useMemo(() => {
         if (!debouncedSearchQuery) {
-            return sortedProjects;
+            return filteredProjects;
         }
 
         const query = debouncedSearchQuery.toLowerCase();
-        return sortedProjects.filter((project) =>
+        return filteredProjects.filter((project) =>
             [
                 project.name,
                 project.metadata?.description ?? '',
                 project.metadata.tags.join(', '),
             ].some((value) => value.toLowerCase().includes(query)),
         );
-    }, [sortedProjects, debouncedSearchQuery]);
+    }, [filteredProjects, debouncedSearchQuery]);
+
+    const backfill = useScreenshotBackfill(projects);
+    const activeFilterCount = countActiveFilters(filters);
 
     useEffect(() => {
         const validProjectIds = new Set(projects.map((project) => project.id));
@@ -446,18 +533,6 @@ export const SelectProject = ({
             void localforage.setItem(foldersStorageKey, sanitizedFolders);
         }
     }, [folders, foldersStorageKey, projects]);
-
-    const folderAssignments = useMemo(() => {
-        const assignments = new Map<string, string>();
-
-        folders.forEach((folder) => {
-            folder.projectIds.forEach((projectId) => {
-                assignments.set(projectId, folder.id);
-            });
-        });
-
-        return assignments;
-    }, [folders]);
 
     const folderViewModels = useMemo(() => {
         const query = debouncedSearchQuery.trim().toLowerCase();
@@ -491,8 +566,8 @@ export const SelectProject = ({
     }, [folders, sortedProjects, visibleProjects, debouncedSearchQuery]);
 
     const looseProjects = useMemo(
-        () => visibleProjects.filter((project) => !folderAssignments.has(project.id)),
-        [visibleProjects, folderAssignments],
+        () => visibleProjects.filter((project) => !folderAssignmentLookup.has(project.id)),
+        [visibleProjects, folderAssignmentLookup],
     );
 
     useEffect(() => {
@@ -741,64 +816,29 @@ export const SelectProject = ({
                     />
                 )}
 
-                <div className="mb-6 flex flex-col gap-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <h2 className="text-foreground text-3xl font-normal tracking-tight">
-                                {t('projectsHeading')}
-                            </h2>
+                <div className="mb-6 flex flex-col gap-3">
+                    <ProjectsToolbar
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        sort={filesSortBy}
+                        onSortChange={setFilesSortBy}
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                        view={view}
+                        onViewChange={handleViewChange}
+                        folders={folders}
+                        availableTechStacks={availableTechStacks}
+                        onCreateFolder={() => setShowCreateFolderDialog(true)}
+                    />
+
+                    {backfill.total > 0 && backfill.completed < backfill.total && (
+                        <div className="text-foreground-tertiary text-xs">
+                            {t('backfillProgress', {
+                                done: backfill.completed,
+                                total: backfill.total,
+                            })}
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                            {/* Folder controls are noise until the user has
-                                enough projects to want organisation. Surfacing
-                                them at 0–2 projects encourages making empty
-                                folders the user then can't fill. */}
-                            {projects.length >= 3 && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                                    onClick={() => setShowCreateFolderDialog(true)}
-                                >
-                                    <Icons.MoveToFolder className="h-4 w-4" />
-                                    {t('createFolder')}
-                                </Button>
-                            )}
-
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`border ${selectionMode ? 'text-foreground border-foreground/14 bg-foreground/10' : 'text-foreground-tertiary hover:text-foreground hover:border-foreground/10 hover:bg-foreground/6 border-transparent'}`}
-                                onClick={() => {
-                                    if (selectionMode) {
-                                        resetSelection();
-                                    } else {
-                                        setSelectionMode(true);
-                                    }
-                                }}
-                            >
-                                <Icons.ListCheck className="h-4 w-4" />
-                                {selectionMode ? t('doneSelecting') : t('select')}
-                            </Button>
-
-                            <div className="border-foreground/8 bg-foreground/4 flex items-center gap-1 rounded-full border p-1">
-                                {sortOptions.map((option) => (
-                                    <button
-                                        key={option.value}
-                                        onClick={() => setFilesSortBy(option.value)}
-                                        className={`rounded-full px-3 py-1.5 text-xs transition-colors ${
-                                            filesSortBy === option.value
-                                                ? 'text-foreground bg-foreground/12'
-                                                : 'text-foreground-tertiary hover:text-foreground'
-                                        }`}
-                                    >
-                                        {option.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
                     {selectionMode && (
                         <div className="border-foreground/8 bg-foreground/4 flex flex-col gap-3 rounded-[22px] border p-4 backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
@@ -930,6 +970,9 @@ export const SelectProject = ({
                                                     onSelectionChange={(checked) =>
                                                         handleSelectionChange(project.id, checked)
                                                     }
+                                                    isBackfilling={backfill.inFlight.has(
+                                                        project.id,
+                                                    )}
                                                 />
                                             ))}
                                         </AnimatePresence>
@@ -937,12 +980,12 @@ export const SelectProject = ({
                                 ) : (
                                     <div className="text-foreground-tertiary border-foreground/10 bg-foreground/5 flex flex-col items-start gap-3 rounded-[22px] border border-dashed p-6 text-sm">
                                         <span>{t('noProjectsMatchSearch')}</span>
-                                        {debouncedSearchQuery && onClearSearch && (
+                                        {debouncedSearchQuery && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                                                onClick={() => onClearSearch()}
+                                                onClick={() => setSearchQuery('')}
                                             >
                                                 {t('clearSearch')}
                                             </Button>
@@ -971,26 +1014,40 @@ export const SelectProject = ({
                         <div className="border-foreground/8 bg-foreground/3 flex w-full items-center justify-center rounded-[26px] border border-dashed py-16">
                             <div className="flex flex-col items-center gap-3 text-center">
                                 <div className="text-foreground-secondary text-base">
-                                    {t('noLooseProjects')}
+                                    {activeFilterCount > 0 || debouncedSearchQuery
+                                        ? t('noResultsTitle')
+                                        : t('noLooseProjects')}
                                 </div>
                                 <div className="text-foreground-tertiary text-sm">
-                                    {debouncedSearchQuery
-                                        ? t('adjustSearch')
+                                    {activeFilterCount > 0 || debouncedSearchQuery
+                                        ? t('noResultsBody')
                                         : t('moveProjectsHere')}
                                 </div>
-                                {debouncedSearchQuery && onClearSearch && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
-                                        onClick={() => onClearSearch()}
-                                    >
-                                        {t('clearSearch')}
-                                    </Button>
-                                )}
+                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                    {debouncedSearchQuery && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
+                                            onClick={() => setSearchQuery('')}
+                                        >
+                                            {t('clearSearch')}
+                                        </Button>
+                                    )}
+                                    {activeFilterCount > 0 && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-foreground/10 bg-foreground/4 hover:bg-foreground/8"
+                                            onClick={() => setFilters(DEFAULT_FILTERS)}
+                                        >
+                                            {t('filterReset')}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    ) : (
+                    ) : view === 'grid' ? (
                         <motion.div
                             layout
                             className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -1008,6 +1065,50 @@ export const SelectProject = ({
                                         onSelectionChange={(checked) =>
                                             handleSelectionChange(project.id, checked)
                                         }
+                                        isBackfilling={backfill.inFlight.has(project.id)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
+                    ) : view === 'list' ? (
+                        <motion.div layout className="flex flex-col gap-1">
+                            <AnimatePresence mode="popLayout">
+                                {looseProjects.map((project) => (
+                                    <ProjectRow
+                                        key={project.id}
+                                        project={project}
+                                        variant="list"
+                                        refetch={() => void refetch()}
+                                        searchQuery={debouncedSearchQuery}
+                                        HighlightText={HighlightText}
+                                        selectionMode={selectionMode}
+                                        selected={selectedProjectIds.has(project.id)}
+                                        onSelectionChange={(checked) =>
+                                            handleSelectionChange(project.id, checked)
+                                        }
+                                        isBackfilling={backfill.inFlight.has(project.id)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
+                    ) : (
+                        <motion.div layout className="flex flex-col gap-1">
+                            <ProjectTableHeader />
+                            <AnimatePresence mode="popLayout">
+                                {looseProjects.map((project) => (
+                                    <ProjectRow
+                                        key={project.id}
+                                        project={project}
+                                        variant="table"
+                                        refetch={() => void refetch()}
+                                        searchQuery={debouncedSearchQuery}
+                                        HighlightText={HighlightText}
+                                        selectionMode={selectionMode}
+                                        selected={selectedProjectIds.has(project.id)}
+                                        onSelectionChange={(checked) =>
+                                            handleSelectionChange(project.id, checked)
+                                        }
+                                        isBackfilling={backfill.inFlight.has(project.id)}
                                     />
                                 ))}
                             </AnimatePresence>

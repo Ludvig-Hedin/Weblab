@@ -10,6 +10,10 @@ interface ProjectPreviewSurfaceProps {
     projectName: string;
     imageUrl: string | null;
     siteUrl?: string | null;
+    // Internal-only live preview URL (e.g. the running sandbox). Used as a
+    // last-resort iframe fallback when there's no static screenshot AND no
+    // published site. Pass null to disable.
+    sandboxPreviewUrl?: string | null;
     className?: string;
 }
 
@@ -64,6 +68,7 @@ export const ProjectPreviewSurface = ({
     projectName,
     imageUrl,
     siteUrl,
+    sandboxPreviewUrl,
     className,
 }: ProjectPreviewSurfaceProps) => {
     const [imageFailed, setImageFailed] = useState(false);
@@ -89,7 +94,7 @@ export const ProjectPreviewSurface = ({
         setIframeLoaded(false);
         setIframeTimedOut(false);
         setFaviconFailed(false);
-    }, [imageUrl, siteUrl]);
+    }, [imageUrl, siteUrl, sandboxPreviewUrl]);
 
     useEffect(() => {
         if (isVisible) return;
@@ -115,6 +120,16 @@ export const ProjectPreviewSurface = ({
         return () => observer.disconnect();
     }, [isVisible]);
 
+    const shouldRenderImage = Boolean(imageUrl && !imageFailed);
+    // Live iframe — prefer the published site (filters out non-embeddable
+    // hosts like Vercel marketing pages). When unpublished, fall back to the
+    // sandbox dev-server URL: it may show a consent dialog on CSB Free but
+    // that's still more informative than a blank "M" tile. The csb.app
+    // block in isNonEmbeddable applies to published sites only — sandbox
+    // URLs deliberately bypass it.
+    const iframeUrl: string | null =
+        siteUrl && !isNonEmbeddable(siteUrl) ? siteUrl : (sandboxPreviewUrl ?? null);
+
     // Give the iframe 6 s before giving up and showing the skeleton fallback.
     // Without this, cards with unresponsive or iframe-blocking preview URLs
     // would display a blank white frame indefinitely. Only start the timer
@@ -122,18 +137,13 @@ export const ProjectPreviewSurface = ({
     // visible) — otherwise off-screen cards would "time out" before they
     // ever attempted to load.
     useEffect(() => {
-        if (!siteUrl || imageUrl || iframeLoaded || !isVisible) return;
+        if (!iframeUrl || imageUrl || iframeLoaded || !isVisible) return;
         const t = window.setTimeout(() => setIframeTimedOut(true), 6000);
         return () => window.clearTimeout(t);
-    }, [iframeLoaded, imageUrl, siteUrl, isVisible]);
+    }, [iframeLoaded, imageUrl, iframeUrl, isVisible]);
 
-    const shouldRenderImage = Boolean(imageUrl && !imageFailed);
     const shouldRenderIframe = Boolean(
-        !shouldRenderImage &&
-        siteUrl &&
-        !isNonEmbeddable(siteUrl) &&
-        isVisible &&
-        (iframeLoaded || !iframeTimedOut),
+        !shouldRenderImage && iframeUrl && isVisible && (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
@@ -162,10 +172,10 @@ export const ProjectPreviewSurface = ({
                 scaled iframe at the same radius as the outer container. bg-white is
                 intentionally absent — it caused white-corner bleed-through on the
                 non-hover state due to the CSS transform + overflow:hidden quirk. */}
-            {shouldRenderIframe && (
+            {shouldRenderIframe && iframeUrl && (
                 <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
                     <iframe
-                        src={siteUrl!}
+                        src={iframeUrl}
                         title={`${projectName} preview`}
                         loading="lazy"
                         referrerPolicy="no-referrer"

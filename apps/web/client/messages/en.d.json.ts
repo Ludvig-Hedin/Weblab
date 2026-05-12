@@ -1823,26 +1823,26 @@ declare const messages: {
             }
         },
         "useCases": {
-            "eyebrow": "Built for every kind of site",
-            "landingPages": {
-                "label": "Landing pages",
-                "description": "Spin up a launch page in minutes. Edit copy, tweak layout, and ship to a real URL — no design handoff, no engineering ticket."
+            "eyebrow": "Looks simple. Goes deep.",
+            "references": {
+                "label": "References",
+                "description": "Drop in a screenshot, a doc, a link. Weblab reads it the same way you would, then builds with it."
             },
-            "marketingSites": {
-                "label": "Marketing sites",
-                "description": "Multi-page sites with shared components, CMS-backed content, and a brand system your team can extend without breaking anything."
+            "pages": {
+                "label": "Pages",
+                "description": "Plan your site like a sitemap. Add a page, set its route, share a layout — without leaving the canvas."
             },
-            "internalTools": {
-                "label": "Internal tools",
-                "description": "Dashboards, admin panels, and ops tools wired to your real data. Build the surface in Weblab, ship the same React code your team already runs."
+            "code": {
+                "label": "Code",
+                "description": "Underneath every screen is real code. Open a file, change a line, see the canvas update. The same code your team would ship."
             },
-            "prototypes": {
-                "label": "Prototypes",
-                "description": "Click-through prototypes that feel like the real product. Test flows with users on day one, then keep the same code through to launch."
+            "search": {
+                "label": "Search",
+                "description": "Find anything in your project. A page, a component, a word in a button. One search, everything indexed."
             },
-            "productionApps": {
-                "label": "Production apps",
-                "description": "Full-stack Next.js apps with auth, database, and AI baked in. Visual editing on a real codebase — pull requests at the end, not handoff docs."
+            "connect": {
+                "label": "Connect",
+                "description": "Already have a project? Open your repo, edit on the canvas, ship back as commits. No rebuild. No migration."
             },
             "startBuilding": "Start building"
         },

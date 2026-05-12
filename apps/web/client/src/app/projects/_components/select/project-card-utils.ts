@@ -7,6 +7,10 @@ export interface ProjectListItem extends Project {
     siteUrl?: string | null;
     previewUrl?: string | null;
     publishedUrl?: string | null;
+    // Live dev-server URL for the project's running sandbox. Used as an
+    // iframe fallback in the preview surface while the static screenshot is
+    // (re-)captured. Internal only — do not surface in shareable UI.
+    sandboxPreviewUrl?: string | null;
 }
 
 export interface ProjectFolder {
@@ -41,6 +45,10 @@ export const getProjectPreviewImageUrl = (project: Project): string | null => {
 
 export const getProjectSiteUrl = (project: ProjectListItem): string | null =>
     project.siteUrl ?? project.publishedUrl ?? project.previewUrl ?? null;
+
+// Live sandbox URL used only for in-app preview iframes. Never share.
+export const getProjectSandboxPreviewUrl = (project: ProjectListItem): string | null =>
+    project.sandboxPreviewUrl ?? null;
 
 export const getDisplayUrl = (url: string | null | undefined): string | null => {
     if (!url) {
