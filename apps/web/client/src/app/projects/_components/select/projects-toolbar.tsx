@@ -19,7 +19,6 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
-import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
@@ -363,26 +362,37 @@ export const ProjectsToolbar = ({
                 </DropdownMenu>
 
                 {/* Layout toggle */}
-                <ToggleGroup
-                    type="single"
-                    value={view}
-                    onValueChange={(value) => {
-                        if (value) onViewChange(value as ProjectView);
-                    }}
-                    className="bg-foreground/4 border-foreground/8 gap-0.5 border p-0.5"
+                {/* Layout toggle — uses native <button> w/ aria-pressed so we
+                    own the active styling explicitly. Radix ToggleGroup's
+                    base `data-[state=on]:bg-accent` collided with our
+                    foreground/N override via tailwind-merge and read as a
+                    hover-only state to the user. Plain buttons are simpler
+                    and visually decisive. */}
+                <div
+                    role="group"
+                    aria-label={t('layoutGrid')}
+                    className="bg-foreground/4 border-foreground/8 flex items-center gap-0.5 rounded-md border p-0.5"
                 >
                     {layoutButtons.map((option) => {
                         const Icon = ICON_BY_VIEW[option.value];
+                        const isActive = view === option.value;
                         return (
                             <Tooltip key={option.value}>
                                 <TooltipTrigger asChild>
-                                    <ToggleGroupItem
-                                        value={option.value}
+                                    <button
+                                        type="button"
                                         aria-label={option.label}
-                                        className="data-[state=on]:text-foreground data-[state=on]:bg-foreground/10 text-foreground-tertiary hover:text-foreground hover:bg-foreground/6 h-7 w-7 rounded-sm"
+                                        aria-pressed={isActive}
+                                        onClick={() => onViewChange(option.value)}
+                                        className={cn(
+                                            'inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors',
+                                            isActive
+                                                ? 'text-foreground bg-foreground/14 shadow-foreground/10 shadow-[inset_0_0_0_1px]'
+                                                : 'text-foreground-tertiary hover:text-foreground hover:bg-foreground/6',
+                                        )}
                                     >
                                         <Icon className="h-3.5 w-3.5" />
-                                    </ToggleGroupItem>
+                                    </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs">
                                     {option.label}
@@ -390,7 +400,7 @@ export const ProjectsToolbar = ({
                             </Tooltip>
                         );
                     })}
-                </ToggleGroup>
+                </div>
 
                 <Button
                     variant="ghost"

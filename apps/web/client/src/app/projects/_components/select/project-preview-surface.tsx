@@ -17,28 +17,19 @@ interface ProjectPreviewSurfaceProps {
     className?: string;
 }
 
-const FallbackPreview = ({ projectName }: { projectName: string }) => {
-    const initial = projectName.trim().charAt(0).toUpperCase() || '?';
-    return (
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-[inherit] bg-[#111]">
-            {/* Subtle radial highlight */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.045),transparent_60%)]" />
-            {/* Faint grid lines */}
-            <div
-                className="absolute inset-0 opacity-[0.04]"
-                style={{
-                    backgroundImage:
-                        'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)',
-                    backgroundSize: '32px 32px',
-                }}
-            />
-            {/* Initial letter */}
-            <span className="relative text-5xl font-semibold text-white/10 select-none">
-                {initial}
-            </span>
-        </div>
-    );
-};
+// Loading placeholder shown beneath the image / iframe until one of them
+// paints. No grid, no initial letter — those read as "this is the project"
+// rather than "we are still loading," which confused users on the dashboard.
+// A neutral shimmer reads correctly as "fetching preview" and disappears
+// the instant a real preview arrives.
+const PreviewSkeleton = () => (
+    <div
+        className="bg-foreground/4 absolute inset-0 animate-pulse overflow-hidden rounded-[inherit]"
+        aria-hidden
+    >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)]" />
+    </div>
+);
 
 /**
  * Some hosts inject a consent/warning dialog when embedded in an iframe
@@ -75,16 +66,6 @@ export const ProjectPreviewSurface = ({
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeTimedOut, setIframeTimedOut] = useState(false);
     const [faviconFailed, setFaviconFailed] = useState(false);
-    // Lazy-load the iframe: only mount it once the card is near the viewport.
-    // Rendering N live <iframe>s on the projects page caused N simultaneous
-    // full-page loads of users' published sites — painful on mobile / slow
-    // networks. Default to false; flip to true on first intersection and stay
-    // true (don't toggle off) so scrolling away doesn't tear down the iframe
-    // and re-trigger a load. Falls back to true when IntersectionObserver
-    // isn't available (e.g. SSR, very old browsers) so we never break the UI.
-    const [isVisible, setIsVisible] = useState(
-        typeof window === 'undefined' || typeof IntersectionObserver === 'undefined',
-    );
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const faviconUrl = siteUrl ? getFaviconUrl(siteUrl) : null;
@@ -95,30 +76,6 @@ export const ProjectPreviewSurface = ({
         setIframeTimedOut(false);
         setFaviconFailed(false);
     }, [imageUrl, siteUrl, sandboxPreviewUrl]);
-
-    useEffect(() => {
-        if (isVisible) return;
-        if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
-            setIsVisible(true);
-            return;
-        }
-        const node = containerRef.current;
-        if (!node) return;
-        const observer = new IntersectionObserver(
-            (entries) => {
-                for (const entry of entries) {
-                    if (entry.isIntersecting) {
-                        setIsVisible(true);
-                        observer.disconnect();
-                        break;
-                    }
-                }
-            },
-            { rootMargin: '200px' },
-        );
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, [isVisible]);
 
     const shouldRenderImage = Boolean(imageUrl && !imageFailed);
     // Live iframe — prefer the published site (filters out non-embeddable
@@ -132,18 +89,15 @@ export const ProjectPreviewSurface = ({
 
     // Give the iframe 6 s before giving up and showing the skeleton fallback.
     // Without this, cards with unresponsive or iframe-blocking preview URLs
-    // would display a blank white frame indefinitely. Only start the timer
-    // once we've decided to actually mount the iframe (i.e. the card is
-    // visible) — otherwise off-screen cards would "time out" before they
-    // ever attempted to load.
+    // would display a blank white frame indefinitely.
     useEffect(() => {
-        if (!iframeUrl || imageUrl || iframeLoaded || !isVisible) return;
+        if (!iframeUrl || imageUrl || iframeLoaded) return;
         const t = window.setTimeout(() => setIframeTimedOut(true), 6000);
         return () => window.clearTimeout(t);
-    }, [iframeLoaded, imageUrl, iframeUrl, isVisible]);
+    }, [iframeLoaded, imageUrl, iframeUrl]);
 
     const shouldRenderIframe = Boolean(
-        !shouldRenderImage && iframeUrl && isVisible && (iframeLoaded || !iframeTimedOut),
+        !shouldRenderImage && iframeUrl && (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
@@ -153,16 +107,20 @@ export const ProjectPreviewSurface = ({
             ref={containerRef}
             className={cn('bg-background-canvas relative overflow-hidden rounded-xl', className)}
         >
-            <FallbackPreview projectName={projectName} />
+            <PreviewSkeleton />
 
-            {/* Screenshot */}
+            {/* Screenshot — load eagerly + decode async so the first paint
+                replaces the skeleton ASAP. fetchpriority="high" prompts the
+                browser to schedule these ahead of below-fold thumbnails. */}
             {shouldRenderImage && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                     src={imageUrl!}
                     alt={projectName}
                     className="absolute inset-0 h-full w-full object-cover"
-                    loading="lazy"
+                    decoding="async"
+                    // @ts-expect-error fetchpriority is valid HTML5 but missing from React types
+                    fetchpriority="high"
                     onError={() => setImageFailed(true)}
                 />
             )}
