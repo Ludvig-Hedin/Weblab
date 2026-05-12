@@ -9,7 +9,7 @@ import { Slider } from '@weblab/ui/slider';
 import { cn } from '@weblab/ui/utils';
 
 import type { ComponentTokenSpec } from './component-tokens';
-import { hexToHsl, hslToHex } from '../color-utils';
+import { tokenToHex } from '../color-utils';
 import { useOverrides } from '../overrides-context';
 
 export function TokenControl({ spec }: { spec: ComponentTokenSpec }) {
@@ -50,10 +50,7 @@ export function TokenControl({ spec }: { spec: ComponentTokenSpec }) {
                 />
             )}
             {spec.kind === 'radius' && (
-                <RadiusControl
-                    value={current}
-                    onChange={(v) => setToken(spec.cssVar, v)}
-                />
+                <RadiusControl value={current} onChange={(v) => setToken(spec.cssVar, v)} />
             )}
             {(spec.kind === 'spacing' || spec.kind === 'number') && (
                 <TextControl
@@ -87,7 +84,7 @@ function ColorControl({
     onChange: (v: string) => void;
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
-    const hex = hslToHex(value);
+    const hex = tokenToHex(value);
 
     return (
         <div className="flex items-center gap-2">
@@ -96,12 +93,12 @@ function ColorControl({
                 className="border-border relative h-8 w-8 flex-shrink-0 cursor-pointer overflow-hidden rounded border"
                 title={`Edit ${cssVar}`}
             >
-                <div className="h-full w-full" style={{ background: `hsl(${value})` }} />
+                <div className="h-full w-full" style={{ background: value }} />
                 <input
                     ref={inputRef}
                     type="color"
                     value={hex}
-                    onChange={(e) => onChange(hexToHsl(e.target.value))}
+                    onChange={(e) => onChange(e.target.value)}
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 />
             </button>
@@ -116,13 +113,7 @@ function ColorControl({
     );
 }
 
-function RadiusControl({
-    value,
-    onChange,
-}: {
-    value: string;
-    onChange: (v: string) => void;
-}) {
+function RadiusControl({ value, onChange }: { value: string; onChange: (v: string) => void }) {
     const numeric = parseFloat(value);
     const safe = Number.isFinite(numeric) ? numeric : 1;
 

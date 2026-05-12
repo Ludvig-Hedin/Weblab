@@ -179,7 +179,7 @@ export function TerminalAnimationBackgroundGradient({ className }: { className?:
             aria-hidden
             className={cn(
                 'pointer-events-none absolute inset-0 -z-0',
-                'bg-[radial-gradient(ellipse_at_center,_hsl(var(--foreground-brand)/0.10),_transparent_65%)]',
+                'bg-[radial-gradient(ellipse_at_center,_color-mix(in srgb, var(--foreground-brand) 10%, transparent),_transparent_65%)]',
                 className,
             )}
         />

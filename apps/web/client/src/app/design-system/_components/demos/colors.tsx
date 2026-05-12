@@ -2,7 +2,7 @@
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
-import { hslToHex } from '../color-utils';
+import { tokenToHex } from '../color-utils';
 import { useOverrides } from '../overrides-context';
 import { Section } from '../section';
 import { ColorSwatch } from './color-swatch';
@@ -32,13 +32,15 @@ export function ColorsDemo() {
                     ) : undefined
                 }
             >
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {SEMANTIC_TOKENS.map((t) => (
                         <ColorSwatch
                             key={t.cssVar}
                             name={t.name}
                             cssVar={t.cssVar}
                             value={t.value}
+                            description={t.description}
+                            usage={t.usage}
                         />
                     ))}
                 </div>
@@ -49,13 +51,15 @@ export function ColorsDemo() {
                 tag="colors"
                 filePath="packages/ui/src/globals.css"
             >
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {FOREGROUND_TOKENS.map((t) => (
                         <ColorSwatch
                             key={t.cssVar}
                             name={t.name}
                             cssVar={t.cssVar}
                             value={t.value}
+                            description={t.description}
+                            usage={t.usage}
                         />
                     ))}
                 </div>
@@ -84,13 +88,15 @@ export function ColorsDemo() {
                     Tokens for the project editor chrome — canvas, side panels, top/bottom bars, and
                     tab strip.
                 </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {CANVAS_EDITOR_TOKENS.map((t) => (
                         <ColorSwatch
                             key={t.cssVar}
                             name={t.name}
                             cssVar={t.cssVar}
                             value={t.value}
+                            description={t.description}
+                            usage={t.usage}
                         />
                     ))}
                 </div>
@@ -106,12 +112,12 @@ export function ColorsDemo() {
                                     <TooltipTrigger>
                                         <div
                                             className="h-8 w-8 cursor-default rounded"
-                                            style={{ background: `hsl(${c.value})` }}
+                                            style={{ background: c.value }}
                                         />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p className="font-mono text-xs">
-                                            {c.name} — {hslToHex(c.value)}
+                                            {c.name} — {tokenToHex(c.value)}
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>

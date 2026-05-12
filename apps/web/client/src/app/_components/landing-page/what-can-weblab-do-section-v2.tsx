@@ -75,7 +75,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
                     className="pointer-events-none absolute inset-0 opacity-40"
                     style={{
                         backgroundImage:
-                            'radial-gradient(circle, hsl(var(--foreground-primary) / 0.06) 1px, transparent 1px)',
+                            'radial-gradient(circle, color-mix(in srgb, var(--foreground-primary) 6%, transparent) 1px, transparent 1px)',
                         backgroundSize: '18px 18px',
                     }}
                     aria-hidden
@@ -103,8 +103,8 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
 // All visuals follow the Model Agnostic recipe: monochrome surface, one
 // brand-blue focal point, mono captions, tight type, subtle ambient cycle.
 
-const BRAND = 'hsl(var(--foreground-brand))';
-const BRAND_SOFT = 'hsl(var(--foreground-brand) / 0.16)';
+const BRAND = 'var(--foreground-brand)';
+const BRAND_SOFT = 'color-mix(in srgb, var(--foreground-brand) 16%, transparent)';
 
 // ─── AI Assistant — full conversation choreography ──────────────────────
 // Cycles through prompt → user message → AI thinking → AI reply (typed) →
@@ -235,7 +235,7 @@ function AiAssistantVisual() {
                         {phase === 'ai-typing' && (
                             <span
                                 className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] animate-pulse"
-                                style={{ backgroundColor: 'hsl(var(--foreground-primary))' }}
+                                style={{ backgroundColor: 'var(--foreground-primary)' }}
                                 aria-hidden
                             />
                         )}
@@ -255,7 +255,7 @@ function AiAssistantVisual() {
                                 <span
                                     className="h-2.5 w-2.5 animate-spin rounded-full border"
                                     style={{
-                                        borderColor: 'hsl(var(--foreground-primary) / 0.15)',
+                                        borderColor: 'color-mix(in srgb, var(--foreground-primary) 15%, transparent)',
                                         borderTopColor: BRAND,
                                     }}
                                     aria-hidden
@@ -309,7 +309,7 @@ function AiAssistantVisual() {
                                 style={{
                                     backgroundColor: inputHasText
                                         ? BRAND
-                                        : 'hsl(var(--foreground-primary) / 0.08)',
+                                        : 'color-mix(in srgb, var(--foreground-primary) 8%, transparent)',
                                 }}
                                 aria-hidden
                             >
@@ -318,7 +318,7 @@ function AiAssistantVisual() {
                                     style={{
                                         color: inputHasText
                                             ? 'white'
-                                            : 'hsl(var(--foreground-tertiary))',
+                                            : 'var(--foreground-tertiary)',
                                     }}
                                 />
                             </span>

@@ -68,7 +68,7 @@ export const CommentPins = observer(() => {
                                 // Unread glow
                                 boxShadow:
                                     isUnread && !isActive
-                                        ? '0 0 0 3px hsl(var(--foreground-brand) / 0.45), 0 2px 8px rgba(0,0,0,0.3)'
+                                        ? '0 0 0 3px color-mix(in srgb, var(--foreground-brand) 45%, transparent), 0 2px 8px rgba(0,0,0,0.3)'
                                         : '0 2px 8px rgba(0,0,0,0.25)',
                             }}
                         >

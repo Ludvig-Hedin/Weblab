@@ -22,8 +22,8 @@ import { cn } from '@/lib/utils';
 // Brand-aligned color tokens for terminal lines.
 // Stick to brand blue + neutral grays — no rainbow.
 const C = {
-    brand: 'text-[hsl(var(--foreground-brand))]',
-    ok: 'text-[hsl(var(--foreground-brand))]',
+    brand: 'text-[var(--foreground-brand)]',
+    ok: 'text-[var(--foreground-brand)]',
     head: 'text-foreground-primary',
     mute: 'text-foreground-secondary',
     faint: 'text-foreground-tertiary',

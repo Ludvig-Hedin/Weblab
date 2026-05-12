@@ -53,7 +53,7 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 /* TipTap chat input placeholder */
 .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
-    color: color-mix(in srgb, hsl(var(--foreground-primary)) 50%, transparent);
+    color: color-mix(in srgb, var(--foreground-primary) 50%, transparent);
     pointer-events: none;
     float: left;
     height: 0;
@@ -61,8 +61,8 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
 /* TipTap mention chip */
 .ProseMirror .mention {
-    background-color: color-mix(in srgb, hsl(var(--foreground-brand)) 10%, transparent);
-    color: hsl(var(--foreground-brand));
+    background-color: color-mix(in srgb, var(--foreground-brand) 10%, transparent);
+    color: var(--foreground-brand);
     border-radius: var(--radius-sm, 0.5rem);
     padding: 0.125rem 0.25rem;
     font-size: 0.6875rem;

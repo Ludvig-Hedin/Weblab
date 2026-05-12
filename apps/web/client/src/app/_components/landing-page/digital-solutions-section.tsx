@@ -258,9 +258,9 @@ function SlideCard({
 // ─── Visuals ─────────────────────────────────────────────────────────────
 // Calm monochrome miniatures. One whisper of brand blue per visual.
 
-const BRAND = 'hsl(var(--foreground-brand))';
-const BRAND_SOFT = 'hsl(var(--foreground-brand) / 0.16)';
-const BRAND_RING = 'hsl(var(--foreground-brand) / 0.4)';
+const BRAND = 'var(--foreground-brand)';
+const BRAND_SOFT = 'color-mix(in srgb, var(--foreground-brand) 16%, transparent)';
+const BRAND_RING = 'color-mix(in srgb, var(--foreground-brand) 40%, transparent)';
 
 function VisualChrome({
     label,
@@ -305,7 +305,7 @@ function Cursor({
                 <path
                     d="M2 1.5L11 7.5L7 8.5L5.5 12.5L2 1.5Z"
                     fill={BRAND}
-                    stroke="hsl(var(--background))"
+                    stroke="var(--background)"
                     strokeWidth="1.2"
                 />
             </svg>

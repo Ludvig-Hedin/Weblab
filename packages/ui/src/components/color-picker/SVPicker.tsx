@@ -32,6 +32,21 @@ const SVPickerBody: React.FC<SVPickerBodyProps> = ({ children, ...props }) => (
     </div>
 );
 
+/** Returns the pure saturated color (S=100%, L=50%) for a hue in degrees as rgba. */
+function hueToRgba(hueDeg: number): string {
+    const h = ((hueDeg % 360) + 360) % 360;
+    const s = h / 60;
+    const x = Math.round(255 * (1 - Math.abs((s % 2) - 1)));
+    const [r, g, b] =
+        s < 1 ? [255, x, 0] :
+        s < 2 ? [x, 255, 0] :
+        s < 3 ? [0, 255, x] :
+        s < 4 ? [0, x, 255] :
+        s < 5 ? [x, 0, 255] :
+                [255, 0, x];
+    return `rgba(${r},${g},${b},1)`;
+}
+
 export const SVPicker: React.FC<{
     width: number;
     height: number;
@@ -43,8 +58,11 @@ export const SVPicker: React.FC<{
 }> = ({ width, height, handleSize, color, onChangeEnd, onChange, onMouseDown }) => {
     const hueDeg = Math.round(color.h * 360);
 
-    const saturationGradient = `linear-gradient(to right, hsl(${hueDeg}, 0%, 100%), hsl(${hueDeg}, 100%, 50%))`;
-    const valueGradient = `linear-gradient(to top, hsl(${hueDeg}, 0%, 0%), hsl(${hueDeg}, 0%, 100%))`;
+    // Convert hue to pure saturated rgba (S=100%, L=50%) for gradient endpoints.
+    // hsl(H, 0%, 100%) = white, hsl(H, 0%, 0%) = black regardless of hue.
+    const pureHue = hueToRgba(hueDeg);
+    const saturationGradient = `linear-gradient(to right, rgba(255,255,255,1), ${pureHue})`;
+    const valueGradient = `linear-gradient(to top, rgba(0,0,0,1), rgba(255,255,255,1))`;
 
     const valueAtEvent = (e: React.MouseEvent<HTMLElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();

@@ -14,8 +14,8 @@ import {
 import { Section } from '../section';
 
 const config = {
-    sessions: { label: 'Sessions', color: 'hsl(var(--primary))' },
-    edits: { label: 'Edits', color: 'hsl(var(--background-brand))' },
+    sessions: { label: 'Sessions', color: 'var(--primary)' },
+    edits: { label: 'Edits', color: 'var(--background-brand)' },
 } satisfies ChartConfig;
 
 const data = [

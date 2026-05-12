@@ -72,12 +72,12 @@ const CodeBlockComponent = ({
                             margin: 0,
                             padding: '1rem',
                             fontSize: '0.875rem',
-                            background: 'hsl(var(--background-secondary))',
-                            color: 'hsl(var(--foreground))',
+                            background: 'var(--background-secondary)',
+                            color: 'var(--foreground)',
                         }}
                         language={language}
                         lineNumberStyle={{
-                            color: 'hsl(var(--muted-foreground))',
+                            color: 'var(--muted-foreground)',
                             paddingRight: '1rem',
                             minWidth: '2.5rem',
                         }}

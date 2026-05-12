@@ -162,7 +162,7 @@ function ModelPicker() {
                                 type="button"
                                 onClick={() => setActiveIndex(idx)}
                                 aria-pressed={isActive}
-                                className="group/picker-row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[hsl(var(--foreground-brand))]"
+                                className="group/picker-row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--foreground-brand)]"
                             >
                                 <span className="text-foreground-secondary flex h-5 w-5 shrink-0 items-center justify-center transition-transform duration-200 group-hover/picker-row:scale-110">
                                     {m.icon}
@@ -191,10 +191,10 @@ function ModelPicker() {
                                             className="absolute inset-0 animate-ping rounded-full opacity-70"
                                             style={{
                                                 backgroundColor:
-                                                    'hsl(var(--foreground-brand) / 0.5)',
+                                                    'color-mix(in srgb, var(--foreground-brand) 50%, transparent)',
                                             }}
                                         />
-                                        <span className="relative h-1.5 w-1.5 rounded-full bg-[hsl(var(--foreground-brand))]" />
+                                        <span className="relative h-1.5 w-1.5 rounded-full bg-[var(--foreground-brand)]" />
                                     </motion.span>
                                 )}
                             </button>

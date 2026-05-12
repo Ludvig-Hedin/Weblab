@@ -14,9 +14,9 @@ const MotionCard = React.forwardRef<HTMLDivElement, MotionDivProps>(
             style={{
                 borderRadius: '12px',
                 backdropFilter: 'blur(12px)',
-                backgroundColor: 'hsl(var(--background) /0.6)',
+                backgroundColor: 'color-mix(in srgb, var(--background) 60%, transparent)',
                 boxShadow: `
-                    0px 0px 0px 0.5px hsl(var(--foreground) /0.2)
+                    0px 0px 0px 0.5px color-mix(in srgb, var(--foreground) 20%, transparent)
                 `,
                 color: 'var(--card-foreground)',
                 ...style,

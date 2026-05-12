@@ -28,7 +28,21 @@ function getUserColor(userId: string): string {
         hash = userId.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 70%, 60%)`;
+    // hsl(hue, 70%, 60%) → rgba — fixed S=0.70, L=0.60
+    const h = hue / 360;
+    const q = 0.60 + 0.70 - 0.60 * 0.70; // 0.88
+    const p = 2 * 0.60 - q; // 0.32
+    const ch = (t: number) => {
+        const n = ((t % 1) + 1) % 1;
+        if (n < 1 / 6) return p + (q - p) * 6 * n;
+        if (n < 1 / 2) return q;
+        if (n < 2 / 3) return p + (q - p) * (2 / 3 - n) * 6;
+        return p;
+    };
+    const r = Math.round(ch(h + 1 / 3) * 255);
+    const g = Math.round(ch(h) * 255);
+    const b = Math.round(ch(h - 1 / 3) * 255);
+    return `rgba(${r}, ${g}, ${b}, 1)`;
 }
 
 export class PresenceManager {

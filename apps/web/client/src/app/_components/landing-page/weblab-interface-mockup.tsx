@@ -728,7 +728,7 @@ function ReasoningMessage({ text, active }: { text: string; active: boolean }) {
                     className={cn(
                         'text-[11px] leading-snug font-light',
                         active &&
-                            'animate-shimmer bg-gradient-to-r from-[hsl(var(--foreground-secondary))] via-[hsl(var(--foreground))] to-[hsl(var(--foreground-secondary))] bg-[length:200%_100%] bg-clip-text text-transparent',
+                            'animate-shimmer bg-gradient-to-r from-[var(--foreground-secondary)] via-[var(--foreground)] to-[var(--foreground-secondary)] bg-[length:200%_100%] bg-clip-text text-transparent',
                     )}
                 >
                     {text}

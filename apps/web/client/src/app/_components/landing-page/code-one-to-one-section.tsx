@@ -90,7 +90,7 @@ export function CodeOneToOneSection() {
                                 style={{
                                     boxShadow:
                                         selectedDiv === div.id
-                                            ? '0 0 0 2px hsl(var(--foreground-brand))'
+                                            ? '0 0 0 2px var(--foreground-brand)'
                                             : undefined,
                                 }}
                             >

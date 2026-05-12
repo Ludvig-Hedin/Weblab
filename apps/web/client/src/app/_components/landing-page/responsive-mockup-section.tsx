@@ -68,7 +68,7 @@ function PromptOnCanvasAsset() {
                     className="absolute inset-0 opacity-50"
                     style={{
                         backgroundImage:
-                            'radial-gradient(circle, hsl(var(--foreground-primary) / 0.08) 1px, transparent 1px)',
+                            'radial-gradient(circle, color-mix(in srgb, var(--foreground-primary) 8%, transparent) 1px, transparent 1px)',
                         backgroundSize: '14px 14px',
                     }}
                     aria-hidden
@@ -79,8 +79,8 @@ function PromptOnCanvasAsset() {
                         className="bg-background relative w-[68%] rounded-md p-3 transition-all duration-500"
                         style={{
                             boxShadow: applied
-                                ? '0 0 0 1.5px hsl(var(--foreground-brand)), 0 0 0 6px hsl(var(--foreground-brand) / 0.12)'
-                                : '0 0 0 1px hsl(var(--foreground-primary) / 0.10)',
+                                ? '0 0 0 1.5px var(--foreground-brand), 0 0 0 6px color-mix(in srgb, var(--foreground-brand) 12%, transparent)'
+                                : '0 0 0 1px color-mix(in srgb, var(--foreground-primary) 10%, transparent)',
                         }}
                     >
                         <div className="bg-foreground-primary/80 mb-2 h-1.5 w-12 rounded-full" />
@@ -99,7 +99,7 @@ function PromptOnCanvasAsset() {
                     <div className="text-small text-foreground-primary min-h-[20px] leading-tight font-light tracking-tight">
                         {promptText}
                         <span
-                            className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] animate-pulse bg-[hsl(var(--foreground-brand))]"
+                            className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] animate-pulse bg-[var(--foreground-brand)]"
                             aria-hidden
                         />
                     </div>
@@ -170,7 +170,7 @@ function DesignToCodeAsset() {
                     className="absolute inset-0 opacity-50"
                     style={{
                         backgroundImage:
-                            'radial-gradient(circle, hsl(var(--foreground-primary) / 0.08) 1px, transparent 1px)',
+                            'radial-gradient(circle, color-mix(in srgb, var(--foreground-primary) 8%, transparent) 1px, transparent 1px)',
                         backgroundSize: '14px 14px',
                     }}
                     aria-hidden
@@ -188,28 +188,28 @@ function DesignToCodeAsset() {
                     <span
                         className={`pointer-events-none absolute -inset-1 transition-[border-radius] duration-300 ${v.radius}`}
                         style={{
-                            boxShadow: `inset 0 0 0 1.5px hsl(var(--foreground-brand))`,
+                            boxShadow: `inset 0 0 0 1.5px var(--foreground-brand)`,
                         }}
                         aria-hidden
                     />
                     <span
                         className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        style={{ backgroundColor: 'var(--foreground-brand)' }}
                         aria-hidden
                     />
                     <span
                         className="absolute -right-1 -bottom-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        style={{ backgroundColor: 'var(--foreground-brand)' }}
                         aria-hidden
                     />
                     <span
                         className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        style={{ backgroundColor: 'var(--foreground-brand)' }}
                         aria-hidden
                     />
                     <span
                         className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        style={{ backgroundColor: 'var(--foreground-brand)' }}
                         aria-hidden
                     />
                 </div>
@@ -221,7 +221,7 @@ function DesignToCodeAsset() {
                 <div className="text-foreground-quadranary mb-1.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
                     <span
                         className="h-1 w-1 rounded-full"
-                        style={{ backgroundColor: 'hsl(var(--foreground-brand))' }}
+                        style={{ backgroundColor: 'var(--foreground-brand)' }}
                         aria-hidden
                     />
                     Button.tsx
@@ -231,9 +231,9 @@ function DesignToCodeAsset() {
                     <span
                         className="rounded-sm px-1 transition-colors duration-500"
                         style={{
-                            color: 'hsl(var(--foreground-brand))',
+                            color: 'var(--foreground-brand)',
                             backgroundColor: flashing
-                                ? 'hsl(var(--foreground-brand) / 0.18)'
+                                ? 'color-mix(in srgb, var(--foreground-brand) 18%, transparent)'
                                 : 'transparent',
                         }}
                     >
