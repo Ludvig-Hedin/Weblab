@@ -274,10 +274,11 @@ export const TopBar = observer(
                     </span>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button
-                                type="button"
+                            <Button
+                                variant="ghost"
+                                size="compact"
                                 className={cn(
-                                    'hover:bg-background-bar-active flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs',
+                                    'gap-1 rounded-md text-xs',
                                     isSelected
                                         ? 'text-foreground-primary'
                                         : 'text-foreground-secondary',
@@ -301,7 +302,7 @@ export const TopBar = observer(
                                         title={`Drifted from ${presetWidth}px`}
                                     />
                                 )}
-                            </button>
+                            </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                             align="start"
@@ -333,15 +334,16 @@ export const TopBar = observer(
                             }}
                         >
                             <DropdownMenuTrigger asChild>
-                                <button
-                                    type="button"
-                                    className="hover:bg-background-bar-active text-foreground-tertiary hover:text-foreground-primary ml-1 flex items-center justify-center rounded-md px-1.5 py-0.5"
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-foreground-tertiary hover:text-foreground-primary ml-1 h-6 w-6 rounded-md"
                                     title="Add breakpoint"
                                     onClick={(e) => e.stopPropagation()}
                                     onMouseDown={(e) => e.stopPropagation()}
                                 >
                                     <Icons.Plus className="h-3.5 w-3.5" />
-                                </button>
+                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 align="end"

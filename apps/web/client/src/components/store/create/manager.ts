@@ -1,13 +1,13 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { FrameworkId } from '@weblab/framework';
+import { getFrameworkAdapter, type FrameworkId } from '@weblab/framework';
 import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { createDefaultProject } from '@weblab/db';
 import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
 import { api } from '@/trpc/client';
-import { parseRepoUrl } from '../editor/pages/helper';
+import { parseRepoUrl } from './parse-repo-url';
 
 /**
  * Phases the create-from-prompt flow goes through. Drives the loader the
@@ -295,17 +295,18 @@ export class CreateManager {
 
             if (input.sandboxId) {
                 // Fast path: fork a pre-seeded sandbox template (~2 s).
-                // TODO(bug-hunt): port is hardcoded to 3000. Today's templates
-                // are nextjs/static-html (both port 3000), so this is latent,
-                // but a Vite (5173) or Astro (4321) template added to
-                // EXTERNAL_TEMPLATES would persist `frames.url` pointing at
-                // port 3000 → editor first-load 404. Derive port from
-                // `getFrameworkAdapter(input.framework ?? 'nextjs').template.port`
-                // (same fix as fork.ts L213-214). Same hazard applies to the
-                // slow path: `sandbox.createFromGitHub` ignores framework and
-                // hardcodes DEFAULT_PORT=3000 — fix both call sites together.
+                // Resolve the dev-server port from the template's framework
+                // adapter (Next=3000, Vite=5173, Astro=4321, ...) so a non-Next
+                // template added to EXTERNAL_TEMPLATES does not persist
+                // `frames.url` pointing at port 3000 and 404 on first preview.
+                // Same fix pattern as fork.ts L213-214. The slow path below
+                // still goes through `sandbox.createFromGitHub`, which has its
+                // own DEFAULT_PORT=3000 default — that call site is owned by
+                // the sandbox router and must be fixed there.
+                const templatePort = getFrameworkAdapter(input.framework ?? 'nextjs')
+                    .template.port;
                 sandboxResult = await api.sandbox.fork.mutate({
-                    sandbox: { id: input.sandboxId, port: 3000 },
+                    sandbox: { id: input.sandboxId, port: templatePort },
                     config: {
                         title: input.name,
                         tags: ['template-import'],

@@ -46,33 +46,31 @@ export const TopBar = observer(() => {
         },
     ];
 
-    // Unified header button styling: 32px square ghost icon button with consistent
-    // foreground/hover treatment. Apply via className on Button so each consumer
-    // (undo/redo, history, diff, git, etc.) reads identically.
     const headerIconBtnClass =
         'text-foreground-secondary hover:text-foreground-primary hover:bg-background-tertiary/60 h-8 w-8 rounded-md';
 
     return (
         <div className="bg-background-chrome border-border desktop-drag-region flex h-14 flex-row items-center justify-center border-b px-3">
-            <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1">
+            {/* Left: breadcrumb + branch. ConnectionChip hidden on mobile — too wide. */}
+            <div className="flex flex-grow basis-0 flex-row items-center justify-start gap-1 overflow-hidden">
                 <ProjectBreadcrumb />
                 <span className="text-foreground-secondary/50 text-small">/</span>
                 <BranchDisplay />
-                <span className="ml-2">
+                <span className="ml-2 hidden md:block">
                     <ConnectionChip />
                 </span>
             </div>
+
+            {/* Center: mode toggle (dropdown on mobile, tabs on desktop) */}
             <ModeToggle />
+
+            {/* Right: desktop shows all actions; mobile shows only avatar + publish */}
             <div className="flex flex-grow basis-0 items-center justify-end gap-1.5">
+                {/* Desktop-only: undo/redo */}
                 <motion.div
                     className="hidden lg:flex lg:items-center"
                     layout
-                    transition={{
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 30,
-                        delay: 0,
-                    }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0 }}
                 >
                     {UNDO_REDO_BUTTONS.map(({ click, hotkey, icon, isDisabled }) => (
                         <Tooltip key={hotkey.description}>
@@ -95,51 +93,50 @@ export const TopBar = observer(() => {
                         </Tooltip>
                     ))}
                 </motion.div>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={headerIconBtnClass}
-                            onClick={() => {
-                                stateManager.settingsTab = SettingsTabValue.VERSIONS;
-                                stateManager.isSettingsModalOpen = true;
-                            }}
-                            aria-label={t(transKeys.editor.toolbar.versionHistory)}
-                        >
-                            <Icons.CounterClockwiseClock className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="mt-1" hideArrow>
-                        {/* Surface the hotkey alongside the label so power
-                            users discover bindings in context instead of
-                            having to open the dedicated shortcuts modal. */}
-                        <HotkeyLabel hotkey={Hotkey.OPEN_VERSION_HISTORY} />
-                    </TooltipContent>
-                </Tooltip>
-                <DiffButton />
-                <GitActionsButton />
-                {/* Preview and CMS entry points now live inside ModeToggle as
-                    first-class modes. Keeping the redundant icon buttons here
-                    duplicated the action surface and confused power users
-                    about which path to use. */}
-                <div className="group flex items-center">
-                    <div
-                        className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}
-                    >
-                        <Members onPopoverOpenChange={setIsMembersPopoverOpen} />
-                    </div>
+
+                {/* md+ only: history, diff, git actions, members */}
+                <div className="hidden md:contents">
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <div className="flex items-center">
-                                <CurrentUserAvatar className="hover:border-foreground-primary size-8 cursor-pointer" />
-                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={headerIconBtnClass}
+                                onClick={() => {
+                                    stateManager.settingsTab = SettingsTabValue.VERSIONS;
+                                    stateManager.isSettingsModalOpen = true;
+                                }}
+                                aria-label={t(transKeys.editor.toolbar.versionHistory)}
+                            >
+                                <Icons.CounterClockwiseClock className="h-4 w-4" />
+                            </Button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="mt-1" hideArrow>
-                            <p>{t('editor.topBar.profile')}</p>
+                            <HotkeyLabel hotkey={Hotkey.OPEN_VERSION_HISTORY} />
                         </TooltipContent>
                     </Tooltip>
+                    <DiffButton />
+                    <GitActionsButton />
+                    <div className="group flex items-center">
+                        <div
+                            className={`transition-all duration-200 ${isMembersPopoverOpen ? 'mr-2' : '-mr-2 group-hover:mr-2'}`}
+                        >
+                            <Members onPopoverOpenChange={setIsMembersPopoverOpen} />
+                        </div>
+                    </div>
                 </div>
+
+                {/* Always visible: avatar + publish */}
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className="flex items-center">
+                            <CurrentUserAvatar className="hover:border-foreground-primary size-8 cursor-pointer" />
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="mt-1" hideArrow>
+                        <p>{t('editor.topBar.profile')}</p>
+                    </TooltipContent>
+                </Tooltip>
                 <PublishButton />
             </div>
         </div>

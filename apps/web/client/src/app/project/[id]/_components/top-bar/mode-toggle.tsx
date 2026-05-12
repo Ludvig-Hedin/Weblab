@@ -1,9 +1,18 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { EditorMode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@weblab/ui/dropdown-menu';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
+import { Icons } from '@weblab/ui/icons';
 import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
@@ -33,42 +42,71 @@ export const ModeToggle = observer(() => {
     const mode = editorEngine.state.editorMode;
 
     const activeIndex = MODE_TOGGLE_ITEMS.findIndex((item) => item.mode === mode);
-    const itemWidthPercent = 100 / MODE_TOGGLE_ITEMS.length;
-    // Slide indicator under the active mode. When the mode isn't tracked
-    // (e.g. PAN), fall back to position 0 so we don't render a stranded bar.
-    const xPercent = activeIndex >= 0 ? activeIndex * itemWidthPercent : 0;
+    const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+
+    // Measure the active tab's actual rect so the indicator spans the full
+    // width of the visible label + padding. The previous percentage-based
+    // math assumed equal tab widths, but the toggle group is `w-fit` with
+    // intrinsic-sized items, so the underline rendered shorter than the tab.
+    const groupRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const [indicator, setIndicator] = useState<{ x: number; width: number } | null>(null);
+
+    useLayoutEffect(() => {
+        const group = groupRef.current;
+        const item = itemRefs.current[safeIndex];
+        if (!group || !item) return;
+        const groupRect = group.getBoundingClientRect();
+        const itemRect = item.getBoundingClientRect();
+        setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
+    }, [safeIndex, mode]);
+
+    useEffect(() => {
+        const group = groupRef.current;
+        if (!group || typeof ResizeObserver === 'undefined') return;
+        const ro = new ResizeObserver(() => {
+            const item = itemRefs.current[safeIndex];
+            if (!group || !item) return;
+            const groupRect = group.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
+            setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
+        });
+        ro.observe(group);
+        return () => ro.disconnect();
+    }, [safeIndex]);
+
+    // MODE_TOGGLE_ITEMS is a non-empty const, so the first item is always defined.
+    const activeModeItem =
+        MODE_TOGGLE_ITEMS.find((item) => item.mode === mode) ?? MODE_TOGGLE_ITEMS[0]!;
+    const activeLabel = t(
+        transKeys.editor.modes[
+            activeModeItem.mode.toLowerCase() as keyof typeof transKeys.editor.modes
+        ].name,
+    );
 
     return (
         <div className="relative">
-            <ToggleGroup
-                className="mt-1 h-7 font-normal"
-                type="single"
-                value={mode}
-                onValueChange={(value) => {
-                    if (value) {
-                        editorEngine.state.setEditorMode(value as EditorMode);
-                    }
-                }}
-            >
-                {MODE_TOGGLE_ITEMS.map((item) => (
-                    <Tooltip key={item.mode}>
-                        <TooltipTrigger asChild>
-                            <ToggleGroupItem
-                                value={item.mode}
-                                aria-label={item.hotkey.description}
-                                // Preserve the onboarding-tour anchor that
-                                // previously lived on the play-icon button so
-                                // first-run tooltips still point at Preview.
-                                data-tour={
-                                    item.mode === EditorMode.PREVIEW
-                                        ? 'preview-button'
-                                        : undefined
-                                }
+            {/* Mobile: compact dropdown */}
+            <div className="flex md:hidden">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="compact"
+                            className="text-foreground-primary text-small"
+                        >
+                            {activeLabel}
+                            <Icons.ChevronDown className="h-3 w-3 opacity-60" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center" className="w-36">
+                        {MODE_TOGGLE_ITEMS.map((item) => (
+                            <DropdownMenuItem
+                                key={item.mode}
+                                onClick={() => editorEngine.state.setEditorMode(item.mode)}
                                 className={cn(
-                                    'text-small cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-all duration-150 ease-in-out',
-                                    mode === item.mode
-                                        ? 'text-active hover:text-active text-small hover:bg-transparent'
-                                        : 'text-foreground-tertiary hover:text-foreground-hover text-small hover:bg-transparent',
+                                    'text-small cursor-pointer',
+                                    mode === item.mode && 'text-foreground-primary font-medium',
                                 )}
                             >
                                 {t(
@@ -76,27 +114,79 @@ export const ModeToggle = observer(() => {
                                         item.mode.toLowerCase() as keyof typeof transKeys.editor.modes
                                     ].name,
                                 )}
-                            </ToggleGroupItem>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="mt-0" hideArrow>
-                            <HotkeyLabel hotkey={item.hotkey} />
-                        </TooltipContent>
-                    </Tooltip>
-                ))}
-            </ToggleGroup>
-            <motion.div
-                className="bg-foreground absolute -top-1 h-0.5"
-                initial={false}
-                animate={{
-                    width: `${itemWidthPercent}%`,
-                    x: `${xPercent}%`,
-                }}
-                transition={{
-                    type: 'tween',
-                    ease: 'easeInOut',
-                    duration: 0.2,
-                }}
-            />
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Desktop: inline toggle group */}
+            <div ref={groupRef} className="relative hidden md:block">
+                <ToggleGroup
+                    className="mt-1 h-7 font-normal"
+                    type="single"
+                    value={mode}
+                    onValueChange={(value) => {
+                        if (value) {
+                            editorEngine.state.setEditorMode(value as EditorMode);
+                        }
+                    }}
+                >
+                    {MODE_TOGGLE_ITEMS.map((item, idx) => (
+                        <Tooltip key={item.mode}>
+                            <TooltipTrigger asChild>
+                                <ToggleGroupItem
+                                    ref={(el) => {
+                                        itemRefs.current[idx] = el;
+                                    }}
+                                    value={item.mode}
+                                    aria-label={item.hotkey.description}
+                                    // Preserve the onboarding-tour anchor that
+                                    // previously lived on the play-icon button so
+                                    // first-run tooltips still point at Preview.
+                                    data-tour={
+                                        item.mode === EditorMode.PREVIEW
+                                            ? 'preview-button'
+                                            : undefined
+                                    }
+                                    className={cn(
+                                        'text-small cursor-pointer bg-transparent px-4 py-2 whitespace-nowrap transition-colors duration-150 ease-in-out',
+                                        mode === item.mode
+                                            ? 'text-foreground-active hover:text-foreground-active hover:bg-transparent'
+                                            : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-transparent',
+                                    )}
+                                >
+                                    {t(
+                                        transKeys.editor.modes[
+                                            item.mode.toLowerCase() as keyof typeof transKeys.editor.modes
+                                        ].name,
+                                    )}
+                                </ToggleGroupItem>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="mt-0" hideArrow>
+                                <HotkeyLabel hotkey={item.hotkey} />
+                            </TooltipContent>
+                        </Tooltip>
+                    ))}
+                </ToggleGroup>
+                <motion.div
+                    className="bg-foreground-active absolute -top-1 h-0.5 rounded-full"
+                    initial={false}
+                    animate={{
+                        // Hide the indicator (opacity 0) until the first
+                        // measurement lands so it doesn't flash from {x:0,
+                        // width:0} → measured rect on initial mount.
+                        width: indicator?.width ?? 0,
+                        x: indicator?.x ?? 0,
+                        opacity: indicator ? 1 : 0,
+                    }}
+                    transition={{
+                        type: 'tween',
+                        ease: 'easeInOut',
+                        duration: 0.2,
+                    }}
+                />
+            </div>
         </div>
     );
 });

@@ -53,10 +53,16 @@ export class BranchManager {
     }
 
     async init(): Promise<void> {
-        for (const branchData of this.branchMap.values()) {
-            await branchData.codeEditor.initialize();
-            await branchData.sandbox.init();
-        }
+        // Branches are independent — initialise them in parallel rather than
+        // serialising IndexedDB/ZenFS setup across N branches. Within a
+        // single branch, codeEditor must come before sandbox (sandbox reads
+        // the file-system codeEditor sets up).
+        await Promise.all(
+            Array.from(this.branchMap.values()).map(async (branchData) => {
+                await branchData.codeEditor.initialize();
+                await branchData.sandbox.init();
+            }),
+        );
         this.setupActiveFrameReaction();
     }
 

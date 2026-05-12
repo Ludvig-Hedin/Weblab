@@ -26,12 +26,24 @@ export class ChatContext {
     }
 
     init() {
+        // Track only the *identity* of selected items (frameId + domId, frame id).
+        // Mutations to a still-selected element's properties (e.g. width/height
+        // changes during resize) must NOT re-fire — otherwise every pointermove
+        // appends a duplicate context chip to the AI chat input.
         this.selectedReactionDisposer = reaction(
             () => ({
-                elements: this.editorEngine.elements.selected,
-                frames: this.editorEngine.frames.selected,
+                elementKey: this.editorEngine.elements.selected
+                    .map((el) => `${el.frameId}:${el.domId}`)
+                    .sort()
+                    .join('|'),
+                frameKey: this.editorEngine.frames.selected
+                    .map((f) => f.frame.id)
+                    .sort()
+                    .join('|'),
             }),
-            ({ elements, frames }) => {
+            () => {
+                const elements = this.editorEngine.elements.selected;
+                const frames = this.editorEngine.frames.selected;
                 this.generateContextFromReaction({ elements, frames }).then((context) => {
                     // Preserve some context when edited element changes
                     const allHighlights = this._context.filter(

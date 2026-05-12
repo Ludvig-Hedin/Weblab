@@ -176,6 +176,13 @@ export const TextEditor = observer(() => {
         }
     }, [isDisabled]);
 
+    // Wrapper box matches the element's exact border-box rect. Padding is
+    // applied here (with `box-sizing: border-box`) so the inner ProseMirror
+    // surface fills the original content area without growing the outer box.
+    // Selection affordance uses an inset box-shadow rather than an `outline`
+    // so the visible box does NOT grow by the stroke width when entering edit
+    // mode.
+    const accent = isComponent ? colors.purple[500] : colors.blue[400];
     return (
         <div
             ref={editorRef}
@@ -188,9 +195,9 @@ export const TextEditor = observer(() => {
                 pointerEvents: isDisabled ? 'none' : 'auto',
                 overflow: 'visible',
                 transformOrigin: 'top left',
-                outline: `2px solid ${isComponent ? colors.purple[500] : colors.blue[400]}`,
-                outlineOffset: '-1px',
-                borderRadius: '1px',
+                boxSizing: 'border-box',
+                padding: styles.padding ?? '0',
+                boxShadow: `inset 0 0 0 1px ${accent}`,
             }}
             data-weblab-ignore={EditorAttributes.DATA_WEBLAB_IGNORE}
             id={EditorAttributes.WEBLAB_RECT_ID}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
@@ -10,30 +11,67 @@ import { cn } from '@weblab/ui/utils';
 
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
-import { SubscriptionModal } from '@/components/ui/pricing-modal';
-import { SettingsModalWithProjects } from '@/components/ui/settings-modal/with-project';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
-import { CmsWorkspace } from './cms-workspace';
-import { BindDialog as CmsBindDialog } from './cms-workspace/bind-dialog';
-import { CmsDataPusher } from './cms-workspace/data-pusher';
-import { CommandPalette } from './command-palette';
 import { EditorBar } from './editor-bar';
-import { ElementPalette } from './element-palette';
-import { FileFinder } from './file-finder';
-import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { LeftPanel } from './left-panel';
 import { MobileLayout } from './mobile-layout';
 import { OfflineBanner } from './offline-banner';
 import { OnboardingTour } from './onboarding-tour';
 import { PreviewOverlay } from './preview-overlay';
 import { ProjectLoadError } from './project-load-error';
-import { ProjectSearch } from './project-search';
 import { RightPanel } from './right-panel';
 import { TopBar } from './top-bar';
+
+// Modals are mounted but inert until user opens them. Dynamic-loading them
+// keeps the initial editor chunk lean — Stripe (SubscriptionModal), settings
+// tabs, command/file palettes, and CMS dialogs only ship when needed.
+const SettingsModalWithProjects = dynamic(
+    () =>
+        import('@/components/ui/settings-modal/with-project').then(
+            (m) => m.SettingsModalWithProjects,
+        ),
+    { ssr: false },
+);
+const SubscriptionModal = dynamic(
+    () => import('@/components/ui/pricing-modal').then((m) => m.SubscriptionModal),
+    { ssr: false },
+);
+const KeyboardShortcutsModal = dynamic(
+    () => import('./keyboard-shortcuts-modal').then((m) => m.KeyboardShortcutsModal),
+    { ssr: false },
+);
+const ElementPalette = dynamic(
+    () => import('./element-palette').then((m) => m.ElementPalette),
+    { ssr: false },
+);
+const CommandPalette = dynamic(
+    () => import('./command-palette').then((m) => m.CommandPalette),
+    { ssr: false },
+);
+const FileFinder = dynamic(() => import('./file-finder').then((m) => m.FileFinder), {
+    ssr: false,
+});
+const ProjectSearch = dynamic(
+    () => import('./project-search').then((m) => m.ProjectSearch),
+    { ssr: false },
+);
+const CmsBindDialog = dynamic(
+    () => import('./cms-workspace/bind-dialog').then((m) => m.BindDialog),
+    { ssr: false },
+);
+const CmsDataPusher = dynamic(
+    () => import('./cms-workspace/data-pusher').then((m) => m.CmsDataPusher),
+    { ssr: false },
+);
+// CMS workspace itself only mounts when the user enters CMS mode. Keep the
+// module out of the initial editor chunk — DESIGN-only users never load it.
+const CmsWorkspace = dynamic(() => import('./cms-workspace').then((m) => m.CmsWorkspace), {
+    ssr: false,
+});
 
 export const Main = observer(() => {
     const editorEngine = useEditorEngine();
@@ -95,7 +133,7 @@ export const Main = observer(() => {
             : [
                   { label: 'Starting workspace', ready: readyState.sandbox },
                   { label: 'Preparing canvas', ready: readyState.canvas },
-                  { label: 'Restoring chat', ready: readyState.conversations },
+                  { label: 'Loading history', ready: readyState.conversations },
               ];
         return (
             <ProjectCreationLoader

@@ -1327,17 +1327,9 @@ export const updatePackageJson = async (sandboxManager: SandboxManager) => {
     await sandboxManager.writeFile('./package.json', JSON.stringify(pkgJson, null, 2));
 };
 
-export const parseRepoUrl = (repoUrl: string): { owner: string; repo: string } => {
-    const match = /github\.com\/([^/]+)\/([^/]+)(?:\.git)?/.exec(repoUrl);
-    if (!match?.[1] || !match[2]) {
-        throw new Error('Invalid GitHub URL');
-    }
-
-    return {
-        owner: match[1],
-        repo: match[2],
-    };
-};
+// `parseRepoUrl` moved to `src/components/store/create/parse-repo-url.ts` so
+// public surfaces (landing page → CreateManager) can call it without
+// dragging the @weblab/parser bundle in via this module's top-level imports.
 
 const getPageAndLayoutFiles = (entries: FileEntry[]) => {
     const pageFile = entries.find(

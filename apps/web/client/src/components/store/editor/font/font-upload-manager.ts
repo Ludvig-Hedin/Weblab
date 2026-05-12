@@ -16,6 +16,16 @@ import { getFontFileName, sanitizeFilename } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 
+const ALLOWED_FONT_EXT = new Set(['ttf', 'otf', 'eot', 'woff', 'woff2']);
+
+const sanitizeBaseFontName = (rawName: string | undefined): string => {
+    const cleaned = (rawName ?? '')
+        .replace(/[/\\]/g, '')
+        .replace(/\.{2,}/g, '')
+        .trim();
+    return cleaned || 'custom-font';
+};
+
 /**
  * Uploads font files to the project
  */
@@ -32,7 +42,7 @@ export const uploadFonts = async (
                 fontConfigAst,
             };
         }
-        const baseFontName = fontFiles[0]?.name.split('.')[0] ?? 'custom-font';
+        const baseFontName = sanitizeBaseFontName(fontFiles[0]?.name.split('.')[0]);
 
         const fontName = camelCase(`custom-${baseFontName}`);
 
@@ -81,7 +91,11 @@ export const processFontFiles = async (
             const fileName = getFontFileName(baseFontName, weight, style);
 
             const sanitizedOriginalName = sanitizeFilename(fontFile.file.name);
-            const fileExtension = sanitizedOriginalName.split('.').pop();
+            const fileExtension = sanitizedOriginalName.split('.').pop()?.toLowerCase() ?? '';
+
+            if (!ALLOWED_FONT_EXT.has(fileExtension)) {
+                throw new Error(`Unsupported font extension: .${fileExtension}`);
+            }
 
             const filePath = pathModule.join(
                 basePath,
@@ -89,7 +103,7 @@ export const processFontFiles = async (
                 `${fileName}.${fileExtension}`,
             );
 
-            const buffer = Buffer.from(fontFile.file.buffer);
+            const buffer = new Uint8Array(fontFile.file.buffer);
             await editorEngine.activeSandbox.writeFile(filePath, buffer);
 
             return {

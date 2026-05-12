@@ -391,7 +391,7 @@ export const GitActionsButton = observer(() => {
                     onClick={() => openModal('commit')}
                 >
                     <Icons.Cube className="h-3.5 w-3.5" />
-                    <span>Commit</span>
+                    <span className="hidden md:inline">Commit</span>
                 </Button>
                 <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                     <DropdownMenuTrigger asChild>

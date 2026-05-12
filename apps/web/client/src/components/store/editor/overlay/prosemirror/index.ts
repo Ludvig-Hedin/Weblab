@@ -50,13 +50,18 @@ export function applyStylesToEditor(editorView: EditorView, styles: Record<strin
     }
 
     const tr = state.tr.addMark(0, state.doc.content.size, styleMark.create({ style: styles }));
-    const fontSize = adaptValueToCanvas(parseFloat(styles.fontSize ?? ''));
-    const lineHeight = adaptValueToCanvas(parseFloat(styles.lineHeight ?? ''));
+    const fontSizePx = parseFloat(styles.fontSize ?? '');
+    const lineHeightPx = parseFloat(styles.lineHeight ?? '');
+    const fontSize = Number.isFinite(fontSizePx) ? adaptValueToCanvas(fontSizePx) : null;
+    // Skip lineHeight when computed style is non-numeric ("normal", percentages
+    // we can't resolve). Forcing `NaNpx` would push the box bigger than the
+    // iframe's rendered text and make the edit-mode box visibly grow.
+    const lineHeight = Number.isFinite(lineHeightPx) ? adaptValueToCanvas(lineHeightPx) : null;
     const fontFamily = ensureFontLoaded(styles.fontFamily ?? '');
 
     Object.assign(editorView.dom.style, {
-        fontSize: `${fontSize}px`,
-        lineHeight: `${lineHeight}px`,
+        fontSize: fontSize !== null ? `${fontSize}px` : '',
+        lineHeight: lineHeight !== null ? `${lineHeight}px` : '',
         fontWeight: styles.fontWeight,
         fontStyle: styles.fontStyle,
         color: isColorEmpty(styles.color ?? '') ? 'inherit' : styles.color,
@@ -72,8 +77,11 @@ export function applyStylesToEditor(editorView: EditorView, styles: Record<strin
         wordBreak: 'break-word',
         overflow: 'visible',
         height: '100%',
+        width: '100%',
+        boxSizing: 'border-box',
+        margin: '0',
+        padding: '0',
         fontFamily,
-        padding: styles.padding,
     });
     dispatch(tr);
 }

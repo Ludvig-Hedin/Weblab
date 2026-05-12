@@ -15,14 +15,18 @@ export default async function Layout({
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
     const supabase = await createClient();
-    // Use getUser() (verified via Supabase Auth) rather than getSession() which decodes a forgeable cookie.
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    // Fire auth + access check in parallel. `api.project.hasAccess` runs its
+    // own auth check on the tRPC side, so we don't need `getUser()` to land
+    // first — we just need to redirect when there's no signed-in Supabase
+    // user. Verified user via Supabase Auth rather than the forgeable
+    // session cookie.
+    const [userResult, hasAccess] = await Promise.all([
+        supabase.auth.getUser(),
+        api.project.hasAccess({ projectId }),
+    ]);
+    if (!userResult.data.user) {
         redirect(`${Routes.LOGIN}?${getReturnUrlQueryParam(`/project/${projectId}`)}`);
     }
-    const hasAccess = await api.project.hasAccess({ projectId });
     if (!hasAccess) {
         return <NoAccess />;
     }

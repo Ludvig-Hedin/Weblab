@@ -29,8 +29,8 @@ function classifySeverity(content: string): Severity {
 }
 
 const SEVERITY_TEXT: Record<Severity, string> = {
-    error: 'text-red-400',
-    warning: 'text-yellow-400',
+    error: 'text-destructive',
+    warning: 'text-foreground-warning',
     log: 'text-foreground-secondary',
 };
 
@@ -83,7 +83,7 @@ const CopyButton = ({
                     )}
                 >
                     {copied ? (
-                        <Icons.Check className="h-3.5 w-3.5 text-green-400" />
+                        <Icons.Check className="text-foreground-success h-3.5 w-3.5" />
                     ) : (
                         <Icons.Copy className="h-3.5 w-3.5" />
                     )}
@@ -121,7 +121,9 @@ export const ErrorsConsole = observer(() => {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             aria-label={
                                 errorCount === 0
                                     ? t(
@@ -137,19 +139,19 @@ export const ErrorsConsole = observer(() => {
                                       )
                             }
                             className={cn(
-                                'relative flex h-9 w-9 items-center justify-center rounded-md border border-transparent transition-all duration-150',
+                                'relative h-9 w-9 rounded-md transition-all duration-150',
                                 errorCount > 0
-                                    ? 'hover:bg-background-bar-active text-red-400 hover:text-red-300'
+                                    ? 'text-destructive hover:bg-background-bar-active hover:text-destructive/80'
                                     : 'text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active',
                             )}
                         >
                             <Icons.ExclamationTriangle className="h-4 w-4" />
                             {errorCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] leading-none font-medium text-white">
+                                <span className="bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] leading-none font-medium">
                                     {errorCount > 99 ? '99+' : errorCount}
                                 </span>
                             )}
-                        </button>
+                        </Button>
                     </PopoverTrigger>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={5} hideArrow>
@@ -164,7 +166,7 @@ export const ErrorsConsole = observer(() => {
                         <Icons.ExclamationTriangle
                             className={cn(
                                 'h-4 w-4',
-                                errorCount > 0 ? 'text-red-400' : 'text-foreground-tertiary',
+                                errorCount > 0 ? 'text-destructive' : 'text-foreground-tertiary',
                             )}
                         />
                         <span className="text-small text-foreground-primary font-medium">

@@ -49,6 +49,8 @@ export const OfflineBanner = observer(() => {
         <>
             <button
                 type="button"
+                style={{ backdropFilter: 'blur(20px)' }}
+           
                 onClick={() => setPanelOpen(true)}
                 className={`pointer-events-auto flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition hover:opacity-90 ${bgClass} ${borderClass} ${textClass}`}
             >
