@@ -71,8 +71,11 @@ export const cmsBindingRouter = createTRPCRouter({
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            // Defensive cap. Bindings count grows with canvas elements; 2000
+            // is well above any realistic per-project ceiling.
             return ctx.db.query.cmsBindings.findMany({
                 where: eq(cmsBindings.projectId, input.projectId),
+                limit: 2000,
             });
         }),
     /**

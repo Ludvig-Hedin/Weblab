@@ -35,9 +35,13 @@ export const conversationRouter = createTRPCRouter({
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            // Defensive cap. Chat history is loaded eagerly on editor boot;
+            // an unbounded list would balloon TTFR for long-running projects.
+            // Add pagination/"load older" if a real user hits this ceiling.
             const dbConversations = await ctx.db.query.conversations.findMany({
                 where: eq(conversations.projectId, input.projectId),
                 orderBy: (conversations, { desc }) => [desc(conversations.updatedAt)],
+                limit: 200,
             });
             return dbConversations.map((conversation) => fromDbConversation(conversation));
         }),

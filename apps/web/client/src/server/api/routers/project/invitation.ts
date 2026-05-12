@@ -117,8 +117,13 @@ export const invitationRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            // Defensive cap. The members modal renders these inline; an
+            // unbounded findMany on a churn-y project would balloon the
+            // payload. Add pagination if a project ever realistically hits 200
+            // pending invitations.
             const invitations = await ctx.db.query.projectInvitations.findMany({
                 where: eq(projectInvitations.projectId, input.projectId),
+                limit: 200,
             });
 
             return invitations;

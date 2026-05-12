@@ -12,6 +12,10 @@ export const commentCrudRouter = createTRPCRouter({
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
             await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            // Defensive cap: comments are polled by the canvas overlay and
+            // an unbounded findMany on busy projects can blow the response
+            // payload. 500 is well above any realistic active-comment count;
+            // add pagination if a real-world project ever reaches it.
             return ctx.db.query.projectComments.findMany({
                 where: eq(projectComments.projectId, input.projectId),
                 with: {
@@ -20,6 +24,7 @@ export const commentCrudRouter = createTRPCRouter({
                     },
                 },
                 orderBy: (projectComments, { asc }) => [asc(projectComments.createdAt)],
+                limit: 500,
             });
         }),
     create: protectedProcedure

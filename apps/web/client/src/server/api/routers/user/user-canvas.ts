@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -13,6 +14,7 @@ import {
 } from '@weblab/db';
 
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
+import { verifyProjectAccess } from '../project/helper';
 
 export const userCanvasRouter = createTRPCRouter({
     get: protectedProcedure
@@ -22,6 +24,7 @@ export const userCanvasRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const userCanvas = await ctx.db.query.userCanvases.findFirst({
                 where: and(
                     eq(canvases.projectId, input.projectId),
@@ -44,6 +47,7 @@ export const userCanvasRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
             const dbCanvas = await ctx.db.query.canvases.findFirst({
                 where: eq(canvases.projectId, input.projectId),
                 with: {
@@ -72,26 +76,29 @@ export const userCanvasRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            try {
-                await ctx.db
-                    .update(userCanvases)
-                    .set(input.canvas)
-                    .where(
-                        and(
-                            eq(userCanvases.canvasId, input.canvasId),
-                            eq(userCanvases.userId, ctx.user.id),
-                        ),
-                    );
-                await ctx.db
-                    .update(projects)
-                    .set({
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(projects.id, input.projectId));
-                return true;
-            } catch (error) {
-                console.error('Error updating user canvas', error);
-                return false;
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            const updated = await ctx.db
+                .update(userCanvases)
+                .set(input.canvas)
+                .where(
+                    and(
+                        eq(userCanvases.canvasId, input.canvasId),
+                        eq(userCanvases.userId, ctx.user.id),
+                    ),
+                )
+                .returning({ canvasId: userCanvases.canvasId });
+            if (updated.length === 0) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'User canvas not found',
+                });
             }
+            await ctx.db
+                .update(projects)
+                .set({
+                    updatedAt: new Date(),
+                })
+                .where(eq(projects.id, input.projectId));
+            return true;
         }),
 });
