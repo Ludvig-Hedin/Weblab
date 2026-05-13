@@ -59,7 +59,7 @@ export function useCreateBlankProject() {
                 port: adapter.template.port,
             };
 
-            const { sandboxId, previewUrl } = await forkSandbox({
+            const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox,
                 config: {
                     title: `Blank project - ${user.id}`,
@@ -78,6 +78,7 @@ export function useCreateBlankProject() {
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
+                sandboxRuntime,
             });
 
             forkedSandboxId = null;

@@ -16,6 +16,18 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-13 — Staged Vercel Sandbox runtime provider
+Author: Codex
+Area: `@weblab/code-provider`, project sandbox runtime
+Summary: Added Vercel Sandbox as a second cloud runtime behind
+`WEBLAB_CLOUD_PROVIDER`, with branch-level provider metadata and CodeSandbox as
+the default rollback path. Browser-upload flows still force CodeSandbox until
+the Vercel server-proxy file IO path is proven end-to-end.
+Files: `packages/code-provider/src/providers/vercel-sandbox/index.ts`,
+`apps/web/client/src/server/api/routers/project/sandbox.ts`,
+`docs/notes/2026-05-13-vercel-sandbox-provider.md`
+Links: `docs/notes/2026-05-13-vercel-sandbox-provider.md`
+
 ## 2026-05-11 — Performance + production-readiness audit
 Author: Claude (performance audit)
 Area: apps/web/client (landing + editor + tRPC + providers)

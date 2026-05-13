@@ -94,7 +94,7 @@ export class CreateManager {
             };
 
             this.phase = 'forking-sandbox';
-            const [{ sandboxId, previewUrl }, projectName] = await Promise.all([
+            const [{ sandboxId, previewUrl, sandboxRuntime }, projectName] = await Promise.all([
                 api.sandbox.fork.mutate({
                     sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
                     config,
@@ -130,6 +130,7 @@ export class CreateManager {
                 project,
                 sandboxId,
                 sandboxUrl: previewUrl,
+                sandboxRuntime,
                 creationData: {
                     context: [
                         {
@@ -200,7 +201,7 @@ export class CreateManager {
                 );
             }
 
-            const [{ sandboxId, previewUrl }, projectName] = await Promise.all([
+            const [{ sandboxId, previewUrl, sandboxRuntime }, projectName] = await Promise.all([
                 this.createSandboxFromGithub(repoUrl, branch),
                 this.generateProjectName(`Import from GitHub repository: ${repo}`),
             ]);
@@ -224,6 +225,7 @@ export class CreateManager {
                 project,
                 sandboxId,
                 sandboxUrl: previewUrl,
+                sandboxRuntime,
             });
             forkedSandboxId = null;
             return newProject;
@@ -291,7 +293,17 @@ export class CreateManager {
                 );
             }
 
-            let sandboxResult: { sandboxId: string; previewUrl: string };
+            let sandboxResult: {
+                sandboxId: string;
+                previewUrl: string;
+                sandboxRuntime?: {
+                    provider: 'code_sandbox' | 'vercel_sandbox';
+                    snapshotId?: string;
+                    port?: number;
+                    devCommand?: string;
+                    runtime?: string;
+                };
+            };
 
             if (input.sandboxId) {
                 // Fast path: fork a pre-seeded sandbox template (~2 s).
@@ -344,6 +356,7 @@ export class CreateManager {
                 project,
                 sandboxId: sandboxResult.sandboxId,
                 sandboxUrl: sandboxResult.previewUrl,
+                sandboxRuntime: sandboxResult.sandboxRuntime,
             });
             forkedSandboxId = null;
             return newProject;

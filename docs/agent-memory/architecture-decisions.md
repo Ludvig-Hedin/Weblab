@@ -18,6 +18,19 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-13 — Dual cloud sandbox provider rollout
+
+Decision: Add Vercel Sandbox as a second cloud runtime behind
+`WEBLAB_CLOUD_PROVIDER`, while keeping CodeSandbox as the default fallback.
+Context: CodeSandbox free credits were consumed quickly during small tests, and
+the next CodeSandbox plan is expensive for early Weblab usage.
+Alternatives considered: Immediate cutover to Vercel Sandbox; self-hosted
+Fly.io/Machines sandbox platform; E2B.
+Rationale: Dual-provider rollout preserves uptime, keeps existing CodeSandbox
+projects working, and lets Vercel be validated with branch-level metadata
+before any existing project migration.
+Status: Active
+
 ## 2026-05-09 — AbortSignal forwarded through the full chat pipeline
 
 Decision: `createRootAgentStream` accepts an optional `abortSignal` param passed down to `streamText`; `/api/chat` passes `req.signal`.

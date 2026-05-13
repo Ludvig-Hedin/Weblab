@@ -17,6 +17,7 @@ import {
 import { branches } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
+import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { verifyProjectAccess } from './helper';
 
@@ -31,9 +32,91 @@ async function verifySandboxAccess(db: DrizzleDb, userId: string, sandboxId: str
         });
     }
     await verifyProjectAccess(db, userId, branch.projectId);
+    return branch;
 }
 
 const SANDBOX_PRIVACY = 'private' as const;
+const DEFAULT_PORT = 3000;
+
+type CloudProvider = 'code_sandbox' | 'vercel_sandbox';
+const cloudProviderSchema = z.enum(['code_sandbox', 'vercel_sandbox']);
+
+function toCodeProvider(provider: CloudProvider): CodeProvider {
+    return provider === 'vercel_sandbox'
+        ? CodeProvider.VercelSandbox
+        : CodeProvider.CodeSandbox;
+}
+
+function getConfiguredCloudProvider(): CodeProvider {
+    return toCodeProvider(env.WEBLAB_CLOUD_PROVIDER);
+}
+
+function getRequestedCloudProvider(provider?: CloudProvider): CodeProvider {
+    return provider ? toCodeProvider(provider) : getConfiguredCloudProvider();
+}
+
+function getBranchCloudProvider(branch: { runtimeMetadata: unknown }): CodeProvider {
+    const metadata = branch.runtimeMetadata as
+        | { cloud?: { provider?: CloudProvider | null } }
+        | null
+        | undefined;
+    return metadata?.cloud?.provider === 'vercel_sandbox'
+        ? CodeProvider.VercelSandbox
+        : CodeProvider.CodeSandbox;
+}
+
+function getPreviewUrl({
+    provider,
+    sandboxId,
+    port,
+    previewToken,
+    previewUrl,
+}: {
+    provider: CodeProvider;
+    sandboxId: string;
+    port: number;
+    previewToken?: string;
+    previewUrl?: string;
+}) {
+    return provider === CodeProvider.VercelSandbox && previewUrl
+        ? previewUrl
+        : getSandboxPreviewUrl(sandboxId, port, previewToken);
+}
+
+function getSandboxRuntime({
+    provider,
+    sandbox,
+    port,
+}: {
+    provider: CodeProvider;
+    sandbox: {
+        id: string;
+        snapshotId?: string;
+        previewUrl?: string;
+        port?: number;
+        devCommand?: string;
+        runtime?: string;
+    };
+    port: number;
+}): {
+    provider: CloudProvider;
+    sandboxId: string;
+    previewUrl?: string;
+    snapshotId?: string;
+    port: number;
+    devCommand?: string;
+    runtime?: string;
+} {
+    return {
+        provider: provider === CodeProvider.VercelSandbox ? 'vercel_sandbox' : 'code_sandbox',
+        sandboxId: sandbox.id,
+        previewUrl: sandbox.previewUrl,
+        snapshotId: sandbox.snapshotId,
+        port: sandbox.port ?? port,
+        devCommand: sandbox.devCommand,
+        runtime: sandbox.runtime,
+    };
+}
 
 function getProvider({
     sandboxId,
@@ -53,13 +136,25 @@ function getProvider({
                 },
             },
         });
-    } else {
-        return createCodeProviderClient(CodeProvider.NodeFs, {
+    }
+
+    if (provider === CodeProvider.VercelSandbox) {
+        return createCodeProviderClient(CodeProvider.VercelSandbox, {
             providerOptions: {
-                nodefs: {},
+                vercelSandbox: {
+                    sandboxId,
+                    userId,
+                    port: DEFAULT_PORT,
+                },
             },
         });
     }
+
+    return createCodeProviderClient(CodeProvider.NodeFs, {
+        providerOptions: {
+            nodefs: {},
+        },
+    });
 }
 
 export const sandboxRouter = createTRPCRouter({
@@ -67,28 +162,38 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 title: z.string().optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
             // Create a new sandbox using the static provider
-            const CodesandboxProvider = await getStaticCodeProvider(CodeProvider.CodeSandbox);
+            const cloudProvider = getRequestedCloudProvider(input.provider);
+            const StaticProvider = await getStaticCodeProvider(cloudProvider);
 
-            const newSandbox = await CodesandboxProvider.createProject({
+            const newSandbox = await StaticProvider.createProject({
                 source: 'template',
                 id: DEFAULT_NEW_PROJECT_TEMPLATE.id,
                 title: input.title || `${APP_NAME} Test Sandbox`,
                 description: `Test sandbox for ${APP_NAME} sync engine`,
                 tags: ['weblab-test'],
                 privacy: SANDBOX_PRIVACY,
+                port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
             });
 
             return {
                 sandboxId: newSandbox.id,
-                previewUrl: getSandboxPreviewUrl(
-                    newSandbox.id,
-                    DEFAULT_NEW_PROJECT_TEMPLATE.port,
-                    newSandbox.previewToken,
-                ),
+                previewUrl: getPreviewUrl({
+                    provider: cloudProvider,
+                    sandboxId: newSandbox.id,
+                    port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
+                    previewToken: newSandbox.previewToken,
+                    previewUrl: newSandbox.previewUrl,
+                }),
+                sandboxRuntime: getSandboxRuntime({
+                    provider: cloudProvider,
+                    sandbox: newSandbox,
+                    port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
+                }),
             };
         }),
 
@@ -96,14 +201,16 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
             const userId = ctx.user.id;
-            await verifySandboxAccess(ctx.db, userId, input.sandboxId);
+            const branch = await verifySandboxAccess(ctx.db, userId, input.sandboxId);
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 userId,
+                provider: getBranchCloudProvider(branch),
             });
             // TODO(bug-hunt): provider.destroy() lives outside try/finally
             // here, unlike `delete`/`hibernate`/`startOrphan`/`list`. If
@@ -124,11 +231,15 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 await provider.pauseProject({});
             } finally {
@@ -139,8 +250,11 @@ export const sandboxRouter = createTRPCRouter({
         .input(z.object({ sandboxId: z.string() }))
         .query(async ({ input, ctx }) => {
             // CR-118: verify caller owns the sandbox before listing its projects.
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 const res = await provider.listProjects({});
                 // TODO future iteration of code provider abstraction will need this code to be refactored
@@ -165,6 +279,7 @@ export const sandboxRouter = createTRPCRouter({
                         tags: z.array(z.string()).optional(),
                     })
                     .optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -181,10 +296,9 @@ export const sandboxRouter = createTRPCRouter({
 
             for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    const CodesandboxProvider = await getStaticCodeProvider(
-                        CodeProvider.CodeSandbox,
-                    );
-                    const sandbox = await CodesandboxProvider.createProject({
+                    const cloudProvider = getRequestedCloudProvider(input.provider);
+                    const StaticProvider = await getStaticCodeProvider(cloudProvider);
+                    const sandbox = await StaticProvider.createProject({
                         source: 'template',
                         id: input.sandbox.id,
 
@@ -192,17 +306,25 @@ export const sandboxRouter = createTRPCRouter({
                         title: input.config?.title,
                         tags: input.config?.tags,
                         privacy: SANDBOX_PRIVACY,
+                        port: input.sandbox.port,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(
-                        sandbox.id,
-                        input.sandbox.port,
-                        sandbox.previewToken,
-                    );
+                    const previewUrl = getPreviewUrl({
+                        provider: cloudProvider,
+                        sandboxId: sandbox.id,
+                        port: input.sandbox.port,
+                        previewToken: sandbox.previewToken,
+                        previewUrl: sandbox.previewUrl,
+                    });
 
                     return {
                         sandboxId: sandbox.id,
                         previewUrl,
+                        sandboxRuntime: getSandboxRuntime({
+                            provider: cloudProvider,
+                            sandbox,
+                            port: input.sandbox.port,
+                        }),
                     };
                 } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
@@ -225,11 +347,15 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 await provider.stopProject({});
             } finally {
@@ -254,6 +380,7 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -271,6 +398,7 @@ export const sandboxRouter = createTRPCRouter({
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 userId,
+                provider: getRequestedCloudProvider(input.provider),
             });
             try {
                 const session = await provider.createSession({
@@ -297,6 +425,7 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -310,7 +439,10 @@ export const sandboxRouter = createTRPCRouter({
                         'Sandbox is attached to a project; use sandbox.delete with project ownership.',
                 });
             }
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getRequestedCloudProvider(input.provider),
+            });
             try {
                 await provider.stopProject({}).catch(() => {});
             } finally {
@@ -323,6 +455,7 @@ export const sandboxRouter = createTRPCRouter({
                 repoUrl: z.string(),
                 branch: z.string(),
                 subpath: z.string().optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input }) => {
@@ -332,25 +465,32 @@ export const sandboxRouter = createTRPCRouter({
 
             for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    const CodesandboxProvider = await getStaticCodeProvider(
-                        CodeProvider.CodeSandbox,
-                    );
-                    const sandbox = await CodesandboxProvider.createProjectFromGit({
+                    const cloudProvider = getRequestedCloudProvider(input.provider);
+                    const StaticProvider = await getStaticCodeProvider(cloudProvider);
+                    const sandbox = await StaticProvider.createProjectFromGit({
                         repoUrl: input.repoUrl,
                         branch: input.branch,
                         subpath: input.subpath,
                         privacy: SANDBOX_PRIVACY,
+                        port: DEFAULT_PORT,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(
-                        sandbox.id,
-                        DEFAULT_PORT,
-                        sandbox.previewToken,
-                    );
+                    const previewUrl = getPreviewUrl({
+                        provider: cloudProvider,
+                        sandboxId: sandbox.id,
+                        port: DEFAULT_PORT,
+                        previewToken: sandbox.previewToken,
+                        previewUrl: sandbox.previewUrl,
+                    });
 
                     return {
                         sandboxId: sandbox.id,
                         previewUrl,
+                        sandboxRuntime: getSandboxRuntime({
+                            provider: cloudProvider,
+                            sandbox,
+                            port: DEFAULT_PORT,
+                        }),
                     };
                 } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));

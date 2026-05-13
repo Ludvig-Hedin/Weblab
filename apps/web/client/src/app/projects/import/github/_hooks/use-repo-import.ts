@@ -43,15 +43,16 @@ export const useRepositoryImport = () => {
         let forkedSandboxId: string | null = null;
         try {
             checkAborted();
-            const { sandboxId, previewUrl } = await clientApi.sandbox.createFromGitHub.mutate(
-                {
-                    repoUrl: selectedRepo.clone_url,
-                    branch: selectedRepo.default_branch,
-                },
-                {
-                    signal,
-                },
-            );
+            const { sandboxId, previewUrl, sandboxRuntime } =
+                await clientApi.sandbox.createFromGitHub.mutate(
+                    {
+                        repoUrl: selectedRepo.clone_url,
+                        branch: selectedRepo.default_branch,
+                    },
+                    {
+                        signal,
+                    },
+                );
             forkedSandboxId = sandboxId;
             checkAborted();
 
@@ -68,6 +69,7 @@ export const useRepositoryImport = () => {
                     },
                     sandboxId,
                     sandboxUrl: previewUrl,
+                    sandboxRuntime,
                 },
                 {
                     signal,

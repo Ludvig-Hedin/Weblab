@@ -130,6 +130,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             const template = SandboxTemplates[Templates.BLANK];
             const forkedSandbox = await forkSandbox({
                 sandbox: template,
+                provider: 'code_sandbox',
                 config: {
                     title: `Figma import – ${fileName}`,
                     tags: ['figma', 'imported', user.id],
@@ -196,6 +197,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
+                sandboxRuntime: forkedSandbox.sandboxRuntime,
             });
 
             if (!project) throw new Error('Failed to create project');

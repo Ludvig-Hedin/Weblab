@@ -78,8 +78,8 @@ Astro, TanStack Start, and static HTML projects. New: framework auto-detection
 flow used by the project creation dialog and AI system prompts.
 
 ### `@weblab/code-provider`
-Code sandbox provider abstraction. Decouples editor from CodeSandbox vs. local
-vs. future hybrid runtime backends.
+Code sandbox provider abstraction. Decouples editor from CodeSandbox, staged
+Vercel Sandbox, local, and future hybrid runtime backends.
 
 ### `@weblab/file-system`
 Browser-compatible file-system abstraction used by editor providers and

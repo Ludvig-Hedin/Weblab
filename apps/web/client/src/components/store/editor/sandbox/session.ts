@@ -67,18 +67,30 @@ export class SessionManager {
                               },
                           },
                       })
-                    : await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                          providerOptions: {
-                              codesandbox: {
-                                  sandboxId,
-                                  userId,
-                                  initClient: true,
-                                  getSession: async (sandboxId, _userId) => {
-                                      return api.sandbox.start.mutate({ sandboxId });
-                                  },
-                              },
-                          },
-                      });
+                    : this.branch.runtime.cloud?.provider === 'vercel_sandbox'
+                      ? await createCodeProviderClient(CodeProvider.VercelSandbox, {
+                            providerOptions: {
+                                vercelSandbox: {
+                                    sandboxId,
+                                    userId,
+                                    port: this.branch.runtime.cloud.port,
+                                    devCommand: this.branch.runtime.cloud.devCommand,
+                                    runtime: this.branch.runtime.cloud.runtime,
+                                },
+                            },
+                        })
+                      : await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                            providerOptions: {
+                                codesandbox: {
+                                    sandboxId,
+                                    userId,
+                                    initClient: true,
+                                    getSession: async (sandboxId, _userId) => {
+                                        return api.sandbox.start.mutate({ sandboxId });
+                                    },
+                                },
+                            },
+                        });
 
             runInAction(() => {
                 this.provider = provider;

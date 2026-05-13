@@ -1,5 +1,7 @@
 import type { CodesandboxProviderOptions } from './providers/codesandbox';
 import type { NodeFsProviderOptions } from './providers/nodefs';
+import type { VercelSandboxProviderOptions } from './providers/vercel-sandbox';
+import type { Provider, StaticProvider } from './types';
 import { CodeProvider } from './providers';
 import { CodesandboxProvider } from './providers/codesandbox';
 import { NodeFsProvider } from './providers/nodefs';
@@ -7,6 +9,7 @@ import { NodeFsProvider } from './providers/nodefs';
 export * from './providers';
 export { CodesandboxProvider } from './providers/codesandbox';
 export { NodeFsProvider } from './providers/nodefs';
+export type { VercelSandboxProviderOptions } from './providers/vercel-sandbox';
 export * from './types';
 
 export interface CreateClientOptions {
@@ -21,14 +24,12 @@ export async function createCodeProviderClient(
     codeProvider: CodeProvider,
     { providerOptions }: CreateClientOptions,
 ) {
-    const provider = newProviderInstance(codeProvider, providerOptions);
+    const provider = await newProviderInstance(codeProvider, providerOptions);
     await provider.initialize({});
     return provider;
 }
 
-export async function getStaticCodeProvider(
-    codeProvider: CodeProvider,
-): Promise<typeof CodesandboxProvider | typeof NodeFsProvider> {
+export async function getStaticCodeProvider(codeProvider: CodeProvider): Promise<StaticProvider> {
     if (codeProvider === CodeProvider.CodeSandbox) {
         return CodesandboxProvider;
     }
@@ -36,15 +37,24 @@ export async function getStaticCodeProvider(
     if (codeProvider === CodeProvider.NodeFs) {
         return NodeFsProvider;
     }
+
+    if (codeProvider === CodeProvider.VercelSandbox) {
+        const { VercelSandboxProvider } = await import('./providers/vercel-sandbox');
+        return VercelSandboxProvider;
+    }
     throw new Error(`Unimplemented code provider: ${codeProvider}`);
 }
 
 export interface ProviderInstanceOptions {
     codesandbox?: CodesandboxProviderOptions;
     nodefs?: NodeFsProviderOptions;
+    vercelSandbox?: VercelSandboxProviderOptions;
 }
 
-function newProviderInstance(codeProvider: CodeProvider, providerOptions: ProviderInstanceOptions) {
+async function newProviderInstance(
+    codeProvider: CodeProvider,
+    providerOptions: ProviderInstanceOptions,
+): Promise<Provider> {
     if (codeProvider === CodeProvider.CodeSandbox) {
         if (!providerOptions.codesandbox) {
             throw new Error('Codesandbox provider options are required.');
@@ -57,6 +67,14 @@ function newProviderInstance(codeProvider: CodeProvider, providerOptions: Provid
             throw new Error('NodeFs provider options are required.');
         }
         return new NodeFsProvider(providerOptions.nodefs);
+    }
+
+    if (codeProvider === CodeProvider.VercelSandbox) {
+        if (!providerOptions.vercelSandbox) {
+            throw new Error('Vercel Sandbox provider options are required.');
+        }
+        const { VercelSandboxProvider } = await import('./providers/vercel-sandbox');
+        return new VercelSandboxProvider(providerOptions.vercelSandbox);
     }
 
     throw new Error(`Unimplemented code provider: ${codeProvider}`);

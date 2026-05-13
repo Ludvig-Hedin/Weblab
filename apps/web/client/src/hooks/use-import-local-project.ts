@@ -105,8 +105,9 @@ export function useImportLocalProject() {
 
             // 1. Fork blank sandbox.
             setProgress({ filesUploaded: 0, phase: 'forking' });
-            const { sandboxId, previewUrl } = await forkSandbox({
+            const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
+                provider: 'code_sandbox',
                 config: {
                     title: `${folderName} - ${user.id}`,
                     tags: ['local-import', user.id],
@@ -127,7 +128,10 @@ export function useImportLocalProject() {
                         userId: user.id,
                         initClient: true,
                         getSession: async (id) =>
-                            apiClient.sandbox.startOrphan.mutate({ sandboxId: id }),
+                            apiClient.sandbox.startOrphan.mutate({
+                                sandboxId: id,
+                                provider: 'code_sandbox',
+                            }),
                     },
                 },
             });
@@ -179,6 +183,7 @@ export function useImportLocalProject() {
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
+                sandboxRuntime,
             });
 
             // Sandbox is now owned by the new project; the catch path must
