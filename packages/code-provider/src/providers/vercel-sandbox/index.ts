@@ -109,7 +109,12 @@ function splitShellCommand(command: string) {
     };
 }
 
-function createOutput(sandbox: Sandbox, port: number, devCommand: string): CreateProjectOutput {
+function createOutput(
+    sandbox: Sandbox,
+    port: number,
+    devCommand: string,
+    snapshotId?: string,
+): CreateProjectOutput {
     return {
         id: sandbox.sandboxId,
         previewUrl: sandbox.domain(port),
@@ -117,7 +122,26 @@ function createOutput(sandbox: Sandbox, port: number, devCommand: string): Creat
         port,
         devCommand,
         runtime: DEFAULT_RUNTIME,
-        snapshotId: sandbox.sourceSnapshotId,
+        snapshotId: snapshotId ?? sandbox.sourceSnapshotId,
+    };
+}
+
+async function resumeFromSnapshot(snapshotId: string, port: number) {
+    return await Sandbox.create({
+        source: { type: 'snapshot', snapshotId },
+        ports: [port],
+        timeout: getTimeoutMs(),
+        resources: { vcpus: 2 },
+        ...getCredentials(),
+    });
+}
+
+async function checkpointAndResume(sandbox: Sandbox, port: number) {
+    const snapshot = await sandbox.snapshot({ expiration: 0 });
+    const resumedSandbox = await resumeFromSnapshot(snapshot.snapshotId, port);
+    return {
+        sandbox: resumedSandbox,
+        snapshotId: snapshot.snapshotId,
     };
 }
 
@@ -215,10 +239,20 @@ export class VercelSandboxProvider extends Provider {
         }
 
         if (this.options.sandboxId) {
-            this.sandbox = await Sandbox.get({
-                sandboxId: this.options.sandboxId,
-                ...getCredentials(),
-            });
+            try {
+                this.sandbox = await Sandbox.get({
+                    sandboxId: this.options.sandboxId,
+                    ...getCredentials(),
+                });
+            } catch (error) {
+                if (!this.options.snapshotId) {
+                    throw error;
+                }
+                this.sandbox = await resumeFromSnapshot(
+                    this.options.snapshotId,
+                    this.options.port ?? DEFAULT_PORT,
+                );
+            }
             return {};
         }
 
@@ -226,8 +260,8 @@ export class VercelSandboxProvider extends Provider {
             this.sandbox = await Sandbox.create({
                 source: { type: 'snapshot', snapshotId: this.options.snapshotId },
                 ports: [this.options.port ?? DEFAULT_PORT],
-                runtime: this.options.runtime ?? DEFAULT_RUNTIME,
                 timeout: getTimeoutMs(this.options.timeoutMs),
+                resources: { vcpus: 2 },
                 ...getCredentials(),
             });
         }
@@ -245,13 +279,7 @@ export class VercelSandboxProvider extends Provider {
         const port = input.port ?? DEFAULT_PORT;
         const devCommand = input.devCommand ?? DEFAULT_DEV_COMMAND;
         const sandbox = input.snapshotId
-            ? await Sandbox.create({
-                  source: { type: 'snapshot', snapshotId: input.snapshotId },
-                  ports: [port],
-                  timeout: getTimeoutMs(),
-                  resources: { vcpus: 2 },
-                  ...getCredentials(),
-              })
+            ? await resumeFromSnapshot(input.snapshotId, port)
             : await Sandbox.create({
                   ports: [port],
                   runtime: DEFAULT_RUNTIME,
@@ -263,9 +291,11 @@ export class VercelSandboxProvider extends Provider {
         if (!input.snapshotId) {
             await scaffoldNextProject(sandbox);
             await sandbox.runCommand(splitShellCommand('npm install'));
+            const checkpoint = await checkpointAndResume(sandbox, port);
+            return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
         }
 
-        return createOutput(sandbox, port, devCommand);
+        return createOutput(sandbox, port, devCommand, input.snapshotId);
     }
 
     static async createProjectFromGit(input: {
@@ -320,7 +350,8 @@ rm -rf "$tmp"
         }
 
         await sandbox.runCommand(splitShellCommand('npm install'));
-        return createOutput(sandbox, port, devCommand);
+        const checkpoint = await checkpointAndResume(sandbox, port);
+        return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
 
     async writeFile(input: WriteFileInput): Promise<WriteFileOutput> {
@@ -399,6 +430,37 @@ rm -rf "$tmp"
     }
 
     async copyFiles(input: CopyFilesInput): Promise<CopyFileOutput> {
+        if (input.args.recursive) {
+            const result = await this.requireSandbox().runCommand({
+                ...splitShellCommand(
+                    `
+set -euo pipefail
+src="\${WEBLAB_COPY_SOURCE:?}"
+dst="\${WEBLAB_COPY_TARGET:?}"
+if [ "\${WEBLAB_COPY_OVERWRITE:-false}" != "true" ] && [ -e "$dst" ]; then
+  exit 17
+fi
+mkdir -p "$(dirname "$dst")"
+cp -a "$src" "$dst"
+`,
+                ),
+                env: {
+                    WEBLAB_COPY_SOURCE: input.args.sourcePath,
+                    WEBLAB_COPY_TARGET: input.args.targetPath,
+                    WEBLAB_COPY_OVERWRITE: String(input.args.overwrite ?? true),
+                },
+            });
+            if (result.exitCode !== 0) {
+                throw new Error(await result.stderr());
+            }
+            return {};
+        }
+        if (input.args.overwrite === false) {
+            const exists = await this.requireSandbox().fs.exists(input.args.targetPath);
+            if (exists) {
+                throw new Error(`Target file already exists: ${input.args.targetPath}`);
+            }
+        }
         await this.requireSandbox().fs.copyFile(input.args.sourcePath, input.args.targetPath);
         return {};
     }
@@ -462,7 +524,12 @@ rm -rf "$tmp"
     }
 
     async createSession(_input: CreateSessionInput): Promise<CreateSessionOutput> {
-        return {};
+        const sandbox = this.requireSandbox();
+        const port = this.options.port ?? DEFAULT_PORT;
+        return {
+            sandboxId: sandbox.sandboxId,
+            previewUrl: sandbox.domain(port),
+        };
     }
 
     async reload(): Promise<boolean> {
@@ -600,6 +667,9 @@ class VercelTask extends ProviderTask {
     }
 
     async open(_dimensions?: ProviderTerminalShellSize): Promise<string> {
+        if (!this.activeCommand) {
+            await this.run();
+        }
         return this.activeCommand?.open() ?? '';
     }
 

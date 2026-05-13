@@ -61,6 +61,7 @@ export function useCreateBlankProject() {
 
             const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox,
+                provider: framework === 'nextjs' ? undefined : 'code_sandbox',
                 config: {
                     title: `Blank project - ${user.id}`,
                     tags: ['blank', user.id],

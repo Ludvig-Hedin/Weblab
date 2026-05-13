@@ -75,6 +75,7 @@ export function useCloneWebsite() {
                 id: adapter.template.codesandboxId,
                 port: adapter.template.port,
             },
+            provider: adapter.id === 'nextjs' ? undefined : 'code_sandbox',
             config: {
                 title: label,
                 tags: ['clone', framework],

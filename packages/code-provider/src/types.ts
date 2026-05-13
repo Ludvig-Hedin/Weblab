@@ -196,7 +196,10 @@ export interface CreateSessionInput {
         id: string;
     };
 }
-export interface CreateSessionOutput {}
+export interface CreateSessionOutput {
+    sandboxId?: string;
+    previewUrl?: string;
+}
 
 export abstract class Provider {
     abstract writeFile(input: WriteFileInput): Promise<WriteFileOutput>;

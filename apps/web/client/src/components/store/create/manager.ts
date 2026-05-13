@@ -1,8 +1,9 @@
 import { makeAutoObservable } from 'mobx';
 
-import { getFrameworkAdapter, type FrameworkId } from '@weblab/framework';
+import type { FrameworkId } from '@weblab/framework';
 import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { createDefaultProject } from '@weblab/db';
+import { getFrameworkAdapter } from '@weblab/framework';
 import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
@@ -315,10 +316,11 @@ export class CreateManager {
                 // still goes through `sandbox.createFromGitHub`, which has its
                 // own DEFAULT_PORT=3000 default — that call site is owned by
                 // the sandbox router and must be fixed there.
-                const templatePort = getFrameworkAdapter(input.framework ?? 'nextjs')
-                    .template.port;
+                const templatePort = getFrameworkAdapter(input.framework ?? 'nextjs').template.port;
                 sandboxResult = await api.sandbox.fork.mutate({
                     sandbox: { id: input.sandboxId, port: templatePort },
+                    provider:
+                        (input.framework ?? 'nextjs') === 'nextjs' ? undefined : 'code_sandbox',
                     config: {
                         title: input.name,
                         tags: ['template-import'],
