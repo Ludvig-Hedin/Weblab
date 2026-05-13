@@ -2363,3 +2363,25 @@ Scope: changed files under editor design-mode surfaces — `right-panel/style-ta
 - `apps/web/client/src/app/project/[id]/_components/top-bar/mode-toggle.tsx:42-100` — measured-indicator + ResizeObserver pattern is sound. Initial `{x:0,width:0}` may flash one frame on first paint but `useLayoutEffect` runs synchronously after mount.
 - `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/index.tsx:18-32` — eight dynamic tab imports verified against named exports (`InsertTab`, `ComponentsTab`, `LayersTab`, `SearchTab`, `BrandTab`, `PagesTab`, `ImagesTab`, `BranchesTab`). No broken imports.
 - `apps/web/client/src/components/store/editor/pages/helper.ts` — `parseRepoUrl` move verified; callers in `create/manager.ts` and `server/api/routers/github.ts` (local copy) still resolve.
+
+## CMS bind-dialog — PAGE_ITEM_FIELD picker uses first registration (2026-05-13)
+
+**Area:** `apps/web/client/src/app/project/[id]/_components/cms-workspace/bind-dialog.tsx:~210` (PAGE_ITEM_FIELD pre-fill branch)
+
+**Problem:** PAGE_ITEM_FIELD bindings store only `fieldKey`, no `collectionId`. On dialog re-open the code falls back to `pagesQuery.data?.[0]?.collectionId` to populate the field picker. Projects with multiple collection-page registrations get the wrong collection's fields, and the saved `fieldKey` may not exist in that list — confusing empty-selection UX, and a Save click could silently overwrite the binding with a field from the wrong collection.
+
+**Fix options:**
+1. Add `collectionId` to the PAGE_ITEM_FIELD binding schema (lossless round-trip; preferred long-term).
+2. As a stop-gap, query `field.listByCollection` for every registered page, then pick the registration whose collection contains a field with the bound `fieldKey`. More requests, but no schema change.
+
+**Status:** open — flagged across 6 review rounds; needs product/schema decision.
+
+## CMS sources-tab — concurrent syncs share single syncingId (2026-05-13)
+
+**Area:** `apps/web/client/src/app/project/[id]/_components/cms-workspace/sources-tab.tsx:41`
+
+**Problem:** `syncingId: string | null` tracks at most one in-flight sync. Triggering sync on source A then source B before A completes overwrites the id; A's `finally` then clears B's pending UI state.
+
+**Fix:** swap to `Set<string>` and use `.has(s.id)` for the disabled checks.
+
+**Status:** open — low impact (UI confusion only, no data corruption).

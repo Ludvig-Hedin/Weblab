@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
@@ -59,14 +61,16 @@ export const ModeToggle = observer(() => {
         const groupRect = group.getBoundingClientRect();
         const itemRect = item.getBoundingClientRect();
         setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
-    }, [safeIndex, mode]);
+        // `mode` would be redundant — `safeIndex` is derived synchronously
+        // from `mode`, so both always change in the same render.
+    }, [safeIndex]);
 
     useEffect(() => {
         const group = groupRef.current;
         if (!group || typeof ResizeObserver === 'undefined') return;
         const ro = new ResizeObserver(() => {
             const item = itemRefs.current[safeIndex];
-            if (!group || !item) return;
+            if (!item) return;
             const groupRect = group.getBoundingClientRect();
             const itemRect = item.getBoundingClientRect();
             setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
@@ -75,14 +79,17 @@ export const ModeToggle = observer(() => {
         return () => ro.disconnect();
     }, [safeIndex]);
 
+    // Safe lookup so a new EditorMode without a matching translation key
+    // does not throw `Cannot read properties of undefined (reading 'name')`.
+    const modeLabel = (m: EditorMode): string => {
+        const key = m.toLowerCase() as keyof typeof transKeys.editor.modes;
+        const entry = transKeys.editor.modes[key];
+        return entry ? t(entry.name) : m;
+    };
     // MODE_TOGGLE_ITEMS is a non-empty const, so the first item is always defined.
     const activeModeItem =
         MODE_TOGGLE_ITEMS.find((item) => item.mode === mode) ?? MODE_TOGGLE_ITEMS[0]!;
-    const activeLabel = t(
-        transKeys.editor.modes[
-            activeModeItem.mode.toLowerCase() as keyof typeof transKeys.editor.modes
-        ].name,
-    );
+    const activeLabel = modeLabel(activeModeItem.mode);
 
     return (
         <div className="relative">
@@ -109,11 +116,7 @@ export const ModeToggle = observer(() => {
                                     mode === item.mode && 'text-foreground-primary font-medium',
                                 )}
                             >
-                                {t(
-                                    transKeys.editor.modes[
-                                        item.mode.toLowerCase() as keyof typeof transKeys.editor.modes
-                                    ].name,
-                                )}
+                                {modeLabel(item.mode)}
                             </DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>
@@ -156,11 +159,7 @@ export const ModeToggle = observer(() => {
                                             : 'text-foreground-tertiary hover:text-foreground-secondary hover:bg-transparent',
                                     )}
                                 >
-                                    {t(
-                                        transKeys.editor.modes[
-                                            item.mode.toLowerCase() as keyof typeof transKeys.editor.modes
-                                        ].name,
-                                    )}
+                                    {modeLabel(item.mode)}
                                 </ToggleGroupItem>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="mt-0" hideArrow>

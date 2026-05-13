@@ -9,6 +9,7 @@ import { Button } from '@weblab/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
+import { toast } from '@weblab/ui/sonner';
 import { toNormalCase } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
@@ -30,21 +31,19 @@ export const FontFamilySelector = observer(() => {
     // safe single-flight gate here).
     const applyingRef = useRef(false);
 
-    // TODO: use file system like code tab
+    // Defer `font.init()` until the dropdown actually opens and only fire
+    // once per mount — repeated calls re-run the store's sync work needlessly.
+    const hasInitRef = useRef(false);
     useEffect(() => {
-        if (!editorEngine.activeSandbox.session.provider) {
-            return;
+        if (!isOpen || hasInitRef.current) return;
+        if (!editorEngine.activeSandbox?.session?.provider) return;
+        hasInitRef.current = true;
+        try {
+            editorEngine.font.init();
+        } catch (err) {
+            console.error('font.init failed', err);
         }
-        // Wrap in an async IIFE: `Promise.resolve(fn())` would still throw
-        // synchronously if `init()` is not actually async.
-        void (async () => {
-            try {
-                await editorEngine.font.init();
-            } catch (err) {
-                console.error('font.init failed', err);
-            }
-        })();
-    }, [editorEngine.activeSandbox.session.provider]);
+    }, [isOpen, editorEngine.activeSandbox?.session?.provider, editorEngine.font]);
 
     // Run Google Fonts search whenever the query changes. The font store
     // de-bounces internally and loads the matching webfont so the preview
@@ -53,29 +52,59 @@ export const FontFamilySelector = observer(() => {
         if (!isOpen) return;
         const q = query.trim();
         const handle = window.setTimeout(() => {
-            void editorEngine.font.searchFonts(q);
+            editorEngine.font.searchFonts(q).catch((err) => {
+                console.error('Font search failed', err);
+            });
         }, 150);
         return () => window.clearTimeout(handle);
     }, [query, isOpen, editorEngine.font]);
 
+    // Track mount state so an async `applyFont` resumed after the user closes
+    // the panel can't call back into a hook attached to an unmounted tree.
+    // The mount-side assignment is required: under React StrictMode's
+    // mount → cleanup → remount cycle the cleanup sets the ref to false,
+    // so without re-asserting `true` on remount every applyFont in dev would
+    // silently skip its `handleFontFamilyChange` call.
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    // Reset the search query when the dropdown closes so the next open shows
+    // the full catalog instead of a stale filter.
+    useEffect(() => {
+        if (!isOpen) setQuery('');
+    }, [isOpen]);
+
+    // `editorEngine.font.*` are MobX observable arrays — the Proxy ref is
+    // stable across mutations, so `useMemo` keyed on the ref would silently
+    // return stale results. Compute inline; filter cost is trivial for font
+    // catalogs (<1k items).
     const installedFonts = editorEngine.font.fonts;
     const searchResults = editorEngine.font.searchResults;
     const systemFonts = editorEngine.font.systemFonts;
+    const q = query.trim().toLowerCase();
+    const filteredInstalled = q
+        ? installedFonts.filter((f) => f.family.toLowerCase().includes(q))
+        : installedFonts;
 
-    const filteredInstalled = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return installedFonts;
-        return installedFonts.filter((f) => f.family.toLowerCase().includes(q));
-    }, [installedFonts, query]);
+    // `textState.fontFamily` can be a CSS stack like `"Inter", sans-serif`.
+    // Strip quotes + fallbacks so the active-font highlight matches a bare id.
+    const primaryFamilyKey = useMemo(
+        () =>
+            (textState.fontFamily.split(',')[0] ?? '')
+                .trim()
+                .replace(/^['"]|['"]$/g, '')
+                .toLowerCase(),
+        [textState.fontFamily],
+    );
 
-    const googleFonts: Font[] = useMemo(() => {
-        const q = query.trim();
-        const source = q ? searchResults : systemFonts;
-        // Drop any Google entry whose family is already in installedFonts so
-        // we don't render the same name twice.
-        const installedFamilies = new Set(installedFonts.map((f) => f.family));
-        return source.filter((f) => !installedFamilies.has(f.family));
-    }, [installedFonts, searchResults, systemFonts, query]);
+    const installedFamilies = new Set(installedFonts.map((f) => f.family));
+    const googleSource = q ? searchResults : systemFonts;
+    const googleFonts: Font[] = googleSource.filter((f) => !installedFamilies.has(f.family));
 
     const applyFont = async (font: Font, alreadyInstalled: boolean) => {
         if (applyingRef.current) return;
@@ -87,14 +116,29 @@ export const FontFamilySelector = observer(() => {
                 const ok = await editorEngine.font.addFont(font);
                 if (!ok) {
                     console.error('Failed to add font', font);
+                    if (isMountedRef.current) {
+                        toast.error(`Could not add ${font.family}`, {
+                            description: 'Check your network or try again.',
+                        });
+                    }
                     return;
                 }
             }
+            // Bail out if the component unmounted during the await.
+            if (!isMountedRef.current) return;
+            // Close the dropdown before committing so a sync throw in the
+            // commit path doesn't leave the picker stuck open.
+            onOpenChange(false);
             handleFontFamilyChange(font);
         } catch (err) {
             // `addFont` can throw (network failure, sandbox not ready).
             // Without this catch the rejection escapes as an unhandled promise.
             console.error('applyFont failed', err);
+            if (isMountedRef.current) {
+                toast.error(`Could not apply ${font.family}`, {
+                    description: err instanceof Error ? err.message : 'Unexpected error.',
+                });
+            }
         } finally {
             applyingRef.current = false;
         }
@@ -155,8 +199,8 @@ export const FontFamilySelector = observer(() => {
                                         name={font.family}
                                         onSetFont={() => void applyFont(font, true)}
                                         isActive={
-                                            textState.fontFamily.toLowerCase() ===
-                                            font.id.toLowerCase()
+                                            primaryFamilyKey === font.id.toLowerCase() ||
+                                            primaryFamilyKey === font.family.toLowerCase()
                                         }
                                     />
                                 </div>
@@ -174,8 +218,8 @@ export const FontFamilySelector = observer(() => {
                                         name={font.family}
                                         onSetFont={() => void applyFont(font, false)}
                                         isActive={
-                                            textState.fontFamily.toLowerCase() ===
-                                            font.id.toLowerCase()
+                                            primaryFamilyKey === font.id.toLowerCase() ||
+                                            primaryFamilyKey === font.family.toLowerCase()
                                         }
                                     />
                                 </div>

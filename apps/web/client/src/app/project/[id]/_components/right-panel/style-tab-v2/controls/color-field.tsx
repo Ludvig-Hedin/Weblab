@@ -12,7 +12,9 @@ import { ColorPickerContent } from '../../../editor-bar/inputs/color-picker';
 import { FIELD_BASE_CLASSES } from './constants';
 
 function toHexString(c: Color | TailwindColor): string {
-    return c instanceof Color ? c.toHex() : (c.lightColor ?? '#000000');
+    // `||` (not `??`): an empty `lightColor` is not a valid CSS color either,
+    // and must fall back to black rather than be propagated to `onCommit`.
+    return c instanceof Color ? c.toHex() : c.lightColor || '#000000';
 }
 
 export interface ColorFieldProps {

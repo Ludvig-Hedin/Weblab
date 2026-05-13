@@ -8,6 +8,7 @@ import type { Font } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { toNormalCase } from '@weblab/utility';
 
@@ -41,38 +42,60 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
 
     // Kick the font store the first time the dropdown opens so we don't pay
     // the cost until the user actually wants to browse.
+    // Init once on first open. Repeated `font.init()` calls would re-fire its
+    // internal sync work each time the dropdown opens.
+    const hasInitRef = useRef(false);
     useEffect(() => {
-        if (!open) return;
-        if (!editorEngine.activeSandbox.session.provider) return;
-        // Wrap in an async IIFE: `Promise.resolve(fn())` would still throw
-        // synchronously if `init()` is not actually async.
-        void (async () => {
-            try {
-                await editorEngine.font.init();
-            } catch (err) {
-                console.error('font.init failed', err);
-            }
-        })();
-    }, [open, editorEngine.activeSandbox.session.provider, editorEngine.font]);
+        if (!open || hasInitRef.current) return;
+        if (!editorEngine.activeSandbox?.session?.provider) return;
+        hasInitRef.current = true;
+        try {
+            editorEngine.font.init();
+        } catch (err) {
+            console.error('font.init failed', err);
+        }
+    }, [open, editorEngine.activeSandbox?.session?.provider, editorEngine.font]);
 
     // Run Google Fonts search whenever the query changes — store debounces.
     useEffect(() => {
         if (!open) return;
         const handle = window.setTimeout(() => {
-            void editorEngine.font.searchFonts(query.trim());
+            editorEngine.font.searchFonts(query.trim()).catch((err) => {
+                console.error('Font search failed', err);
+            });
         }, 150);
         return () => window.clearTimeout(handle);
     }, [query, open, editorEngine.font]);
 
+    // Track mount so a resumed `applyFont` can't call back after unmount.
+    // The mount-side assignment is required: under React StrictMode's
+    // mount → cleanup → remount cycle the cleanup sets the ref to false,
+    // so without re-asserting `true` on remount every applyFont in dev
+    // would silently skip its `onCommit` call.
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
+    // Reset query when the popover closes so the next open shows the full
+    // catalog instead of a stale filter.
+    useEffect(() => {
+        if (!open) setQuery('');
+    }, [open]);
+
+    // `editorEngine.font.*` are MobX observable arrays — the Proxy ref is
+    // stable across mutations, so `useMemo` keyed on the ref would silently
+    // return stale results when items are pushed/spliced. Compute inline.
     const installed = editorEngine.font.fonts;
     const searchResults = editorEngine.font.searchResults;
     const systemFonts = editorEngine.font.systemFonts;
-
-    const filteredInstalled = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return installed;
-        return installed.filter((f) => f.family.toLowerCase().includes(q));
-    }, [installed, query]);
+    const q = query.trim().toLowerCase();
+    const filteredInstalled = q
+        ? installed.filter((f) => f.family.toLowerCase().includes(q))
+        : installed;
 
     // `value` can be either a bare font id (Tailwind-emitted `inter`) or a
     // raw CSS font-family stack (`"Inter", sans-serif`). Strip quotes + the
@@ -86,12 +109,9 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
         [value],
     );
 
-    const googleFonts = useMemo(() => {
-        const q = query.trim();
-        const source = q ? searchResults : systemFonts;
-        const installedFamilies = new Set(installed.map((f) => f.family));
-        return source.filter((f) => !installedFamilies.has(f.family));
-    }, [installed, searchResults, systemFonts, query]);
+    const installedFamilies = new Set(installed.map((f) => f.family));
+    const googleSource = q ? searchResults : systemFonts;
+    const googleFonts = googleSource.filter((f) => !installedFamilies.has(f.family));
 
     const applyFont = async (font: Font, alreadyInstalled: boolean) => {
         if (busyRef.current) return;
@@ -101,19 +121,34 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                 const ok = await editorEngine.font.addFont(font);
                 if (!ok) {
                     console.error('Failed to add font', font);
+                    if (isMountedRef.current) {
+                        toast.error(`Could not add ${font.family}`, {
+                            description: 'Check your network or try again.',
+                        });
+                    }
                     return;
                 }
             }
+            // Bail out if the popover was closed (and component unmounted)
+            // during the await.
+            if (!isMountedRef.current) return;
+            // Close the popover BEFORE `onCommit` so a synchronous throw in
+            // the commit path doesn't leave the popover stuck open.
+            setOpen(false);
             // The font store writes via its own action chain when called via
             // useTextControl, but in this surface we just commit the id —
             // PropertyControl's setter writes through the user's chosen
             // write target (Tailwind / inline / class).
             onCommit(font.id);
-            setOpen(false);
         } catch (err) {
             // `addFont` can throw (network failure, sandbox not ready). Without
             // this catch the rejection escapes as an unhandled promise.
             console.error('applyFont failed', err);
+            if (isMountedRef.current) {
+                toast.error(`Could not apply ${font.family}`, {
+                    description: err instanceof Error ? err.message : 'Unexpected error.',
+                });
+            }
         } finally {
             busyRef.current = false;
         }
