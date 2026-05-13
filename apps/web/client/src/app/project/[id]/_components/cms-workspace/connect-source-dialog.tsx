@@ -66,6 +66,12 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const close = () => {
         onOpenChange(false);
+        // If close() is called twice in quick succession (Cancel + backdrop
+        // click both fire onOpenChange(false)), drop the prior timer so the
+        // first one cannot fire after a fresh reopen.
+        if (resetTimerRef.current !== null) {
+            clearTimeout(resetTimerRef.current);
+        }
         // Defer reset until the dialog has animated closed.
         resetTimerRef.current = setTimeout(() => {
             reset();
@@ -75,18 +81,28 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     // Cancel a pending reset if the user reopens the dialog before the
     // animation finishes — otherwise the timer would wipe their freshly
     // typed input.
+    // Cancel any pending reset if the dialog reopens before the close
+    // animation finishes — otherwise the timer would wipe freshly typed
+    // input. This effect's body must NOT cancel during a normal dep change
+    // (a cleanup-on-deps-change would race with the close() call that just
+    // set the timer), so unmount cleanup is split into the next effect.
     useEffect(() => {
         if (open && resetTimerRef.current !== null) {
             clearTimeout(resetTimerRef.current);
             resetTimerRef.current = null;
         }
+    }, [open]);
+    // Mount-only: clean up the deferred reset if the component unmounts
+    // mid-animation. Empty dep array → cleanup runs on unmount only, never
+    // cancels the in-flight close() timer.
+    useEffect(() => {
         return () => {
             if (resetTimerRef.current !== null) {
                 clearTimeout(resetTimerRef.current);
                 resetTimerRef.current = null;
             }
         };
-    }, [open]);
+    }, []);
 
     const invalidatePendingTest = () => {
         testReqRef.current += 1;
@@ -139,9 +155,16 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
                 name: name.trim(),
                 credentials: stripBlank(creds[type]),
             });
+            // Server contract: create returns the new source. Treat a missing
+            // payload as a hard error rather than silently skipping the
+            // collection-mapping step (would leave the user with a half-
+            // finished workflow).
+            if (!created) {
+                throw new Error('Source was not returned by the server');
+            }
             await utils.cms.source.list.invalidate({ projectId });
             toast.success(t(transKeys.cms.sources.connect.created));
-            if (created) onSourceCreated(created.id);
+            onSourceCreated(created.id);
             close();
         } catch (err) {
             toast.error(

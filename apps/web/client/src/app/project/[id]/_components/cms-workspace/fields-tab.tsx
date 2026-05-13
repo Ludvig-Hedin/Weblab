@@ -421,9 +421,21 @@ function InlineFieldEditor({
         }
         try {
             if (mode === 'create') {
-                const finalKey = key.trim() || slugifyKey(name);
+                const rawKey = key.trim();
+                // Manual keys must follow the same charset as auto-generated
+                // ones — otherwise downstream template expressions and ORM
+                // lookups that assume [a-z0-9_] choke on the raw string.
+                if (rawKey && !/^[a-z0-9_]+$/.test(rawKey)) {
+                    toast.error('Key may only contain a–z, 0–9, or _');
+                    return;
+                }
+                const finalKey = rawKey || slugifyKey(name);
                 if (!finalKey) {
-                    toast.error(t(transKeys.cms.fields.addDialog.nameRequired));
+                    // The name passed the trim() guard but slugifyKey
+                    // produced empty (only stripped chars: punctuation, CJK,
+                    // accented). Surface the actual problem rather than
+                    // re-using the misleading "name required" toast.
+                    toast.error('Field name must contain at least one a–z or 0–9 character');
                     return;
                 }
                 await createMutation.mutateAsync({
@@ -439,7 +451,13 @@ function InlineFieldEditor({
                 await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
                 await utils.cms.collection.get.invalidate({ projectId, collectionId });
                 toast.success(t(transKeys.cms.fields.addDialog.success));
-            } else if (field) {
+            } else {
+                if (!field) {
+                    // Defensive: edit mode requires a field. Surface instead
+                    // of silently no-op'ing the Save click.
+                    toast.error('Missing field data');
+                    return;
+                }
                 await updateMutation.mutateAsync({
                     projectId,
                     fieldId: field.id,
@@ -448,6 +466,7 @@ function InlineFieldEditor({
                     helpText: helpText.trim() || undefined,
                 });
                 await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
+                await utils.cms.collection.get.invalidate({ projectId, collectionId });
                 toast.success('Field updated');
             }
             onClose();
@@ -593,9 +612,13 @@ function InlineFieldEditor({
 }
 
 function slugifyKey(input: string): string {
+    // Many template/ORM systems require identifiers to start with a letter
+    // or underscore — prefix when the auto-generated key would lead with a
+    // digit so server-side validation doesn't reject the user's submission.
     return input
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9_]+/g, '_')
-        .replace(/^_+|_+$/g, '');
+        .replace(/^_+|_+$/g, '')
+        .replace(/^(\d)/, '_$1');
 }

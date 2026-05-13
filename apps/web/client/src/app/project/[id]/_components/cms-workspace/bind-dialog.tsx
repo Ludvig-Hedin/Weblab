@@ -187,22 +187,39 @@ export const BindDialog = observer(() => {
         return () => {
             cancelled = true;
         };
-    }, [open, oid, editorEngine.elements.selected, editorEngine.frames]);
+    }, [
+        open,
+        oid,
+        editorEngine.elements.selected[0]?.domId,
+        // The Map identity never changes when entries mutate, so depend on
+        // the specific frame view we'll read — going from null to loaded
+        // re-triggers detection.
+        editorEngine.frames.get(editorEngine.elements.selected[0]?.frameId ?? '')?.view,
+    ]);
 
     // Pre-fill from existing binding when opening on an already-bound oid.
     // Mode is set by the DOM detection above; this only fills form fields.
     // Lock after first fill so a background refetch (window focus,
     // mutation invalidation) doesn't overwrite the user's in-progress edits.
+    // Re-arm the lock when oid changes mid-open (the dialog can be retargeted
+    // at a different element without closing first).
     const preFillRef = useRef(false);
+    const lastOidRef = useRef<string | null>(null);
     useEffect(() => {
         if (!open) {
             preFillRef.current = false;
+            lastOidRef.current = null;
             return;
         }
+        if (lastOidRef.current !== oid) {
+            preFillRef.current = false;
+            lastOidRef.current = oid;
+        }
         if (preFillRef.current) return;
-        // Wait for both queries to finish their first load so PAGE_ITEM_FIELD
-        // bindings can resolve their collection from pagesQuery.data.
-        if (bindingsQuery.isLoading || pagesQuery.isLoading) return;
+        // Wait for queries to actually have data — `isPending` is true until
+        // the first response. Using `isLoading` would treat stale cache as
+        // ready and skip a fresh fetch on reopen against a different oid.
+        if (bindingsQuery.isPending || pagesQuery.isPending) return;
         preFillRef.current = true;
         if (!existingBinding) {
             setItemCollectionId('');
@@ -243,7 +260,7 @@ export const BindDialog = observer(() => {
         } else if (b.kind === CmsBindingKind.CURRENT_FIELD) {
             setCurrentFieldKey(b.fieldKey);
         }
-    }, [open, existingBinding, pagesQuery.data, bindingsQuery.isLoading, pagesQuery.isLoading]);
+    }, [open, oid, existingBinding, pagesQuery.data, bindingsQuery.isPending, pagesQuery.isPending]);
 
     // When the user picks a collection without a registered detail page,
     // the PAGE_ITEM_FIELD radio gets disabled but the kind state can stay on
@@ -262,6 +279,9 @@ export const BindDialog = observer(() => {
 
     const handleSave = async () => {
         if (!projectId || !oid) return;
+        // DOM detection still in flight — Save button is also disabled in
+        // this state, but guard programmatic/keyboard paths too.
+        if (mode === 'unknown') return;
         try {
             if (mode === 'list') {
                 if (!repeatCollectionId) {
@@ -270,7 +290,13 @@ export const BindDialog = observer(() => {
                 }
                 const trimmedLimit = repeatLimit.trim();
                 const limit = trimmedLimit === '' ? undefined : Number(trimmedLimit);
-                if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+                // 2_147_483_647 = PostgreSQL INT max; anything beyond that
+                // would overflow the column. Number.isInteger accepts
+                // scientific notation like 1e10, so cap explicitly.
+                if (
+                    limit !== undefined &&
+                    (!Number.isInteger(limit) || limit < 1 || limit > 2_147_483_647)
+                ) {
                     toast.error(t(transKeys.cms.bind.repeat.invalidLimit));
                     return;
                 }

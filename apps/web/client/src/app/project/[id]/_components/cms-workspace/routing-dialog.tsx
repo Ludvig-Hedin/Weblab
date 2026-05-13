@@ -52,20 +52,29 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
     const upsertMutation = api.cms.collectionPage.upsert.useMutation();
     const deleteMutation = api.cms.collectionPage.delete.useMutation();
 
-    // Pre-fill once per open, but only after the first data arrival —
-    // otherwise we'd lock in empty defaults before the queries resolve and
-    // permanently ignore the existing record. After init, a background
-    // refetch must not overwrite the user's in-progress edits.
+    // Pre-fill once per (open × collection), but only after the first data
+    // arrival — otherwise we'd lock in empty defaults before the queries
+    // resolve and permanently ignore the existing record. After init, a
+    // background refetch must not overwrite the user's in-progress edits.
+    // Re-arm if the parent retargets the dialog at a different collection
+    // without closing first.
     const initializedRef = useRef(false);
+    const lastCollectionIdRef = useRef<string | null>(null);
     useEffect(() => {
         if (!open) {
             initializedRef.current = false;
+            lastCollectionIdRef.current = null;
             return;
         }
+        if (lastCollectionIdRef.current !== collection.id) {
+            initializedRef.current = false;
+            lastCollectionIdRef.current = collection.id;
+        }
         if (initializedRef.current) return;
-        // Wait for both queries to finish their first load. `data` is
-        // undefined until the first response (success or empty array).
-        if (pagesQuery.isLoading || fieldsQuery.isLoading) return;
+        // Wait for both queries to actually have data — `isPending` stays
+        // true until the first response. `isLoading` flips false as soon as
+        // a stale cache is present, which would freeze in stale defaults.
+        if (pagesQuery.isPending || fieldsQuery.isPending) return;
         initializedRef.current = true;
         if (existing) {
             setPagePath(existing.pagePath);
@@ -83,14 +92,21 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
         open,
         existing,
         fieldsQuery.data,
-        fieldsQuery.isLoading,
-        pagesQuery.isLoading,
+        fieldsQuery.isPending,
+        pagesQuery.isPending,
+        collection.id,
         collection.slug,
     ]);
 
     const fields = fieldsQuery.data ?? [];
 
     const handleSave = async () => {
+        if (!pagePath.trim()) {
+            // No dedicated i18n key yet; matches the hardcoded-string pattern
+            // used elsewhere in the CMS surface (tracked for an i18n batch).
+            toast.error('Page path is required');
+            return;
+        }
         if (!matchFieldKey) {
             toast.error(t(transKeys.cms.routing.pickFieldFirst));
             return;
@@ -103,6 +119,9 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                 matchFieldKey,
             });
             await utils.cms.collectionPage.list.invalidate({ projectId });
+            // PAGE_ITEM_FIELD bindings that previously couldn't resolve
+            // against any registration now can — refresh the canvas snapshot.
+            await utils.cms.binding.snapshot.invalidate({ projectId });
             toast.success(t(transKeys.cms.routing.saved));
             onOpenChange(false);
         } catch (err) {
@@ -195,7 +214,7 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                                 variant="ghost"
                                 className="text-red"
                                 onClick={() => void handleRemove()}
-                                disabled={deleteMutation.isPending}
+                                disabled={deleteMutation.isPending || upsertMutation.isPending}
                             >
                                 {t(transKeys.cms.routing.remove)}
                             </Button>
@@ -207,7 +226,12 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                         </Button>
                         <Button
                             onClick={() => void handleSave()}
-                            disabled={upsertMutation.isPending || !pagePath.trim()}
+                            disabled={
+                                upsertMutation.isPending ||
+                                deleteMutation.isPending ||
+                                !pagePath.trim() ||
+                                !matchFieldKey
+                            }
                         >
                             {t(transKeys.cms.routing.save)}
                         </Button>

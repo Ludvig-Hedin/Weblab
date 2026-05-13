@@ -61,7 +61,10 @@ export const SourcesTab = observer(() => {
             const result = await syncMutation.mutateAsync({ projectId, sourceId, prune });
             await utils.cms.collection.list.invalidate({ projectId });
             await utils.cms.binding.snapshot.invalidate({ projectId });
-            await utils.cms.item.list.invalidate();
+            await utils.cms.item.list.invalidate({ projectId });
+            // Remote schema may have added/removed fields — refresh field
+            // lists so the editor and bind picker don't show stale keys.
+            await utils.cms.field.listByCollection.invalidate({ projectId });
             const prunedSuffix = result.pruned > 0 ? ` (${result.pruned} pruned)` : '';
             toast.success(
                 `${t(transKeys.cms.sources.refreshDonePrefix)} ${result.written} ${t(transKeys.cms.sources.refreshDoneSuffix)}${prunedSuffix}`,
@@ -117,7 +120,7 @@ export const SourcesTab = observer(() => {
             await Promise.all([
                 utils.cms.source.list.invalidate({ projectId }),
                 utils.cms.collection.list.invalidate({ projectId }),
-                utils.cms.item.list.invalidate(),
+                utils.cms.item.list.invalidate({ projectId }),
                 utils.cms.binding.snapshot.invalidate({ projectId }),
             ]);
             if (editorEngine.state.cmsSelectedCollectionId) {
@@ -230,8 +233,7 @@ export const SourcesTab = observer(() => {
                                                 className="text-red"
                                                 onClick={() => void handleDelete(s.id)}
                                                 disabled={
-                                                    deleteMutation.isPending ||
-                                                    syncingId === s.id
+                                                    deleteMutation.isPending || syncingId === s.id
                                                 }
                                             >
                                                 <Icons.Trash className="h-3.5 w-3.5" />
