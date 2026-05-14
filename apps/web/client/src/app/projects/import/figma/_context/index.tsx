@@ -86,10 +86,11 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: user } = api.user.get.useQuery();
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
+    const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
+    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
     const { mutateAsync: fetchFileMutation } = api.figma.fetchFile.useMutation();
 
     /**
@@ -160,7 +161,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             const template = SandboxTemplates[Templates.BLANK];
             const forkedSandbox = await forkSandbox({
                 sandbox: template,
-                provider: 'code_sandbox',
+                // No hardcoded provider — server uses configured WEBLAB_CLOUD_PROVIDER.
                 config: {
                     title: `Figma import – ${fileName}`,
                     tags: ['figma', 'imported', user.id],
@@ -195,41 +196,63 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
             ];
 
-            const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                providerOptions: {
-                    codesandbox: {
-                        sandboxId: forkedSandbox.sandboxId,
-                        userId: user.id,
-                        initClient: true,
-                        keepActiveWhileConnected: false,
-                        getSession: async (sandboxId) => startSandbox({ sandboxId }),
-                    },
-                },
-            });
-
-            try {
+            if (forkedSandbox.sandboxRuntime.provider === 'vercel_sandbox') {
+                // Vercel Sandbox SDK is server-only — upload via tRPC.
                 setFinalizeProgress({
                     phase: 'uploading',
                     filesUploaded: 0,
                     totalFiles: files.length,
                 });
-                await uploadToSandbox(files, provider, {
-                    onProgress: ({ uploaded, total }) =>
-                        setFinalizeProgress({
-                            phase: 'uploading',
-                            filesUploaded: uploaded,
-                            totalFiles: total,
-                        }),
+                await orphanBulkUpload({
+                    sandboxId: forkedSandbox.sandboxId,
+                    files: files.map((f) => ({ path: f.path, content: f.content as string })),
+                    runSetup: true,
                 });
-                checkAborted();
                 setFinalizeProgress({
                     phase: 'installing',
                     filesUploaded: files.length,
                     totalFiles: files.length,
                 });
-                await provider.setup({});
-            } finally {
-                await provider.destroy();
+            } else {
+                // CodeSandbox: browser WebSocket upload. Use startOrphan (not
+                // start) — no branch row exists until project.create below.
+                const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                    providerOptions: {
+                        codesandbox: {
+                            sandboxId: forkedSandbox.sandboxId,
+                            userId: user.id,
+                            initClient: true,
+                            keepActiveWhileConnected: false,
+                            getSession: async (sandboxId) =>
+                                startOrphanSandbox({ sandboxId, provider: 'code_sandbox' }),
+                        },
+                    },
+                });
+
+                try {
+                    setFinalizeProgress({
+                        phase: 'uploading',
+                        filesUploaded: 0,
+                        totalFiles: files.length,
+                    });
+                    await uploadToSandbox(files, provider, {
+                        onProgress: ({ uploaded, total }) =>
+                            setFinalizeProgress({
+                                phase: 'uploading',
+                                filesUploaded: uploaded,
+                                totalFiles: total,
+                            }),
+                    });
+                    checkAborted();
+                    setFinalizeProgress({
+                        phase: 'installing',
+                        filesUploaded: files.length,
+                        totalFiles: files.length,
+                    });
+                    await provider.setup({});
+                } finally {
+                    await provider.destroy();
+                }
             }
             checkAborted();
 
