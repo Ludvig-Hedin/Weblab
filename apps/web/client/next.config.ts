@@ -14,7 +14,16 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: ['*.trycloudflare.com'],
     // Prevent Node.js-only packages from being bundled into client/edge chunks.
     // These are loaded via native require() in Route Handlers at runtime.
-    serverExternalPackages: ['openai', 'mem0ai'],
+    serverExternalPackages: ['openai', 'mem0ai', '@vercel/sandbox'],
+    turbopack: {
+        resolveAlias: {
+            // @vercel/sandbox uses Node built-ins (fs, stream, timers) that
+            // cannot be bundled for the browser. The browser uses
+            // VercelBrowserProvider (tRPC) instead; this stub satisfies
+            // the static import graph without including any Node code.
+            '@vercel/sandbox': { browser: path.resolve(__dirname, './src/stubs/vercel-sandbox.ts') },
+        },
+    },
     ...(process.env.STANDALONE_BUILD === 'true' && { output: 'standalone' }),
     async redirects() {
         return [
