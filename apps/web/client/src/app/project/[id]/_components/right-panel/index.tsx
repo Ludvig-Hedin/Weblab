@@ -24,10 +24,10 @@ import { FIX_ERRORS_EVENT } from './chat-tab/error';
 import { ChatHistory } from './chat-tab/history';
 import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
 
-// Style and Comments tabs are not the default active tab — defer their module
-// load until the user switches to them. Each tab is only rendered when its
-// value is active (see TabsContent guards below), so this is a pure
-// bundle-split win with no UX cost.
+// Style tab is not the default active tab — defer its module load until the
+// user switches to it. Each tab is only rendered when its value is active
+// (see TabsContent guards below), so this is a pure bundle-split win with no
+// UX cost.
 //
 // Module-scope flag check so the chosen panel is decided once at bundle eval —
 // avoids a render-time conditional and lets `dynamic()` keep its lazy chunk.
@@ -42,7 +42,7 @@ const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.Comment
     ssr: false,
 });
 
-type RightPanelTab = 'style' | 'chat' | 'comments';
+type RightPanelTab = 'style' | 'chat';
 
 const DEFAULT_PANEL_WIDTH = 352;
 // While the project is being scaffolded from a prompt the chat is the primary
@@ -69,12 +69,22 @@ export const RightPanel = observer(() => {
     // mode and bounce the user off it if it was the active tab when they
     // entered CODE so they don't land on an empty disabled tab.
     const isCodeMode = editorEngine.state.editorMode === EditorMode.CODE;
+    const isCommentMode = editorEngine.state.editorMode === EditorMode.COMMENT;
 
     useEffect(() => {
         if (isCodeMode && activeTab === 'style') {
             setActiveTab('chat');
         }
     }, [isCodeMode, activeTab]);
+
+    useEffect(() => {
+        if (isCommentMode) {
+            if (editorEngine.state.panelsHidden) {
+                editorEngine.state.togglePanelsHidden();
+            }
+            setIsCollapsed(false);
+        }
+    }, [isCommentMode, editorEngine.state]);
 
     useEffect(() => {
         const openChatForFixRequest = () => {
@@ -143,179 +153,213 @@ export const RightPanel = observer(() => {
                     className="overflow-hidden"
                 >
                     <DropdownManagerProvider>
-                        <Tabs
-                            value={activeTab}
-                            onValueChange={(value) => setActiveTab(value as RightPanelTab)}
-                            className="flex h-full min-w-0 flex-col gap-0"
-                        >
-                            <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
-                                <TabsList className="bg-background-tab-strip/70 h-8 gap-0 rounded-md p-0.5">
-                                    {(() => {
-                                        // The tooltip explains "Available in Design
-                                        // mode" and is only meaningful in CODE mode.
-                                        // Wrapping the trigger in Radix's
-                                        // `TooltipTrigger asChild` makes it set its
-                                        // own tooltip `data-state` on the child,
-                                        // clobbering the Tabs `data-state="active"`
-                                        // so the active background never shows. So
-                                        // only wrap when the tooltip is actually
-                                        // needed; otherwise render a bare trigger.
-                                        const styleTrigger = (
-                                            <TabsTrigger
-                                                value="style"
-                                                disabled={isCodeMode}
-                                                className={cn(
-                                                    'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
-                                                    isCodeMode && 'cursor-not-allowed opacity-40',
-                                                )}
-                                            >
-                                                <Icons.Layout className="h-3 w-3" />
-                                                {t(transKeys.editor.panels.edit.tabs.styles.name)}
-                                                {showStyleDot && (
-                                                    <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
-                                                )}
-                                            </TabsTrigger>
-                                        );
-                                        if (!isCodeMode) return styleTrigger;
-                                        return (
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    {styleTrigger}
-                                                </TooltipTrigger>
-                                                <TooltipContent side="bottom" hideArrow>
+                        {isCommentMode ? (
+                            <div className="flex h-full min-w-0 flex-col gap-0">
+                                <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
+                                    <div className="flex flex-1 items-center gap-1.5 px-1">
+                                        <Icons.ChatBubble className="text-foreground-secondary h-3 w-3" />
+                                        <span className="text-foreground-primary text-mini font-medium">
+                                            {t(transKeys.editor.panels.edit.tabs.comments.name)}
+                                        </span>
+                                    </div>
+                                    <div className="ml-auto flex items-center gap-0.5">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Exit comments mode"
+                                                    className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
+                                                    onClick={() =>
+                                                        editorEngine.state.setEditorMode(
+                                                            EditorMode.DESIGN,
+                                                        )
+                                                    }
+                                                >
+                                                    <Icons.CrossS className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" hideArrow>
+                                                Exit comments (Esc)
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+                                <div className="min-h-0 flex-1 overflow-hidden">
+                                    <CommentsTab />
+                                </div>
+                            </div>
+                        ) : (
+                            <Tabs
+                                value={activeTab}
+                                onValueChange={(value) => setActiveTab(value as RightPanelTab)}
+                                className="flex h-full min-w-0 flex-col gap-0"
+                            >
+                                <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
+                                    <TabsList className="bg-background-tab-strip/70 h-8 gap-0 rounded-md p-0.5">
+                                        {(() => {
+                                            // The tooltip explains "Available in Design
+                                            // mode" and is only meaningful in CODE mode.
+                                            // Wrapping the trigger in Radix's
+                                            // `TooltipTrigger asChild` makes it set its
+                                            // own tooltip `data-state` on the child,
+                                            // clobbering the Tabs `data-state="active"`
+                                            // so the active background never shows. So
+                                            // only wrap when the tooltip is actually
+                                            // needed; otherwise render a bare trigger.
+                                            const styleTrigger = (
+                                                <TabsTrigger
+                                                    value="style"
+                                                    disabled={isCodeMode}
+                                                    className={cn(
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                        isCodeMode &&
+                                                            'cursor-not-allowed opacity-40',
+                                                    )}
+                                                >
+                                                    <Icons.Layout className="h-3 w-3" />
                                                     {t(
                                                         transKeys.editor.panels.edit.tabs.styles
-                                                            .availableInDesignMode,
+                                                            .name,
                                                     )}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        );
-                                    })()}
-                                    <div className="bg-border-tab-divider h-3.5 w-px self-center" />
-                                    <TabsTrigger
-                                        value="chat"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
-                                    >
-                                        <Icons.Sparkles className="h-3 w-3" />
-                                        {t(transKeys.editor.panels.edit.tabs.chat.name)}
-                                    </TabsTrigger>
-                                    <div className="bg-border-tab-divider h-3.5 w-px self-center" />
-                                    <TabsTrigger
-                                        value="comments"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
-                                    >
-                                        <Icons.ChatBubble className="h-3 w-3" />
-                                        {t(transKeys.editor.panels.edit.tabs.comments.name)}
-                                    </TabsTrigger>
-                                </TabsList>
-                                <div className="ml-auto flex items-center gap-0.5">
-                                    {activeTab === 'chat' && (
-                                        <>
-                                            <ChatControls />
-                                            <ChatPanelDropdown
-                                                isChatHistoryOpen={isChatHistoryOpen}
-                                                setIsChatHistoryOpen={setIsChatHistoryOpen}
-                                            >
+                                                    {showStyleDot && (
+                                                        <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
+                                                    )}
+                                                </TabsTrigger>
+                                            );
+                                            if (!isCodeMode) return styleTrigger;
+                                            return (
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            aria-label={t(
-                                                                transKeys.editor.panels.edit.tabs
-                                                                    .chat.controls.chatSettings,
-                                                            )}
-                                                            className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
-                                                        >
-                                                            <Icons.DotsHorizontal className="h-4 w-4" />
-                                                        </Button>
+                                                        {styleTrigger}
                                                     </TooltipTrigger>
                                                     <TooltipContent side="bottom" hideArrow>
                                                         {t(
-                                                            transKeys.editor.panels.edit.tabs.chat
-                                                                .controls.chatSettings,
+                                                            transKeys.editor.panels.edit.tabs.styles
+                                                                .availableInDesignMode,
                                                         )}
                                                     </TooltipContent>
                                                 </Tooltip>
-                                            </ChatPanelDropdown>
-                                        </>
-                                    )}
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label={t(
+                                            );
+                                        })()}
+                                        <div className="bg-border-tab-divider h-3.5 w-px self-center" />
+                                        <TabsTrigger
+                                            value="chat"
+                                            className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                        >
+                                            <Icons.Sparkles className="h-3 w-3" />
+                                            {t(transKeys.editor.panels.edit.tabs.chat.name)}
+                                        </TabsTrigger>
+                                    </TabsList>
+                                    <div className="ml-auto flex items-center gap-0.5">
+                                        {activeTab === 'chat' && (
+                                            <>
+                                                <ChatControls />
+                                                <ChatPanelDropdown
+                                                    isChatHistoryOpen={isChatHistoryOpen}
+                                                    setIsChatHistoryOpen={setIsChatHistoryOpen}
+                                                >
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                aria-label={t(
+                                                                    transKeys.editor.panels.edit
+                                                                        .tabs.chat.controls
+                                                                        .chatSettings,
+                                                                )}
+                                                                className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
+                                                            >
+                                                                <Icons.DotsHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="bottom" hideArrow>
+                                                            {t(
+                                                                transKeys.editor.panels.edit.tabs
+                                                                    .chat.controls.chatSettings,
+                                                            )}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </ChatPanelDropdown>
+                                            </>
+                                        )}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={t(
+                                                        transKeys.editor.panels.edit.tabs.chat
+                                                            .controls.closePanel,
+                                                    )}
+                                                    className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
+                                                    onClick={() => setIsCollapsed(true)}
+                                                >
+                                                    <Icons.SidebarLeftCollapse className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="bottom" hideArrow>
+                                                {t(
                                                     transKeys.editor.panels.edit.tabs.chat.controls
                                                         .closePanel,
                                                 )}
-                                                className="text-foreground-secondary hover:bg-background-bar-active hover:text-foreground-primary h-8 w-8 rounded-md"
-                                                onClick={() => setIsCollapsed(true)}
-                                            >
-                                                <Icons.SidebarLeftCollapse className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" hideArrow>
-                                            {t(
-                                                transKeys.editor.panels.edit.tabs.chat.controls
-                                                    .closePanel,
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                 </div>
-                            </div>
-                            <ChatHistory
-                                isOpen={isChatHistoryOpen}
-                                onOpenChange={setIsChatHistoryOpen}
-                            />
+                                <ChatHistory
+                                    isOpen={isChatHistoryOpen}
+                                    onOpenChange={setIsChatHistoryOpen}
+                                />
 
-                            <TabsContent value="style" className="min-h-0 flex-1 overflow-hidden">
-                                {/* Only mount when active — the dynamic import
-                                    above already keeps it out of the initial
-                                    chunk; gating render avoids paying for the
-                                    observer subtree on first paint. */}
-                                {activeTab === 'style' && <StyleTab />}
-                            </TabsContent>
+                                <TabsContent
+                                    value="style"
+                                    className="min-h-0 flex-1 overflow-hidden"
+                                >
+                                    {/* Only mount when active — the dynamic import
+                                        above already keeps it out of the initial
+                                        chunk; gating render avoids paying for the
+                                        observer subtree on first paint. */}
+                                    {activeTab === 'style' && <StyleTab />}
+                                </TabsContent>
 
-                            <TabsContent value="chat" className="min-h-0 flex-1 overflow-hidden">
-                                <div className="flex h-full flex-col overflow-y-auto">
-                                    {currentConversation ? (
-                                        <ChatTab
-                                            conversationId={currentConversation.id}
-                                            projectId={editorEngine.projectId}
-                                        />
-                                    ) : (
-                                        <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-                                            <p className="text-foreground-secondary text-small">
-                                                {t(
-                                                    transKeys.editor.panels.edit.tabs.chat
-                                                        .noActiveConversation,
-                                                )}
-                                            </p>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    void editorEngine.chat.conversation.startNewConversation();
-                                                }}
-                                            >
-                                                {t(
-                                                    transKeys.editor.panels.edit.tabs.chat
-                                                        .startNewConversation,
-                                                )}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent
-                                value="comments"
-                                className="min-h-0 flex-1 overflow-hidden"
-                            >
-                                {activeTab === 'comments' && <CommentsTab />}
-                            </TabsContent>
-                        </Tabs>
+                                <TabsContent
+                                    value="chat"
+                                    className="min-h-0 flex-1 overflow-hidden"
+                                >
+                                    <div className="flex h-full flex-col overflow-y-auto">
+                                        {currentConversation ? (
+                                            <ChatTab
+                                                conversationId={currentConversation.id}
+                                                projectId={editorEngine.projectId}
+                                            />
+                                        ) : (
+                                            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+                                                <p className="text-foreground-secondary text-small">
+                                                    {t(
+                                                        transKeys.editor.panels.edit.tabs.chat
+                                                            .noActiveConversation,
+                                                    )}
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        void editorEngine.chat.conversation.startNewConversation();
+                                                    }}
+                                                >
+                                                    {t(
+                                                        transKeys.editor.panels.edit.tabs.chat
+                                                            .startNewConversation,
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        )}
                     </DropdownManagerProvider>
                 </ResizablePanel>
             )}
