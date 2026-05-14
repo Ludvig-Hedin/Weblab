@@ -3,7 +3,7 @@
  * Source: <repoRoot>/skills/<name>/SKILL.md
  * Regenerate via `bun run generate:skills` from packages/ai.
  *
- * Generated at: 2026-05-14T16:25:31.998Z
+ * Generated at: 2026-05-14T21:40:34.067Z
  * Skill count:  4
  */
 import type { SkillInfo } from './types';
