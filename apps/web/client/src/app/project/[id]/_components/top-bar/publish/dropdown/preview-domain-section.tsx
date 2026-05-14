@@ -76,7 +76,9 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="">Base Domain</h3>
+                    <h3 className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                        Base Domain
+                    </h3>
                     {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
                         <div className="ml-auto flex items-center gap-2">
                             <p className="text-foreground-positive">Live</p>
@@ -109,14 +111,12 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="">Publish</h3>
+                    <h3 className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                        Publish
+                    </h3>
                 </div>
 
-                <Button
-                    disabled={isCreatingDomain}
-                    onClick={createBaseDomain}
-                    className="w-full rounded-md p-3"
-                >
+                <Button disabled={isCreatingDomain} onClick={createBaseDomain} className="w-full">
                     {isCreatingDomain ? 'Creating domain...' : 'Publish my site'}
                 </Button>
             </>
@@ -139,15 +139,14 @@ export const PreviewDomainSection = observer(() => {
                                 {stripAnsi(deployment?.error)}
                             </p>
                         )}
-                        <Button variant="outline" size="lg" className="w-full" onClick={retry}>
+                        <Button variant="outline" className="w-full" onClick={retry}>
                             Try Updating Again
                         </Button>
                     </div>
                 ) : (
                     <Button
                         onClick={() => publish()}
-                        variant="outline"
-                        className="w-full rounded-md p-3"
+                        className="w-full"
                         disabled={isDeploying || isLoading}
                     >
                         {isLoading && (
@@ -161,7 +160,7 @@ export const PreviewDomainSection = observer(() => {
     };
 
     return (
-        <div className="flex flex-col items-center gap-2 p-4">
+        <div className="flex flex-col items-center gap-2 p-3">
             {previewDomain?.url ? renderDomain() : renderNoDomain()}
         </div>
     );

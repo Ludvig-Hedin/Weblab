@@ -13,10 +13,15 @@ export const CustomDomainSection = observer(() => {
 });
 
 export const Section = () => {
-    const { customDomain } = useCustomDomainContext();
-    return (
-        <div className="flex flex-col items-center gap-2 p-4">
-            {customDomain?.url ? <DomainSection /> : <NoCustomDomain />}
-        </div>
-    );
+    const { customDomain, isPro } = useCustomDomainContext();
+
+    if (customDomain?.url && isPro) {
+        return (
+            <div className="flex flex-col items-center gap-2 p-3">
+                <DomainSection />
+            </div>
+        );
+    }
+
+    return <NoCustomDomain />;
 };

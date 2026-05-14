@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-0-publish-dropdown-polish',
+        version: '2.0',
+        title: 'Refined Publish Menu',
+        description:
+            'The Publish menu got a cleaner pass: one clear primary action, consistent button sizes and pill shapes, tighter width and spacing, and a uniform row treatment for Custom Domain and Advanced Settings. Stronger visual hierarchy makes it obvious what to do next.',
+        date: '2026-05-14',
+        tags: ['Editor', 'Publish', 'UX', 'Design'],
+    },
+    {
         slug: 'v1-9-assets-panel',
         version: '1.9',
         title: 'Assets Panel',

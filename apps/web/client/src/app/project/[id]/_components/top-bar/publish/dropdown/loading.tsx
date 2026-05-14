@@ -17,9 +17,9 @@ export const LoadingState = ({ type }: { type: DeploymentType }) => {
     };
 
     return (
-        <div className="flex flex-col gap-2 p-4">
-            <p className="text-foreground-primary">
-                {type === 'preview' ? 'Base' : 'Custom'} domain
+        <div className="flex flex-col gap-2 p-3">
+            <p className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                {type === 'preview' ? 'Base' : 'Custom'} Domain
             </p>
             <p className="text-foreground-secondary">{deployment?.message}</p>
             <Progress value={deployment?.progress ?? 0} className="w-full" />
