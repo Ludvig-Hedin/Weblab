@@ -34,7 +34,7 @@ const BranchesTab = dynamic(() => import('./branches-tab').then((m) => m.Branche
     ssr: false,
 });
 
-const PANEL_DEFAULT_WIDTH = 272;
+const PANEL_DEFAULT_WIDTH = 300;
 const PANEL_MIN_WIDTH = 240;
 const PANEL_MAX_WIDTH = 560;
 

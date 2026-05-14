@@ -558,6 +558,50 @@ export class TokensManager {
         );
     }
 
+    /**
+     * One-time migration of the project's Tailwind brand palette
+     * (`ThemeManager.colorGroups`) into `@theme` color variables, so the Brand
+     * panel has a single editable color store. Non-destructive and idempotent
+     * — names that already exist are skipped. The default Tailwind palette is
+     * intentionally left alone (framework-provided, already usable as classes).
+     */
+    async migrateTailwindPalette(): Promise<{ migrated: number; skipped: number }> {
+        const theme = this.editorEngine.theme;
+        await theme.scanConfig();
+        const groups = theme.colorGroups;
+        if (!this._hasThemeBlock) await this.scaffoldDefault();
+        else await this.scan();
+        let css = await this.readCss();
+        if (css == null) return { migrated: 0, skipped: 0 };
+
+        const existing = new Set<string>([
+            ...this.variables.map((v) => v.name),
+            ...this.colorStyles.map((s) => s.name),
+        ]);
+        let migrated = 0;
+        let skipped = 0;
+        for (const [groupName, colors] of Object.entries(groups)) {
+            for (const color of colors) {
+                const varName = sanitizeTokenName(`color-${groupName}-${color.name}`);
+                if (!varName || existing.has(varName)) {
+                    skipped++;
+                    continue;
+                }
+                css = await setThemeVariable(css, varName, color.lightColor);
+                if (color.darkColor) {
+                    css = await setDarkVariable(css, varName, color.darkColor);
+                }
+                existing.add(varName);
+                migrated++;
+            }
+        }
+        if (migrated > 0) {
+            await this.writeCss(css);
+            await this.scan();
+        }
+        return { migrated, skipped };
+    }
+
     clear() {
         this._scanGeneration++;
         this._scanInFlight = null;
@@ -573,4 +617,13 @@ export class TokensManager {
 
 function refToCss(ref: ColorStyleRef): string {
     return ref.type === 'var' ? `var(--${ref.var})` : ref.value;
+}
+
+/** Lowercase, dash-collapsed CSS-identifier slug for a migrated token name. */
+function sanitizeTokenName(raw: string): string {
+    return raw
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
 }
