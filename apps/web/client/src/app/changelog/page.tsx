@@ -34,7 +34,7 @@ export default async function ChangelogPage() {
             />
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-24 md:px-8 md:pt-32">
                 <header className="mb-16">
-                    <p className="text-foreground-tertiary mb-2 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-2 text-xs font-medium">
                         {t('eyebrow')}
                     </p>
                     <h1 className="text-foreground-primary text-3xl font-light tracking-tight md:text-4xl">

@@ -135,9 +135,10 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const { data: user } = api.user.get.useQuery();
     const { mutateAsync: createProject } = api.project.create.useMutation();
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
+    const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
+    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
 
     /**
      * Tracks the in-flight finalize so cancel() can abort the chain and clean
