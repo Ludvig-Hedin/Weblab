@@ -27,9 +27,9 @@ export function AiBenefitsSection() {
     ) => string;
 
     return (
-        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32 lg:py-64">
+        <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-28 lg:py-40">
             <div className="space-y-24">
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('codeGen.eyebrow')}
@@ -46,7 +46,7 @@ export function AiBenefitsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('collaborate.eyebrow')}
@@ -63,7 +63,7 @@ export function AiBenefitsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('system.eyebrow')}

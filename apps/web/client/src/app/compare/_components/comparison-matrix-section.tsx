@@ -58,7 +58,7 @@ function CellContent({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
     } else if (value === false) {
         inner = (
             <span className="inline-flex items-center justify-center">
-                <X className="text-foreground-tertiary/40 h-4 w-4" strokeWidth={2} />
+                <X className="text-foreground-primary opacity-[40%] h-4 w-4" strokeWidth={2} />
             </span>
         );
     } else if (value === 'partial') {

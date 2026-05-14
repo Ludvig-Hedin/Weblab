@@ -33,7 +33,7 @@ export function HomePageClient() {
                 <WhatCanWeblabDoSectionV2 />
                 <ModelAgnosticSection />
                 <TerminalSection />
-                <ScrollingVelocitySection />
+                {/* <ScrollingVelocitySection /> */}
                 <FAQSection />
                 <ChangelogGrid limit={4} />
                 <CTASection href={Routes.PROJECTS} />

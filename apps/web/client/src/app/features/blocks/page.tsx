@@ -1,5 +1,6 @@
 'use client';
 
+import { CreateManagerProvider } from '@/components/store/create';
 import { ComparisonMatrixSection } from '../../compare/_components/comparison-matrix-section';
 import { ChangelogGrid } from '../../_components/changelog-grid';
 import { HeroV2 } from '../../_components/hero-v2';
@@ -42,6 +43,7 @@ function BlockLabel({ name, path }: { name: string; path: string }) {
 
 export default function BlocksPage() {
     return (
+        <CreateManagerProvider>
         <div className="min-h-screen">
             <div className="border-foreground-primary/10 bg-background border-b px-6 py-8">
                 <h1 className="text-2xl font-semibold">Blocks</h1>
@@ -235,5 +237,6 @@ export default function BlocksPage() {
             <BlockLabel name="CTASection" path="app/_components/landing-page/cta-section.tsx" />
             <CTASection href="/projects" />
         </div>
+        </CreateManagerProvider>
     );
 }

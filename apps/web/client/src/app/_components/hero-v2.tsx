@@ -95,7 +95,7 @@ export function HeroV2() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-            <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 lg:max-w-6xl lg:grid-cols-2 lg:gap-12">
+            <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 lg:max-w-6xl md:grid-cols-2 lg:gap-12">
                 <div className="flex w-full max-w-[545px] flex-col items-start gap-5 lg:justify-self-start">
                     <SplitText
                         as="h1"

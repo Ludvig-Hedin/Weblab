@@ -31,7 +31,7 @@ export function AiFrontendHero() {
                     AI That Builds With Your Components, Not Around Them
                 </motion.h1>
                 <motion.p
-                    className="text-foreground-secondary mx-auto max-w-2xl text-center text-lg text-balance"
+                    className="text-foreground-secondary mx-auto max-w-lg text-center text-lg text-balance"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
