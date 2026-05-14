@@ -39,6 +39,18 @@ export async function updateSession(request: NextRequest) {
         },
     );
 
+    // Fast path: a request carrying no Supabase auth cookie is definitively
+    // signed out — there is no session to refresh, so skip the getUser()
+    // network round-trip entirely. Without this, public pages (/, /login,
+    // /privacy-policy) pay the full auth latency on every hit and hang for the
+    // whole timeout window whenever the auth backend is slow or unreachable.
+    const hasAuthCookie = request.cookies
+        .getAll()
+        .some((cookie) => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token'));
+    if (!hasAuthCookie) {
+        return supabaseResponse;
+    }
+
     // Refresh the auth token, but never let a stalled auth provider block the
     // whole request. The previous 2s ceiling was racing the refresh on slow
     // Railway → hosted-Supabase egress: when the timeout fired, the in-flight
