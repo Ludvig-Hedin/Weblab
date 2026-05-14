@@ -4,7 +4,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Language, LANGUAGE_DISPLAY_NAMES } from '@weblab/constants';
-import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,16 +30,14 @@ export function LocaleSwitcher() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
+                <button
                     aria-label={t('label')}
-                    className="text-foreground-tertiary hover:text-foreground-primary h-auto gap-1.5 px-2 py-1 text-small font-normal"
+                    className="flex items-center gap-1.5 rounded-full bg-foreground-primary/10 px-3 py-1.5 text-small text-foreground-tertiary transition-colors duration-150 hover:text-foreground-primary focus:outline-none"
                 >
-                    <Icons.Globe className="h-3.5 w-3.5" />
+                    <Icons.Globe className="h-3.5 w-3.5 shrink-0" />
                     <span>{currentName}</span>
                     <Icons.ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
+                </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[10rem]">
                 {Object.values(Language).map((lang) => {
