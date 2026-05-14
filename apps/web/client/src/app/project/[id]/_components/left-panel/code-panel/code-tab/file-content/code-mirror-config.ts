@@ -38,11 +38,11 @@ const customColors = {
 // Basic theme for CodeMirror
 export const basicTheme = {
     '&': {
-        fontSize: '13px',
+        fontSize: '12px',
         backgroundColor: 'transparent',
     },
     '&.cm-focused .cm-selectionBackground, & .cm-selectionBackground': {
-        backgroundColor: 'rgba(21, 170, 147, 0.2) !important',
+        backgroundColor: 'rgba(63, 164, 255, 0.2) !important',
     },
     '.cm-content': {
         lineHeight: '1.5',
@@ -54,15 +54,15 @@ export const customDarkTheme = EditorView.theme(
     {
         '&': {
             color: '#ffffff',
-            backgroundColor: '#000000',
-            fontSize: '13px',
+            backgroundColor: '#181818',
+            fontSize: '12px',
             userSelect: 'none !important',
         },
         '.cm-content': {
             padding: '10px 0',
             lineHeight: '1.5',
             caretColor: customColors.blue,
-            backgroundColor: '#000000',
+            backgroundColor: '#181818',
             userSelect: 'text !important',
         },
         '.cm-focused': {
@@ -73,31 +73,31 @@ export const customDarkTheme = EditorView.theme(
             borderLeftWidth: '2px',
         },
         '&.cm-focused .cm-selectionBackground, ::selection': {
-            backgroundColor: 'rgba(63, 164, 255, 0.2)',
+            backgroundColor: `${customColors.blue}33`,
         },
         '&.cm-editor.cm-focused .cm-selectionBackground': {
-            backgroundColor: `${customColors.green}33 !important`,
+            backgroundColor: `${customColors.blue}33 !important`,
         },
         '&.cm-editor .cm-selectionBackground': {
-            backgroundColor: `${customColors.green}33 !important`,
+            backgroundColor: `${customColors.blue}33 !important`,
         },
         '&.cm-editor .cm-content ::selection': {
-            backgroundColor: `${customColors.green}33 !important`,
+            backgroundColor: `${customColors.blue}33 !important`,
         },
         '.cm-line ::selection': {
-            backgroundColor: `${customColors.green}33 !important`,
+            backgroundColor: `${customColors.blue}33 !important`,
         },
         '::selection': {
-            backgroundColor: `${customColors.green}33 !important`,
+            backgroundColor: `${customColors.blue}33 !important`,
         },
         '.cm-selectionBackground': {
-            backgroundColor: 'rgba(63, 164, 255, 0.2)',
+            backgroundColor: `${customColors.blue}33`,
         },
         '.cm-gutters': {
-            backgroundColor: '#0a0a0a !important',
+            backgroundColor: '#141414 !important',
             color: '#6b7280 !important',
             border: 'none !important',
-            borderRight: '1px solid #1f2937 !important',
+            borderRight: '1px solid #252525 !important',
             width: '45px !important',
         },
         '.cm-foldGutter': {
@@ -128,7 +128,7 @@ export const customDarkTheme = EditorView.theme(
             height: '8px',
         },
         '.cm-scroller::-webkit-scrollbar-track': {
-            backgroundColor: '#0a0a0a',
+            backgroundColor: '#141414',
         },
         '.cm-scroller::-webkit-scrollbar-thumb': {
             backgroundColor: '#374151',

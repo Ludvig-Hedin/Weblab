@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
@@ -128,46 +129,43 @@ function PromptOnCanvasAsset() {
     );
 }
 
-// Cycle through small variants of the same button (label + tint changes)
-// to suggest "edit visually, code stays in sync."
+// Cycle through small variants of the same button — design changes propagate
+// to code in sync. Three variants share the same prop name (`rounded`) so the
+// code diff is just one token swap, which keeps the focus tight.
 const BUTTON_VARIANTS = [
-    { label: 'Get started', radius: 'rounded-xl', radiusToken: 'xl' },
-    { label: 'Continue', radius: 'rounded-lg', radiusToken: 'lg' },
-    { label: 'Start trial', radius: 'rounded-full', radiusToken: 'full' },
+    { label: 'Continue', radius: 'rounded-lg', token: 'rounded-lg', px: 4 },
+    { label: 'Get started', radius: 'rounded-xl', token: 'rounded-xl', px: 5 },
+    { label: 'Start trial', radius: 'rounded-full', token: 'rounded-full', px: 5 },
 ] as const;
+
+const VARIANT_CYCLE_MS = 4200;
 
 function DesignToCodeAsset() {
     const [variantIdx, setVariantIdx] = useState(0);
     const [paused, setPaused] = useState(false);
-    const [flashing, setFlashing] = useState(false);
     useEffect(() => {
         if (paused) return;
         const id = setInterval(() => {
             setVariantIdx((i) => (i + 1) % BUTTON_VARIANTS.length);
-        }, 3500);
+        }, VARIANT_CYCLE_MS);
         return () => clearInterval(id);
     }, [paused]);
-
-    // Flash the className token briefly each time the variant cycles —
-    // visualizes the "code stays in sync" beat.
-    useEffect(() => {
-        setFlashing(true);
-        const id = setTimeout(() => setFlashing(false), 600);
-        return () => clearTimeout(id);
-    }, [variantIdx]);
 
     const v = BUTTON_VARIANTS[variantIdx]!;
 
     return (
         <div
-            className="border-foreground-primary/10 bg-background-secondary/40 mx-auto w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm"
+            className="border-foreground-primary/10 bg-background mx-auto w-full max-w-sm overflow-hidden rounded-2xl border"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
+            onTouchStart={() => setPaused(true)}
+            onTouchEnd={() => setPaused(false)}
         >
-            {/* Design region — rendered button with selection */}
-            <div className="bg-background-secondary/30 relative flex aspect-[16/9] w-full items-center justify-center">
+            {/* Design region */}
+            <div className="bg-background-secondary/40 relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden">
+                {/* Static dot grid via CSS only — no compositing layer */}
                 <div
-                    className="absolute inset-0 opacity-50"
+                    className="absolute inset-0 opacity-60"
                     style={{
                         backgroundImage:
                             'radial-gradient(circle, color-mix(in srgb, var(--foreground-primary) 8%, transparent) 1px, transparent 1px)',
@@ -175,73 +173,91 @@ function DesignToCodeAsset() {
                     }}
                     aria-hidden
                 />
-                <div className="relative">
-                    <button
-                        type="button"
-                        tabIndex={-1}
-                        aria-hidden
-                        className={`bg-foreground-primary text-background text-small pointer-events-none px-4 py-2 font-light tracking-tight transition-[border-radius] duration-300 ${v.radius}`}
+                {/* Button with morphing radius + selection chrome */}
+                <motion.div
+                    className="relative"
+                    animate={{ scale: [1, 1.04, 1] }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    key={`pop-${variantIdx}`}
+                >
+                    <motion.div
+                        className={`bg-foreground-primary text-background text-small relative inline-flex items-center justify-center px-4 py-2 font-light tracking-tight ${v.radius}`}
+                        style={{ transition: 'border-radius 360ms cubic-bezier(0.22, 1, 0.36, 1)' }}
                     >
-                        {v.label}
-                    </button>
-                    {/* Selection ring */}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                            <motion.span
+                                key={v.label}
+                                initial={{ opacity: 0, y: 4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -4 }}
+                                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                                className="inline-block whitespace-nowrap"
+                            >
+                                {v.label}
+                            </motion.span>
+                        </AnimatePresence>
+                    </motion.div>
+                    {/* Selection ring + corner handles — single layer */}
                     <span
-                        className={`pointer-events-none absolute -inset-1 transition-[border-radius] duration-300 ${v.radius}`}
+                        className={`pointer-events-none absolute -inset-1 ${v.radius}`}
                         style={{
-                            boxShadow: `inset 0 0 0 1.5px var(--foreground-brand)`,
+                            boxShadow: 'inset 0 0 0 1.5px var(--foreground-brand)',
+                            transition: 'border-radius 360ms cubic-bezier(0.22, 1, 0.36, 1)',
                         }}
                         aria-hidden
                     />
-                    <span
-                        className="absolute -bottom-1 -left-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'var(--foreground-brand)' }}
-                        aria-hidden
-                    />
-                    <span
-                        className="absolute -right-1 -bottom-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'var(--foreground-brand)' }}
-                        aria-hidden
-                    />
-                    <span
-                        className="absolute -top-1 -left-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'var(--foreground-brand)' }}
-                        aria-hidden
-                    />
-                    <span
-                        className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-sm"
-                        style={{ backgroundColor: 'var(--foreground-brand)' }}
-                        aria-hidden
-                    />
-                </div>
+                    {(
+                        [
+                            '-top-1 -left-1',
+                            '-top-1 -right-1',
+                            '-bottom-1 -left-1',
+                            '-bottom-1 -right-1',
+                        ] as const
+                    ).map((pos) => (
+                        <span
+                            key={pos}
+                            className={`bg-foreground-brand pointer-events-none absolute h-1.5 w-1.5 rounded-sm ${pos}`}
+                            aria-hidden
+                        />
+                    ))}
+                </motion.div>
             </div>
             {/* Divider */}
             <div className="border-foreground-primary/10 border-t" aria-hidden />
             {/* Code region */}
-            <div className="bg-background-secondary/30 p-3">
+            <div className="bg-background-secondary/40 p-3">
                 <div className="text-foreground-quadranary mb-1.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
-                    <span
-                        className="h-1 w-1 rounded-full"
-                        style={{ backgroundColor: 'var(--foreground-brand)' }}
-                        aria-hidden
-                    />
+                    <span className="bg-foreground-brand h-1 w-1 rounded-full" aria-hidden />
                     Button.tsx
                 </div>
                 <pre className="text-foreground-secondary text-mini font-mono leading-relaxed">
                     {'<button className="'}
-                    <span
-                        className="rounded-sm px-1 transition-colors duration-500"
-                        style={{
-                            color: 'var(--foreground-brand)',
-                            backgroundColor: flashing
-                                ? 'color-mix(in srgb, var(--foreground-brand) 18%, transparent)'
-                                : 'transparent',
+                    <motion.span
+                        key={`tok-${variantIdx}`}
+                        initial={{
+                            backgroundColor:
+                                'color-mix(in srgb, var(--foreground-brand) 24%, transparent)',
                         }}
+                        animate={{ backgroundColor: 'rgba(0,0,0,0)' }}
+                        transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1] }}
+                        className="text-foreground-brand inline-block rounded-sm px-1"
                     >
-                        {v.radius}
-                    </span>
+                        {v.token}
+                    </motion.span>
                     {' bg-fg px-4 py-2">'}
                     {'\n  '}
-                    <span className="text-foreground-primary">{v.label}</span>
+                    <AnimatePresence mode="wait" initial={false}>
+                        <motion.span
+                            key={`label-${variantIdx}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="text-foreground-primary inline-block"
+                        >
+                            {v.label}
+                        </motion.span>
+                    </AnimatePresence>
                     {'\n'}
                     {'</button>'}
                 </pre>

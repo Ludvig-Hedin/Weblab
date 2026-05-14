@@ -20,13 +20,8 @@ function ParallaxContainer({
 
         const rect = containerRef.current.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-
-        // Calculate how far the element is from the center of the viewport
         const distanceFromCenter = rect.top + rect.height / 2 - viewportHeight / 2;
-
-        // Apply transform based on distance from center
         setTransform(distanceFromCenter * speed);
-
         ticking.current = false;
     }, [speed]);
 
@@ -40,9 +35,8 @@ function ParallaxContainer({
             }
         };
 
-        // Use passive scroll listener for better performance
         window.addEventListener('scroll', handleScroll, { passive: true });
-        updateTransform(); // Initial calculation
+        updateTransform();
 
         return () => window.removeEventListener('scroll', handleScroll);
     }, [updateTransform]);
@@ -65,8 +59,9 @@ function ParallaxContainer({
 
 export function BrandComplianceBlock() {
     return (
-        <div className="flex flex-col gap-6">
-            <div className="relative h-100 w-full">
+        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-16">
+            {/* Visual */}
+            <div className="relative h-[25rem] w-full">
                 <ParallaxContainer speed={0.04}>
                     <div className="border-foreground-primary/20 absolute top-7 left-2 flex h-100 w-44 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl sm:left-1/14 sm:w-60">
                         <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">
@@ -158,7 +153,6 @@ export function BrandComplianceBlock() {
                                     'bg-amber-900',
                                 ]}
                             />
-
                             <ColorSwatchGroup
                                 label="Lime"
                                 colorClasses={[
@@ -325,18 +319,15 @@ export function BrandComplianceBlock() {
                     </div>
                 </ParallaxContainer>
             </div>
-            <div className="flex w-full flex-col items-start gap-4 sm:flex-row sm:gap-8">
-                {/* Icon + Title */}
-                <div className="flex w-full flex-col items-start sm:w-1/2">
-                    <div className="mb-2">
-                        <Icons.Brand className="text-foreground-primary h-6 w-6" />
-                    </div>
-                    <span className="text-foreground-primary text-largePlus font-light">
-                        Design System Guardrails
-                    </span>
+            {/* Text */}
+            <div className="flex flex-col gap-4">
+                <div>
+                    <Icons.Brand className="text-foreground-primary h-6 w-6" />
                 </div>
-                {/* Description */}
-                <p className="text-foreground-secondary text-regular w-full text-balance sm:w-1/2">
+                <span className="text-foreground-primary text-largePlus font-light">
+                    Design System Guardrails
+                </span>
+                <p className="text-foreground-secondary text-regular">
                     AI is constrained to your colors, fonts, and tokens. No drift. No off-brand
                     outputs.
                 </p>

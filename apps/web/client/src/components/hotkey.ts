@@ -27,6 +27,7 @@ export class Hotkey {
     static readonly INSERT_BUTTON = new Hotkey('b', 'Insert Button');
     static readonly RELOAD_APP = new Hotkey('mod+r', 'Reload App');
     static readonly SIDEBAR_INSERT = new Hotkey('alt+a', 'Insert');
+    static readonly OPEN_ADD_PANEL = new Hotkey('shift+equal', 'Open Add Panel');
     static readonly SIDEBAR_LAYERS = new Hotkey('alt+1', 'Layers');
     static readonly SIDEBAR_BRAND = new Hotkey('alt+2', 'Brand');
     static readonly SIDEBAR_PAGES = new Hotkey('alt+3', 'Pages');

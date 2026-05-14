@@ -9,6 +9,11 @@ export const env = createEnv({
     server: {
         NODE_ENV: z.enum(['development', 'test', 'production']),
         CSB_API_KEY: z.string(),
+        WEBLAB_CLOUD_PROVIDER: z.enum(['code_sandbox', 'vercel_sandbox']).default('code_sandbox'),
+        VERCEL_TEAM_ID: z.string().optional(),
+        VERCEL_PROJECT_ID: z.string().optional(),
+        VERCEL_TOKEN: z.string().optional(),
+        VERCEL_SANDBOX_TIMEOUT_MS: z.coerce.number().positive().optional(),
         SUPABASE_URL: z.url(),
         SUPABASE_DATABASE_URL: z.url(),
         SUPABASE_SERVICE_ROLE_KEY: z.string(),
@@ -118,6 +123,7 @@ export const env = createEnv({
         NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: z.coerce.boolean().default(false),
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(true),
         NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(true),
+        NEXT_PUBLIC_STYLE_PANEL_V3: z.coerce.boolean().default(false),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
@@ -135,12 +141,18 @@ export const env = createEnv({
     runtimeEnv: {
         NODE_ENV: process.env.NODE_ENV,
         CSB_API_KEY: process.env.CSB_API_KEY ?? (process.env.NODE_ENV === 'development' ? 'dev_csb_api_key' : undefined),
+        WEBLAB_CLOUD_PROVIDER: process.env.WEBLAB_CLOUD_PROVIDER,
+        VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID,
+        VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
+        VERCEL_TOKEN: process.env.VERCEL_TOKEN,
+        VERCEL_SANDBOX_TIMEOUT_MS: process.env.VERCEL_SANDBOX_TIMEOUT_MS,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         NEXT_PUBLIC_FEATURE_COLLABORATION: process.env.NEXT_PUBLIC_FEATURE_COLLABORATION,
         NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
         NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED: process.env.NEXT_PUBLIC_PROJECT_FILESYSTEM_ENABLED,
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: process.env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED,
         NEXT_PUBLIC_PROVIDER_PICKER_V2: process.env.NEXT_PUBLIC_PROVIDER_PICKER_V2,
+        NEXT_PUBLIC_STYLE_PANEL_V3: process.env.NEXT_PUBLIC_STYLE_PANEL_V3,
 
         // Supabase
         SUPABASE_URL:

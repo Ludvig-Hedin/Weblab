@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import type { Editor } from '@tiptap/react';
 import localforage from 'localforage';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
@@ -67,6 +68,7 @@ export const Create = observer(
 
         const { setIsAuthModalOpen } = useAuthContext();
         const textareaRef = useRef<HTMLTextAreaElement>(null);
+        const editorRef = useRef<Editor | null>(null);
         const [inputValue, setInputValue] = useState<string>('');
         const [selectedImages, setSelectedImages] = useState<ImageMessageContext[]>([]);
         const [isHandlingFile, setIsHandlingFile] = useState(false);
@@ -318,19 +320,14 @@ export const Create = observer(
         const handleTranscript = (text: string) => {
             const trimmed = text.trim();
             if (!trimmed) return;
-            setInputValue((prev) => {
-                const base = prev.trimEnd();
-                const next = base.length === 0 ? trimmed : `${base} ${trimmed}`;
-                requestAnimationFrame(() => {
-                    adjustTextareaHeight();
-                    const textarea = textareaRef.current;
-                    if (textarea) {
-                        textarea.focus();
-                        textarea.setSelectionRange(next.length, next.length);
-                    }
-                });
-                return next;
-            });
+            // Read actual content from TipTap editor (ground truth) rather than
+            // React state, which can lag or contain placeholder text on init.
+            const currentText =
+                editorRef.current?.getText({ blockSeparator: '\n' }).trim() ??
+                inputValue.trim();
+            const next = currentText ? `${currentText} ${trimmed}` : trimmed;
+            setInputValue(next);
+            requestAnimationFrame(adjustTextareaHeight);
         };
 
         const handleSuggestionClick = (suggestion: CreateSuggestion) => {
@@ -396,6 +393,7 @@ export const Create = observer(
                     placeholder={t('promptPlaceholder')}
                     variant={variant}
                     textareaRef={textareaRef}
+                    editorRef={editorRef}
                     isSubmitting={isCreatingProject}
                     disabled={isCreatingProject}
                     submitDisabled={isInputInvalid}

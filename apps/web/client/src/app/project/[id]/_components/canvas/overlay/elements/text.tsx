@@ -193,10 +193,10 @@ export const TextEditor = observer(() => {
                 top: `${rect.top}px`,
                 left: `${rect.left}px`,
                 pointerEvents: isDisabled ? 'none' : 'auto',
-                overflow: 'visible',
+                overflow: 'hidden',
                 transformOrigin: 'top left',
                 boxSizing: 'border-box',
-                padding: styles.padding ?? '0',
+                padding: '0',
                 boxShadow: `inset 0 0 0 1px ${accent}`,
             }}
             data-weblab-ignore={EditorAttributes.DATA_WEBLAB_IGNORE}

@@ -181,7 +181,7 @@ export function HeroV2() {
                     (EditorBar, panel widths) that collapse below ~720px wide.
                     Pin the mockup to a min desktop width and clip overflow so
                     it shows cropped-but-readable on phones instead of squished. */}
-                <div className="relative min-w-[1100px] sm:min-w-0">
+                <div className="relative min-w-[1100px] sm:min-w-0 pt-10">
                     <WeblabInterfaceMockup />
                     <div className="from-background pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t to-transparent lg:h-24" />
                 </div>

@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
+import type { SetAllCookies } from '@supabase/ssr';
 import { env } from '@/env';
 
 export async function updateSession(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function updateSession(request: NextRequest) {
                 getAll() {
                     return request.cookies.getAll();
                 },
-                setAll(cookiesToSet) {
+                setAll(cookiesToSet: Parameters<SetAllCookies>[0]) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
                     // Re-create with our modified headers so x-pathname is
                     // preserved even when Supabase refreshes the session.

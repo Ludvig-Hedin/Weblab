@@ -79,7 +79,7 @@ export const CodeControls = ({
                         ) : (
                             <Icons.MoveToFolder className="h-4 w-4" />
                         )}
-                        <span className="text-small ml-0.5">
+                        <span className="text-mini ml-0.5">
                             {isSidebarOpen
                                 ? ''
                                 : t(transKeys.editor.panels.code.controls.viewFiles)}
@@ -161,7 +161,7 @@ export const CodeControls = ({
                                     className={cn('h-4 w-4', isDirty && 'text-background-primary')}
                                 />
                             )}
-                            <span className="text-small">
+                            <span className="text-mini">
                                 {isSaving
                                     ? t(transKeys.editor.panels.code.controls.saving)
                                     : t(transKeys.editor.panels.code.controls.save)}

@@ -590,7 +590,7 @@
     --background-bar: #121212; /* #121212 — bottom toolbar */
     --background-bar-active: #2e2e2e; /* #2e2e2e — pressed/active toolbar button */
     --background-tab-strip: #262626; /* #262626 — tab list container */
-    --background-tab-active: #383838; /* #383838 — active tab fill */
+    --background-tab-active: #4a4a4a; /* #4a4a4a — active tab fill (bumped from #383838 for contrast against strip #262626) */
     --border-canvas: #212121; /* #212121 — 1px frame around canvas */
     --border-bar: #242424; /* #242424 — bottom toolbar border */
     --border-tab-active: #454545; /* #454545 — active tab border */
@@ -665,6 +665,7 @@
     --color-background-tertiary: var(--background-tertiary);
     --color-background-weblab: var(--background-weblab);
     --color-background-tab-strip: var(--background-tab-strip);
+    --color-background-tab-active: var(--background-tab-active);
     --color-background-success: var(--background-success);
     --color-background-warning: var(--background-warning);
     --color-background-brand: var(--background-brand);

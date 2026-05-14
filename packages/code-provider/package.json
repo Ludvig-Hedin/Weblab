@@ -35,6 +35,7 @@
     },
     "dependencies": {
         "@codesandbox/sdk": "^1.1.6",
+        "@vercel/sandbox": "1.10.2",
         "@weblab/models": "*",
         "@weblab/parser": "*",
         "@weblab/utility": "*"

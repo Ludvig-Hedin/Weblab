@@ -43,6 +43,8 @@ OpenRouter, and CodeSandbox, but real end-to-end AI/sandbox behavior needs real
 keys:
 
 - `CSB_API_KEY`
+- `WEBLAB_CLOUD_PROVIDER` (`code_sandbox` by default; `vercel_sandbox` for the
+  staged Vercel Sandbox provider)
 - `OPENROUTER_API_KEY`
 - `SUPABASE_URL`
 - `SUPABASE_DATABASE_URL`
@@ -53,6 +55,15 @@ keys:
 Optional feature/integration variables include Stripe, Freestyle, GitHub,
 Figma, PostHog, Gleap, Langfuse, n8n, Firecrawl, Exa, Anthropic, OpenAI,
 Google, AWS Bedrock, Morph, and Relace keys.
+
+Vercel Sandbox is runtime-only; the Weblab app still deploys on Railway. When
+`WEBLAB_CLOUD_PROVIDER=vercel_sandbox`, Railway/local server environments must
+also provide:
+
+- `VERCEL_TEAM_ID`
+- `VERCEL_PROJECT_ID`
+- `VERCEL_TOKEN`
+- `VERCEL_SANDBOX_TIMEOUT_MS` (optional; defaults to 45 minutes)
 
 When adding an env var:
 

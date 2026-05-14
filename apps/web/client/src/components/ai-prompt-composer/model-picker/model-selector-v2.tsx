@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
 import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
-import { inferProviderFromModelId, PROVIDER_MANIFEST } from '@weblab/ai/client';
+import { PROVIDER_MANIFEST } from '@weblab/ai/client';
 import { APP_NAME } from '@weblab/constants';
 import { modelSupportsReasoningEffort } from '@weblab/models';
 import {
@@ -42,6 +43,24 @@ function ProviderIcon({ name, className }: { name: string; className?: string })
     const Icon = (Icons as Record<string, React.ComponentType<{ className?: string }>>)[name];
     if (!Icon) return <Icons.Cube className={className} />;
     return <Icon className={className} />;
+}
+
+const MODEL_DESCRIPTIONS: Record<string, string> = {
+    'openai/gpt-5.5': 'Best for deep research and complex knowledge work',
+    'anthropic/claude-sonnet-4.6': 'Excels at coding and complex reasoning',
+    'anthropic/claude-opus-4.7': 'Maximum intelligence for complex tasks',
+    'google/gemini-3.1-pro-preview': "Google's latest flagship model",
+    'deepseek/deepseek-v4-pro': 'High performance open-source reasoning model',
+    'moonshotai/kimi-k2.6': 'Efficient model for coding and analysis',
+};
+
+function cloudProviderIconName(modelId: string): string {
+    if (modelId.startsWith('anthropic/')) return 'AnthropicLogo';
+    if (modelId.startsWith('openai/')) return 'OpenAiLogo';
+    if (modelId.startsWith('google/')) return 'GeminiMonoLogo';
+    if (modelId.startsWith('deepseek/')) return 'DeepSeekLogo';
+    if (modelId.startsWith('moonshotai/')) return 'KimiLogo';
+    return 'Sparkles';
 }
 
 function StatusPill({ status }: { status: ProviderStatus }) {
@@ -100,6 +119,7 @@ export const ModelSelectorV2 = ({
     onReasoningEffortChange?: (effort: ReasoningEffort) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [hoveredCloudId, setHoveredCloudId] = useState<string | null>(null);
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
     const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
@@ -201,12 +221,6 @@ export const ModelSelectorV2 = ({
             .catch(() => toast.error('Failed to stop Ollama'));
     };
 
-    // Resolve current model's provider so the trigger can show its icon. Falls
-    // back to the cloud sparkle if inference can't match (legacy/free-form ID).
-    const currentProviderKind = inferProviderFromModelId(value as string);
-    const currentProviderEntry = PROVIDER_MANIFEST.find((e) => e.kind === currentProviderKind);
-    const currentIconName = currentProviderEntry?.icon ?? 'Sparkles';
-
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
@@ -214,19 +228,12 @@ export const ModelSelectorV2 = ({
                     variant="ghost"
                     size="sm"
                     aria-label={`Model: ${currentLabel}`}
-                    className="text-foreground-secondary hover:bg-background-secondary hover:text-foreground-primary h-8 gap-1 px-2 text-xs"
+                    className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary h-7 gap-1 px-1.5 text-xs font-normal"
                 >
-                    <ProviderIcon
-                        name={currentIconName}
-                        className="text-foreground-tertiary h-3.5 w-3.5 shrink-0 hide hidden"
-                    />
-                    <span
-                        title={currentLabel}
-                        className="max-w-[80px] truncate @[260px]:max-w-[160px]"
-                    >
+                    <span title={currentLabel} className="max-w-[160px] truncate">
                         {currentLabel}
                     </span>
-                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-2.5 shrink-0" />
+                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -252,33 +259,56 @@ export const ModelSelectorV2 = ({
                         </CommandEmpty>
 
                         {cloud && cloud.models.length > 0 && (
-                            <CommandGroup
-                                heading="Cloud"
-                                className="[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:uppercase"
-                            >
-                                {cloud.models.map((option) => (
-                                    <CommandItem
-                                        key={`openrouter:${option.id}`}
-                                        value={`${option.label} ${option.id} openrouter cloud`}
-                                        onSelect={() => handleSelectModel(option.id)}
-                                        className={cn(
-                                            'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
-                                            option.id === selectedId && 'bg-background-secondary',
-                                        )}
-                                    >
-                                        <Icons.Sparkles className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
-                                        <span className="text-foreground-primary truncate font-medium">
-                                            {option.label}
-                                        </span>
-                                        {option.id === selectedId && (
-                                            <Icons.Check className="text-foreground-secondary ml-auto h-3.5 w-3.5 shrink-0" />
-                                        )}
-                                    </CommandItem>
-                                ))}
+                            <CommandGroup className="[&_[cmdk-group-heading]]:hidden">
+                                {cloud.models.map((option) => {
+                                    const description = MODEL_DESCRIPTIONS[option.id];
+                                    const isHovered = hoveredCloudId === option.id;
+                                    const isSelected = option.id === selectedId;
+                                    return (
+                                        <CommandItem
+                                            key={`openrouter:${option.id}`}
+                                            value={`${option.label} ${option.id} openrouter cloud`}
+                                            onSelect={() => handleSelectModel(option.id)}
+                                            onMouseEnter={() => setHoveredCloudId(option.id)}
+                                            onMouseLeave={() => setHoveredCloudId(null)}
+                                            className={cn(
+                                                'relative flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-xs',
+                                                isSelected && !isHovered && 'bg-background-secondary',
+                                            )}
+                                            style={{ background: 'transparent' }}
+                                        >
+                                            {isHovered && (
+                                                <motion.div
+                                                    layoutId="cloud-model-hover-bg"
+                                                    className="bg-background-secondary absolute inset-0 rounded-md"
+                                                    transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+                                                />
+                                            )}
+                                            <ProviderIcon
+                                                name={cloudProviderIconName(option.id)}
+                                                className="text-foreground-tertiary relative z-10 mt-0.5 h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <div className="relative z-10 flex min-w-0 flex-1 flex-col gap-0.5">
+                                                <span className="text-foreground-primary truncate font-medium">
+                                                    {option.label}
+                                                </span>
+                                                {description && (
+                                                    <span className="text-foreground-tertiary truncate text-[10px] leading-tight">
+                                                        {description}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {isSelected && (
+                                                <Icons.Check className="text-foreground-secondary relative z-10 mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                            )}
+                                        </CommandItem>
+                                    );
+                                })}
                             </CommandGroup>
                         )}
 
-                        {subProviders.map((entry) => {
+                        {/* Sub-provider groups (Ollama, Codex, Claude Code, Gemini CLI, OpenCode, Cursor) hidden for now */}
+                        {false && subProviders.map((entry) => {
                             const status = statuses[entry.kind];
                             const ready = status.kind === 'ready';
                             const loading = status.kind === 'loading';

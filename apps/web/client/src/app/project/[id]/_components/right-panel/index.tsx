@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
@@ -27,14 +28,19 @@ import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
 // load until the user switches to them. Each tab is only rendered when its
 // value is active (see TabsContent guards below), so this is a pure
 // bundle-split win with no UX cost.
-const StyleTab = dynamic(
-    () => import('./style-tab-v2').then((m) => m.StyleTabV2),
-    { ssr: false },
-);
-const CommentsTab = dynamic(
-    () => import('./comments-tab').then((m) => m.CommentsTab),
-    { ssr: false },
-);
+//
+// Module-scope flag check so the chosen panel is decided once at bundle eval —
+// avoids a render-time conditional and lets `dynamic()` keep its lazy chunk.
+const StyleTab = env.NEXT_PUBLIC_STYLE_PANEL_V3
+    ? dynamic(() => import('./style-tab-v3').then((m) => m.StyleTabV3), {
+          ssr: false,
+      })
+    : dynamic(() => import('./style-tab-v2').then((m) => m.StyleTabV2), {
+          ssr: false,
+      });
+const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.CommentsTab), {
+    ssr: false,
+});
 
 type RightPanelTab = 'style' | 'chat' | 'comments';
 
@@ -82,8 +88,15 @@ export const RightPanel = observer(() => {
         return () => window.removeEventListener(FIX_ERRORS_EVENT, openChatForFixRequest);
     }, [editorEngine.state]);
 
-    // Show a dot on the Style tab when an element is selected but the user hasn't
-    // switched to it yet. This is a passive signal — we never force a tab switch.
+    const prevHasSelection = useRef(hasElementSelection);
+    useEffect(() => {
+        const gained = hasElementSelection && !prevHasSelection.current;
+        prevHasSelection.current = hasElementSelection;
+        if (gained && !isCodeMode && activeTab !== 'style') {
+            setActiveTab('style');
+        }
+    }, [hasElementSelection, isCodeMode, activeTab]);
+
     const showStyleDot = hasElementSelection && activeTab !== 'style' && !isCodeMode;
 
     return (
@@ -133,57 +146,65 @@ export const RightPanel = observer(() => {
                         <Tabs
                             value={activeTab}
                             onValueChange={(value) => setActiveTab(value as RightPanelTab)}
-                            className="flex h-full flex-col gap-0"
+                            className="flex h-full min-w-0 flex-col gap-0"
                         >
-                            <div className="border-border-bar flex h-14 w-full flex-row items-center border-b px-2">
-                                <TabsList className="bg-background-tab-strip/70 h-9 gap-0 rounded-md p-0.5">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
+                            <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
+                                <TabsList className="bg-background-tab-strip/70 h-8 gap-0 rounded-md p-0.5">
+                                    {(() => {
+                                        // The tooltip explains "Available in Design
+                                        // mode" and is only meaningful in CODE mode.
+                                        // Wrapping the trigger in Radix's
+                                        // `TooltipTrigger asChild` makes it set its
+                                        // own tooltip `data-state` on the child,
+                                        // clobbering the Tabs `data-state="active"`
+                                        // so the active background never shows. So
+                                        // only wrap when the tooltip is actually
+                                        // needed; otherwise render a bare trigger.
+                                        const styleTrigger = (
                                             <TabsTrigger
                                                 value="style"
                                                 disabled={isCodeMode}
                                                 className={cn(
-                                                    // The active fill comes from `--background-tab-active` (#383838),
-                                                    // which only gives ~1.2:1 contrast against the strip (#262626).
-                                                    // Force a stronger overlay via `bg-foreground/10` so the active
-                                                    // state actually pops. The shared TabsTrigger primitive sets
-                                                    // `dark:data-[state=active]:bg-none` (image only) — that doesn't
-                                                    // touch background-color but harmlessly co-exists.
-                                                    'data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini relative h-8 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                    'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
                                                     isCodeMode && 'cursor-not-allowed opacity-40',
                                                 )}
                                             >
-                                                <Icons.Layout className="h-3.5 w-3.5" />
+                                                <Icons.Layout className="h-3 w-3" />
                                                 {t(transKeys.editor.panels.edit.tabs.styles.name)}
                                                 {showStyleDot && (
                                                     <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
                                                 )}
                                             </TabsTrigger>
-                                        </TooltipTrigger>
-                                        {isCodeMode && (
-                                            <TooltipContent side="bottom" hideArrow>
-                                                {t(
-                                                    transKeys.editor.panels.edit.tabs.styles
-                                                        .availableInDesignMode,
-                                                )}
-                                            </TooltipContent>
-                                        )}
-                                    </Tooltip>
-                                    {/* 14px-tall, 1px-wide divider between tabs (border-tab-divider). */}
+                                        );
+                                        if (!isCodeMode) return styleTrigger;
+                                        return (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    {styleTrigger}
+                                                </TooltipTrigger>
+                                                <TooltipContent side="bottom" hideArrow>
+                                                    {t(
+                                                        transKeys.editor.panels.edit.tabs.styles
+                                                            .availableInDesignMode,
+                                                    )}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    })()}
                                     <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                     <TabsTrigger
                                         value="chat"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
                                     >
-                                        <Icons.Sparkles className="h-3.5 w-3.5" />
+                                        <Icons.Sparkles className="h-3 w-3" />
                                         {t(transKeys.editor.panels.edit.tabs.chat.name)}
                                     </TabsTrigger>
                                     <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                     <TabsTrigger
                                         value="comments"
-                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:dark:bg-foreground/10 data-[state=active]:border-border-tab-active text-mini h-8 gap-1.5 rounded-sm border border-transparent px-2.5"
+                                        className="data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini h-7 gap-1.5 rounded-sm border border-transparent px-2.5"
                                     >
-                                        <Icons.ChatBubble className="h-3.5 w-3.5" />
+                                        <Icons.ChatBubble className="h-3 w-3" />
                                         {t(transKeys.editor.panels.edit.tabs.comments.name)}
                                     </TabsTrigger>
                                 </TabsList>

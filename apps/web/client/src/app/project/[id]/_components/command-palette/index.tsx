@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
 
 import type { LayerNode } from '@weblab/models';
-import { EditorMode } from '@weblab/models';
+import { EditorMode, InsertMode } from '@weblab/models';
 import {
     CommandDialog,
     CommandEmpty,
@@ -19,6 +19,7 @@ import {
 import { Icons } from '@weblab/ui/icons';
 
 import { Hotkey } from '@/components/hotkey';
+import { ELEMENT_PALETTE_ITEMS } from '../element-palette';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
@@ -105,6 +106,27 @@ export const CommandPalette = observer(() => {
             <CommandInput placeholder={t('placeholder')} autoFocus />
             <CommandList>
                 <CommandEmpty>{t('noResults')}</CommandEmpty>
+
+                <CommandGroup heading="Insert">
+                    {ELEMENT_PALETTE_ITEMS.map((item) => {
+                        const Icon = Icons[item.icon as keyof typeof Icons];
+                        return (
+                            <CommandItem
+                                key={item.mode}
+                                value={`insert ${item.label} ${item.keywords.join(' ')}`}
+                                onSelect={() =>
+                                    run(() => editorEngine.state.setInsertMode(item.mode as InsertMode))
+                                }
+                            >
+                                {Icon ? <Icon /> : null}
+                                <span>{item.label}</span>
+                                {item.shortcut ? (
+                                    <CommandShortcut>{item.shortcut}</CommandShortcut>
+                                ) : null}
+                            </CommandItem>
+                        );
+                    })}
+                </CommandGroup>
 
                 {elementResults.length > 0 && (
                     <CommandGroup heading="Elements">

@@ -17,6 +17,7 @@ import {
 import { branches } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
+import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 import { verifyProjectAccess } from './helper';
 
@@ -31,18 +32,125 @@ async function verifySandboxAccess(db: DrizzleDb, userId: string, sandboxId: str
         });
     }
     await verifyProjectAccess(db, userId, branch.projectId);
+    return branch;
 }
 
 const SANDBOX_PRIVACY = 'private' as const;
+const DEFAULT_PORT = 3000;
+
+type CloudProvider = 'code_sandbox' | 'vercel_sandbox';
+const cloudProviderSchema = z.enum(['code_sandbox', 'vercel_sandbox']);
+const vercelProvider = CodeProvider.VercelSandbox;
+
+function toCodeProvider(provider: CloudProvider): CodeProvider {
+    return provider === 'vercel_sandbox' ? CodeProvider.VercelSandbox : CodeProvider.CodeSandbox;
+}
+
+function getConfiguredCloudProvider(): CodeProvider {
+    return toCodeProvider(env.WEBLAB_CLOUD_PROVIDER);
+}
+
+function getRequestedCloudProvider(provider?: CloudProvider): CodeProvider {
+    return provider ? toCodeProvider(provider) : getConfiguredCloudProvider();
+}
+
+function getBranchCloudProvider(branch: { runtimeMetadata: unknown }): CodeProvider {
+    const metadata = branch.runtimeMetadata as
+        | { cloud?: { provider?: CloudProvider | null } }
+        | null
+        | undefined;
+    return metadata?.cloud?.provider === 'vercel_sandbox'
+        ? CodeProvider.VercelSandbox
+        : CodeProvider.CodeSandbox;
+}
+
+function getBranchCloudRuntime(branch: { runtimeMetadata: unknown }) {
+    const metadata = branch.runtimeMetadata as
+        | {
+              cloud?: {
+                  provider?: CloudProvider | null;
+                  sandboxId?: string | null;
+                  previewUrl?: string | null;
+                  snapshotId?: string | null;
+                  port?: number | null;
+                  devCommand?: string | null;
+                  runtime?: string | null;
+              };
+          }
+        | null
+        | undefined;
+    return metadata?.cloud;
+}
+
+function getPreviewUrl({
+    provider,
+    sandboxId,
+    port,
+    previewToken,
+    previewUrl,
+}: {
+    provider: CodeProvider;
+    sandboxId: string;
+    port: number;
+    previewToken?: string;
+    previewUrl?: string;
+}) {
+    return provider === CodeProvider.VercelSandbox && previewUrl
+        ? previewUrl
+        : getSandboxPreviewUrl(sandboxId, port, previewToken);
+}
+
+function getSandboxRuntime({
+    provider,
+    sandbox,
+    port,
+}: {
+    provider: CodeProvider;
+    sandbox: {
+        id: string;
+        snapshotId?: string;
+        previewUrl?: string;
+        port?: number;
+        devCommand?: string;
+        runtime?: string;
+    };
+    port: number;
+}): {
+    provider: CloudProvider;
+    sandboxId: string;
+    previewUrl?: string;
+    snapshotId?: string;
+    port: number;
+    devCommand?: string;
+    runtime?: string;
+} {
+    return {
+        provider: provider === CodeProvider.VercelSandbox ? 'vercel_sandbox' : 'code_sandbox',
+        sandboxId: sandbox.id,
+        previewUrl: sandbox.previewUrl,
+        snapshotId: sandbox.snapshotId,
+        port: sandbox.port ?? port,
+        devCommand: sandbox.devCommand,
+        runtime: sandbox.runtime,
+    };
+}
 
 function getProvider({
     sandboxId,
     userId,
     provider = CodeProvider.CodeSandbox,
+    snapshotId,
+    port,
+    devCommand,
+    runtime,
 }: {
     sandboxId: string;
     provider?: CodeProvider;
     userId?: undefined | string;
+    snapshotId?: string | null;
+    port?: number | null;
+    devCommand?: string | null;
+    runtime?: string | null;
 }) {
     if (provider === CodeProvider.CodeSandbox) {
         return createCodeProviderClient(CodeProvider.CodeSandbox, {
@@ -53,42 +161,98 @@ function getProvider({
                 },
             },
         });
-    } else {
-        return createCodeProviderClient(CodeProvider.NodeFs, {
+    }
+
+    if (provider === CodeProvider.VercelSandbox) {
+        return createCodeProviderClient(CodeProvider.VercelSandbox, {
             providerOptions: {
-                nodefs: {},
+                vercelSandbox: {
+                    sandboxId,
+                    snapshotId,
+                    userId,
+                    port: port ?? DEFAULT_PORT,
+                    devCommand,
+                    runtime,
+                },
             },
         });
     }
+
+    return createCodeProviderClient(CodeProvider.NodeFs, {
+        providerOptions: {
+            nodefs: {},
+        },
+    });
 }
+
+async function getOwnedVercelProvider({
+    db,
+    userId,
+    sandboxId,
+}: {
+    db: DrizzleDb;
+    userId: string;
+    sandboxId: string;
+}) {
+    const branch = await verifySandboxAccess(db, userId, sandboxId);
+    if (getBranchCloudProvider(branch) !== vercelProvider) {
+        throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'This sandbox is not backed by Vercel Sandbox.',
+        });
+    }
+    const cloud = getBranchCloudRuntime(branch);
+    return getProvider({
+        sandboxId: cloud?.sandboxId ?? sandboxId,
+        provider: vercelProvider,
+        snapshotId: cloud?.snapshotId,
+        port: cloud?.port,
+        devCommand: cloud?.devCommand,
+        runtime: cloud?.runtime,
+    });
+}
+
+const sandboxIdInput = z.object({
+    sandboxId: z.string(),
+});
 
 export const sandboxRouter = createTRPCRouter({
     create: protectedProcedure
         .input(
             z.object({
                 title: z.string().optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
-        .mutation(async ({ input, ctx }) => {
+        .mutation(async ({ input }) => {
             // Create a new sandbox using the static provider
-            const CodesandboxProvider = await getStaticCodeProvider(CodeProvider.CodeSandbox);
+            const cloudProvider = getRequestedCloudProvider(input.provider);
+            const StaticProvider = await getStaticCodeProvider(cloudProvider);
 
-            const newSandbox = await CodesandboxProvider.createProject({
+            const newSandbox = await StaticProvider.createProject({
                 source: 'template',
                 id: DEFAULT_NEW_PROJECT_TEMPLATE.id,
-                title: input.title || `${APP_NAME} Test Sandbox`,
+                title: input.title ?? `${APP_NAME} Test Sandbox`,
                 description: `Test sandbox for ${APP_NAME} sync engine`,
                 tags: ['weblab-test'],
                 privacy: SANDBOX_PRIVACY,
+                port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
             });
 
             return {
                 sandboxId: newSandbox.id,
-                previewUrl: getSandboxPreviewUrl(
-                    newSandbox.id,
-                    DEFAULT_NEW_PROJECT_TEMPLATE.port,
-                    newSandbox.previewToken,
-                ),
+                previewUrl: getPreviewUrl({
+                    provider: cloudProvider,
+                    sandboxId: newSandbox.id,
+                    port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
+                    previewToken: newSandbox.previewToken,
+                    previewUrl: newSandbox.previewUrl,
+                }),
+                sandboxRuntime: getSandboxRuntime({
+                    provider: cloudProvider,
+                    sandbox: newSandbox,
+                    port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
+                }),
             };
         }),
 
@@ -96,51 +260,87 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
             const userId = ctx.user.id;
-            await verifySandboxAccess(ctx.db, userId, input.sandboxId);
+            const branch = await verifySandboxAccess(ctx.db, userId, input.sandboxId);
+            const branchCloudRuntime = getBranchCloudRuntime(branch);
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 userId,
+                provider: getBranchCloudProvider(branch),
+                snapshotId: branchCloudRuntime?.snapshotId,
+                port: branchCloudRuntime?.port,
+                devCommand: branchCloudRuntime?.devCommand,
+                runtime: branchCloudRuntime?.runtime,
             });
-            // TODO(bug-hunt): provider.destroy() lives outside try/finally
-            // here, unlike `delete`/`hibernate`/`startOrphan`/`list`. If
-            // destroy() throws after createSession succeeds, the function
-            // throws and the caller never gets the session — the editor sees
-            // a failed start and may retry, doubling provider connections.
-            // Wrap in try/finally and swallow destroy errors via .catch(() => {})
-            // for consistency with the surrounding mutations.
-            const session = await provider.createSession({
-                args: {
-                    id: shortenUuid(userId, 20),
-                },
-            });
-            await provider.destroy();
-            return session;
+            try {
+                const session = await provider.createSession({
+                    args: {
+                        id: shortenUuid(userId, 20),
+                    },
+                });
+                if (
+                    getBranchCloudProvider(branch) === vercelProvider &&
+                    session.sandboxId &&
+                    session.sandboxId !== input.sandboxId
+                ) {
+                    const nextRuntimeMetadata = {
+                        ...(branch.runtimeMetadata as object | null | undefined),
+                        cloud: {
+                            ...branchCloudRuntime,
+                            provider: 'vercel_sandbox' as const,
+                            sandboxId: session.sandboxId,
+                            previewUrl: session.previewUrl ?? branchCloudRuntime?.previewUrl,
+                        },
+                    };
+                    await ctx.db
+                        .update(branches)
+                        .set({
+                            sandboxId: session.sandboxId,
+                            runtimeMetadata: nextRuntimeMetadata,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(branches.id, branch.id));
+                }
+                return {
+                    ...session,
+                    sandboxId: session.sandboxId ?? input.sandboxId,
+                };
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
         }),
     hibernate: protectedProcedure
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 await provider.pauseProject({});
             } finally {
-                await provider.destroy().catch(() => {});
+                await provider.destroy().catch(() => undefined);
             }
         }),
     list: protectedProcedure
         .input(z.object({ sandboxId: z.string() }))
         .query(async ({ input, ctx }) => {
             // CR-118: verify caller owns the sandbox before listing its projects.
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 const res = await provider.listProjects({});
                 // TODO future iteration of code provider abstraction will need this code to be refactored
@@ -149,7 +349,7 @@ export const sandboxRouter = createTRPCRouter({
                 }
                 return [];
             } finally {
-                await provider.destroy().catch(() => {});
+                await provider.destroy().catch(() => undefined);
             }
         }),
     fork: protectedProcedure
@@ -165,6 +365,7 @@ export const sandboxRouter = createTRPCRouter({
                         tags: z.array(z.string()).optional(),
                     })
                     .optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -181,10 +382,9 @@ export const sandboxRouter = createTRPCRouter({
 
             for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    const CodesandboxProvider = await getStaticCodeProvider(
-                        CodeProvider.CodeSandbox,
-                    );
-                    const sandbox = await CodesandboxProvider.createProject({
+                    const cloudProvider = getRequestedCloudProvider(input.provider);
+                    const StaticProvider = await getStaticCodeProvider(cloudProvider);
+                    const sandbox = await StaticProvider.createProject({
                         source: 'template',
                         id: input.sandbox.id,
 
@@ -192,17 +392,25 @@ export const sandboxRouter = createTRPCRouter({
                         title: input.config?.title,
                         tags: input.config?.tags,
                         privacy: SANDBOX_PRIVACY,
+                        port: input.sandbox.port,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(
-                        sandbox.id,
-                        input.sandbox.port,
-                        sandbox.previewToken,
-                    );
+                    const previewUrl = getPreviewUrl({
+                        provider: cloudProvider,
+                        sandboxId: sandbox.id,
+                        port: input.sandbox.port,
+                        previewToken: sandbox.previewToken,
+                        previewUrl: sandbox.previewUrl,
+                    });
 
                     return {
                         sandboxId: sandbox.id,
                         previewUrl,
+                        sandboxRuntime: getSandboxRuntime({
+                            provider: cloudProvider,
+                            sandbox,
+                            port: input.sandbox.port,
+                        }),
                     };
                 } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
@@ -225,15 +433,19 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
-            await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getBranchCloudProvider(branch),
+            });
             try {
                 await provider.stopProject({});
             } finally {
-                await provider.destroy().catch(() => {});
+                await provider.destroy().catch(() => undefined);
             }
         }),
     /**
@@ -254,6 +466,7 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -271,6 +484,7 @@ export const sandboxRouter = createTRPCRouter({
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 userId,
+                provider: getRequestedCloudProvider(input.provider),
             });
             try {
                 const session = await provider.createSession({
@@ -280,7 +494,7 @@ export const sandboxRouter = createTRPCRouter({
                 });
                 return session;
             } finally {
-                await provider.destroy().catch(() => {});
+                await provider.destroy().catch(() => undefined);
             }
         }),
     /**
@@ -297,6 +511,7 @@ export const sandboxRouter = createTRPCRouter({
         .input(
             z.object({
                 sandboxId: z.string(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input, ctx }) => {
@@ -310,11 +525,14 @@ export const sandboxRouter = createTRPCRouter({
                         'Sandbox is attached to a project; use sandbox.delete with project ownership.',
                 });
             }
-            const provider = await getProvider({ sandboxId: input.sandboxId });
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                provider: getRequestedCloudProvider(input.provider),
+            });
             try {
-                await provider.stopProject({}).catch(() => {});
+                await provider.stopProject({}).catch(() => undefined);
             } finally {
-                await provider.destroy().catch(() => {});
+                await provider.destroy().catch(() => undefined);
             }
         }),
     createFromGitHub: protectedProcedure
@@ -323,6 +541,7 @@ export const sandboxRouter = createTRPCRouter({
                 repoUrl: z.string(),
                 branch: z.string(),
                 subpath: z.string().optional(),
+                provider: cloudProviderSchema.optional(),
             }),
         )
         .mutation(async ({ input }) => {
@@ -332,25 +551,32 @@ export const sandboxRouter = createTRPCRouter({
 
             for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    const CodesandboxProvider = await getStaticCodeProvider(
-                        CodeProvider.CodeSandbox,
-                    );
-                    const sandbox = await CodesandboxProvider.createProjectFromGit({
+                    const cloudProvider = getRequestedCloudProvider(input.provider);
+                    const StaticProvider = await getStaticCodeProvider(cloudProvider);
+                    const sandbox = await StaticProvider.createProjectFromGit({
                         repoUrl: input.repoUrl,
                         branch: input.branch,
                         subpath: input.subpath,
                         privacy: SANDBOX_PRIVACY,
+                        port: DEFAULT_PORT,
                     });
 
-                    const previewUrl = getSandboxPreviewUrl(
-                        sandbox.id,
-                        DEFAULT_PORT,
-                        sandbox.previewToken,
-                    );
+                    const previewUrl = getPreviewUrl({
+                        provider: cloudProvider,
+                        sandboxId: sandbox.id,
+                        port: DEFAULT_PORT,
+                        previewToken: sandbox.previewToken,
+                        previewUrl: sandbox.previewUrl,
+                    });
 
                     return {
                         sandboxId: sandbox.id,
                         previewUrl,
+                        sandboxRuntime: getSandboxRuntime({
+                            provider: cloudProvider,
+                            sandbox,
+                            port: DEFAULT_PORT,
+                        }),
                     };
                 } catch (error) {
                     lastError = error instanceof Error ? error : new Error(String(error));
@@ -380,4 +606,258 @@ export const sandboxRouter = createTRPCRouter({
                 cause: lastError,
             });
         }),
+    fileRead: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                const { file } = await provider.readFile({ args: { path: input.path } });
+                const content = file.content ?? '';
+                return {
+                    path: file.path,
+                    content: typeof content === 'string' ? content : Array.from(content),
+                    type: file.type,
+                    binary: typeof content !== 'string',
+                };
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileWrite: protectedProcedure
+        .input(
+            sandboxIdInput.extend({
+                path: z.string(),
+                content: z.union([z.string(), z.array(z.number())]),
+                overwrite: z.boolean().optional(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.writeFile({
+                    args: {
+                        path: input.path,
+                        content:
+                            typeof input.content === 'string'
+                                ? input.content
+                                : Uint8Array.from(input.content),
+                        overwrite: input.overwrite,
+                    },
+                });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileList: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.listFiles({ args: { path: input.path } });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileStat: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.statFile({ args: { path: input.path } });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileDelete: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string(), recursive: z.boolean().optional() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.deleteFiles({
+                    args: { path: input.path, recursive: input.recursive },
+                });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileRename: protectedProcedure
+        .input(sandboxIdInput.extend({ oldPath: z.string(), newPath: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.renameFile({
+                    args: { oldPath: input.oldPath, newPath: input.newPath },
+                });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileCopy: protectedProcedure
+        .input(
+            sandboxIdInput.extend({
+                sourcePath: z.string(),
+                targetPath: z.string(),
+                recursive: z.boolean().optional(),
+                overwrite: z.boolean().optional(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.copyFiles({
+                    args: {
+                        sourcePath: input.sourcePath,
+                        targetPath: input.targetPath,
+                        recursive: input.recursive,
+                        overwrite: input.overwrite,
+                    },
+                });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileMkdir: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.createDirectory({ args: { path: input.path } });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    fileDownload: protectedProcedure
+        .input(sandboxIdInput.extend({ path: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.downloadFiles({ args: { path: input.path } });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    commandRun: protectedProcedure
+        .input(sandboxIdInput.extend({ command: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                return await provider.runCommand({ args: { command: input.command } });
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    commandRunBackground: protectedProcedure
+        .input(sandboxIdInput.extend({ command: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                const { command } = await provider.runBackgroundCommand({
+                    args: { command: input.command },
+                });
+                return {
+                    name: command.name,
+                    command: command.command,
+                    output: await command.open(),
+                };
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    taskOpen: protectedProcedure
+        .input(sandboxIdInput.extend({ taskId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                const { task } = await provider.getTask({ args: { id: input.taskId } });
+                return {
+                    id: task.id,
+                    name: task.name,
+                    command: task.command,
+                    output: await task.open(),
+                };
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    taskRestart: protectedProcedure
+        .input(sandboxIdInput.extend({ taskId: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const provider = await getOwnedVercelProvider({
+                db: ctx.db,
+                userId: ctx.user.id,
+                sandboxId: input.sandboxId,
+            });
+            try {
+                const { task } = await provider.getTask({ args: { id: input.taskId } });
+                await task.restart();
+                return {
+                    id: task.id,
+                    name: task.name,
+                    command: task.command,
+                    output: await task.open(),
+                };
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
+    gitStatus: protectedProcedure.input(sandboxIdInput).mutation(async ({ input, ctx }) => {
+        const provider = await getOwnedVercelProvider({
+            db: ctx.db,
+            userId: ctx.user.id,
+            sandboxId: input.sandboxId,
+        });
+        try {
+            return await provider.gitStatus({});
+        } finally {
+            await provider.destroy().catch(() => undefined);
+        }
+    }),
 });

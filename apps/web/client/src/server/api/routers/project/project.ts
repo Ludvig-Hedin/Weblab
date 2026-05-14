@@ -380,6 +380,15 @@ export const projectRouter = createTRPCRouter({
                 // editor inside its own iframe via `<iframe src="">`.
                 sandboxId: z.string().min(1),
                 sandboxUrl: z.string().url(),
+                sandboxRuntime: z
+                    .object({
+                        provider: z.enum(['code_sandbox', 'vercel_sandbox']),
+                        snapshotId: z.string().optional(),
+                        port: z.number().optional(),
+                        devCommand: z.string().optional(),
+                        runtime: z.string().optional(),
+                    })
+                    .optional(),
                 creationData: projectCreateRequestInsertSchema
                     .omit({
                         projectId: true,
@@ -401,6 +410,18 @@ export const projectRouter = createTRPCRouter({
                     projectId: newProject.id,
                     sandboxId: input.sandboxId,
                 });
+                newBranch.runtimeMetadata = {
+                    ...newBranch.runtimeMetadata,
+                    cloud: {
+                        provider: input.sandboxRuntime?.provider ?? 'code_sandbox',
+                        sandboxId: input.sandboxId,
+                        previewUrl: input.sandboxUrl,
+                        snapshotId: input.sandboxRuntime?.snapshotId,
+                        port: input.sandboxRuntime?.port,
+                        devCommand: input.sandboxRuntime?.devCommand,
+                        runtime: input.sandboxRuntime?.runtime,
+                    },
+                };
                 await tx.insert(branches).values(newBranch);
 
                 // 3. Create the association in the junction table

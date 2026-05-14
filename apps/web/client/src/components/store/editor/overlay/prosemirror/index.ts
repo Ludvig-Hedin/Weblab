@@ -75,7 +75,7 @@ export function applyStylesToEditor(editorView: EditorView, styles: Record<strin
         display: styles.display,
         backgroundColor: styles.backgroundColor,
         wordBreak: 'break-word',
-        overflow: 'visible',
+        overflow: 'hidden',
         height: '100%',
         width: '100%',
         boxSizing: 'border-box',

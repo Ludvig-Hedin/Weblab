@@ -80,6 +80,7 @@ const HOTKEY_SECTIONS: { titleKey: string; entries: ModalEntry[] }[] = [
     {
         titleKey: 'insert',
         entries: [
+            single(Hotkey.OPEN_ADD_PANEL),
             single(Hotkey.OPEN_ELEMENT_PALETTE),
             single(Hotkey.INSERT_DIV),
             single(Hotkey.INSERT_FLEX_DIV),
@@ -172,6 +173,7 @@ export const SHORTCUT_SECTIONS: { title: string; keys: string[] }[] = [
     {
         title: 'Insert',
         keys: [
+            'OPEN_ADD_PANEL',
             'OPEN_ELEMENT_PALETTE',
             'INSERT_DIV',
             'INSERT_FLEX_DIV',

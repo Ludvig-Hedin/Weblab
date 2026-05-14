@@ -25,7 +25,7 @@ interface PaletteItem {
     keywords: string[];
 }
 
-const ITEMS: PaletteItem[] = [
+export const ELEMENT_PALETTE_ITEMS: PaletteItem[] = [
     {
         group: 'Layout',
         mode: InsertMode.INSERT_DIV,
@@ -112,7 +112,7 @@ export const ElementPalette = observer(() => {
             <CommandList>
                 <CommandEmpty>No elements found.</CommandEmpty>
                 {GROUPS.map((groupName) => {
-                    const items = ITEMS.filter((i) => i.group === groupName);
+                    const items = ELEMENT_PALETTE_ITEMS.filter((i) => i.group === groupName);
                     if (items.length === 0) return null;
                     return (
                         <CommandGroup key={groupName} heading={groupName}>

@@ -116,7 +116,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
         <div
             style={{ width: `${width}px` }}
             className={cn(
-                'relative h-full',
+                'relative h-full min-w-0 overflow-hidden',
                 isAnimating && 'transition-[width] duration-300 ease-in-out',
                 side === 'left' ? 'left-0' : 'right-0',
                 className,
@@ -124,7 +124,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
             {...props}
             data-oid="797c2f87db"
         >
-            <div className="h-full" data-oid="ec1cae9878">
+            <div className="h-full w-full min-w-0 overflow-hidden" data-oid="ec1cae9878">
                 {children}
             </div>
             <div

@@ -6,21 +6,26 @@ import { useTranslations } from 'next-intl';
 
 import { Reveal } from '@/components/motion/reveal';
 import { SplitText } from '@/components/motion/split-text';
-import { ClaudeIcon, DeepSeekIcon, GeminiIcon, KimiIcon, OpenAIIcon } from './provider-icons';
+import {
+    ClaudeIcon,
+    DeepSeekIcon,
+    GeminiIcon,
+    KimiIcon,
+    MistralIcon,
+    OpenAIIcon,
+} from './provider-icons';
 
 type DescriptionKey =
     | 'gpt'
     | 'gptMini'
-    | 'gptNano'
     | 'sonnet'
     | 'opus'
     | 'haiku'
     | 'gemini'
-    | 'geminiFlash'
     | 'deepseek'
-    | 'deepseekCoder'
+    | 'deepseekFlash'
     | 'kimi'
-    | 'kimiLong';
+    | 'mistral';
 
 interface ModelOption {
     name: string;
@@ -30,16 +35,6 @@ interface ModelOption {
 
 const MODELS: ModelOption[] = [
     { name: 'GPT-5.5', descriptionKey: 'gpt', icon: <OpenAIIcon className="h-3.5 w-3.5" /> },
-    {
-        name: 'GPT-5.5 Mini',
-        descriptionKey: 'gptMini',
-        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
-    },
-    {
-        name: 'GPT-5.5 Nano',
-        descriptionKey: 'gptNano',
-        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
-    },
     {
         name: 'Claude Sonnet 4.6',
         descriptionKey: 'sonnet',
@@ -51,36 +46,16 @@ const MODELS: ModelOption[] = [
         icon: <ClaudeIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Claude Haiku 4',
-        descriptionKey: 'haiku',
-        icon: <ClaudeIcon className="h-3.5 w-3.5" />,
-    },
-    {
-        name: 'Gemini 3.1 Pro',
+        name: 'Gemini 3.1 Pro Preview',
         descriptionKey: 'gemini',
         icon: <GeminiIcon className="h-3.5 w-3.5" />,
     },
     {
-        name: 'Gemini 3 Flash',
-        descriptionKey: 'geminiFlash',
-        icon: <GeminiIcon className="h-3.5 w-3.5" />,
-    },
-    {
-        name: 'DeepSeek V4 Pro',
+        name: 'DeepSeek V4',
         descriptionKey: 'deepseek',
         icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
     },
-    {
-        name: 'DeepSeek Coder',
-        descriptionKey: 'deepseekCoder',
-        icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
-    },
     { name: 'Kimi K2.6', descriptionKey: 'kimi', icon: <KimiIcon className="h-3.5 w-3.5" /> },
-    {
-        name: 'Kimi K2 Long',
-        descriptionKey: 'kimiLong',
-        icon: <KimiIcon className="h-3.5 w-3.5" />,
-    },
 ];
 
 const CYCLE_MS = 4000;

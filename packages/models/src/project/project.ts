@@ -23,9 +23,13 @@ export type ProjectFrameworkId =
 
 export interface ProjectRuntimeMetadata {
     cloud?: {
-        provider: 'code_sandbox';
+        provider: 'code_sandbox' | 'vercel_sandbox';
         sandboxId?: string | null;
         previewUrl?: string | null;
+        snapshotId?: string | null;
+        port?: number | null;
+        devCommand?: string | null;
+        runtime?: string | null;
     };
     local?: {
         rootPath?: string | null;

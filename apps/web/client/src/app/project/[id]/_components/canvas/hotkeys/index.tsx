@@ -82,6 +82,8 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         undefined,
         [getKey('SELECT')],
     );
+    // D — go to design from any mode (code, preview, cms, etc.)
+    useHotkeys('d', () => editorEngine.state.setEditorMode(EditorMode.DESIGN), undefined, []);
     useHotkeys(getKey('CODE'), () => editorEngine.state.setEditorMode(EditorMode.CODE), undefined, [
         getKey('CODE'),
     ]);
@@ -159,6 +161,16 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
             enableOnContentEditable: true,
         },
         [getKey('SIDEBAR_INSERT')],
+    );
+    useHotkeys(
+        getKey('OPEN_ADD_PANEL'),
+        () => editorEngine.state.setElementPaletteOpen(true),
+        {
+            preventDefault: true,
+            enableOnFormTags: false,
+            enableOnContentEditable: false,
+        },
+        [getKey('OPEN_ADD_PANEL')],
     );
     useHotkeys(
         getKey('SIDEBAR_LAYERS'),

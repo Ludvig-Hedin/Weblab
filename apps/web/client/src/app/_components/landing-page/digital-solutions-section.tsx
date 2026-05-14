@@ -3,9 +3,11 @@
 import type { PanInfo } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Pause, Play } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
+
+import { Icons } from '@weblab/ui/icons';
 
 import { CarouselNavigator } from '@/components/ui/carousel-navigator';
 import { Routes } from '@/utils/constants';
@@ -140,12 +142,12 @@ export function DigitalSolutionsSection() {
                             onClick={() => setPaused((p) => !p)}
                             aria-label={paused ? t('play') : t('pause')}
                             aria-pressed={paused}
-                            className="border-foreground-primary/10 bg-background-secondary/40 text-foreground-primary hover:bg-foreground-primary/10 inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition-colors"
+                            className="text-foreground-secondary hover:text-foreground-primary inline-flex h-9 w-9 items-center justify-center transition-colors"
                         >
                             {paused ? (
-                                <Play className="h-3.5 w-3.5" />
+                                <Icons.Play className="h-5 w-5" />
                             ) : (
-                                <Pause className="h-3.5 w-3.5" />
+                                <Icons.Pause className="h-5 w-5" />
                             )}
                         </button>
                     </div>
@@ -160,7 +162,7 @@ export function DigitalSolutionsSection() {
             {/* Carousel viewport — extends beyond container so neighboring cards peek */}
             <div className="mt-6 select-none">
                 <motion.div
-                    className="flex cursor-grab pr-[max(2rem,calc((100vw-72rem)/2+2rem))] pl-[max(2rem,calc((100vw-72rem)/2+2rem))] active:cursor-grabbing"
+                    className="flex cursor-grab pr-4 pl-4 active:cursor-grabbing md:pr-[max(2rem,calc((100vw-72rem)/2+2rem))] md:pl-[max(2rem,calc((100vw-72rem)/2+2rem))]"
                     drag="x"
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={0.18}
@@ -168,9 +170,9 @@ export function DigitalSolutionsSection() {
                     animate={{ x: 0 }}
                 >
                     <div
-                        className="flex w-full gap-6 transition-transform duration-700 ease-out"
+                        className="flex w-full gap-4 transition-transform duration-700 ease-out [--slide-stride:calc(94%+1rem)] md:gap-6 md:[--slide-stride:calc(88%+1.5rem)]"
                         style={{
-                            transform: `translateX(calc(-${index} * (88% + 1.5rem)))`,
+                            transform: `translateX(calc(-${index} * var(--slide-stride)))`,
                             willChange: 'transform',
                         }}
                     >
@@ -180,7 +182,7 @@ export function DigitalSolutionsSection() {
                                 <div
                                     key={slide.title}
                                     aria-hidden={!isActive}
-                                    className="w-[88%] shrink-0"
+                                    className="w-[94%] shrink-0 md:w-[88%]"
                                 >
                                     <SlideCard
                                         slide={slide}
@@ -212,31 +214,18 @@ function SlideCard({
             animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.98 }}
             whileHover={isActive ? undefined : { opacity: 0.7, scale: 0.99 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`bg-background-secondary/60 grid h-[30rem] grid-cols-1 gap-6 overflow-hidden rounded-2xl p-5 backdrop-blur-sm md:grid-cols-[1fr_1.4fr] ${
+            className={`bg-background-secondary/60 grid grid-cols-1 gap-4 overflow-hidden rounded-2xl p-4 md:h-[30rem] md:grid-cols-[1fr_1.4fr] md:gap-6 md:p-8 ${
                 isActive ? '' : 'cursor-pointer'
             }`}
         >
-            <div className="flex flex-col justify-between gap-6">
+            <div className="flex flex-col justify-between gap-6 p-4">
                 <div>
-                    <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
-                        {slide.eyebrow}
-                    </span>
-                    <h3 className="heading-style-h4 text-foreground-primary mt-3 tracking-tight">
+                    <h3 className="heading-style-h4 text-foreground-primary mt-3 tracking-tight leading-[110%]">
                         {slide.title}
                     </h3>
-                    <p className="text-foreground-secondary mt-4 max-w-sm text-base leading-relaxed font-light tracking-tight">
+                    <p className="text-foreground-secondary mt-4 max-w-sm text-base tracking-tight">
                         {slide.description}
                     </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                    {slide.chips.map((chip) => (
-                        <span
-                            key={chip}
-                            className="border-foreground-primary/10 text-foreground-tertiary text-mini rounded-full border px-2 py-0.5 font-light tracking-tight"
-                        >
-                            {chip}
-                        </span>
-                    ))}
                 </div>
             </div>
             <AnimatePresence mode="wait">
@@ -246,7 +235,7 @@ function SlideCard({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.35, ease: 'easeOut' }}
-                    className="h-full min-h-[16rem] w-full"
+                    className="h-[18rem] w-full md:h-full md:min-h-[16rem]"
                 >
                     {slide.visual}
                 </motion.div>

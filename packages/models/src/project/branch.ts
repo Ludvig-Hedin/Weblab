@@ -3,9 +3,13 @@ export type BranchRuntimeType = 'cloud' | 'local' | 'hybrid';
 export interface BranchRuntime {
     type: BranchRuntimeType;
     cloud?: {
-        provider: 'code_sandbox';
+        provider: 'code_sandbox' | 'vercel_sandbox';
         sandboxId?: string | null;
         previewUrl?: string | null;
+        snapshotId?: string | null;
+        port?: number | null;
+        devCommand?: string | null;
+        runtime?: string | null;
     };
     local?: {
         rootPath?: string | null;

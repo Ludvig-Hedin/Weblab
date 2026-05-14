@@ -163,6 +163,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                     id: template.id,
                     port: detectPortFromPackageJson(packageJsonFile),
                 },
+                provider: 'code_sandbox',
                 config: {
                     title: `Imported project - ${user.id}`,
                     tags: ['imported', 'local', user.id],
@@ -203,6 +204,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 },
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
+                sandboxRuntime: forkedSandbox.sandboxRuntime,
             });
             if (!project) {
                 setError('Project setup finished, but the project could not be created.');

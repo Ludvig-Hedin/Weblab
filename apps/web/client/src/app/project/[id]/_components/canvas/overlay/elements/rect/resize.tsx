@@ -357,21 +357,27 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
 
         const captureOverlay = createCaptureOverlay(startEvent);
 
-        // Coalesce overlay-rect MobX writes to one per animation frame.
-        // Without this, every pointermove (~120Hz on trackpads) replaces the
-        // whole `clickRects` array — siblings re-measure off a not-yet-settled
-        // iframe layout, producing the flicker / jump-around effect.
         let rafId: number | null = null;
         let pendingOverlayRect: Partial<{ width: number; height: number }> | null = null;
-        const flushOverlay = () => {
+        let pendingStyles: Record<string, string> | null = null;
+        const flush = () => {
             rafId = null;
-            if (!pendingOverlayRect) return;
-            editorEngine.overlay.state.updateClickedRects(pendingOverlayRect);
-            pendingOverlayRect = null;
+            if (pendingStyles) {
+                editorEngine.style.updateMultiple(pendingStyles);
+                pendingStyles = null;
+            }
+            if (pendingOverlayRect) {
+                editorEngine.overlay.state.updateClickedRects(pendingOverlayRect);
+                pendingOverlayRect = null;
+            }
         };
         const queueOverlayUpdate = (rect: Partial<{ width: number; height: number }>) => {
             pendingOverlayRect = { ...(pendingOverlayRect ?? {}), ...rect };
-            if (rafId === null) rafId = requestAnimationFrame(flushOverlay);
+            if (rafId === null) rafId = requestAnimationFrame(flush);
+        };
+        const queueStyleUpdate = (styles: Record<string, string>) => {
+            pendingStyles = { ...(pendingStyles ?? {}), ...styles };
+            if (rafId === null) rafId = requestAnimationFrame(flush);
         };
 
         const onMouseMove = (moveEvent: MouseEvent) => {
@@ -403,19 +409,19 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             const heightChanged = newElementDimensions.height !== startDimensions.height;
 
             if (widthChanged && heightChanged) {
-                updateWidthHeight(
-                    `${newElementDimensions.width}px`,
-                    `${newElementDimensions.height}px`,
-                );
+                queueStyleUpdate({
+                    width: `${newElementDimensions.width}px`,
+                    height: `${newElementDimensions.height}px`,
+                });
                 queueOverlayUpdate({
                     width: newOverlayDimensions.width,
                     height: newOverlayDimensions.height,
                 });
             } else if (widthChanged) {
-                updateWidth(`${newElementDimensions.width}px`);
+                queueStyleUpdate({ width: `${newElementDimensions.width}px` });
                 queueOverlayUpdate({ width: newOverlayDimensions.width });
             } else if (heightChanged) {
-                updateHeight(`${newElementDimensions.height}px`);
+                queueStyleUpdate({ height: `${newElementDimensions.height}px` });
                 queueOverlayUpdate({ height: newOverlayDimensions.height });
             }
         };
@@ -430,7 +436,7 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
                 cancelAnimationFrame(rafId);
                 rafId = null;
             }
-            flushOverlay();
+            flush();
             editorEngine.history.commitTransaction();
         };
 

@@ -65,36 +65,36 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                             {/* Matches navbar height */}
                             <div className="h-12 flex-shrink-0" />
 
-                            <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-4 pb-10">
-                                <Accordion type="single" collapsible className="w-full">
+                            <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-8 pb-10">
+                                <Accordion type="single" collapsible className="border-foreground/10 w-full border-t">
                                     {NAVIGATION_CATEGORIES.map((category, i) => (
                                         <motion.div
                                             key={category.labelKey}
-                                            initial={{ opacity: 0, y: 14 }}
+                                            initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{
-                                                delay: i * 0.05 + 0.06,
+                                                delay: i * 0.04 + 0.06,
                                                 ease: 'easeOut',
-                                                duration: 0.22,
+                                                duration: 0.2,
                                             }}
                                         >
                                             <AccordionItem
                                                 value={category.labelKey}
-                                                className="border-foreground/[0.08] border-b last:border-0"
+                                                className="border-foreground/10 border-b last:border-b"
                                             >
-                                                <AccordionTrigger className="py-4 hover:no-underline [&>svg]:hidden">
-                                                    <span className="text-foreground-primary text-[1.75rem] leading-none font-light tracking-tight">
+                                                <AccordionTrigger className="text-foreground-primary py-3.5 hover:no-underline [&>svg]:text-foreground-tertiary [&>svg]:size-4 [&>svg]:translate-y-0">
+                                                    <span className="text-[1.25rem] leading-none font-light tracking-tight">
                                                         {t(category.labelKey)}
                                                     </span>
                                                 </AccordionTrigger>
                                                 <AccordionContent className="bg-transparent">
-                                                    <div className="flex flex-col pb-2">
+                                                    <div className="flex flex-col gap-0.5 pb-2">
                                                         {category.links.map((link) => (
                                                             <a
                                                                 key={link.href}
                                                                 href={link.href}
                                                                 onClick={() => onOpenChange(false)}
-                                                                className="text-foreground-secondary hover:text-foreground-primary flex flex-col rounded-lg px-2 py-2.5 transition-all hover:bg-white/5 active:scale-[0.99] active:opacity-80"
+                                                                className="text-foreground-secondary hover:text-foreground-primary hover:bg-foreground/[0.04] flex flex-col rounded-md px-2 py-2 transition-colors active:scale-[0.99]"
                                                                 {...(link.external && {
                                                                     target: '_blank',
                                                                     rel: 'noopener noreferrer',

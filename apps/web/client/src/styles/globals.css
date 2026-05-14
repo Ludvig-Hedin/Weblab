@@ -53,7 +53,7 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 /* TipTap chat input placeholder */
 .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
-    color: color-mix(in srgb, var(--foreground-primary) 50%, transparent);
+    color: var(--foreground-tertiary);
     pointer-events: none;
     float: left;
     height: 0;
@@ -111,7 +111,7 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
         line-height: 1.05;
         letter-spacing: -0.025em;
     }
-    @media (min-width: 40rem) { .heading-style-h2 { font-size: 3rem;    } } /* sm → 5xl */
+    @media (min-width: 40rem) { .heading-style-h2 { font-size: 2.75rem;    } } /* sm → 5xl */
     @media (min-width: 64rem) { .heading-style-h2 { font-size: 3.75rem; } } /* lg → 6xl */
 
     .heading-style-h3 {

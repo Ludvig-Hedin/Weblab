@@ -33,6 +33,7 @@ export class CodeFileSystem extends FileSystem {
     private branchId: string;
     private options: Required<CodeEditorOptions>;
     private indexPath = `${WEBLAB_CACHE_DIRECTORY}/index.json`;
+    private debouncedRebuild = debounce(() => void this.rebuildIndex(), 2000);
 
     constructor(projectId: string, branchId: string, options: CodeEditorOptions = {}) {
         super(`/${projectId}/${branchId}`);
@@ -132,6 +133,7 @@ export class CodeFileSystem extends FileSystem {
             console.warn(
                 `[CodeEditorApi] No metadata found for OID: ${oid}. Total index size: ${Object.keys(index).length}`,
             );
+            this.debouncedRebuild();
         }
         return metadata;
     }

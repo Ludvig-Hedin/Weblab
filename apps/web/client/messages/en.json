@@ -1852,16 +1852,14 @@
             "models": {
                 "gpt": "Flagship GPT model for complex tasks",
                 "gptMini": "Smaller, faster GPT for everyday work",
-                "gptNano": "Tiny GPT — fastest and cheapest",
                 "sonnet": "Anthropic's flagship, industry-leading for coding",
                 "opus": "Most capable Claude for the hardest problems",
                 "haiku": "Compact Claude — fast and affordable",
                 "gemini": "Google's frontier multimodal model",
-                "geminiFlash": "Speed-tuned Gemini for high throughput",
                 "deepseek": "Open-weight reasoning at frontier quality",
-                "deepseekCoder": "DeepSeek tuned for code generation",
+                "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
                 "kimi": "Long-context, fast and capable",
-                "kimiLong": "Kimi with extended 2M token context"
+                "mistral": "Open-weight model tuned for code"
             }
         },
         "andSoMuchMore": {
@@ -2188,9 +2186,9 @@
                     "paragraph": "Reuse your existing design system — buttons, cards, navs. Live components, not screenshots."
                 },
                 "brand": {
-                    "subtitle": "Brand",
-                    "title": "Design system guardrails",
-                    "paragraph": "Your tokens stay your tokens. AI proposals respect your colors, typography, and spacing."
+                    "subtitle": "Tokens",
+                    "title": "Your colors and tokens, one panel",
+                    "paragraph": "Browse every design token in your project — colors, typography, spacing — and apply them with a click. Every change stays on-brand."
                 },
                 "structure": {
                     "subtitle": "Structure",

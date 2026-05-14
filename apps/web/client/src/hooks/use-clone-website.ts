@@ -75,6 +75,7 @@ export function useCloneWebsite() {
                 id: adapter.template.codesandboxId,
                 port: adapter.template.port,
             },
+            provider: adapter.id === 'nextjs' ? undefined : 'code_sandbox',
             config: {
                 title: label,
                 tags: ['clone', framework],
@@ -85,12 +86,20 @@ export function useCloneWebsite() {
     const createProjectFromContext = async ({
         sandboxId,
         previewUrl,
+        sandboxRuntime,
         framework,
         name,
         context,
     }: {
         sandboxId: string;
         previewUrl: string;
+        sandboxRuntime?: {
+            provider: 'code_sandbox' | 'vercel_sandbox';
+            snapshotId?: string;
+            port?: number;
+            devCommand?: string;
+            runtime?: string;
+        };
         framework: CloneOutputFramework;
         name: string;
         context: CreateRequestContext[];
@@ -106,6 +115,7 @@ export function useCloneWebsite() {
             project,
             sandboxId,
             sandboxUrl: previewUrl,
+            sandboxRuntime,
             creationData: { context },
         });
     };
@@ -153,7 +163,10 @@ export function useCloneWebsite() {
             }
 
             setPhase('forking-sandbox');
-            const { sandboxId, previewUrl } = await forkTemplate(framework, `Clone of ${url}`);
+            const { sandboxId, previewUrl, sandboxRuntime } = await forkTemplate(
+                framework,
+                `Clone of ${url}`,
+            );
             forkedSandboxId = sandboxId;
 
             setPhase('creating-project');
@@ -187,6 +200,7 @@ export function useCloneWebsite() {
             const newProject = await createProjectFromContext({
                 sandboxId,
                 previewUrl,
+                sandboxRuntime,
                 framework,
                 name: buildCloneProjectName(url),
                 context,
@@ -220,7 +234,7 @@ export function useCloneWebsite() {
         let forkedSandboxId: string | null = null;
         try {
             setPhase('forking-sandbox');
-            const { sandboxId, previewUrl } = await forkTemplate(
+            const { sandboxId, previewUrl, sandboxRuntime } = await forkTemplate(
                 framework,
                 'Clone from screenshot',
             );
@@ -250,6 +264,7 @@ export function useCloneWebsite() {
             const newProject = await createProjectFromContext({
                 sandboxId,
                 previewUrl,
+                sandboxRuntime,
                 framework,
                 name,
                 context,

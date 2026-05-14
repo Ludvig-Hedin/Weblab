@@ -13,6 +13,7 @@ import type { IFrameView } from './view';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
+import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
 import { api } from '@/trpc/react';
 import { RightClickMenu } from '../../right-click-menu';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
@@ -52,6 +53,87 @@ const LOADING_MESSAGES = [
     `${APP_NAME} is still working on it...`,
     "If it's still not loading, contact support with the ? button in the bottom left corner",
 ];
+
+function ErrorLine({ line, index }: { line: string; index: number }) {
+    // File error reference: × ./file.tsx
+    if (/^[×✗]\s+/.test(line)) {
+        return (
+            <div key={index} className="flex gap-1.5">
+                <span className="text-destructive shrink-0">×</span>
+                <span className="text-foreground-secondary">{line.replace(/^[×✗]\s+/, '')}</span>
+            </div>
+        );
+    }
+    // Error description: Error:   × Unexpected eof
+    if (/^Error:\s/.test(line)) {
+        return (
+            <div key={index} className="text-destructive">
+                {line}
+            </div>
+        );
+    }
+    // Line number with pipe: " 13 │  content"
+    const lineNumMatch = line.match(/^(\s{0,5}\d{1,5}\s*│)(.*)$/);
+    if (lineNumMatch) {
+        return (
+            <div key={index} className="flex">
+                <span className="text-foreground-tertiary shrink-0 select-none">
+                    {lineNumMatch[1]}
+                </span>
+                <span className="text-foreground-primary">{lineNumMatch[2]}</span>
+            </div>
+        );
+    }
+    // Error underline pointer line (·      ────)
+    if (/·\s+[─]+/.test(line)) {
+        return (
+            <div key={index} className="text-destructive/50">
+                {line}
+            </div>
+        );
+    }
+    // Box drawing / frame lines
+    if (/[╭╰│]/.test(line)) {
+        return (
+            <div key={index} className="text-foreground-tertiary">
+                {line}
+            </div>
+        );
+    }
+    // "Caused by:" header
+    if (/^Caused by:/.test(line)) {
+        return (
+            <div key={index} className="text-foreground-secondary mt-2 font-medium">
+                {line}
+            </div>
+        );
+    }
+    // Import trace
+    if (/^Import trace/.test(line)) {
+        return (
+            <div key={index} className="text-foreground-tertiary mt-2">
+                {line}
+            </div>
+        );
+    }
+    if (line.trim() === '') return <div key={index} className="h-px" />;
+    return (
+        <div key={index} className="text-foreground-secondary">
+            {line}
+        </div>
+    );
+}
+
+function HighlightedError({ content }: { content: string }) {
+    const lines = content.split('\n');
+    return (
+        <div className="font-mono text-[11px] leading-[1.6]">
+            {lines.map((line, i) => (
+                <ErrorLine key={i} line={line} index={i} />
+            ))}
+        </div>
+    );
+}
 
 export const FrameView = observer(
     ({ frame, isInDragSelection = false }: { frame: Frame; isInDragSelection?: boolean }) => {
@@ -106,6 +188,8 @@ export const FrameView = observer(
         const { hasTimedOut, isConnecting } = useSandboxTimeout(frame, handleConnectionFailed);
 
         const isSelected = editorEngine.frames.isSelected(frame.id);
+        const branchErrors = editorEngine.branches.getErrorsForBranch(frame.branchId);
+        const hasBuildErrors = branchErrors.length > 0;
         const branchData = editorEngine.branches.getBranchDataById(frame.branchId);
         const preloadScriptReady =
             branchData?.sandbox?.preloadScriptState === PreloadScriptState.INJECTED;
@@ -214,6 +298,27 @@ export const FrameView = observer(
             }
         };
 
+        const [errorCopied, setErrorCopied] = useState(false);
+
+        const handleFixErrorsWithAI = () => {
+            if (editorEngine.state.panelsHidden) {
+                editorEngine.state.togglePanelsHidden();
+            }
+            editorEngine.chat.requestFixErrors();
+            window.dispatchEvent(new CustomEvent(FIX_ERRORS_EVENT));
+        };
+
+        const handleCopyErrors = async () => {
+            const text = branchErrors.map((e) => e.content).join('\n\n');
+            try {
+                await navigator.clipboard.writeText(text);
+                setErrorCopied(true);
+                setTimeout(() => setErrorCopied(false), 1500);
+            } catch {
+                // clipboard unavailable
+            }
+        };
+
         return (
             <div
                 className="fixed flex flex-col"
@@ -270,78 +375,156 @@ export const FrameView = observer(
                                     padding: '0 16px',
                                 }}
                             >
-                                <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
-                                {isFirstCreation ? (
-                                    <div className="flex flex-col items-center gap-1.5 text-center">
-                                        <p className="text-foreground text-base font-medium">
-                                            Building your site
-                                        </p>
-                                        <p className="text-foreground-tertiary text-small max-w-sm">
-                                            Your preview will appear here once the AI finishes the
-                                            first version. This usually takes 30–60 seconds.
-                                        </p>
+                                {hasBuildErrors ? (
+                                    /* Build error state — show instead of loading spinner */
+                                    <div className="border-border/20 bg-background-secondary w-full max-w-sm overflow-hidden rounded-lg border">
+                                        {/* Header */}
+                                        <div className="flex items-center gap-2.5 px-3 py-2.5">
+                                            <div className="bg-destructive/10 flex h-6 w-6 shrink-0 items-center justify-center rounded">
+                                                <Icons.ExclamationTriangle className="text-destructive h-3 w-3" />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-foreground-primary text-small font-medium leading-tight">
+                                                    Build error
+                                                </p>
+                                                <p className="text-foreground-tertiary text-mini mt-0.5 leading-tight">
+                                                    Fix the error to see your preview
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="border-border/15 border-t" />
+
+                                        {/* Error body — same surface, no bg swap */}
+                                        <div className="max-h-44 overflow-auto px-3 py-2.5">
+                                            {branchErrors.slice(0, 3).map((error, i) => (
+                                                <HighlightedError
+                                                    key={`${error.branchId}-${i}`}
+                                                    content={error.content}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="border-border/15 border-t" />
+
+                                        {/* Actions footer */}
+                                        <div className="flex items-center gap-1.5 px-3 py-2">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => void handleCopyErrors()}
+                                                className="text-foreground-secondary hover:text-foreground-primary h-6 gap-1 px-1.5 text-[11px]"
+                                            >
+                                                {errorCopied ? (
+                                                    <Icons.Check className="h-3 w-3" />
+                                                ) : (
+                                                    <Icons.Copy className="h-3 w-3" />
+                                                )}
+                                                {errorCopied ? 'Copied' : 'Copy'}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={immediateReload}
+                                                className="text-foreground-secondary hover:text-foreground-primary h-6 gap-1 px-1.5 text-[11px]"
+                                            >
+                                                <Icons.Reload className="h-3 w-3" />
+                                                Retry
+                                            </Button>
+                                            <div className="flex-1" />
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={handleFixErrorsWithAI}
+                                                className="text-foreground-secondary hover:text-foreground-primary h-6 gap-1 px-1.5 text-[11px]"
+                                            >
+                                                <Icons.MagicWand className="h-3 w-3" />
+                                                Fix with AI
+                                            </Button>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <p className="animate-shimmer text-small bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-center text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter">
-                                        {LOADING_MESSAGES[messageIndex]}
-                                    </p>
+                                    /* Normal loading state */
+                                    <>
+                                        <Icons.LoadingSpinner className="h-8 w-8 animate-spin" />
+                                        {isFirstCreation ? (
+                                            <div className="flex flex-col items-center gap-1.5 text-center">
+                                                <p className="text-foreground text-base font-medium">
+                                                    Building your site
+                                                </p>
+                                                <p className="text-foreground-tertiary text-small max-w-sm">
+                                                    Your preview will appear here once the AI
+                                                    finishes the first version. This usually takes
+                                                    30–60 seconds.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <p className="animate-shimmer text-small bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-center text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter">
+                                                {LOADING_MESSAGES[messageIndex]}
+                                            </p>
+                                        )}
+                                        {showSoftHint && (
+                                            <p className="text-foreground-tertiary max-w-sm text-center text-xs">
+                                                This is taking a little longer than usual.
+                                            </p>
+                                        )}
+                                        {showRestartPanel ? (
+                                            <div className="border-foreground/10 bg-background-secondary mt-2 flex flex-col items-center gap-3 rounded-lg border p-4 text-center">
+                                                <p className="text-foreground text-small max-w-sm font-medium">
+                                                    Sandbox is taking longer than usual
+                                                </p>
+                                                <p className="text-foreground-tertiary max-w-sm text-xs">
+                                                    Your sandbox may be stuck. Try retrying the
+                                                    preview, or restart the sandbox to start fresh.
+                                                </p>
+                                                <div className="flex flex-wrap items-center justify-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={immediateReload}
+                                                        disabled={isRestarting}
+                                                    >
+                                                        <Icons.Reload className="h-3.5 w-3.5" />
+                                                        Retry preview
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => void handleRestartSandbox()}
+                                                        disabled={isRestarting}
+                                                    >
+                                                        {isRestarting ? (
+                                                            <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <Icons.Cube className="h-3.5 w-3.5" />
+                                                        )}
+                                                        {isRestarting
+                                                            ? 'Restarting…'
+                                                            : 'Restart sandbox'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : showRetryOnlyPanel ? (
+                                            <div className="border-foreground/10 bg-background-secondary mt-2 flex flex-col items-center gap-3 rounded-lg border p-4 text-center">
+                                                <p className="text-foreground-secondary text-small max-w-sm">
+                                                    Trouble connecting to your preview. Your sandbox
+                                                    may still be waking up.
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={immediateReload}
+                                                    >
+                                                        <Icons.Reload className="h-3.5 w-3.5" />
+                                                        Retry preview
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : null}
+                                    </>
                                 )}
-                                {showSoftHint && (
-                                    <p className="text-foreground-tertiary max-w-sm text-center text-xs">
-                                        This is taking a little longer than usual.
-                                    </p>
-                                )}
-                                {showRestartPanel ? (
-                                    <div className="border-foreground/10 bg-background-secondary mt-2 flex flex-col items-center gap-3 rounded-lg border p-4 text-center">
-                                        <p className="text-foreground text-small max-w-sm font-medium">
-                                            Sandbox is taking longer than usual
-                                        </p>
-                                        <p className="text-foreground-tertiary max-w-sm text-xs">
-                                            Your sandbox may be stuck. Try retrying the preview, or
-                                            restart the sandbox to start fresh.
-                                        </p>
-                                        <div className="flex flex-wrap items-center justify-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={immediateReload}
-                                                disabled={isRestarting}
-                                            >
-                                                <Icons.Reload className="h-3.5 w-3.5" />
-                                                Retry preview
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => void handleRestartSandbox()}
-                                                disabled={isRestarting}
-                                            >
-                                                {isRestarting ? (
-                                                    <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
-                                                ) : (
-                                                    <Icons.Cube className="h-3.5 w-3.5" />
-                                                )}
-                                                {isRestarting ? 'Restarting…' : 'Restart sandbox'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : showRetryOnlyPanel ? (
-                                    <div className="border-foreground/10 bg-background-secondary mt-2 flex flex-col items-center gap-3 rounded-lg border p-4 text-center">
-                                        <p className="text-foreground-secondary text-small max-w-sm">
-                                            Trouble connecting to your preview. Your sandbox may
-                                            still be waking up.
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={immediateReload}
-                                            >
-                                                <Icons.Reload className="h-3.5 w-3.5" />
-                                                Retry preview
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : null}
                             </div>
                         </div>
                     )}

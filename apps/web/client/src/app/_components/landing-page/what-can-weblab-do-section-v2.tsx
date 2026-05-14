@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
-import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
 import { vujahdayScript } from '@/app/fonts';
@@ -194,20 +193,20 @@ function AiAssistantVisual() {
         <div
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
-            className="border-foreground-primary/10 bg-background flex w-full max-w-[300px] flex-col overflow-hidden rounded-xl border"
+            className="flex w-full max-w-[380px] flex-col gap-3"
         >
-            {/* Chat history */}
-            <div className="flex min-h-[180px] flex-col gap-2 p-2.5">
+            {/* Chat history — mirrors design-system chat demo */}
+            <div className="flex min-h-[180px] flex-col gap-2.5">
                 <AnimatePresence>
                     {showUserMsg && (
                         <motion.div
                             key={`user-${convIdx}`}
-                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            initial={{ opacity: 0, y: 8, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                             className="flex justify-end"
                         >
-                            <div className="bg-background-secondary text-foreground-primary text-small max-w-[80%] rounded-2xl rounded-tr-sm px-3 py-1.5 font-light tracking-tight">
+                            <div className="bg-background-muted text-small text-foreground-primary flex max-w-[85%] flex-col rounded-xl px-3 py-2 leading-snug tracking-[-0.005em]">
                                 {conv.prompt}
                             </div>
                         </motion.div>
@@ -221,7 +220,7 @@ function AiAssistantVisual() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
-                            className="flex items-center gap-1 px-1 pt-0.5"
+                            className="flex items-center gap-1 px-3 pt-1"
                         >
                             <span className="bg-foreground-tertiary h-1.5 w-1.5 animate-pulse rounded-full [animation-delay:-0.3s] [animation-duration:1.2s]" />
                             <span className="bg-foreground-tertiary h-1.5 w-1.5 animate-pulse rounded-full [animation-delay:-0.15s] [animation-duration:1.2s]" />
@@ -230,7 +229,7 @@ function AiAssistantVisual() {
                     )}
                 </AnimatePresence>
                 {showAiReply && (
-                    <div className="text-foreground-primary text-small px-1 leading-snug font-light tracking-tight">
+                    <div className="text-small text-foreground-primary flex flex-col gap-1.5 px-3 py-2 leading-snug tracking-[-0.005em]">
                         {conv.reply.slice(0, replyLen)}
                         {phase === 'ai-typing' && (
                             <span
@@ -249,80 +248,80 @@ function AiAssistantVisual() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                            className="border-foreground-primary/10 bg-background-secondary/60 mt-1 flex items-center justify-between rounded-lg border px-2 py-1.5"
+                            className="bg-background-secondary/40 flex flex-col gap-2 rounded-md p-3"
                         >
-                            <div className="flex items-center gap-1.5">
+                            <div className="text-foreground-tertiary/80 flex items-center gap-2">
                                 <span
-                                    className="h-2.5 w-2.5 animate-spin rounded-full border"
+                                    className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
                                     style={{
-                                        borderColor: 'color-mix(in srgb, var(--foreground-primary) 15%, transparent)',
+                                        borderColor:
+                                            'color-mix(in srgb, var(--foreground-primary) 15%, transparent)',
                                         borderTopColor: BRAND,
                                     }}
                                     aria-hidden
                                 />
-                                <span className="text-foreground-primary font-mono text-[10px] tracking-tight">
-                                    {conv.tool}
+                                <span className="text-regularPlus text-foreground-primary font-mono text-[11px]">
+                                    Editing {conv.tool}
+                                </span>
+                                <span className="text-foreground-tertiary text-mini ml-auto font-mono">
+                                    running
                                 </span>
                             </div>
-                            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3" />
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
-            {/* Composer — matches real Weblab prompt input */}
-            <div className="border-foreground-primary/10 bg-background-secondary/40 border-t p-2">
-                <div className="bg-background border-foreground-primary/10 rounded-xl border px-2.5 py-2">
-                    {/* Input line */}
-                    <div className="text-small text-foreground-primary min-h-[18px] leading-tight font-light tracking-tight">
-                        {phase === 'typing-prompt' || phase === 'send-pause' ? (
-                            <>
-                                {conv.prompt.slice(0, promptLen)}
-                                <span
-                                    className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] animate-pulse"
-                                    style={{ backgroundColor: BRAND }}
-                                    aria-hidden
-                                />
-                            </>
-                        ) : (
-                            <span className="text-foreground-tertiary font-light">
-                                Ask anything…
-                            </span>
-                        )}
-                    </div>
-                    {/* Footer */}
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1">
-                            <span className="border-foreground-primary/10 text-foreground-tertiary inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-tight">
-                                <Icons.Plus className="h-2.5 w-2.5" />
-                                Edit
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="border-foreground-primary/10 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5">
-                                <ClaudeIcon className="text-foreground-secondary h-2.5 w-2.5" />
-                                <span className="text-foreground-secondary text-[10px] font-light tracking-tight">
-                                    Claude Opus 4.7
-                                </span>
-                            </span>
+            {/* Composer — matches the real AiPromptComposer surface */}
+            <div className="bg-background-secondary border-foreground-primary/5 flex w-full cursor-text flex-col rounded-xl border">
+                <div className="text-small text-foreground-primary min-h-[44px] px-3 pt-3 leading-snug tracking-[-0.005em]">
+                    {phase === 'typing-prompt' || phase === 'send-pause' ? (
+                        <>
+                            {conv.prompt.slice(0, promptLen)}
                             <span
-                                className="flex h-5 w-5 items-center justify-center rounded-md transition-colors duration-200"
-                                style={{
-                                    backgroundColor: inputHasText
-                                        ? BRAND
-                                        : 'color-mix(in srgb, var(--foreground-primary) 8%, transparent)',
-                                }}
+                                className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-[2px] animate-pulse"
+                                style={{ backgroundColor: BRAND }}
                                 aria-hidden
-                            >
-                                <Icons.ArrowRight
-                                    className="h-3 w-3"
-                                    style={{
-                                        color: inputHasText
-                                            ? 'white'
-                                            : 'var(--foreground-tertiary)',
-                                    }}
-                                />
+                            />
+                        </>
+                    ) : (
+                        <span className="text-foreground-primary/50">Ask anything…</span>
+                    )}
+                </div>
+                <div className="flex w-full items-center justify-between px-2 py-1.5">
+                    <div className="flex items-center gap-1">
+                        <span className="text-foreground-tertiary inline-flex h-7 w-7 items-center justify-center">
+                            <Icons.Image className="h-4 w-4" />
+                        </span>
+                        <span className="text-foreground-tertiary inline-flex h-7 w-7 items-center justify-center">
+                            <Icons.Plus className="h-4 w-4" />
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="border-foreground-primary/10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1">
+                            <ClaudeIcon className="text-foreground-secondary h-3 w-3" />
+                            <span className="text-foreground-secondary text-mini tracking-tight">
+                                Claude Opus 4.7
                             </span>
-                        </div>
+                            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3" />
+                        </span>
+                        <span
+                            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-200"
+                            style={{
+                                backgroundColor: inputHasText
+                                    ? 'var(--foreground-primary)'
+                                    : 'color-mix(in srgb, var(--foreground-primary) 10%, transparent)',
+                            }}
+                            aria-hidden
+                        >
+                            <Icons.ArrowRight
+                                className="h-3.5 w-3.5"
+                                style={{
+                                    color: inputHasText
+                                        ? 'var(--background)'
+                                        : 'var(--foreground-tertiary)',
+                                }}
+                            />
+                        </span>
                     </div>
                 </div>
             </div>
@@ -386,54 +385,112 @@ function ComponentsVisual() {
 }
 
 function BrandVisual() {
-    const t = useTranslations('landing.whatCanWeblabDoV2.brandVisual');
-    const palette = [
-        {
-            nameKey: 'background',
-            shades: ['bg-background', 'bg-background-secondary', 'bg-background-tertiary'],
-        },
-        {
-            nameKey: 'foreground',
-            shades: ['bg-foreground', 'bg-foreground-secondary', 'bg-foreground-tertiary'],
-        },
-        {
-            nameKey: 'brand',
-            shades: ['bg-foreground-brand', 'bg-foreground-brand/70', 'bg-foreground-brand/40'],
-        },
-    ] as const;
+    const colorTokens: { name: string; hex: string; swatch: string; active?: boolean }[] = [
+        { name: 'background', hex: '#131314', swatch: 'bg-background' },
+        { name: 'background-secondary', hex: '#1F1F1F', swatch: 'bg-background-secondary' },
+        { name: 'foreground', hex: '#F9F9F9', swatch: 'bg-foreground' },
+        { name: 'foreground-secondary', hex: '#E8E8E8/60', swatch: 'bg-foreground-secondary' },
+        { name: 'foreground-brand', hex: '#0F9BFF', swatch: 'bg-foreground-brand', active: true },
+    ];
+    const typeTokens: { name: string; sample: string; meta: string; mono?: boolean }[] = [
+        { name: 'Inter', sample: 'Aa', meta: 'Sans · 16/24' },
+        { name: 'Berkeley Mono', sample: 'Aa', meta: 'Mono · 13/20', mono: true },
+    ];
     return (
-        <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col gap-3.5 rounded-xl border p-5">
-            <div className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
-                {t('tokens')}
-            </div>
-            {palette.map((row) => (
-                <div key={row.nameKey} className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-secondary text-small font-light tracking-tight">
-                        {t(row.nameKey)}
-                    </span>
-                    <div className="flex gap-1.5">
-                        {row.shades.map((s) => (
-                            <div
-                                key={s}
-                                className={cn(
-                                    'ring-foreground-primary/10 h-5 w-5 rounded-full ring-1 transition-transform hover:scale-110',
-                                    s,
-                                )}
-                            />
-                        ))}
-                    </div>
+        <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col overflow-hidden rounded-xl border">
+            {/* Header */}
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
+                <div className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                    Tokens
                 </div>
-            ))}
-            <div className="border-foreground-primary/10 mt-1 flex items-center gap-2 border-t pt-3">
-                <span
-                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full"
-                    style={{ backgroundColor: BRAND_SOFT }}
-                >
-                    <Icons.Check className="h-2.5 w-2.5" style={{ color: BRAND }} />
+                <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+            </div>
+
+            {/* Colors */}
+            <div className="flex flex-col gap-1 px-2 py-2.5">
+                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] tracking-wider uppercase">
+                    Colors
+                </div>
+                {colorTokens.map((t) => (
+                    <div
+                        key={t.name}
+                        className={cn(
+                            'group/token relative flex items-center gap-2.5 rounded-md px-1.5 py-1 transition-colors',
+                            t.active
+                                ? 'bg-foreground-primary/[0.04]'
+                                : 'hover:bg-foreground-primary/[0.03]',
+                        )}
+                    >
+                        {t.active && (
+                            <span
+                                className="absolute top-1/2 -left-0.5 h-1 w-1 -translate-y-1/2 rounded-full"
+                                style={{ backgroundColor: BRAND }}
+                                aria-hidden
+                            />
+                        )}
+                        <span
+                            className={cn(
+                                'ring-foreground-primary/15 h-3.5 w-3.5 shrink-0 rounded-[4px] ring-1 ring-inset',
+                                t.swatch,
+                            )}
+                        />
+                        <span
+                            className={cn(
+                                'flex-1 truncate font-mono text-[10.5px]',
+                                t.active ? 'text-foreground-primary' : 'text-foreground-secondary',
+                            )}
+                        >
+                            {t.name}
+                        </span>
+                        <span className="text-foreground-tertiary font-mono text-[9.5px] tabular-nums">
+                            {t.hex}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Typography */}
+            <div className="border-foreground-primary/10 flex flex-col gap-1 border-t px-2 py-2.5">
+                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] tracking-wider uppercase">
+                    Typography
+                </div>
+                {typeTokens.map((t) => (
+                    <div
+                        key={t.name}
+                        className="hover:bg-foreground-primary/[0.03] flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors"
+                    >
+                        <span
+                            className={cn(
+                                'border-foreground-primary/10 bg-background-secondary text-foreground-primary inline-flex h-6 w-7 items-center justify-center rounded-[4px] border text-[13px] leading-none',
+                                t.mono && 'font-mono',
+                            )}
+                        >
+                            {t.sample}
+                        </span>
+                        <span className="text-foreground-secondary flex-1 text-[10.5px] tracking-tight">
+                            {t.name}
+                        </span>
+                        <span className="text-foreground-tertiary font-mono text-[9.5px] tabular-nums">
+                            {t.meta}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Spacing scale */}
+            <div className="border-foreground-primary/10 flex items-center justify-between border-t px-3 py-2.5">
+                <span className="text-foreground-quadranary font-mono text-[9px] tracking-wider uppercase">
+                    Spacing
                 </span>
-                <span className="text-foreground-secondary text-small font-light tracking-tight">
-                    {t('onBrand')}
-                </span>
+                <div className="flex items-end gap-1">
+                    {[3, 5, 7, 10, 14].map((h) => (
+                        <span
+                            key={h}
+                            className="bg-foreground-primary/15 w-1.5 rounded-sm"
+                            style={{ height: `${h}px` }}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -441,40 +498,43 @@ function BrandVisual() {
 
 function LayersVisual() {
     const t = useTranslations('landing.whatCanWeblabDoV2');
-    const layers = [
-        { name: 'Home Page', tag: 'DIV', level: 0 },
-        { name: 'Top Navigation', tag: 'COMPONENT', level: 1 },
-        { name: 'Hero', tag: 'COMPONENT', level: 1 },
-        { name: 'Image Grid', tag: 'DIV', level: 1 },
-        { name: 'Image Card 1', tag: 'COMPONENT', level: 2 },
-        { name: 'Image Card 2', tag: 'COMPONENT', level: 2 },
-        { name: 'Image Card 3', tag: 'COMPONENT', level: 2 },
-        { name: 'Footer', tag: 'COMPONENT', level: 1 },
+    type LayerKind = 'body' | 'section' | 'div' | 'component';
+    const layers: { name: string; kind: LayerKind; level: number; hasChildren?: boolean }[] = [
+        { name: 'Home Page', kind: 'body', level: 0, hasChildren: true },
+        { name: 'TopNavigation', kind: 'component', level: 1 },
+        { name: 'Hero', kind: 'section', level: 1, hasChildren: true },
+        { name: 'ImageGrid', kind: 'div', level: 1, hasChildren: true },
+        { name: 'ImageCard', kind: 'component', level: 2 },
+        { name: 'ImageCard', kind: 'component', level: 2 },
+        { name: 'ImageCard', kind: 'component', level: 2 },
+        { name: 'Footer', kind: 'section', level: 1 },
     ];
-    // Cycle a selection through component-tagged rows (skip plain DIVs)
+    // Cycle a selection through component-tagged rows (skip non-components for variety)
     const componentIndices = layers
-        .map((l, i) => (l.tag === 'COMPONENT' ? i : -1))
+        .map((l, i) => (l.kind === 'component' ? i : -1))
         .filter((i) => i >= 0);
     const cycle = useAmbientCycle(componentIndices.length, 2400);
-    const selectedIdx = componentIndices[cycle.index] ?? 2;
+    const selectedIdx = componentIndices[cycle.index] ?? 4;
+
     return (
         <div
-            className="border-foreground-primary/10 bg-background w-full max-w-sm rounded-xl border p-2"
+            className="border-foreground-primary/10 bg-background w-full max-w-sm overflow-hidden rounded-xl border"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-2 pb-2">
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
                 <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
                     {t('layersTitle')}
                 </span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-            <div className="mt-1.5 flex flex-col gap-0.5">
+            <div className="flex flex-col py-1.5">
                 {layers.map((l, idx) => {
                     const isSelected = idx === selectedIdx;
+                    const isComponent = l.kind === 'component';
                     return (
                         <button
-                            key={l.name}
+                            key={`${l.name}-${idx}`}
                             type="button"
                             onClick={() =>
                                 cycle.setIndex(
@@ -484,10 +544,12 @@ function LayersVisual() {
                                 )
                             }
                             className={cn(
-                                'group/layer text-mini relative flex h-6 w-full items-center rounded-md px-1.5 tracking-tight transition-colors',
+                                'group/layer relative mx-1.5 flex h-6 w-[calc(100%-0.75rem)] items-center rounded pr-1 text-[11px] tracking-tight transition-colors',
                                 isSelected
-                                    ? 'bg-foreground-primary/[0.06] text-foreground-primary'
-                                    : 'text-foreground-secondary hover:bg-foreground-primary/[0.03]',
+                                    ? 'bg-foreground-brand text-foreground-primary'
+                                    : isComponent
+                                      ? 'hover:bg-foreground-primary/[0.04] text-purple-500 dark:text-purple-300'
+                                      : 'text-foreground-secondary hover:bg-foreground-primary/[0.04]',
                             )}
                         >
                             {isSelected && (
@@ -499,29 +561,76 @@ function LayersVisual() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="absolute top-1/2 -left-1 h-1 w-1 -translate-y-1/2 rounded-full"
+                                    className="absolute top-1/2 -left-2 h-1 w-1 -translate-y-1/2 rounded-full"
                                     style={{ backgroundColor: BRAND }}
                                     aria-hidden
                                 />
                             )}
+                            {/* Indent */}
                             <div style={{ width: `${l.level * 14}px` }} />
-                            <NodeIcon
-                                iconClass={cn(
-                                    'mr-1.5 h-3 w-3 shrink-0',
-                                    isSelected ? '' : 'text-foreground-tertiary',
-                                )}
-                                tagName={l.tag}
-                            />
-                            <span className="flex-1 truncate text-left font-light">{l.name}</span>
-                            <span className="text-foreground-quadranary ml-1 font-mono text-[9px] opacity-0 transition-opacity duration-200 group-hover/layer:opacity-100">
-                                {l.tag}
+                            {/* Disclosure chevron */}
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                                {l.hasChildren ? (
+                                    <Icons.ChevronDown
+                                        className={cn(
+                                            'h-2.5 w-2.5 opacity-70',
+                                            isSelected
+                                                ? 'text-foreground-primary'
+                                                : 'text-foreground-tertiary',
+                                        )}
+                                    />
+                                ) : null}
                             </span>
+                            {/* Icon */}
+                            <LayerKindIcon
+                                kind={l.kind}
+                                className={cn(
+                                    'mr-1.5 ml-0.5 h-3 w-3 shrink-0',
+                                    isSelected
+                                        ? 'text-foreground-primary'
+                                        : isComponent
+                                          ? 'text-purple-500 dark:text-purple-300'
+                                          : 'text-foreground-tertiary',
+                                )}
+                            />
+                            <span
+                                className={cn(
+                                    'flex-1 truncate text-left font-light',
+                                    isComponent && 'italic',
+                                )}
+                            >
+                                {l.name}
+                            </span>
+                            {/* Component "B" badge if interactive (Footer + ImageCards) — only show for first component to mimic real */}
+                            {isComponent && isSelected && (
+                                <span
+                                    className={cn(
+                                        'mr-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded border px-1 text-[9px] leading-none font-semibold',
+                                        'border-foreground-primary/30 bg-foreground-primary/10 text-foreground-primary',
+                                    )}
+                                >
+                                    B
+                                </span>
+                            )}
                         </button>
                     );
                 })}
             </div>
         </div>
     );
+}
+
+function LayerKindIcon({
+    kind,
+    className,
+}: {
+    kind: 'body' | 'section' | 'div' | 'component';
+    className?: string;
+}) {
+    if (kind === 'body') return <Icons.Desktop className={className} />;
+    if (kind === 'section') return <Icons.Section className={className} />;
+    if (kind === 'component') return <Icons.Component className={className} />;
+    return <Icons.Box className={className} />;
 }
 
 function RevisionVisual() {

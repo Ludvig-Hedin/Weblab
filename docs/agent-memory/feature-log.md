@@ -16,6 +16,124 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-13 — Staged Vercel Sandbox runtime provider
+Author: Codex
+Area: `@weblab/code-provider`, project sandbox runtime
+Summary: Added Vercel Sandbox as a second cloud runtime behind
+`WEBLAB_CLOUD_PROVIDER`, with branch-level provider metadata and CodeSandbox as
+the default rollback path. Vercel editor calls use server-side tRPC proxies,
+new Vercel sandboxes snapshot after setup, and unsupported v1 flows keep using
+CodeSandbox instead of silently changing framework behavior.
+Files: `packages/code-provider/src/providers/vercel-sandbox/index.ts`,
+`apps/web/client/src/server/api/routers/project/sandbox.ts`,
+`apps/web/client/src/components/store/editor/sandbox/vercel-browser-provider.ts`,
+`docs/notes/2026-05-13-vercel-sandbox-provider.md`
+Links: `docs/notes/2026-05-13-vercel-sandbox-provider.md`
+
+## 2026-05-13 — Style Panel v3 — UX polish round 3 (5-agent team)
+Author: Claude (impeccable + ux-polish + ui-ux-pro-max) + 5 subagents
+Area: apps/web/client/src/app/project/[id]/_components/right-panel
+Summary: Third polish round from user UX review. Focus rings now
+keyboard-only (`FIELD_BASE_CLASSES` switched `focus-within:` →
+`has-[:focus-visible]:`; forked select-field/text-field/icon-toggle-field
+into v3). Segmented controls got a clear two-tier active state — STRONG
+raised pill when the value is an explicit override, QUIET neutral fill
+when it's the inherited/computed default; `isSet?` prop threaded from
+sections through SegmentedDisplay / IconToggleField / GrowRow /
+OverflowRow. Panel horizontal overflow fixed — v3 root `<div>` was a
+flex item without `min-w-0`; added `w-full min-w-0 overflow-x-hidden`
+through the root→header→ScrollArea chain. TrblGrid per-side mode
+redesigned to 4 discrete bordered inputs (was one merged pill) that
+shrink to fit at min panel width. Styles tab active-state bug fixed —
+`TooltipTrigger` was clobbering Tabs' `data-state`; tab now only
+tooltip-wrapped in CODE mode. Alt-click on a property label now resets
+the value AND clears the per-element override flag. `useStyleValue`
+forked into v3 with robust `isSet` detection — root cause was a
+camelCase (`computed`) vs kebab-case (`defined`) key mismatch + missing
+shorthand resolution, so the override dot only lit for some props. New
+`useStyleBatchSetter` (`setMultiple`) routes multi-property writes
+(padding/margin/grow) through `StyleManager.updateMultiple` as ONE undo
+entry — fixes panel-side history fragmentation. Persistent cross-session
+history flagged as a separate core-engine effort (not done).
+Files: style-tab-v3/controls/{constants,select-field,text-field,
+icon-toggle-field,segmented-display,number-field,chip-input,shadow-field,
+grow-overflow-row,trbl-grid,property-control,property-label,index}.ts(x),
+style-tab-v3/hooks/{use-style-value,use-style-setter}.ts,
+style-tab-v3/sections/{layout,size,text,styles}.tsx, style-tab-v3/index.tsx,
+right-panel/index.tsx
+
+## 2026-05-13 — Style Panel v3 — UX polish round 2 (4-agent team)
+Author: Claude (impeccable + ux-polish + ui-ux-pro-max) + 4 subagents
+Area: apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v3
+Summary: Second polish round from user UX review. `TrblGrid` redesigned to
+the Figma padding control — 2-button mode switcher (Square = all-sides /
+SquareDashed = per-side) + a single connected 4-cell pill with T/R/B/L
+labels. `SegmentedDisplay` collapses to icon-only via `@container`
+queries when the panel is narrow. `display: none` added to the Display
+control; Display icons relogicked (Flex → StretchHorizontal, Grid →
+LayoutGrid, Block → Square, None → EyeOff). `GrowOverflowRow` split into
+separate `GrowRow` + `OverflowRow` — fixes the overflow/alignment bug;
+each renders as its own labeled Size row. New `PropertySearch` at the
+panel top — fuzzy search over a ~65-entry property registry, scrolls to
++ opens the target section via `[data-style-property]`. Margin moved out
+of Advanced into Layout (directly below Padding). Transitions extracted
+from Advanced into its own section, placed after Effects. New Content row
+in Text — real text-content write via `frameView.editText` + history push.
+Verified all required selectors present + inherited/computed values show
+as the active selection across value-bearing controls.
+Files: style-tab-v3/controls/{trbl-grid,segmented-display,grow-overflow-row,
+property-search,index}.ts(x), style-tab-v3/sections/{layout,size,text,
+advanced,transitions}.tsx, style-tab-v3/index.tsx
+
+## 2026-05-13 — Style Panel v3 — UX polish pass (4-agent team)
+Author: Claude (impeccable + ux-polish + ui-ux-pro-max) + 4 subagents
+Area: apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v3
+Summary: Polish round on v3 driven by user UX review. Forked `PropertyLabel`,
+`PropertyControl`, `constants.ts` into v3 (no longer re-exports of v2):
+blue "is set" dot now renders ONLY when set — no gray dot when unset; unset
+labels lifted to ~85% visibility; dark-mode field contrast raised (lighter
+fill + visible hairline border). `CustomExpander` tinted-card background
+removed — expanded rows sit flush in the column. Section header dot only
+renders when populated. New `NumberField` replaces the shared
+`@weblab/ui/number-input` across all v3 sections — drops the scrub-drag
+`cursor-ew-resize` affordance the user disliked; static `cursor-pointer`
+unit pill instead. New `ShadowField` — Figma-style `box-shadow` editor
+(color swatch + hex + opacity, X/Y/Blur/Spread rows with −/+ steppers),
+wired into Effects. Row alignment audited across all sections; `cursor-pointer`
+added to clickable affordances; section-level dark-bg overrides removed so
+the raised-contrast field tokens win.
+Files: style-tab-v3/controls/{constants,property-label,property-control,
+custom-expander,number-field,shadow-field,index}.ts(x),
+style-tab-v3/sections/*.tsx, style-tab-v3/controls/{trbl-grid,grow-overflow-row}.tsx
+
+## 2026-05-13 — Style Panel v3 (Figma-driven redesign, env-flagged)
+Author: Claude (figma-use + impeccable + ux-polish)
+Area: apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v3
+Summary: Built a successor to `style-tab-v2` matching the Figma design at
+`figma.com/design/Jq0i0XECT9DPqfUdIEl5MY?node-id=202-8418`. New section
+order (Element → Position → Layout → Size → Styles → Text → Effects →
+Overlays → Cursor → Transforms → Advanced) with a hybrid named-style + Custom
+expander model on Text and Effects. v2 stays as the default; v3 ships
+behind `NEXT_PUBLIC_STYLE_PANEL_V3` (defaults `false`) — module-scope
+dynamic import in `right-panel/index.tsx` swaps which panel renders.
+Reuses v2's `StyleManager` pipeline, `useStyleValue` / `useStyleSetter`
+hooks, and every shared control via a controls/ barrel re-export, so
+undo/redo + AST sync + write-target prefs work unchanged. Seven new
+primitives in `style-tab-v3/controls/`: ChipInput, StyleChipPicker,
+TrblGrid, SegmentedDisplay, AlignmentToolbar, GrowOverflowRow,
+CustomExpander. Mounted in the design-system page under a new
+"Style panel v3" group. v2 source frozen at
+`docs/archive/style-tab-v2-snapshot/`; full property catalog at
+`docs/agent-context/style-panel-v2-inventory.md`.
+Files: apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v3/**,
+apps/web/client/src/app/project/[id]/_components/right-panel/index.tsx,
+apps/web/client/src/env.ts,
+apps/web/client/src/app/design-system/page.tsx,
+apps/web/client/src/app/design-system/_components/demos/style-panel-v3.tsx,
+docs/agent-context/style-panel-v2-inventory.md,
+docs/archive/style-tab-v2-snapshot/**
+Links: docs/agent-context/style-panel-v2-inventory.md
+
 ## 2026-05-11 — Performance + production-readiness audit
 Author: Claude (performance audit)
 Area: apps/web/client (landing + editor + tRPC + providers)

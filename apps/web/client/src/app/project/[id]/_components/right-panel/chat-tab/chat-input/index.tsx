@@ -693,7 +693,14 @@ export const ChatInput = observer(
                 showStopButton={isStreaming}
                 onStop={onStop}
                 showMicButton
-                onTranscript={(text) => setInputValue((prev) => (prev ? `${prev} ${text}` : text))}
+                onTranscript={(text) => {
+                    const trimmed = text.trim();
+                    if (!trimmed) return;
+                    const currentText =
+                        editorRef.current?.getText({ blockSeparator: '\n' }).trim() ??
+                        inputValue.trim();
+                    setInputValue(currentText ? `${currentText} ${trimmed}` : trimmed);
+                }}
                 onDrop={handleDrop}
                 onDragStateChange={handleDragStateChange}
                 onPaste={handlePaste}

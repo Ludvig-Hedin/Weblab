@@ -53,6 +53,7 @@ export const ExternalRoutes = {
     YOUTUBE: 'https://www.youtube.com/@weblab',
     SUBSTACK: 'https://weblab.substack.com/',
     DOWNLOAD_MAC: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
+    DOWNLOAD_MAC_INTEL: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-x64.dmg',
     DOWNLOAD_WIN:
         'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe',
     DOWNLOAD_LINUX:

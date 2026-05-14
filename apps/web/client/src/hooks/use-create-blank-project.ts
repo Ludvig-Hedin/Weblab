@@ -59,8 +59,9 @@ export function useCreateBlankProject() {
                 port: adapter.template.port,
             };
 
-            const { sandboxId, previewUrl } = await forkSandbox({
+            const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox,
+                provider: framework === 'nextjs' ? undefined : 'code_sandbox',
                 config: {
                     title: `Blank project - ${user.id}`,
                     tags: ['blank', user.id],
@@ -78,6 +79,7 @@ export function useCreateBlankProject() {
                 },
                 sandboxId,
                 sandboxUrl: previewUrl,
+                sandboxRuntime,
             });
 
             forkedSandboxId = null;

@@ -75,8 +75,8 @@ For the full list and detailed purposes, see `packages-reference.md`.
 1. A user creates or imports a project.
 2. The app stores project, branch, canvas, frame, settings, conversation, and
    user data in Supabase via Drizzle/tRPC.
-3. A branch starts a runtime provider — currently mainly CodeSandbox for
-   cloud mode.
+3. A branch starts a runtime provider — CodeSandbox by default for cloud mode,
+   with Vercel Sandbox available behind `WEBLAB_CLOUD_PROVIDER`.
 4. The editor embeds the running app in iframe frames (with optional
    responsive breakpoints — see `breakpoints-architecture.md`).
 5. The preload/frame bridge maps DOM elements back to source code.
@@ -87,7 +87,9 @@ For the full list and detailed purposes, see `packages-reference.md`.
 
 ## Import And Project Modes
 
-- `cloud` mode is the production path. Code is uploaded/forked into a sandbox.
+- `cloud` mode is the production path. Code is uploaded/forked into a sandbox
+  provider. CodeSandbox remains the default; Vercel Sandbox is staged as a
+  dual-provider runtime with branch-level provider metadata.
 - `local` mode is desktop-first plumbing. Local metadata exists, but the
   desktop provider must supply file IO, watching, terminal/dev process
   management, git, and safe write behavior.

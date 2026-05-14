@@ -31,6 +31,7 @@ import { PromoBannerDemo } from './_components/demos/promo-banner';
 import { RadiusDemo } from './_components/demos/radius';
 import { SelectionDemo } from './_components/demos/selection';
 import { SpacingDemo } from './_components/demos/spacing';
+import { StylePanelV3Demo } from './_components/demos/style-panel-v3';
 import { TabsDemo } from './_components/demos/tabs';
 import { TypographyDemo } from './_components/demos/typography';
 import { DesignSidebar } from './_components/design-sidebar';
@@ -336,6 +337,17 @@ const GROUPS: (GroupSpec & { Demo: React.ComponentType })[] = [
         title: 'Promo banner',
         description: 'Marketing banner with editable copy and CTA.',
         Demo: PromoBannerDemo,
+    },
+    {
+        id: 'style-panel-v3',
+        label: 'Style panel v3',
+        eyebrow: 'Editor',
+        title: 'Style panel v3 primitives',
+        description:
+            'New primitives for the Figma-driven Style tab redesign. Mounted in the editor behind NEXT_PUBLIC_STYLE_PANEL_V3.',
+        filePath:
+            'apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v3/controls',
+        Demo: StylePanelV3Demo,
     },
 ];
 

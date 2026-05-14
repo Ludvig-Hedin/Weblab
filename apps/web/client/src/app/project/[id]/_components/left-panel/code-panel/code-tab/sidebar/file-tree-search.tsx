@@ -21,7 +21,7 @@ export const FileTreeSearch = forwardRef<HTMLInputElement, FileTreeSearchProps>(
         };
 
         return (
-            <div className="border-border-bar relative mb-2 flex h-11 flex-shrink-0 flex-row items-center justify-between border-b">
+            <div className="relative flex h-10 flex-shrink-0 flex-row items-center justify-between">
                 <Input
                     ref={ref}
                     className="text-small m-2 h-8 pr-8"

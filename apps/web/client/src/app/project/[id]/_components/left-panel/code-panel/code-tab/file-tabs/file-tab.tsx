@@ -46,7 +46,7 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
             <div className="relative flex h-full items-center overflow-hidden">
                 <button
                     className={cn(
-                        'text-small flex h-full min-w-0 flex-1 items-center focus:outline-none',
+                        'text-mini flex h-full min-w-0 flex-1 items-center focus:outline-none',
                         isActive
                             ? isFileDirty
                                 ? 'text-foreground-brand'

@@ -75,10 +75,9 @@ export class OverlayState {
     };
 
     updateClickedRects = (newRect: Partial<RectDimensions>) => {
-        this.clickRects = this.clickRects.map((rect) => ({
-            ...rect,
-            ...newRect,
-        }));
+        for (const rect of this.clickRects) {
+            Object.assign(rect, newRect);
+        }
     };
 
     updateClickRectStyles = (

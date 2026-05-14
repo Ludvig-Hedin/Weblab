@@ -1,209 +1,80 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
 
-import { APP_NAME } from '@weblab/constants';
-import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
 
 import { ExternalRoutes } from '@/utils/constants';
 import { WebsiteLayout } from '../_components/website-layout';
 
-type Platform = 'mac' | 'win' | 'linux' | 'ios' | 'other';
+const SYMBOL_PATHS = [
+    'M12.6766 0.025706C13.9506 -0.143048 15.153 0.523076 15.1901 1.90582C15.2576 4.41418 15.2209 6.94516 15.2201 9.45692L15.2081 31.8009L15.2069 38.23C15.2073 39.3088 15.1053 40.5158 15.2681 41.5775C15.346 42.086 15.8265 42.5236 16.2096 42.8316C18.2976 44.5097 29.7381 50.0168 30.2621 51.5534C30.6537 52.7013 30.4179 61.9586 30.4176 63.7198C30.4171 67.0795 30.5743 70.5238 30.3958 73.8747C30.378 74.2085 30.3011 74.5236 30.1516 74.8222C29.9363 75.2537 29.5283 75.6896 29.0571 75.8367C27.522 76.3154 23.0402 73.2049 21.6481 72.3903C20.066 71.4592 18.4466 70.582 16.8664 69.6465C16.03 69.1513 15.2503 68.5365 15.2158 67.4671C15.0716 62.6593 15.2376 57.8312 15.1928 53.0169C15.1699 50.5649 13.8041 50.3 11.9011 49.2059L4.76624 45.115C-0.301186 42.2057 0.00496888 43.3477 0.00376138 37.4487L0.00343308 31.1174L0.00540957 10.9518C0.00562912 10.1832 -0.0830649 7.606 0.449551 7.19735C2.24752 5.81768 4.83441 4.44734 6.83469 3.30416C8.56108 2.31744 10.9676 0.800414 12.6766 0.025706Z',
+    'M42.9297 8.83101C46.1142 8.48801 45.54 11.0848 45.5982 13.275C45.6279 14.3767 45.5971 15.5022 45.596 16.6059L45.5883 34.3478L45.584 39.1226C45.5818 39.8619 45.4917 40.7203 45.6103 41.4412C45.6981 41.9768 46.1153 42.4383 46.5159 42.7791C48.7608 44.6855 59.9345 49.8001 60.6019 51.5321C60.9861 52.5315 60.9005 63.6041 60.7567 65.206C60.7304 65.4937 60.67 65.7561 60.5437 66.0174C60.3121 66.5005 59.8862 66.9375 59.3593 67.0813C57.9059 67.4799 53.2757 64.3463 51.8015 63.4998C50.3371 62.6021 47.2701 61.0623 46.169 60.0517C44.6059 58.6171 46.4973 52.7222 45.0472 51.0354C44.4807 50.3763 42.4785 49.323 41.6223 48.8337L35.0267 45.0502C30.0183 42.1734 30.3836 43.2082 30.3808 37.4544L30.3788 30.8148C30.3783 26.5038 30.3622 22.1592 30.4003 17.8474C30.4041 17.4314 30.4991 16.727 30.6151 16.3251C30.7036 16.0182 31.3416 15.5119 31.626 15.3417C33.363 14.3083 35.1244 13.22 36.8976 12.2486C38.8725 11.1672 40.9197 9.78874 42.9297 8.83101Z',
+    'M73.6265 17.4968C74.3389 17.4543 75.8198 18.0305 75.8439 18.7915C76.1491 28.3162 75.901 37.9064 75.9636 47.4462C75.9768 47.7952 75.8922 48.2045 75.7396 48.5151C74.373 51.3031 68.8284 47.0312 66.915 45.912C65.5418 45.0747 62.1575 43.3938 61.1827 42.3643C60.5394 41.6858 60.7963 35.2019 60.7689 33.8191C60.7195 31.3391 60.7864 28.8978 60.8007 26.4193C60.8029 26.004 60.939 24.8736 61.298 24.5996C63.0916 23.382 65.4265 22.0542 67.3212 20.9978C68.9546 20.0878 72.0524 18.1086 73.6265 17.4968Z',
+];
 
-function detectPlatform(): Platform {
-    if (typeof navigator === 'undefined') return 'other';
-    const ua = navigator.userAgent.toLowerCase();
-    const isIPadOS =
-        ua.includes('macintosh') &&
-        typeof navigator.maxTouchPoints === 'number' &&
-        navigator.maxTouchPoints > 1;
-    if (ua.includes('iphone') || ua.includes('ipad') || isIPadOS) return 'ios';
-    if (ua.includes('macintosh') || ua.includes('mac os x')) return 'mac';
-    if (ua.includes('windows')) return 'win';
-    if (ua.includes('linux') && !ua.includes('android')) return 'linux';
-    return 'other';
-}
-
-interface DownloadOption {
-    id: Platform;
-    title: string;
-    subtitle: string;
-    cta: string;
-    href: string;
-    available: boolean;
-    badge?: string;
-}
-
-function Preview({ platform }: { platform: Platform }) {
+function AppIcon() {
     return (
-        <div className="border-foreground-secondary/10 from-background-tertiary/40 to-background-secondary/20 relative overflow-hidden border-b bg-gradient-to-b">
-            <div className="aspect-[16/10] w-full">
-                {platform === 'mac' && (
-                    <div className="flex h-full w-full items-center justify-center p-8">
-                        <div className="border-foreground-secondary/15 bg-background-primary/60 w-full max-w-[80%] overflow-hidden rounded-md border shadow-2xl backdrop-blur-sm">
-                            <div className="border-foreground-secondary/10 flex items-center gap-1.5 border-b px-3 py-2">
-                                <span className="bg-foreground-secondary/30 h-2 w-2 rounded-full" />
-                                <span className="bg-foreground-secondary/20 h-2 w-2 rounded-full" />
-                                <span className="bg-foreground-secondary/20 h-2 w-2 rounded-full" />
-                            </div>
-                            <div className="flex aspect-[16/9] items-center justify-center">
-                                <span className="text-foreground-primary text-lg font-light tracking-tight">
-                                    {APP_NAME}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {platform === 'ios' && (
-                    <div className="flex h-full w-full items-center justify-center p-6">
-                        <div className="border-foreground-secondary/15 bg-background-primary/60 relative h-[85%] w-32 overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-sm">
-                            <div className="bg-background-primary absolute top-1.5 left-1/2 z-10 h-3 w-12 -translate-x-1/2 rounded-full" />
-                            <div className="flex h-full items-center justify-center">
-                                <span className="text-foreground-primary text-sm font-light tracking-tight">
-                                    {APP_NAME}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
+        <div className="bg-foreground-primary relative h-24 w-24 overflow-hidden rounded-[22px] shadow-xl">
+            <div className="absolute inset-0 flex items-center justify-center p-5">
+                <svg viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+                    {SYMBOL_PATHS.map((d, i) => (
+                        <path key={i} d={d} className="fill-background-primary" />
+                    ))}
+                </svg>
             </div>
         </div>
     );
 }
 
 export default function DownloadPage() {
-    const t = useTranslations('downloadPage') as (
-        key: string,
-        values?: Record<string, string>,
-    ) => string;
-    const [detected, setDetected] = useState<Platform>('other');
-
-    useEffect(() => {
-        setDetected(detectPlatform());
-    }, []);
-
-    const options = useMemo<DownloadOption[]>(
-        () => [
-            {
-                id: 'mac',
-                title: t('mac.title'),
-                subtitle: t('mac.subtitle'),
-                cta: t('mac.cta'),
-                href: ExternalRoutes.DOWNLOAD_MAC,
-                available: true,
-                badge: t('beta'),
-            },
-            {
-                id: 'ios',
-                title: t('ios.title'),
-                subtitle: t('ios.subtitle'),
-                cta: t('ios.cta'),
-                href: ExternalRoutes.DOWNLOAD_IOS,
-                available: false,
-            },
-        ],
-        [t],
-    );
-
     return (
         <WebsiteLayout>
-            <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center px-6 pt-28 pb-20">
+            <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 pb-20 pt-20">
                 <motion.div
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    className="mb-12 flex flex-col items-center gap-2 text-center"
+                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                    className="flex flex-col items-center gap-6 text-center"
                 >
-                    <h1 className="text-foreground-primary text-4xl !leading-[1.05] font-light tracking-tight">
-                        {t('heading', { appName: APP_NAME })}
-                    </h1>
-                    <p className="text-foreground-secondary max-w-md text-sm leading-relaxed">
-                        {t('subhead', { appName: APP_NAME })}
-                    </p>
+                    {/* App icon */}
+                    <AppIcon />
+
+                    {/* Heading */}
+                    <div className="flex flex-col items-center gap-3">
+                        <h1 className="heading-style-h1 text-foreground-primary">
+                            Desktop app
+                        </h1>
+                        <p className="text-foreground-secondary max-w-md text-base leading-relaxed">
+                            Get the desktop app for the ultimate Weblab experience.
+                        </p>
+                    </div>
+
+                    {/* Download buttons */}
+                    <div className="mt-1 flex flex-col items-center gap-3">
+                        <a
+                            href={ExternalRoutes.DOWNLOAD_MAC}
+                            className="bg-foreground-primary text-background-primary hover:bg-foreground-primary/90 inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold transition-opacity"
+                        >
+                            Download for macOS
+                        </a>
+                        <a
+                            href={ExternalRoutes.DOWNLOAD_MAC_INTEL}
+                            className="text-foreground-tertiary hover:text-foreground-secondary text-xs underline underline-offset-2 transition-colors"
+                        >
+                            Download for Mac with Intel
+                        </a>
+                    </div>
                 </motion.div>
 
-                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-                    {options.map((option, index) => {
-                        const isRecommended = option.id === detected && option.available;
-                        return (
-                            <motion.div
-                                key={option.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{
-                                    duration: 0.4,
-                                    delay: 0.08 + index * 0.05,
-                                    ease: 'easeOut',
-                                }}
-                                className={cn(
-                                    'border-foreground-secondary/10 bg-background-secondary/30 group relative flex flex-col overflow-hidden rounded-xl border backdrop-blur-sm transition-colors',
-                                    isRecommended &&
-                                        'border-foreground-primary/30 bg-background-secondary/60',
-                                )}
-                            >
-                                <Preview platform={option.id} />
-                                <div className="flex flex-1 flex-col gap-5 p-6">
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center gap-2">
-                                            <h2 className="text-foreground-primary text-lg font-medium tracking-tight">
-                                                {option.title}
-                                            </h2>
-                                            {option.badge && (
-                                                <span className="text-foreground-primary border-foreground-primary/30 rounded-full border px-1.5 py-px text-[9px] font-medium tracking-wider uppercase">
-                                                    {option.badge}
-                                                </span>
-                                            )}
-                                            {isRecommended && (
-                                                <span className="text-foreground-primary border-foreground-primary/30 rounded-full border px-1.5 py-px text-[9px] font-medium tracking-wider uppercase">
-                                                    {t('recommended')}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-foreground-secondary text-sm leading-relaxed">
-                                            {option.subtitle}
-                                        </p>
-                                    </div>
-                                    {option.available ? (
-                                        <a
-                                            href={option.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="bg-foreground-primary text-background-primary hover:bg-foreground-hover inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                                        >
-                                            <Icons.Download className="h-3.5 w-3.5" />
-                                            {option.cta}
-                                        </a>
-                                    ) : (
-                                        <span className="border-foreground-secondary/15 text-foreground-tertiary inline-flex w-fit items-center rounded-lg border px-4 py-2 text-sm font-medium">
-                                            {t('comingSoon')}
-                                        </span>
-                                    )}
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
-                <motion.div
+                {/* Footer note */}
+                <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    className="text-foreground-tertiary mt-10 max-w-xl text-center text-[11px] leading-relaxed"
+                    transition={{ duration: 0.5, delay: 0.35 }}
+                    className="text-foreground-tertiary absolute bottom-10 text-[11px]"
                 >
-                    {t('footnotePart1')}
-                    <a
-                        href={ExternalRoutes.DOWNLOAD_PAGE}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-foreground-secondary hover:text-foreground-primary underline underline-offset-2"
-                    >
-                        {t('footnoteLink')}
-                    </a>
-                    {t('footnotePart2')}
-                </motion.div>
+                    macOS 13 or later required
+                </motion.p>
             </div>
         </WebsiteLayout>
     );

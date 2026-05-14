@@ -12,6 +12,7 @@ import { api } from '@/trpc/client';
 import { isShellStartupError } from './errors';
 import { OfflineProvider } from './offline-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
+import { VercelBrowserProvider } from './vercel-browser-provider';
 
 export class SessionManager {
     provider: Provider | null = null;
@@ -56,6 +57,13 @@ export class SessionManager {
         }
 
         const attemptConnection = async () => {
+            const vercelSession =
+                this.branch.runtime.type !== 'local' &&
+                this.branch.runtime.cloud?.provider === 'vercel_sandbox'
+                    ? await api.sandbox.start.mutate({ sandboxId })
+                    : null;
+            const activeSandboxId = vercelSession?.sandboxId ?? sandboxId;
+
             const provider =
                 this.branch.runtime.type === 'local'
                     ? await createCodeProviderClient(CodeProvider.NodeFs, {
@@ -67,18 +75,20 @@ export class SessionManager {
                               },
                           },
                       })
-                    : await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                          providerOptions: {
-                              codesandbox: {
-                                  sandboxId,
-                                  userId,
-                                  initClient: true,
-                                  getSession: async (sandboxId, _userId) => {
-                                      return api.sandbox.start.mutate({ sandboxId });
-                                  },
-                              },
-                          },
-                      });
+                    : this.branch.runtime.cloud?.provider === 'vercel_sandbox'
+                      ? new VercelBrowserProvider({ sandboxId: activeSandboxId })
+                      : await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                            providerOptions: {
+                                codesandbox: {
+                                    sandboxId,
+                                    userId,
+                                    initClient: true,
+                                    getSession: async (sandboxId, _userId) => {
+                                        return api.sandbox.start.mutate({ sandboxId });
+                                    },
+                                },
+                            },
+                        });
 
             runInAction(() => {
                 this.provider = provider;

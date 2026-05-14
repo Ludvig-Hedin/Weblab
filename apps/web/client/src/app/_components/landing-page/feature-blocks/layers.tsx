@@ -6,7 +6,6 @@ import { cn } from '@weblab/ui/utils';
 
 import { Illustrations } from '../illustrations';
 
-// Mock data for layers with nested structure
 const mockLayers = [
     {
         id: '2',
@@ -84,7 +83,6 @@ function MockLayersTab() {
                             key={layer.id}
                             className={cn(
                                 'flex h-5.5 cursor-pointer items-center px-2 text-xs transition-colors select-none',
-                                // Component styling
                                 isComponent &&
                                     !layer.isInstance &&
                                     !isHovered &&
@@ -97,7 +95,6 @@ function MockLayersTab() {
                                     !layer.isInstance &&
                                     isSelected &&
                                     'dark:text-primary bg-purple-500 text-white dark:bg-purple-500/90',
-                                // Instance styling
                                 layer.isInstance &&
                                     isSelected &&
                                     'bg-purple-700/70 text-purple-100 dark:bg-purple-500/50 dark:text-purple-100',
@@ -108,7 +105,6 @@ function MockLayersTab() {
                                     !isSelected &&
                                     isHovered &&
                                     'bg-purple-400/30 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200',
-                                // Regular selection styling
                                 !isComponent &&
                                     !layer.isInstance &&
                                     isSelected &&
@@ -123,7 +119,6 @@ function MockLayersTab() {
                                     !isSelected &&
                                     !isHovered &&
                                     'text-foreground-weblab',
-                                // Rounded corners
                                 isHovered && !isSelected && 'rounded',
                                 isSelected && 'rounded',
                             )}
@@ -145,8 +140,9 @@ function MockLayersTab() {
 
 export function LayersBlock() {
     return (
-        <div className="flex flex-col gap-6">
-            <div className="bg-background-weblab/80 relative h-100 w-full overflow-hidden rounded-lg">
+        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-16">
+            {/* Visual */}
+            <div className="bg-background-weblab/80 relative h-[25rem] w-full overflow-hidden rounded-lg">
                 <div className="border-foreground-primary/20 absolute top-12 left-2 z-20 flex h-100 w-40 flex-col items-center justify-start overflow-hidden rounded-xl border-[0.5px] bg-black/85 backdrop-blur-2xl sm:left-1/30 sm:w-48">
                     <p className="text-foreground-primary text-regular border-foreground-primary/20 w-full border-b-[0.5px] px-3 py-2 text-left font-light">
                         Layers
@@ -181,18 +177,15 @@ export function LayersBlock() {
                     </div>
                 </div>
             </div>
-            <div className="flex w-full flex-col items-start gap-4 sm:flex-row sm:gap-8">
-                {/* Icon + Title */}
-                <div className="flex w-full flex-col items-start sm:w-1/2">
-                    <div className="mb-2">
-                        <Icons.Layers className="text-foreground-primary h-6 w-6" />
-                    </div>
-                    <span className="text-foreground-primary text-largePlus font-light">
-                        Navigate Your Code
-                    </span>
+            {/* Text */}
+            <div className="flex flex-col gap-4">
+                <div>
+                    <Icons.Layers className="text-foreground-primary h-6 w-6" />
                 </div>
-                {/* Description */}
-                <p className="text-foreground-secondary text-regular w-full text-balance sm:w-1/2">
+                <span className="text-foreground-primary text-largePlus font-light">
+                    Navigate Your Code
+                </span>
+                <p className="text-foreground-secondary text-regular">
                     See your component hierarchy. Click any layer to select it on the canvas.
                 </p>
             </div>

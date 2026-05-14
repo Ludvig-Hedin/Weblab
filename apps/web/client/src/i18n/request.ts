@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { IntlErrorCode, type IntlError } from 'next-intl';
 import { getRequestConfig } from 'next-intl/server';
 
 import { Language } from '@weblab/constants';
@@ -25,18 +26,31 @@ function mergeMessages(
     return result;
 }
 
+const intlBehaviorConfig = {
+    onError(error: IntlError) {
+        if (error.code === IntlErrorCode.MISSING_MESSAGE) {
+            return;
+        }
+        console.error(error);
+    },
+    getMessageFallback({ key, namespace }: { key: string; namespace?: string }) {
+        return [namespace, key].filter(Boolean).join('.');
+    },
+};
+
 export default getRequestConfig(async () => {
     const locale = await getLanguage();
     const enMessages = (await import(`../../messages/en.json`)).default;
 
     if (locale === Language.English) {
-        return { locale, messages: enMessages };
+        return { locale, messages: enMessages, ...intlBehaviorConfig };
     }
 
     const localeMessages = (await import(`../../messages/${locale}.json`)).default;
     return {
         locale,
         messages: mergeMessages(enMessages, localeMessages),
+        ...intlBehaviorConfig,
     };
 });
 

@@ -49,9 +49,9 @@ export function UseCasesSection() {
 
     return (
         <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
-            <div className="grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-20">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-20">
                 {/* Left: visual */}
-                <div className="border-foreground-primary/10 bg-background-secondary/40 relative aspect-[4/5] w-full overflow-hidden rounded-2xl border backdrop-blur-sm md:aspect-auto md:min-h-[36rem]">
+                <div className="border-foreground-primary/10 bg-background-secondary/40 relative aspect-[5/4] w-full overflow-hidden rounded-2xl border backdrop-blur-sm md:aspect-auto md:min-h-[36rem]">
                     <AnimatePresence initial={false}>
                         <motion.div
                             key={active.key}
@@ -103,18 +103,21 @@ export function UseCasesSection() {
                     </ul>
 
                     <div className="mt-auto pt-10">
-                        <AnimatePresence initial={false}>
-                            <motion.p
-                                key={active.key}
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                                className="text-foreground-secondary text-regular max-w-md font-light tracking-tight"
-                            >
-                                {t(`${active.i18nKey}.description`)}
-                            </motion.p>
-                        </AnimatePresence>
+                        {/* Fixed-height description block prevents layout shift on tab change */}
+                        <div className="relative min-h-[7rem] max-w-md md:min-h-[6rem]">
+                            <AnimatePresence initial={false}>
+                                <motion.p
+                                    key={active.key}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                                    className="text-foreground-secondary text-regular absolute inset-0 font-light tracking-tight"
+                                >
+                                    {t(`${active.i18nKey}.description`)}
+                                </motion.p>
+                            </AnimatePresence>
+                        </div>
 
                         <Link
                             href={Routes.PROJECTS}

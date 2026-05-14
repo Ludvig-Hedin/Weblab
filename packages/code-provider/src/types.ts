@@ -167,10 +167,19 @@ export interface CreateProjectInput {
     description?: string;
     tags?: string[];
     privacy?: 'public' | 'unlisted' | 'private';
+    port?: number;
+    devCommand?: string;
+    snapshotId?: string;
 }
 export interface CreateProjectOutput {
     id: string;
     previewToken?: string;
+    previewUrl?: string;
+    snapshotId?: string;
+    provider?: string;
+    port?: number;
+    devCommand?: string;
+    runtime?: string;
 }
 
 export interface PauseProjectInput {}
@@ -187,7 +196,10 @@ export interface CreateSessionInput {
         id: string;
     };
 }
-export interface CreateSessionOutput {}
+export interface CreateSessionOutput {
+    sandboxId?: string;
+    previewUrl?: string;
+}
 
 export abstract class Provider {
     abstract writeFile(input: WriteFileInput): Promise<WriteFileOutput>;
@@ -244,6 +256,18 @@ export abstract class Provider {
 
     // this is called when the provider instance is no longer needed
     abstract destroy(): Promise<void>;
+}
+
+export interface StaticProvider {
+    createProject(input: CreateProjectInput): Promise<CreateProjectOutput>;
+    createProjectFromGit(input: {
+        repoUrl: string;
+        branch: string;
+        subpath?: string;
+        privacy?: 'public' | 'unlisted' | 'private';
+        port?: number;
+        devCommand?: string;
+    }): Promise<CreateProjectOutput>;
 }
 
 export abstract class ProviderFileWatcher {
