@@ -84,6 +84,8 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
     );
     // D — go to design from any mode (code, preview, cms, etc.)
     useHotkeys('d', () => editorEngine.state.setEditorMode(EditorMode.DESIGN), undefined, []);
+    // P — open pages panel (replaces old 'p' preview shortcut, now mod+shift+p)
+    useHotkeys('p', () => toggleLeftPanelTab(LeftPanelTabValue.PAGES), undefined, []);
     useHotkeys(getKey('CODE'), () => editorEngine.state.setEditorMode(EditorMode.CODE), undefined, [
         getKey('CODE'),
     ]);

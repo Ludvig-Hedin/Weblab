@@ -21,7 +21,7 @@ export class Hotkey {
     static readonly PAN = new Hotkey('h', 'Pan');
     static readonly COMMENT = new Hotkey('c', 'Comment');
     static readonly TOGGLE_COMMENTS = new Hotkey('shift+c', 'Toggle Comments');
-    static readonly PREVIEW = new Hotkey('p', 'Preview');
+    static readonly PREVIEW = new Hotkey('mod+shift+p', 'Preview');
     static readonly INSERT_DIV = new Hotkey('r', 'Insert Div');
     static readonly INSERT_FLEX_DIV = new Hotkey('shift+f', 'Insert Flex Div');
     static readonly INSERT_BUTTON = new Hotkey('b', 'Insert Button');

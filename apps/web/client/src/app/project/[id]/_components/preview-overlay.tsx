@@ -298,6 +298,7 @@ function DimInput({
                         (e.currentTarget as HTMLInputElement).blur();
                     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                         e.preventDefault();
+                        e.stopPropagation();
                         const step = e.shiftKey ? 10 : 1;
                         const dir = e.key === 'ArrowUp' ? 1 : -1;
                         const next = clampDim((Number(draft) || value) + dir * step, max);
