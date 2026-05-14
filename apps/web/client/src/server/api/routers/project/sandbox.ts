@@ -535,6 +535,61 @@ export const sandboxRouter = createTRPCRouter({
                 await provider.destroy().catch(() => undefined);
             }
         }),
+    /**
+     * Server-side bulk file upload for orphan sandboxes backed by server-side
+     * providers (Vercel Sandbox). The browser CodeSandbox SDK uses its own
+     * WebSocket path; this endpoint exists because the Vercel Sandbox SDK is
+     * server-only and cannot run in the browser.
+     *
+     * Trust model mirrors `startOrphan` / `deleteOrphan`: refuses if ANY
+     * branch row references the sandbox.
+     */
+    orphanBulkUpload: protectedProcedure
+        .input(
+            z.object({
+                sandboxId: z.string(),
+                files: z.array(
+                    z.object({
+                        path: z.string(),
+                        content: z.union([z.string(), z.array(z.number())]),
+                    }),
+                ),
+                runSetup: z.boolean().optional(),
+            }),
+        )
+        .mutation(async ({ input, ctx }) => {
+            const branch = await ctx.db.query.branches.findFirst({
+                where: eq(branches.sandboxId, input.sandboxId),
+            });
+            if (branch) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message:
+                        'Sandbox is attached to a project; use sandbox.fileWrite with project ownership.',
+                });
+            }
+            const provider = await getProvider({
+                sandboxId: input.sandboxId,
+                userId: ctx.user.id,
+                provider: CodeProvider.VercelSandbox,
+            });
+            try {
+                for (const file of input.files) {
+                    const content =
+                        typeof file.content === 'string'
+                            ? file.content
+                            : Uint8Array.from(file.content);
+                    await provider.writeFile({
+                        args: { path: file.path, content, overwrite: true },
+                    });
+                }
+                if (input.runSetup) {
+                    await provider.setup({});
+                }
+            } finally {
+                await provider.destroy().catch(() => undefined);
+            }
+        }),
     createFromGitHub: protectedProcedure
         .input(
             z.object({

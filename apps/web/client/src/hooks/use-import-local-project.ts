@@ -45,6 +45,7 @@ export function useImportLocalProject() {
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
     const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
+    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS);
@@ -104,11 +105,11 @@ export function useImportLocalProject() {
 
             const folderName = folderHandle.name || 'Local Project';
 
-            // 1. Fork blank sandbox.
+            // 1. Fork blank sandbox. No hardcoded provider — the server uses
+            // the configured WEBLAB_CLOUD_PROVIDER (vercel_sandbox or code_sandbox).
             setProgress({ filesUploaded: 0, phase: 'forking' });
             const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
-                provider: 'code_sandbox',
                 config: {
                     title: `${folderName} - ${user.id}`,
                     tags: ['local-import', user.id],
@@ -116,29 +117,7 @@ export function useImportLocalProject() {
             });
             forkedSandboxId = sandboxId;
 
-            // 2. Connect a client to that sandbox so we can write files.
-            // `sandbox.start` requires the sandbox to be attached to a project
-            // via a `branches` row (CR-118 ownership check), which orphans
-            // don't have yet — the project row gets created in step 4. Use
-            // `startOrphan`, which mirrors the trust model of `deleteOrphan`.
-            setProgress({ filesUploaded: 0, phase: 'connecting' });
-            provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                providerOptions: {
-                    codesandbox: {
-                        sandboxId,
-                        userId: user.id,
-                        initClient: true,
-                        getSession: async (id) =>
-                            apiClient.sandbox.startOrphan.mutate({
-                                sandboxId: id,
-                                provider: 'code_sandbox',
-                            }),
-                    },
-                },
-            });
-
-            // 3. Read and upload files. Walking is still capped before upload,
-            // then writes run with bounded concurrency instead of one-by-one.
+            // 2. Walk files (needed by both upload paths).
             setProgress({ filesUploaded: 0, phase: 'uploading' });
             const walker = walkFiles(folderHandle, {
                 maxFiles: DEFAULT_MAX_IMPORT_FILES,
@@ -158,44 +137,89 @@ export function useImportLocalProject() {
                     }
                     break;
                 }
-
                 filesToUpload.push(next.value);
             }
 
-            let filesUploaded = 0;
-            setProgress({ filesUploaded, filesTotal: filesToUpload.length, phase: 'uploading' });
-            const uploadConcurrency = 8;
-            let nextUploadIndex = 0;
-            const uploadWorkers = Array.from(
-                { length: Math.min(uploadConcurrency, filesToUpload.length) },
-                async () => {
-                    while (nextUploadIndex < filesToUpload.length) {
-                        const file = filesToUpload[nextUploadIndex];
-                        nextUploadIndex += 1;
-                        if (!file) continue;
-                        const result = await provider?.writeFile({
-                            args: {
-                                path: file.path,
-                                content: file.content,
-                                overwrite: true,
-                            },
-                        });
-                        if (!result?.success) {
-                            throw new Error(`Failed to upload file: ${file.path}`);
-                        }
-                        filesUploaded += 1;
-                        if (filesUploaded % 25 === 0 || filesUploaded === filesToUpload.length) {
-                            setProgress({
-                                filesUploaded,
-                                filesTotal: filesToUpload.length,
-                                phase: 'uploading',
+            setProgress({ filesUploaded: 0, filesTotal: filesToUpload.length, phase: 'uploading' });
+
+            if (sandboxRuntime.provider === 'vercel_sandbox') {
+                // Vercel Sandbox SDK is server-only; upload via tRPC so the
+                // server writes files directly into the sandbox.
+                await orphanBulkUpload({
+                    sandboxId,
+                    files: filesToUpload.map((f) => ({
+                        path: f.path,
+                        content: Array.from(f.content),
+                    })),
+                    runSetup: true,
+                });
+            } else {
+                // CodeSandbox: connect via browser WebSocket and upload files
+                // concurrently. Use startOrphan (not start) because the sandbox
+                // has no branch row yet — that is created in step 3 below.
+                setProgress({ filesUploaded: 0, phase: 'connecting' });
+                provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                    providerOptions: {
+                        codesandbox: {
+                            sandboxId,
+                            userId: user.id,
+                            initClient: true,
+                            getSession: async (id) =>
+                                apiClient.sandbox.startOrphan.mutate({
+                                    sandboxId: id,
+                                    provider: 'code_sandbox',
+                                }),
+                        },
+                    },
+                });
+
+                let filesUploaded = 0;
+                setProgress({
+                    filesUploaded,
+                    filesTotal: filesToUpload.length,
+                    phase: 'uploading',
+                });
+                const uploadConcurrency = 8;
+                let nextUploadIndex = 0;
+                const uploadWorkers = Array.from(
+                    { length: Math.min(uploadConcurrency, filesToUpload.length) },
+                    async () => {
+                        while (nextUploadIndex < filesToUpload.length) {
+                            const file = filesToUpload[nextUploadIndex];
+                            nextUploadIndex += 1;
+                            if (!file) continue;
+                            const result = await provider?.writeFile({
+                                args: {
+                                    path: file.path,
+                                    content: file.content,
+                                    overwrite: true,
+                                },
                             });
+                            if (!result?.success) {
+                                throw new Error(`Failed to upload file: ${file.path}`);
+                            }
+                            filesUploaded += 1;
+                            if (
+                                filesUploaded % 25 === 0 ||
+                                filesUploaded === filesToUpload.length
+                            ) {
+                                setProgress({
+                                    filesUploaded,
+                                    filesTotal: filesToUpload.length,
+                                    phase: 'uploading',
+                                });
+                            }
                         }
-                    }
-                },
-            );
-            await Promise.all(uploadWorkers);
-            setProgress({ filesUploaded, filesTotal: filesToUpload.length, phase: 'creating' });
+                    },
+                );
+                await Promise.all(uploadWorkers);
+            }
+
+            setProgress({
+                filesUploaded: filesToUpload.length,
+                filesTotal: filesToUpload.length,
+                phase: 'creating',
+            });
 
             // 4. Create the project record.
             const newProject = await createProject({
