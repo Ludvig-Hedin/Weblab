@@ -48,7 +48,7 @@ function ChooserCard({
     const inner = (
         <>
             <div className="flex flex-col gap-3">
-                <div className="border-foreground/10 bg-background flex h-10 w-10 items-center justify-center rounded-full border">
+                <div className="border-foreground/10 flex h-10 w-10 items-center justify-center rounded-md border">
                     {busy ? <Icons.LoadingSpinner className="h-4 w-4 animate-spin" /> : icon}
                 </div>
                 <div className="space-y-1">
@@ -157,7 +157,7 @@ export function ProjectChooserCards({
             )}
             <div className="flex w-full items-center gap-3">
                 <div className="bg-foreground/10 h-px flex-1" />
-                <span className="text-foreground-tertiary text-xs tracking-[0.2em] uppercase">
+                <span className="text-foreground-tertiary text-xs ">
                     or pick a starting point
                 </span>
                 <div className="bg-foreground/10 h-px flex-1" />

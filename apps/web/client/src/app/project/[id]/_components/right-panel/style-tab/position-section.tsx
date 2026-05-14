@@ -103,7 +103,7 @@ export const PositionSection = observer(() => {
         <div className="space-y-3">
             <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-tertiary text-mini tracking-[0.2em] uppercase">
+                    <span className="text-foreground-tertiary text-mini ">
                         Type
                     </span>
                     <Select value={positionValue} onValueChange={handlePositionTypeChange}>

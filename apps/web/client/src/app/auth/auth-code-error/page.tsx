@@ -59,7 +59,7 @@ export default async function AuthCodeErrorPage({ searchParams }: AuthCodeErrorP
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">
             <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
-                <p className="text-foreground-tertiary text-sm tracking-[0.2em] uppercase">
+                <p className="text-foreground-tertiary text-sm ">
                     {t('eyebrow')}
                 </p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">{title}</h1>
