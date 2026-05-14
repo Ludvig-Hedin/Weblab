@@ -131,7 +131,7 @@ export function TypographyDemo() {
                 }
             >
                 <div className="border-border overflow-hidden rounded-xl border">
-                    <div className="text-foreground-tertiary bg-foreground/[0.03] grid grid-cols-[1fr_1.4fr_1fr] gap-4 px-4 py-2 font-mono text-[10px] tracking-wider uppercase">
+                    <div className="text-foreground-tertiary bg-foreground/[0.03] grid grid-cols-[1fr_1.4fr_1fr] gap-4 px-4 py-2 font-mono text-[10px]">
                         <span>Use case</span>
                         <span>Use this</span>
                         <span>Avoid</span>

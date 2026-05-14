@@ -64,7 +64,7 @@ export default function ErrorPage({
                 <p className="text-foreground-secondary mt-4 text-sm leading-6">{COPY.BODY}</p>
                 {reference && reference !== 'unknown' && (
                     <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
-                        <p className="text-foreground-tertiary text-xs tracking-wide uppercase">
+                        <p className="text-foreground-tertiary text-xs">
                             {COPY.ERROR_DETAILS_LABEL}
                         </p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">

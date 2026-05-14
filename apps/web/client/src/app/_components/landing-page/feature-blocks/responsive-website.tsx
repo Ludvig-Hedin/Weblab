@@ -72,7 +72,7 @@ export function ResponsiveWebsiteBlock() {
                     {/* Browser Header */}
                     <div className="flex h-8 w-full items-center justify-between rounded-t-lg border-b border-[#D1CFC9] bg-[#E5E3DE] px-3 select-none">
                         <div className="flex items-center gap-2">
-                            <h2 className="font-serif text-xs text-[#3C342F] uppercase">Ceramix</h2>
+                            <h2 className="font-serif text-xs text-[#3C342F]">Ceramix</h2>
                         </div>
                         <div className="flex items-center gap-4 text-[10px] text-[#3C342F]">
                             {isMobileWidth ? (
@@ -99,7 +99,7 @@ export function ResponsiveWebsiteBlock() {
 
                         {/* "View Work" Button */}
                         <div className="hover:bg-opacity-90 mb-12 w-24 cursor-pointer bg-[#8E837D] p-2 text-center transition-opacity">
-                            <p className="text-[10px] font-medium tracking-wider text-white">
+                            <p className="text-[10px] font-medium text-white">
                                 VIEW WORK
                             </p>
                         </div>

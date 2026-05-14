@@ -76,7 +76,7 @@ const Feature43 = ({
                                 {item.icon}
                             </div>
                             {item.eyebrow ? (
-                                <span className="text-foreground-tertiary text-small mb-2 uppercase tracking-wide">
+                                <span className="text-foreground-tertiary text-small mb-2">
                                     {item.eyebrow}
                                 </span>
                             ) : null}

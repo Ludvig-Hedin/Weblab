@@ -216,7 +216,7 @@ export const ProjectsToolbar = ({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-[220px]">
-                        <DropdownMenuLabel className="text-foreground-tertiary text-[11px] tracking-wider uppercase">
+                        <DropdownMenuLabel className="text-foreground-tertiary text-[11px]">
                             {t('filterStatus')}
                         </DropdownMenuLabel>
                         <DropdownMenuRadioGroup
@@ -237,7 +237,7 @@ export const ProjectsToolbar = ({
                         </DropdownMenuRadioGroup>
 
                         <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="text-foreground-tertiary text-[11px] tracking-wider uppercase">
+                        <DropdownMenuLabel className="text-foreground-tertiary text-[11px]">
                             {t('filterDate')}
                         </DropdownMenuLabel>
                         <DropdownMenuRadioGroup
@@ -263,7 +263,7 @@ export const ProjectsToolbar = ({
                         {folders.length > 0 && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="text-foreground-tertiary text-[11px] tracking-wider uppercase">
+                                <DropdownMenuLabel className="text-foreground-tertiary text-[11px]">
                                     {t('filterFolder')}
                                 </DropdownMenuLabel>
                                 <DropdownMenuRadioGroup
@@ -293,7 +293,7 @@ export const ProjectsToolbar = ({
                         {availableTechStacks.length > 0 && (
                             <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="text-foreground-tertiary text-[11px] tracking-wider uppercase">
+                                <DropdownMenuLabel className="text-foreground-tertiary text-[11px]">
                                     {t('filterTech')}
                                 </DropdownMenuLabel>
                                 {availableTechStacks.map((stack) => {

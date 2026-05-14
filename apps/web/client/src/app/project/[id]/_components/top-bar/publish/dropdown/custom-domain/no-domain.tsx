@@ -14,7 +14,7 @@ export const NoCustomDomain = () => {
         >
             <Icons.Globe className="h-4 w-4" />
             Link a Custom Domain
-            <span className="bg-foreground/10 text-foreground-secondary text-micro ml-auto rounded-full px-1.5 py-0.5 font-medium tracking-wide uppercase">
+            <span className="bg-foreground/10 text-foreground-secondary text-micro ml-auto rounded-full px-1.5 py-0.5 font-medium">
                 PRO
             </span>
             <Icons.ChevronRight className="h-3 w-3" />

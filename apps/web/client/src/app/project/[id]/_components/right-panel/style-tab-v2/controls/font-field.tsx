@@ -193,7 +193,7 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                 <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
                     {filteredInstalled.length > 0 && (
                         <div className="divide-border divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-[10px] tracking-wider uppercase">
+                            <div className="text-muted-foreground px-1 pb-1 text-[10px]">
                                 In this project
                             </div>
                             {filteredInstalled.map((font) => (
@@ -212,7 +212,7 @@ export const FontField = observer(function FontField({ value, onCommit }: FontFi
                     )}
                     {googleFonts.length > 0 && (
                         <div className="divide-border mt-2 divide-y">
-                            <div className="text-muted-foreground px-1 pb-1 text-[10px] tracking-wider uppercase">
+                            <div className="text-muted-foreground px-1 pb-1 text-[10px]">
                                 {query.trim() ? 'Google Fonts' : 'Popular Google Fonts'}
                             </div>
                             {googleFonts.map((font) => (

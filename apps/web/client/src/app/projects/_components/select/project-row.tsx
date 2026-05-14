@@ -344,7 +344,7 @@ export const ProjectRow = ({
 export const ProjectTableHeader = () => {
     const t = useTranslations('selectProject');
     return (
-        <div className="text-foreground-tertiary border-foreground/8 grid grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 border-b px-2 pb-2 text-[10px] font-medium tracking-wider uppercase">
+        <div className="text-foreground-tertiary border-foreground/8 grid grid-cols-[32px_56px_minmax(0,1fr)_minmax(0,1.2fr)_88px_minmax(0,140px)_104px] items-center gap-3 border-b px-2 pb-2 text-[10px] font-medium">
             <span></span>
             <span></span>
             <span>{t('tableColName')}</span>

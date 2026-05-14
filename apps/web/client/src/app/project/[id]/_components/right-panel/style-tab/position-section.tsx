@@ -124,7 +124,7 @@ export const PositionSection = observer(() => {
             <div className="grid grid-cols-2 gap-2">
                 {POSITION_FIELDS.map(({ key, label }) => (
                     <label key={key} className="space-y-1.5">
-                        <span className="text-foreground-tertiary text-[11px] tracking-[0.18em] uppercase">
+                        <span className="text-foreground-tertiary text-[11px]">
                             {label}
                         </span>
                         <Input

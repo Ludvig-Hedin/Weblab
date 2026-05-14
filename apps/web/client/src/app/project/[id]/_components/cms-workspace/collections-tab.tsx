@@ -36,7 +36,7 @@ export const CollectionsTab = observer(() => {
         <div className="flex h-full flex-row">
             <aside className="border-border flex w-64 flex-col border-r">
                 <div className="border-border flex items-center justify-between border-b px-3 py-2">
-                    <span className="text-foreground-secondary text-mini font-medium tracking-wide uppercase">
+                    <span className="text-foreground-secondary text-mini font-medium">
                         {t(transKeys.cms.collections.sidebarTitle)}
                     </span>
                     <Button

@@ -65,7 +65,7 @@ export default async function CompareIndexPage() {
                                         href={`/compare/${c.slug}`}
                                         className="border-foreground-tertiary/30 hover:border-foreground-primary/60 group block rounded border p-8 transition-colors"
                                     >
-                                        <p className="text-foreground-tertiary mb-2 text-sm tracking-wide uppercase">
+                                        <p className="text-foreground-tertiary mb-2 text-sm">
                                             {t(`competitors.${c.key}.tagline`)}
                                         </p>
                                         <h3 className="mb-3 text-2xl font-light md:text-3xl">

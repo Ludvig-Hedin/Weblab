@@ -18,7 +18,7 @@ export const LoadingState = ({ type }: { type: DeploymentType }) => {
 
     return (
         <div className="flex flex-col gap-2 p-3">
-            <p className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+            <p className="text-foreground-tertiary text-mini font-medium">
                 {type === 'preview' ? 'Base' : 'Custom'} Domain
             </p>
             <p className="text-foreground-secondary">{deployment?.message}</p>

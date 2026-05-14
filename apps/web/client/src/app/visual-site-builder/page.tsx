@@ -62,7 +62,7 @@ export default function VisualSiteBuilderPage() {
                 {/* Hero */}
                 <section className="px-4 pt-32 pb-24 sm:px-6 md:px-8 md:pt-40 md:pb-32">
                     <div className="mx-auto max-w-6xl">
-                        <p className="text-foreground-tertiary mb-6 text-xs font-medium tracking-widest uppercase">
+                        <p className="text-foreground-tertiary mb-6 text-xs font-medium ">
                             Visual Site Builder
                         </p>
                         <h1 className="mb-8 max-w-4xl text-5xl leading-[1.05] font-light text-balance md:text-7xl">
@@ -118,7 +118,7 @@ export default function VisualSiteBuilderPage() {
                         <h2 className="mb-16 text-4xl font-light md:text-5xl">How it works</h2>
                         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm tracking-widest uppercase">
+                                <p className="text-foreground-tertiary mb-3 text-sm ">
                                     Step 1
                                 </p>
                                 <h3 className="mb-3 text-2xl font-light">Connect your repo</h3>
@@ -129,7 +129,7 @@ export default function VisualSiteBuilderPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm tracking-widest uppercase">
+                                <p className="text-foreground-tertiary mb-3 text-sm ">
                                     Step 2
                                 </p>
                                 <h3 className="mb-3 text-2xl font-light">Design on canvas</h3>
@@ -140,7 +140,7 @@ export default function VisualSiteBuilderPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm tracking-widest uppercase">
+                                <p className="text-foreground-tertiary mb-3 text-sm ">
                                     Step 3
                                 </p>
                                 <h3 className="mb-3 text-2xl font-light">Ship a pull request</h3>
@@ -164,13 +164,13 @@ export default function VisualSiteBuilderPage() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-foreground-primary/10 bg-foreground-primary/[0.03] border-b">
-                                        <th className="px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="px-6 py-4 text-sm font-normal ">
                                             Capability
                                         </th>
-                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal ">
                                             {APP_NAME}
                                         </th>
-                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal ">
                                             Hosted drag-and-drop builders
                                         </th>
                                     </tr>
@@ -315,7 +315,7 @@ export default function VisualSiteBuilderPage() {
                 {/* Related reading */}
                 <section className="border-foreground-primary/10 border-t px-4 py-20 sm:px-6 md:px-8">
                     <div className="mx-auto max-w-4xl">
-                        <p className="text-foreground-tertiary mb-4 text-sm tracking-widest uppercase">
+                        <p className="text-foreground-tertiary mb-4 text-sm ">
                             Related reading
                         </p>
                         <ul className="space-y-3 text-lg">

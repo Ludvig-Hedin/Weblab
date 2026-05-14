@@ -59,7 +59,7 @@ function PairedRow({ label, widthProperty, heightProperty }: PairedRowProps) {
                         className="text-center"
                         aria-label={widthProperty}
                     />
-                    <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
+                    <span className="text-foreground-tertiary text-[10px] leading-none">
                         W
                     </span>
                 </div>
@@ -71,7 +71,7 @@ function PairedRow({ label, widthProperty, heightProperty }: PairedRowProps) {
                         className="text-center"
                         aria-label={heightProperty}
                     />
-                    <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
+                    <span className="text-foreground-tertiary text-[10px] leading-none">
                         H
                     </span>
                 </div>

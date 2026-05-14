@@ -107,7 +107,7 @@ const Project1 = ({ className }: Project1Props) => {
                                         key={detail.label}
                                         className="flex flex-col border-b border-slate-200 py-3 text-sm sm:flex-row sm:items-center sm:justify-between md:text-base dark:border-slate-800"
                                     >
-                                        <span className="text-xs font-medium tracking-wide text-slate-500 uppercase md:text-sm dark:text-slate-400">
+                                        <span className="text-xs font-medium text-slate-500 md:text-sm dark:text-slate-400">
                                             {detail.label}
                                         </span>
                                         <span className="font-semibold text-slate-950 dark:text-slate-50">

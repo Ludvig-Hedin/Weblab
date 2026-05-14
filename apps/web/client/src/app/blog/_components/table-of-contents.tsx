@@ -43,7 +43,7 @@ export function TableOfContents({ toc }: TableOfContentsProps) {
 
     return (
         <nav aria-label="Table of contents">
-            <p className="text-foreground-tertiary mb-4 text-xs font-medium tracking-widest uppercase">
+            <p className="text-foreground-tertiary mb-4 text-xs font-medium">
                 On this page
             </p>
             <ul className="flex flex-col">

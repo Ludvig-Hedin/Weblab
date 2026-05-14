@@ -120,7 +120,7 @@ export default function BlogPage() {
             />
             <main className="mx-auto w-full max-w-6xl px-4 pt-28 pb-20 md:px-8 md:pt-32">
                 <header className="mb-8">
-                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-1.5 text-xs font-medium">
                         Resources
                     </p>
                     <h1 className="text-foreground-primary text-3xl font-light tracking-tight md:text-4xl">
@@ -157,7 +157,7 @@ export default function BlogPage() {
             {/* CTA Section */}
             <section className="border-foreground-primary/10 border-t">
                 <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center md:px-8">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium">
                         Get started
                     </p>
                     <h2 className="text-foreground-primary mb-8 text-4xl font-light tracking-tight text-balance md:text-5xl">

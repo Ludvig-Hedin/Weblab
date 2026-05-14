@@ -68,7 +68,7 @@ export function UseCasesSection() {
 
                 {/* Right: copy + tabs */}
                 <div className="flex flex-col">
-                    <span className="text-mini text-foreground-primary/80 font-mono tracking-wide uppercase">
+                    <span className="text-mini text-foreground-primary/80 font-mono">
                         {t('eyebrow')}
                     </span>
 
@@ -264,7 +264,7 @@ function RefChip({
                 <span className="text-foreground-secondary">{icon}</span>
                 <span className="text-foreground-secondary truncate text-[10.5px]">{title}</span>
             </span>
-            <span className="text-foreground-tertiary font-mono text-[9px] tracking-wide whitespace-nowrap">
+            <span className="text-foreground-tertiary font-mono text-[9px] whitespace-nowrap">
                 {meta}
             </span>
         </div>
@@ -530,7 +530,7 @@ function ResultGroup({
 }) {
     return (
         <div className="px-1 py-1.5">
-            <div className="text-foreground-tertiary mb-1 flex items-center gap-1 px-2 font-mono text-[9px] tracking-wide uppercase">
+            <div className="text-foreground-tertiary mb-1 flex items-center gap-1 px-2 font-mono text-[9px]">
                 <span className="opacity-70">{icon}</span>
                 <span>{label}</span>
             </div>
@@ -559,7 +559,7 @@ function ConnectVisual() {
                     <span className="absolute top-4 bottom-4 left-0 w-[2px] rounded-r bg-[var(--foreground-brand)]" />
 
                     <div className="px-5 pt-5 pb-5">
-                        <span className="text-foreground-tertiary font-mono text-[10px] tracking-wide uppercase">
+                        <span className="text-foreground-tertiary font-mono text-[10px]">
                             Connect repository
                         </span>
                         <div className="text-foreground-primary mt-2 text-[14px] font-light tracking-tight">

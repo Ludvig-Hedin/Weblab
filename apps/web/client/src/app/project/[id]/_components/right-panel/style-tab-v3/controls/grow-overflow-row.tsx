@@ -238,7 +238,7 @@ export const OverflowRow = observer(function OverflowRow({
                                 aria-label={label}
                                 className={toggleItemClass(
                                     isSet,
-                                    text ? 'text-[11px] font-medium tracking-wide' : undefined,
+                                    text ? 'text-[11px] font-medium' : undefined,
                                 )}
                             >
                                 {Icon && <Icon className="size-3" />}

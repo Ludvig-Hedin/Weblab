@@ -144,7 +144,7 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
                         {template.shortDescription}
                     </p>
                 </div>
-                <span className="text-foreground-tertiary mt-0.5 flex-shrink-0 text-[11px] tracking-wide capitalize">
+                <span className="text-foreground-tertiary mt-0.5 flex-shrink-0 text-[11px] capitalize">
                     {template.category}
                 </span>
             </div>

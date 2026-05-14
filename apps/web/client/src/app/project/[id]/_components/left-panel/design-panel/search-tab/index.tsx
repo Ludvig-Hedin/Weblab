@@ -54,7 +54,7 @@ const ResultList = ({ results, activeIndex, onSelect }: ResultListProps) => {
         <div className="flex flex-col gap-2 pb-2">
             {groups.map((group) => (
                 <div key={group.frameId} className="flex flex-col gap-0.5">
-                    <div className="text-foreground-primary/40 px-2 pt-1 pb-0.5 text-[10px] font-medium tracking-wide uppercase">
+                    <div className="text-foreground-primary/40 px-2 pt-1 pb-0.5 text-[10px] font-medium">
                         {group.frameName}
                     </div>
                     {group.items.map((result) => {
@@ -168,7 +168,7 @@ export const SearchTab = observer(() => {
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent align="end" side="bottom" className="w-44 p-2">
-                        <div className="text-foreground-primary/60 mb-1 px-1 text-[10px] tracking-wide uppercase">
+                        <div className="text-foreground-primary/60 mb-1 px-1 text-[10px]">
                             Filter
                         </div>
                         <ToggleGroup

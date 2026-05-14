@@ -440,7 +440,7 @@ const PresetCard = ({ preset, isArmed, onDragStart, onClick }: PresetCardProps) 
             )}
             <span className="text-foreground-primary line-clamp-1 text-[11px]">{preset.label}</span>
             {disabled && (
-                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
+                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px]">
                     Soon
                 </span>
             )}
@@ -529,7 +529,7 @@ const BlockCard = ({
                 </span>
             </div>
             {disabled && (
-                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px] tracking-wide uppercase">
+                <span className="bg-background/80 text-muted-foreground absolute top-1 right-1 rounded px-1 py-0.5 text-[8px]">
                     Install
                 </span>
             )}

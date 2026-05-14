@@ -61,7 +61,7 @@ const Compare7 = ({
                         <table className="w-full border-collapse text-left">
                             <thead>
                                 <tr className="border-foreground-primary/10 border-b">
-                                    <th className="text-foreground-tertiary text-small px-5 py-4 font-normal uppercase tracking-wide">
+                                    <th className="text-foreground-tertiary text-small px-5 py-4 font-normal">
                                         {featureColumnLabel}
                                     </th>
                                     <th className="text-foreground-primary text-regular bg-foreground-primary/5 px-5 py-4 font-normal">

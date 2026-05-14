@@ -186,7 +186,7 @@ export function NumberField({
                             // pointer cursor — not a scrub handle, no mousemove.
                             className={cn(
                                 FIELD_BASE_CLASSES,
-                                'text-muted-foreground hover:text-foreground-primary flex w-[52px] shrink-0 cursor-pointer items-center justify-center px-1 text-[11px] tracking-wider uppercase select-none',
+                                'text-muted-foreground hover:text-foreground-primary flex w-[52px] shrink-0 cursor-pointer items-center justify-center px-1 text-[11px] select-none',
                             )}
                             aria-label="Change unit"
                             title="Change unit"

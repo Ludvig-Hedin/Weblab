@@ -31,7 +31,7 @@ export function GroupHeader({
             <div className="border-border flex flex-wrap items-end justify-between gap-4 border-b pb-4">
                 <div className="min-w-0">
                     {eyebrow && (
-                        <p className="text-foreground-tertiary mb-2 font-mono text-[10px] tracking-[0.18em] uppercase">
+                        <p className="text-foreground-tertiary mb-2 font-mono text-[10px]">
                             {eyebrow}
                         </p>
                     )}

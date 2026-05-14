@@ -46,7 +46,7 @@ export function ButtonsDemo() {
             <Section title="Variant × size matrix" tag="buttons" inspectId="button">
                 <div className="border-border overflow-hidden rounded-xl border">
                     <div
-                        className="bg-foreground/[0.03] text-foreground-tertiary grid gap-2 border-b px-4 py-2 text-[10px] font-medium tracking-wider uppercase"
+                        className="bg-foreground/[0.03] text-foreground-tertiary grid gap-2 border-b px-4 py-2 text-[10px] font-medium"
                         style={{
                             gridTemplateColumns: `120px repeat(${SIZES.length}, minmax(0, 1fr))`,
                         }}
@@ -262,7 +262,7 @@ export function ButtonsDemo() {
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="border-border bg-background-secondary/40 rounded-lg border p-4">
                         <div className="mb-3 flex items-center gap-2">
-                            <span className="bg-background-success text-foreground-success rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
+                            <span className="bg-background-success text-foreground-success rounded px-1.5 py-0.5 text-[10px] font-medium">
                                 Do
                             </span>
                             <span className="text-foreground-secondary text-xs font-medium">
@@ -283,7 +283,7 @@ export function ButtonsDemo() {
                     </div>
                     <div className="border-destructive/30 bg-destructive/5 rounded-lg border p-4">
                         <div className="mb-3 flex items-center gap-2">
-                            <span className="bg-destructive/10 text-destructive rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
+                            <span className="bg-destructive/10 text-destructive rounded px-1.5 py-0.5 text-[10px] font-medium">
                                 Don't
                             </span>
                             <span className="text-foreground-secondary text-xs font-medium">
@@ -468,14 +468,14 @@ function DeviationRow({ title, path, offSpec, canonical, problem, fix }: Deviati
             </div>
             <div className="grid gap-3 md:grid-cols-2">
                 <div className="border-destructive/30 bg-destructive/5 flex flex-col gap-2 rounded-md border p-3">
-                    <span className="bg-destructive/10 text-destructive w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
+                    <span className="bg-destructive/10 text-destructive w-fit rounded px-1.5 py-0.5 text-[10px] font-medium">
                         Off-spec
                     </span>
                     <div className="flex min-h-9 items-center">{offSpec}</div>
                     <p className="text-foreground-tertiary text-xs">{problem}</p>
                 </div>
                 <div className="border-border bg-background flex flex-col gap-2 rounded-md border p-3">
-                    <span className="bg-background-success text-foreground-success w-fit rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
+                    <span className="bg-background-success text-foreground-success w-fit rounded px-1.5 py-0.5 text-[10px] font-medium">
                         Canonical
                     </span>
                     <div className="flex min-h-9 items-center">{canonical}</div>

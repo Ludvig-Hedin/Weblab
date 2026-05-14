@@ -25,7 +25,7 @@ export function JustShippedStrip() {
                     href={Routes.CHANGELOG}
                     className="group border-foreground-primary/10 hover:border-foreground-primary/30 bg-background-secondary/40 inline-flex items-center gap-3 rounded-full border px-4 py-1.5 text-xs backdrop-blur-md transition-colors"
                 >
-                    <span className="bg-foreground-weblab/15 text-foreground-weblab rounded-full px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase">
+                    <span className="bg-foreground-weblab/15 text-foreground-weblab rounded-full px-2 py-0.5 text-[11px] font-medium">
                         {t('badge', { version: latest.version })}
                     </span>
                     <span className="text-foreground-secondary group-hover:text-foreground-primary transition-colors">

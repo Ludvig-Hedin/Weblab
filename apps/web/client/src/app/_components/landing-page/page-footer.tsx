@@ -12,7 +12,7 @@ import { ThemeSwitcher } from './theme-switcher';
 const linkClass =
     'relative inline-block text-foreground-primary after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-foreground-primary after:transition-all after:duration-200 hover:after:w-full';
 
-const headingClass = 'text-small uppercase text-foreground-tertiary tracking-wide mb-6';
+const headingClass = 'text-small text-foreground-tertiary mb-6';
 
 const columnClass = 'flex flex-col gap-4 text-regular';
 
@@ -301,12 +301,10 @@ export function Footer() {
                             aria-hidden="true"
                             className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
                         />
-                        <LocaleSwitcher />
-                        <span
-                            aria-hidden="true"
-                            className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
-                        />
-                        <ThemeSwitcher />
+                        <div className="flex items-center gap-2">
+                            <ThemeSwitcher />
+                            <LocaleSwitcher />
+                        </div>
                     </div>
                     <span className="text-foreground-tertiary text-small">
                         {t('legal.copyright', { year: String(new Date().getFullYear()) })}

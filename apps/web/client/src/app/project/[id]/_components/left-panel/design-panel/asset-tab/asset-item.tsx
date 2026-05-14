@@ -301,7 +301,7 @@ export const AssetItem = ({
                             <div className="text-foreground-tertiary flex h-full w-full flex-col items-center justify-center gap-1.5">
                                 <TypeIcon className="h-7 w-7" />
                                 {extensionLabel && (
-                                    <span className="text-mini text-foreground-secondary font-medium tracking-wide">
+                                    <span className="text-mini text-foreground-secondary font-medium">
                                         {extensionLabel}
                                     </span>
                                 )}

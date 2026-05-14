@@ -46,13 +46,13 @@ export function SecuritySubprocessors() {
                         <table className="w-full border-collapse text-left">
                             <thead>
                                 <tr className="border-foreground-primary/10 border-b">
-                                    <th className="text-foreground-tertiary text-small w-[28%] px-5 py-4 font-normal uppercase tracking-wide">
+                                    <th className="text-foreground-tertiary text-small w-[28%] px-5 py-4 font-normal ">
                                         {t('columns.name')}
                                     </th>
-                                    <th className="text-foreground-tertiary text-small px-5 py-4 font-normal uppercase tracking-wide">
+                                    <th className="text-foreground-tertiary text-small px-5 py-4 font-normal ">
                                         {t('columns.purpose')}
                                     </th>
-                                    <th className="text-foreground-tertiary text-small w-[20%] px-5 py-4 font-normal uppercase tracking-wide">
+                                    <th className="text-foreground-tertiary text-small w-[20%] px-5 py-4 font-normal ">
                                         {t('columns.region')}
                                     </th>
                                 </tr>
@@ -84,7 +84,7 @@ export function SecuritySubprocessors() {
                                             </td>
                                             <td className="px-5 py-4">
                                                 <span
-                                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-micro uppercase tracking-wider ${
+                                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-micro r ${
                                                         REGION_TONE[region] ??
                                                         'bg-foreground-primary/5 text-foreground-primary'
                                                     }`}

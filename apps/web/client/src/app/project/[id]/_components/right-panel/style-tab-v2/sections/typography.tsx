@@ -225,7 +225,7 @@ export const TypographySection = observer(function TypographySection() {
             {displayAdvanced && (
                 <>
                     <div className="border-border/30 mx-3 mt-1 mb-0.5 flex items-center gap-2 border-t pt-1">
-                        <span className="text-foreground-secondary text-micro tracking-wider uppercase">
+                        <span className="text-foreground-secondary text-micro">
                             Advanced
                         </span>
                         {!advancedSetCount && (

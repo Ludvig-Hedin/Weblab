@@ -57,7 +57,7 @@ const Projects5 = ({ className }: Projects5Props) => {
     return (
         <section className={cn('py-32', className)}>
             <div className="container">
-                <h1 className="text-7xl leading-tight uppercase">Projects</h1>
+                <h1 className="text-7xl leading-tight">Projects</h1>
 
                 <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
                     {projects5prop.map((project, index) => (

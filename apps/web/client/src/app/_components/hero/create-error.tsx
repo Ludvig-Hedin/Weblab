@@ -36,7 +36,7 @@ export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
             <button
                 type="button"
                 onClick={handleClick}
-                className="cursor-pointer rounded-md border border-red-500/60 px-2 py-1 text-xs font-medium tracking-wide text-red-200 uppercase transition-colors hover:bg-red-500/20"
+                className="cursor-pointer rounded-md border border-red-500/60 px-2 py-1 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/20"
             >
                 {onRetry ? t('tryAgain') : t('dismiss')}
             </button>

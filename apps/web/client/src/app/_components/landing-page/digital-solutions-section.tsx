@@ -263,7 +263,7 @@ function VisualChrome({
     return (
         <div className="border-foreground-primary/10 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                <span className="text-foreground-tertiary text-mini font-mono ">
                     {label}
                 </span>
                 {right}
@@ -326,7 +326,7 @@ function CollabVisual() {
             <div className="flex h-full gap-3 p-3">
                 {/* Artboard 1 — selection */}
                 <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
+                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] ">
                         Home
                     </div>
                     <div className="space-y-1.5">
@@ -348,7 +348,7 @@ function CollabVisual() {
                 </div>
                 {/* Artboard 2 — comment */}
                 <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] tracking-wider uppercase">
+                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] ">
                         Pricing
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -522,7 +522,7 @@ function CmsVisual() {
             <div className="grid h-full grid-cols-[110px_1fr]">
                 {/* Collections sidebar */}
                 <div className="border-foreground-primary/10 bg-background/30 space-y-1 border-r p-2">
-                    <div className="text-foreground-quadranary mb-1 px-2 font-mono text-[8px] tracking-wider uppercase">
+                    <div className="text-foreground-quadranary mb-1 px-2 font-mono text-[8px] ">
                         Collections
                     </div>
                     {collections.map((c) => (
@@ -549,7 +549,7 @@ function CmsVisual() {
                 </div>
                 {/* Item editor */}
                 <div className="overflow-hidden p-3">
-                    <div className="text-foreground-quadranary font-mono text-[9px] tracking-wider uppercase">
+                    <div className="text-foreground-quadranary font-mono text-[9px] ">
                         Editing · post / launch-week
                     </div>
                     <div className="mt-2 space-y-1.5">
@@ -558,7 +558,7 @@ function CmsVisual() {
                                 key={f.label}
                                 className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5"
                             >
-                                <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
+                                <div className="text-foreground-quadranary font-mono text-[8px] ">
                                     {f.label}
                                 </div>
                                 <div className="text-foreground-primary mt-0.5 text-[10px] font-light">
@@ -567,7 +567,7 @@ function CmsVisual() {
                             </div>
                         ))}
                         <div className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5">
-                            <div className="text-foreground-quadranary font-mono text-[8px] tracking-wider uppercase">
+                            <div className="text-foreground-quadranary font-mono text-[8px] ">
                                 Body
                             </div>
                             <div className="mt-1 space-y-1">

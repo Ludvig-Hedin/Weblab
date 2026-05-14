@@ -60,7 +60,7 @@ export const StatusBar = ({
                         {cursorInfo.selectionLength > 0 && ` · ${cursorInfo.selectionLength} sel`}
                     </span>
                 )}
-                <span className="tracking-wide">{language}</span>
+                <span>{language}</span>
             </div>
         </div>
     );

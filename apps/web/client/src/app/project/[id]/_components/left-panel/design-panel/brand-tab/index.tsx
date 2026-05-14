@@ -198,7 +198,7 @@ export const BrandTab = observer(() => {
                     onClick={() => editorEngine.state.setBrandTab(BrandTabValue.FONTS)}
                     className="border-border/60 text-foreground-secondary hover:text-foreground-primary hover:bg-background-secondary flex w-full items-center gap-2 border-t px-3 py-2 text-left transition-colors"
                 >
-                    <span className="text-mini flex-1 font-medium tracking-wide uppercase">
+                    <span className="text-mini flex-1 font-medium">
                         Fonts
                     </span>
                     <Icons.ChevronRight className="text-muted-foreground size-3.5 shrink-0" />

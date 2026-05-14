@@ -45,7 +45,7 @@ function SideInput({ side, type }: SideInputProps) {
                 className="text-center"
                 aria-label={`${type} ${side}`}
             />
-            <span className="text-foreground-tertiary text-[10px] leading-none tracking-wider uppercase">
+            <span className="text-foreground-tertiary text-[10px] leading-none">
                 {SIDE_LABEL[side]}
             </span>
         </div>

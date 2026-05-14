@@ -256,7 +256,7 @@ export default function SitemapPage() {
                     {/* Sidebar Navigation */}
                     <nav className="sticky top-32 hidden w-48 flex-shrink-0 self-start lg:block">
                         <div>
-                            <h2 className="text-foreground-tertiary mb-4 text-sm font-medium tracking-wider uppercase">
+                            <h2 className="text-foreground-tertiary mb-4 text-sm font-medium">
                                 Sections
                             </h2>
                             <ul className="flex flex-col gap-2">

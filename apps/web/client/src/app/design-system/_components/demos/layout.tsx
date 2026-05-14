@@ -162,7 +162,7 @@ export function LayoutDemo() {
             >
                 <div className="border-border flex h-64 w-full max-w-2xl overflow-hidden rounded-xl border">
                     <aside className="bg-background-secondary border-border w-48 border-r p-3">
-                        <p className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                        <p className="text-foreground-tertiary text-mini font-medium">
                             Workspace
                         </p>
                         <nav className="mt-3 space-y-1">

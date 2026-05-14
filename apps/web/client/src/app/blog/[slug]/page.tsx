@@ -159,7 +159,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                 {/* Post header — compact, left-aligned */}
                 <div className="mx-auto mb-10 max-w-3xl">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium">
                         {format(parseISO(post.frontmatter.date), 'MMM d, yyyy')}
                         <span className="mx-2">·</span>
                         {post.frontmatter.category}
@@ -210,7 +210,7 @@ export default async function BlogPostPage({ params }: Props) {
                                     className="border-foreground-primary/10 hover:border-foreground-primary/30 bg-foreground-primary/[0.02] hover:bg-foreground-primary/[0.04] flex items-center justify-between gap-4 rounded-lg border px-5 py-4 transition-colors"
                                 >
                                     <div>
-                                        <p className="text-foreground-tertiary text-xs tracking-widest uppercase">
+                                        <p className="text-foreground-tertiary text-xs">
                                             See the side-by-side
                                         </p>
                                         <p className="text-foreground-primary mt-1 text-base">
@@ -245,7 +245,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Related posts */}
                 {related.length > 0 && (
                     <section className="border-foreground-primary/10 mt-20 border-t pt-12">
-                        <p className="text-foreground-tertiary mb-2 text-xs font-medium tracking-widest uppercase">
+                        <p className="text-foreground-tertiary mb-2 text-xs font-medium">
                             More posts
                         </p>
                         <h2 className="text-foreground-primary mb-6 text-2xl font-light md:text-3xl">
@@ -263,7 +263,7 @@ export default async function BlogPostPage({ params }: Props) {
             {/* CTA Section */}
             <section className="border-foreground-primary/10 border-t">
                 <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center md:px-8">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium tracking-widest uppercase">
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium">
                         Get started
                     </p>
                     <h2 className="text-foreground-primary mb-8 text-4xl font-light tracking-tight text-balance md:text-5xl">

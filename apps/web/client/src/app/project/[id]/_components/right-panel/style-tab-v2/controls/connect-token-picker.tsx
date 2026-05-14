@@ -232,7 +232,7 @@ export const ConnectTokenPicker = observer(function ConnectTokenPicker({
 function PickerSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-0.5 px-1 py-1">
-            <div className="text-foreground-secondary text-micro px-2 py-1 tracking-wider uppercase">
+            <div className="text-foreground-secondary text-micro px-2 py-1">
                 {title}
             </div>
             {children}

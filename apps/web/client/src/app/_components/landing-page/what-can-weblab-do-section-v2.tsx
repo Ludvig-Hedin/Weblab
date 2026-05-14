@@ -85,7 +85,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, icon, reverse }: Feat
             <div className="flex w-full max-w-md flex-col items-center justify-center gap-2 justify-self-center text-left">
                 <div className="text-foreground-tertiary mb-2 flex w-full items-center gap-2">
                     {icon}
-                    <span className="text-mini font-mono tracking-wider uppercase">{subtitle}</span>
+                    <span className="text-mini font-mono ">{subtitle}</span>
                 </div>
                 <h3 className="heading-style-h4 text-foreground-primary w-full tracking-tight">
                     {title}
@@ -400,7 +400,7 @@ function BrandVisual() {
         <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col overflow-hidden rounded-xl border">
             {/* Header */}
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <div className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                <div className="text-foreground-tertiary text-mini font-mono ">
                     Tokens
                 </div>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
@@ -408,7 +408,7 @@ function BrandVisual() {
 
             {/* Colors */}
             <div className="flex flex-col gap-1 px-2 py-2.5">
-                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] tracking-wider uppercase">
+                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] ">
                     Colors
                 </div>
                 {colorTokens.map((t) => (
@@ -451,7 +451,7 @@ function BrandVisual() {
 
             {/* Typography */}
             <div className="border-foreground-primary/10 flex flex-col gap-1 border-t px-2 py-2.5">
-                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] tracking-wider uppercase">
+                <div className="text-foreground-quadranary mb-0.5 px-1.5 font-mono text-[9px] ">
                     Typography
                 </div>
                 {typeTokens.map((t) => (
@@ -479,7 +479,7 @@ function BrandVisual() {
 
             {/* Spacing scale */}
             <div className="border-foreground-primary/10 flex items-center justify-between border-t px-3 py-2.5">
-                <span className="text-foreground-quadranary font-mono text-[9px] tracking-wider uppercase">
+                <span className="text-foreground-quadranary font-mono text-[9px] ">
                     Spacing
                 </span>
                 <div className="flex items-end gap-1">
@@ -523,7 +523,7 @@ function LayersVisual() {
             onMouseLeave={cycle.onMouseLeave}
         >
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                <span className="text-foreground-tertiary text-mini font-mono ">
                     {t('layersTitle')}
                 </span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
@@ -650,7 +650,7 @@ function RevisionVisual() {
         >
             <div className="border-foreground-primary/10 flex items-center gap-2 border-b px-4 py-3">
                 <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
-                <span className="text-foreground-tertiary text-mini font-mono tracking-wider uppercase">
+                <span className="text-foreground-tertiary text-mini font-mono ">
                     {t('revisionToday')}
                 </span>
             </div>

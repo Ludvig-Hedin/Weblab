@@ -45,7 +45,7 @@ export function TokenSection({
             className="border-border/60 border-t border-b-0 first:border-t-0"
         >
             <AccordionPrimitive.Header className="flex w-full">
-                <AccordionPrimitive.Trigger className="text-foreground-secondary hover:text-foreground-primary text-mini flex w-full items-center gap-2 px-3 py-2 font-medium tracking-wide uppercase transition-colors outline-none [&[data-state=open]>svg]:rotate-90">
+                <AccordionPrimitive.Trigger className="text-foreground-secondary hover:text-foreground-primary text-mini flex w-full items-center gap-2 px-3 py-2 font-medium transition-colors outline-none [&[data-state=open]>svg]:rotate-90">
                     <ChevronRight className="text-muted-foreground size-3 shrink-0 transition-transform duration-150" />
                     <span className="flex-1 truncate text-left">{section.title}</span>
                     <span className="text-foreground-tertiary text-micro shrink-0 tabular-nums">

@@ -113,7 +113,7 @@ const Section = ({
 );
 
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-    <span className="text-foreground-tertiary text-[11px] tracking-[0.18em] uppercase">
+    <span className="text-foreground-tertiary text-[11px]">
         {children}
     </span>
 );

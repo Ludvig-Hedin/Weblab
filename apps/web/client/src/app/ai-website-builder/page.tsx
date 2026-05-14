@@ -61,7 +61,7 @@ export default function AiWebsiteBuilderPage() {
                 {/* Hero */}
                 <section className="px-4 pt-32 pb-24 sm:px-6 md:px-8 md:pt-40 md:pb-32">
                     <div className="mx-auto max-w-6xl">
-                        <p className="text-foreground-tertiary mb-6 text-xs font-medium tracking-widest uppercase">
+                        <p className="text-foreground-tertiary mb-6 text-xs font-medium ">
                             AI Website Builder
                         </p>
                         <h1 className="mb-8 max-w-4xl text-5xl leading-[1.05] font-light text-balance md:text-7xl">
@@ -164,13 +164,13 @@ export default function AiWebsiteBuilderPage() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-foreground-primary/10 bg-foreground-primary/[0.03] border-b">
-                                        <th className="px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="px-6 py-4 text-sm font-normal ">
                                             Capability
                                         </th>
-                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal ">
                                             {APP_NAME}
                                         </th>
-                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal tracking-widest uppercase">
+                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal ">
                                             Generative AI builders
                                         </th>
                                     </tr>
@@ -269,7 +269,7 @@ export default function AiWebsiteBuilderPage() {
                 {/* Related */}
                 <section className="border-foreground-primary/10 border-t px-4 py-20 sm:px-6 md:px-8">
                     <div className="mx-auto max-w-4xl">
-                        <p className="text-foreground-tertiary mb-4 text-sm tracking-widest uppercase">
+                        <p className="text-foreground-tertiary mb-4 text-sm ">
                             Related reading
                         </p>
                         <ul className="space-y-3 text-lg">

@@ -76,7 +76,7 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                    <h3 className="text-foreground-tertiary text-mini font-medium">
                         Base Domain
                     </h3>
                     {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
@@ -111,7 +111,7 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="text-foreground-tertiary text-mini font-medium tracking-wide uppercase">
+                    <h3 className="text-foreground-tertiary text-mini font-medium">
                         Publish
                     </h3>
                 </div>

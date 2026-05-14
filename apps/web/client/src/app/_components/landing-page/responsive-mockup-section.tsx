@@ -226,7 +226,7 @@ function DesignToCodeAsset() {
             <div className="border-foreground-primary/10 border-t" aria-hidden />
             {/* Code region */}
             <div className="bg-background-secondary/40 p-3">
-                <div className="text-foreground-quadranary mb-1.5 flex items-center gap-1.5 font-mono text-[10px] tracking-wider uppercase">
+                <div className="text-foreground-quadranary mb-1.5 flex items-center gap-1.5 font-mono text-[10px]">
                     <span className="bg-foreground-brand h-1 w-1 rounded-full" aria-hidden />
                     Button.tsx
                 </div>

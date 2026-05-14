@@ -36,7 +36,7 @@ export default function ProjectErrorBoundary({
                 </p>
                 {reference && (
                     <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
-                        <p className="text-foreground-tertiary text-xs tracking-wide uppercase">
+                        <p className="text-foreground-tertiary text-xs">
                             Error reference
                         </p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">

@@ -62,7 +62,7 @@ const Hero7 = ({
             <div className="relative mx-auto w-full max-w-6xl px-4 py-24 text-center sm:px-6 md:px-8 md:py-32">
                 {eyebrow ? (
                     <Reveal as="div" delay={0} y={12}>
-                        <span className="text-foreground-tertiary border-foreground-primary/15 bg-background-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-small uppercase tracking-wide">
+                        <span className="text-foreground-tertiary border-foreground-primary/15 bg-background-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-small">
                             {eyebrowIcon}
                             {eyebrow}
                         </span>

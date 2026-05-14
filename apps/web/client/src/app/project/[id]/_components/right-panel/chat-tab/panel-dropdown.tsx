@@ -90,7 +90,7 @@ export const ChatPanelDropdown = observer(
                         {t(transKeys.editor.panels.edit.tabs.chat.controls.history)}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="my-1" />
-                    <DropdownMenuLabel className="text-foreground-tertiary text-microPlus px-2 py-1 font-normal tracking-normal uppercase">
+                    <DropdownMenuLabel className="text-foreground-tertiary text-microPlus px-2 py-1 font-normal tracking-normal">
                         {t(transKeys.editor.panels.edit.tabs.chat.settings.displayHeading)}
                     </DropdownMenuLabel>
                     <DropdownMenuItem

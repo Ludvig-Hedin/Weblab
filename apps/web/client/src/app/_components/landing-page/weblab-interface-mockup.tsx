@@ -459,7 +459,7 @@ function CodeModePanel() {
         <div className="bg-background-canvas absolute inset-0 top-11 z-[5] flex">
             {/* Explorer */}
             <div className="border-border-bar bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
-                <div className="text-foreground-tertiary mb-1 px-1 text-[10px] tracking-wider uppercase">
+                <div className="text-foreground-tertiary mb-1 px-1 text-[10px]">
                     Explorer
                 </div>
                 {FILE_TREE.map((f) => {
@@ -486,7 +486,7 @@ function CodeModePanel() {
                             )}
                             <span className="truncate font-mono">{f.name}</span>
                             {f.badge && (
-                                <span className="bg-foreground-brand/20 text-foreground-brand ml-auto rounded-sm px-1 text-[9px] font-medium uppercase">
+                                <span className="bg-foreground-brand/20 text-foreground-brand ml-auto rounded-sm px-1 text-[9px] font-medium">
                                     {f.badge}
                                 </span>
                             )}
@@ -759,7 +759,7 @@ function ToolCallCard({
                         ) : (
                             <Icons.Check className="text-foreground-brand h-3 w-3 shrink-0" />
                         )}
-                        <span className="text-foreground-tertiary text-[10px] font-medium tracking-wide uppercase">
+                        <span className="text-foreground-tertiary text-[10px] font-medium">
                             {tool === 'create_file' ? 'Create' : 'Edit'}
                         </span>
                         <span className="text-foreground-primary truncate font-mono text-[11px]">
@@ -1024,7 +1024,7 @@ export function WeblabInterfaceMockup() {
                             className="border-border bg-background-chrome absolute -top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-md border p-1 shadow-md backdrop-blur"
                             onMouseDown={(e) => e.stopPropagation()}
                         >
-                            <span className="text-foreground-tertiary px-1.5 text-[10px] font-medium tracking-wide uppercase">
+                            <span className="text-foreground-tertiary px-1.5 text-[10px] font-medium">
                                 Border
                             </span>
                             {RESTYLE_COLORS.map((c) => (
@@ -1443,7 +1443,7 @@ export function WeblabInterfaceMockup() {
                                                 {p.name}
                                             </span>
                                             {p.badge && (
-                                                <span className="bg-foreground-brand/20 text-foreground-brand rounded-sm px-1 text-[9px] font-medium uppercase">
+                                                <span className="bg-foreground-brand/20 text-foreground-brand rounded-sm px-1 text-[9px] font-medium">
                                                     {p.badge}
                                                 </span>
                                             )}
@@ -1750,7 +1750,7 @@ export function WeblabInterfaceMockup() {
                                     </span>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                    <div className="text-foreground-tertiary text-[10px]">
                                         Layout
                                     </div>
                                     <div className="grid grid-cols-2 gap-1.5">
@@ -1765,7 +1765,7 @@ export function WeblabInterfaceMockup() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                    <div className="text-foreground-tertiary text-[10px]">
                                         Fill
                                     </div>
                                     <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
@@ -1777,7 +1777,7 @@ export function WeblabInterfaceMockup() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px] tracking-wider uppercase">
+                                    <div className="text-foreground-tertiary text-[10px]">
                                         Typography
                                     </div>
                                     <div className="border-border bg-background-secondary/60 flex items-center justify-between rounded px-2 py-1.5 text-[11px]">

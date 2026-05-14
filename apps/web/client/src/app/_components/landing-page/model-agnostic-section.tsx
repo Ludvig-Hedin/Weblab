@@ -185,7 +185,7 @@ function Headline() {
     const t = useTranslations('landing.modelAgnostic');
     return (
         <Reveal className="max-w-md">
-            <div className="text-mini text-foreground-primary/70 font-mono tracking-wider uppercase">
+            <div className="text-mini text-foreground-primary/70 font-mono">
                 {t('eyebrow')}
             </div>
             <SplitText
