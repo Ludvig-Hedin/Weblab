@@ -68,6 +68,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             await localforage.removeItem(LocalForageKeys.RETURN_URL);
             await localforage.setItem(LAST_SIGN_IN_METHOD_KEY, method);
+
+            // Desktop shell: run the OAuth provider screens in the user's real
+            // browser. Embedded webviews have no access to saved logins
+            // (no autofill) and Google outright blocks OAuth inside them. The
+            // server action returns the provider URL instead of redirecting in
+            // place; the Electron preload opens it externally. Supabase then
+            // redirects to `weblab://auth/callback`, which the shell loads back
+            // into this window so the PKCE exchange runs in the same cookie jar
+            // that started the flow.
+            const openOAuth =
+                typeof window !== 'undefined' ? window.weblabNative?.openOAuth : undefined;
+            if (openOAuth) {
+                const result = await login(method, stagedReturnUrl, true);
+                if (!result?.url) {
+                    throw new Error('Sign-in failed: no provider URL returned.');
+                }
+                const opened = await openOAuth(result.url);
+                if (!opened) {
+                    throw new Error(
+                        'Could not open your browser to continue sign-in.',
+                    );
+                }
+                return;
+            }
+
             await login(method, stagedReturnUrl);
         } catch (error) {
             if (process.env.NODE_ENV !== 'production') {

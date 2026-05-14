@@ -36,11 +36,16 @@ const ALLOWED_IPC_ORIGINS = new Set([
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
 const PROTOCOL = 'weblab';
 
-// OAuth provider hosts that block embedded webviews — we route these through
-// the user's default browser instead of the BrowserWindow.
+// OAuth provider hosts that must never render inside the BrowserWindow.
+// The login flow now hands provider URLs to the system browser up front (see
+// the renderer's `openOAuth` path), so these should never be reached in-window
+// — this set is the defense-in-depth net: if anything still tries to navigate
+// or redirect the window onto a provider host, bounce it to the default
+// browser. Google additionally blocks OAuth inside embedded webviews outright.
 const BLOCKED_OAUTH_HOSTS = new Set([
     'accounts.google.com',
     'appleid.apple.com',
+    'github.com',
 ]);
 
 const WINDOW_WIDTH = 1400;
@@ -225,6 +230,23 @@ function createWindow(initialURL) {
     });
 
     mainWindow.webContents.on('will-navigate', (event, url) => {
+        try {
+            const parsed = new URL(url);
+            if (BLOCKED_OAUTH_HOSTS.has(parsed.host)) {
+                event.preventDefault();
+                shell.openExternal(url);
+            }
+        } catch {
+            // ignore
+        }
+    });
+
+    // HTTP redirects (e.g. Supabase's /auth/v1/authorize → accounts.google.com)
+    // do NOT fire `will-navigate` — Electron fires `will-redirect` instead.
+    // Without this listener a provider reached via a 302 in the redirect chain
+    // would render inside the BrowserWindow, splitting the OAuth flow across
+    // two cookie jars and breaking PKCE.
+    mainWindow.webContents.on('will-redirect', (event, url) => {
         try {
             const parsed = new URL(url);
             if (BLOCKED_OAUTH_HOSTS.has(parsed.host)) {

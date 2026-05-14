@@ -16,7 +16,11 @@ import { sanitizeReturnUrl } from '@/utils/url';
 export async function login(
     provider: SignInMethod.GITHUB | SignInMethod.GOOGLE,
     returnUrl?: string | null,
-) {
+    // Desktop shell: when true, the provider URL is returned to the renderer
+    // instead of being redirected to in place, so it can be opened in the
+    // user's real browser. See the `isDesktop` branches below.
+    isDesktop = false,
+): Promise<{ url: string } | void> {
     const supabase = await createClient();
     // Always use the configured site URL — request headers (Origin / Host) can
     // be wrong behind Railway/Docker proxies and have caused redirects to
@@ -25,7 +29,17 @@ export async function login(
     const sanitizedReturnUrl = sanitizeReturnUrl(returnUrl ?? null, { origin });
     // Encode returnUrl in OAuth redirectTo so it survives the provider round-trip
     // and is available in the auth callback route.
-    const callbackUrl = new URL(`${origin}${Routes.AUTH_CALLBACK}`);
+    //
+    // Desktop: Supabase must redirect back through the `weblab://` custom
+    // protocol. The OAuth provider screens run in the user's system browser;
+    // the OS then hands `weblab://auth/callback?code=…` to the Electron shell,
+    // which re-loads the canonical https `/auth/callback` inside the
+    // BrowserWindow — the one cookie jar that holds the PKCE code_verifier set
+    // by this server action. Keeping start + exchange in the same context is
+    // what makes PKCE work. Web keeps the plain https callback.
+    const callbackUrl = isDesktop
+        ? new URL('weblab://auth/callback')
+        : new URL(`${origin}${Routes.AUTH_CALLBACK}`);
     if (sanitizedReturnUrl !== Routes.HOME) {
         callbackUrl.searchParams.set('returnUrl', sanitizedReturnUrl);
     }
@@ -64,6 +78,13 @@ export async function login(
         });
         const code = error.code ?? 'unknown';
         redirect(`${Routes.AUTH_CODE_ERROR}?code=${encodeURIComponent(code)}`);
+    }
+
+    // Desktop: hand the provider URL back to the renderer, which opens it in
+    // the system browser via the Electron preload bridge. Web: redirect in
+    // place as before.
+    if (isDesktop) {
+        return { url: data.url };
     }
 
     redirect(data.url);
