@@ -8,6 +8,11 @@ import { z } from 'zod';
 import type { Canvas, UserCanvas } from '@weblab/db';
 import type { ProjectFrameworkId } from '@weblab/models';
 import { initModel } from '@weblab/ai';
+import {
+    CodeProvider,
+    createCodeProviderClient,
+    getStaticCodeProvider,
+} from '@weblab/code-provider';
 import { getSandboxPreviewUrl, STORAGE_BUCKETS } from '@weblab/constants';
 import {
     branches,
@@ -17,9 +22,12 @@ import {
     createDefaultBreakpointGroup,
     createDefaultCanvas,
     createDefaultConversation,
+    createDefaultProject,
     createDefaultUserCanvas,
     frames,
+    fromDbBranch,
     fromDbCanvas,
+    fromDbConversation,
     fromDbFrame,
     fromDbProject,
     projectCreateRequestInsertSchema,
@@ -339,6 +347,68 @@ export const projectRouter = createTRPCRouter({
             }
             return fromDbProject(project);
         }),
+    getEditorBootstrap: protectedProcedure
+        .input(z.object({ projectId: z.string() }))
+        .query(async ({ ctx, input }) => {
+            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            const [project, dbBranches, dbCanvas, dbConversations, creationRequest] =
+                await Promise.all([
+                    ctx.db.query.projects.findFirst({
+                        where: eq(projects.id, input.projectId),
+                    }),
+                    ctx.db.query.branches.findMany({
+                        where: eq(branches.projectId, input.projectId),
+                        with: {
+                            frames: true,
+                        },
+                    }),
+                    ctx.db.query.canvases.findFirst({
+                        where: eq(canvases.projectId, input.projectId),
+                        with: {
+                            frames: true,
+                            userCanvases: {
+                                where: eq(userCanvases.userId, ctx.user.id),
+                            },
+                        },
+                    }),
+                    ctx.db.query.conversations.findMany({
+                        where: eq(conversations.projectId, input.projectId),
+                        orderBy: (conversations, { desc }) => [desc(conversations.updatedAt)],
+                        limit: 200,
+                    }),
+                    ctx.db.query.projectCreateRequests.findFirst({
+                        where: and(
+                            eq(projectCreateRequests.projectId, input.projectId),
+                            eq(projectCreateRequests.status, ProjectCreateRequestStatus.PENDING),
+                        ),
+                    }),
+                ]);
+
+            if (!project) {
+                return null;
+            }
+
+            const canvas = dbCanvas
+                ? {
+                      userCanvas: fromDbCanvas(
+                          dbCanvas.userCanvases[0] ??
+                              createDefaultUserCanvas(ctx.user.id, dbCanvas.id),
+                      ),
+                      frames: dbCanvas.frames.map(fromDbFrame),
+                  }
+                : null;
+
+            return {
+                project: fromDbProject(project),
+                branches: dbBranches.map((branch) => ({
+                    ...fromDbBranch(branch),
+                    frames: branch.frames.map(fromDbFrame),
+                })),
+                canvas,
+                conversations: dbConversations.map(fromDbConversation),
+                creationRequest: creationRequest ?? null,
+            };
+        }),
     getProjectWithCanvas: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
@@ -471,6 +541,160 @@ export const projectRouter = createTRPCRouter({
                 });
                 return newProject;
             });
+        }),
+    createBlank: protectedProcedure
+        .input(
+            z.object({
+                framework: z
+                    .enum([
+                        'nextjs',
+                        'vite-react',
+                        'remix',
+                        'astro',
+                        'tanstack-start',
+                        'static-html',
+                    ])
+                    .default('nextjs'),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const ownerId = ctx.user.id;
+            const adapter = getFrameworkAdapter(input.framework);
+            const cloudProvider =
+                input.framework === 'nextjs'
+                    ? env.WEBLAB_CLOUD_PROVIDER === 'vercel_sandbox'
+                        ? CodeProvider.VercelSandbox
+                        : CodeProvider.CodeSandbox
+                    : CodeProvider.CodeSandbox;
+            const StaticProvider = await getStaticCodeProvider(cloudProvider);
+            let forkedSandboxId: string | null = null;
+
+            try {
+                const sandbox = await StaticProvider.createProject({
+                    source: 'template',
+                    id: adapter.template.codesandboxId,
+                    title: `Blank project - ${ownerId}`,
+                    tags: ['blank', ownerId],
+                    privacy: 'private',
+                    port: adapter.template.port,
+                });
+                forkedSandboxId = sandbox.id;
+
+                const previewUrl =
+                    cloudProvider === CodeProvider.VercelSandbox && sandbox.previewUrl
+                        ? sandbox.previewUrl
+                        : getSandboxPreviewUrl(
+                              sandbox.id,
+                              adapter.template.port,
+                              sandbox.previewToken,
+                          );
+
+                const now = new Date();
+                const projectName = `New Project · ${now.toLocaleString(undefined, {
+                    month: 'short',
+                })} ${now.getDate()}`;
+
+                const project = createDefaultProject({
+                    overrides: {
+                        name: projectName,
+                        description: 'Your new blank project',
+                        tags: ['blank'],
+                        runtimeMetadata: { framework: input.framework },
+                    },
+                });
+
+                const created = await ctx.db.transaction(async (tx) => {
+                    const [newProject] = await tx.insert(projects).values(project).returning();
+                    if (!newProject) {
+                        throw new Error('Failed to create project in database');
+                    }
+
+                    const newBranch = createDefaultBranch({
+                        projectId: newProject.id,
+                        sandboxId: sandbox.id,
+                    });
+                    newBranch.runtimeMetadata = {
+                        ...newBranch.runtimeMetadata,
+                        cloud: {
+                            provider:
+                                cloudProvider === CodeProvider.VercelSandbox
+                                    ? 'vercel_sandbox'
+                                    : 'code_sandbox',
+                            sandboxId: sandbox.id,
+                            previewUrl,
+                            snapshotId: sandbox.snapshotId,
+                            port: sandbox.port ?? adapter.template.port,
+                            devCommand: sandbox.devCommand,
+                            runtime: sandbox.runtime,
+                        },
+                    };
+                    await tx.insert(branches).values(newBranch);
+                    await tx.insert(userProjects).values({
+                        userId: ownerId,
+                        projectId: newProject.id,
+                        role: ProjectRole.OWNER,
+                    });
+
+                    const newCanvas = createDefaultCanvas(newProject.id);
+                    await tx.insert(canvases).values(newCanvas);
+                    await tx.insert(userCanvases).values(
+                        createDefaultUserCanvas(ownerId, newCanvas.id, {
+                            x: '120',
+                            y: '120',
+                            scale: '0.56',
+                        }),
+                    );
+                    await tx.insert(frames).values(
+                        createDefaultBreakpointGroup({
+                            canvasId: newCanvas.id,
+                            branchId: newBranch.id,
+                            url: previewUrl,
+                        }),
+                    );
+                    await tx.insert(conversations).values(createDefaultConversation(newProject.id));
+
+                    trackEvent({
+                        distinctId: ownerId,
+                        event: 'user_create_project',
+                        properties: {
+                            projectId: newProject.id,
+                            source: 'blank',
+                            framework: input.framework,
+                        },
+                    });
+
+                    return newProject;
+                });
+
+                forkedSandboxId = null;
+                return created;
+            } catch (error) {
+                if (forkedSandboxId) {
+                    const provider =
+                        cloudProvider === CodeProvider.VercelSandbox
+                            ? await createCodeProviderClient(CodeProvider.VercelSandbox, {
+                                  providerOptions: {
+                                      vercelSandbox: {
+                                          sandboxId: forkedSandboxId,
+                                          port: adapter.template.port,
+                                      },
+                                  },
+                              })
+                            : await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                                  providerOptions: {
+                                      codesandbox: {
+                                          sandboxId: forkedSandboxId,
+                                      },
+                                  },
+                              });
+                    try {
+                        await provider.stopProject({}).catch(() => undefined);
+                    } finally {
+                        await provider.destroy().catch(() => undefined);
+                    }
+                }
+                throw error;
+            }
         }),
     createLocal: protectedProcedure
         .input(

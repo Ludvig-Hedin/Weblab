@@ -10,13 +10,26 @@ import { useProjectCreation } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FinalizingProject = () => {
-    const { isFinalizing, error, retry, cancel } = useProjectCreation();
+    const { isFinalizing, error, retry, cancel, finalizeProgress } = useProjectCreation();
+
+    const phaseLabel =
+        finalizeProgress.phase === 'creating-sandbox'
+            ? 'Creating sandbox'
+            : finalizeProgress.phase === 'uploading'
+              ? `Uploading ${finalizeProgress.filesUploaded}/${finalizeProgress.totalFiles} files`
+              : finalizeProgress.phase === 'installing'
+                ? 'Installing dependencies'
+                : finalizeProgress.phase === 'creating-project'
+                  ? 'Creating project'
+                  : finalizeProgress.phase === 'opening-editor'
+                    ? 'Opening editor'
+                    : "We're setting up your project";
 
     return (
         <>
             <StepHeader>
                 <CardTitle>{'Setting up project...'}</CardTitle>
-                <CardDescription>{"We're setting up your project"}</CardDescription>
+                <CardDescription>{phaseLabel}</CardDescription>
             </StepHeader>
             <StepContent>
                 <motion.div

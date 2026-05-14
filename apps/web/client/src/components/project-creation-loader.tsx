@@ -33,14 +33,13 @@ export function ProjectCreationLoader({
         : 'bg-background flex h-screen w-screen items-center justify-center';
 
     const activeIndex = steps ? steps.findIndex((step) => !step.ready) : -1;
+    const activeStep = steps && activeIndex >= 0 ? steps[activeIndex] : null;
     const completedCount = steps ? steps.filter((s) => s.ready).length : 0;
     const totalCount = steps?.length ?? 0;
 
     // Progress from 5% (started) to 100% (all done), step-driven
     const progress =
-        totalCount > 0
-            ? Math.max(5, Math.round((completedCount / totalCount) * 100))
-            : 5;
+        totalCount > 0 ? Math.max(5, Math.round((completedCount / totalCount) * 100)) : 5;
 
     return (
         <div className={containerClass}>
@@ -60,6 +59,11 @@ export function ProjectCreationLoader({
                     <h2 className="text-foreground-primary text-base font-medium tracking-tight">
                         {heading}
                     </h2>
+                    {activeStep && (
+                        <p className="text-foreground-secondary text-small leading-relaxed">
+                            {activeStep.label}
+                        </p>
+                    )}
                 </div>
 
                 {/* Determinate progress bar — blue, 0 → 100%, no loop */}

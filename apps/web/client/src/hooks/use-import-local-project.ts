@@ -24,6 +24,7 @@ import { LocalForageKeys, Routes } from '@/utils/constants';
 export interface ImportProgress {
     /** Number of files uploaded so far. Total is unknown until the walk finishes. */
     filesUploaded: number;
+    filesTotal?: number;
     /** Phase the import is currently in. UI surfaces this as a status string. */
     phase: 'idle' | 'picking' | 'forking' | 'connecting' | 'uploading' | 'creating' | 'done';
 }
@@ -136,16 +137,15 @@ export function useImportLocalProject() {
                 },
             });
 
-            // 3. Stream-upload files.
+            // 3. Read and upload files. Walking is still capped before upload,
+            // then writes run with bounded concurrency instead of one-by-one.
             setProgress({ filesUploaded: 0, phase: 'uploading' });
-            let filesUploaded = 0;
             const walker = walkFiles(folderHandle, {
                 maxFiles: DEFAULT_MAX_IMPORT_FILES,
                 maxBytes: DEFAULT_MAX_IMPORT_BYTES,
             });
+            const filesToUpload: Array<{ path: string; content: Uint8Array }> = [];
 
-            // Manual iteration so we can capture the generator's return value
-            // (which carries the truncated flag).
             while (true) {
                 const next = await walker.next();
                 if (next.done) {
@@ -159,20 +159,43 @@ export function useImportLocalProject() {
                     break;
                 }
 
-                const { path, content } = next.value;
-                await provider.writeFile({
-                    args: {
-                        path,
-                        content,
-                        overwrite: true,
-                    },
-                });
-                filesUploaded += 1;
-                if (filesUploaded % 25 === 0) {
-                    setProgress({ filesUploaded, phase: 'uploading' });
-                }
+                filesToUpload.push(next.value);
             }
-            setProgress({ filesUploaded, phase: 'creating' });
+
+            let filesUploaded = 0;
+            setProgress({ filesUploaded, filesTotal: filesToUpload.length, phase: 'uploading' });
+            const uploadConcurrency = 8;
+            let nextUploadIndex = 0;
+            const uploadWorkers = Array.from(
+                { length: Math.min(uploadConcurrency, filesToUpload.length) },
+                async () => {
+                    while (nextUploadIndex < filesToUpload.length) {
+                        const file = filesToUpload[nextUploadIndex];
+                        nextUploadIndex += 1;
+                        if (!file) continue;
+                        const result = await provider?.writeFile({
+                            args: {
+                                path: file.path,
+                                content: file.content,
+                                overwrite: true,
+                            },
+                        });
+                        if (!result?.success) {
+                            throw new Error(`Failed to upload file: ${file.path}`);
+                        }
+                        filesUploaded += 1;
+                        if (filesUploaded % 25 === 0 || filesUploaded === filesToUpload.length) {
+                            setProgress({
+                                filesUploaded,
+                                filesTotal: filesToUpload.length,
+                                phase: 'uploading',
+                            });
+                        }
+                    }
+                },
+            );
+            await Promise.all(uploadWorkers);
+            setProgress({ filesUploaded, filesTotal: filesToUpload.length, phase: 'creating' });
 
             // 4. Create the project record.
             const newProject = await createProject({
@@ -190,7 +213,7 @@ export function useImportLocalProject() {
             // not delete it.
             forkedSandboxId = null;
 
-            setProgress({ filesUploaded, phase: 'done' });
+            setProgress({ filesUploaded, filesTotal: filesToUpload.length, phase: 'done' });
             if (newProject) {
                 router.push(`${Routes.PROJECT}/${newProject.id}`);
             }

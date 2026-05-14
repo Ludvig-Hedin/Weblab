@@ -6,9 +6,11 @@ import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
+import { Icons } from '@weblab/ui/icons';
 import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import type { EditorBootstrapData } from '../_hooks/use-start-project';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
@@ -44,21 +46,18 @@ const KeyboardShortcutsModal = dynamic(
     () => import('./keyboard-shortcuts-modal').then((m) => m.KeyboardShortcutsModal),
     { ssr: false },
 );
-const ElementPalette = dynamic(
-    () => import('./element-palette').then((m) => m.ElementPalette),
-    { ssr: false },
-);
-const CommandPalette = dynamic(
-    () => import('./command-palette').then((m) => m.CommandPalette),
-    { ssr: false },
-);
+const ElementPalette = dynamic(() => import('./element-palette').then((m) => m.ElementPalette), {
+    ssr: false,
+});
+const CommandPalette = dynamic(() => import('./command-palette').then((m) => m.CommandPalette), {
+    ssr: false,
+});
 const FileFinder = dynamic(() => import('./file-finder').then((m) => m.FileFinder), {
     ssr: false,
 });
-const ProjectSearch = dynamic(
-    () => import('./project-search').then((m) => m.ProjectSearch),
-    { ssr: false },
-);
+const ProjectSearch = dynamic(() => import('./project-search').then((m) => m.ProjectSearch), {
+    ssr: false,
+});
 const CmsBindDialog = dynamic(
     () => import('./cms-workspace/bind-dialog').then((m) => m.BindDialog),
     { ssr: false },
@@ -73,9 +72,10 @@ const CmsWorkspace = dynamic(() => import('./cms-workspace').then((m) => m.CmsWo
     ssr: false,
 });
 
-export const Main = observer(() => {
+export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorBootstrapData }) => {
     const editorEngine = useEditorEngine();
-    const { isProjectReady, error, readyState, hasPendingCreation } = useStartProject();
+    const { isProjectReady, error, readyState, hasPendingCreation } =
+        useStartProject(initialBootstrap);
     useEditorStatePersistence(editorEngine.projectId, editorEngine, isProjectReady);
     const leftPanelRef = useRef<HTMLDivElement | null>(null);
     const rightPanelRef = useRef<HTMLDivElement | null>(null);
@@ -120,28 +120,25 @@ export const Main = observer(() => {
         return <ProjectLoadError variant="unknown" message={error} />;
     }
 
-    if (!isProjectReady) {
-        const heading = hasPendingCreation
-            ? 'Getting ready to build your site'
-            : 'Setting up your editor';
-        const steps = hasPendingCreation
-            ? [
-                  { label: 'Starting your sandbox', ready: readyState.sandbox },
-                  { label: 'Preparing the canvas', ready: readyState.canvas },
-                  { label: 'Loading the AI chat', ready: readyState.conversations },
-              ]
-            : [
-                  { label: 'Starting workspace', ready: readyState.sandbox },
-                  { label: 'Preparing canvas', ready: readyState.canvas },
-                  { label: 'Loading history', ready: readyState.conversations },
-              ];
+    const heading = hasPendingCreation ? 'Getting ready to build your site' : 'Opening project';
+    const steps = hasPendingCreation
+        ? [
+              { label: 'Starting your sandbox', ready: readyState.sandbox },
+              { label: 'Preparing the canvas', ready: readyState.canvas },
+              { label: 'Loading the AI chat', ready: readyState.conversations },
+          ]
+        : [
+              { label: 'Starting workspace', ready: readyState.sandbox },
+              { label: 'Preparing canvas', ready: readyState.canvas },
+              { label: 'Loading project history', ready: readyState.conversations },
+          ];
+
+    if (!isProjectReady && hasPendingCreation) {
         return (
             <ProjectCreationLoader
                 heading={heading}
                 caption={
-                    hasPendingCreation
-                        ? 'We saved your prompt. The AI will start writing as soon as the editor is ready.'
-                        : undefined
+                    'We saved your prompt. The AI will start writing as soon as the editor is ready.'
                 }
                 steps={steps}
             />
@@ -152,6 +149,7 @@ export const Main = observer(() => {
         return (
             <TooltipProvider>
                 <MobileLayout />
+                {!isProjectReady && <EditorBootOverlay heading={heading} steps={steps} />}
                 <SettingsModalWithProjects />
                 <SubscriptionModal />
                 <KeyboardShortcutsModal />
@@ -178,6 +176,7 @@ export const Main = observer(() => {
             <OnboardingTour suppressed={hasPendingCreation} />
             <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
                 <Canvas />
+                {!isProjectReady && <EditorBootOverlay heading={heading} steps={steps} />}
 
                 {/* Editor chrome — hidden only in full-screen preview mode.
                     In CMS mode the top bar stays visible so users can navigate
@@ -270,3 +269,47 @@ export const Main = observer(() => {
         </TooltipProvider>
     );
 });
+
+function EditorBootOverlay({
+    heading,
+    steps,
+}: {
+    heading: string;
+    steps: Array<{ label: string; ready: boolean }>;
+}) {
+    const activeStep = steps.find((step) => !step.ready)?.label ?? 'Almost ready';
+
+    return (
+        <div className="pointer-events-none absolute inset-0 z-45 flex items-center justify-center">
+            <div className="border-border/50 bg-background/95 flex w-full max-w-xs flex-col gap-4 rounded-md border p-4 shadow-sm backdrop-blur">
+                <div className="flex items-center gap-3">
+                    <Icons.LoadingSpinner className="text-foreground-primary h-4 w-4 animate-spin" />
+                    <div className="min-w-0">
+                        <p className="text-foreground-primary text-sm font-medium">{heading}</p>
+                        <p className="text-foreground-tertiary text-xs">{activeStep}</p>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {steps.map((step) => (
+                        <div key={step.label} className="flex items-center gap-2 text-xs">
+                            {step.ready ? (
+                                <Icons.CheckCircled className="text-foreground-positive h-3.5 w-3.5" />
+                            ) : (
+                                <span className="bg-foreground/20 h-1.5 w-1.5 rounded-full" />
+                            )}
+                            <span
+                                className={
+                                    step.ready
+                                        ? 'text-foreground-secondary'
+                                        : 'text-foreground-tertiary'
+                                }
+                            >
+                                {step.label}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}

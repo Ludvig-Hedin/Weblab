@@ -10,9 +10,16 @@ import { api as clientApi } from '@/trpc/client';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
+export type GitHubImportPhase =
+    | 'idle'
+    | 'cloning-repository'
+    | 'creating-project'
+    | 'opening-editor';
+
 export const useRepositoryImport = () => {
     const router = useRouter();
     const [isImporting, setIsImporting] = useState(false);
+    const [phase, setPhase] = useState<GitHubImportPhase>('idle');
     const [error, setError] = useState<string | null>(null);
 
     const { data: user } = api.user.get.useQuery();
@@ -35,12 +42,14 @@ export const useRepositoryImport = () => {
         }
 
         setIsImporting(true);
+        setPhase('cloning-repository');
         setError(null);
 
         // Track the forked sandbox so we can release it if project.create fails
         // mid-flight — otherwise the orphan keeps consuming sandbox quota
         // (matches the blank-create flow in components/store/create/manager.ts).
         let forkedSandboxId: string | null = null;
+        let didOpenEditor = false;
         try {
             checkAborted();
             const { sandboxId, previewUrl, sandboxRuntime } =
@@ -56,11 +65,12 @@ export const useRepositoryImport = () => {
             forkedSandboxId = sandboxId;
             checkAborted();
 
+            setPhase('creating-project');
             const project = await clientApi.project.create.mutate(
                 {
                     project: {
                         name: selectedRepo.name ?? 'New project',
-                        description: selectedRepo.description || 'Imported from GitHub',
+                        description: selectedRepo.description ?? 'Imported from GitHub',
                         // Default framework hint so the editor's preload-script
                         // injector picks the Next.js path on first load instead
                         // of falling through to the framework-detection race.
@@ -83,6 +93,8 @@ export const useRepositoryImport = () => {
             // Project owns the sandbox now — clear the cleanup token.
             forkedSandboxId = null;
             checkAborted();
+            setPhase('opening-editor');
+            didOpenEditor = true;
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (error) {
             if (forkedSandboxId) {
@@ -91,7 +103,10 @@ export const useRepositoryImport = () => {
                     .catch((cleanupError) => {
                         console.warn('[useRepositoryImport] orphan sandbox cleanup failed', {
                             sandboxId: forkedSandboxId,
-                            cleanupError,
+                            error:
+                                cleanupError instanceof Error
+                                    ? cleanupError.message
+                                    : String(cleanupError),
                         });
                     });
             }
@@ -113,7 +128,10 @@ export const useRepositoryImport = () => {
             setError(errorMessage);
             console.error('Error importing repository:', error);
         } finally {
-            setIsImporting(false);
+            if (!didOpenEditor) {
+                setIsImporting(false);
+                setPhase('idle');
+            }
         }
     };
 
@@ -123,6 +141,7 @@ export const useRepositoryImport = () => {
 
     return {
         isImporting,
+        phase,
         error,
         importRepository,
         clearError,

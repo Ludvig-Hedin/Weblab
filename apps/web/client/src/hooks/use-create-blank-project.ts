@@ -6,26 +6,16 @@ import localforage from 'localforage';
 import { toast } from 'sonner';
 
 import type { FrameworkId } from '@weblab/framework';
-import { getFrameworkAdapter } from '@weblab/framework';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
-function buildBlankProjectName(): string {
-    const now = new Date();
-    const month = now.toLocaleString(undefined, { month: 'short' });
-    const day = now.getDate();
-    return `New Project · ${month} ${day}`;
-}
-
 export type BlankCreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
 
 export function useCreateBlankProject() {
     const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
-    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
+    const { mutateAsync: createBlankProject } = api.project.createBlank.useMutation();
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [phase, setPhase] = useState<BlankCreatePhase>('idle');
@@ -48,41 +38,12 @@ export function useCreateBlankProject() {
         }
 
         setPhase('forking-sandbox');
-        // Track the forked sandbox so we can release it (best-effort) if any
-        // step after `forkSandbox` throws. Without this the user pays for a
-        // sandbox that has no project row.
-        let forkedSandboxId: string | null = null;
         try {
-            const adapter = getFrameworkAdapter(framework);
-            const sandbox = {
-                id: adapter.template.codesandboxId,
-                port: adapter.template.port,
-            };
-
-            const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
-                sandbox,
-                provider: framework === 'nextjs' ? undefined : 'code_sandbox',
-                config: {
-                    title: `Blank project - ${user.id}`,
-                    tags: ['blank', user.id],
-                },
-            });
-            forkedSandboxId = sandboxId;
-
             setPhase('creating-project');
-            const newProject = await createProject({
-                project: {
-                    name: buildBlankProjectName(),
-                    description: 'Your new blank project',
-                    tags: ['blank'],
-                    runtimeMetadata: { framework },
-                },
-                sandboxId,
-                sandboxUrl: previewUrl,
-                sandboxRuntime,
+            const newProject = await createBlankProject({
+                framework,
             });
 
-            forkedSandboxId = null;
             if (newProject) {
                 setPhase('opening-editor');
                 router.push(`${Routes.PROJECT}/${newProject.id}`);
@@ -93,15 +54,6 @@ export function useCreateBlankProject() {
             }
             setPhase('idle');
         } catch (error) {
-            if (forkedSandboxId) {
-                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch((cleanupErr) => {
-                    console.warn('[useCreateBlankProject] failed to clean up orphan sandbox', {
-                        sandboxId: forkedSandboxId,
-                        error:
-                            cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
-                    });
-                });
-            }
             console.error('Error creating blank project:', error);
             const errorMessage = error instanceof Error ? error.message : String(error);
 

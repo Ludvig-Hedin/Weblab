@@ -46,6 +46,11 @@ Observed active areas:
 - **Project chooser cards** — `project-chooser-cards.tsx` and
   `project-creation-loader.tsx` add a card-based create flow with loading
   state.
+- **Project flow performance** — blank creation uses `project.createBlank` to
+  fork and create DB rows in one server mutation; editor open uses
+  `project.getEditorBootstrap` to seed project, branches, canvas/frames,
+  conversations, and pending create request in one payload; imports show
+  explicit phases and local/Figma uploads use bounded parallel writes.
 - **Desktop CLI bridge for local AI providers** — `@weblab/ai-cli` adapters
   for Codex, Claude Code, Gemini, OpenCode, Cursor.
 - **Auth flow hardening** — `NEXT_PUBLIC_SITE_URL` for proper redirect

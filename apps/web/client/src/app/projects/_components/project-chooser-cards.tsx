@@ -104,7 +104,8 @@ export function ProjectChooserCards({
     const [showCloneDialog, setShowCloneDialog] = useState(false);
 
     const { handleStartBlankProject, isCreatingProject, phase } = useCreateBlankProject();
-    const { handleImportLocalProject, isImporting, isFsAccessSupported } = useImportLocalProject();
+    const { handleImportLocalProject, isImporting, progress, isFsAccessSupported } =
+        useImportLocalProject();
 
     const isBusy = aiBusy || isCreatingProject || isImporting;
 
@@ -119,6 +120,22 @@ export function ProjectChooserCards({
         },
         { label: t(transKeys.projects.actions.openingEditor), ready: false },
     ];
+    const importSteps = [
+        {
+            label:
+                progress.phase === 'uploading' && progress.filesUploaded > 0
+                    ? progress.filesTotal
+                        ? `Uploading ${progress.filesUploaded}/${progress.filesTotal} files`
+                        : `Uploading ${progress.filesUploaded} files`
+                    : 'Preparing workspace',
+            ready: progress.phase === 'creating' || progress.phase === 'done',
+        },
+        {
+            label: 'Creating project',
+            ready: progress.phase === 'done',
+        },
+        { label: 'Opening editor', ready: false },
+    ];
 
     return (
         <div className="w-full">
@@ -128,6 +145,14 @@ export function ProjectChooserCards({
                     heading={t(transKeys.projects.actions.creatingBlankProject)}
                     caption={t(transKeys.projects.actions.creatingBlankProjectCaption)}
                     steps={creationSteps}
+                />
+            )}
+            {isImporting && progress.phase !== 'picking' && (
+                <ProjectCreationLoader
+                    overlay
+                    heading="Importing folder"
+                    caption="Uploading your files and preparing the editor."
+                    steps={importSteps}
                 />
             )}
             <div className="flex w-full items-center gap-3">

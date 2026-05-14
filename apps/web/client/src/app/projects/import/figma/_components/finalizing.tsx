@@ -10,13 +10,26 @@ import { useFigmaImport } from '../_context';
 import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FigmaFinalizing = () => {
-    const { isFinalizing, finalizeError, retry, cancel } = useFigmaImport();
+    const { isFinalizing, finalizeError, retry, cancel, finalizeProgress } = useFigmaImport();
+
+    const phaseLabel =
+        finalizeProgress.phase === 'creating-sandbox'
+            ? 'Creating sandbox'
+            : finalizeProgress.phase === 'uploading'
+              ? `Uploading ${finalizeProgress.filesUploaded}/${finalizeProgress.totalFiles} files`
+              : finalizeProgress.phase === 'installing'
+                ? 'Installing dependencies'
+                : finalizeProgress.phase === 'creating-project'
+                  ? 'Creating project'
+                  : finalizeProgress.phase === 'opening-editor'
+                    ? 'Opening editor'
+                    : 'Creating your project with the imported frames.';
 
     return (
         <>
             <StepHeader>
                 <CardTitle>Setting up project...</CardTitle>
-                <CardDescription>Creating your project with the imported frames.</CardDescription>
+                <CardDescription>{phaseLabel}</CardDescription>
             </StepHeader>
             <StepContent>
                 <motion.div

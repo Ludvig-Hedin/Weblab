@@ -343,6 +343,27 @@ across `apps/web/client/src/app/project/[id]/_components/**`,
 
 ---
 
+## 2026-05-14 — Faster project creation, editor open, and imports
+
+Author: Codex (agent)
+Area: project creation/open/import flows
+Summary: Blank project creation now uses a single server-side `project.createBlank`
+mutation that forks the template, creates all project rows, and cleans up the
+orphan sandbox if DB creation fails. `/project/[id]` now uses a consolidated
+`project.getEditorBootstrap` payload for project, branches, canvas/frames,
+conversations, and pending create requests; existing projects render the editor
+chrome immediately while sandbox/canvas/chat finish inside the canvas. Local,
+GitHub, and Figma import finalizing states now show explicit phases, and local
+/ Figma file uploads use bounded parallel writes instead of fully serial writes.
+Files: `apps/web/client/src/server/api/routers/project/project.ts`,
+`apps/web/client/src/hooks/use-create-blank-project.ts`,
+`apps/web/client/src/hooks/use-import-local-project.ts`,
+`apps/web/client/src/app/project/[id]/**`,
+`apps/web/client/src/app/projects/import/**`,
+`apps/web/client/src/components/project-creation-loader.tsx`.
+
+---
+
 ## 2026-05-09 — Documentation overhaul + agent memory system
 
 Author: Claude (agent)

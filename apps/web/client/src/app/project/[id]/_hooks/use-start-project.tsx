@@ -3,8 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+import type {
+    Canvas,
+    ChatConversation,
+    Frame,
+    ImageMessageContext,
+    MessageContext,
+} from '@weblab/models';
 import { getCloneSystemPrompt } from '@weblab/ai/client';
-import type { ImageMessageContext, MessageContext } from '@weblab/models';
 import { type ProjectCreateRequest } from '@weblab/db';
 import {
     ChatType,
@@ -29,7 +35,16 @@ interface ProjectReadyState {
     sandbox: boolean;
 }
 
-export const useStartProject = () => {
+export interface EditorBootstrapData {
+    canvas: {
+        userCanvas: Canvas;
+        frames: Frame[];
+    } | null;
+    conversations: ChatConversation[];
+    creationRequest: ProjectCreateRequest | null;
+}
+
+export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const editorEngine = useEditorEngine();
     const sandbox = editorEngine.activeSandbox;
     const online = useOnlineStatus();
@@ -46,12 +61,24 @@ export const useStartProject = () => {
     // so re-applying it on every poll would clobber the local pan/zoom — we
     // gate that with `initialCanvasAppliedRef` below. Frames are shared and
     // re-apply safely thanks to the new idempotent `applyFrames`.
+    const { data: bootstrap, error: bootstrapError } = api.project.getEditorBootstrap.useQuery(
+        { projectId: editorEngine.projectId },
+        {
+            enabled: online && !initialBootstrap,
+            staleTime: 5_000,
+            refetchOnWindowFocus: false,
+        },
+    );
+    const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
+
     const { data: canvasWithFrames, error: canvasError } = api.userCanvas.getWithFrames.useQuery(
         { projectId: editorEngine.projectId },
         {
-            enabled: online,
+            enabled: online && Boolean(effectiveBootstrap),
             refetchInterval: online ? 30_000 : false,
             refetchOnWindowFocus: online,
+            initialData: effectiveBootstrap?.canvas ?? undefined,
+            staleTime: 5_000,
             // Keep stale data on the screen during the refetch — avoids a flash
             // of the loading state when polling.
             refetchIntervalInBackground: false,
@@ -62,12 +89,22 @@ export const useStartProject = () => {
     const { data: conversations, error: conversationsError } =
         api.chat.conversation.getAll.useQuery(
             { projectId: editorEngine.projectId },
-            { enabled: online },
+            {
+                enabled: online && Boolean(effectiveBootstrap),
+                initialData: effectiveBootstrap?.conversations,
+                staleTime: 5_000,
+                refetchOnMount: false,
+            },
         );
     const { data: creationRequest, error: creationRequestError } =
         api.project.createRequest.getPendingRequest.useQuery(
             { projectId: editorEngine.projectId },
-            { enabled: online },
+            {
+                enabled: online && Boolean(effectiveBootstrap),
+                initialData: effectiveBootstrap?.creationRequest ?? undefined,
+                staleTime: 5_000,
+                refetchOnMount: false,
+            },
         );
     const { mutateAsync: updateCreateRequest } = api.project.createRequest.updateStatus.useMutation(
         {
@@ -234,6 +271,7 @@ export const useStartProject = () => {
         return () => {
             cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         online,
         sandbox.session.isOffline,
@@ -282,6 +320,7 @@ export const useStartProject = () => {
                 }
             })();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canvasWithFrames]);
 
     useEffect(() => {
@@ -305,6 +344,7 @@ export const useStartProject = () => {
             processedRequestIdRef.current = creationRequest.id;
             void resumeCreate(creationRequest);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [creationRequest, projectReadyState, editorEngine.chat._sendMessageAction]);
 
     const resumeCreate = async (creationData: ProjectCreateRequest) => {
@@ -453,9 +493,10 @@ export const useStartProject = () => {
                 canvasError?.message ??
                 conversationsError?.message ??
                 creationRequestError?.message ??
+                bootstrapError?.message ??
                 null,
         );
-    }, [online, userError, canvasError, conversationsError, creationRequestError]);
+    }, [online, userError, canvasError, conversationsError, creationRequestError, bootstrapError]);
 
     return {
         isProjectReady: Object.values(projectReadyState).every((value) => value),

@@ -38,7 +38,9 @@ export function OpenLocalFolder() {
         {
             label:
                 progress.phase === 'uploading' && progress.filesUploaded > 0
-                    ? t('uploadingFiles', { count: String(progress.filesUploaded) })
+                    ? progress.filesTotal
+                        ? `Uploading ${progress.filesUploaded}/${progress.filesTotal} files`
+                        : t('uploadingFiles', { count: String(progress.filesUploaded) })
                     : t('uploadingFolder'),
             ready: progress.phase === 'creating' || progress.phase === 'done',
         },

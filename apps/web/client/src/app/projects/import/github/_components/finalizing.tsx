@@ -12,6 +12,14 @@ import { StepContent, StepFooter, StepHeader } from '../../steps';
 
 export const FinalizingGithubProject = () => {
     const { repositoryImport, selectedRepo, retry, cancel } = useImportGithubProject();
+    const phaseLabel =
+        repositoryImport.phase === 'cloning-repository'
+            ? 'Cloning repository. Large repositories can take a few minutes.'
+            : repositoryImport.phase === 'creating-project'
+              ? 'Creating project'
+              : repositoryImport.phase === 'opening-editor'
+                ? 'Opening editor'
+                : `We're cloning and setting up your project`;
 
     return (
         <>
@@ -22,7 +30,7 @@ export const FinalizingGithubProject = () => {
                 <CardDescription>
                     {repositoryImport.error
                         ? 'Something went wrong while importing your repository'
-                        : `We're cloning and setting up your project`}
+                        : phaseLabel}
                 </CardDescription>
             </StepHeader>
             <StepContent>

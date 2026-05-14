@@ -21,7 +21,7 @@ export type FigmaImportStep = 0 | 1 | 2; // credentials | selectFrames | finaliz
 
 interface FigmaImportContextValue {
     currentStep: FigmaImportStep;
-    nextStep: () => void;
+    nextStep: () => Promise<void>;
     prevStep: () => void;
 
     fileUrl: string;
@@ -40,10 +40,31 @@ interface FigmaImportContextValue {
     deselectAll: () => void;
 
     isFinalizing: boolean;
+    finalizeProgress: FigmaFinalizeProgress;
     finalizeError: string | null;
     retry: () => void;
     cancel: () => void;
 }
+
+type FigmaFinalizePhase =
+    | 'idle'
+    | 'creating-sandbox'
+    | 'uploading'
+    | 'installing'
+    | 'creating-project'
+    | 'opening-editor';
+
+interface FigmaFinalizeProgress {
+    phase: FigmaFinalizePhase;
+    filesUploaded: number;
+    totalFiles: number;
+}
+
+const INITIAL_FINALIZE_PROGRESS: FigmaFinalizeProgress = {
+    phase: 'idle',
+    filesUploaded: 0,
+    totalFiles: 0,
+};
 
 const FigmaImportContext = createContext<FigmaImportContextValue | null>(null);
 
@@ -59,6 +80,8 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const [frames, setFrames] = useState<FigmaTopLevelFrame[]>([]);
     const [selectedFrameIds, setSelectedFrameIds] = useState<Set<string>>(new Set());
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [finalizeProgress, setFinalizeProgress] =
+        useState<FigmaFinalizeProgress>(INITIAL_FINALIZE_PROGRESS);
     const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
     const { data: user } = api.user.get.useQuery();
@@ -66,6 +89,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
     const { mutateAsync: createProject } = api.project.create.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
     const { mutateAsync: fetchFileMutation } = api.figma.fetchFile.useMutation();
 
     /**
@@ -123,8 +147,14 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 throw new DOMException('Import cancelled', 'AbortError');
             }
         };
+        let didOpenEditor = false;
 
         setIsFinalizing(true);
+        setFinalizeProgress({
+            phase: 'creating-sandbox',
+            filesUploaded: 0,
+            totalFiles: selectedFrames.length + 1,
+        });
         setFinalizeError(null);
         try {
             const template = SandboxTemplates[Templates.BLANK];
@@ -178,14 +208,36 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             });
 
             try {
-                await uploadToSandbox(files, provider);
+                setFinalizeProgress({
+                    phase: 'uploading',
+                    filesUploaded: 0,
+                    totalFiles: files.length,
+                });
+                await uploadToSandbox(files, provider, {
+                    onProgress: ({ uploaded, total }) =>
+                        setFinalizeProgress({
+                            phase: 'uploading',
+                            filesUploaded: uploaded,
+                            totalFiles: total,
+                        }),
+                });
                 checkAborted();
+                setFinalizeProgress({
+                    phase: 'installing',
+                    filesUploaded: files.length,
+                    totalFiles: files.length,
+                });
                 await provider.setup({});
             } finally {
                 await provider.destroy();
             }
             checkAborted();
 
+            setFinalizeProgress({
+                phase: 'creating-project',
+                filesUploaded: files.length,
+                totalFiles: files.length,
+            });
             const project = await createProject({
                 project: {
                     name: fileName || 'Figma Import',
@@ -202,6 +254,12 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
 
             if (!project) throw new Error('Failed to create project');
             inFlightProjectId.current = project.id;
+            setFinalizeProgress({
+                phase: 'opening-editor',
+                filesUploaded: files.length,
+                totalFiles: files.length,
+            });
+            didOpenEditor = true;
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (err) {
             if (err instanceof DOMException && err.name === 'AbortError') {
@@ -218,8 +276,29 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                       ? err.message
                       : fallback;
             setFinalizeError(message);
+            if (inFlightSandboxId.current && !inFlightProjectId.current) {
+                await deleteOrphanSandbox({ sandboxId: inFlightSandboxId.current }).catch(
+                    (cleanupError) => {
+                        console.warn(
+                            'Failed to clean up orphan sandbox after Figma import error:',
+                            {
+                                sandboxId: inFlightSandboxId.current,
+                                error:
+                                    cleanupError instanceof Error
+                                        ? cleanupError.message
+                                        : String(cleanupError),
+                            },
+                        );
+                    },
+                );
+            }
+            inFlightSandboxId.current = null;
+            inFlightProjectId.current = null;
         } finally {
-            setIsFinalizing(false);
+            if (!didOpenEditor) {
+                setIsFinalizing(false);
+                setFinalizeProgress(INITIAL_FINALIZE_PROGRESS);
+            }
             if (abortController.current === controller) {
                 abortController.current = null;
             }
@@ -265,9 +344,12 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
         } else if (sandboxCreated) {
-            // TODO: If sandbox forking succeeds but project creation fails, the forked
-            // sandbox is leaked. A server-side cleanup job (or idempotent creation) is
-            // needed to handle this. Until then, creation errors may leave orphaned sandboxes.
+            const sandboxIdToClean = inFlightSandboxId.current;
+            if (sandboxIdToClean) {
+                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err) => {
+                    console.error('Failed to clean up orphan sandbox on cancel:', err);
+                });
+            }
             toast.message('Import cancelled', {
                 description: 'If a sandbox was created, it may take a moment to clean up.',
             });
@@ -301,6 +383,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 selectAll,
                 deselectAll,
                 isFinalizing,
+                finalizeProgress,
                 finalizeError,
                 retry,
                 cancel,

@@ -29,6 +29,7 @@ interface ProjectCreationContextValue {
     projectData: Partial<Project>;
     direction: number;
     isFinalizing: boolean;
+    finalizeProgress: ImportFinalizeProgress;
     totalSteps: number;
 
     // Framework
@@ -50,6 +51,26 @@ interface ProjectCreationContextValue {
     cancel: () => void;
     validateNextJsProject: (files: ProcessedFile[]) => Promise<NextJsProjectValidation>;
 }
+
+export type ImportFinalizePhase =
+    | 'idle'
+    | 'creating-sandbox'
+    | 'uploading'
+    | 'installing'
+    | 'creating-project'
+    | 'opening-editor';
+
+export interface ImportFinalizeProgress {
+    phase: ImportFinalizePhase;
+    filesUploaded: number;
+    totalFiles: number;
+}
+
+const INITIAL_FINALIZE_PROGRESS: ImportFinalizeProgress = {
+    phase: 'idle',
+    filesUploaded: 0,
+    totalFiles: 0,
+};
 
 const ProjectCreationContext = createContext<ProjectCreationContextValue | undefined>(undefined);
 
@@ -107,6 +128,8 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const [error, setError] = useState<string | null>(null);
     const [direction, setDirection] = useState(0);
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [finalizeProgress, setFinalizeProgress] =
+        useState<ImportFinalizeProgress>(INITIAL_FINALIZE_PROGRESS);
     const [framework, setFramework] = useState<FrameworkId>('nextjs');
     const isMultiFrameworkEnabled = env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED;
     const { data: user } = api.user.get.useQuery();
@@ -114,6 +137,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: startSandbox } = api.sandbox.start.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
 
     /**
      * Tracks the in-flight finalize so cancel() can abort the chain and clean
@@ -138,9 +162,16 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 throw new DOMException('Import cancelled', 'AbortError');
             }
         };
+        let didOpenEditor = false;
+        let provider: Provider | null = null;
 
         try {
             setIsFinalizing(true);
+            setFinalizeProgress({
+                phase: 'creating-sandbox',
+                filesUploaded: 0,
+                totalFiles: projectData.files?.length ?? 0,
+            });
             setError(null);
 
             if (!user?.id) {
@@ -172,7 +203,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             inFlightSandboxId.current = forkedSandbox.sandboxId;
             checkAborted();
 
-            const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
+            provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
                 providerOptions: {
                     codesandbox: {
                         sandboxId: forkedSandbox.sandboxId,
@@ -186,12 +217,38 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 },
             });
 
-            await uploadToSandbox(projectData.files, provider);
-            checkAborted();
-            await provider.setup({});
-            await provider.destroy();
+            try {
+                setFinalizeProgress({
+                    phase: 'uploading',
+                    filesUploaded: 0,
+                    totalFiles: projectData.files.length,
+                });
+                await uploadToSandbox(projectData.files, provider, {
+                    onProgress: ({ uploaded, total }) =>
+                        setFinalizeProgress({
+                            phase: 'uploading',
+                            filesUploaded: uploaded,
+                            totalFiles: total,
+                        }),
+                });
+                checkAborted();
+                setFinalizeProgress({
+                    phase: 'installing',
+                    filesUploaded: projectData.files.length,
+                    totalFiles: projectData.files.length,
+                });
+                await provider.setup({});
+            } finally {
+                await provider.destroy();
+                provider = null;
+            }
             checkAborted();
 
+            setFinalizeProgress({
+                phase: 'creating-project',
+                filesUploaded: projectData.files.length,
+                totalFiles: projectData.files.length,
+            });
             const project = await createProject({
                 project: {
                     name: projectData.name ?? 'New project',
@@ -211,7 +268,13 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 return;
             }
             inFlightProjectId.current = project.id;
+            setFinalizeProgress({
+                phase: 'opening-editor',
+                filesUploaded: projectData.files.length,
+                totalFiles: projectData.files.length,
+            });
             // Open the project
+            didOpenEditor = true;
             router.push(`${Routes.PROJECT}/${project.id}`);
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
@@ -220,11 +283,32 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             }
             console.error('Error creating project:', error);
             setError('Failed to create project');
+            if (inFlightSandboxId.current && !inFlightProjectId.current) {
+                await deleteOrphanSandbox({ sandboxId: inFlightSandboxId.current }).catch(
+                    (cleanupError) => {
+                        console.warn('Failed to clean up orphan sandbox after import error:', {
+                            sandboxId: inFlightSandboxId.current,
+                            error:
+                                cleanupError instanceof Error
+                                    ? cleanupError.message
+                                    : String(cleanupError),
+                        });
+                    },
+                );
+            }
             inFlightSandboxId.current = null;
             inFlightProjectId.current = null;
             return;
         } finally {
-            setIsFinalizing(false);
+            if (provider) {
+                await provider.destroy().catch((destroyError) => {
+                    console.warn('Failed to destroy import provider:', destroyError);
+                });
+            }
+            if (!didOpenEditor) {
+                setIsFinalizing(false);
+                setFinalizeProgress(INITIAL_FINALIZE_PROGRESS);
+            }
             if (abortController.current === controller) {
                 abortController.current = null;
             }
@@ -343,7 +427,12 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
         } else if (sandboxCreated) {
-            // TODO: server-side cleanup of orphan sandbox
+            const sandboxIdToClean = inFlightSandboxId.current;
+            if (sandboxIdToClean) {
+                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err) => {
+                    console.error('Failed to clean up orphan sandbox on cancel:', err);
+                });
+            }
             toast.message('Import cancelled', {
                 description: 'If a sandbox was created, it may take a moment to clean up.',
             });
@@ -363,6 +452,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         projectData,
         direction,
         isFinalizing,
+        finalizeProgress,
         totalSteps,
         framework,
         setFramework,
@@ -393,26 +483,45 @@ export const useProjectCreation = (): ProjectCreationContextValue => {
     return context;
 };
 
-export const uploadToSandbox = async (files: ProcessedFile[], provider: Provider) => {
-    for (const file of files) {
+export const uploadToSandbox = async (
+    files: ProcessedFile[],
+    provider: Provider,
+    options?: {
+        concurrency?: number;
+        onProgress?: (progress: { uploaded: number; total: number }) => void;
+    },
+) => {
+    const concurrency = Math.max(1, options?.concurrency ?? 8);
+    let nextIndex = 0;
+    let uploaded = 0;
+    const total = files.length;
+    options?.onProgress?.({ uploaded, total });
+
+    const uploadOne = async (file: ProcessedFile) => {
         try {
             if (file.type === ProcessedFileType.BINARY) {
                 const uint8Array = new Uint8Array(file.content);
-                await provider.writeFile({
+                const result = await provider.writeFile({
                     args: {
                         path: file.path,
                         content: uint8Array,
                         overwrite: true,
                     },
                 });
+                if (!result.success) {
+                    throw new Error('Provider rejected the file write');
+                }
             } else {
-                await provider.writeFile({
+                const result = await provider.writeFile({
                     args: {
                         path: file.path,
                         content: file.content,
                         overwrite: true,
                     },
                 });
+                if (!result.success) {
+                    throw new Error('Provider rejected the file write');
+                }
             }
         } catch (fileError) {
             console.error(`Error uploading file ${file.path}:`, fileError);
@@ -420,5 +529,20 @@ export const uploadToSandbox = async (files: ProcessedFile[], provider: Provider
                 `Failed to upload file: ${file.path} - ${fileError instanceof Error ? fileError.message : 'Unknown error'}`,
             );
         }
-    }
+    };
+
+    const workers = Array.from({ length: Math.min(concurrency, total) }, async () => {
+        while (nextIndex < total) {
+            const file = files[nextIndex];
+            nextIndex += 1;
+            if (!file) {
+                continue;
+            }
+            await uploadOne(file);
+            uploaded += 1;
+            options?.onProgress?.({ uploaded, total });
+        }
+    });
+
+    await Promise.all(workers);
 };

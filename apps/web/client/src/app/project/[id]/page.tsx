@@ -11,18 +11,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     }
 
     try {
-        const [project, branches] = await Promise.all([
-            api.project.get({ projectId }),
-            api.branch.getByProjectId({ projectId }),
-        ]);
+        const bootstrap = await api.project.getEditorBootstrap({ projectId });
 
-        if (!project) {
+        if (!bootstrap?.project) {
             return <ProjectLoadError variant="not-found" />;
         }
 
         return (
-            <ProjectProviders project={project} branches={branches}>
-                <Main />
+            <ProjectProviders project={bootstrap.project} branches={bootstrap.branches}>
+                <Main initialBootstrap={bootstrap} />
             </ProjectProviders>
         );
     } catch (error) {
