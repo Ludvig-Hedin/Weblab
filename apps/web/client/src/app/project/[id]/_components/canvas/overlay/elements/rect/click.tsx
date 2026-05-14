@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { useId } from 'react';
 
 import type { DomElementStyles, RectDimensions } from '@weblab/models';
 import { colors } from '@weblab/ui/tokens';
@@ -105,14 +105,15 @@ export const ClickRect = ({
     styles,
     shouldShowResizeHandles,
 }: ClickRectProps) => {
+    const uid = useId();
     const renderMarginLabels = () => {
         if (!styles?.computed.margin) {
             return null;
         }
         const { adjusted, original } = parseCssBoxValues(styles.computed.margin);
 
-        const patternId = `margin-pattern-${nanoid()}`;
-        const maskId = `margin-mask-${nanoid()}`;
+        const patternId = `margin-pattern-${uid}`;
+        const maskId = `margin-mask-${uid}`;
 
         const checkMarginAuto = (side: string) => {
             const marginSide = styles?.defined?.[`margin-${side}`];
@@ -220,8 +221,8 @@ export const ClickRect = ({
         }
         const { adjusted, original } = parseCssBoxValues(styles.computed.padding);
 
-        const patternId = `padding-pattern-${nanoid()}`;
-        const maskId = `padding-mask-${nanoid()}`;
+        const patternId = `padding-pattern-${uid}`;
+        const maskId = `padding-mask-${uid}`;
         const pWidth = width - adjusted.left - adjusted.right;
         const pHeight = height - adjusted.top - adjusted.bottom;
 

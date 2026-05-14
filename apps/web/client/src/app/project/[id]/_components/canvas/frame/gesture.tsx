@@ -83,6 +83,9 @@ export const GestureScreen = observer(
                             break;
                         case MouseAction.MOUSE_DOWN:
                             if (el.tagName.toLocaleLowerCase() === 'body') {
+                                if (editorEngine.text.isEditing) {
+                                    await editorEngine.text.end();
+                                }
                                 editorEngine.frames.select([frame], e.shiftKey);
                                 return;
                             }
@@ -92,6 +95,12 @@ export const GestureScreen = observer(
                             }
                             const wasTextEditing = editorEngine.text.isEditing;
                             if (wasTextEditing) {
+                                // Triple-click: third mousedown lands on the same element
+                                // the user just double-clicked into — don't destroy the editor.
+                                // ProseMirror handles the native text selection itself.
+                                if (editorEngine.text.targetElement?.domId === el.domId) {
+                                    break;
+                                }
                                 await editorEngine.text.end();
                             }
 

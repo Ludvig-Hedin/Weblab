@@ -59,7 +59,9 @@ export const Overlay = observer(() => {
                     isComponent={overlayState.hoverRect.isComponent}
                 />
             )}
-            {overlayState.insertRect && <InsertRect rect={overlayState.insertRect} />}
+            {overlayState.insertRect && (
+                <InsertRect rect={overlayState.insertRect} mode={editorEngine.state.insertMode} />
+            )}
             {!isTextEditing && clickRectsElements}
             {isTextEditing && overlayState.textEditor && <TextEditor />}
             {overlayState.measurement && (
