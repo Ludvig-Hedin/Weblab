@@ -5,6 +5,12 @@
     "type": "module",
     "module": "src/index.ts",
     "types": "src/index.ts",
+    "exports": {
+        ".": {
+            "browser": "./src/index.browser.ts",
+            "default": "./src/index.ts"
+        }
+    },
     "version": "0.0.0",
     "private": true,
     "repository": {
