@@ -35,7 +35,7 @@ export default async function CompareIndexPage() {
             </section>
 
             <main className="bg-background text-foreground-primary">
-                <section className="bg-black py-40">
+                <section className="bg-background py-40">
                     <div className="mx-auto max-w-6xl px-8">
                         <h1 className="mb-8 text-5xl leading-tight font-light md:text-6xl">
                             {t('heroHeading', { appName: APP_NAME })}

@@ -113,6 +113,15 @@ export function Footer() {
                                         {t('resources.changelog.label')}
                                     </a>
                                 </li>
+                                <li>
+                                    <a
+                                        href={Routes.COMPARE}
+                                        className={linkClass}
+                                        title={t('resources.compare.title')}
+                                    >
+                                        {t('resources.compare.label')}
+                                    </a>
+                                </li>
                             </ul>
                         </div>
 

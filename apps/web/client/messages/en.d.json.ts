@@ -403,12 +403,9 @@ declare const messages: {
         "profileSetup": {
             "title": "What should we call you?",
             "description": "Tell us your name so Weblab can address you properly across the app.",
-            "firstName": "First name",
-            "lastName": "Last name",
-            "optional": "(optional)",
-            "firstNamePlaceholder": "Ada",
-            "lastNamePlaceholder": "Lovelace",
-            "errorFirstNameRequired": "Please enter your first name.",
+            "name": "Name",
+            "namePlaceholder": "Ada Lovelace",
+            "errorNameRequired": "Please enter your name.",
             "errorSaveFailed": "Failed to save profile. Please try again.",
             "saving": "Saving...",
             "continue": "Continue",
@@ -1675,6 +1672,11 @@ declare const messages: {
             "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.",
             "ogImageAlt": "Weblab vibe coding workflow preview"
         },
+        "workflowsCodex": {
+            "title": "Codex for Designers: Add a Visual Canvas to Your Workflow | Weblab",
+            "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.",
+            "ogImageAlt": "Weblab Codex workflow preview"
+        },
         "download": {
             "title": "Download Weblab | Mac, Windows, Linux & iOS",
             "description": "Get the Weblab desktop app for macOS, Windows and Linux, or the iOS app on iPhone and iPad.",
@@ -2261,7 +2263,8 @@ declare const messages: {
                 "docs": { "label": "Docs", "title": "View Weblab documentation" },
                 "blog": { "label": "Blog", "title": "Read the Weblab blog" },
                 "githubRepo": { "label": "GitHub Repo", "title": "View Weblab on GitHub" },
-                "changelog": { "label": "Changelog", "title": "See what's new in Weblab" }
+                "changelog": { "label": "Changelog", "title": "See what's new in Weblab" },
+                "compare": { "label": "Compare", "title": "See how Weblab compares to alternatives" }
             },
             "product": {
                 "title": "Product",

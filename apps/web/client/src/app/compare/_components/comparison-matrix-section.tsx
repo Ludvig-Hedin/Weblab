@@ -50,7 +50,7 @@ function CellContent({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
         inner = (
             <span className="inline-flex items-center justify-center">
                 <Check
-                    className={`h-4 w-4 ${highlight ? 'text-foreground-primary' : 'text-foreground-secondary'}`}
+                    className="h-4 w-4 text-emerald-500"
                     strokeWidth={2.5}
                 />
             </span>
@@ -255,13 +255,6 @@ const rows: Row[] = [
         framer: false,
         lovable: false,
     },
-    {
-        feature: 'Pricing',
-        weblab: 'Free / open source',
-        webflow: 'From $23/mo',
-        framer: 'From $10/mo',
-        lovable: 'Usage-based',
-    },
 ];
 
 // ─── Column headers config ────────────────────────────────────────────────────
@@ -282,7 +275,7 @@ export function ComparisonMatrixSection() {
                 <div className="mx-auto max-w-6xl px-8">
                     {/* Heading */}
                     <div className="mb-16">
-                        <p className="text-foreground-tertiary mb-3 text-sm tracking-wider uppercase">
+                        <p className="text-foreground-tertiary mb-3 text-sm">
                             Feature comparison
                         </p>
                         <h2 className="text-foreground-primary mb-4 text-4xl font-light md:text-5xl">
@@ -301,7 +294,7 @@ export function ComparisonMatrixSection() {
                             <thead>
                                 <tr className="border-foreground-tertiary/20 border-b">
                                     {/* Feature label cell */}
-                                    <th className="text-foreground-tertiary w-[38%] px-6 py-5 text-xs font-normal tracking-wider uppercase">
+                                    <th className="text-foreground-tertiary w-[38%] px-6 py-5 text-xs font-normal">
                                         Feature
                                     </th>
 
@@ -337,7 +330,7 @@ export function ComparisonMatrixSection() {
                                             >
                                                 <td
                                                     colSpan={5}
-                                                    className="bg-foreground-primary/[0.03] text-foreground-tertiary px-6 py-3 text-xs font-medium tracking-widest uppercase"
+                                                    className="bg-foreground-primary/[0.03] text-foreground-tertiary px-6 py-3 text-xs font-medium"
                                                 >
                                                     {row.feature}
                                                 </td>

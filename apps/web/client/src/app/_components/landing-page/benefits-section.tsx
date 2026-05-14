@@ -26,7 +26,7 @@ export function BenefitsSection() {
     return (
         <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32 lg:py-64">
             <div className="space-y-24">
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('aiContext.eyebrow')}
@@ -43,8 +43,11 @@ export function BenefitsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
-                    <div className="order-2 flex flex-col lg:order-1">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
+                    <div className="order-1">
+                        <DirectEditingInteractive />
+                    </div>
+                    <div className="order-2 flex flex-col">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('canvas.eyebrow')}
                         </h2>
@@ -55,12 +58,9 @@ export function BenefitsSection() {
                             {t('canvas.body')}
                         </p>
                     </div>
-                    <div className="order-1 lg:order-2">
-                        <DirectEditingInteractive />
-                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
                         <h2 className="heading-style-h6 text-foreground-secondary mb-4">
                             {t('guardrails.eyebrow')}

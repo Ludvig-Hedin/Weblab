@@ -14,11 +14,17 @@ export function SmoothScrollProvider({ children }: { children?: React.ReactNode 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (prefersReducedMotion) return;
 
+        // Disable on touch devices (mobile/tablet)
+        const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+        if (isTouchDevice) return;
+
         const lenis = new Lenis({
             duration: 1.1,
             easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
             smoothWheel: true,
-            touchMultiplier: 1.5,
+            // Reduced wheel multiplier keeps trackpad feel light
+            wheelMultiplier: 0.7,
+            touchMultiplier: 0,
         });
         window.__lenis = lenis;
 

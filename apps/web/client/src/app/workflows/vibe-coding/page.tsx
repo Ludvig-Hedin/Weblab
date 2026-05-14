@@ -10,7 +10,7 @@ import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { UnicornBackground } from '../../_components/hero/unicorn-background';
+import { DownloadButton } from '../../_components/hero/download-button';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQSection } from '../../_components/landing-page/faq-section';
 import { WeblabInterfaceMockup } from '../../_components/landing-page/weblab-interface-mockup';
@@ -61,11 +61,10 @@ const getBlurAnimationProps = (delay = 0) => ({
 
 function VibeCodingHero() {
     return (
-        <div className="relative flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
-            <UnicornBackground />
+        <div className="flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
             <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase"
+                    className="text-foreground-secondary text-sm font-medium"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -94,7 +93,7 @@ function VibeCodingHero() {
                     components.
                 </motion.p>
                 <motion.div
-                    className="mt-8"
+                    className="mt-8 flex flex-row gap-3"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
@@ -102,23 +101,16 @@ function VibeCodingHero() {
                 >
                     <Button
                         asChild
-                        variant="secondary"
+                        variant="outline"
                         size="lg"
-                        className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
+                        className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10 cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={Routes.PROJECTS}>Get Started</a>
+                        <a href={Routes.PROJECTS}>
+                            Get Started
+                            <Icons.ArrowRight className="ml-2 h-4 w-4" />
+                        </a>
                     </Button>
-                </motion.div>
-                <motion.div
-                    className="text-foreground-secondary mt-8 flex items-center justify-center gap-6 text-sm"
-                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
-                    style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
-                >
-                    <div className="flex items-center gap-2">
-                        <span>Open Source</span>
-                    </div>
+                    <DownloadButton />
                 </motion.div>
             </div>
         </div>
@@ -157,15 +149,15 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* Hero Section */}
-                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
                     <VibeCodingHero />
                 </div>
 
                 {/* The Problem Section */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             The Problem
@@ -224,10 +216,10 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* The Solution Section */}
-                <section className="w-full bg-black pt-32 pb-16">
+                <section className="w-full bg-background pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             The Solution
@@ -306,10 +298,10 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* How It Works Section */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             How It Works
@@ -359,10 +351,10 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* Comparison Section */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             Vibe Coding: Solo vs. Team
@@ -380,7 +372,7 @@ export default function VibeCodingWorkflowPage() {
                         >
                             {/* Solo Column */}
                             <div className="border-foreground-primary/10 rounded-lg border p-8">
-                                <h3 className="text-foreground-tertiary mb-6 text-sm font-medium tracking-wider uppercase">
+                                <h3 className="text-foreground-tertiary mb-6 text-sm font-medium">
                                     Solo Vibe Coding
                                 </h3>
                                 <ul className="space-y-4">
@@ -404,7 +396,7 @@ export default function VibeCodingWorkflowPage() {
 
                             {/* Team Column */}
                             <div className="border-foreground-primary/30 rounded-lg border bg-gradient-to-b from-white/5 to-transparent p-8">
-                                <h3 className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase">
+                                <h3 className="text-foreground-secondary mb-6 text-sm font-medium">
                                     Team Vibe Coding with {APP_NAME}
                                 </h3>
                                 <ul className="space-y-4">

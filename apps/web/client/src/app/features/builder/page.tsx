@@ -70,7 +70,7 @@ export default function BuilderFeaturesPage() {
                     </ul>
                 </section>
 
-                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
                     <BuilderFeaturesHero />
                 </div>
                 <ResponsiveMockupSection />

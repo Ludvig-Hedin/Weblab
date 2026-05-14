@@ -80,7 +80,7 @@ export default function AboutPage() {
             </section>
 
             <main className="bg-background text-foreground-primary">
-                <section className="text-foreground-primary bg-black py-64">
+                <section className="text-foreground-primary bg-background py-64">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h1
                             className="mb-8 text-left text-6xl !leading-[1]"
@@ -200,7 +200,7 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                <section className="text-foreground-primary bg-black py-60">
+                <section className="text-foreground-primary bg-background py-60">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="mb-20 text-left text-7xl leading-tight font-light"
@@ -236,7 +236,7 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                <section className="text-foreground-primary bg-black py-56">
+                <section className="text-foreground-primary bg-background py-56">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="mb-20 text-left text-7xl leading-tight font-light"

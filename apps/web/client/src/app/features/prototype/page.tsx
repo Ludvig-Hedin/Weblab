@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 
 import { Button } from '@weblab/ui/button';
@@ -11,7 +10,7 @@ import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { ButtonLink } from '../../_components/button-link';
-import { UnicornBackground } from '../../_components/hero/unicorn-background';
+import { DownloadButton } from '../../_components/hero/download-button';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQDropdown } from '../../_components/landing-page/faq-dropdown';
 import { ResponsiveMockupSection } from '../../_components/landing-page/responsive-mockup-section';
@@ -21,14 +20,11 @@ import { TailwindColorEditorMockup } from '../../_components/shared/mockups/tail
 import { WebsiteLayout } from '../../_components/website-layout';
 
 function PrototypeFeaturesHero() {
-    const router = useRouter();
-
     return (
-        <div className="relative flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
-            <UnicornBackground />
+        <div className="flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
             <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase"
+                    className="text-foreground-secondary text-sm font-medium"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -57,7 +53,7 @@ function PrototypeFeaturesHero() {
                     need rapid prototyping tools that generate production-ready code.
                 </motion.p>
                 <motion.div
-                    className="mt-8"
+                    className="mt-8 flex flex-row gap-3"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
@@ -65,23 +61,16 @@ function PrototypeFeaturesHero() {
                 >
                     <Button
                         asChild
-                        variant="secondary"
+                        variant="outline"
                         size="lg"
-                        className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-all duration-300"
+                        className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10 cursor-pointer p-6 transition-all duration-300"
                     >
-                        <a href={Routes.PROJECTS}>Get Started</a>
+                        <a href={Routes.PROJECTS}>
+                            Get Started
+                            <Icons.ArrowRight className="ml-2 h-4 w-4" />
+                        </a>
                     </Button>
-                </motion.div>
-                <motion.div
-                    className="text-foreground-secondary mt-8 flex items-center justify-center gap-6 text-sm"
-                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.6, delay: 0.4, ease: 'easeOut' }}
-                    style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
-                >
-                    <div className="flex items-center gap-2">
-                        <span>Open Source</span>
-                    </div>
+                    <DownloadButton />
                 </motion.div>
             </div>
         </div>
@@ -92,9 +81,9 @@ function PrototypeBenefitsSection() {
     return (
         <div className="mx-auto w-full max-w-6xl px-8 py-32 lg:py-64">
             <div className="space-y-24">
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
+                        <h2 className="text-foreground-secondary text-sm font-medium">
                             AI-Powered Rapid Prototyping Tool
                         </h2>
                         <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
@@ -112,9 +101,9 @@ function PrototypeBenefitsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
+                        <h2 className="text-foreground-secondary text-sm font-medium">
                             Design to Code Tool for Product Teams
                         </h2>
                         <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
@@ -132,9 +121,9 @@ function PrototypeBenefitsSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
                     <div className="order-2 flex flex-col lg:order-1">
-                        <h2 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
+                        <h2 className="text-foreground-secondary text-sm font-medium">
                             Product Prototype Testing Platform
                         </h2>
                         <p className="text-foreground-primary mb-6 text-2xl font-light md:text-4xl">
@@ -161,7 +150,7 @@ function PrototypeFeaturesGridSection() {
         <div className="mx-auto w-full max-w-6xl px-8 py-32">
             <div className="grid grid-cols-1 gap-x-16 gap-y-20 md:grid-cols-3">
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         AI Prototype Generation
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -175,7 +164,7 @@ function PrototypeFeaturesGridSection() {
                 </div>
 
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         Interactive Components
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -188,7 +177,7 @@ function PrototypeFeaturesGridSection() {
                 </div>
 
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         Real-Time Collaboration (planned)
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -201,7 +190,7 @@ function PrototypeFeaturesGridSection() {
                 </div>
 
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         Figma to React Conversion
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -214,7 +203,7 @@ function PrototypeFeaturesGridSection() {
                 </div>
 
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         One-Click Deployment
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -227,7 +216,7 @@ function PrototypeFeaturesGridSection() {
                 </div>
 
                 <div>
-                    <h2 className="text-foreground-secondary text-small mb-4 tracking-wider uppercase">
+                    <h2 className="text-foreground-secondary text-small mb-4">
                         Version History
                     </h2>
                     <p className="text-foreground-primary mb-6 text-lg font-light text-balance md:text-xl">
@@ -334,14 +323,14 @@ export default function PrototypeFeaturesPage() {
                     </ul>
                 </section>
 
-                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
                     <PrototypeFeaturesHero />
                 </div>
                 <ResponsiveMockupSection />
                 <PrototypeBenefitsSection />
                 <div className="mx-auto w-full max-w-6xl px-8 py-32 text-center">
                     <div className="mx-auto max-w-3xl">
-                        <h2 className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase">
+                        <h2 className="text-foreground-secondary mb-6 text-sm font-medium">
                             Complete Rapid Prototyping Solution
                         </h2>
                         <p className="text-foreground-primary mb-8 text-2xl leading-[1.1] font-light text-balance md:text-5xl">

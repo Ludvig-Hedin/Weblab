@@ -2,13 +2,14 @@
 
 import { motion } from 'motion/react';
 
+import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { Routes } from '@/utils/constants';
 import { DownloadButton } from './download-button';
 
-export function AiFeaturesHero() {
+export function CodexHero() {
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
             <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
@@ -19,7 +20,7 @@ export function AiFeaturesHero() {
                     transition={{ duration: 0.6, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    AI Design Tools for React Development
+                    Workflows
                 </motion.p>
                 <motion.h1
                     className="heading-style-h1 text-center text-balance"
@@ -28,19 +29,18 @@ export function AiFeaturesHero() {
                     transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    Build React Apps with AI That Understands Your Code
+                    Codex for Designers
                 </motion.h1>
-                <motion.p
-                    className="text-foreground-secondary mx-auto max-w-xl text-center text-lg"
+                <motion.h2
+                    className="text-foreground-secondary mx-auto max-w-xl text-center text-lg text-balance"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    Weblab's AI doesn't just generate code—it understands your React components,
-                    Tailwind patterns, and project architecture to create production-ready
-                    components that fit seamlessly into your existing codebase.
-                </motion.p>
+                    The visual canvas your AI workflow is missing. OpenAI Codex builds it.{' '}
+                    {APP_NAME} lets you design it.
+                </motion.h2>
                 <motion.div
                     className="mt-8 flex flex-row gap-3"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}

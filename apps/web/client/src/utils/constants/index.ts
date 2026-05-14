@@ -14,11 +14,13 @@ export const Routes = {
     FEATURES_AI_FRONTEND: '/features/ai-for-frontend',
     FEATURES_BUILDER: '/features/builder',
     FEATURES_PROTOTYPE: '/features/prototype',
+    COMPARE: '/compare',
 
     // Workflows
     WORKFLOWS: '/workflows',
     WORKFLOWS_CLAUDE_CODE: '/workflows/claude-code',
     WORKFLOWS_VIBE_CODING: '/workflows/vibe-coding',
+    WORKFLOWS_CODEX: '/workflows/codex',
 
     // Auth
     LOGIN: '/login',

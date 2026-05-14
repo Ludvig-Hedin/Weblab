@@ -12,6 +12,7 @@ import { FeaturesGridSection } from '../_components/landing-page/features-grid-s
 import { FeaturesIntroSection } from '../_components/landing-page/features-intro-section';
 import { ResponsiveMockupSection } from '../_components/landing-page/responsive-mockup-section';
 import { WebsiteLayout } from '../_components/website-layout';
+import { ComparisonMatrixSection } from '../compare/_components/comparison-matrix-section';
 
 const featuresFaqs = [
     {
@@ -117,13 +118,14 @@ export default function FeaturesPage() {
                     </ul>
                 </section>
 
-                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
                     <FeaturesHero />
                 </div>
                 <ResponsiveMockupSection />
                 <BenefitsSection />
                 <FeaturesIntroSection />
                 <FeaturesGridSection />
+                <ComparisonMatrixSection />
                 <FAQSection faqs={featuresFaqs} />
                 <CTASection
                     ctaText={`Ready to stop rebuilding?`}

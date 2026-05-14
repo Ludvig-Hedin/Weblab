@@ -10,7 +10,6 @@ import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { UnicornBackground } from '../_components/hero/unicorn-background';
 import { CTASection } from '../_components/landing-page/cta-section';
 import { WebsiteLayout } from '../_components/website-layout';
 
@@ -47,10 +46,10 @@ const workflows = [
     },
     {
         title: 'Codex',
-        description: 'Visual design layer for OpenAI Codex users. Coming soon.',
-        href: '#',
+        description: `The visual canvas your Codex workflow is missing. Codex builds it, ${APP_NAME} lets you design it.`,
+        href: Routes.WORKFLOWS_CODEX,
         logo: '/assets/logo-codex.svg',
-        available: false,
+        available: true,
     },
 ];
 
@@ -81,7 +80,10 @@ export default function WorkflowsPage() {
                             it with a team canvas, real components, and PR output.
                         </li>
                         <li>Cursor — Visual design layer for Cursor users (coming soon)</li>
-                        <li>Codex — Visual design layer for OpenAI Codex users (coming soon)</li>
+                        <li>
+                            Codex — The visual canvas your Codex workflow is missing. Codex builds
+                            it, {APP_NAME} lets you design it.
+                        </li>
                     </ul>
                     <h3>Key Benefits</h3>
                     <ul>
@@ -100,13 +102,12 @@ export default function WorkflowsPage() {
 
                 {/* Hero Section */}
                 <div
-                    className="relative flex min-h-[70vh] w-full flex-col items-center justify-center p-8 text-center"
+                    className="flex min-h-[70vh] w-full flex-col items-center justify-center p-8 text-center"
                     id="hero"
                 >
-                    <UnicornBackground />
                     <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
                         <motion.p
-                            className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary text-sm font-medium"
                             initial={{ opacity: 0, filter: 'blur(4px)' }}
                             animate={{ opacity: 1, filter: 'blur(0px)' }}
                             transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -137,7 +138,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 {/* Workflows Grid */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
                             {workflows.map((workflow, index) => (
@@ -148,7 +149,7 @@ export default function WorkflowsPage() {
                                     {workflow.available ? (
                                         <Link
                                             href={workflow.href}
-                                            className="group border-foreground-primary/10 hover:border-foreground-primary/30 flex h-full flex-col gap-4 rounded-lg border bg-black p-8 transition-all duration-300"
+                                            className="group border-foreground-primary/10 hover:border-foreground-primary/30 flex h-full flex-col gap-4 rounded-lg border bg-background-secondary p-8 transition-all duration-300"
                                         >
                                             {workflow.logo ? (
                                                 <img
@@ -173,7 +174,7 @@ export default function WorkflowsPage() {
                                             </div>
                                         </Link>
                                     ) : (
-                                        <div className="border-foreground-primary/10 flex h-full flex-col gap-4 rounded-lg border bg-black p-8">
+                                        <div className="border-foreground-primary/10 flex h-full flex-col gap-4 rounded-lg border bg-background-secondary p-8">
                                             {workflow.logo ? (
                                                 <img
                                                     src={workflow.logo}

@@ -75,7 +75,7 @@ export default function AiForFrontendPage() {
         <CreateManagerProvider>
             <WebsiteLayout showFooter={true}>
                 {/* Hero Section */}
-                <div className="flex h-screen w-screen items-center justify-center" id="hero">
+                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
                     <AiFrontendHero />
                 </div>
 
@@ -112,10 +112,10 @@ export default function AiForFrontendPage() {
                 </section>
 
                 {/* The Problem Section */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             The Problem
@@ -173,10 +173,10 @@ export default function AiForFrontendPage() {
                 </section>
 
                 {/* The Solution Section */}
-                <section className="w-full bg-black pt-32 pb-16">
+                <section className="w-full bg-background pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             The Solution
@@ -244,10 +244,10 @@ export default function AiForFrontendPage() {
                 </section>
 
                 {/* Frameworks Section */}
-                <section className="w-full bg-black py-32">
+                <section className="w-full bg-background py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
-                            className="text-foreground-secondary mb-6 text-sm font-medium tracking-wider uppercase"
+                            className="text-foreground-secondary mb-6 text-sm font-medium"
                             {...getBlurAnimationProps()}
                         >
                             Works With Your Stack
@@ -311,7 +311,7 @@ export default function AiForFrontendPage() {
                                     className="border-foreground-primary/10 rounded-lg border p-6"
                                     {...getBlurAnimationProps(0.2 + categoryIndex * 0.1)}
                                 >
-                                    <h3 className="text-foreground-secondary mb-4 text-sm font-medium tracking-wider uppercase">
+                                    <h3 className="text-foreground-secondary text-sm font-medium">
                                         {category.title}
                                     </h3>
                                     <ul className="flex flex-col gap-2">

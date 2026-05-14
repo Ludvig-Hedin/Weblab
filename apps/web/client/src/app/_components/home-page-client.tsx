@@ -6,6 +6,7 @@ import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-proj
 import { Routes } from '@/utils/constants';
 import { AuthModal } from './auth-modal';
 import { ChangelogGrid } from './changelog-grid';
+import { SmoothScrollProvider } from './smooth-scroll-provider';
 import { HeroV2 } from './hero-v2';
 import { CTASection } from './landing-page/cta-section';
 import { DigitalSolutionsSection } from './landing-page/digital-solutions-section';
@@ -21,6 +22,7 @@ import { WebsiteLayout } from './website-layout';
 export function HomePageClient() {
     return (
         <CreateManagerProvider>
+            <SmoothScrollProvider>
             <WebsiteLayout showFooter={true}>
                 <div className="flex w-full items-center justify-center pt-24" id="hero">
                     <HeroV2 />
@@ -39,6 +41,7 @@ export function HomePageClient() {
                 <NonProjectSettingsModal />
                 <SubscriptionModal />
             </WebsiteLayout>
+            </SmoothScrollProvider>
         </CreateManagerProvider>
     );
 }

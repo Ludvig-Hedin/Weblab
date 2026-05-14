@@ -9,19 +9,19 @@ import { CreateManagerProvider } from '@/components/store/create';
 import { SubscriptionModal } from '@/components/ui/pricing-modal';
 import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-project';
 import { Routes } from '@/utils/constants';
-import { ClaudeCodeHero } from '../../_components/hero/claude-code-hero';
+import { CodexHero } from '../../_components/hero/codex-hero';
 import { CTASection } from '../../_components/landing-page/cta-section';
 import { FAQSection } from '../../_components/landing-page/faq-section';
 import { WeblabInterfaceMockup } from '../../_components/landing-page/weblab-interface-mockup';
 import { WebsiteLayout } from '../../_components/website-layout';
 
-const claudeCodeFaqs = [
+const codexFaqs = [
     {
-        question: `How does ${APP_NAME} work with Claude Code?`,
-        answer: `Claude Code handles the terminal and code generation. ${APP_NAME} provides the visual canvas. Together, they give you a complete design-to-code workflow — Claude Code builds, ${APP_NAME} lets you visually iterate and refine.`,
+        question: `How does ${APP_NAME} work with Codex?`,
+        answer: `Codex handles the terminal and code generation. ${APP_NAME} provides the visual canvas. Together, they give you a complete design-to-code workflow — Codex builds, ${APP_NAME} lets you visually iterate and refine.`,
     },
     {
-        question: `Do I need to know code to use ${APP_NAME} with Claude Code?`,
+        question: `Do I need to know code to use ${APP_NAME} with Codex?`,
         answer: `No. ${APP_NAME} gives you a visual canvas where you can drag, resize, and arrange elements. The code runs underneath — you don't need to touch it unless you want to.`,
     },
     {
@@ -33,8 +33,8 @@ const claudeCodeFaqs = [
         answer: `${APP_NAME} has built-in team collaboration. Share your canvas, leave spatial comments, and work together in real-time. Changes sync to code and can be submitted as PRs.`,
     },
     {
-        question: `What makes ${APP_NAME} different from using Claude Code alone?`,
-        answer: `Claude Code is terminal-based and works best for building. ${APP_NAME} adds the visual layer designers need — an infinite canvas, team collaboration, and visual iteration on AI-generated UIs.`,
+        question: `What makes ${APP_NAME} different from using Codex alone?`,
+        answer: `Codex is terminal-based and works best for building. ${APP_NAME} adds the visual layer designers need — an infinite canvas, team collaboration, and visual iteration on AI-generated UIs.`,
     },
     {
         question: `Does ${APP_NAME} constrain AI to my design system?`,
@@ -58,23 +58,20 @@ const getBlurAnimationProps = (delay = 0) => ({
     },
 });
 
-export default function ClaudeCodeWorkflowPage() {
+export default function CodexWorkflowPage() {
     return (
         <CreateManagerProvider>
             <WebsiteLayout showFooter={true}>
                 {/* AI-Friendly Summary Section */}
-                <section className="sr-only" aria-label="Claude Code Workflow Summary">
-                    <h2>
-                        Claude Code for Designers: Add a Visual Canvas to Your AI Coding Workflow
-                    </h2>
+                <section className="sr-only" aria-label="Codex Workflow Summary">
+                    <h2>Codex for Designers: Add a Visual Canvas to Your AI Coding Workflow</h2>
                     <p>
-                        Claude Code is amazing for building — but designers need to see, arrange,
-                        and refine visually.
-                        {APP_NAME} adds the visual layer. Design with Claude Code, refine on an
-                        infinite canvas, ship PRs. Together, they give you a complete design-to-code
-                        workflow.
+                        OpenAI Codex is amazing for building — but designers need to see, arrange,
+                        and refine visually. {APP_NAME} adds the visual layer. Design with Codex,
+                        refine on an infinite canvas, ship PRs. Together, they give you a complete
+                        design-to-code workflow.
                     </p>
-                    <h3>The Challenge with Claude Code Alone</h3>
+                    <h3>The Challenge with Codex Alone</h3>
                     <ul>
                         <li>Terminal-based — not a visual environment designers are used to</li>
                         <li>Solo workflow — hard to share work-in-progress with teammates</li>
@@ -97,17 +94,17 @@ export default function ClaudeCodeWorkflowPage() {
                         <li>PR output — changes become real pull requests engineers can review</li>
                         <li>AI constrained — outputs match your design system, no drift</li>
                     </ul>
-                    <h3>Coming Soon: {APP_NAME} MCP for Claude Code</h3>
+                    <h3>Coming Soon: {APP_NAME} MCP for Codex</h3>
                     <p>
-                        Use /weblab directly in Claude Code to open your UI in a visual canvas,
-                        iterate with your design system, and push changes back — all without leaving
-                        the terminal.
+                        Use /weblab directly in Codex to open your UI in a visual canvas, iterate
+                        with your design system, and push changes back — all without leaving the
+                        terminal.
                     </p>
                 </section>
 
                 {/* Hero Section */}
                 <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
-                    <ClaudeCodeHero />
+                    <CodexHero />
                 </div>
 
                 {/* The Problem Section */}
@@ -123,8 +120,8 @@ export default function ClaudeCodeWorkflowPage() {
                             className="mb-16 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            Claude Code is amazing for building. But designers need to see, arrange,
-                            and refine. Together.
+                            Codex is amazing for building. But designers need to see, arrange, and
+                            refine. Together.
                         </motion.p>
 
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -133,7 +130,7 @@ export default function ClaudeCodeWorkflowPage() {
                                     icon: Icons.Terminal,
                                     title: 'Terminal-based',
                                     description:
-                                        'Claude Code works in the terminal — not a visual environment designers are used to.',
+                                        'Codex works in the terminal — not a visual environment designers are used to.',
                                 },
                                 {
                                     icon: Icons.Person,
@@ -185,7 +182,7 @@ export default function ClaudeCodeWorkflowPage() {
                             className="mb-24 max-w-3xl text-4xl leading-tight font-light text-balance md:text-5xl"
                             {...getBlurAnimationProps(0.1)}
                         >
-                            {APP_NAME} adds the visual layer. Design with Claude Code, refine on the
+                            {APP_NAME} adds the visual layer. Design with Codex, refine on the
                             canvas, ship PRs.
                         </motion.p>
                     </div>
@@ -266,20 +263,20 @@ export default function ClaudeCodeWorkflowPage() {
                                     Coming Soon
                                 </span>
                                 <h2 className="mb-6 max-w-2xl text-3xl leading-tight font-light text-balance md:text-5xl">
-                                    {APP_NAME} MCP for Claude Code
+                                    {APP_NAME} MCP for Codex
                                 </h2>
                                 <p className="text-foreground-secondary mb-8 max-w-xl text-lg text-balance">
                                     Use{' '}
                                     <code className="bg-foreground-primary/10 rounded px-2 py-0.5 font-mono text-base">
                                         /weblab
                                     </code>{' '}
-                                    directly in Claude Code to open your UI in a visual canvas,
-                                    iterate with your design system, and push changes back — all
-                                    without leaving the terminal.
+                                    directly in Codex to open your UI in a visual canvas, iterate
+                                    with your design system, and push changes back — all without
+                                    leaving the terminal.
                                 </p>
                                 <div className="bg-background-secondary/50 border-foreground-primary/20 rounded-lg border p-6 font-mono text-sm">
                                     <span className="text-foreground-tertiary">$</span>{' '}
-                                    <span className="text-foreground-secondary">claude</span>{' '}
+                                    <span className="text-foreground-secondary">codex</span>{' '}
                                     <span className="text-foreground-primary">
                                         /weblab open ./src/components/Hero.tsx
                                     </span>
@@ -290,11 +287,11 @@ export default function ClaudeCodeWorkflowPage() {
                 </section>
 
                 {/* FAQ Section */}
-                <FAQSection faqs={claudeCodeFaqs} title="Frequently asked questions" />
+                <FAQSection faqs={codexFaqs} title="Frequently asked questions" />
 
                 {/* CTA Section */}
                 <CTASection
-                    ctaText={`Try ${APP_NAME} with your\nClaude Code project`}
+                    ctaText={`Try ${APP_NAME} with your\nCodex project`}
                     buttonText="Get Started"
                     href={Routes.PROJECTS}
                 />
