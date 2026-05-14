@@ -2,6 +2,7 @@
 
 import { BrandLogo } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
+import { cn } from '@weblab/ui/utils';
 
 export interface CreationLoaderStep {
     label: string;
@@ -33,42 +34,34 @@ export function ProjectCreationLoader({
         : 'bg-background flex h-screen w-screen items-center justify-center';
 
     const activeIndex = steps ? steps.findIndex((step) => !step.ready) : -1;
-    const activeStep = steps && activeIndex >= 0 ? steps[activeIndex] : null;
     const completedCount = steps ? steps.filter((s) => s.ready).length : 0;
     const totalCount = steps?.length ?? 0;
 
-    // Progress from 5% (started) to 100% (all done), step-driven
+    // 5% floor so the bar is never invisible at start; 100% only when all done.
     const progress =
         totalCount > 0 ? Math.max(5, Math.round((completedCount / totalCount) * 100)) : 5;
 
     return (
         <div className={containerClass}>
-            <div className="flex w-full max-w-xs flex-col items-center gap-8 px-6">
+            <div className="flex w-full max-w-[280px] flex-col items-center gap-7 px-6">
                 {/* Logo */}
-                <BrandLogo className="h-5 opacity-80" />
+                <BrandLogo className="h-5 opacity-60" />
 
-                {/* Caption above heading is intentional: caption acts as a
-                    short eyebrow ("Creating workspace") and the heading is the
-                    primary status line beneath it. */}
-                <div className="flex flex-col items-center gap-1.5 text-center">
-                    {caption && (
-                        <p className="text-foreground-tertiary text-small leading-relaxed">
-                            {caption}
-                        </p>
-                    )}
-                    <h2 className="text-foreground-primary text-base font-medium tracking-tight">
+                {/* Heading (anchor) → caption (detail) — heading is always first. */}
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <h2 className="text-foreground-primary text-lg font-medium tracking-tight">
                         {heading}
                     </h2>
-                    {activeStep && (
-                        <p className="text-foreground-secondary text-small leading-relaxed">
-                            {activeStep.label}
+                    {caption && (
+                        <p className="text-foreground-tertiary text-small max-w-[220px] leading-snug">
+                            {caption}
                         </p>
                     )}
                 </div>
 
-                {/* Determinate progress bar — blue, 0 → 100%, no loop */}
+                {/* Determinate progress bar */}
                 <div
-                    className="bg-foreground/8 relative h-0.5 w-full overflow-hidden rounded-full"
+                    className="bg-foreground/8 relative h-[3px] w-full overflow-hidden rounded-full"
                     role="progressbar"
                     aria-valuemin={0}
                     aria-valuemax={100}
@@ -76,19 +69,22 @@ export function ProjectCreationLoader({
                     aria-label={heading}
                 >
                     <div
-                        className="absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-700 ease-in-out"
+                        className="absolute inset-y-0 left-0 rounded-full bg-blue-500 transition-[width] duration-700 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
 
-                {/* Steps */}
+                {/* Steps — index key so dynamic labels don't cause remounts */}
                 {steps && steps.length > 0 && (
-                    <ul className="flex w-full flex-col gap-2">
+                    <ul className="flex w-full flex-col gap-2.5">
                         {steps.map((step, index) => {
                             const isDone = step.ready;
                             const isActive = !isDone && index === activeIndex;
                             return (
-                                <li key={step.label} className="flex items-center gap-3">
+                                <li
+                                    key={index}
+                                    className="flex items-center gap-3"
+                                >
                                     <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                                         {isDone ? (
                                             <Icons.CheckCircled className="text-foreground-positive h-4 w-4" />
@@ -99,14 +95,14 @@ export function ProjectCreationLoader({
                                         )}
                                     </span>
                                     <span
-                                        className={
-                                            'text-small ' +
-                                            (isDone
+                                        className={cn(
+                                            'text-small',
+                                            isDone
                                                 ? 'text-foreground-secondary'
                                                 : isActive
                                                   ? 'text-foreground-primary font-medium'
-                                                  : 'text-foreground-quadranary')
-                                        }
+                                                  : 'text-foreground-quadranary',
+                                        )}
                                     >
                                         {step.label}
                                     </span>

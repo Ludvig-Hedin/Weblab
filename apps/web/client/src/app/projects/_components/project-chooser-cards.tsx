@@ -120,15 +120,21 @@ export function ProjectChooserCards({
         },
         { label: t(transKeys.projects.actions.openingEditor), ready: false },
     ];
+    const uploadLabel =
+        progress.filesTotal && progress.filesUploaded > 0
+            ? `Uploading ${progress.filesUploaded} of ${progress.filesTotal} files`
+            : progress.filesUploaded > 0
+              ? `Uploading ${progress.filesUploaded} files`
+              : 'Uploading files';
+
     const importSteps = [
         {
-            label:
-                progress.phase === 'uploading' && progress.filesUploaded > 0
-                    ? progress.filesTotal
-                        ? `Uploading ${progress.filesUploaded}/${progress.filesTotal} files`
-                        : `Uploading ${progress.filesUploaded} files`
-                    : 'Preparing workspace',
-            ready: progress.phase === 'creating' || progress.phase === 'done',
+            label: 'Preparing workspace',
+            ready: ['uploading', 'creating', 'done'].includes(progress.phase),
+        },
+        {
+            label: uploadLabel,
+            ready: ['creating', 'done'].includes(progress.phase),
         },
         {
             label: 'Creating project',
@@ -151,7 +157,7 @@ export function ProjectChooserCards({
                 <ProjectCreationLoader
                     overlay
                     heading="Importing folder"
-                    caption="Uploading your files and preparing the editor."
+                    caption="Your files are being uploaded to a cloud workspace."
                     steps={importSteps}
                 />
             )}
