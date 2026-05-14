@@ -105,7 +105,7 @@ export function ProjectModeDialog({
                                     <div className="text-foreground text-sm font-medium">
                                         {text.localTitle}
                                     </div>
-                                    <span className="border-foreground/10 text-foreground-tertiary rounded-full border px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase">
+                                    <span className="border-foreground/10 text-foreground-tertiary rounded-full border px-2 py-0.5 text-[10px]">
                                         Desktop app
                                     </span>
                                 </div>

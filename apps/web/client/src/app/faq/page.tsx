@@ -83,7 +83,7 @@ export default function FAQPage() {
                 <div className="flex flex-col gap-12 lg:flex-row" ref={faqContainerRef}>
                     <nav className="sticky top-32 hidden w-48 flex-shrink-0 self-start lg:block">
                         <div>
-                            <h2 className="text-foreground-tertiary mb-4 text-sm font-medium tracking-wider uppercase">
+                            <h2 className="text-foreground-tertiary mb-4 text-sm font-medium">
                                 {t('topics')}
                             </h2>
                             <ul className="flex flex-col gap-2">

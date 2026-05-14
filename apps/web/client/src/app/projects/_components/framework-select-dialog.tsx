@@ -83,7 +83,7 @@ export function FrameworkSelectDialog({
                                             {meta?.icon ?? <Icons.Globe className="h-4 w-4" />}
                                         </div>
                                         {meta?.recommended && (
-                                            <span className="border-foreground/20 text-foreground-secondary rounded-full border px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase">
+                                            <span className="border-foreground/20 text-foreground-secondary rounded-full border px-2 py-0.5 text-[10px]">
                                                 Recommended
                                             </span>
                                         )}
