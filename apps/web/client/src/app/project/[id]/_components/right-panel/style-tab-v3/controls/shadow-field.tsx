@@ -72,7 +72,7 @@ function serializeShadow({ x, y, blur, spread, color }: ShadowParts): string {
 
 /** Short human summary for the collapsed trigger. */
 function summarize({ x, y, blur }: ShadowParts): string {
-    return `${x} ${y}px ${blur}px`;
+    return `${x}px ${y}px ${blur}px`;
 }
 
 /** Stepper button pair: `−  |  +`. Shift-click steps by 10. */
@@ -127,6 +127,17 @@ function OffsetRow({
         if (next !== value) onChange(next);
     };
 
+    // Step from the in-progress `draft` (parsed with the same coercion
+    // `commit` uses), not the stale committed `value` — so typing a number
+    // and then clicking +/− without blurring steps from what the user typed.
+    const step = (delta: number) => {
+        const parsed = Number.parseFloat(draft);
+        const base = Number.isFinite(parsed) ? parsed : 0;
+        const next = base + delta;
+        setDraft(String(next));
+        if (next !== value) onChange(next);
+    };
+
     return (
         <div className="flex items-center gap-2">
             <span className="text-muted-foreground w-9 shrink-0 text-[11px]">{label}</span>
@@ -153,7 +164,7 @@ function OffsetRow({
                     className="text-foreground-primary text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none"
                 />
             </div>
-            <Stepper onStep={(delta) => onChange(value + delta)} />
+            <Stepper onStep={step} />
         </div>
     );
 }
@@ -181,6 +192,27 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
     }, [parts.color]);
     const hex6 = color.toHex().slice(0, 7).toUpperCase();
     const opacityPct = Math.round((color.a ?? 1) * 100);
+
+    // Local draft for the hex input so typing mid-entry (e.g. 4 chars) isn't
+    // blocked; validation/revert happens on blur, not on every keystroke.
+    const lastValidHex = hex6.replace('#', '');
+    const [hexDraft, setHexDraft] = React.useState(lastValidHex);
+    React.useEffect(() => {
+        setHexDraft(lastValidHex);
+    }, [lastValidHex]);
+
+    const isValidHex = (raw: string) =>
+        /^[0-9a-fA-F]{3}([0-9a-fA-F]{3}([0-9a-fA-F]{2})?)?$/.test(raw);
+
+    const commitHex = () => {
+        const raw = hexDraft.replace(/^#/, '');
+        if (isValidHex(raw)) {
+            setColorHex(`#${raw}`);
+        } else {
+            // Revert to the last valid hex value.
+            setHexDraft(lastValidHex);
+        }
+    };
 
     const update = (next: Partial<ShadowParts>) => {
         onCommit(serializeShadow({ ...parts, ...next }));
@@ -297,13 +329,22 @@ export function ShadowField({ value, onCommit, className }: ShadowFieldProps) {
                                 <input
                                     type="text"
                                     spellCheck={false}
-                                    value={hex6.replace('#', '')}
+                                    value={hexDraft}
                                     aria-label="Shadow hex"
                                     onChange={(e) =>
-                                        setColorHex(
-                                            `#${e.target.value.replace(/[^0-9a-fA-F]/g, '')}`,
-                                        )
+                                        setHexDraft(e.target.value.replace(/[^0-9a-fA-F]/g, ''))
                                     }
+                                    onBlur={commitHex}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            e.currentTarget.blur();
+                                        } else if (e.key === 'Escape') {
+                                            e.preventDefault();
+                                            setHexDraft(lastValidHex);
+                                            e.currentTarget.blur();
+                                        }
+                                    }}
                                     className="text-foreground-primary text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase outline-none"
                                 />
                             </div>

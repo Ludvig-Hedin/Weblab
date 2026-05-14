@@ -17,6 +17,7 @@ import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { SetupTokensCta } from '../setup-tokens-cta';
 
 const GROUP_FILTERS: Array<{ id: VariableGroup | 'all'; label: string }> = [
     { id: 'all', label: 'All' },
@@ -57,47 +58,54 @@ const VariablesPanel = observer(() => {
             </div>
 
             <div className="mt-[2.5rem] flex flex-col gap-3 px-4 py-4">
-                <div className="flex flex-wrap gap-1">
-                    {GROUP_FILTERS.map((g) => (
-                        <button
-                            key={g.id}
-                            type="button"
-                            onClick={() => setFilter(g.id)}
-                            className={cn(
-                                'text-mini text-foreground-secondary hover:bg-background-secondary rounded-sm px-2 py-1',
-                                filter === g.id && 'bg-foreground/10 text-foreground-primary',
-                            )}
-                        >
-                            {g.label}
-                        </button>
-                    ))}
-                </div>
-
-                {!tokens.hasTokensLayer && (
-                    <div className="text-foreground-secondary text-mini py-2">
-                        Set up design tokens in the Color Styles tab first.
-                    </div>
-                )}
-
-                <div className="flex flex-col gap-1">
-                    {filtered.map((v) => (
-                        <VariableRow key={v.name} variable={v} />
-                    ))}
-                </div>
-
-                {adding ? (
-                    <AddVariableForm onCancel={() => setAdding(false)} />
+                {!tokens.hasTokensLayer ? (
+                    <SetupTokensCta />
                 ) : (
-                    tokens.hasTokensLayer && (
-                        <Button
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 text-small h-10 w-full rounded-lg border border-white/5"
-                            onClick={() => setAdding(true)}
-                        >
-                            <Icons.Plus className="mr-2 h-4 w-4" />
-                            Add a variable
-                        </Button>
-                    )
+                    <>
+                        <div className="flex flex-wrap gap-1">
+                            {GROUP_FILTERS.map((g) => (
+                                <button
+                                    key={g.id}
+                                    type="button"
+                                    onClick={() => setFilter(g.id)}
+                                    className={cn(
+                                        'text-mini text-foreground-secondary hover:bg-background-secondary rounded-sm px-2 py-1',
+                                        filter === g.id &&
+                                            'bg-foreground/10 text-foreground-primary',
+                                    )}
+                                >
+                                    {g.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {filtered.length === 0 && (
+                            <div className="text-foreground-secondary text-mini px-1 py-2">
+                                {tokens.variables.length === 0
+                                    ? 'No variables yet — add one to reuse values across your project.'
+                                    : 'No variables in this group.'}
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-1">
+                            {filtered.map((v) => (
+                                <VariableRow key={v.name} variable={v} />
+                            ))}
+                        </div>
+
+                        {adding ? (
+                            <AddVariableForm onCancel={() => setAdding(false)} />
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-border text-small h-10 w-full rounded-lg border"
+                                onClick={() => setAdding(true)}
+                            >
+                                <Icons.Plus className="mr-2 h-4 w-4" />
+                                Add a variable
+                            </Button>
+                        )}
+                    </>
                 )}
             </div>
         </div>
@@ -127,11 +135,11 @@ const VariableRow = observer(function VariableRow({ variable }: { variable: Vari
     };
 
     return (
-        <div className="border-foreground/5 hover:border-foreground/10 group flex items-center gap-2 rounded-md border px-3 py-2">
+        <div className="border-border hover:border-border-hover group flex items-center gap-2 rounded-md border px-3 py-2">
             {isColor && (
                 <div
                     aria-hidden
-                    className="h-5 w-5 shrink-0 rounded border border-black/10"
+                    className="border-border h-5 w-5 shrink-0 rounded border"
                     style={{ backgroundColor: light }}
                 />
             )}
@@ -225,7 +233,7 @@ function AddVariableForm({ onCancel }: { onCancel: () => void }) {
     };
 
     return (
-        <div className="bg-background-secondary border-foreground/5 flex flex-col gap-2 rounded-lg border p-3">
+        <div className="bg-background-secondary border-border flex flex-col gap-2 rounded-lg border p-3">
             <div className="flex flex-col gap-1">
                 <Label className="text-micro">Name (e.g. space-md, color-bg)</Label>
                 <Input

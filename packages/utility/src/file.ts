@@ -1,6 +1,11 @@
 import mime from 'mime-lite';
 
-import { BINARY_EXTENSIONS, IMAGE_EXTENSIONS } from '@weblab/constants';
+import {
+    BINARY_EXTENSIONS,
+    DOCUMENT_FILE_EXTENSIONS,
+    FONT_FILE_EXTENSIONS,
+    IMAGE_EXTENSIONS,
+} from '@weblab/constants';
 
 /**
  * Check if a file is binary based on its extension
@@ -67,7 +72,7 @@ export const updateGitignore = async (
 
         return true;
     } catch (error) {
-        console.error(`Failed to update .gitignore: ${error}`);
+        console.error('Failed to update .gitignore:', error);
         return false;
     }
 };
@@ -80,7 +85,7 @@ export const getDirName = (filePath: string): string => {
 
 export const getBaseName = (filePath: string): string => {
     const parts = filePath.split('/');
-    return parts.pop() || '';
+    return parts.pop() ?? '';
 };
 
 export const getMimeType = (fileName: string): string => {
@@ -112,6 +117,46 @@ export const getMimeType = (fileName: string): string => {
 export const isImageFile = (fileName: string): boolean => {
     const mimeType = getMimeType(fileName);
     return IMAGE_EXTENSIONS.includes(mimeType);
+};
+
+/**
+ * Broad asset category used to group and filter files in the editor Assets panel.
+ */
+export type AssetType =
+    | 'image'
+    | 'video'
+    | 'audio'
+    | 'font'
+    | 'lottie'
+    | 'rive'
+    | 'document'
+    | 'other';
+
+const getFileExtension = (fileName: string): string => {
+    const lower = fileName.toLowerCase();
+    const dot = lower.lastIndexOf('.');
+    return dot === -1 ? '' : lower.substring(dot);
+};
+
+/**
+ * Classify a file into a broad asset category from its name/extension.
+ * Lottie/Rive are matched purely by extension since their content can't be
+ * cheaply distinguished from generic JSON.
+ */
+export const getAssetType = (fileName: string): AssetType => {
+    const ext = getFileExtension(fileName);
+    if (ext === '.riv') return 'rive';
+    if (ext === '.lottie') return 'lottie';
+    if (FONT_FILE_EXTENSIONS.includes(ext)) return 'font';
+    if (DOCUMENT_FILE_EXTENSIONS.includes(ext)) return 'document';
+
+    const mimeType = getMimeType(fileName);
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType === 'application/pdf' || mimeType.startsWith('text/')) return 'document';
+
+    return 'other';
 };
 
 /**

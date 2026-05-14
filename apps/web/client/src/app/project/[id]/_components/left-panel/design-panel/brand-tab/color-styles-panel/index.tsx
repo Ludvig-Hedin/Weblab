@@ -17,6 +17,7 @@ import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { SetupTokensCta } from '../setup-tokens-cta';
 
 const ColorStylesPanel = observer(() => {
     const editorEngine = useEditorEngine();
@@ -47,12 +48,12 @@ const ColorStylesPanel = observer(() => {
 
             <div className="mt-[2.5rem] flex flex-col gap-3 px-4 py-4">
                 {!tokens.hasTokensLayer ? (
-                    <SetupTokensCta tokens={tokens} />
+                    <SetupTokensCta />
                 ) : (
                     <>
                         {tokens.colorStyles.length === 0 && !adding && (
-                            <div className="text-foreground-secondary text-small px-1 py-2">
-                                No color styles yet. Add one to bind elements to a semantic name.
+                            <div className="text-foreground-secondary text-mini px-1 py-2">
+                                No color styles yet — add one to bind elements to a semantic name.
                             </div>
                         )}
                         <div className="flex flex-col gap-2">
@@ -66,7 +67,7 @@ const ColorStylesPanel = observer(() => {
                         ) : (
                             <Button
                                 variant="ghost"
-                                className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 text-small h-10 w-full rounded-lg border border-white/5"
+                                className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-border text-small h-10 w-full rounded-lg border"
                                 onClick={() => setAdding(true)}
                             >
                                 <Icons.Plus className="mr-2 h-4 w-4" />
@@ -79,30 +80,6 @@ const ColorStylesPanel = observer(() => {
         </div>
     );
 });
-
-function SetupTokensCta({ tokens }: { tokens: ReturnType<typeof useEditorEngine>['tokens'] }) {
-    const [busy, setBusy] = useState(false);
-    return (
-        <div className="bg-background-secondary border-foreground/5 flex flex-col gap-3 rounded-lg border p-4">
-            <div className="text-foreground-primary text-small">Set up design tokens</div>
-            <div className="text-foreground-secondary text-mini">
-                Adds a `@theme` block, light/dark variables and starter text styles to your
-                project's globals.css. Non-destructive — existing styles are kept.
-            </div>
-            <Button
-                size="sm"
-                disabled={busy}
-                onClick={async () => {
-                    setBusy(true);
-                    await tokens.scaffoldDefault();
-                    setBusy(false);
-                }}
-            >
-                {busy ? 'Setting up…' : 'Set up tokens'}
-            </Button>
-        </div>
-    );
-}
 
 const ColorStyleRow = observer(function ColorStyleRow({ style }: { style: ColorStyle }) {
     const editorEngine = useEditorEngine();
@@ -130,10 +107,10 @@ const ColorStyleRow = observer(function ColorStyleRow({ style }: { style: ColorS
     };
 
     return (
-        <div className="border-foreground/5 hover:border-foreground/10 group flex items-center gap-3 rounded-md border px-3 py-2">
+        <div className="border-border hover:border-border-hover group flex items-center gap-3 rounded-md border px-3 py-2">
             <div
                 aria-hidden
-                className="border-primary/10 h-6 w-6 shrink-0 rounded border"
+                className="border-border h-6 w-6 shrink-0 rounded border"
                 style={{ backgroundColor: lightResolved }}
             />
             <div className="flex flex-1 flex-col gap-0.5">
@@ -225,7 +202,7 @@ function AddColorStyleForm({ onCancel }: { onCancel: () => void }) {
     };
 
     return (
-        <div className="bg-background-secondary border-foreground/5 flex flex-col gap-2 rounded-lg border p-3">
+        <div className="bg-background-secondary border-border flex flex-col gap-2 rounded-lg border p-3">
             <div className="flex flex-col gap-1">
                 <Label className="text-micro">Name</Label>
                 <Input

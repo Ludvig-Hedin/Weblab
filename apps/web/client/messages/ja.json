@@ -335,7 +335,7 @@
                     "insert": "挿入",
                     "pages": "ページ",
                     "components": "コンポーネント",
-                    "images": "画像",
+                    "images": "アセット",
                     "windows": {
                         "name": "ウィンドウ",
                         "emptyState": "編集するウィンドウを選択してください"

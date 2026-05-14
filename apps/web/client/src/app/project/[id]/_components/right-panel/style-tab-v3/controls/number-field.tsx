@@ -181,9 +181,9 @@ export function NumberField({
                     <PopoverTrigger asChild>
                         <button
                             type="button"
-                            tabIndex={-1}
-                            // Plain pointer cursor — the v3 pill is a unit picker,
-                            // not a scrub handle. No mousemove handlers here.
+                            // Keyboard-reachable: the pill is a real unit picker,
+                            // so keyboard users must be able to Tab to it. Plain
+                            // pointer cursor — not a scrub handle, no mousemove.
                             className={cn(
                                 FIELD_BASE_CLASSES,
                                 'text-muted-foreground hover:text-foreground-primary flex w-[52px] shrink-0 cursor-pointer items-center justify-center px-1 text-[11px] tracking-wider uppercase select-none',

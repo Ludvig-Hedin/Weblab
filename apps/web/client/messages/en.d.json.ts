@@ -1299,7 +1299,7 @@ declare const messages: {
                     "insert": "Insert",
                     "pages": "Pages",
                     "components": "Components",
-                    "images": "Images",
+                    "images": "Assets",
                     "windows": {
                         "name": "Windows",
                         "emptyState": "Select a window to edit its settings"

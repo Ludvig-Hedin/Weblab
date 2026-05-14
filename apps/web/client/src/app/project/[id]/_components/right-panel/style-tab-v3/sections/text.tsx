@@ -5,6 +5,7 @@ import { AlignCenter, AlignJustify, AlignLeft, AlignRight } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import type { ActionElement } from '@weblab/models/actions';
+import { BrandTabValue, LeftPanelTabValue } from '@weblab/models';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
@@ -150,29 +151,43 @@ export const TextSection = observer(function TextSection() {
     // view + an `edit-text` history action so the source file is updated and
     // the change is undoable — the same path `TextEditingManager` commits on.
     const [actionElement, setActionElement] = useState<ActionElement | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Reactive view-readiness signal: reading `.view` here (inside an
+    // `observer`) subscribes to the observable FramesManager map, so when
+    // `registerView` attaches the iframe view this reference flips from
+    // `null` to a value and the effect below re-runs.
+    const frameView = selected ? editorEngine.frames.get(selected.frameId)?.view : null;
+
     useEffect(() => {
         let cancelled = false;
         if (!selected) {
             setActionElement(null);
+            setIsLoading(false);
             return;
         }
-        const frameData = editorEngine.frames.get(selected.frameId);
-        if (!frameData?.view) {
+        // If the frame view isn't connected yet, stay in a loading state — the
+        // effect re-runs once `frameView` flips to a live view (it's in deps).
+        if (!frameView) {
             setActionElement(null);
+            setIsLoading(true);
             return;
         }
+        setIsLoading(true);
         void (async () => {
             try {
-                const next = await frameData.view!.getActionElement(selected.domId);
+                const next = await frameView.getActionElement(selected.domId);
                 if (!cancelled) setActionElement(next);
             } catch {
                 if (!cancelled) setActionElement(null);
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
         })();
         return () => {
             cancelled = true;
         };
-    }, [editorEngine.frames, selected]);
+    }, [frameView, selected]);
 
     const textContent = actionElement?.textContent ?? '';
     // Content is editable only for plain-text elements (no element children).
@@ -187,23 +202,41 @@ export const TextSection = observer(function TextSection() {
         if (trimmed === textContent) return;
         const frameData = editorEngine.frames.get(selected.frameId);
         if (!frameData?.view) return;
-        const res = await frameData.view.editText(selected.domId, trimmed);
-        if (!res) return;
-        await editorEngine.history.push({
-            type: 'edit-text',
-            targets: [
-                {
-                    frameId: selected.frameId,
-                    branchId: selected.branchId,
-                    domId: selected.domId,
-                    oid: selected.oid,
-                },
-            ],
-            originalContent: textContent,
-            newContent: trimmed,
-        });
-        setActionElement((current) => (current ? { ...current, textContent: trimmed } : current));
-        await editorEngine.overlay.refresh();
+        // Capture the target element identity before the await. If the user
+        // changes selection mid-await, the optimistic `setActionElement` would
+        // otherwise graft this commit's text onto the NEW element's state.
+        const targetOid = selected.oid;
+        const targetDomId = selected.domId;
+        // Wrapped: this runs via `void commitContent(...)` from the textarea's
+        // blur/⌘-Enter handlers, so a throw from `editText` / `history.push`
+        // would otherwise surface as an unhandled rejection. Mirrors the
+        // try/catch the v2 `TextEditingManager` wraps every text write in.
+        try {
+            const res = await frameData.view.editText(selected.domId, trimmed);
+            if (!res) return;
+            await editorEngine.history.push({
+                type: 'edit-text',
+                targets: [
+                    {
+                        frameId: selected.frameId,
+                        branchId: selected.branchId,
+                        domId: selected.domId,
+                        oid: selected.oid,
+                    },
+                ],
+                originalContent: textContent,
+                newContent: trimmed,
+            });
+            // Skip the optimistic patch if selection moved on during the await
+            // — the effect reloads fresh data for the new selection anyway.
+            const current = editorEngine.elements.selected[0];
+            if (current?.oid === targetOid && current?.domId === targetDomId) {
+                setActionElement((prev) => (prev ? { ...prev, textContent: trimmed } : prev));
+            }
+            await editorEngine.overlay.refresh();
+        } catch (error) {
+            console.error('Error committing text content:', error);
+        }
     };
 
     const color = useStyleValue('color');
@@ -251,6 +284,10 @@ export const TextSection = observer(function TextSection() {
                     onDetach={() => void tokens.applyTextStyleToSelected(null)}
                     onToggleCustom={() => setCustomOpen((v) => !v)}
                     customOpen={customOpen}
+                    onCreate={() => {
+                        editorEngine.state.setLeftPanelTab(LeftPanelTabValue.BRAND);
+                        editorEngine.state.setBrandTab(BrandTabValue.TEXT_STYLES);
+                    }}
                 />
             </div>
             <div className="flex items-start gap-3 px-3 py-1">
@@ -260,10 +297,20 @@ export const TextSection = observer(function TextSection() {
                     title="Element text content"
                     className="pt-1.5"
                 />
-                <div className="min-w-0 flex-1">
+                {/* While the async `getActionElement` read is in flight, the
+                    Content field is non-editable and muted: the user can't type
+                    into a field that's about to be overwritten, and the
+                    blank-then-pop flash is replaced by a calm disabled look. */}
+                <div
+                    className={cn(
+                        'min-w-0 flex-1',
+                        isLoading && 'pointer-events-none opacity-50 select-none',
+                    )}
+                    aria-busy={isLoading}
+                >
                     <ContentField
                         value={textContent}
-                        editable={contentEditable}
+                        editable={contentEditable && !isLoading}
                         onCommit={(next) => void commitContent(next)}
                     />
                 </div>

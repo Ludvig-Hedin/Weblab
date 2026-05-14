@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v1-9-assets-panel',
+        version: '1.9',
+        title: 'Assets Panel',
+        description:
+            'The Images panel is now Assets and accepts any file type: PDFs, fonts, and documents, not just images. A Webflow-style sidebar with type filters and a folder tree replaces breadcrumb navigation, alongside a designed drop zone, right-click menus, copy URL, folder creation, move-to-folder, in-place compression, sorting, and multi-select bulk actions.',
+        date: '2026-05-14',
+        tags: ['Editor', 'Assets', 'UX', 'Files'],
+    },
+    {
         slug: 'v1-8-security-page',
         version: '1.8',
         title: 'Security & Compliance Page',

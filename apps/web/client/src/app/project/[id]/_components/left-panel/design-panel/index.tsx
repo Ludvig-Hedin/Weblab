@@ -29,7 +29,7 @@ const LayersTab = dynamic(() => import('./layers-tab').then((m) => m.LayersTab),
 const SearchTab = dynamic(() => import('./search-tab').then((m) => m.SearchTab), { ssr: false });
 const BrandTab = dynamic(() => import('./brand-tab').then((m) => m.BrandTab), { ssr: false });
 const PagesTab = dynamic(() => import('./page-tab').then((m) => m.PagesTab), { ssr: false });
-const ImagesTab = dynamic(() => import('./image-tab').then((m) => m.ImagesTab), { ssr: false });
+const AssetsTab = dynamic(() => import('./asset-tab').then((m) => m.AssetsTab), { ssr: false });
 const BranchesTab = dynamic(() => import('./branches-tab').then((m) => m.BranchesTab), {
     ssr: false,
 });
@@ -235,7 +235,7 @@ export const DesignPanel = observer(() => {
                 {selectedTab === LeftPanelTabValue.SEARCH && <SearchTab />}
                 {selectedTab === LeftPanelTabValue.BRAND && <BrandTab />}
                 {selectedTab === LeftPanelTabValue.PAGES && <PagesTab />}
-                {selectedTab === LeftPanelTabValue.IMAGES && <ImagesTab />}
+                {selectedTab === LeftPanelTabValue.IMAGES && <AssetsTab />}
                 {selectedTab === LeftPanelTabValue.BRANCHES && <BranchesTab />}
             </div>
         </div>

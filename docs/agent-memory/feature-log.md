@@ -16,6 +16,51 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-14 — Assets panel (Webflow-style rework of the Images tab)
+Author: Claude Opus 4.7
+Area: `apps/web/client` — editor left panel; `@weblab/utility`, `@weblab/constants`
+Summary: Renamed the editor's "Images" tab to "Assets" and reworked it end to end.
+It now accepts any file type (PDFs, fonts, docs), classifies files via a new
+`getAssetType` helper, and shows type-aware cards. Breadcrumb drilldown was
+replaced with a Webflow-style browser: a persistent type-filter + folder-tree
+sidebar when the panel is wide (`@container` query, ≥380px) and a dropdown when
+narrow. Added a designed drop zone, right-click context menus + a shared
+`AssetActions` set, copy-URL, folder creation, move-to-folder (reuses the JSX
+image-reference updater), in-place raster compression with an undo toast,
+sorting, and multi-select with bulk move/compress/delete.
+Files:
+  `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/asset-tab/*` (renamed from `image-tab/`, ~16 files),
+  `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/index.tsx`,
+  `packages/utility/src/file.ts` (`getAssetType`),
+  `packages/constants/src/files.ts` (font/document extension groups),
+  `apps/web/client/messages/*.json` (tab label)
+Links: changelog `v1-9-assets-panel`
+Note: 3 obsolete files (`breadcrumb-navigation.tsx`, `folder-list.tsx`,
+`hooks/use-navigation.tsx`) are unreferenced and pending manual deletion — `rm`
+was blocked in the agent environment.
+
+---
+
+## 2026-05-14 — Persistent cross-session undo/redo history
+Author: Claude Sonnet 4.6
+Area: `apps/web/client` — editor history, action manager, branch manager
+Summary: Editor undo/redo stacks now persist to IndexedDB (localforage) keyed by
+branch id. History survives page reload and cross-session. On editor boot,
+`BranchManager.init()` hydrates each branch's `HistoryManager` from storage after
+codeEditor + sandbox are ready. Actions are capped at 100 undo / 50 redo entries
+on disk. Fixed async race: `undo()` and `redo()` now properly `await commitTransaction()`
+before mutating stacks. Header undo/redo buttons now visible at md+ breakpoint
+(was lg+).
+Files:
+  `apps/web/client/src/components/store/editor/history/storage.ts` (new),
+  `apps/web/client/src/components/store/editor/history/index.ts`,
+  `apps/web/client/src/components/store/editor/action/index.ts`,
+  `apps/web/client/src/components/store/editor/branch/manager.ts`,
+  `apps/web/client/src/utils/constants/index.ts`,
+  `apps/web/client/src/app/project/[id]/_components/top-bar/index.tsx`
+
+---
+
 ## 2026-05-13 — Staged Vercel Sandbox runtime provider
 Author: Codex
 Area: `@weblab/code-provider`, project sandbox runtime

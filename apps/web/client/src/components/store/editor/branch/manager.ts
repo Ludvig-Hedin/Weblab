@@ -61,6 +61,7 @@ export class BranchManager {
             Array.from(this.branchMap.values()).map(async (branchData) => {
                 await branchData.codeEditor.initialize();
                 await branchData.sandbox.init();
+                await branchData.history.hydrate();
             }),
         );
         this.setupActiveFrameReaction();
@@ -75,7 +76,7 @@ export class BranchManager {
                     selectedFrames.length > 0
                         ? selectedFrames[0]
                         : this.editorEngine.frames.getAll()[0];
-                return activeFrame?.frame?.branchId || null;
+                return activeFrame?.frame?.branchId ?? null;
             },
             (activeBranchId) => {
                 if (
@@ -165,7 +166,7 @@ export class BranchManager {
             errorManager,
             codeEditorApi,
         );
-        const historyManager = new HistoryManager(this.editorEngine);
+        const historyManager = new HistoryManager(this.editorEngine, branch.id);
 
         const branchData: BranchData = {
             branch,
@@ -309,7 +310,7 @@ export class BranchManager {
                 .filter((frameState) => frameState.frame.branchId === branchId);
 
             for (const frameState of framesToRemove) {
-                this.editorEngine.frames.delete(frameState.frame.id);
+                void this.editorEngine.frames.delete(frameState.frame.id);
             }
 
             // Clean up the sandbox, history, error manager, and code editor
@@ -371,6 +372,6 @@ export class BranchManager {
 
     getErrorsForBranch(branchId: string): ParsedError[] {
         const branchData = this.getBranchDataById(branchId);
-        return branchData?.error.errors || [];
+        return branchData?.error.errors ?? [];
     }
 }

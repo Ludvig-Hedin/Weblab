@@ -1,7 +1,12 @@
-export interface ImageData {
+import type { AssetType } from '@weblab/utility';
+
+export interface AssetData {
     name: string;
     path: string;
-    mimeType?: string;
+    type: AssetType;
+    mimeType: string;
+    size?: number;
+    modifiedTime?: Date;
 }
 
 export interface FolderData {

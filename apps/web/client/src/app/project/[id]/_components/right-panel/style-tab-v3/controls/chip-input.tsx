@@ -36,6 +36,10 @@ export function ChipInput({
     const [draft, setDraft] = useState('');
     const chipRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    // Desired focus target to apply AFTER React commits the post-removal
+    // render: a chip index, or `'input'` for the trailing input. Consumed by
+    // the effect below so `chipRefs.current` is re-attached before focusing.
+    const pendingFocus = useRef<number | 'input' | null>(null);
 
     useEffect(() => {
         chipRefs.current.length = chips.length;
@@ -49,17 +53,28 @@ export function ChipInput({
         inputRef.current?.focus();
     }, []);
 
+    // Apply any pending focus once the post-removal render has committed and
+    // the chip refs point at the new (post-removal) list.
+    useEffect(() => {
+        const target = pendingFocus.current;
+        if (target === null) return;
+        pendingFocus.current = null;
+        if (target === 'input') focusInput();
+        else focusChip(target);
+    }, [chips.length, focusChip, focusInput]);
+
     const removeAt = useCallback(
         (index: number) => {
             const next = chips.filter((_, i) => i !== index);
+            // Record where focus should land; the effect keyed on
+            // `chips.length` consumes it after the render commits, so the
+            // chip refs reflect the post-removal list before we focus.
+            if (next.length === 0) pendingFocus.current = 'input';
+            else if (index >= next.length) pendingFocus.current = next.length - 1;
+            else pendingFocus.current = index;
             onChange(next);
-            queueMicrotask(() => {
-                if (next.length === 0) focusInput();
-                else if (index >= next.length) focusChip(next.length - 1);
-                else focusChip(index);
-            });
         },
-        [chips, focusChip, focusInput, onChange],
+        [chips, onChange],
     );
 
     const addFromDraft = useCallback(() => {

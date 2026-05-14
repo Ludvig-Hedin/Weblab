@@ -1295,7 +1295,7 @@
                     "insert": "Infoga",
                     "pages": "Sidor",
                     "components": "Komponenter",
-                    "images": "Bilder",
+                    "images": "Resurser",
                     "windows": {
                         "name": "Fönster",
                         "emptyState": "Välj ett fönster för att redigera dess inställningar"

@@ -76,23 +76,22 @@ export const EffectsSection = observer(function EffectsSection() {
 
     const setCount = advancedSetCount;
 
-    // Effect styles registry not yet built — this stays empty until a
-    // saved-effect token table lands; the chip picker still renders the
-    // empty CTA so the Figma's surface stays present.
-    const effectStyleOptions: { name: string; label: string }[] = [];
-
     return (
         <Section id="effects" title="Effects" setCount={setCount}>
             <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Appear" isSet={false} title="Apply effect" />
+                <PropertyLabel label="Style" isSet={false} title="Apply effect style" />
+                {/* Effect-style registry isn't built yet — the chip shows an
+                    honest "coming soon" while the Custom expander below carries
+                    full box-shadow / filter / outline parity. */}
                 <StyleChipPicker
                     value=""
-                    options={effectStyleOptions}
+                    options={[]}
                     kind="Effect"
                     onApply={() => undefined}
                     onDetach={() => undefined}
                     onToggleCustom={() => setCustomOpen((v) => !v)}
                     customOpen={customOpen}
+                    comingSoon
                 />
             </div>
             <CustomExpander

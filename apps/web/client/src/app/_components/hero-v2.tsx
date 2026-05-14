@@ -172,7 +172,7 @@ export function HeroV2() {
             </section>
 
             <motion.div
-                className="w-full max-w-7xl overflow-x-hidden"
+                className="w-full max-w-7xl overflow-x-clip"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}

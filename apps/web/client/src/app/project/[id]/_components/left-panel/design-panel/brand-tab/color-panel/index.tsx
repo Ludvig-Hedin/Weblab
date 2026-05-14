@@ -5,7 +5,7 @@ import type { Color } from '@weblab/utility';
 import { SystemTheme } from '@weblab/models/assets';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
+import { ToggleGroup, ToggleGroupItem } from '@weblab/ui/toggle-group';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { ColorNameInput } from './color-name-input';
@@ -91,29 +91,32 @@ const ColorPanel = observer(() => {
                 <h2 className="text-foreground text-small font-normal">Brand Colors</h2>
             </div>
             {/* Theme Toggle */}
-            <div className="border-border mt-[2.5rem] flex gap-2 border-b px-4 py-3">
-                <Button
-                    variant={theme === SystemTheme.LIGHT ? 'default' : 'outline'}
-                    className={cn(
-                        'hover:bg-background-secondary text-muted-foreground w-full flex-1 gap-2 border-none bg-transparent px-0 shadow-none',
-                        theme === SystemTheme.LIGHT && 'bg-foreground text-background',
-                    )}
-                    onClick={() => setTheme(SystemTheme.LIGHT)}
+            <div className="border-border mt-[2.5rem] border-b px-4 py-3">
+                <ToggleGroup
+                    type="single"
+                    value={theme}
+                    onValueChange={(value) => {
+                        if (value) setTheme(value as SystemTheme);
+                    }}
+                    className="bg-background-secondary w-full gap-0 rounded-md p-0.5"
                 >
-                    <Icons.Sun className="h-4 w-4" />
-                    Light mode
-                </Button>
-                <Button
-                    variant={theme === SystemTheme.DARK ? 'default' : 'outline'}
-                    className={cn(
-                        'hover:bg-background-secondary text-muted-foreground w-full flex-1 gap-2 border-none bg-transparent px-0 shadow-none',
-                        theme === SystemTheme.DARK && 'bg-foreground text-background',
-                    )}
-                    onClick={() => setTheme(SystemTheme.DARK)}
-                >
-                    <Icons.Moon className="h-4 w-4" />
-                    Dark mode
-                </Button>
+                    <ToggleGroupItem
+                        value={SystemTheme.LIGHT}
+                        aria-label="Light mode"
+                        className="text-muted-foreground hover:bg-foreground/8 hover:text-foreground-primary data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground text-mini h-7 gap-1.5 border-0 shadow-none transition-colors duration-150"
+                    >
+                        <Icons.Sun className="h-3.5 w-3.5" />
+                        Light mode
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                        value={SystemTheme.DARK}
+                        aria-label="Dark mode"
+                        className="text-muted-foreground hover:bg-foreground/8 hover:text-foreground-primary data-[state=on]:bg-foreground data-[state=on]:text-background data-[state=on]:hover:bg-foreground text-mini h-7 gap-1.5 border-0 shadow-none transition-colors duration-150"
+                    >
+                        <Icons.Moon className="h-3.5 w-3.5" />
+                        Dark mode
+                    </ToggleGroupItem>
+                </ToggleGroup>
             </div>
 
             {/* Brand Palette Groups section */}
@@ -145,9 +148,10 @@ const ColorPanel = observer(() => {
                 ) : (
                     <Button
                         variant="ghost"
-                        className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 text-small h-10 w-full rounded-lg border border-white/5"
+                        className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-border text-small h-10 w-full rounded-lg border"
                         onClick={() => setIsAddingNewGroup(true)}
                     >
+                        <Icons.Plus className="mr-1.5 h-4 w-4" />
                         Add a new group
                     </Button>
                 )}

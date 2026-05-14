@@ -469,7 +469,7 @@
                     "insert": "Insertar",
                     "pages": "Páginas",
                     "components": "Elementos",
-                    "images": "Imágenes",
+                    "images": "Recursos",
                     "windows": {
                         "name": "Ventanas",
                         "emptyState": "Seleccione una ventana para editar su configuración"

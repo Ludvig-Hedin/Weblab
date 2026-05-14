@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Variable } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
+import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { CustomExpander, PropertyControl, SelectField, TextField } from '../controls';
@@ -100,7 +101,20 @@ export const AdvancedSection = observer(function AdvancedSection() {
                             }
                             editorEngine.style.update(`--${name}`, value);
                         }}
-                        onRemove={() => editorEngine.style.update(`--${row.name}`, '')}
+                        onRemove={() => {
+                            // Capture name+value BEFORE removal so the Undo
+                            // action can re-write the exact pair.
+                            const removedName = row.name;
+                            const removedValue = row.value;
+                            editorEngine.style.update(`--${removedName}`, '');
+                            toast(`Removed --${removedName}`, {
+                                action: {
+                                    label: 'Undo',
+                                    onClick: () =>
+                                        editorEngine.style.update(`--${removedName}`, removedValue),
+                                },
+                            });
+                        }}
                     />
                 ))}
                 {draftRow && (
@@ -144,6 +158,9 @@ interface CustomVarRowProps {
 
 function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps) {
     const [name, setName] = useState(row.name);
+    // Escape blurs the input; without this the trailing onBlur would still see
+    // the stale draft in its closure and commit it. Mirrors TextField.
+    const skipBlurCommitRef = useRef(false);
     return (
         <div className="group/control flex items-center gap-1.5 px-3 py-1">
             <span className="text-foreground-secondary text-mini shrink-0">--</span>
@@ -159,7 +176,26 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
                 autoFocus={autoFocus}
                 onChange={(e) => setName(e.target.value)}
                 onBlur={() => {
+                    if (skipBlurCommitRef.current) {
+                        skipBlurCommitRef.current = false;
+                        return;
+                    }
                     if (name && name !== row.name) onCommit(name, row.value);
+                }}
+                // Mirror TextField's keyboard behaviour: Enter commits + blurs,
+                // Escape reverts the draft + blurs.
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (name && name !== row.name) onCommit(name, row.value);
+                        skipBlurCommitRef.current = true;
+                        e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setName(row.name);
+                        skipBlurCommitRef.current = true;
+                        e.currentTarget.blur();
+                    }
                 }}
                 placeholder="brand"
                 aria-label="Custom property name"

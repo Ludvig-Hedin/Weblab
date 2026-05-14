@@ -171,23 +171,36 @@ export async function verifyEmailOtp(
         return { error: 'Verification succeeded but no user data was returned.' };
     }
 
-    await db
-        .insert(users)
-        .values({
-            id: user.id,
-            firstName: '',
-            lastName: '',
-            displayName: user.email ?? '',
-            email: user.email ?? '',
-            avatarUrl: null,
-        })
-        .onConflictDoUpdate({
-            target: [users.id],
-            set: {
+    try {
+        await db
+            .insert(users)
+            .values({
+                id: user.id,
+                firstName: '',
+                lastName: '',
+                displayName: user.email ?? '',
                 email: user.email ?? '',
-                updatedAt: new Date(),
-            },
+                avatarUrl: null,
+            })
+            .onConflictDoUpdate({
+                target: [users.id],
+                set: {
+                    email: user.email ?? '',
+                    updatedAt: new Date(),
+                },
+            });
+    } catch (dbError) {
+        // Mirror the OAuth callback route: if we can't persist the user row,
+        // don't leave the auth cookie behind — that would let them past gates
+        // whose tRPC procedures then 500 on the missing FK. Returning an error
+        // (instead of throwing) keeps the verify page from rendering a 500.
+        console.error('Error upserting user row in email OTP verify', {
+            userId: user.id,
+            error: dbError instanceof Error ? dbError.message : String(dbError),
         });
+        await supabase.auth.signOut();
+        return { error: "We couldn't sign you in. Please try again in a moment." };
+    }
 
     trackEvent({
         distinctId: user.id,

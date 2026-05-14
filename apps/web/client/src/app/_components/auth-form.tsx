@@ -204,8 +204,19 @@ export function AuthForm({
                 <Input
                     type="email"
                     placeholder={t(transKeys.welcome.login.emailPlaceholder)}
+                    className="placeholder:text-foreground-tertiary"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    // Submit on Enter explicitly: the submit button is disabled
+                    // while `!email`, which can suppress the form's implicit
+                    // submission. requestSubmit() still runs onSubmit + native
+                    // validation.
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.currentTarget.form?.requestSubmit();
+                        }
+                    }}
                     disabled={isEmailLoading}
                     required
                     autoComplete="email"

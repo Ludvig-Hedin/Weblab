@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Search } from 'lucide-react';
 
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 import { FIELD_BASE_CLASSES } from './constants';
@@ -18,11 +19,16 @@ import { FIELD_BASE_CLASSES } from './constants';
  * - `sectionId` — the `Section` id the row lives under. Passed back through
  *   `onNavigate` so the parent can expand a collapsed accordion section
  *   before we scroll.
+ * - `resolveSelector` — optional fallback selector for entries whose row has
+ *   no `data-style-property` / matching `aria-label` node (e.g. the shorthand
+ *   `padding`/`margin`, which `TrblGrid` only renders as per-side inputs). The
+ *   resolver tries this when the primary lookup fails.
  */
 export interface PropertyRegistryEntry {
     property: string;
     label: string;
     sectionId: string;
+    resolveSelector?: string;
 }
 
 /**
@@ -39,8 +45,21 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     { property: 'align-items', label: 'Align items', sectionId: 'layout' },
     { property: 'flex-wrap', label: 'Flex wrap', sectionId: 'layout' },
     { property: 'gap', label: 'Gap', sectionId: 'layout' },
-    { property: 'padding', label: 'Padding', sectionId: 'layout' },
-    { property: 'margin', label: 'Margin', sectionId: 'layout' },
+    // `padding`/`margin` shorthands have no `data-style-property` node — the
+    // `TrblGrid` control only renders per-side inputs labelled `padding-top`
+    // etc., so fall back to the first side.
+    {
+        property: 'padding',
+        label: 'Padding',
+        sectionId: 'layout',
+        resolveSelector: '[aria-label="padding-top"]',
+    },
+    {
+        property: 'margin',
+        label: 'Margin',
+        sectionId: 'layout',
+        resolveSelector: '[aria-label="margin-top"]',
+    },
     // Position
     { property: 'position', label: 'Position', sectionId: 'position' },
     { property: 'top', label: 'Top', sectionId: 'position' },
@@ -143,12 +162,15 @@ function matchEntries(query: string): PropertyRegistryEntry[] {
 /**
  * Locate a property's row in the panel DOM. `PropertyControl` rows expose
  * `data-style-property`; the per-side `TrblGrid` inputs (padding/margin/
- * offsets) expose the property name as their `aria-label` instead. Try both.
+ * offsets) expose the property name as their `aria-label` instead. Try both,
+ * then fall back to the entry's `resolveSelector` for shorthands like
+ * `padding`/`margin` whose row has no node matching the property name.
  */
-function findRowElement(property: string): HTMLElement | null {
+function findRowElement(entry: PropertyRegistryEntry): HTMLElement | null {
     return (
-        document.querySelector<HTMLElement>(`[data-style-property="${property}"]`) ??
-        document.querySelector<HTMLElement>(`[aria-label="${property}"]`)
+        document.querySelector<HTMLElement>(`[data-style-property="${entry.property}"]`) ??
+        document.querySelector<HTMLElement>(`[aria-label="${entry.property}"]`) ??
+        (entry.resolveSelector ? document.querySelector<HTMLElement>(entry.resolveSelector) : null)
     );
 }
 
@@ -180,8 +202,18 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
     const [activeIndex, setActiveIndex] = React.useState(0);
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    // Pending close timer for the input's blur. Held in a ref so a re-focus
+    // can cancel it before it fires.
+    const blurCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const results = React.useMemo(() => matchEntries(query), [query]);
+
+    // Clear any pending blur-close timer on unmount.
+    React.useEffect(() => {
+        return () => {
+            if (blurCloseTimer.current) clearTimeout(blurCloseTimer.current);
+        };
+    }, []);
 
     // Keep the highlight in range as results change.
     React.useEffect(() => {
@@ -211,8 +243,14 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
             // Defer the scroll so a just-expanded accordion section has a frame
             // to mount its rows before we look for the target.
             const scrollToRow = () => {
-                const row = findRowElement(entry.property);
-                if (!row) return;
+                const row = findRowElement(entry);
+                if (!row) {
+                    // The row is conditionally hidden (e.g. `flex-direction`
+                    // only renders when `display` is flex). Give quiet feedback
+                    // instead of a silent no-op.
+                    toast("That property isn't editable for the selected element.");
+                    return;
+                }
                 row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 const focusable = row.matches('input, button, [tabindex]')
                     ? row
@@ -256,7 +294,12 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
         [activeIndex, open, results, select],
     );
 
-    const showList = open && results.length > 0;
+    // Show the list whenever the box is open with a non-empty query — even
+    // with zero results, so we can render a "no match" row instead of a dead
+    // box. Arrow/Enter handlers stay gated on `results.length`, so the empty
+    // row is never keyboard-selectable.
+    const hasQuery = query.trim().length > 0;
+    const showList = open && hasQuery;
 
     return (
         <div ref={containerRef} className={cn('relative', className)}>
@@ -276,7 +319,24 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                         setQuery(event.target.value);
                         setOpen(true);
                     }}
-                    onFocus={() => setOpen(true)}
+                    onFocus={() => {
+                        // Re-focus wins the race against a pending blur close.
+                        if (blurCloseTimer.current) {
+                            clearTimeout(blurCloseTimer.current);
+                            blurCloseTimer.current = null;
+                        }
+                        setOpen(true);
+                    }}
+                    onBlur={() => {
+                        // Close on tab-out, but defer so a pointer-down on a
+                        // result still selects before the list tears down.
+                        // Arrow-nav keeps focus in the input, so it's unaffected.
+                        if (blurCloseTimer.current) clearTimeout(blurCloseTimer.current);
+                        blurCloseTimer.current = setTimeout(() => {
+                            setOpen(false);
+                            blurCloseTimer.current = null;
+                        }, 120);
+                    }}
                     onKeyDown={handleKeyDown}
                     className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none"
                 />
@@ -287,6 +347,16 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                     role="listbox"
                     className="bg-popover border-foreground/8 absolute top-[34px] right-0 left-0 z-50 max-h-[256px] overflow-y-auto rounded-[8px] border p-1 shadow-md"
                 >
+                    {results.length === 0 && (
+                        // Non-interactive empty state — `presentation` role, no
+                        // pointer handlers, so arrow keys / Enter skip it.
+                        <li
+                            role="presentation"
+                            className="text-foreground-tertiary text-mini px-2 py-1.5"
+                        >
+                            No matching property
+                        </li>
+                    )}
                     {results.map((entry, index) => (
                         <li
                             key={entry.property}

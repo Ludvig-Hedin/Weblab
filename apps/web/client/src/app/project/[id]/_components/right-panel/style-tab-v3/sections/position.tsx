@@ -10,7 +10,7 @@ import {
     SelectField,
     TrblGrid,
 } from '../controls';
-import { useStyleSetter } from '../hooks/use-style-setter';
+import { useStyleBatchSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -36,10 +36,7 @@ export const PositionSection = observer(function PositionSection() {
     const left = useStyleValue('left');
     const zIndex = useStyleValue('z-index');
 
-    const topSetter = useStyleSetter('top');
-    const rightSetter = useStyleSetter('right');
-    const bottomSetter = useStyleSetter('bottom');
-    const leftSetter = useStyleSetter('left');
+    const { setMultiple } = useStyleBatchSetter();
 
     const setCount = [position, top, right, bottom, left, zIndex].filter((v) => v.isSet).length;
     const showOffsets =
@@ -49,31 +46,63 @@ export const PositionSection = observer(function PositionSection() {
         position.value === 'sticky';
     const allowAlign = position.value === 'absolute' || position.value === 'fixed';
 
+    // Derive which alignment segment should read as active by inverting
+    // `applyAlignment`'s logic. The toolbar is a single-select Radix
+    // ToggleGroup, so horizontal and vertical can't both light up — we check
+    // horizontal first and fall back to vertical, meaning the horizontal axis
+    // wins when an element happens to match both (rare).
+    const activeAlignment: string = (() => {
+        // Horizontal: applyAlignment pairs an offset with clearing its sibling.
+        if (left.value === '0' && !right.isSet) return 'left';
+        if (left.value === '50%' && !right.isSet) return 'center-x';
+        if (right.value === '0' && !left.isSet) return 'right';
+        // Vertical: same shape on top/bottom.
+        if (top.value === '0' && !bottom.isSet) return 'top';
+        if (top.value === '50%' && !bottom.isSet) return 'center-y';
+        if (bottom.value === '0' && !top.isSet) return 'bottom';
+        return '';
+    })();
+
+    // Each alignment writes two offset properties (e.g. set `left`, clear
+    // `right`). Commit them as one batched history entry so a single Cmd+Z
+    // reverts the whole alignment gesture rather than one offset at a time.
     const applyAlignment = (value: string) => {
         switch (value) {
             case 'left':
-                leftSetter.set('0');
-                rightSetter.set('');
+                setMultiple([
+                    { property: 'left', value: '0' },
+                    { property: 'right', value: '' },
+                ]);
                 break;
             case 'right':
-                rightSetter.set('0');
-                leftSetter.set('');
+                setMultiple([
+                    { property: 'right', value: '0' },
+                    { property: 'left', value: '' },
+                ]);
                 break;
             case 'center-x':
-                leftSetter.set('50%');
-                rightSetter.set('');
+                setMultiple([
+                    { property: 'left', value: '50%' },
+                    { property: 'right', value: '' },
+                ]);
                 break;
             case 'top':
-                topSetter.set('0');
-                bottomSetter.set('');
+                setMultiple([
+                    { property: 'top', value: '0' },
+                    { property: 'bottom', value: '' },
+                ]);
                 break;
             case 'bottom':
-                bottomSetter.set('0');
-                topSetter.set('');
+                setMultiple([
+                    { property: 'bottom', value: '0' },
+                    { property: 'top', value: '' },
+                ]);
                 break;
             case 'center-y':
-                topSetter.set('50%');
-                bottomSetter.set('');
+                setMultiple([
+                    { property: 'top', value: '50%' },
+                    { property: 'bottom', value: '' },
+                ]);
                 break;
         }
     };
@@ -109,9 +138,9 @@ export const PositionSection = observer(function PositionSection() {
             </PropertyControl>
             {allowAlign && (
                 <div className="flex items-center gap-3 px-3 py-1">
-                    <PropertyLabel label="Align" isSet={false} />
+                    <PropertyLabel label="Align" isSet={activeAlignment !== ''} />
                     <div className="min-w-0 flex-1">
-                        <AlignmentToolbar value="" onCommit={applyAlignment} />
+                        <AlignmentToolbar value={activeAlignment} onCommit={applyAlignment} />
                     </div>
                 </div>
             )}

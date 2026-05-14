@@ -17,7 +17,7 @@ import {
     TextField,
 } from '../controls';
 import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
-import { useStyleSetter } from '../hooks/use-style-setter';
+import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -57,10 +57,11 @@ function CornerRadius() {
     const tr = useStyleValue('border-top-right-radius');
     const br = useStyleValue('border-bottom-right-radius');
     const bl = useStyleValue('border-bottom-left-radius');
-    const tlSetter = useStyleSetter('border-top-left-radius');
-    const trSetter = useStyleSetter('border-top-right-radius');
-    const brSetter = useStyleSetter('border-bottom-right-radius');
-    const blSetter = useStyleSetter('border-bottom-left-radius');
+    // "All corners" writes four longhands in one gesture — commit them as a
+    // single batched history entry so one Cmd+Z reverts the whole change
+    // (matches `TrblGrid.setAll`). Four separate `useStyleSetter().set()`
+    // calls would otherwise produce four undo steps for one user action.
+    const { setMultiple } = useStyleBatchSetter();
 
     const allEqual = useMemo(() => {
         const v = [tl.value, tr.value, br.value, bl.value];
@@ -88,10 +89,12 @@ function CornerRadius() {
     };
 
     const setAll = (value: string) => {
-        tlSetter.set(value);
-        trSetter.set(value);
-        brSetter.set(value);
-        blSetter.set(value);
+        setMultiple([
+            { property: 'border-top-left-radius', value },
+            { property: 'border-top-right-radius', value },
+            { property: 'border-bottom-right-radius', value },
+            { property: 'border-bottom-left-radius', value },
+        ]);
     };
 
     return (

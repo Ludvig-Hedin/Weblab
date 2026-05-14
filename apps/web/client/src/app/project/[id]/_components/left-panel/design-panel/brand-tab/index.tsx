@@ -1,130 +1,125 @@
-import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { BrandTabValue } from '@weblab/models';
-import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
 import ColorPanel from './color-panel';
+import ColorStylesPanel from './color-styles-panel';
 import FontPanel from './font-panel';
-import SystemFont from './font-panel/system-font';
+import TextStylesPanel from './text-styles-panel';
+import VariablesPanel from './variables-panel';
 
-interface ColorSquareProps {
-    color: string;
+interface SectionRowProps {
+    icon: ReactNode;
+    label: string;
+    description: string;
+    onClick: () => void;
+    preview?: ReactNode;
 }
 
-const ColorSquare = ({ color }: ColorSquareProps) => (
-    <div className="aspect-square w-full cursor-pointer" style={{ backgroundColor: color }} />
+const SectionRow = ({ icon, label, description, onClick, preview }: SectionRowProps) => (
+    <button
+        type="button"
+        onClick={onClick}
+        className="border-border hover:border-border-hover hover:bg-background-secondary group flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors duration-150"
+    >
+        <span className="text-foreground-secondary group-hover:text-foreground-primary flex h-7 w-7 shrink-0 items-center justify-center transition-colors">
+            {icon}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col">
+            <span className="text-foreground-primary text-small">{label}</span>
+            <span className="text-foreground-tertiary text-mini truncate">{description}</span>
+        </span>
+        {preview}
+        <Icons.ChevronRight className="text-foreground-tertiary group-hover:text-foreground-secondary h-4 w-4 shrink-0 transition-colors" />
+    </button>
 );
 
+/**
+ * Brand tab hub — a single, scannable list of the five brand surfaces
+ * (Colors, Variables, Color Styles, Text Styles, Fonts). Each row drills into
+ * its panel; every panel has a back-arrow header that returns here via
+ * `setBrandTab(null)`. Counts come straight off the observable `tokens` store.
+ */
 export const BrandTab = observer(() => {
     const editorEngine = useEditorEngine();
-    const [brandColors, setBrandColors] = useState<string[]>([]);
+    const { brandTab } = editorEngine.state;
+    const tokens = editorEngine.tokens;
 
-    // Get project brand colors
     useEffect(() => {
-        const loadBrandColors = async () => {
-            await editorEngine.theme.scanConfig();
-            const { colorGroups, colorDefaults } = editorEngine.theme;
+        void editorEngine.theme.scanConfig();
+        void tokens.scan();
+    }, [editorEngine.theme, tokens]);
 
-            // Extract color-500 variants from project colors
-            const projectColors: string[] = [];
+    if (brandTab === BrandTabValue.COLORS) return <ColorPanel />;
+    if (brandTab === BrandTabValue.VARIABLES) return <VariablesPanel />;
+    if (brandTab === BrandTabValue.COLOR_STYLES) return <ColorStylesPanel />;
+    if (brandTab === BrandTabValue.TEXT_STYLES) return <TextStylesPanel />;
+    if (brandTab === BrandTabValue.FONTS) return <FontPanel />;
 
-            // Add colors from custom color groups (user-defined in Tailwind config)
-            Object.values(colorGroups).forEach((group) => {
-                group.forEach((color) => {
-                    // Get the default/500 color from each custom color group
-                    if (
-                        color.name === '500' ||
-                        color.name === 'default' ||
-                        color.name === 'DEFAULT'
-                    ) {
-                        projectColors.push(color.lightColor);
-                    }
-                });
-            });
+    // Brand-color swatch strip — the 500/DEFAULT shade of every color group,
+    // used as an at-a-glance preview on the Colors row.
+    const { colorGroups, colorDefaults } = editorEngine.theme;
+    const swatches: string[] = [];
+    [...Object.values(colorGroups), ...Object.values(colorDefaults)].forEach((group) => {
+        group.forEach((color) => {
+            if (color.name === '500' || color.name === 'default' || color.name === 'DEFAULT') {
+                swatches.push(color.lightColor);
+            }
+        });
+    });
 
-            // Add colors from default color groups (standard Tailwind colors)
-            Object.values(colorDefaults).forEach((group) => {
-                group.forEach((color) => {
-                    // Get the default/500 color from each default color group
-                    if (
-                        color.name === '500' ||
-                        color.name === 'default' ||
-                        color.name === 'DEFAULT'
-                    ) {
-                        projectColors.push(color.lightColor);
-                    }
-                });
-            });
-
-            setBrandColors(projectColors);
-        };
-
-        loadBrandColors();
-    }, [editorEngine.theme]);
-
-    // If color panel is visible, show it instead of the main content
-    if (editorEngine.state.brandTab === BrandTabValue.COLORS) {
-        return <ColorPanel />;
-    }
-
-    // If font panel is visible, show it instead of the main content
-    if (editorEngine.state.brandTab === BrandTabValue.FONTS) {
-        return <FontPanel />;
-    }
+    const countLabel = (n: number, noun: string) =>
+        n === 0 ? `No ${noun}s yet` : `${n} ${noun}${n === 1 ? '' : 's'}`;
 
     return (
-        <div className="text-active text-mini flex h-full w-full flex-grow flex-col p-0">
-            {/* Brand Palette Section */}
-            <div className="border-border flex flex-col gap-3 border-b px-4 pt-4 pb-6">
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-small">Brand Colors</span>
-                    </div>
-
-                    <div
-                        className="bg-background-tertiary border-border hover:border-border-hover grid h-[40px] max-h-[40px] cursor-pointer grid-cols-12 gap-0 overflow-hidden rounded-md border transition-colors duration-150"
-                        onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
-                    >
-                        {brandColors.length > 0
-                            ? brandColors.map((color, index) => (
-                                  <ColorSquare key={`brand-color-${index}`} color={color} />
-                              ))
-                            : Array.from({ length: 12 }, (_, index) => (
-                                  <div
-                                      key={`loading-color-${index}`}
-                                      className="animate-shimmer from-foreground-tertiary/30 via-foreground-tertiary/60 to-foreground-tertiary/30 h-full w-full bg-gradient-to-r bg-[length:200%_100%]"
-                                  />
-                              ))}
-                    </div>
-                </div>
-
-                <Button
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-10 w-full rounded-lg border"
-                    onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
-                >
-                    Manage brand colors
-                </Button>
-            </div>
-
-            {/* Site Fonts Section */}
-            <div className="flex flex-col gap-1.5 px-4 pt-5 pb-6">
-                <div className="flex flex-col">
-                    <div className="flex items-center justify-between">
-                        <span className="text-small">Site Fonts</span>
-                    </div>
-                    <SystemFont />
-                </div>
-                <Button
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-foreground/10 text-small h-10 w-full rounded-lg border"
-                    onClick={() => editorEngine.state.setBrandTab(BrandTabValue.FONTS)}
-                >
-                    Manage site fonts
-                </Button>
-            </div>
+        <div className="flex flex-col gap-2 p-3">
+            <SectionRow
+                icon={<Icons.PaintBucket className="h-4 w-4" />}
+                label="Colors"
+                description="Brand palette & theme colors"
+                onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLORS)}
+                preview={
+                    swatches.length > 0 ? (
+                        <span className="border-border grid h-5 w-16 shrink-0 grid-cols-8 overflow-hidden rounded-[3px] border">
+                            {swatches.slice(0, 8).map((color, index) => (
+                                <span
+                                    key={`swatch-${index}`}
+                                    className="h-full w-full"
+                                    style={{ backgroundColor: color }}
+                                />
+                            ))}
+                        </span>
+                    ) : undefined
+                }
+            />
+            <SectionRow
+                icon={<Icons.Tokens className="h-4 w-4" />}
+                label="Variables"
+                description={countLabel(tokens.variables.length, 'variable')}
+                onClick={() => editorEngine.state.setBrandTab(BrandTabValue.VARIABLES)}
+            />
+            <SectionRow
+                icon={<Icons.EyeDropper className="h-4 w-4" />}
+                label="Color Styles"
+                description={countLabel(tokens.colorStyles.length, 'style')}
+                onClick={() => editorEngine.state.setBrandTab(BrandTabValue.COLOR_STYLES)}
+            />
+            <SectionRow
+                icon={<Icons.Text className="h-4 w-4" />}
+                label="Text Styles"
+                description={countLabel(tokens.textStyles.length, 'style')}
+                onClick={() => editorEngine.state.setBrandTab(BrandTabValue.TEXT_STYLES)}
+            />
+            <SectionRow
+                icon={<Icons.Pilcrow className="h-4 w-4" />}
+                label="Fonts"
+                description="Site typography"
+                onClick={() => editorEngine.state.setBrandTab(BrandTabValue.FONTS)}
+            />
         </div>
     );
 });

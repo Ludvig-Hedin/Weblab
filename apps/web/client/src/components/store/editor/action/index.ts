@@ -29,7 +29,7 @@ export class ActionManager {
     }
 
     async undo() {
-        const action = this.editorEngine.history.undo();
+        const action = await this.editorEngine.history.undo();
 
         if (action == null) {
             return;
@@ -39,7 +39,7 @@ export class ActionManager {
     }
 
     async redo() {
-        const action = this.editorEngine.history.redo();
+        const action = await this.editorEngine.history.redo();
         if (action == null) {
             return;
         }
@@ -158,7 +158,7 @@ export class ActionManager {
         if (existing) clearTimeout(existing);
         const timer = setTimeout(() => {
             this.rebaseTimers.delete(key);
-            void this.runSourceRebase(oid, property).catch((error) => {
+            void this.runSourceRebase(oid, property).catch((error: unknown) => {
                 console.error('Source rebase failed', { oid, property, error });
             });
         }, 600);
@@ -179,9 +179,18 @@ export class ActionManager {
         this.editorEngine.elements.click(domEls);
     }
 
-    refreshDomElement = debounce(this.debouncedRefreshDomElement, 100, { leading: true });
+    refreshDomElement = debounce(
+        (domEls: DomElement[]) => this.debouncedRefreshDomElement(domEls),
+        100,
+        { leading: true },
+    );
 
-    private async insertElement({ targets, element, editText, location }: InsertElementAction) {
+    private async insertElement({
+        targets,
+        element,
+        editText: _editText,
+        location,
+    }: InsertElementAction) {
         for (const elementMetadata of targets) {
             const frameData = this.editorEngine.frames.get(elementMetadata.frameId);
             if (!frameData?.view) {
@@ -196,7 +205,7 @@ export class ActionManager {
                     return;
                 }
 
-                this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+                void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
             } catch (err) {
                 console.error('Error inserting element:', err);
             }
@@ -220,7 +229,7 @@ export class ActionManager {
 
             await this.editorEngine.overlay.refresh();
 
-            this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+            void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
         }
     }
 
@@ -236,7 +245,7 @@ export class ActionManager {
                 console.error('Failed to move element');
                 return;
             }
-            this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+            void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
         }
     }
 
@@ -253,7 +262,7 @@ export class ActionManager {
                 return;
             }
 
-            this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+            void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
         }
     }
 
@@ -271,7 +280,7 @@ export class ActionManager {
             return;
         }
 
-        this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+        void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
     }
 
     private async ungroupElements({ parent, container }: UngroupElementsAction) {
@@ -288,10 +297,10 @@ export class ActionManager {
             return;
         }
 
-        this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
+        void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
     }
 
-    private insertImage({ targets, image }: InsertImageAction) {
+    private insertImage({ targets, image: _image }: InsertImageAction) {
         targets.forEach((target) => {
             const frameView = this.editorEngine.frames.get(target.frameId);
             if (!frameView) {

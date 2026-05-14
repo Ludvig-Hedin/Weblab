@@ -1,3 +1,4 @@
+import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
 import type { Action } from '@weblab/models/actions';
@@ -5,6 +6,7 @@ import { jsonClone } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 import { transformRedoAction, undoAction, updateTransactionActions } from './helpers';
+import { clearHistory, loadHistory, saveHistory } from './storage';
 
 enum TransactionType {
     IN_TRANSACTION = 'in-transaction',
@@ -25,6 +27,7 @@ type TransactionState = InTransaction | NotInTransaction;
 export class HistoryManager {
     constructor(
         private editorEngine: EditorEngine,
+        private branchId: string,
         private undoStack: Action[] = [],
         private redoStack: Action[] = [],
         private inTransaction: TransactionState = { type: TransactionType.NOT_IN_TRANSACTION },
@@ -47,6 +50,30 @@ export class HistoryManager {
     get length() {
         return this.undoStack.length;
     }
+
+    hydrate = async (): Promise<void> => {
+        try {
+            const saved = await loadHistory(this.branchId);
+            if (saved) {
+                this.undoStack = saved.undoStack;
+                this.redoStack = saved.redoStack;
+            }
+        } catch (err) {
+            console.warn('[HistoryManager] Failed to load persisted history:', err);
+        }
+    };
+
+    private persist = async (): Promise<void> => {
+        try {
+            await saveHistory(this.branchId, this.undoStack, this.redoStack);
+        } catch (err) {
+            console.warn('[HistoryManager] Failed to persist history:', err);
+        }
+    };
+
+    private persistDebounced = debounce(() => {
+        void this.persist();
+    }, 400);
 
     startTransaction = () => {
         this.inTransaction = { type: TransactionType.IN_TRANSACTION, actions: [] };
@@ -104,11 +131,13 @@ export class HistoryManager {
             case 'edit-text':
                 this.editorEngine.posthog.capture('edit_text_action');
         }
+
+        this.persistDebounced();
     };
 
-    undo = (): Action | null => {
+    undo = async (): Promise<Action | null> => {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
-            this.commitTransaction();
+            await this.commitTransaction();
         }
 
         const top = this.undoStack.pop();
@@ -118,13 +147,14 @@ export class HistoryManager {
         const action = undoAction(top);
 
         this.redoStack.push(top);
+        this.persistDebounced();
 
         return action;
     };
 
-    redo = (): Action | null => {
+    redo = async (): Promise<Action | null> => {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
-            this.commitTransaction();
+            await this.commitTransaction();
         }
 
         const top = this.redoStack.pop();
@@ -134,11 +164,17 @@ export class HistoryManager {
 
         const action = transformRedoAction(top);
         this.undoStack.push(action);
+        this.persistDebounced();
+
         return action;
     };
 
     clear = () => {
+        this.persistDebounced.cancel();
         this.undoStack = [];
         this.redoStack = [];
+        void clearHistory(this.branchId).catch((err) => {
+            console.warn('[HistoryManager] Failed to clear persisted history:', err);
+        });
     };
 }

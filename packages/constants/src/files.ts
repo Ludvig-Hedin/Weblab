@@ -118,6 +118,24 @@ export const IMAGE_EXTENSIONS = [
     'video/x-msvideo',
 ];
 
+// File-extension groups used to classify assets in the editor Assets panel.
+export const FONT_FILE_EXTENSIONS = ['.woff', '.woff2', '.ttf', '.eot', '.otf'];
+
+export const DOCUMENT_FILE_EXTENSIONS = [
+    '.pdf',
+    '.txt',
+    '.md',
+    '.mdx',
+    '.csv',
+    '.rtf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+];
+
 /**
  * Compression presets for common use cases
  */

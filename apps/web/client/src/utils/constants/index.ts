@@ -53,7 +53,8 @@ export const ExternalRoutes = {
     YOUTUBE: 'https://www.youtube.com/@weblab',
     SUBSTACK: 'https://weblab.substack.com/',
     DOWNLOAD_MAC: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
-    DOWNLOAD_MAC_INTEL: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-x64.dmg',
+    DOWNLOAD_MAC_INTEL:
+        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-x64.dmg',
     DOWNLOAD_WIN:
         'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe',
     DOWNLOAD_LINUX:
@@ -81,6 +82,11 @@ export const LocalForageKeys = {
     /** Project id the user most recently opened. Used by the offline bootstrap
      *  to know which project to fall through to when a SSR fetch fails. */
     LAST_OPENED_PROJECT_ID: 'weblab-last-opened-project-id',
+    /**
+     * Per-branch undo/redo history persisted to IndexedDB. Keyed by branch id.
+     * Schema-versioned so stale entries are discarded on format change.
+     */
+    BRANCH_HISTORY: (branchId: string) => `weblab_history_v1_${branchId}`,
 } as const;
 
 /** Convenience export — the tour module imports this directly. */

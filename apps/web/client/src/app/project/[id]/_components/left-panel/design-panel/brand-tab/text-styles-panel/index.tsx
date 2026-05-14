@@ -16,6 +16,7 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 
 import { useEditorEngine } from '@/components/store/editor';
+import { SetupTokensCta } from '../setup-tokens-cta';
 
 const SIZE_OPTIONS = [
     'text-xs',
@@ -85,27 +86,32 @@ const TextStylesPanel = observer(() => {
             </div>
 
             <div className="mt-[2.5rem] flex flex-col gap-3 px-4 py-4">
-                {!tokens.hasTokensLayer && (
-                    <div className="text-foreground-secondary text-mini py-2">
-                        Set up design tokens in the Color Styles tab first.
-                    </div>
-                )}
-                {tokens.textStyles.map((style) => (
-                    <TextStyleRow key={style.name} style={style} />
-                ))}
-                {adding ? (
-                    <AddTextStyleForm onCancel={() => setAdding(false)} />
+                {!tokens.hasTokensLayer ? (
+                    <SetupTokensCta />
                 ) : (
-                    tokens.hasTokensLayer && (
-                        <Button
-                            variant="ghost"
-                            className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 text-small h-10 w-full rounded-lg border border-white/5"
-                            onClick={() => setAdding(true)}
-                        >
-                            <Icons.Plus className="mr-2 h-4 w-4" />
-                            Add a text style
-                        </Button>
-                    )
+                    <>
+                        {tokens.textStyles.length === 0 && !adding && (
+                            <div className="text-foreground-secondary text-mini px-1 py-2">
+                                No text styles yet — add one to reuse typography across your
+                                project.
+                            </div>
+                        )}
+                        {tokens.textStyles.map((style) => (
+                            <TextStyleRow key={style.name} style={style} />
+                        ))}
+                        {adding ? (
+                            <AddTextStyleForm onCancel={() => setAdding(false)} />
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                className="text-muted-foreground hover:text-foreground bg-background-secondary hover:bg-background-secondary/70 border-border text-small h-10 w-full rounded-lg border"
+                                onClick={() => setAdding(true)}
+                            >
+                                <Icons.Plus className="mr-2 h-4 w-4" />
+                                Add a text style
+                            </Button>
+                        )}
+                    </>
                 )}
             </div>
         </div>
@@ -134,7 +140,7 @@ const TextStyleRow = observer(function TextStyleRow({ style }: { style: TextStyl
     };
 
     return (
-        <div className="border-foreground/5 flex flex-col gap-2 rounded-md border">
+        <div className="border-border flex flex-col gap-2 rounded-md border">
             <div className="group flex items-center gap-3 px-3 py-2">
                 <div className="flex-1">
                     <div
@@ -182,7 +188,7 @@ const TextStyleRow = observer(function TextStyleRow({ style }: { style: TextStyl
                 </DropdownMenu>
             </div>
             {open && (
-                <div className="border-foreground/5 grid grid-cols-2 gap-2 border-t px-3 py-2">
+                <div className="border-border grid grid-cols-2 gap-2 border-t px-3 py-2">
                     <ClassSelect
                         label="Family"
                         options={FAMILY_OPTIONS}

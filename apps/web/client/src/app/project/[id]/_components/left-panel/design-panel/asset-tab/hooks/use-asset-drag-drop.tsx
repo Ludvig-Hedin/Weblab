@@ -6,42 +6,45 @@ import { EditorMode, InsertMode } from '@weblab/models';
 
 import { useEditorEngine } from '@/components/store/editor';
 
-export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) => {
+export const useAssetDragDrop = (onUpload?: (files: FileList) => Promise<void>) => {
     const editorEngine = useEditorEngine();
     const posthog = usePostHog();
     const [isDragging, setIsDragging] = useState(false);
 
-    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-    }, []);
-
-    const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        handleDragStateChange(true, e);
-    }, []);
-
-    const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            handleDragStateChange(false, e);
-        }
-    }, []);
-
     const handleDragStateChange = useCallback(
         (isDragging: boolean, e: React.DragEvent<HTMLDivElement>) => {
-            const hasImage =
-                e.dataTransfer.types.length > 0 &&
-                Array.from(e.dataTransfer.items).some(
-                    (item) =>
-                        item.type.startsWith('image/') ||
-                        (item.type === 'Files' && e.dataTransfer.types.includes('public.file-url')),
-                );
-            if (hasImage) {
+            // Any external file drag counts — the Assets panel accepts every file type.
+            const hasFiles =
+                e.dataTransfer.types.includes('Files') ||
+                Array.from(e.dataTransfer.items).some((item) => item.kind === 'file');
+            if (hasFiles) {
                 setIsDragging(isDragging);
                 e.currentTarget.setAttribute('data-weblab-dragging-image', isDragging.toString());
             }
         },
         [],
+    );
+
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+    }, []);
+
+    const handleDragEnter = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            handleDragStateChange(true, e);
+        },
+        [handleDragStateChange],
+    );
+
+    const handleDragLeave = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                handleDragStateChange(false, e);
+            }
+        },
+        [handleDragStateChange],
     );
 
     const onImageDragStart = useCallback(
@@ -67,7 +70,7 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
             }
             posthog.capture('image_drag_start');
         },
-        [],
+        [editorEngine, posthog],
     );
 
     const onImageMouseDown = useCallback(() => {
@@ -88,7 +91,7 @@ export const useImageDragDrop = (onUpload?: (files: FileList) => Promise<void>) 
             frame.view.style.pointerEvents = 'auto';
         }
         editorEngine.state.setEditorMode(EditorMode.DESIGN);
-    }, []);
+    }, [editorEngine]);
 
     const handleDrop = useCallback(
         (e: React.DragEvent<HTMLDivElement>) => {

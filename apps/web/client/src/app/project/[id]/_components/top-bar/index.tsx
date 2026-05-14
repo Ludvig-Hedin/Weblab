@@ -66,9 +66,9 @@ export const TopBar = observer(() => {
 
             {/* Right: desktop shows all actions; mobile shows only avatar + publish */}
             <div className="flex flex-grow basis-0 items-center justify-end gap-1.5">
-                {/* Desktop-only: undo/redo */}
+                {/* md+: undo/redo */}
                 <motion.div
-                    className="hidden lg:flex lg:items-center"
+                    className="hidden md:flex md:items-center"
                     layout
                     transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0 }}
                 >

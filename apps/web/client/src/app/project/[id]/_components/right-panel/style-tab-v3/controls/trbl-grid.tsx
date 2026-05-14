@@ -20,6 +20,18 @@ import { NumberField } from './number-field';
  * `min-w-0 flex-1` lets the four boxes shrink equally so the row never
  * overflows the panel even at the ~280px minimum width.
  */
+/**
+ * Coerce a per-side value on commit. A bare number gets `px` appended (a
+ * unitless `16` is invalid CSS for padding/margin/offsets); keywords like
+ * `auto` and already-united values (`16px`, `1rem`, `50%`) pass through
+ * untouched. Empty stays empty (a reset).
+ */
+function coerceSideValue(raw: string): string {
+    const next = raw.trim();
+    if (next === '') return '';
+    return /^[-+]?[0-9]*\.?[0-9]+$/.test(next) ? `${next}px` : next;
+}
+
 function SideField({
     value,
     onCommit,
@@ -37,7 +49,7 @@ function SideField({
     }, [value]);
 
     const commit = (raw: string) => {
-        const next = raw.trim();
+        const next = coerceSideValue(raw);
         setDraft(next);
         if (next !== value) onCommit(next);
     };
