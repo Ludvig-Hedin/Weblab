@@ -1,0 +1,48 @@
+name: Supabase keep-warm
+
+# The Supabase project is on the free tier. After a stretch of no traffic the
+# auth API cold-starts — the first request takes ~8s instead of ~50ms. That
+# slow first call is what makes sign-in feel broken (slow `getUser()`), so this
+# workflow pings the auth + REST endpoints on a schedule to keep the project
+# warm between real users.
+#
+# This is a stopgap. The proper fix is moving the Supabase org off the free
+# tier — delete this workflow once that happens.
+#
+# Note: GitHub throttles/delays scheduled workflows under load, so the real
+# interval drifts above 5 min. It still cuts cold starts down dramatically.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every ~5 minutes (best effort — GitHub may delay)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+# If a run is still going when the next fires, skip the new one rather than queue.
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase auth + REST
+        env:
+          # Project ref is not a secret — it ships in the client bundle as
+          # NEXT_PUBLIC_SUPABASE_URL. Hardcoded so the workflow is self-contained.
+          SUPABASE_HOST: ttdazmwohrvxsliapwai.supabase.co
+        run: |
+          set -u
+          fail=0
+          for path in "auth/v1/health" "rest/v1/"; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+              "https://${SUPABASE_HOST}/${path}" || echo "000")
+            echo "${path} -> HTTP ${code}"
+            # 200/401/404 all mean the service answered (401/404 = reachable,
+            # just no API key / no route). Only a connection failure is a problem.
+            case "$code" in
+              000) echo "::warning::${path} unreachable"; fail=1 ;;
+            esac
+          done
+          exit $fail

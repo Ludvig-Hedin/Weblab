@@ -64,8 +64,8 @@
         "npmRebuild": false,
         "publish": {
             "provider": "github",
-            "owner": "weblab",
-            "repo": "weblab"
+            "owner": "Ludvig-Hedin",
+            "repo": "Weblab"
         }
     }
 }

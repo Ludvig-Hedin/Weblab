@@ -51,23 +51,31 @@ export async function updateSession(request: NextRequest) {
         return supabaseResponse;
     }
 
-    // Refresh the auth token, but never let a stalled auth provider block the
-    // whole request. The previous 2s ceiling was racing the refresh on slow
-    // Railway → hosted-Supabase egress: when the timeout fired, the in-flight
-    // `setAll` callback was abandoned, so the rotated access token never made
-    // it back into the response cookies. The next request still presented the
-    // expired cookie, Supabase rejected it, the layout's `getUser()` returned
-    // `null`, and the user got bounced back to /login despite a valid OAuth
-    // sign-in. 8s is large enough for production refresh round-trips while
-    // still preventing a hard hang on a truly dead auth backend.
+    // Refresh the session. This MUST run to completion — it cannot be raced
+    // against a timeout.
+    //
+    // When `getUser()` sees an expiring access token it refreshes it: Supabase
+    // consumes the old refresh token server-side and issues a new pair, and the
+    // `setAll` callback above writes those new cookies onto `supabaseResponse`.
+    // A previous version raced this against an 8s timeout — but `Promise.race`
+    // does not cancel the loser. On a slow (e.g. cold-starting) auth backend the
+    // timeout would fire while the refresh was still in flight: the refresh then
+    // *still completed at Supabase* (old refresh token consumed) but the rotated
+    // cookies never reached the browser. Every subsequent request then presented
+    // a dead refresh token and a stale access token → `getUser()` returns null →
+    // 401 on every tRPC call and a bounce back to /login, even though sign-in
+    // "worked". The session was permanently corrupted by the timeout itself.
+    //
+    // Slow-but-correct beats fast-but-broken. The no-auth-cookie fast path above
+    // already keeps unauthenticated/public traffic off this round-trip, so only
+    // signed-in requests pay the latency — and a genuinely cold auth backend is
+    // an infra problem to fix at the source, not something to paper over here.
     try {
-        await Promise.race([
-            supabase.auth.getUser(),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Supabase auth refresh timed out')), 8000),
-            ),
-        ]);
+        await supabase.auth.getUser();
     } catch (error) {
+        // A genuine failure (network refused, DNS, 5xx) does not run `setAll`,
+        // so cookies are left untouched and the existing refresh token stays
+        // valid for the next attempt — no corruption. Just log it.
         console.warn('[middleware] Supabase session refresh failed', {
             pathname: request.nextUrl.pathname,
             error: error instanceof Error ? error.message : String(error),

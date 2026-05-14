@@ -55,8 +55,10 @@ export const ExternalRoutes = {
     YOUTUBE: 'https://www.youtube.com/@weblab',
     SUBSTACK: 'https://weblab.substack.com/',
     DOWNLOAD_MAC: 'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
+    // The macOS build is a single universal DMG (Intel + Apple Silicon), so the
+    // "Intel" link points at the same artifact — there is no separate x64 build.
     DOWNLOAD_MAC_INTEL:
-        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-x64.dmg',
+        'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg',
     DOWNLOAD_WIN:
         'https://github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe',
     DOWNLOAD_LINUX:

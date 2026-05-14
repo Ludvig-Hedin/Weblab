@@ -62,9 +62,9 @@ The download button in the hero points to:
 
 | Platform | URL |
 |----------|-----|
-| macOS    | `github.com/weblab/weblab/releases/latest/download/Weblab.dmg` |
-| Windows  | `github.com/weblab/weblab/releases/latest/download/Weblab-Setup.exe` |
-| Linux    | `github.com/weblab/weblab/releases/latest/download/Weblab.AppImage` |
+| macOS    | `github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.dmg` |
+| Windows  | `github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab-Setup.exe` |
+| Linux    | `github.com/Ludvig-Hedin/Weblab/releases/latest/download/Weblab.AppImage` |
 
 These URLs resolve automatically once you push a tagged release with those filenames attached.
 
