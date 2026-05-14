@@ -11,10 +11,10 @@ import { DownloadButton } from './download-button';
 
 export function CodexHero() {
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
-            <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
+        <div className="flex w-full flex-col items-center justify-center px-8 py-4 text-center text-lg">
+            <div className="relative z-20 flex max-w-5xl flex-col items-center gap-4 pt-4 pb-2">
                 <motion.p
-                    className="heading-style-h6 text-foreground-secondary mb-4"
+                    className="text-foreground-secondary text-xs font-medium mb-2"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -32,7 +32,7 @@ export function CodexHero() {
                     Codex for Designers
                 </motion.h1>
                 <motion.h2
-                    className="text-foreground-secondary mx-auto max-w-xl text-center text-lg text-balance"
+                    className="text-foreground-secondary mx-auto max-w-2xl text-center text-lg text-balance"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
@@ -50,9 +50,8 @@ export function CodexHero() {
                 >
                     <Button
                         asChild
-                        variant="outline"
                         size="lg"
-                        className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10 cursor-pointer p-6 transition-all duration-300"
+                        className="cursor-pointer"
                     >
                         <a href={Routes.PROJECTS}>
                             Get Started

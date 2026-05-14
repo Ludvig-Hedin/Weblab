@@ -71,7 +71,7 @@ export default function AiFeaturesPage() {
                     </ul>
                 </section>
 
-                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
+                <div className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12" id="hero">
                     <AiFeaturesHero />
                 </div>
                 <ResponsiveMockupSection />

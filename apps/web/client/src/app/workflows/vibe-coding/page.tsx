@@ -61,10 +61,10 @@ const getBlurAnimationProps = (delay = 0) => ({
 
 function VibeCodingHero() {
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-12 p-8 text-center text-lg">
-            <div className="relative z-20 flex max-w-3xl flex-col items-center gap-6 pt-4 pb-2">
+        <div className="flex w-full flex-col items-center justify-center px-8 py-4 text-center text-lg">
+            <div className="relative z-20 flex max-w-5xl flex-col items-center gap-4 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary text-sm font-medium"
+                    className="text-foreground-secondary text-xs font-medium mb-2"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -82,7 +82,7 @@ function VibeCodingHero() {
                     Vibe coding has a collaboration problem
                 </motion.h1>
                 <motion.p
-                    className="text-foreground-secondary mx-auto max-w-xl text-center text-lg"
+                    className="text-foreground-secondary mx-auto max-w-2xl text-center text-lg"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
@@ -101,9 +101,8 @@ function VibeCodingHero() {
                 >
                     <Button
                         asChild
-                        variant="outline"
                         size="lg"
-                        className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10 cursor-pointer p-6 transition-all duration-300"
+                        className="cursor-pointer"
                     >
                         <a href={Routes.PROJECTS}>
                             Get Started
@@ -149,7 +148,7 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* Hero Section */}
-                <div className="flex w-full items-center justify-center py-32 md:py-40" id="hero">
+                <div className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12" id="hero">
                     <VibeCodingHero />
                 </div>
 

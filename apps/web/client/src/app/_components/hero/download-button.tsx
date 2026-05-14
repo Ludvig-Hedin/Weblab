@@ -17,6 +17,7 @@ export function DownloadButton() {
         <Button
             asChild
             variant="outline"
+            size="lg"
             className="border-foreground-secondary/30 text-foreground-primary hover:bg-foreground-secondary/10"
         >
             <a href={Routes.DOWNLOAD}>
