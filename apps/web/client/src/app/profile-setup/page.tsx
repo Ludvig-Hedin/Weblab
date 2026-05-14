@@ -10,6 +10,7 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
+import { extractNames } from '@weblab/utility';
 
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
@@ -21,7 +22,7 @@ import { sanitizeReturnUrl } from '@/utils/url';
  * Returns null when the local part is unusable (empty, numeric, single char)
  * so the caller can fall back to "skip without setting a name".
  */
-function deriveFirstNameFromEmail(email: string): string | null {
+function deriveNameFromEmail(email: string): string | null {
     const local = email.split('@')[0]?.split('+')[0] ?? '';
     if (!local) return null;
     const words = local
@@ -38,17 +39,19 @@ function deriveFirstNameFromEmail(email: string): string | null {
 
 /**
  * First-run profile setup. Email-OTP signups land here because the OTP path
- * can't infer a name from the email alone (it inserts blank firstName/lastName);
- * OAuth signups also pass through but short-circuit to `returnUrl` because their
+ * can't infer a name from the email alone (it inserts a blank name); OAuth
+ * signups also pass through but short-circuit to `returnUrl` because their
  * names are populated by the provider in the auth callback.
  *
  * Behavior:
  *   - Loads the current user via `api.user.get`.
  *   - If the user already has a real name on record, redirects to `returnUrl`
  *     immediately (returning OTP users, OAuth users, anyone re-visiting).
- *   - Otherwise shows a single "What should we call you?" form. On save,
- *     calls `api.user.updateProfile` and routes to `returnUrl`.
- *   - "Skip for now" routes to `returnUrl` without saving.
+ *   - Otherwise shows a single "What should we call you?" name field,
+ *     prefilled with a guess derived from the email. On save, calls
+ *     `api.user.updateProfile` and routes to `returnUrl`.
+ *   - "Skip for now" routes to `returnUrl`, persisting the email-derived
+ *     guess so the UI never has to fall back to showing the raw email.
  */
 export default function ProfileSetupPage() {
     const t = useTranslations();
@@ -83,8 +86,7 @@ export default function ProfileSetupPage() {
         },
     });
 
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
+    const [name, setName] = useState('');
     const [error, setError] = useState<string | null>(null);
     // Track whether we've already run the auto-redirect check so the form
     // doesn't flash for users who already have a name on record.
@@ -93,7 +95,7 @@ export default function ProfileSetupPage() {
     // Treat "displayName equals email" as effectively unset — that's the
     // sentinel left by the OTP signup path, and showing the user's email
     // address as their display name everywhere is exactly the bug we're
-    // fixing. Empty firstName + lastName is the other shape this can take.
+    // fixing. An empty name is the other shape this can take.
     useEffect(() => {
         if (isLoadingUser) return;
         if (!user) {
@@ -112,44 +114,46 @@ export default function ProfileSetupPage() {
             router.replace(finalRedirect);
             return;
         }
+        // Needs setup: prefill the field with a friendly guess from the email
+        // so the user usually just confirms instead of typing from scratch.
+        if (user.email) {
+            const derived = deriveNameFromEmail(user.email);
+            // Only prefill an untouched field — never clobber what the user
+            // has already typed if this effect re-runs.
+            if (derived) setName((current) => (current.length > 0 ? current : derived));
+        }
         setHasCheckedProfile(true);
     }, [isLoadingUser, user, router, finalRedirect]);
+
+    const persistName = (fullName: string) => {
+        const trimmed = fullName.trim();
+        const { firstName, lastName } = extractNames(trimmed);
+        updateProfile({ firstName, lastName, displayName: trimmed });
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isSaving) return;
-        const trimmedFirst = firstName.trim();
-        const trimmedLast = lastName.trim();
-        if (!trimmedFirst) {
-            setError(t(transKeys.welcome.profileSetup.errorFirstNameRequired));
+        const trimmed = name.trim();
+        if (!trimmed) {
+            setError(t(transKeys.welcome.profileSetup.errorNameRequired));
             return;
         }
         setError(null);
-        // Build a sensible displayName from the parts. Don't leave it blank —
-        // we want it populated everywhere the UI reads it.
-        const displayName = trimmedLast ? `${trimmedFirst} ${trimmedLast}` : trimmedFirst;
-        updateProfile({
-            firstName: trimmedFirst,
-            lastName: trimmedLast,
-            displayName,
-        });
+        persistName(trimmed);
     };
 
     const handleSkip = () => {
-        // Don't leave the user with `displayName === email`. Derive a friendly
-        // first-name guess from the email local part so the rest of the UI
-        // (avatar dropdown, comments, share dialogs) doesn't leak the raw
-        // email address everywhere we read displayName.
-        if (user?.email) {
-            const derivedFirstName = deriveFirstNameFromEmail(user.email);
-            if (derivedFirstName) {
-                updateProfile({
-                    firstName: derivedFirstName,
-                    lastName: '',
-                    displayName: derivedFirstName,
-                });
-                return;
-            }
+        if (isSaving) return;
+        // Don't leave the user with `displayName === email`. Persist the
+        // email-derived guess so the rest of the UI (avatar dropdown, comments,
+        // share dialogs) doesn't leak the raw email address everywhere it
+        // reads displayName. Fall back to a plain navigation only when the
+        // email yields nothing usable.
+        const derived = user?.email ? deriveNameFromEmail(user.email) : null;
+        if (derived) {
+            persistName(derived);
+            return;
         }
         router.push(finalRedirect);
     };
@@ -184,36 +188,19 @@ export default function ProfileSetupPage() {
                     </div>
                     <div className="space-y-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="profile-setup-first-name" className="text-small">
-                                {t(transKeys.welcome.profileSetup.firstName)}
+                            <Label htmlFor="profile-setup-name" className="text-small">
+                                {t(transKeys.welcome.profileSetup.name)}
                             </Label>
                             <Input
-                                id="profile-setup-first-name"
+                                id="profile-setup-name"
                                 type="text"
-                                autoComplete="given-name"
+                                autoComplete="name"
                                 autoFocus
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                placeholder={t(transKeys.welcome.profileSetup.firstNamePlaceholder)}
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder={t(transKeys.welcome.profileSetup.namePlaceholder)}
                                 disabled={isSaving}
                                 required
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="profile-setup-last-name" className="text-small">
-                                {t(transKeys.welcome.profileSetup.lastName)}{' '}
-                                <span className="text-foreground-tertiary text-xs">
-                                    {t(transKeys.welcome.profileSetup.optional)}
-                                </span>
-                            </Label>
-                            <Input
-                                id="profile-setup-last-name"
-                                type="text"
-                                autoComplete="family-name"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                placeholder={t(transKeys.welcome.profileSetup.lastNamePlaceholder)}
-                                disabled={isSaving}
                             />
                         </div>
                         {error && <p className="text-small text-red-500">{error}</p>}
@@ -222,7 +209,7 @@ export default function ProfileSetupPage() {
                                 type="submit"
                                 variant="outline"
                                 className="w-full"
-                                disabled={isSaving || !firstName.trim()}
+                                disabled={isSaving || !name.trim()}
                             >
                                 {isSaving ? (
                                     <>
