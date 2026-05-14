@@ -150,4 +150,18 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
         letter-spacing: -0.01em;
         font-weight: 400;
     }
+
+    /* ── Tagline / eyebrow label style ─────────────────────────────────────────
+       Use on small section labels, badges, and eyebrow text.
+       Never use font-mono for these — always sans-serif.
+       Color is set here (tertiary) so call-sites stay clean.
+       -------------------------------------------------------------------------- */
+    .text-style-tagline {
+        font-family: var(--font-sans);
+        font-size: 0.6875rem;            /* 11px */
+        line-height: 1;
+        font-weight: 500;
+        letter-spacing: 0;
+        color: var(--foreground-tertiary);
+    }
 }

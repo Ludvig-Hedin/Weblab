@@ -3,11 +3,9 @@
 import type { PanInfo } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Pause, Play } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
-
-import { Icons } from '@weblab/ui/icons';
 
 import { CarouselNavigator } from '@/components/ui/carousel-navigator';
 import { Routes } from '@/utils/constants';
@@ -142,16 +140,16 @@ export function DigitalSolutionsSection() {
                             onClick={() => setPaused((p) => !p)}
                             aria-label={paused ? t('play') : t('pause')}
                             aria-pressed={paused}
-                            className="text-foreground-secondary hover:text-foreground-primary inline-flex h-9 w-9 items-center justify-center transition-colors"
+                            className="bg-muted text-foreground-secondary hover:text-foreground-primary inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors"
                         >
                             {paused ? (
-                                <Icons.Play className="h-5 w-5" />
+                                <Play className="h-4 w-4" fill="currentColor" strokeWidth={0} />
                             ) : (
-                                <Icons.Pause className="h-5 w-5" />
+                                <Pause className="h-4 w-4" fill="currentColor" strokeWidth={0} />
                             )}
                         </button>
                     </div>
-                    <div className="text-foreground-tertiary text-mini font-mono tabular-nums">
+                    <div className="text-foreground-tertiary text-mini tabular-nums">
                         {String(index + 1).padStart(2, '0')}
                         <span className="text-foreground-quadranary mx-1">/</span>
                         {String(slides.length).padStart(2, '0')}
@@ -214,7 +212,7 @@ function SlideCard({
             animate={{ opacity: isActive ? 1 : 0.4, scale: isActive ? 1 : 0.98 }}
             whileHover={isActive ? undefined : { opacity: 0.7, scale: 0.99 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`bg-background-secondary/60 grid grid-cols-1 gap-4 overflow-hidden rounded-2xl p-4 md:h-[30rem] md:grid-cols-[1fr_1.4fr] md:gap-6 md:p-8 ${
+            className={`bg-background-secondary/40 border-foreground-primary/10 grid grid-cols-1 gap-4 overflow-hidden rounded-2xl border p-4 backdrop-blur-sm md:h-[30rem] md:grid-cols-[1fr_1.4fr] md:gap-6 md:p-8 ${
                 isActive ? '' : 'cursor-pointer'
             }`}
         >
@@ -263,7 +261,7 @@ function VisualChrome({
     return (
         <div className="border-foreground-primary/10 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <span className="text-foreground-tertiary text-mini font-mono ">
+                <span className="text-style-tagline">
                     {label}
                 </span>
                 {right}
@@ -298,7 +296,7 @@ function Cursor({
                     strokeWidth="1.2"
                 />
             </svg>
-            <span className="border-foreground-primary/10 bg-background text-foreground-secondary ml-2 inline-block rounded border px-1.5 py-0.5 font-mono text-[8px] font-light">
+            <span className="text-style-tagline border-foreground-primary/10 bg-background ml-2 inline-block rounded border px-1.5 py-0.5">
                 {name}
             </span>
         </div>
@@ -326,7 +324,7 @@ function CollabVisual() {
             <div className="flex h-full gap-3 p-3">
                 {/* Artboard 1 — selection */}
                 <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] ">
+                    <div className="text-style-tagline mb-2">
                         Home
                     </div>
                     <div className="space-y-1.5">
@@ -348,7 +346,7 @@ function CollabVisual() {
                 </div>
                 {/* Artboard 2 — comment */}
                 <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-foreground-quadranary mb-2 font-mono text-[8px] ">
+                    <div className="text-style-tagline mb-2">
                         Pricing
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
@@ -397,7 +395,7 @@ function BranchesVisual() {
         <VisualChrome
             label="branches · 3 active"
             right={
-                <div className="text-foreground-tertiary flex items-center gap-1.5 font-mono text-[9px]">
+                <div className="text-style-tagline flex items-center gap-1.5">
                     <span className="bg-foreground-primary h-1.5 w-1.5 rounded-full" />
                     main
                 </div>
@@ -636,7 +634,7 @@ function DeployVisual() {
                         <span className="text-foreground-secondary flex-1 truncate font-mono text-[9px]">
                             weblab.build/preview/7f3a
                         </span>
-                        <span className="border-foreground-primary/10 bg-background text-foreground-tertiary rounded border px-1.5 py-0.5 font-mono text-[8px]">
+                        <span className="text-style-tagline border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                             copy
                         </span>
                     </div>
@@ -667,7 +665,7 @@ function DeployVisual() {
                 </div>
 
                 {/* History */}
-                <div className="text-foreground-tertiary flex items-center gap-2 font-mono text-[9px]">
+                <div className="text-style-tagline flex items-center gap-2">
                     <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.6
                     </span>

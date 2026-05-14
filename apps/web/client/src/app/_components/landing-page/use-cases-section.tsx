@@ -68,7 +68,7 @@ export function UseCasesSection() {
 
                 {/* Right: copy + tabs */}
                 <div className="flex flex-col">
-                    <span className="text-mini text-foreground-primary/80 font-mono">
+                    <span className="text-mini text-foreground-primary/80">
                         {t('eyebrow')}
                     </span>
 
@@ -194,7 +194,7 @@ function ReferencesVisual() {
                                     </div>
                                 </div>
                             </div>
-                            <span className="bg-background/80 text-foreground-tertiary absolute top-1 right-1 rounded-sm px-1 py-0.5 font-mono text-[8px] backdrop-blur">
+                            <span className="text-style-tagline bg-background/80 absolute top-1 right-1 rounded-sm px-1 py-0.5 backdrop-blur">
                                 PNG
                             </span>
                         </div>
@@ -229,7 +229,7 @@ function ReferencesVisual() {
 
                     {/* AI breadcrumb */}
                     <div className="border-foreground-primary/10 bg-foreground-primary/[0.02] border-t px-3.5 py-2.5">
-                        <div className="text-foreground-tertiary flex items-center gap-1.5 font-mono text-[10px]">
+                        <div className="text-style-tagline flex items-center gap-1.5">
                             <span className="relative flex h-1.5 w-1.5">
                                 <span className="bg-foreground-brand/60 absolute inset-0 animate-ping rounded-full" />
                                 <span className="bg-foreground-brand relative h-1.5 w-1.5 rounded-full" />
@@ -423,7 +423,7 @@ function CodeVisual() {
 
                     {/* Preview pane */}
                     <div className="bg-background relative flex flex-col">
-                        <div className="border-foreground-primary/10 text-foreground-tertiary flex items-center justify-between border-b px-3 py-1.5 font-mono text-[10px]">
+                        <div className="text-style-tagline border-foreground-primary/10 flex items-center justify-between border-b px-3 py-1.5">
                             <span>Preview</span>
                             <span className="flex items-center gap-1.5">
                                 <span className="bg-foreground-brand h-1.5 w-1.5 rounded-full" />
@@ -513,7 +513,7 @@ function SearchVisual() {
 
 function KeyCap({ children }: { children: React.ReactNode }) {
     return (
-        <span className="border-foreground-primary/15 bg-foreground-primary/5 text-foreground-tertiary rounded-md border px-1.5 py-0.5 font-mono text-[9px]">
+        <span className="text-style-tagline border-foreground-primary/15 bg-foreground-primary/5 rounded-md border px-1.5 py-0.5">
             {children}
         </span>
     );
@@ -530,7 +530,7 @@ function ResultGroup({
 }) {
     return (
         <div className="px-1 py-1.5">
-            <div className="text-foreground-tertiary mb-1 flex items-center gap-1 px-2 font-mono text-[9px]">
+            <div className="text-style-tagline mb-1 flex items-center gap-1 px-2">
                 <span className="opacity-70">{icon}</span>
                 <span>{label}</span>
             </div>
@@ -559,7 +559,7 @@ function ConnectVisual() {
                     <span className="absolute top-4 bottom-4 left-0 w-[2px] rounded-r bg-[var(--foreground-brand)]" />
 
                     <div className="px-5 pt-5 pb-5">
-                        <span className="text-foreground-tertiary font-mono text-[10px]">
+                        <span className="text-style-tagline">
                             Connect repository
                         </span>
                         <div className="text-foreground-primary mt-2 text-[14px] font-light tracking-tight">
@@ -603,7 +603,7 @@ function ConnectVisual() {
 function DetectionChip({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
     return (
         <span
-            className={`rounded-full border px-2 py-0.5 font-mono text-[10px] ${
+            className={`text-style-tagline rounded-full border px-2 py-0.5 ${
                 muted
                     ? 'border-foreground-primary/10 bg-foreground-primary/[0.02] text-foreground-tertiary'
                     : 'border-[color-mix(in_srgb,_var(--foreground-brand)_30%,_transparent)] bg-[color-mix(in_srgb,_var(--foreground-brand)_6%,_transparent)] text-[var(--foreground-brand)]'
