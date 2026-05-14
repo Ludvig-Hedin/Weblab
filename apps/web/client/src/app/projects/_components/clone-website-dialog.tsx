@@ -90,7 +90,7 @@ function FrameworkPicker({
                                 {option.title}
                             </div>
                             {option.recommended && (
-                                <span className="border-foreground/20 text-foreground-secondary ml-auto rounded-full border px-2 py-0.5 text-[10px] tracking-[0.12em] uppercase">
+                                <span className="border-foreground/20 text-foreground-secondary ml-auto rounded-full border px-2 py-0.5 text-[10px]">
                                     Recommended
                                 </span>
                             )}
