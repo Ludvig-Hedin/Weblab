@@ -8,7 +8,10 @@
 //   - /_next/data/* -> stale-while-revalidate
 //   - non-GET -> bypass
 
-const VERSION = 'v1';
+// Bump on any change to caching strategy or cache shape. `activate` deletes
+// every cache whose key doesn't match the current VERSION, so bumping this is
+// what flushes stale entries (including poisoned ones) off existing installs.
+const VERSION = 'v2';
 const SHELL_CACHE = `weblab-shell-${VERSION}`;
 const RUNTIME_CACHE = `weblab-runtime-${VERSION}`;
 const DATA_CACHE = `weblab-next-data-${VERSION}`;
@@ -111,9 +114,17 @@ function isNavigation(request) {
 
 async function networkFirstNavigation(request) {
     const cache = await caches.open(SHELL_CACHE);
+    const url = new URL(request.url);
+    // Only the static app shell is safe to cache. Auth and per-user pages
+    // (/login, /profile-setup, /auth/*, anything with a query string) render
+    // differently per session — caching them serves a stale, wrong-state HTML
+    // document on the next slow navigation, and that stale HTML can reference
+    // build chunks that no longer exist after a deploy, which breaks hydration
+    // (React error #418).
+    const isCacheable = url.search === '' && SHELL_URLS.includes(url.pathname);
     try {
         const fresh = await fetch(request);
-        if (fresh && fresh.ok) {
+        if (fresh && fresh.ok && isCacheable) {
             cache.put(request, fresh.clone()).catch(() => {});
         }
         return fresh;
@@ -137,7 +148,12 @@ async function cacheFirstAsset(request) {
         }
         return fresh;
     } catch {
-        throw new Error('Asset unavailable');
+        // Never throw out of a fetch handler. A rejected respondWith() is
+        // surfaced to the page as a hard network error — it breaks chunk
+        // loading and triggers React hydration failures (#418) plus a tight
+        // retry/postMessage loop. Response.error() resolves the handler so the
+        // browser treats this exactly as it would a normal failed request.
+        return Response.error();
     }
 }
 
