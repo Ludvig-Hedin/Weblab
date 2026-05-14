@@ -289,7 +289,16 @@ export function Footer() {
 
                 {/* Bottom bar */}
                 <div className="border-foreground-primary/10 mt-16 flex flex-col items-start justify-between gap-4 border-t pt-6 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-2">
+                        <ThemeSwitcher />
+                        <LocaleSwitcher />
+                    </div>
                     <div className="text-foreground-tertiary text-small flex items-center gap-3">
+                        <span>{t('legal.copyright', { year: String(new Date().getFullYear()) })}</span>
+                        <span
+                            aria-hidden="true"
+                            className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
+                        />
                         <a
                             href={Routes.SITEMAP}
                             className={linkClass}
@@ -297,18 +306,7 @@ export function Footer() {
                         >
                             {t('legal.sitemap.label')}
                         </a>
-                        <span
-                            aria-hidden="true"
-                            className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"
-                        />
-                        <div className="flex items-center gap-2">
-                            <ThemeSwitcher />
-                            <LocaleSwitcher />
-                        </div>
                     </div>
-                    <span className="text-foreground-tertiary text-small">
-                        {t('legal.copyright', { year: String(new Date().getFullYear()) })}
-                    </span>
                 </div>
             </div>
         </footer>

@@ -32,7 +32,7 @@ export function LocaleSwitcher() {
             <DropdownMenuTrigger asChild>
                 <button
                     aria-label={t('label')}
-                    className="flex items-center gap-1.5 rounded-full bg-foreground-primary/10 px-3 py-1.5 text-small text-foreground-tertiary transition-colors duration-150 hover:text-foreground-primary focus:outline-none"
+                    className="flex items-center gap-1.5 rounded-full bg-foreground-primary/[0.07] px-3 py-1.5 text-small text-foreground-secondary transition-colors duration-150 hover:text-foreground-primary focus:outline-none"
                 >
                     <Icons.Globe className="h-3.5 w-3.5 shrink-0" />
                     <span>{currentName}</span>

@@ -27,7 +27,7 @@ export function ThemeSwitcher() {
 
     return (
         <div
-            className="flex items-center gap-0.5 rounded-full bg-foreground-primary/10 px-1.5 py-1.5"
+            className="flex items-center gap-0.5 rounded-full bg-foreground-primary/[0.07] px-1.5 py-1.5"
             role="group"
             aria-label={t('label')}
         >
@@ -36,14 +36,15 @@ export function ThemeSwitcher() {
                 return (
                     <button
                         key={value}
+                        type="button"
                         onClick={() => setTheme(value)}
                         aria-label={t(value)}
                         aria-pressed={isActive}
                         className={[
-                            'flex h-6 w-6 items-center justify-center rounded-full transition-colors duration-150',
+                            'flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-colors duration-150',
                             isActive
                                 ? 'bg-foreground-primary/20 text-foreground-primary'
-                                : 'text-foreground-tertiary hover:text-foreground-secondary',
+                                : 'text-foreground-secondary hover:text-foreground-primary',
                         ].join(' ')}
                     >
                         <Icon className="h-3.5 w-3.5" />
