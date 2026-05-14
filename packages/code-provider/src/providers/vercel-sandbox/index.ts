@@ -519,7 +519,15 @@ cp -a "$src" "$dst"
     }
 
     async setup(_input: SetupInput): Promise<SetupOutput> {
-        await this.requireSandbox().runCommand(splitShellCommand('npm install'));
+        const sandbox = this.requireSandbox();
+        await sandbox.runCommand(splitShellCommand('npm install'));
+        // Pre-warm the dev server so it starts compiling before the editor
+        // opens the preview iframe. If the port is already bound the new
+        // process exits immediately without affecting the running instance.
+        await sandbox.runCommand({
+            ...splitShellCommand(this.options.devCommand ?? DEFAULT_DEV_COMMAND),
+            detached: true,
+        });
         return {};
     }
 
