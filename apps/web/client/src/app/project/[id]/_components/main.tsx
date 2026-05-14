@@ -6,7 +6,6 @@ import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
-import { Icons } from '@weblab/ui/icons';
 import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
@@ -149,7 +148,6 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         return (
             <TooltipProvider>
                 <MobileLayout />
-                {!isProjectReady && <EditorBootOverlay heading={heading} steps={steps} />}
                 <SettingsModalWithProjects />
                 <SubscriptionModal />
                 <KeyboardShortcutsModal />
@@ -176,7 +174,6 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
             <OnboardingTour suppressed={hasPendingCreation} />
             <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
                 <Canvas />
-                {!isProjectReady && <EditorBootOverlay heading={heading} steps={steps} />}
 
                 {/* Editor chrome — hidden only in full-screen preview mode.
                     In CMS mode the top bar stays visible so users can navigate
@@ -269,47 +266,3 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         </TooltipProvider>
     );
 });
-
-function EditorBootOverlay({
-    heading,
-    steps,
-}: {
-    heading: string;
-    steps: Array<{ label: string; ready: boolean }>;
-}) {
-    const activeStep = steps.find((step) => !step.ready)?.label ?? 'Almost ready';
-
-    return (
-        <div className="pointer-events-none absolute inset-0 z-45 flex items-center justify-center">
-            <div className="border-border/50 bg-background/95 flex w-full max-w-xs flex-col gap-4 rounded-md border p-4 shadow-sm backdrop-blur">
-                <div className="flex items-center gap-3">
-                    <Icons.LoadingSpinner className="text-foreground-primary h-4 w-4 animate-spin" />
-                    <div className="min-w-0">
-                        <p className="text-foreground-primary text-sm font-medium">{heading}</p>
-                        <p className="text-foreground-tertiary text-xs">{activeStep}</p>
-                    </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                    {steps.map((step) => (
-                        <div key={step.label} className="flex items-center gap-2 text-xs">
-                            {step.ready ? (
-                                <Icons.CheckCircled className="text-foreground-positive h-3.5 w-3.5" />
-                            ) : (
-                                <span className="bg-foreground/20 h-1.5 w-1.5 rounded-full" />
-                            )}
-                            <span
-                                className={
-                                    step.ready
-                                        ? 'text-foreground-secondary'
-                                        : 'text-foreground-tertiary'
-                                }
-                            >
-                                {step.label}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
