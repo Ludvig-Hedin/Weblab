@@ -908,7 +908,7 @@ export const SelectProject = () => {
                 {folderViewModels.length > 0 && (
                     <div className="mb-10">
                         <div className="mb-4 flex items-center justify-between">
-                            <h3 className="text-foreground-tertiary text-sm font-medium tracking-[0.18em] uppercase">
+                            <h3 className="text-foreground-tertiary text-sm font-medium">
                                 {t('folders')}
                             </h3>
                             <span className="text-foreground-tertiary text-xs">

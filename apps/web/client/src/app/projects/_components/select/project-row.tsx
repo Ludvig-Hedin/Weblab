@@ -163,7 +163,7 @@ export const ProjectRow = ({
     const statusPill = (
         <span
             className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium',
                 isPublished
                     ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
                     : 'border-foreground/10 bg-foreground/4 text-foreground-tertiary',
