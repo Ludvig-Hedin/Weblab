@@ -122,6 +122,8 @@ export function SplitText({
                             display: 'inline-block',
                             overflow: 'hidden',
                             verticalAlign: 'top',
+                            paddingBottom: '0.15em',
+                            marginBottom: '-0.15em',
                         }}
                     >
                         <motion.span
