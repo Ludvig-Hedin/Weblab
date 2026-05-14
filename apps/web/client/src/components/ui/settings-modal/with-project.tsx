@@ -221,8 +221,8 @@ export const SettingsModalWithProjects = observer(() => {
                                 {/* Main content */}
                                 <div className="flex min-h-0 flex-1 overflow-hidden">
                                     {/* Left navigation - fixed width */}
-                                    <div className="bg-background-secondary flex flex-col overflow-y-scroll select-none">
-                                        <div className="w-48 shrink-0 space-y-1 p-5">
+                                    <div className="flex flex-col overflow-y-scroll select-none">
+                                        <div className="w-48 shrink-0 space-y-1 p-3">
                                             <p className="text-mini text-foreground-tertiary mt-2 mb-0.5 ml-2.5">
                                                 Project
                                             </p>
@@ -257,7 +257,7 @@ export const SettingsModalWithProjects = observer(() => {
                                         <Separator />
                                         {pagesTabs.length > 0 && (
                                             <>
-                                                <div className="w-48 shrink-0 space-y-1 p-5">
+                                                <div className="w-48 shrink-0 space-y-1 p-3">
                                                     <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
                                                         Pages Settings
                                                     </p>
@@ -296,7 +296,7 @@ export const SettingsModalWithProjects = observer(() => {
                                                 <Separator />
                                             </>
                                         )}
-                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-5">
+                                        <div className="text-regularPlus w-48 shrink-0 space-y-1 p-3">
                                             <p className="text-muted-foreground text-smallPlus mt-2 mb-2 ml-2.5">
                                                 Global Settings
                                             </p>

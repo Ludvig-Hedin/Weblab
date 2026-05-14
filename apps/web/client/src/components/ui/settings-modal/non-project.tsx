@@ -127,8 +127,8 @@ export const NonProjectSettingsModal = observer(() => {
                                 {/* Main content */}
                                 <div className="flex min-h-0 flex-1 overflow-hidden">
                                     {/* Left navigation */}
-                                    <div className="bg-background-secondary flex flex-col overflow-y-scroll select-none">
-                                        <div className="w-48 shrink-0 space-y-1 p-5">
+                                    <div className="flex flex-col overflow-y-scroll select-none">
+                                        <div className="w-48 shrink-0 space-y-1 p-3">
                                             <p className="text-mini text-foreground-tertiary mt-2 mb-2 ml-2.5">
                                                 Global Settings
                                             </p>
