@@ -21,6 +21,10 @@ export class SessionManager {
     isOffline = false;
     terminalSessions = new Map<string, CLISession>();
     activeTerminalSessionId = 'cli';
+    // Tracks the sandbox ID returned by the last successful sandbox.start call.
+    // Vercel may assign a new sandbox ID each session (and update the DB), so
+    // this stays current even when the caller passes a stale branch.sandbox.id.
+    private activeSandboxId: string | null = null;
 
     constructor(
         private readonly branch: Branch,
@@ -63,6 +67,12 @@ export class SessionManager {
                     ? await api.sandbox.start.mutate({ sandboxId })
                     : null;
             const activeSandboxId = vercelSession?.sandboxId ?? sandboxId;
+
+            // Keep activeSandboxId current — Vercel may assign a new sandbox ID
+            // and update the DB, making the original branch.sandbox.id stale.
+            runInAction(() => {
+                this.activeSandboxId = activeSandboxId;
+            });
 
             const provider =
                 this.branch.runtime.type === 'local'
@@ -150,7 +160,7 @@ export class SessionManager {
 
     async readDevServerLogs(): Promise<string> {
         const result = await this.provider?.getTask({ args: { id: 'dev' } });
-        if (result) {
+        if (result?.task) {
             return await result.task.open();
         }
         return 'Dev server not found';
@@ -199,6 +209,10 @@ export class SessionManager {
     }
 
     async reconnect(sandboxId: string, userId?: string) {
+        // Prefer the internally-tracked sandbox ID (updated after every
+        // successful start). Callers may pass a stale branch.sandbox.id or
+        // even the project UUID; this guards against both.
+        const effectiveId = this.activeSandboxId ?? sandboxId;
         try {
             // After a long idle period (e.g. tab put to sleep), the provider
             // can be torn down and `this.provider` becomes null. Previously
@@ -207,7 +221,7 @@ export class SessionManager {
             // tried to edit. Fall through to `start()` so the session is
             // re-established transparently.
             if (!this.provider) {
-                await this.start(sandboxId, userId);
+                await this.start(effectiveId, userId);
                 return;
             }
 
@@ -224,7 +238,7 @@ export class SessionManager {
             if (isConnected2) {
                 return;
             }
-            await this.restartProvider(sandboxId, userId);
+            await this.restartProvider(effectiveId, userId);
         } catch (error) {
             console.error('Failed to reconnect to sandbox', error);
             runInAction(() => {
@@ -247,7 +261,7 @@ export class SessionManager {
         runInAction(() => {
             this.provider = null;
         });
-        await this.start(sandboxId, userId);
+        await this.start(this.activeSandboxId ?? sandboxId, userId);
     }
 
     /**
@@ -363,6 +377,7 @@ export class SessionManager {
             this.provider = null;
             this.isConnecting = false;
             this.connectionError = null;
+            this.activeSandboxId = null;
         });
         this.terminalSessions.clear();
     }

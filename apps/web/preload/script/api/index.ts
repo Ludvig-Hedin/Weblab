@@ -32,6 +32,15 @@ import {
 } from './elements/move/drag';
 import { getComputedStyleByDomId } from './elements/style';
 import { editText, isChildTextEditable, startEditingText, stopEditingText } from './elements/text';
+import {
+    applyInitialStates,
+    applyInteractionsConfig,
+    listInteractionTargets,
+    pauseInteraction,
+    playInteraction,
+    reloadInteractions,
+    scrubInteraction,
+} from './interactions';
 import { handleBodyReady } from './ready';
 import { captureScreenshot as _captureScreenshot } from './screenshot';
 import { serializeDocumentForOffline } from './snapshot';
@@ -120,6 +129,15 @@ const rawMethods = {
 
     // Offline
     serializeDocumentForOffline,
+
+    // Interactions runtime bridge
+    playInteraction,
+    pauseInteraction,
+    scrubInteraction,
+    applyInitialStates,
+    reloadInteractions,
+    applyInteractionsConfig,
+    listInteractionTargets,
 };
 
 // Wrap all methods in a try/catch to prevent the preload script from crashing.

@@ -3,13 +3,17 @@ import path from 'path';
 import type { Provider } from '@weblab/code-provider';
 import type { RouterConfig } from '@weblab/models';
 import {
+    DEPRECATED_IX_RUNTIME_SRCS,
     DEPRECATED_PRELOAD_SCRIPT_SRCS,
     NEXT_JS_FILE_EXTENSIONS,
+    WEBLAB_DEV_IX_RUNTIME_PATH,
     WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
+    WEBLAB_INTERACTIONS_STATIC_HTML_PATH,
+    WEBLAB_IX_RUNTIME_SRC,
     WEBLAB_PRELOAD_SCRIPT_SRC,
 } from '@weblab/constants';
 import { RouterType } from '@weblab/models';
-import { getAstFromContent, getContentFromAst, injectPreloadScript } from '@weblab/parser';
+import { getAstFromContent, getContentFromAst, injectWeblabBootstrapScripts } from '@weblab/parser';
 import { isRootLayoutFile, normalizePath } from '@weblab/utility';
 
 /**
@@ -25,6 +29,10 @@ const STATIC_HTML_PRELOAD_FILENAME = '__weblab-preload.js';
  * sandbox starts.
  */
 const STATIC_HTML_PRELOAD_MARKER = 'data-weblab-preload="1"';
+
+/** IX runtime equivalents for static HTML projects. */
+const STATIC_HTML_IX_RUNTIME_FILENAME = '__weblab-ix-runtime.js';
+const STATIC_HTML_IX_RUNTIME_MARKER = 'data-weblab-ix-runtime="1"';
 
 export async function getPreloadScriptContent(): Promise<string> {
     const candidateSources = Array.from(
@@ -70,11 +78,49 @@ export async function copyPreloadScriptToPublic(
             },
         });
 
+        try {
+            const ixRuntimeContent = await getIxRuntimeContent();
+            await provider.writeFile({
+                args: {
+                    path: WEBLAB_DEV_IX_RUNTIME_PATH,
+                    content: ixRuntimeContent,
+                    overwrite: true,
+                },
+            });
+        } catch (err) {
+            console.warn(
+                '[PreloadScript] Failed to copy IX runtime bundle (continuing without it):',
+                err,
+            );
+        }
+
         await injectPreloadScriptIntoLayout(provider, routerConfig);
     } catch (error) {
         console.error('[PreloadScript] Failed to copy preload script:', error);
         throw error;
     }
+}
+
+async function getIxRuntimeContent(): Promise<string> {
+    const candidateSources = Array.from(
+        new Set([WEBLAB_IX_RUNTIME_SRC, ...DEPRECATED_IX_RUNTIME_SRCS]),
+    );
+    const failures: string[] = [];
+    for (const source of candidateSources) {
+        try {
+            const response = await fetch(source);
+            if (!response.ok) {
+                failures.push(`${source}: ${response.status} ${response.statusText}`);
+                continue;
+            }
+            return await response.text();
+        } catch (error) {
+            failures.push(
+                `${source}: ${error instanceof Error ? error.message : 'Unknown fetch error'}`,
+            );
+        }
+    }
+    throw new Error(`Failed to load IX runtime. Attempts: ${failures.join(' | ')}`);
 }
 
 export async function injectPreloadScriptIntoLayout(
@@ -111,7 +157,7 @@ export async function injectPreloadScriptIntoLayout(
         throw new Error(`Failed to parse layout file: ${layoutPath}`);
     }
 
-    injectPreloadScript(ast);
+    injectWeblabBootstrapScripts(ast);
     const modifiedContent = await getContentFromAst(ast, content);
 
     await provider.writeFile({
@@ -140,6 +186,22 @@ export async function copyPreloadScriptToStaticHtml(provider: Provider): Promise
             },
         });
 
+        try {
+            const ixRuntimeContent = await getIxRuntimeContent();
+            await provider.writeFile({
+                args: {
+                    path: STATIC_HTML_IX_RUNTIME_FILENAME,
+                    content: ixRuntimeContent,
+                    overwrite: true,
+                },
+            });
+        } catch (err) {
+            console.warn(
+                '[PreloadScript] Failed to copy static-HTML IX runtime (continuing without it):',
+                err,
+            );
+        }
+
         await injectPreloadScriptIntoStaticHtml(provider);
     } catch (error) {
         console.error('[PreloadScript] Failed to copy static-HTML preload script:', error);
@@ -164,25 +226,30 @@ export async function injectPreloadScriptIntoStaticHtml(provider: Provider): Pro
     }
 
     const original = response.file.content;
-    if (original.includes(STATIC_HTML_PRELOAD_MARKER)) {
-        // Already injected — no-op so repeated sandbox starts don't pile
-        // up duplicate <script> tags.
+    const preloadAlready = original.includes(STATIC_HTML_PRELOAD_MARKER);
+    const ixAlready = original.includes(STATIC_HTML_IX_RUNTIME_MARKER);
+
+    if (preloadAlready && ixAlready) {
         return;
     }
 
-    const tag = `<script defer src="/${STATIC_HTML_PRELOAD_FILENAME}" ${STATIC_HTML_PRELOAD_MARKER}></script>`;
-    // Prefer to inject before </head>. If there's no <head> element (rare —
-    // some hand-written demos skip it), fall back to inserting before <body>
-    // or as the very first content. parse5 would be more correct, but a
-    // bounded string operation matches what parse5 would do for the common
-    // case and keeps the dependency surface small for this hot path.
+    const preloadTag = `<script defer src="/${STATIC_HTML_PRELOAD_FILENAME}" ${STATIC_HTML_PRELOAD_MARKER}></script>`;
+    const ixTag = `<script defer src="/${STATIC_HTML_IX_RUNTIME_FILENAME}" data-interactions-src="/${WEBLAB_INTERACTIONS_STATIC_HTML_PATH}" ${STATIC_HTML_IX_RUNTIME_MARKER}></script>`;
+
+    const tagsToInject = [preloadAlready ? null : preloadTag, ixAlready ? null : ixTag]
+        .filter((s): s is string => Boolean(s))
+        .join('\n    ');
+
     let modified: string;
     if (/<\/head\s*>/i.test(original)) {
-        modified = original.replace(/<\/head\s*>/i, `    ${tag}\n  </head>`);
+        modified = original.replace(/<\/head\s*>/i, `    ${tagsToInject}\n  </head>`);
     } else if (/<body[\s>]/i.test(original)) {
-        modified = original.replace(/<body([\s>])/i, `<head>\n    ${tag}\n  </head>\n<body$1`);
+        modified = original.replace(
+            /<body([\s>])/i,
+            `<head>\n    ${tagsToInject}\n  </head>\n<body$1`,
+        );
     } else {
-        modified = `${tag}\n${original}`;
+        modified = `${tagsToInject}\n${original}`;
     }
 
     await provider.writeFile({

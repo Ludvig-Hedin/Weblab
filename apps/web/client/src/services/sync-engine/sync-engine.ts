@@ -6,8 +6,16 @@
  */
 import type { CodeFileSystem } from '@weblab/file-system';
 import { type Provider, type ProviderFileWatcher } from '@weblab/code-provider';
+import { WEBLAB_INTERACTIONS_CACHE_PATH } from '@weblab/constants';
 
 import { normalizePath } from '@/components/store/editor/sandbox/helpers';
+
+/**
+ * Paths inside otherwise-excluded directories that should still sync.
+ * `.weblab/` is wholesale excluded for cache/index files, but
+ * `interactions.json` is editable user content and must round-trip.
+ */
+const SYNC_PATH_OVERRIDES = new Set<string>([WEBLAB_INTERACTIONS_CACHE_PATH]);
 
 export interface SyncConfig {
     include?: string[];
@@ -348,6 +356,13 @@ export class CodeProviderSync {
         });
 
         if (isExcluded) {
+            // Specific files inside excluded directories may still need to
+            // round-trip (e.g. `.weblab/interactions.json` so external IDE
+            // edits flow back into the editor). The override list is small
+            // and matched verbatim against the relative path.
+            if (SYNC_PATH_OVERRIDES.has(path)) {
+                return true;
+            }
             return false;
         }
 

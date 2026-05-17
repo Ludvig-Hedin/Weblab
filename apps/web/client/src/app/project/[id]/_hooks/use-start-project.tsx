@@ -204,6 +204,12 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         if (!branchSandboxId) return;
         let cancelled = false;
         void (async () => {
+            let syncInitResumed = false;
+            const resumeSync = async () => {
+                if (syncInitResumed) return;
+                syncInitResumed = true;
+                await sandbox.resumeSyncInit();
+            };
             try {
                 // Block the provider-reaction sync engine init so the queue
                 // drain runs against the cloud provider FIRST. Without this
@@ -213,7 +219,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 await sandbox.session.swapToOnline(branchSandboxId, user?.id);
                 if (cancelled) return;
                 if (!sandbox.session.provider) {
-                    await sandbox.resumeSyncInit();
+                    await resumeSync();
                     return;
                 }
                 // Network may have flickered between swap and replay,
@@ -223,14 +229,14 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 // delete every queued edit). The next online transition
                 // re-fires this effect and tries again.
                 if (sandbox.session.isOffline) {
-                    await sandbox.resumeSyncInit();
+                    await resumeSync();
                     return;
                 }
                 const result = await replayQueue(sandbox.session.provider, editorEngine.projectId);
                 // Only run the bidirectional sync engine after the queue is
                 // drained — at this point the cloud filesystem reflects the
                 // user's offline edits, so the pull won't clobber them.
-                await sandbox.resumeSyncInit();
+                await resumeSync();
                 if (result.drained > 0) {
                     toast.success(
                         `Synced ${result.drained} offline change${result.drained === 1 ? '' : 's'} to the cloud.`,
@@ -260,9 +266,9 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 }
             } finally {
                 // Ensure sync engine init is never left permanently suppressed
-                // even if swap or replay throws.
+                // even if swap or replay throws. resumeSync() is idempotent.
                 try {
-                    await sandbox.resumeSyncInit();
+                    await resumeSync();
                 } catch (resumeErr) {
                     console.warn('[offline] resumeSyncInit failed', resumeErr);
                 }
@@ -283,10 +289,10 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     ]);
 
     useEffect(() => {
-        if (tabState === 'reactivated' && editorEngine.projectId && user?.id) {
-            void sandbox.session.reconnect(editorEngine.projectId, user.id);
+        if (tabState === 'reactivated' && branchSandboxId && user?.id) {
+            void sandbox.session.reconnect(branchSandboxId, user.id);
         }
-    }, [tabState, sandbox.session, editorEngine.projectId, user?.id]);
+    }, [tabState, sandbox.session, branchSandboxId, user?.id]);
 
     useEffect(() => {
         if (!canvasWithFrames) return;
