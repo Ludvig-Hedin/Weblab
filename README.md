@@ -1,7 +1,7 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 
 <div align="center">
-<img width="800" alt="header image" src="assets/web-preview.png">
+<!-- image. TDB / TODOD <img width="800" alt="header image" src="assets/web-preview.png"> -->
 <h3 align="center">Weblab</h3>
   <p align="center">
     Cursor for Designers
