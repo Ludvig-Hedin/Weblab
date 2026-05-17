@@ -47,8 +47,34 @@ export interface PublishResponse {
 }
 
 export enum HostingProvider {
+    /** Weblab-managed hosting (default). No user credentials required. */
     FREESTYLE = 'freestyle',
+    /** User-connected external providers — deploy with the user's own account. */
+    VERCEL = 'vercel',
+    NETLIFY = 'netlify',
+    CLOUDFLARE = 'cloudflare',
+    RAILWAY = 'railway',
+    RENDER = 'render',
 }
+
+/** Providers that require a user-connected account/token (everything except Weblab's own). */
+export const EXTERNAL_HOSTING_PROVIDERS: HostingProvider[] = [
+    HostingProvider.VERCEL,
+    HostingProvider.NETLIFY,
+    HostingProvider.CLOUDFLARE,
+    HostingProvider.RAILWAY,
+    HostingProvider.RENDER,
+];
+
+/** Human-readable provider names for UI. */
+export const HOSTING_PROVIDER_LABELS: Record<HostingProvider, string> = {
+    [HostingProvider.FREESTYLE]: 'Weblab',
+    [HostingProvider.VERCEL]: 'Vercel',
+    [HostingProvider.NETLIFY]: 'Netlify',
+    [HostingProvider.CLOUDFLARE]: 'Cloudflare Pages',
+    [HostingProvider.RAILWAY]: 'Railway',
+    [HostingProvider.RENDER]: 'Render',
+};
 
 export interface DeploymentFile {
     content: string;
@@ -72,6 +98,21 @@ export interface DeploymentResponse {
     message?: string;
 }
 
+export interface TokenValidationResult {
+    ok: boolean;
+    /** Display name for the connected account (team / email / organization). */
+    accountLabel?: string;
+    /** Provider-side account or team id, if exposed by the API. */
+    accountId?: string;
+    /** Human-readable error message when `ok` is false. */
+    message?: string;
+}
+
 export interface HostingProviderAdapter {
     deploy(request: DeploymentRequest): Promise<DeploymentResponse>;
+    /**
+     * Verify a user-supplied API token against the provider. Optional —
+     * providers that need no user credentials (e.g. FREESTYLE) omit this.
+     */
+    validateToken?(token: string): Promise<TokenValidationResult>;
 }

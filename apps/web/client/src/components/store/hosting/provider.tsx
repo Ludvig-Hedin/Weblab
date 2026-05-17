@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
+import type { HostingProvider as HostingProviderEnum } from '@weblab/models';
 import { type Deployment } from '@weblab/db';
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
@@ -17,6 +18,7 @@ interface PublishParams {
     buildScript?: string;
     buildFlags?: string;
     envVars?: Record<string, string>;
+    provider?: HostingProviderEnum;
 }
 
 interface HostingContextValue {
@@ -33,7 +35,7 @@ interface HostingContextValue {
     cancel: (type: DeploymentType) => Promise<void>;
 
     // Utilities
-    refetch: (type: DeploymentType) => void;
+    refetch: (type: DeploymentType) => Promise<unknown>;
     refetchAll: () => void;
 }
 
@@ -168,7 +170,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
                 deploymentId: deployment.id,
             });
 
-            refetch(params.type);
+            void refetch(params.type);
             toast.success('Deployment success!');
 
             return {
@@ -205,27 +207,23 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
             // Refetch the specific deployment
             await refetch(type);
             return response;
-        } catch (error) {
+        } catch {
             toast.error('Failed to unpublish deployment');
             return null;
         }
     };
 
-    // Refetch functions
-    const refetch = (type: DeploymentType) => {
+    // Refetch functions — return the promise so callers can await it.
+    const refetch = (type: DeploymentType): Promise<unknown> => {
         switch (type) {
             case DeploymentType.PREVIEW:
-                previewQuery.refetch();
-                break;
+                return previewQuery.refetch();
             case DeploymentType.CUSTOM:
-                customQuery.refetch();
-                break;
+                return customQuery.refetch();
             case DeploymentType.UNPUBLISH_PREVIEW:
-                unpublishPreviewQuery.refetch();
-                break;
+                return unpublishPreviewQuery.refetch();
             case DeploymentType.UNPUBLISH_CUSTOM:
-                unpublishCustomQuery.refetch();
-                break;
+                return unpublishCustomQuery.refetch();
         }
     };
 
@@ -239,7 +237,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
                 deploymentId: deployments[type].id,
             });
             toast.success('Deployment cancelled');
-            refetch(type);
+            void refetch(type);
         } catch (error) {
             toast.error('Failed to cancel deployment');
             console.error(error);
@@ -247,10 +245,10 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
     };
 
     const refetchAll = () => {
-        previewQuery.refetch();
-        customQuery.refetch();
-        unpublishPreviewQuery.refetch();
-        unpublishCustomQuery.refetch();
+        void previewQuery.refetch();
+        void customQuery.refetch();
+        void unpublishPreviewQuery.refetch();
+        void unpublishCustomQuery.refetch();
     };
     const value: HostingContextValue = {
         deployments: {

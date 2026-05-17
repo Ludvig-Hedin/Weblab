@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import stripAnsi from 'strip-ansi';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -11,10 +10,13 @@ import { timeAgo } from '@weblab/utility';
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { api } from '@/trpc/react';
+import { parseDeploymentError } from '@/utils/deploy-errors';
+import { useSelectedProvider } from './selected-provider';
 import { UrlSection } from './url';
 
 export const PreviewDomainSection = observer(() => {
     const editorEngine = useEditorEngine();
+    const { selectedProvider } = useSelectedProvider();
     const [isLoading, setIsLoading] = useState(false);
     const { data: project } = api.project.get.useQuery({ projectId: editorEngine.projectId });
     const { data: previewDomain, refetch: refetchPreviewDomain } = api.domain.preview.get.useQuery({
@@ -32,7 +34,7 @@ export const PreviewDomainSection = observer(() => {
             return;
         }
         await refetchPreviewDomain();
-        publish();
+        await publish();
     };
 
     const publish = async (): Promise<void> => {
@@ -52,6 +54,7 @@ export const PreviewDomainSection = observer(() => {
             await runPublish({
                 projectId: editorEngine.projectId,
                 sandboxId,
+                provider: selectedProvider,
             });
         } catch (error) {
             console.error(error);
@@ -76,9 +79,7 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="text-foreground-tertiary text-mini font-medium">
-                        Base Domain
-                    </h3>
+                    <h3 className="text-foreground-tertiary text-mini font-medium">Base Domain</h3>
                     {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
                         <div className="ml-auto flex items-center gap-2">
                             <p className="text-foreground-positive">Live</p>
@@ -111,9 +112,7 @@ export const PreviewDomainSection = observer(() => {
         return (
             <>
                 <div className="flex w-full items-center">
-                    <h3 className="text-foreground-tertiary text-mini font-medium">
-                        Publish
-                    </h3>
+                    <h3 className="text-foreground-tertiary text-mini font-medium">Publish</h3>
                 </div>
 
                 <Button disabled={isCreatingDomain} onClick={createBaseDomain} className="w-full">
@@ -134,11 +133,22 @@ export const PreviewDomainSection = observer(() => {
                 {deployment?.status === DeploymentStatus.FAILED ||
                 deployment?.status === DeploymentStatus.CANCELLED ? (
                     <div className="flex w-full flex-col gap-2">
-                        {deployment?.error && (
-                            <p className="text-destructive max-h-20 overflow-y-auto">
-                                {stripAnsi(deployment?.error)}
-                            </p>
-                        )}
+                        {deployment?.error &&
+                            (() => {
+                                const parsed = parseDeploymentError(deployment.error);
+                                return (
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-destructive text-mini">
+                                            {parsed.message}
+                                        </p>
+                                        {parsed.suggestion && (
+                                            <p className="text-foreground-secondary text-mini">
+                                                {parsed.suggestion}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         <Button variant="outline" className="w-full" onClick={retry}>
                             Try Updating Again
                         </Button>

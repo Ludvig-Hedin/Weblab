@@ -3,10 +3,11 @@ import { integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-
 import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
-import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { DeploymentStatus, DeploymentType, HostingProvider } from '@weblab/models';
 
 import { projects } from '../project';
 import { users } from '../user/user';
+import { hostingProvider } from './hosting-provider-connection';
 
 export const deploymentStatus = pgEnum('deployment_status', DeploymentStatus);
 export const deploymentType = pgEnum('deployment_type', DeploymentType);
@@ -23,6 +24,10 @@ export const deployments = pgTable('deployments', {
     urls: text('urls').array(),
     type: deploymentType('type').notNull(),
     status: deploymentStatus('status').notNull(),
+
+    // Hosting provider this deployment targets. Defaults to Weblab-managed
+    // hosting so existing rows and code paths keep working unchanged.
+    provider: hostingProvider('provider').notNull().default(HostingProvider.FREESTYLE),
 
     // Deployment progress
     message: text('message'),
@@ -44,7 +49,7 @@ export const deploymentRelations = relations(deployments, ({ one }) => ({
         fields: [deployments.projectId],
         references: [projects.id],
     }),
-    requestedBy: one(users, {
+    requester: one(users, {
         fields: [deployments.requestedBy],
         references: [users.id],
     }),

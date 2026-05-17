@@ -7,10 +7,12 @@ import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
+import { useSelectedProvider } from '../selected-provider';
 
 const useCustomDomain = () => {
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
+    const { selectedProvider } = useSelectedProvider();
     const [isLoading, setIsLoading] = useState(false);
     const { data: subscription } = api.subscription.get.useQuery();
     const { data: customDomain } = api.domain.custom.get.useQuery({
@@ -32,11 +34,17 @@ const useCustomDomain = () => {
             console.error(`No custom domain hosting manager found`);
             return;
         }
+        const sandboxId = editorEngine.branches.activeBranch?.sandbox?.id;
+        if (!sandboxId) {
+            console.error('No sandbox found for custom domain publish');
+            return;
+        }
         setIsLoading(true);
         try {
             await runPublish({
                 projectId: editorEngine.projectId,
-                sandboxId: editorEngine.branches.activeBranch.sandbox.id,
+                sandboxId,
+                provider: selectedProvider,
             });
         } catch (error) {
             console.error(error);

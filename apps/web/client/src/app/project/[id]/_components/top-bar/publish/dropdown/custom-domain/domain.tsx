@@ -14,9 +14,7 @@ export const DomainSection = () => {
     return (
         <>
             <div className="flex w-full items-center">
-                <h3 className="text-foreground-tertiary text-mini font-medium">
-                    Custom Domain
-                </h3>
+                <h3 className="text-foreground-tertiary text-mini font-medium">Custom Domain</h3>
                 {deployment && deployment?.status === DeploymentStatus.COMPLETED && (
                     <div className="ml-auto flex items-center gap-2">
                         <p className="text-foreground-positive">Live</p>

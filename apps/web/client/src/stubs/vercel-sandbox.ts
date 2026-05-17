@@ -8,7 +8,13 @@ const _notAvailable = (): never => {
 };
 
 export class Sandbox {
-    static async create(_opts?: unknown) { return _notAvailable(); }
-    static async get(_opts?: unknown) { return _notAvailable(); }
-    static async list(_opts?: unknown) { return _notAvailable(); }
+    static async create(_opts?: unknown) {
+        return _notAvailable();
+    }
+    static async get(_opts?: unknown) {
+        return _notAvailable();
+    }
+    static async list(_opts?: unknown) {
+        return _notAvailable();
+    }
 }
