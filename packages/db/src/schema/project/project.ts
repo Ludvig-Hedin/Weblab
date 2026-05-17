@@ -4,6 +4,7 @@ import { createInsertSchema, createUpdateSchema } from 'drizzle-zod';
 import { z } from 'zod';
 
 import type { ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
+import { ProjectAccessMode } from '@weblab/models';
 
 import { canvases } from '../canvas';
 import { conversations, PROJECT_CONVERSATION_RELATION_NAME } from '../chat';
@@ -14,6 +15,9 @@ import {
     projectCustomDomains,
 } from '../domain';
 import { userProjects } from '../user';
+import { projectAccessMode } from '../workspace/access-mode';
+import { projectMembers } from '../workspace/project-member';
+import { workspaces } from '../workspace/workspace';
 import { branches, PROJECT_BRANCH_RELATION_NAME } from './branch';
 import { projectInvitations } from './invitation';
 import { projectSettings } from './settings';
@@ -41,21 +45,31 @@ export const projects = pgTable('projects', {
         .notNull()
         .default({}),
 
+    // workspace + access (added in 0034_workspaces_schema)
+    workspaceId: uuid('workspace_id').references(() => workspaces.id, {
+        onDelete: 'restrict',
+        onUpdate: 'cascade',
+    }),
+    accessMode: projectAccessMode('access_mode').notNull().default(ProjectAccessMode.RESTRICTED),
+
     // deprecated
     sandboxId: varchar('sandbox_id'),
     sandboxUrl: varchar('sandbox_url'),
 }).enableRLS();
 
 const storageModeSchema = z.enum(['cloud', 'local', 'hybrid']);
+const accessModeSchema = z.nativeEnum(ProjectAccessMode);
 
 export const projectInsertSchema = createInsertSchema(projects, {
     storageMode: storageModeSchema.optional(),
     runtimeMetadata: z.any().optional(),
+    accessMode: accessModeSchema.optional(),
 });
 export const projectUpdateSchema = createUpdateSchema(projects, {
     id: z.string().uuid(),
     storageMode: storageModeSchema.optional(),
     runtimeMetadata: z.any().optional(),
+    accessMode: accessModeSchema.optional(),
 });
 
 export const projectRelations = relations(projects, ({ one, many }) => ({
@@ -63,6 +77,11 @@ export const projectRelations = relations(projects, ({ one, many }) => ({
         fields: [projects.id],
         references: [canvases.projectId],
     }),
+    workspace: one(workspaces, {
+        fields: [projects.workspaceId],
+        references: [workspaces.id],
+    }),
+    projectMembers: many(projectMembers),
     userProjects: many(userProjects),
     conversations: many(conversations, {
         relationName: PROJECT_CONVERSATION_RELATION_NAME,

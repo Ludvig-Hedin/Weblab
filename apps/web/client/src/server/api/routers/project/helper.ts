@@ -1,7 +1,6 @@
-import { eq } from 'drizzle-orm';
-
 import type { DrizzleDb, Frame } from '@weblab/db';
-import { projects, userProjects } from '@weblab/db';
+
+import { requireCap } from '../../permissions/requireCap';
 
 /** Type representing a db instance or transaction that has query capabilities */
 type DbOrTx = Pick<DrizzleDb, 'query'>;
@@ -25,30 +24,19 @@ export function extractCsbPort(frames: Frame[]): number | null {
 }
 
 /**
- * Verifies that a user has access to a project by checking the userProjects table.
- * @throws Error if the user does not have access to the project or if it doesn't exist
+ * Legacy view-access gate. Routes through the central `requireCap` /
+ * `can()` layer with capability `project.view`. Phase 8 migrates hot
+ * write paths off this shim onto explicit capabilities; Phase 9 deletes
+ * the shim entirely.
  *
- * Note: This function intentionally returns the same error message whether the project
- * doesn't exist or the user lacks access to prevent information disclosure about
- * project existence.
- *
- * Accepts either a db instance or a transaction to support atomic authorization checks.
+ * Throws TRPCError(FORBIDDEN) when the user lacks view access. The
+ * legacy implementation threw a generic Error — TRPCError extends Error
+ * so existing try/catch consumers remain correct.
  */
 export async function verifyProjectAccess(
     db: DbOrTx,
     userId: string,
     projectId: string,
 ): Promise<void> {
-    const project = await db.query.projects.findFirst({
-        where: eq(projects.id, projectId),
-        with: {
-            userProjects: {
-                where: eq(userProjects.userId, userId),
-            },
-        },
-    });
-
-    if (!project || project.userProjects.length === 0) {
-        throw new Error('Unauthorized or not found');
-    }
+    await requireCap(db, userId, 'project.view', { projectId });
 }

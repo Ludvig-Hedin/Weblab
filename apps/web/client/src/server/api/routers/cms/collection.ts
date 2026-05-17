@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import { cmsCollections, cmsItems } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from '../project/helper';
 import { ensureDefaultWeblabSource } from './source';
 import { encodeRemoteRef, readRemoteRef, stripRemoteRef } from './sync';
 
@@ -20,7 +20,7 @@ export const cmsCollectionRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const collections = await ctx.db.query.cmsCollections.findMany({
                 where: eq(cmsCollections.projectId, input.projectId),
                 orderBy: (c, { asc }) => [asc(c.createdAt)],
@@ -60,7 +60,7 @@ export const cmsCollectionRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const collection = await ctx.db.query.cmsCollections.findFirst({
                 where: and(
                     eq(cmsCollections.id, input.collectionId),
@@ -86,7 +86,7 @@ export const cmsCollectionRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             return ctx.db.transaction(async (tx) => {
                 // App-level slug uniqueness check until the (projectId, slug)
                 // DB unique constraint is added (CR-074).
@@ -129,7 +129,7 @@ export const cmsCollectionRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const { projectId, collectionId, description, ...patch } = input;
             // Preserve any remote-ref prefix already encoded in the
             // existing description. Without this, editing the user-facing
@@ -171,7 +171,7 @@ export const cmsCollectionRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             await ctx.db
                 .delete(cmsCollections)
                 .where(

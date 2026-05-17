@@ -6,9 +6,9 @@ import type { CustomDomainVerification } from '@weblab/db';
 import { customDomains, customDomainVerification, projectCustomDomains } from '@weblab/db';
 import { VerificationRequestStatus } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { trackEvent } from '@/utils/analytics/server';
 import { createTRPCRouter, protectedProcedure } from '../../../trpc';
-import { verifyProjectAccess } from '../../project/helper';
 import {
     createDomainVerification,
     ensureUserOwnsDomain,
@@ -27,7 +27,7 @@ export const verificationRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }): Promise<CustomDomainVerification | null> => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const verification = await ctx.db.query.customDomainVerification.findFirst({
                 where: and(
                     eq(customDomainVerification.projectId, input.projectId),
@@ -50,7 +50,9 @@ export const verificationRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }): Promise<CustomDomainVerification> => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                projectId: input.projectId,
+            });
             const { customDomain, subdomain } = await getCustomDomain(ctx.db, input.domain);
             const existingVerification = await getVerification(
                 ctx.db,
@@ -86,7 +88,9 @@ export const verificationRouter = createTRPCRouter({
                     message: 'Verification request not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                projectId: existing.projectId,
+            });
             await ctx.db
                 .update(customDomainVerification)
                 .set({
@@ -121,7 +125,9 @@ export const verificationRouter = createTRPCRouter({
                         message: 'Verification request not found',
                     });
                 }
-                await verifyProjectAccess(ctx.db, ctx.user.id, verification.projectId);
+                await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                    projectId: verification.projectId,
+                });
                 const domain = await verifyFreestyleDomain(verification.freestyleVerificationId);
 
                 if (!domain) {
@@ -189,7 +195,9 @@ export const verificationRouter = createTRPCRouter({
                         message: 'Unauthorized',
                     });
                 }
-                await verifyProjectAccess(ctx.db, user.id, input.projectId);
+                await requireCap(ctx.db, user.id, 'project.publish', {
+                    projectId: input.projectId,
+                });
                 const ownsDomain = await ensureUserOwnsDomain(ctx.db, user.id, input.fullDomain);
                 if (!ownsDomain) {
                     return {

@@ -13,11 +13,11 @@ import {
 } from '@weblab/db';
 import { LLMProvider, OPENROUTER_MODELS } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 const loadConversationProjectId = async (
-    db: Parameters<typeof verifyProjectAccess>[0],
+    db: Parameters<typeof requireCap>[0],
     conversationId: string,
 ): Promise<string> => {
     const row = await db.query.conversations.findFirst({
@@ -34,7 +34,7 @@ export const conversationRouter = createTRPCRouter({
     getAll: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             // Defensive cap. Chat history is loaded eagerly on editor boot;
             // an unbounded list would balloon TTFR for long-running projects.
             // Add pagination/"load older" if a real user hits this ceiling.
@@ -54,11 +54,13 @@ export const conversationRouter = createTRPCRouter({
             if (!conversation) {
                 throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversation not found' });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, conversation.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', {
+                projectId: conversation.projectId,
+            });
             return fromDbConversation(conversation);
         }),
     upsert: protectedProcedure.input(conversationInsertSchema).mutation(async ({ ctx, input }) => {
-        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: input.projectId });
         const [conversation] = await ctx.db.insert(conversations).values(input).returning();
         if (!conversation) {
             throw new TRPCError({
@@ -73,7 +75,7 @@ export const conversationRouter = createTRPCRouter({
             throw new TRPCError({ code: 'BAD_REQUEST', message: 'Missing conversation id' });
         }
         const projectId = await loadConversationProjectId(ctx.db, input.id);
-        await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
         const [conversation] = await ctx.db
             .update(conversations)
             .set({ ...input, updatedAt: new Date() })
@@ -95,7 +97,7 @@ export const conversationRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const projectId = await loadConversationProjectId(ctx.db, input.conversationId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             await ctx.db.delete(conversations).where(eq(conversations.id, input.conversationId));
         }),
     generateTitle: protectedProcedure
@@ -107,7 +109,7 @@ export const conversationRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const projectId = await loadConversationProjectId(ctx.db, input.conversationId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             const { model, providerOptions, headers } = initModel({
                 provider: LLMProvider.OPENROUTER,
                 model: OPENROUTER_MODELS.CLAUDE_3_5_HAIKU,

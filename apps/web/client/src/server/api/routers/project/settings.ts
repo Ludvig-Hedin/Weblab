@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 import { fromDbProjectSettings, projectSettings, projectSettingsInsertSchema } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from './helper';
 
 export const settingsRouter = createTRPCRouter({
     get: protectedProcedure
@@ -15,7 +15,7 @@ export const settingsRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const setting = await ctx.db.query.projectSettings.findFirst({
                 where: eq(projectSettings.projectId, input.projectId),
             });
@@ -32,7 +32,9 @@ export const settingsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.manage_settings', {
+                projectId: input.projectId,
+            });
             // `input` is the wrapper { projectId, settings }, not a row. Insert
             // must receive the row shape (input.settings) — passing `input`
             // matched only the projectId column, leaving runCommand /
@@ -63,7 +65,9 @@ export const settingsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.manage_settings', {
+                projectId: input.projectId,
+            });
             await ctx.db
                 .delete(projectSettings)
                 .where(eq(projectSettings.projectId, input.projectId));

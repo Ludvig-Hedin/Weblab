@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { ProjectRole } from '@weblab/models';
+import { ProjectMemberRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
@@ -13,18 +13,17 @@ import { api } from '@/trpc/react';
 export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
     const apiUtils = api.useUtils();
     const [email, setEmail] = useState('');
-    // Bug fix #7: Default to EDITOR — giving every new invitee ADMIN rights was too aggressive.
-    const [selectedRole, setSelectedRole] = useState<ProjectRole>(ProjectRole.EDITOR);
+    // Default to EDITOR — granting MANAGER (admin-equivalent) on every invite is too aggressive.
+    const [selectedRole, setSelectedRole] = useState<ProjectMemberRole>(ProjectMemberRole.EDITOR);
     const [isLoading, setIsLoading] = useState(false);
 
     const createInvitation = api.invitation.create.useMutation({
         onSuccess: () => {
-            // Bug fix #4: Clear form and give clear success feedback so the user
-            // doesn't double-submit thinking nothing happened.
             setEmail('');
             toast.success('Invitation sent');
             apiUtils.invitation.list.invalidate();
             apiUtils.invitation.suggested.invalidate();
+            apiUtils.project.listAccess.invalidate({ projectId });
         },
         onError: (error) => {
             toast.error('Failed to invite member', {
@@ -39,7 +38,7 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
             setIsLoading(true);
             await createInvitation.mutateAsync({
                 inviteeEmail: email,
-                role: selectedRole,
+                memberRole: selectedRole,
                 projectId,
             });
         } finally {
@@ -53,7 +52,6 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
             onSubmit={handleSubmit}
         >
             <div className="relative flex flex-1 items-center gap-2">
-                {/* Bug fix #9: pr-24 reserves space so email text never runs under the Select trigger */}
                 <Input
                     type="email"
                     value={email}
@@ -63,29 +61,37 @@ export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
                 />
                 <Select
                     value={selectedRole}
-                    onValueChange={(value) => setSelectedRole(value as ProjectRole)}
+                    onValueChange={(value) => setSelectedRole(value as ProjectMemberRole)}
                 >
                     <SelectTrigger className="text-mini absolute right-0 w-24 rounded-tl-none rounded-bl-none border-0 bg-transparent p-2 focus:ring-0">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ProjectRole.ADMIN}>
+                        <SelectItem value={ProjectMemberRole.MANAGER}>
                             <div className="flex flex-col">
-                                <span>Admin</span>
+                                <span>Manager</span>
                                 <span className="text-muted-foreground text-mini">
-                                    Can edit and manage members
+                                    Can edit, publish, and manage access
                                 </span>
                             </div>
                         </SelectItem>
-                        <SelectItem value={ProjectRole.EDITOR}>
+                        <SelectItem value={ProjectMemberRole.EDITOR}>
                             <div className="flex flex-col">
                                 <span>Editor</span>
                                 <span className="text-muted-foreground text-mini">
-                                    Can edit the project
+                                    Can edit and use AI
                                 </span>
                             </div>
                         </SelectItem>
-                        <SelectItem value={ProjectRole.VIEWER}>
+                        <SelectItem value={ProjectMemberRole.REVIEWER}>
+                            <div className="flex flex-col">
+                                <span>Reviewer</span>
+                                <span className="text-muted-foreground text-mini">
+                                    Can view and comment
+                                </span>
+                            </div>
+                        </SelectItem>
+                        <SelectItem value={ProjectMemberRole.VIEWER}>
                             <div className="flex flex-col">
                                 <span>Viewer</span>
                                 <span className="text-muted-foreground text-mini">

@@ -5,13 +5,13 @@ import type { DrizzleDb } from '@weblab/db';
 import { cmsCollections, cmsFields, cmsSources } from '@weblab/db';
 import { CmsFieldType, CmsSourceType } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import {
     decryptCmsCredentials,
     encryptCmsCredentials,
     isEncryptedBlob,
 } from '@/server/utils/cms-credentials';
-import { verifyProjectAccess } from '../project/helper';
 import { getAdapter } from './adapters/dispatch';
 import { encodeRemoteRef, runSourceSync } from './sync';
 
@@ -34,7 +34,7 @@ export const cmsSourceRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             // Strip `credentials` from the response — they're encrypted but
             // there's no reason to ship even the ciphertext to the client.
             const rows = await ctx.db.query.cmsSources.findMany({
@@ -46,7 +46,7 @@ export const cmsSourceRouter = createTRPCRouter({
     get: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), sourceId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const row = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),
@@ -70,7 +70,7 @@ export const cmsSourceRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const adapter = getAdapter(input.type);
             if (!adapter) {
                 return { ok: false as const, reason: 'Unsupported source type' };
@@ -85,7 +85,7 @@ export const cmsSourceRouter = createTRPCRouter({
     testExisting: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), sourceId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const source = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),
@@ -113,7 +113,7 @@ export const cmsSourceRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const encrypted = encryptCmsCredentials(input.credentials);
             const [created] = await ctx.db
                 .insert(cmsSources)
@@ -140,7 +140,7 @@ export const cmsSourceRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),
@@ -173,7 +173,7 @@ export const cmsSourceRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), sourceId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),
@@ -206,7 +206,7 @@ export const cmsSourceRouter = createTRPCRouter({
     listRemoteCollections: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), sourceId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const source = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),
@@ -238,7 +238,7 @@ export const cmsSourceRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             return runSourceSync(ctx.db, input.projectId, input.sourceId, {
                 prune: input.prune,
             });
@@ -284,7 +284,7 @@ export const cmsSourceRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const source = await ctx.db.query.cmsSources.findFirst({
                 where: and(
                     eq(cmsSources.id, input.sourceId),

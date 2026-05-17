@@ -17,10 +17,11 @@ import {
     userProjects,
 } from '@weblab/db';
 import { getFrameworkAdapter } from '@weblab/framework';
-import { ProjectRole } from '@weblab/models';
+import { ProjectAccessMode, ProjectMemberRole, ProjectRole } from '@weblab/models';
 
 import { protectedProcedure } from '@/server/api/trpc';
 import { trackEvent } from '@/utils/analytics/server';
+import { resolvePersonalWorkspaceId } from '../workspace/personal';
 import { verifyProjectAccess } from './helper';
 
 type ForkedBranch = {
@@ -231,10 +232,18 @@ export const fork = protectedProcedure
 
         // 3. Create the new project with forked data
         const newProjectData = createNewProjectData(sourceProject, input.name);
+        const workspaceId = await resolvePersonalWorkspaceId(ctx.db, ctx.user.id, ctx.user.email);
 
         return await ctx.db.transaction(async (tx) => {
-            // Create the new project
-            const [newProject] = await tx.insert(projects).values(newProjectData).returning();
+            // Create the new project — fork lands in caller's personal workspace.
+            const [newProject] = await tx
+                .insert(projects)
+                .values({
+                    ...newProjectData,
+                    workspaceId,
+                    accessMode: ProjectAccessMode.WORKSPACE,
+                })
+                .returning();
             if (!newProject) {
                 throw new Error('Failed to create project in database');
             }
@@ -251,6 +260,7 @@ export const fork = protectedProcedure
                 userId: ctx.user.id,
                 projectId: newProject.id,
                 role: ProjectRole.OWNER,
+                memberRole: ProjectMemberRole.MANAGER,
             });
 
             // Handle canvas and frames

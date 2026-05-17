@@ -9,8 +9,10 @@ import {
     figmaRouter,
     frameRouter,
     githubRouter,
+    hostingConnectionRouter,
     invitationRouter,
     memberRouter,
+    pageAccessRouter,
     projectRouter,
     providerRouter,
     publishRouter,
@@ -22,6 +24,9 @@ import {
     userCanvasRouter,
     userRouter,
     utilsRouter,
+    workspaceInvitationRouter,
+    workspaceMemberRouter,
+    workspaceRouter,
 } from './routers';
 import { branchRouter } from './routers/project/branch';
 
@@ -48,11 +53,16 @@ export const appRouter = createTRPCRouter({
     member: memberRouter,
     domain: domainRouter,
     github: githubRouter,
+    hostingConnection: hostingConnectionRouter,
+    pageAccess: pageAccessRouter,
     subscription: subscriptionRouter,
     usage: usageRouter,
     publish: publishRouter,
     forward: editorForwardRouter,
     skills: skillsRouter,
+    workspace: workspaceRouter,
+    workspaceMember: workspaceMemberRouter,
+    workspaceInvitation: workspaceInvitationRouter,
 });
 
 // export type definition of API

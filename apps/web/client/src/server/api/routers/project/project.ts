@@ -1,7 +1,7 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { TRPCError } from '@trpc/server';
 import { generateText } from 'ai';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, gt, inArray, ne, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -30,32 +30,57 @@ import {
     fromDbConversation,
     fromDbFrame,
     fromDbProject,
+    fromDbUser,
     projectCreateRequestInsertSchema,
     projectCreateRequests,
     projectInsertSchema,
+    projectInvitations,
     projects,
     projectUpdateSchema,
     toDbPreviewImg,
     userCanvases,
     userProjects,
+    workspaceMembers,
 } from '@weblab/db';
 import { getFrameworkAdapter } from '@weblab/framework';
 import { compressImageServer } from '@weblab/image-server';
 import {
+    AuditEventKind,
+    InvitationStatus,
     LLMProvider,
     OPENROUTER_MODELS,
+    ProjectAccessMode,
     ProjectCreateRequestStatus,
+    ProjectMemberRole,
     ProjectRole,
+    WorkspaceRole,
 } from '@weblab/models';
 import { getScreenshotPath } from '@weblab/utility';
 
 import { env } from '@/env';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
 import { trackEvent } from '@/utils/analytics/server';
+import { audit } from '../../permissions/audit';
+import { requireCap } from '../../permissions/requireCap';
+import { resolvePersonalWorkspaceId } from '../workspace/personal';
 import { projectCreateRequestRouter } from './createRequest';
 import { fork } from './fork';
 import { extractCsbPort, verifyProjectAccess } from './helper';
 import { offlineRouter } from './offline';
+
+const ACCESS_PROJECT_ROLE_TO_MEMBER_ROLE: Record<ProjectRole, ProjectMemberRole> = {
+    [ProjectRole.OWNER]: ProjectMemberRole.MANAGER,
+    [ProjectRole.ADMIN]: ProjectMemberRole.MANAGER,
+    [ProjectRole.EDITOR]: ProjectMemberRole.EDITOR,
+    [ProjectRole.VIEWER]: ProjectMemberRole.VIEWER,
+};
+
+const PROJECT_ROLE_RANK: Record<ProjectMemberRole, number> = {
+    [ProjectMemberRole.MANAGER]: 0,
+    [ProjectMemberRole.EDITOR]: 1,
+    [ProjectMemberRole.REVIEWER]: 2,
+    [ProjectMemberRole.VIEWER]: 3,
+};
 
 export const projectRouter = createTRPCRouter({
     hasAccess: protectedProcedure
@@ -253,6 +278,7 @@ export const projectRouter = createTRPCRouter({
                 .object({
                     limit: z.number().optional(),
                     excludeProjectId: z.string().optional(),
+                    workspaceId: z.string().uuid().optional(),
                 })
                 .optional(),
         )
@@ -264,13 +290,48 @@ export const projectRouter = createTRPCRouter({
             // infinite scrolling should add cursor-based paging.
             const MAX_PROJECTS_LIMIT = 200;
             const effectiveLimit = Math.min(input?.limit ?? MAX_PROJECTS_LIMIT, MAX_PROJECTS_LIMIT);
+
+            // When workspaceId is supplied, push the filter into the SQL so a
+            // user with many projects across workspaces can't have the limit
+            // exhausted by rows in OTHER workspaces (a 200-row JS filter
+            // could return zero rows for the target workspace). Look up the
+            // candidate project ids first, then re-fetch the full relation
+            // graph for just that slice.
+            let candidateProjectIds: string[] | null = null;
+            if (input?.workspaceId) {
+                const rows = await ctx.db
+                    .select({ id: projects.id })
+                    .from(projects)
+                    .innerJoin(userProjects, eq(userProjects.projectId, projects.id))
+                    .where(
+                        and(
+                            eq(userProjects.userId, ctx.user.id),
+                            eq(projects.workspaceId, input.workspaceId),
+                            input?.excludeProjectId
+                                ? ne(projects.id, input.excludeProjectId)
+                                : undefined,
+                        ),
+                    )
+                    .limit(effectiveLimit);
+                candidateProjectIds = rows.map((r) => r.id);
+                if (candidateProjectIds.length === 0) {
+                    return [];
+                }
+            }
+
+            // Step 1: collect candidate user_project rows (membership-scoped),
+            // optionally filtered by excludeProjectId. When candidate ids are
+            // pre-computed (workspace-scoped path) we narrow to that slice.
             const fetchedUserProjects = await ctx.db.query.userProjects.findMany({
-                where: input?.excludeProjectId
-                    ? and(
-                          eq(userProjects.userId, ctx.user.id),
-                          ne(userProjects.projectId, input.excludeProjectId),
-                      )
-                    : eq(userProjects.userId, ctx.user.id),
+                where: and(
+                    eq(userProjects.userId, ctx.user.id),
+                    input?.excludeProjectId
+                        ? ne(userProjects.projectId, input.excludeProjectId)
+                        : undefined,
+                    candidateProjectIds
+                        ? inArray(userProjects.projectId, candidateProjectIds)
+                        : undefined,
+                ),
                 with: {
                     project: {
                         with: {
@@ -287,7 +348,9 @@ export const projectRouter = createTRPCRouter({
                 },
                 limit: effectiveLimit,
             });
-            return fetchedUserProjects
+
+            const filteredUserProjects = fetchedUserProjects;
+            return filteredUserProjects
                 .map((userProject) => {
                     const project = userProject.project;
                     const defaultBranch = project.branches[0];
@@ -334,6 +397,94 @@ export const projectRouter = createTRPCRouter({
                         new Date(a.metadata.updatedAt).getTime(),
                 );
         }),
+    /**
+     * Returns projects the caller is an explicit project_member of where the
+     * project's workspace is NOT one the caller is a workspace member of.
+     * These are "shared with me" projects — typically project-only invitees
+     * who accepted an invite to a single restricted project in someone else's
+     * workspace. Surfaced under the Personal workspace dashboard so the user
+     * can find them without bookmarking the project URL.
+     */
+    sharedWithMe: protectedProcedure.query(async ({ ctx }) => {
+        const memberships = await ctx.db.query.userProjects.findMany({
+            where: eq(userProjects.userId, ctx.user.id),
+            with: {
+                project: {
+                    with: {
+                        branches: {
+                            where: eq(branches.isDefault, true),
+                            with: { frames: true },
+                        },
+                        previewDomains: true,
+                        projectCustomDomains: true,
+                    },
+                },
+            },
+            limit: 200,
+        });
+
+        const workspaceIds = Array.from(
+            new Set(
+                memberships.map((m) => m.project.workspaceId).filter((id): id is string => !!id),
+            ),
+        );
+        if (workspaceIds.length === 0) {
+            return [];
+        }
+
+        const myWorkspaceRows = await ctx.db
+            .select({ workspaceId: workspaceMembers.workspaceId })
+            .from(workspaceMembers)
+            .where(
+                and(
+                    eq(workspaceMembers.userId, ctx.user.id),
+                    inArray(workspaceMembers.workspaceId, workspaceIds),
+                ),
+            );
+        const myWorkspaceIds = new Set(myWorkspaceRows.map((r) => r.workspaceId));
+
+        const shared = memberships.filter(
+            (m) => m.project.workspaceId && !myWorkspaceIds.has(m.project.workspaceId),
+        );
+
+        return shared
+            .map((m) => {
+                const project = m.project;
+                const defaultBranch = project.branches[0];
+                const previewDomain = project.previewDomains[0]?.fullDomain ?? null;
+                const publishedDomain = project.projectCustomDomains[0]?.fullDomain ?? null;
+                const previewUrl = previewDomain ? `https://${previewDomain}` : null;
+                const publishedUrl = publishedDomain ? `https://${publishedDomain}` : null;
+
+                let sandboxPreviewUrl: string | null = null;
+                if (defaultBranch?.sandboxId) {
+                    const frameUrl = defaultBranch.frames?.[0]?.url ?? null;
+                    if (frameUrl) {
+                        sandboxPreviewUrl = frameUrl;
+                    } else {
+                        const framework = project.runtimeMetadata?.framework ?? null;
+                        const adapterPort = framework
+                            ? getFrameworkAdapter(framework).template.port
+                            : null;
+                        const port = adapterPort ?? 3000;
+                        sandboxPreviewUrl = getSandboxPreviewUrl(defaultBranch.sandboxId, port);
+                    }
+                }
+
+                return {
+                    ...fromDbProject(project),
+                    previewUrl,
+                    publishedUrl,
+                    siteUrl: publishedUrl ?? previewUrl ?? null,
+                    sandboxPreviewUrl,
+                };
+            })
+            .sort(
+                (a, b) =>
+                    new Date(b.metadata.updatedAt).getTime() -
+                    new Date(a.metadata.updatedAt).getTime(),
+            );
+    }),
     get: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
@@ -464,13 +615,32 @@ export const projectRouter = createTRPCRouter({
                         projectId: true,
                     })
                     .optional(),
+                // Optional: explicit target workspace. When omitted, project
+                // lands in caller's personal workspace (legacy behavior).
+                // When supplied, caller must have `project.create` cap on it.
+                workspaceId: z.string().uuid().optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             const ownerId = ctx.user.id;
+            const workspaceId = input.workspaceId
+                ? input.workspaceId
+                : await resolvePersonalWorkspaceId(ctx.db, ownerId, ctx.user.email);
+            if (input.workspaceId) {
+                await requireCap(ctx.db, ownerId, 'project.create', {
+                    workspaceId: input.workspaceId,
+                });
+            }
             return await ctx.db.transaction(async (tx) => {
-                // 1. Insert the new project
-                const [newProject] = await tx.insert(projects).values(input.project).returning();
+                // 1. Insert the new project — pin to caller's personal workspace.
+                const [newProject] = await tx
+                    .insert(projects)
+                    .values({
+                        ...input.project,
+                        workspaceId,
+                        accessMode: ProjectAccessMode.WORKSPACE,
+                    })
+                    .returning();
                 if (!newProject) {
                     throw new Error('Failed to create project in database');
                 }
@@ -499,6 +669,7 @@ export const projectRouter = createTRPCRouter({
                     userId: ownerId,
                     projectId: newProject.id,
                     role: ProjectRole.OWNER,
+                    memberRole: ProjectMemberRole.MANAGER,
                 });
 
                 // 4. Create the default canvas
@@ -555,10 +726,16 @@ export const projectRouter = createTRPCRouter({
                         'static-html',
                     ])
                     .default('nextjs'),
+                workspaceId: z.string().uuid().optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
             const ownerId = ctx.user.id;
+            if (input.workspaceId) {
+                await requireCap(ctx.db, ownerId, 'project.create', {
+                    workspaceId: input.workspaceId,
+                });
+            }
             const adapter = getFrameworkAdapter(input.framework);
             const cloudProvider =
                 input.framework === 'nextjs'
@@ -594,12 +771,17 @@ export const projectRouter = createTRPCRouter({
                     month: 'short',
                 })} ${now.getDate()}`;
 
+                const workspaceId = input.workspaceId
+                    ? input.workspaceId
+                    : await resolvePersonalWorkspaceId(ctx.db, ownerId, ctx.user.email);
                 const project = createDefaultProject({
                     overrides: {
                         name: projectName,
                         description: 'Your new blank project',
                         tags: ['blank'],
                         runtimeMetadata: { framework: input.framework },
+                        workspaceId,
+                        accessMode: ProjectAccessMode.WORKSPACE,
                     },
                 });
 
@@ -633,6 +815,7 @@ export const projectRouter = createTRPCRouter({
                         userId: ownerId,
                         projectId: newProject.id,
                         role: ProjectRole.OWNER,
+                        memberRole: ProjectMemberRole.MANAGER,
                     });
 
                     const newCanvas = createDefaultCanvas(newProject.id);
@@ -714,9 +897,18 @@ export const projectRouter = createTRPCRouter({
                         'static-html',
                     ])
                     .optional(),
+                workspaceId: z.string().uuid().optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            if (input.workspaceId) {
+                await requireCap(ctx.db, ctx.user.id, 'project.create', {
+                    workspaceId: input.workspaceId,
+                });
+            }
+            const workspaceId = input.workspaceId
+                ? input.workspaceId
+                : await resolvePersonalWorkspaceId(ctx.db, ctx.user.id, ctx.user.email);
             return await ctx.db.transaction(async (tx) => {
                 const previewUrl = `http://localhost:${input.port}`;
                 const framework: ProjectFrameworkId = input.framework ?? 'nextjs';
@@ -740,6 +932,8 @@ export const projectRouter = createTRPCRouter({
                                 port: input.port,
                             },
                         },
+                        workspaceId,
+                        accessMode: ProjectAccessMode.WORKSPACE,
                     })
                     .returning();
                 if (!newProject) {
@@ -760,6 +954,7 @@ export const projectRouter = createTRPCRouter({
                     userId: ctx.user.id,
                     projectId: newProject.id,
                     role: ProjectRole.OWNER,
+                    memberRole: ProjectMemberRole.MANAGER,
                 });
 
                 const newCanvas = createDefaultCanvas(newProject.id);
@@ -838,12 +1033,40 @@ export const projectRouter = createTRPCRouter({
             }
         }),
     delete: protectedProcedure
-        .input(z.object({ id: z.string() }))
+        .input(z.object({ id: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
+            // Cap check inside the tx (with FOR UPDATE on the project row)
+            // closes the TOCTOU between the gate and the delete — a caller
+            // demoted mid-flight cannot land a stale delete, and a parallel
+            // .update on the same project can't commit against an
+            // already-doomed row.
+            const projectId = input.id;
             await ctx.db.transaction(async (tx) => {
-                await verifyProjectAccess(tx, ctx.user.id, input.id);
-                await tx.delete(userProjects).where(eq(userProjects.projectId, input.id));
-                await tx.delete(projects).where(eq(projects.id, input.id));
+                const lockedRows = await tx.execute(sql`
+                    SELECT id, workspace_id, name
+                    FROM projects
+                    WHERE id = ${projectId}
+                    FOR UPDATE
+                `);
+                const locked = (
+                    lockedRows as unknown as Array<{
+                        id: string;
+                        workspace_id: string | null;
+                        name: string;
+                    }>
+                )[0];
+                if (!locked) {
+                    throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+                }
+                await requireCap(tx, ctx.user.id, 'project.delete', { projectId });
+                await tx.delete(userProjects).where(eq(userProjects.projectId, projectId));
+                await tx.delete(projects).where(eq(projects.id, projectId));
+                // NB: no dedicated PROJECT_DELETED audit event in the
+                // current enum (audit_event_kind in 0034). Deletion still
+                // shows in the workspace's audit trail via the cascade-cleared
+                // project_id; a follow-up should add a PROJECT_DELETED enum
+                // value in a new migration + here.
+                void locked;
             });
         }),
     getPreviewProjects: protectedProcedure
@@ -875,7 +1098,7 @@ export const projectRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.id);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.id });
             const [updatedProject] = await ctx.db
                 .update(projects)
                 .set({
@@ -950,5 +1173,140 @@ export const projectRouter = createTRPCRouter({
                 .where(eq(projects.id, input.projectId));
 
             return { success: true, tags: newTags };
+        }),
+    /**
+     * Change a project's access mode. Requires `project.manage_access_mode`.
+     * Mode `workspace` makes the project visible to workspace members per
+     * their role; `restricted` hides it from non-explicit members.
+     */
+    setAccessMode: protectedProcedure
+        .input(
+            z.object({
+                projectId: z.string().uuid(),
+                accessMode: z.nativeEnum(ProjectAccessMode),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            await requireCap(ctx.db, ctx.user.id, 'project.manage_access_mode', {
+                projectId: input.projectId,
+            });
+            const [updated] = await ctx.db
+                .update(projects)
+                .set({ accessMode: input.accessMode, updatedAt: new Date() })
+                .where(eq(projects.id, input.projectId))
+                .returning();
+            if (!updated) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+            }
+            await audit(ctx.db, {
+                event: AuditEventKind.PROJECT_ACCESS_MODE_CHANGED,
+                projectId: input.projectId,
+                workspaceId: updated.workspaceId,
+                actorUserId: ctx.user.id,
+                payload: { accessMode: input.accessMode },
+            });
+            return updated;
+        }),
+    /**
+     * Aggregated access list for a project's settings page. Returns:
+     *   - workspaceInherited: workspace owners/admins with recovery access
+     *     who are NOT also explicit project members.
+     *   - directMembers: explicit project_members (legacy column normalized).
+     *   - pendingInvites: still-pending invitations (status='pending' AND not expired).
+     */
+    listAccess: protectedProcedure
+        .input(z.object({ projectId: z.string().uuid() }))
+        .query(async ({ ctx, input }) => {
+            await requireCap(ctx.db, ctx.user.id, 'project.view', {
+                projectId: input.projectId,
+            });
+
+            const project = await ctx.db.query.projects.findFirst({
+                where: eq(projects.id, input.projectId),
+                columns: { id: true, workspaceId: true },
+            });
+            if (!project?.workspaceId) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Project not found',
+                });
+            }
+
+            const direct = await ctx.db.query.userProjects.findMany({
+                where: eq(userProjects.projectId, input.projectId),
+                with: { user: true },
+            });
+            const directIds = new Set(direct.map((d) => d.userId));
+            const directMembers = direct
+                .map((d) => {
+                    const memberRole =
+                        d.memberRole ?? ACCESS_PROJECT_ROLE_TO_MEMBER_ROLE[d.role as ProjectRole];
+                    // @ts-expect-error - Drizzle relation typing quirk; the
+                    // row is the full users record at runtime.
+                    const user = fromDbUser(d.user);
+                    return {
+                        userId: user.id,
+                        displayName: user.displayName ?? user.firstName ?? null,
+                        email: user.email,
+                        avatarUrl: user.avatarUrl,
+                        memberRole,
+                    };
+                })
+                .sort((a, b) => {
+                    const rankDiff =
+                        PROJECT_ROLE_RANK[a.memberRole] - PROJECT_ROLE_RANK[b.memberRole];
+                    if (rankDiff !== 0) return rankDiff;
+                    return (a.displayName ?? a.email ?? '').localeCompare(
+                        b.displayName ?? b.email ?? '',
+                    );
+                });
+
+            const wsAdmins = await ctx.db.query.workspaceMembers.findMany({
+                where: and(
+                    eq(workspaceMembers.workspaceId, project.workspaceId),
+                    inArray(workspaceMembers.role, [WorkspaceRole.OWNER, WorkspaceRole.ADMIN]),
+                ),
+                with: { user: true },
+            });
+            const workspaceInherited = wsAdmins
+                .filter((m) => !directIds.has(m.userId))
+                .map((m) => {
+                    // @ts-expect-error - see directMembers note
+                    const user = fromDbUser(m.user);
+                    return {
+                        userId: user.id,
+                        displayName: user.displayName ?? user.firstName ?? null,
+                        email: user.email,
+                        avatarUrl: user.avatarUrl,
+                        workspaceRole: m.role as WorkspaceRole,
+                    };
+                })
+                .sort((a, b) => {
+                    if (a.workspaceRole === b.workspaceRole) {
+                        return (a.displayName ?? a.email ?? '').localeCompare(
+                            b.displayName ?? b.email ?? '',
+                        );
+                    }
+                    return a.workspaceRole === WorkspaceRole.OWNER ? -1 : 1;
+                });
+
+            const invites = await ctx.db.query.projectInvitations.findMany({
+                where: and(
+                    eq(projectInvitations.projectId, input.projectId),
+                    eq(projectInvitations.status, InvitationStatus.PENDING),
+                    gt(projectInvitations.expiresAt, new Date()),
+                ),
+                orderBy: (table, { desc }) => [desc(table.createdAt)],
+            });
+            const pendingInvites = invites.map((inv) => ({
+                id: inv.id,
+                email: inv.inviteeEmail,
+                memberRole:
+                    inv.memberRole ?? ACCESS_PROJECT_ROLE_TO_MEMBER_ROLE[inv.role as ProjectRole],
+                invitedAt: inv.createdAt,
+                expiresAt: inv.expiresAt,
+            }));
+
+            return { workspaceInherited, directMembers, pendingInvites };
         }),
 });

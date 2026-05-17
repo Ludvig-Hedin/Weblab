@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import { projectOfflinePins } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from './helper';
 
 export const offlineRouter = createTRPCRouter({
     listPinned: protectedProcedure.query(async ({ ctx }) => {
@@ -20,7 +20,7 @@ export const offlineRouter = createTRPCRouter({
     isPinned: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const row = await ctx.db.query.projectOfflinePins.findFirst({
                 where: and(
                     eq(projectOfflinePins.userId, ctx.user.id),
@@ -33,7 +33,7 @@ export const offlineRouter = createTRPCRouter({
     pin: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             await ctx.db
                 .insert(projectOfflinePins)
                 .values({
@@ -49,7 +49,7 @@ export const offlineRouter = createTRPCRouter({
     unpin: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             await ctx.db
                 .delete(projectOfflinePins)
                 .where(

@@ -12,8 +12,8 @@ import {
 } from '@weblab/db';
 import { MessageCheckpointType } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 type DbOrTx = Pick<DrizzleDb, 'query'>;
 
@@ -48,7 +48,7 @@ export const messageRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
             const projectId = await projectIdForConversation(ctx.db, input.conversationId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: projectId });
             const result = await ctx.db.query.messages.findMany({
                 where: eq(messages.conversationId, input.conversationId),
                 orderBy: [asc(messages.createdAt)],
@@ -70,7 +70,7 @@ export const messageRouter = createTRPCRouter({
                 });
             }
             const projectId = await projectIdForConversation(ctx.db, conversationId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             const normalizedMessage = normalizeMessage(input.message);
             return await ctx.db
                 .insert(messages)
@@ -106,7 +106,7 @@ export const messageRouter = createTRPCRouter({
             );
             await Promise.all(
                 Array.from(new Set(projectIds)).map((projectId) =>
-                    verifyProjectAccess(ctx.db, ctx.user.id, projectId),
+                    requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId }),
                 ),
             );
             const normalizedMessages = input.messages.map(normalizeMessage);
@@ -121,7 +121,7 @@ export const messageRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const projectId = await projectIdForMessage(ctx.db, input.messageId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             await ctx.db
                 .update(messages)
                 .set({
@@ -145,7 +145,7 @@ export const messageRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const projectId = await projectIdForMessage(ctx.db, input.messageId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             await ctx.db
                 .update(messages)
                 .set({
@@ -178,7 +178,7 @@ export const messageRouter = createTRPCRouter({
             );
             await Promise.all(
                 Array.from(new Set(projectIds)).map((projectId) =>
-                    verifyProjectAccess(ctx.db, ctx.user.id, projectId),
+                    requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId }),
                 ),
             );
             await ctx.db.delete(messages).where(inArray(messages.id, input.messageIds));
@@ -198,7 +198,7 @@ export const messageRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
             const projectId = await projectIdForConversation(ctx.db, input.conversationId);
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', { projectId: projectId });
             await ctx.db.transaction(async (tx) => {
                 await tx.delete(messages).where(eq(messages.conversationId, input.conversationId));
 

@@ -11,8 +11,8 @@ import {
 } from '@weblab/db';
 import { VerificationRequestStatus } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 export const customRouter = createTRPCRouter({
     get: protectedProcedure
@@ -22,7 +22,7 @@ export const customRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const customDomain = await ctx.db.query.projectCustomDomains.findFirst({
                 where: eq(projectCustomDomains.projectId, input.projectId),
             });
@@ -36,7 +36,9 @@ export const customRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }): Promise<boolean> => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                projectId: input.projectId,
+            });
             try {
                 await ctx.db.transaction(async (tx) => {
                     await tx

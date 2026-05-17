@@ -1,3 +1,4 @@
+import { InvitationStatus } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons/index';
 
 import { useEditorEngine } from '@/components/store/editor';
@@ -40,9 +41,11 @@ export const MembersContent = () => {
                     projectId={projectId}
                 />
             ))}
-            {invitations?.map((invitation) => (
-                <InvitationRow key={invitation.id} invitation={invitation} />
-            ))}
+            {invitations
+                ?.filter((invitation) => invitation.status === InvitationStatus.PENDING)
+                .map((invitation) => (
+                    <InvitationRow key={invitation.id} invitation={invitation} />
+                ))}
             <SuggestedTeammates projectId={projectId} />
         </>
     );

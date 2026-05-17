@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { and, eq, ne } from 'drizzle-orm';
 
 import type { Deployment, deploymentUpdateSchema, DrizzleDb } from '@weblab/db';
+import type { HostingProvider } from '@weblab/models';
 import { deployments, previewDomains, projectCustomDomains } from '@weblab/db';
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 import { assertNever } from '@weblab/utility';
@@ -52,6 +53,7 @@ export async function updateDeployment(
                 ...deployment,
                 type: deployment.type as DeploymentType,
                 status: deployment.status as DeploymentStatus,
+                provider: deployment.provider as HostingProvider,
             })
             .where(
                 and(

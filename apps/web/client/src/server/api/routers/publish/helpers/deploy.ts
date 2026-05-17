@@ -57,6 +57,7 @@ export async function createDeployment({
     buildScript,
     buildFlags,
     envVars,
+    provider = HostingProvider.FREESTYLE,
 }: {
     db: DrizzleDb;
     projectId: string;
@@ -66,6 +67,7 @@ export async function createDeployment({
     buildScript?: string;
     buildFlags?: string;
     envVars?: Record<string, string>;
+    provider?: HostingProvider;
 }): Promise<Deployment> {
     const [deployment] = await db
         .insert(deployments)
@@ -77,6 +79,7 @@ export async function createDeployment({
             buildScript,
             buildFlags,
             envVars,
+            provider,
             status: DeploymentStatus.PENDING,
             requestedBy: userId,
             message: 'Creating deployment...',

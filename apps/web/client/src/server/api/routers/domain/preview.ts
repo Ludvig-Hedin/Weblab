@@ -6,8 +6,8 @@ import { previewDomains, toDomainInfoFromPreview } from '@weblab/db';
 import { getValidSubdomain } from '@weblab/utility';
 
 import { env } from '@/env';
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 export const previewRouter = createTRPCRouter({
     get: protectedProcedure
@@ -17,7 +17,7 @@ export const previewRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const preview = await ctx.db.query.previewDomains.findFirst({
                 where: eq(previewDomains.projectId, input.projectId),
             });
@@ -30,7 +30,9 @@ export const previewRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                projectId: input.projectId,
+            });
 
             // Check if the domain is already taken by another project
             // This should never happen, but just in case

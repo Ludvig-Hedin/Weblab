@@ -6,6 +6,8 @@ export * from './domain';
 export * from './figma';
 export * from './forward';
 export * from './github';
+export * from './hosting-connection';
+export * from './page-access';
 // `image` router is dead code — server-side compression is reached directly
 // via `routers/project/project.ts` (compressImageServer). It is intentionally
 // not barrel-exported here, and not mounted in root.ts, to avoid surfacing an
@@ -17,3 +19,4 @@ export * from './skill';
 export * from './subscription';
 export * from './usage';
 export * from './user';
+export * from './workspace';

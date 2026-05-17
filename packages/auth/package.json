@@ -1,0 +1,38 @@
+{
+    "name": "@weblab/auth",
+    "description": "Central authorization layer: capabilities, role→capability matrices, can() resolver.",
+    "version": "0.0.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Ludvig-Hedin/Weblab.git"
+    },
+    "type": "module",
+    "module": "src/index.ts",
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "bun build src/index.ts --outfile=dist/index.js",
+        "clean": "rm -rf node_modules",
+        "lint": "eslint . --max-warnings 0",
+        "format": "eslint --fix .",
+        "test": "bun test",
+        "typecheck": "tsc --noEmit"
+    },
+    "author": {
+        "name": "Weblab",
+        "email": "contact@weblab.build"
+    },
+    "license": "Apache-2.0",
+    "homepage": "https://weblab.build",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "devDependencies": {
+        "@weblab/eslint": "*",
+        "@weblab/typescript": "*",
+        "eslint": "^9.0.0",
+        "typescript": "^5.5.4"
+    },
+    "dependencies": {
+        "@weblab/models": "*"
+    }
+}

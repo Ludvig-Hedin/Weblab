@@ -3,8 +3,8 @@ import { z } from 'zod';
 
 import { commentReplies, projectComments } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 import { sanitiseAuthorName } from './helpers';
 
 export const replyRouter = createTRPCRouter({
@@ -22,7 +22,9 @@ export const replyRouter = createTRPCRouter({
             if (!comment) {
                 throw new Error('Comment not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, comment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: comment.projectId,
+            });
 
             const [reply] = await ctx.db
                 .insert(commentReplies)
@@ -52,7 +54,9 @@ export const replyRouter = createTRPCRouter({
             if (!existingReply) {
                 throw new Error('Reply not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingReply.comment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingReply.comment.projectId,
+            });
 
             const [reply] = await ctx.db
                 .update(commentReplies)
@@ -79,7 +83,9 @@ export const replyRouter = createTRPCRouter({
             if (!existingReply) {
                 throw new Error('Reply not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingReply.comment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingReply.comment.projectId,
+            });
 
             const [deleted] = await ctx.db
                 .delete(commentReplies)

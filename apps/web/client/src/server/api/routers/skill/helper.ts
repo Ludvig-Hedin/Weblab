@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { DrizzleDb } from '@weblab/db';
 import { skills } from '@weblab/db';
 
-import { verifyProjectAccess } from '../project/helper';
+import { requireCap } from '@/server/api/permissions/requireCap';
 
 type DbOrTx = Pick<DrizzleDb, 'query'>;
 
@@ -47,7 +47,7 @@ export async function verifySkillAccess(
         });
     }
     if (row.projectId) {
-        await verifyProjectAccess(db, userId, row.projectId);
+        await requireCap(db, userId, 'project.view', { projectId: row.projectId });
     }
     return {
         id: row.id,

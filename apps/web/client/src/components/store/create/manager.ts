@@ -7,8 +7,26 @@ import { getFrameworkAdapter } from '@weblab/framework';
 import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
+import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
 import { api } from '@/trpc/client';
 import { parseRepoUrl } from './parse-repo-url';
+
+/**
+ * Returns the workspace id the new project should land in. The dashboard
+ * writes this to localStorage when the user opens a workspace; the create
+ * flow reads it here so new projects respect the active workspace context
+ * even though /projects/new lives outside /w/[slug]. When undefined, the
+ * server falls back to the caller's personal workspace.
+ */
+function readActiveWorkspaceId(): string | undefined {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const id = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+        return id && id.length > 0 ? id : undefined;
+    } catch {
+        return undefined;
+    }
+}
 
 /**
  * Phases the create-from-prompt flow goes through. Drives the loader the
@@ -132,6 +150,7 @@ export class CreateManager {
                 sandboxId,
                 sandboxUrl: previewUrl,
                 sandboxRuntime,
+                workspaceId: readActiveWorkspaceId(),
                 creationData: {
                     context: [
                         {
@@ -359,6 +378,7 @@ export class CreateManager {
                 sandboxId: sandboxResult.sandboxId,
                 sandboxUrl: sandboxResult.previewUrl,
                 sandboxRuntime: sandboxResult.sandboxRuntime,
+                workspaceId: readActiveWorkspaceId(),
             });
             forkedSandboxId = null;
             return newProject;

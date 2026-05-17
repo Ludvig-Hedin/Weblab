@@ -50,13 +50,6 @@ export const getCustomDomain = async (
         });
     }
 
-    if (!parsedDomain.domain) {
-        throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Could not resolve apex domain',
-        });
-    }
-
     const apexDomain = parsedDomain.domain;
     const subdomain = parsedDomain.subdomain;
 

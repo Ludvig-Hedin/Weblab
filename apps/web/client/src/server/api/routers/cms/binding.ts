@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { cmsBindings, cmsCollections, cmsItems } from '@weblab/db';
 import { CmsBindingKind, CmsItemStatus } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 const filterClauseSchema = z.discriminatedUnion('op', [
     z.object({
@@ -70,7 +70,7 @@ export const cmsBindingRouter = createTRPCRouter({
     listForProject: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             // Defensive cap. Bindings count grows with canvas elements; 2000
             // is well above any realistic per-project ceiling.
             return ctx.db.query.cmsBindings.findMany({
@@ -98,7 +98,7 @@ export const cmsBindingRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const bindings = await ctx.db.query.cmsBindings.findMany({
                 where: eq(cmsBindings.projectId, input.projectId),
             });
@@ -151,7 +151,7 @@ export const cmsBindingRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsBindings.findFirst({
                 where: and(
                     eq(cmsBindings.projectId, input.projectId),
@@ -180,7 +180,7 @@ export const cmsBindingRouter = createTRPCRouter({
     remove: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), oid: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             await ctx.db
                 .delete(cmsBindings)
                 .where(
@@ -198,7 +198,7 @@ export const cmsBindingRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             // Verify access first so unauthorized callers can't probe project
             // existence by varying `oids` between empty and non-empty.
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             if (input.oids.length === 0) return { success: true };
             await ctx.db
                 .delete(cmsBindings)

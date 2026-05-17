@@ -1,0 +1,16 @@
+export enum AuditEventKind {
+    WORKSPACE_CREATED = 'workspace.created',
+    WORKSPACE_RENAMED = 'workspace.renamed',
+    WORKSPACE_DELETED = 'workspace.deleted',
+    WORKSPACE_MEMBER_INVITED = 'workspace_member.invited',
+    WORKSPACE_INVITE_ACCEPTED = 'workspace_invite.accepted',
+    WORKSPACE_INVITE_REVOKED = 'workspace_invite.revoked',
+    WORKSPACE_MEMBER_ROLE_CHANGED = 'workspace_member.role_changed',
+    WORKSPACE_MEMBER_REMOVED = 'workspace_member.removed',
+    PROJECT_ACCESS_MODE_CHANGED = 'project.access_mode_changed',
+    PROJECT_MEMBER_INVITED = 'project_member.invited',
+    PROJECT_INVITE_ACCEPTED = 'project_invite.accepted',
+    PROJECT_INVITE_REVOKED = 'project_invite.revoked',
+    PROJECT_MEMBER_ROLE_CHANGED = 'project_member.role_changed',
+    PROJECT_MEMBER_REMOVED = 'project_member.removed',
+}

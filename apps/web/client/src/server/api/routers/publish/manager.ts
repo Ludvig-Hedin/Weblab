@@ -10,6 +10,7 @@ import {
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
     SUPPORTED_LOCK_FILES,
+    WEBLAB_IX_RUNTIME_FILE,
     WEBLAB_PRELOAD_SCRIPT_FILE,
 } from '@weblab/constants';
 import { addBuiltWithScript, injectBuiltWithScript } from '@weblab/growth';
@@ -344,7 +345,8 @@ export class PublishManager {
             filePath.includes('/dist/') ||
             filePath.includes('/build/') ||
             filePath.includes('/coverage/') ||
-            filePath.endsWith(`/${WEBLAB_PRELOAD_SCRIPT_FILE}`)
+            filePath.endsWith(`/${WEBLAB_PRELOAD_SCRIPT_FILE}`) ||
+            filePath.endsWith(`/${WEBLAB_IX_RUNTIME_FILE}`)
         );
     }
 

@@ -4,6 +4,7 @@ import type {
     ProjectRuntimeMetadata,
     ProjectStorageMode,
 } from '@weblab/models';
+import { ProjectAccessMode } from '@weblab/models';
 
 import type { Project as DbProject } from '../../schema';
 
@@ -64,6 +65,8 @@ export const toDbProject = (project: Project): DbProject => {
         updatedPreviewImgAt,
         storageMode: project.metadata.storageMode ?? 'cloud',
         runtimeMetadata: project.metadata.runtime ?? {},
+        workspaceId: null,
+        accessMode: ProjectAccessMode.RESTRICTED,
 
         // deprecated
         sandboxId: null,

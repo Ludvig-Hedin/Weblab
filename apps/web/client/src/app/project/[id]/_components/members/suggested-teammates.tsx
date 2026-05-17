@@ -1,4 +1,4 @@
-import { ProjectRole } from '@weblab/models';
+import { ProjectMemberRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Separator } from '@weblab/ui/separator';
@@ -40,11 +40,10 @@ export const SuggestedTeammates = ({ projectId }: SuggestedTeammateProps) => {
                         size="sm"
                         className="rounded-xl font-normal"
                         onClick={() => {
-                            // Bug fix #7: Default to EDITOR — see invite-member-input.tsx:14-15.
                             createInvitationMutation.mutate({
                                 projectId,
                                 inviteeEmail: email,
-                                role: ProjectRole.EDITOR,
+                                memberRole: ProjectMemberRole.EDITOR,
                             });
                         }}
                     >

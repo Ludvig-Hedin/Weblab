@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { invalidateSkillsCache } from '@weblab/ai/server';
 import { fromDbSkill, skills } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 import {
     skillContentSchema,
     skillDescriptionSchema,
@@ -85,7 +85,7 @@ export const skillsRouter = createTRPCRouter({
     create: protectedProcedure.input(createInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.user.id;
         if (input.projectId) {
-            await verifyProjectAccess(ctx.db, userId, input.projectId);
+            await requireCap(ctx.db, userId, 'project.use_ai', { projectId: input.projectId });
         }
         try {
             const [row] = await ctx.db
@@ -122,7 +122,14 @@ export const skillsRouter = createTRPCRouter({
 
     update: protectedProcedure.input(updateInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.user.id;
-        await verifySkillAccess(ctx.db, userId, input.skillId);
+        const skill = await verifySkillAccess(ctx.db, userId, input.skillId);
+        // Project-scoped skill writes require the AI cap on that project.
+        // User-global skills (no projectId) skip the project-level check.
+        if (skill.projectId) {
+            await requireCap(ctx.db, userId, 'project.use_ai', {
+                projectId: skill.projectId,
+            });
+        }
         const patch: Record<string, unknown> = { updatedAt: new Date() };
         if (input.name !== undefined) patch.name = input.name;
         if (input.description !== undefined) patch.description = input.description;
@@ -154,7 +161,12 @@ export const skillsRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ skillId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifySkillAccess(ctx.db, ctx.user.id, input.skillId);
+            const skill = await verifySkillAccess(ctx.db, ctx.user.id, input.skillId);
+            if (skill.projectId) {
+                await requireCap(ctx.db, ctx.user.id, 'project.use_ai', {
+                    projectId: skill.projectId,
+                });
+            }
             await ctx.db.delete(skills).where(eq(skills.id, input.skillId));
             invalidateSkillsCache();
             return true;
@@ -209,7 +221,7 @@ export const skillsRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.user.id;
             if (input.projectId) {
-                await verifyProjectAccess(ctx.db, userId, input.projectId);
+                await requireCap(ctx.db, userId, 'project.use_ai', { projectId: input.projectId });
             }
             try {
                 const [row] = await ctx.db

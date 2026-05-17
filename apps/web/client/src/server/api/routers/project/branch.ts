@@ -20,8 +20,9 @@ import {
 } from '@weblab/db';
 import { calculateNonOverlappingPosition, generateUniqueBranchName } from '@weblab/utility';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { extractCsbPort, verifyProjectAccess } from './helper';
+import { extractCsbPort } from './helper';
 
 const SANDBOX_PRIVACY = 'private' as const;
 
@@ -42,7 +43,7 @@ export const branchRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             const dbBranches = await ctx.db.query.branches.findMany({
                 where: input.onlyDefault
                     ? and(eq(branches.isDefault, true), eq(branches.projectId, input.projectId))
@@ -71,7 +72,7 @@ export const branchRouter = createTRPCRouter({
                 message: 'projectId is required',
             });
         }
-        await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
         try {
             await ctx.db.insert(branches).values(input);
             return true;
@@ -97,7 +98,9 @@ export const branchRouter = createTRPCRouter({
                     message: 'Branch not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', {
+                projectId: existing.projectId,
+            });
 
             // Destructure id for the WHERE clause; spread the rest into SET.
             const { id, ...rest } = input;
@@ -133,7 +136,9 @@ export const branchRouter = createTRPCRouter({
                     message: 'Branch not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', {
+                projectId: existing.projectId,
+            });
             try {
                 await ctx.db.delete(branches).where(eq(branches.id, input.branchId));
                 return true;
@@ -169,7 +174,9 @@ export const branchRouter = createTRPCRouter({
                     });
                 }
 
-                await verifyProjectAccess(ctx.db, ctx.user.id, sourceBranch.projectId);
+                await requireCap(ctx.db, ctx.user.id, 'project.update', {
+                    projectId: sourceBranch.projectId,
+                });
 
                 // Get existing branch names for unique name generation
                 const existingBranches = await ctx.db.query.branches.findMany({
@@ -328,7 +335,7 @@ export const branchRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             try {
                 return await ctx.db.transaction(async (tx) => {
                     // Get existing branches with frames for unique name generation and port extraction

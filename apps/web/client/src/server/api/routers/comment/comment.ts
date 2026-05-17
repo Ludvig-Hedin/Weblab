@@ -3,15 +3,15 @@ import { z } from 'zod';
 
 import { projectComments } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 import { sanitiseAuthorName } from './helpers';
 
 export const commentCrudRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ projectId: z.string() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             // Defensive cap: comments are polled by the canvas overlay and
             // an unbounded findMany on busy projects can blow the response
             // payload. 500 is well above any realistic active-comment count;
@@ -38,7 +38,9 @@ export const commentCrudRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: input.projectId,
+            });
             const [comment] = await ctx.db
                 .insert(projectComments)
                 .values({
@@ -67,7 +69,9 @@ export const commentCrudRouter = createTRPCRouter({
             if (!existingComment) {
                 throw new Error('Comment not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingComment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingComment.projectId,
+            });
 
             const [comment] = await ctx.db
                 .update(projectComments)
@@ -91,7 +95,9 @@ export const commentCrudRouter = createTRPCRouter({
             if (!existingComment) {
                 throw new Error('Comment not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingComment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingComment.projectId,
+            });
 
             const [deleted] = await ctx.db
                 .delete(projectComments)
@@ -116,7 +122,9 @@ export const commentCrudRouter = createTRPCRouter({
             if (!existingComment) {
                 throw new Error('Comment not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingComment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingComment.projectId,
+            });
 
             const [comment] = await ctx.db
                 .update(projectComments)
@@ -135,7 +143,9 @@ export const commentCrudRouter = createTRPCRouter({
             if (!existingComment) {
                 throw new Error('Comment not found');
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, existingComment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.comment', {
+                projectId: existingComment.projectId,
+            });
 
             const [comment] = await ctx.db
                 .update(projectComments)

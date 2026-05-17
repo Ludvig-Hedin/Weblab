@@ -231,14 +231,18 @@ function PendingLocalImportBanner({
     );
 }
 
-export const SelectProject = () => {
+export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) => {
     const t = useTranslations('selectProject') as (
         key: string,
         values?: Record<string, string | number>,
     ) => string;
     const utils = api.useUtils();
     const { data: user } = api.user.get.useQuery();
-    const { data: fetchedProjects, isLoading, refetch } = api.project.list.useQuery();
+    const {
+        data: fetchedProjects,
+        isLoading,
+        refetch,
+    } = api.project.list.useQuery(workspaceId ? { workspaceId } : undefined);
     const { mutateAsync: removeTag } = api.project.removeTag.useMutation();
     const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const {

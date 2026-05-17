@@ -12,6 +12,7 @@ import { cn } from '@weblab/ui/utils';
 import type { EditorBootstrapData } from '../_hooks/use-start-project';
 import { ProjectCreationLoader } from '@/components/project-creation-loader';
 import { useEditorEngine } from '@/components/store/editor';
+import { ProjectCapabilitiesProvider } from '@/hooks/use-project-capabilities-context';
 import { useEditorStatePersistence } from '../_hooks/use-editor-state-persistence';
 import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
@@ -57,6 +58,10 @@ const FileFinder = dynamic(() => import('./file-finder').then((m) => m.FileFinde
 const ProjectSearch = dynamic(() => import('./project-search').then((m) => m.ProjectSearch), {
     ssr: false,
 });
+const PageSettingsDrawer = dynamic(
+    () => import('./page-settings-drawer').then((m) => m.PageSettingsDrawer),
+    { ssr: false },
+);
 const CmsBindDialog = dynamic(
     () => import('./cms-workspace/bind-dialog').then((m) => m.BindDialog),
     { ssr: false },
@@ -146,16 +151,18 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
 
     if (isMobile) {
         return (
-            <TooltipProvider>
-                <MobileLayout />
-                <SettingsModalWithProjects />
-                <SubscriptionModal />
-                <KeyboardShortcutsModal />
-                <ElementPalette />
-                <CommandPalette />
-                <FileFinder />
-                <ProjectSearch />
-            </TooltipProvider>
+            <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
+                <TooltipProvider>
+                    <MobileLayout />
+                    <SettingsModalWithProjects />
+                    <SubscriptionModal />
+                    <KeyboardShortcutsModal />
+                    <ElementPalette />
+                    <CommandPalette />
+                    <FileFinder />
+                    <ProjectSearch />
+                </TooltipProvider>
+            </ProjectCapabilitiesProvider>
         );
     }
 
@@ -167,102 +174,111 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     const isCms = editorEngine.state.editorMode === EditorMode.CMS;
 
     return (
-        <TooltipProvider>
-            {/* First-run tour. Suppressed during the prompt-driven creation
+        <ProjectCapabilitiesProvider projectId={editorEngine.projectId}>
+            <TooltipProvider>
+                {/* First-run tour. Suppressed during the prompt-driven creation
                 flow — the user is busy watching the AI scaffold their site,
                 not in a normal editor session yet. */}
-            <OnboardingTour suppressed={hasPendingCreation} />
-            <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
-                <Canvas />
+                <OnboardingTour suppressed={hasPendingCreation} />
+                <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
+                    <Canvas />
 
-                {/* Editor chrome — hidden only in full-screen preview mode.
+                    {/* Editor chrome — hidden only in full-screen preview mode.
                     In CMS mode the top bar stays visible so users can navigate
                     back to Design via the mode toggle. */}
-                <div className={cn('absolute top-0 w-full', isPreview && 'hidden')}>
-                    <TopBar />
-                </div>
-
-                {/* Left Panel */}
-                <div
-                    ref={leftPanelRef}
-                    className={cn(
-                        'absolute top-14 left-0 z-50 h-[calc(100%-49px)]',
-                        (isPreview || isCms) && 'hidden',
-                    )}
-                    style={isCode ? { right: toolbarRight } : undefined}
-                >
-                    <LeftPanel />
-                </div>
-                {/* EditorBar anchored between panels */}
-                <div
-                    className={cn('absolute top-14 z-49', (isPreview || isCms) && 'hidden')}
-                    style={{
-                        left: toolbarLeft,
-                        right: toolbarRight,
-                        overflow: 'hidden',
-                        pointerEvents: 'none',
-                        maxWidth: editorBarAvailableWidth,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                    }}
-                >
-                    <div style={{ pointerEvents: 'auto' }}>
-                        <EditorBar availableWidth={editorBarAvailableWidth} />
+                    <div className={cn('absolute top-0 w-full', isPreview && 'hidden')}>
+                        <TopBar />
                     </div>
-                </div>
 
-                {/* Right Panel */}
-                <div
-                    ref={rightPanelRef}
-                    data-tour="chat-panel"
-                    className={cn(
-                        'absolute top-14 right-0 z-50 h-[calc(100%-49px)]',
-                        (isPreview || isCms) && 'hidden',
+                    {/* Left Panel */}
+                    <div
+                        ref={leftPanelRef}
+                        className={cn(
+                            'absolute top-14 left-0 z-50 h-[calc(100%-49px)]',
+                            (isPreview || isCms) && 'hidden',
+                        )}
+                        style={isCode ? { right: toolbarRight } : undefined}
+                    >
+                        <LeftPanel />
+                    </div>
+                    {/* EditorBar anchored between panels */}
+                    <div
+                        className={cn('absolute top-14 z-49', (isPreview || isCms) && 'hidden')}
+                        style={{
+                            left: toolbarLeft,
+                            right: toolbarRight,
+                            overflow: 'hidden',
+                            pointerEvents: 'none',
+                            maxWidth: editorBarAvailableWidth,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'flex-start',
+                        }}
+                    >
+                        <div style={{ pointerEvents: 'auto' }}>
+                            <EditorBar availableWidth={editorBarAvailableWidth} />
+                        </div>
+                    </div>
+
+                    {/* Right Panel */}
+                    <div
+                        ref={rightPanelRef}
+                        data-tour="chat-panel"
+                        className={cn(
+                            'absolute top-14 right-0 z-50 h-[calc(100%-49px)]',
+                            (isPreview || isCms) && 'hidden',
+                        )}
+                    >
+                        <RightPanel />
+                    </div>
+
+                    {/* Per-page settings drawer — opened from the Pages tab cog.
+                    Anchored to the right of the left panel via toolbarLeft.
+                    Hidden in preview/CMS/code modes where the layout differs. */}
+                    {!isPreview && !isCms && !isCode && (
+                        <PageSettingsDrawer toolbarLeft={toolbarLeft} />
                     )}
-                >
-                    <RightPanel />
-                </div>
 
-                {/* BottomBar — anchored between the side panels so it stays
+                    {/* BottomBar — anchored between the side panels so it stays
                     visually centered within the canvas area as panels resize. */}
-                <div
-                    className={cn(
-                        'pointer-events-none absolute bottom-0 z-40 flex justify-center',
-                        (isPreview || isCms) && 'hidden',
-                    )}
-                    style={{ left: toolbarLeft, right: toolbarRight }}
-                >
-                    <div className="pointer-events-auto">
-                        <BottomBar />
+                    <div
+                        className={cn(
+                            'pointer-events-none absolute bottom-0 z-40 flex justify-center',
+                            (isPreview || isCms) && 'hidden',
+                        )}
+                        style={{ left: toolbarLeft, right: toolbarRight }}
+                    >
+                        <div className="pointer-events-auto">
+                            <BottomBar />
+                        </div>
                     </div>
-                </div>
 
-                {/* Full-viewport preview overlay — covers all editor chrome
+                    {/* Full-viewport preview overlay — covers all editor chrome
                     when in PREVIEW mode (the chrome is also hidden via the
                     isPreview guards above so background interactions can't
                     leak through). */}
-                {isPreview && <PreviewOverlay />}
+                    {isPreview && <PreviewOverlay />}
 
-                {/* Offline / sync banner. Visible only when the editor session
+                    {/* Offline / sync banner. Visible only when the editor session
                     is offline or there are queued/dead-letter writes. */}
-                <div className="pointer-events-none absolute top-16 right-4 z-50 max-w-xs">
-                    <OfflineBanner />
-                </div>
+                    <div className="pointer-events-none absolute top-16 right-4 z-50 max-w-xs">
+                        <OfflineBanner />
+                    </div>
 
-                {/* CMS workspace — sits below the top bar (top-14) and replaces
+                    {/* CMS workspace — sits below the top bar (top-14) and replaces
                     the canvas/side panels while in CMS mode. */}
-                {isCms && <CmsWorkspace />}
-            </div>
-            <SettingsModalWithProjects />
-            <SubscriptionModal />
-            <KeyboardShortcutsModal />
-            <ElementPalette />
-            <CommandPalette />
-            <FileFinder />
-            <ProjectSearch />
-            <CmsBindDialog />
-            <CmsDataPusher />
-        </TooltipProvider>
+                    {isCms && <CmsWorkspace />}
+                </div>
+                <SettingsModalWithProjects />
+                <SubscriptionModal />
+                <KeyboardShortcutsModal />
+                <ElementPalette />
+                <CommandPalette />
+                <FileFinder />
+                <ProjectSearch />
+                <CmsBindDialog />
+                <CmsDataPusher />
+            </TooltipProvider>
+        </ProjectCapabilitiesProvider>
     );
 });

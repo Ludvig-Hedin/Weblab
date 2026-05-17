@@ -19,6 +19,8 @@ import { Icons } from '@weblab/ui/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { cn } from '@weblab/ui/utils';
 
+import { useActiveWorkspaceMaybe } from '@/app/w/[slug]/_components/workspace-context';
+import { WorkspaceSwitcher } from '@/app/w/[slug]/_components/workspace-switcher';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
@@ -123,12 +125,20 @@ function ProjectsDropdown() {
 
 export const TopBar = () => {
     const t = useTranslations('projectsTopBar');
+    const activeWorkspace = useActiveWorkspaceMaybe();
 
     return (
         <div className="text-small text-foreground-secondary mx-auto flex w-full max-w-6xl items-center gap-4 p-4">
             <Link href={Routes.HOME} className="flex shrink-0 items-center py-3">
                 <BrandLogo className="h-4" />
             </Link>
+
+            {activeWorkspace ? (
+                <>
+                    <span className="text-foreground-tertiary">/</span>
+                    <WorkspaceSwitcher />
+                </>
+            ) : null}
 
             <div className="flex shrink-0 items-center gap-5">
                 <ProjectsDropdown />

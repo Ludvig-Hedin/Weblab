@@ -61,6 +61,7 @@
         "@uiw/codemirror-extensions-basic-setup": "^4.23.10",
         "@uiw/react-codemirror": "^4.23.10",
         "@vercel/otel": "^1.13.0",
+        "@weblab/auth": "*",
         "@weblab/code-provider": "*",
         "@weblab/constants": "*",
         "@weblab/db": "*",

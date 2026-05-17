@@ -5,8 +5,8 @@ import type { DrizzleDb } from '@weblab/db';
 import { cmsCollections, cmsFields, cmsItems } from '@weblab/db';
 import { CmsItemStatus } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from '../project/helper';
 import { buildItemValuesSchema } from './values';
 
 async function loadCollectionWithFields(db: DrizzleDb, projectId: string, collectionId: string) {
@@ -31,7 +31,7 @@ export const cmsItemRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             await loadCollectionWithFields(ctx.db, input.projectId, input.collectionId);
             return ctx.db.query.cmsItems.findMany({
                 where: eq(cmsItems.collectionId, input.collectionId),
@@ -42,7 +42,7 @@ export const cmsItemRouter = createTRPCRouter({
     get: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), itemId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             // Project-scope check via the collection. Items don't carry
             // projectId directly; we trust the collection FK.
             const item = await ctx.db.query.cmsItems.findFirst({
@@ -65,7 +65,7 @@ export const cmsItemRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const { fields } = await loadCollectionWithFields(
                 ctx.db,
                 input.projectId,
@@ -97,7 +97,7 @@ export const cmsItemRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsItems.findFirst({
                 where: eq(cmsItems.id, input.itemId),
                 with: { collection: true },
@@ -132,7 +132,7 @@ export const cmsItemRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), itemId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsItems.findFirst({
                 where: eq(cmsItems.id, input.itemId),
                 with: { collection: true },

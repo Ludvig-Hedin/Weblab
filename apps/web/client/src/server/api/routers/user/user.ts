@@ -1,8 +1,20 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import type { Capability } from '@weblab/auth';
 import type { User } from '@weblab/db';
-import { authUsers, fromDbUser, userInsertSchema, users } from '@weblab/db';
+import type { ProjectAccessMode, ProjectMemberRole, WorkspaceRole } from '@weblab/models';
+import { can, CAPABILITIES } from '@weblab/auth';
+import {
+    authUsers,
+    fromDbUser,
+    projects,
+    userInsertSchema,
+    userProjects,
+    users,
+    workspaceMembers,
+    workspaces,
+} from '@weblab/db';
 import { extractNames } from '@weblab/utility';
 
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -143,6 +155,81 @@ export const userRouter = createTRPCRouter({
     delete: protectedProcedure.mutation(async ({ ctx }) => {
         await ctx.db.delete(authUsers).where(eq(authUsers.id, ctx.user.id));
     }),
+    /**
+     * Returns the caller's capability set for the requested resource.
+     * Used by the dashboard / editor to gate write affordances. The server
+     * remains the trust boundary — UI gating is a hint only.
+     */
+    capabilities: protectedProcedure
+        .input(
+            z
+                .object({
+                    workspaceId: z.string().uuid().optional(),
+                    projectId: z.string().uuid().optional(),
+                })
+                .refine((v) => v.workspaceId || v.projectId, {
+                    message: 'capabilities requires workspaceId or projectId',
+                }),
+        )
+        .query(async ({ ctx, input }): Promise<Capability[]> => {
+            const userId = ctx.user.id;
+
+            let workspaceId = input.workspaceId;
+            let project:
+                | { id: string; accessMode: ProjectAccessMode; workspaceId: string }
+                | undefined;
+
+            if (input.projectId) {
+                const row = await ctx.db.query.projects.findFirst({
+                    where: eq(projects.id, input.projectId),
+                    columns: { id: true, workspaceId: true, accessMode: true },
+                });
+                if (!row?.workspaceId) return [];
+                project = {
+                    id: row.id,
+                    accessMode: row.accessMode,
+                    workspaceId: row.workspaceId,
+                };
+                workspaceId = row.workspaceId;
+            }
+
+            if (!workspaceId) return [];
+
+            const ws = await ctx.db.query.workspaces.findFirst({
+                where: eq(workspaces.id, workspaceId),
+                columns: { id: true, createdByUserId: true },
+            });
+            if (!ws) return [];
+
+            const wsMembership = await ctx.db.query.workspaceMembers.findFirst({
+                where: and(
+                    eq(workspaceMembers.workspaceId, ws.id),
+                    eq(workspaceMembers.userId, userId),
+                ),
+                columns: { role: true },
+            });
+
+            let projectRole: ProjectMemberRole | null = null;
+            if (project) {
+                const pm = await ctx.db.query.userProjects.findFirst({
+                    where: and(
+                        eq(userProjects.projectId, project.id),
+                        eq(userProjects.userId, userId),
+                    ),
+                    columns: { memberRole: true },
+                });
+                projectRole = pm?.memberRole ?? null;
+            }
+
+            const resource = {
+                workspace: { id: ws.id, createdByUserId: ws.createdByUserId },
+                workspaceRole: (wsMembership?.role as WorkspaceRole | undefined) ?? null,
+                project,
+                projectRole,
+            };
+
+            return CAPABILITIES.filter((cap) => can(cap, resource));
+        }),
 });
 
 function getUserName(authUser: SupabaseUser) {

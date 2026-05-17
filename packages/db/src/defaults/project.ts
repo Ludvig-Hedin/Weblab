@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import type { Project as DbProject } from '@weblab/db';
+import { ProjectAccessMode } from '@weblab/models';
 
 export const createDefaultProject = ({
     overrides = {},
@@ -20,6 +21,8 @@ export const createDefaultProject = ({
         updatedPreviewImgAt: null,
         storageMode: 'cloud',
         runtimeMetadata: {},
+        workspaceId: null,
+        accessMode: ProjectAccessMode.RESTRICTED,
         ...overrides,
 
         // deprecated

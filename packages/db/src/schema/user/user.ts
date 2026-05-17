@@ -6,6 +6,10 @@ import { projectInvitations } from '../project';
 import { usageRecords } from '../subscription';
 import { subscriptions } from '../subscription/subscription';
 import { authUsers } from '../supabase';
+import { projectMembers } from '../workspace/project-member';
+import { workspaceInvitations } from '../workspace/invitation';
+import { workspaceMembers } from '../workspace/member';
+import { workspaces } from '../workspace/workspace';
 import { userSettings } from './settings';
 import { userCanvases } from './user-canvas';
 import { userProjects } from './user-project';
@@ -33,6 +37,10 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     subscriptions: many(subscriptions),
     usageRecords: many(usageRecords),
     projectInvitations: many(projectInvitations),
+    workspacesCreated: many(workspaces),
+    workspaceMembers: many(workspaceMembers),
+    workspaceInvitations: many(workspaceInvitations),
+    projectMembers: many(projectMembers),
 }));
 
 export const userInsertSchema = createInsertSchema(users);

@@ -3,10 +3,10 @@ import { and, desc, eq, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { deployments, deploymentUpdateSchema } from '@weblab/db';
-import { DeploymentStatus, DeploymentType } from '@weblab/models';
+import { DeploymentStatus, DeploymentType, HostingProvider } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from '../project/helper';
 import { updateDeployment } from './helpers';
 import { createDeployment, publish } from './helpers/index.ts';
 
@@ -20,7 +20,7 @@ export const deploymentRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
             const { projectId, type } = input;
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: projectId });
             const deployment = await ctx.db.query.deployments.findFirst({
                 where: and(eq(deployments.projectId, projectId), eq(deployments.type, type)),
                 orderBy: desc(deployments.createdAt),
@@ -37,7 +37,7 @@ export const deploymentRouter = createTRPCRouter({
                 message: 'Deployment not found',
             });
         }
-        await verifyProjectAccess(ctx.db, ctx.user.id, existing.projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.deploy', { projectId: existing.projectId });
         return await updateDeployment(ctx.db, input);
     }),
     create: protectedProcedure
@@ -49,12 +49,14 @@ export const deploymentRouter = createTRPCRouter({
                 buildScript: z.string().optional(),
                 buildFlags: z.string().optional(),
                 envVars: z.record(z.string(), z.string()).optional(),
+                provider: z.enum(HostingProvider).optional(),
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            const { projectId, type, sandboxId, buildScript, buildFlags, envVars } = input;
+            const { projectId, type, sandboxId, buildScript, buildFlags, envVars, provider } =
+                input;
 
-            await verifyProjectAccess(ctx.db, ctx.user.id, projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', { projectId: projectId });
 
             const userId = ctx.user.id;
 
@@ -87,6 +89,7 @@ export const deploymentRouter = createTRPCRouter({
                 buildScript,
                 buildFlags,
                 envVars,
+                provider,
             });
         }),
     run: protectedProcedure
@@ -106,7 +109,9 @@ export const deploymentRouter = createTRPCRouter({
                     message: 'Deployment not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, deploymentRow.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.publish', {
+                projectId: deploymentRow.projectId,
+            });
             const existingDeployment = await ctx.db.query.deployments.findFirst({
                 where: and(
                     eq(deployments.id, deploymentId),
@@ -175,13 +180,84 @@ export const deploymentRouter = createTRPCRouter({
                     message: 'Deployment not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, deployment.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.deploy', {
+                projectId: deployment.projectId,
+            });
 
             await updateDeployment(ctx.db, {
                 id: deploymentId,
                 status: DeploymentStatus.CANCELLED,
                 message: 'Cancelled by user',
                 envVars: deployment.envVars ?? {},
+            });
+        }),
+    list: protectedProcedure
+        .input(
+            z.object({
+                projectId: z.string(),
+                limit: z.number().int().min(1).max(100).optional(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const { projectId, limit = 25 } = input;
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: projectId });
+            return ctx.db.query.deployments.findMany({
+                where: eq(deployments.projectId, projectId),
+                orderBy: desc(deployments.createdAt),
+                limit,
+            });
+        }),
+    redeploy: protectedProcedure
+        .input(
+            z.object({
+                deploymentId: z.string(),
+            }),
+        )
+        .mutation(async ({ ctx, input }) => {
+            const source = await ctx.db.query.deployments.findFirst({
+                where: eq(deployments.id, input.deploymentId),
+            });
+            if (!source) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Deployment not found',
+                });
+            }
+            await requireCap(ctx.db, ctx.user.id, 'project.deploy', {
+                projectId: source.projectId,
+            });
+            if (!source.sandboxId) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'Original deployment has no sandbox; cannot redeploy.',
+                });
+            }
+            const inFlight = await ctx.db.query.deployments.findFirst({
+                where: and(
+                    eq(deployments.projectId, source.projectId),
+                    eq(deployments.type, source.type),
+                    or(
+                        eq(deployments.status, DeploymentStatus.IN_PROGRESS),
+                        eq(deployments.status, DeploymentStatus.PENDING),
+                    ),
+                ),
+            });
+            if (inFlight) {
+                throw new TRPCError({
+                    code: 'BAD_REQUEST',
+                    message: 'A deployment is already in progress for this target.',
+                });
+            }
+            return createDeployment({
+                db: ctx.db,
+                projectId: source.projectId,
+                type: source.type,
+                userId: ctx.user.id,
+                sandboxId: source.sandboxId,
+                buildScript: source.buildScript ?? undefined,
+                buildFlags: source.buildFlags ?? undefined,
+                envVars: source.envVars ?? undefined,
+                provider: source.provider,
             });
         }),
 });

@@ -8,8 +8,19 @@ import { toast } from 'sonner';
 import type { FrameworkId } from '@weblab/framework';
 
 import { useAuthContext } from '@/app/auth/auth-context';
+import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
+
+function readActiveWorkspaceId(): string | undefined {
+    if (typeof window === 'undefined') return undefined;
+    try {
+        const id = window.localStorage.getItem(ACTIVE_WORKSPACE_STORAGE_KEY);
+        return id && id.length > 0 ? id : undefined;
+    } catch {
+        return undefined;
+    }
+}
 
 export type BlankCreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
 
@@ -42,6 +53,7 @@ export function useCreateBlankProject() {
             setPhase('creating-project');
             const newProject = await createBlankProject({
                 framework,
+                workspaceId: readActiveWorkspaceId(),
             });
 
             if (newProject) {

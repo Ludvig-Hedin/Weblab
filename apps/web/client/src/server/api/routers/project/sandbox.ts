@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import type { Capability } from '@weblab/auth';
 import type { DrizzleDb } from '@weblab/db';
 import {
     CodeProvider,
@@ -18,10 +19,21 @@ import { branches } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
 import { env } from '@/env';
+import { requireCap } from '../../permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from './helper';
 
-async function verifySandboxAccess(db: DrizzleDb, userId: string, sandboxId: string) {
+/**
+ * SECURITY: defaults to `project.update` because every sandbox path that
+ * isn't a pure read can run user-supplied commands or write files — RCE
+ * surface. Read-only callers (the `list` query) must pass `'project.view'`
+ * explicitly. Do NOT add a new caller without picking a cap.
+ */
+async function verifySandboxAccess(
+    db: DrizzleDb,
+    userId: string,
+    sandboxId: string,
+    cap: Capability = 'project.update',
+) {
     const branch = await db.query.branches.findFirst({
         where: eq(branches.sandboxId, sandboxId),
     });
@@ -31,7 +43,7 @@ async function verifySandboxAccess(db: DrizzleDb, userId: string, sandboxId: str
             message: 'Sandbox not found',
         });
     }
-    await verifyProjectAccess(db, userId, branch.projectId);
+    await requireCap(db, userId, cap, { projectId: branch.projectId });
     return branch;
 }
 
@@ -336,7 +348,12 @@ export const sandboxRouter = createTRPCRouter({
         .input(z.object({ sandboxId: z.string() }))
         .query(async ({ input, ctx }) => {
             // CR-118: verify caller owns the sandbox before listing its projects.
-            const branch = await verifySandboxAccess(ctx.db, ctx.user.id, input.sandboxId);
+            const branch = await verifySandboxAccess(
+                ctx.db,
+                ctx.user.id,
+                input.sandboxId,
+                'project.view',
+            );
             const provider = await getProvider({
                 sandboxId: input.sandboxId,
                 provider: getBranchCloudProvider(branch),

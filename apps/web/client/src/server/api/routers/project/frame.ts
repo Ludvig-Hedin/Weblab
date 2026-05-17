@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 import { canvases, frameInsertSchema, frames, frameUpdateSchema, fromDbFrame } from '@weblab/db';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
-import { verifyProjectAccess } from './helper';
 
 export const frameRouter = createTRPCRouter({
     get: protectedProcedure
@@ -27,7 +27,7 @@ export const frameRouter = createTRPCRouter({
             if (!canvas) {
                 return null;
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, canvas.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: canvas.projectId });
             return fromDbFrame(dbFrame);
         }),
     getByCanvas: protectedProcedure
@@ -43,7 +43,7 @@ export const frameRouter = createTRPCRouter({
             if (!canvas) {
                 return [];
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, canvas.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: canvas.projectId });
             const dbFrames = await ctx.db.query.frames.findMany({
                 where: eq(frames.canvasId, input.canvasId),
                 orderBy: (frames, { asc }) => [asc(frames.x), asc(frames.y)],
@@ -66,7 +66,7 @@ export const frameRouter = createTRPCRouter({
                 message: 'Canvas not found',
             });
         }
-        await verifyProjectAccess(ctx.db, ctx.user.id, canvas.projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: canvas.projectId });
         try {
             await ctx.db.insert(frames).values(input);
             return true;
@@ -98,7 +98,7 @@ export const frameRouter = createTRPCRouter({
                 message: 'Canvas not found',
             });
         }
-        await verifyProjectAccess(ctx.db, ctx.user.id, canvas.projectId);
+        await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: canvas.projectId });
         try {
             await ctx.db.update(frames).set(input).where(eq(frames.id, input.id));
             return true;
@@ -136,7 +136,9 @@ export const frameRouter = createTRPCRouter({
                     message: 'Canvas not found',
                 });
             }
-            await verifyProjectAccess(ctx.db, ctx.user.id, canvas.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', {
+                projectId: canvas.projectId,
+            });
             try {
                 await ctx.db.delete(frames).where(eq(frames.id, input.frameId));
                 return true;

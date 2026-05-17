@@ -34,6 +34,7 @@ import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle
 import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
 import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
+import { useProjectCapabilitiesContext } from '@/hooks/use-project-capabilities-context';
 import { transKeys } from '@/i18n/keys';
 import { useAiAvailability } from '@/services/offline/ai-availability';
 import { api } from '@/trpc/react';
@@ -98,6 +99,10 @@ export const ChatInput = observer(
         const chatMode = editorEngine.state.chatMode;
         const currentConversation = editorEngine.chat.conversation.current;
         const aiAvailability = useAiAvailability(model);
+        const { canUseAi: hasAiCap } = useProjectCapabilitiesContext();
+        // Viewer / reviewer projects: AI is read-only. We OR this with the
+        // runtime availability flag so quota / offline messages still apply.
+        const aiAllowed = aiAvailability.canUseAi && hasAiCap;
         const [inputValue, setInputValue] = useState('');
         const [suggestions, setSuggestions] = useState<ChatSuggestion[]>(
             () => currentConversation?.suggestions ?? [],
@@ -319,6 +324,12 @@ export const ChatInput = observer(
         };
 
         async function sendMessage() {
+            if (!hasAiCap) {
+                // Defensive: hook gating may flicker; server is the trust
+                // boundary but we don't want a keyboard-enter to surprise
+                // viewers with a FORBIDDEN toast.
+                return;
+            }
             if (inputEmpty) {
                 console.warn('Empty message');
                 return;
@@ -335,6 +346,9 @@ export const ChatInput = observer(
         }
 
         const getPlaceholderText = () => {
+            if (!hasAiCap) {
+                return 'Viewer access — AI is read-only';
+            }
             if (!aiAvailability.canUseAi) {
                 return aiAvailability.message;
             }
@@ -688,8 +702,8 @@ export const ChatInput = observer(
                 slashCommands={slashCommands}
                 className="text-foreground-tertiary text-small p-1.5 transition-colors duration-200"
                 surfaceClassName="focus-within:border-border"
-                submitDisabled={inputEmpty || !aiAvailability.canUseAi}
-                disabled={!aiAvailability.canUseAi}
+                submitDisabled={inputEmpty || !aiAllowed}
+                disabled={!aiAllowed}
                 showStopButton={isStreaming}
                 onStop={onStop}
                 showMicButton

@@ -17,11 +17,13 @@ import {
 } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-folder';
+import { useProjectCapabilitiesContext } from '@/hooks/use-project-capabilities-context';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
@@ -37,8 +39,11 @@ export const ProjectBreadcrumb = observer(() => {
     const { data: project } = api.project.get.useQuery({
         projectId: editorEngine.projectId,
     });
+    const utils = api.useUtils();
     const { data: subscription } = api.subscription.get.useQuery();
     const isPro = subscription?.product.type === ProductType.PRO;
+    const { canView, canEdit, isLoading: capsLoading } = useProjectCapabilitiesContext();
+    const showViewerPill = !capsLoading && canView && !canEdit;
     const t = useTranslations();
     const closeTimeoutRef = useRef<Timer | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -55,9 +60,27 @@ export const ProjectBreadcrumb = observer(() => {
         } catch (error) {
             console.error('Failed to take screenshots:', error);
         } finally {
-            setTimeout(() => {
+            // Route back to the project's owning workspace so editors that
+            // launched from a team workspace return there. Falls back to
+            // `/projects` (which itself redirects to first workspace) if the
+            // project's workspace can't be resolved.
+            const targetWsId = (project as { workspaceId?: string | null } | null)?.workspaceId;
+            const finish = (href: string) => {
                 setIsClosingProject(false);
-                router.push(Routes.PROJECTS);
+                router.push(href);
+            };
+            setTimeout(() => {
+                if (!targetWsId) {
+                    finish(Routes.PROJECTS);
+                    return;
+                }
+                utils.workspace.list
+                    .ensureData()
+                    .then((list) => {
+                        const target = list.find((w) => w.id === targetWsId);
+                        finish(target ? `/w/${target.slug}/projects` : Routes.PROJECTS);
+                    })
+                    .catch(() => finish(Routes.PROJECTS));
             }, 100);
         }
     }
@@ -211,6 +234,24 @@ export const ProjectBreadcrumb = observer(() => {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {showViewerPill && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge
+                                variant="secondary"
+                                className="bg-foreground/10 text-foreground-secondary text-micro rounded-full px-2 py-0.5 font-medium"
+                            >
+                                Viewer access
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            You are viewing this project in read-only mode. Editing is disabled.
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
 
             <CloneProjectDialog
                 isOpen={showCloneDialog}

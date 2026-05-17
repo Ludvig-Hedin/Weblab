@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { cmsBindings, cmsCollectionPages, cmsCollections } from '@weblab/db';
 import { CmsBindingKind } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 const pagePathSchema = z
     .string()
@@ -28,7 +28,7 @@ export const cmsCollectionPageRouter = createTRPCRouter({
     list: protectedProcedure
         .input(z.object({ projectId: z.string().uuid() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             return ctx.db.query.cmsCollectionPages.findMany({
                 where: eq(cmsCollectionPages.projectId, input.projectId),
                 orderBy: (p, { asc }) => [asc(p.createdAt)],
@@ -42,7 +42,7 @@ export const cmsCollectionPageRouter = createTRPCRouter({
     getForPath: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), pagePath: z.string() }))
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             return ctx.db.query.cmsCollectionPages.findFirst({
                 where: and(
                     eq(cmsCollectionPages.projectId, input.projectId),
@@ -60,7 +60,7 @@ export const cmsCollectionPageRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             // Sanity: collection must belong to the project.
             const collection = await ctx.db.query.cmsCollections.findFirst({
                 where: and(
@@ -103,7 +103,7 @@ export const cmsCollectionPageRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), id: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             await ctx.db
                 .delete(cmsCollectionPages)
                 .where(

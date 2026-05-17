@@ -7,6 +7,7 @@ import { Icons } from '@weblab/ui/icons';
 import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
+import { useProjectCapabilitiesContext } from '@/hooks/use-project-capabilities-context';
 import { MembersContent } from './members-content';
 
 interface MembersProps {
@@ -15,6 +16,12 @@ interface MembersProps {
 
 export const Members = ({ onPopoverOpenChange }: MembersProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { canInvite, canManageAccess, isLoading: capsLoading } = useProjectCapabilitiesContext();
+    // Viewer / reviewer / unrelated workspace member: hide the invite trigger
+    // entirely. Managers AND workspace owners/admins (recovery) keep access.
+    if (!capsLoading && !canInvite && !canManageAccess) {
+        return null;
+    }
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);

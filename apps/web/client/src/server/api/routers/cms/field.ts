@@ -6,8 +6,8 @@ import type { DrizzleDb } from '@weblab/db';
 import { cmsCollections, cmsFields } from '@weblab/db';
 import { CmsFieldType } from '@weblab/models';
 
+import { requireCap } from '@/server/api/permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc';
-import { verifyProjectAccess } from '../project/helper';
 
 const fieldKeySchema = z
     .string()
@@ -41,7 +41,7 @@ export const cmsFieldRouter = createTRPCRouter({
             }),
         )
         .query(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.view', { projectId: input.projectId });
             await assertCollectionInProject(ctx.db, input.projectId, input.collectionId);
             return ctx.db.query.cmsFields.findMany({
                 where: eq(cmsFields.collectionId, input.collectionId),
@@ -62,7 +62,7 @@ export const cmsFieldRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             await assertCollectionInProject(ctx.db, input.projectId, input.collectionId);
             const existing = await ctx.db.query.cmsFields.findMany({
                 where: eq(cmsFields.collectionId, input.collectionId),
@@ -104,7 +104,7 @@ export const cmsFieldRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsFields.findFirst({
                 where: eq(cmsFields.id, input.fieldId),
                 with: { collection: true },
@@ -136,7 +136,7 @@ export const cmsFieldRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             await assertCollectionInProject(ctx.db, input.projectId, input.collectionId);
             await ctx.db.transaction(async (tx) => {
                 // CR-114: fetch all fields in one query, then do one bulk UPDATE
@@ -177,7 +177,7 @@ export const cmsFieldRouter = createTRPCRouter({
     delete: protectedProcedure
         .input(z.object({ projectId: z.string().uuid(), fieldId: z.string().uuid() }))
         .mutation(async ({ ctx, input }) => {
-            await verifyProjectAccess(ctx.db, ctx.user.id, input.projectId);
+            await requireCap(ctx.db, ctx.user.id, 'project.update', { projectId: input.projectId });
             const existing = await ctx.db.query.cmsFields.findFirst({
                 where: eq(cmsFields.id, input.fieldId),
                 with: { collection: true },

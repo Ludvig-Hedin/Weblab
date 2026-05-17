@@ -16,9 +16,10 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
     const apiUtils = api.useUtils();
     const initials = getInitials(invitation.inviteeEmail ?? '');
     const [isCopied, setIsCopied] = useState(false);
-    const cancelInvitationMutation = api.invitation.delete.useMutation({
+    const cancelInvitationMutation = api.invitation.revoke.useMutation({
         onSuccess: () => {
             apiUtils.invitation.list.invalidate();
+            apiUtils.project.listAccess.invalidate({ projectId: invitation.projectId });
         },
     });
 
@@ -50,7 +51,7 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
             </div>
             <div className="flex flex-row items-center justify-center">
                 <Tooltip>
-                    <TooltipTrigger>
+                    <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={copyInvitationLink}>
                             {isCopied ? (
                                 <Icons.Check className="text-muted-foreground size-4 transition-colors" />
@@ -64,7 +65,7 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
                     </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                    <TooltipTrigger>
+                    <TooltipTrigger asChild>
                         <Button
                             variant="ghost"
                             size="icon"
