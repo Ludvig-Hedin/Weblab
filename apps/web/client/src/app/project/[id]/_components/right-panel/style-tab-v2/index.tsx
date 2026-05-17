@@ -14,7 +14,7 @@ import { ContentSection } from './sections/content';
 import { CustomPropertiesSection } from './sections/custom-properties';
 import { EffectsSection } from './sections/effects';
 import { ElementHeaderSection } from './sections/element-header';
-import { InteractionsSection } from './sections/interactions';
+import { CursorInputSection } from './sections/interactions';
 import { LayoutSection } from './sections/layout';
 import { PositionSection } from './sections/position';
 import { SizeSection } from './sections/size';
@@ -50,7 +50,12 @@ export const StyleTabV2 = observer(function StyleTabV2() {
                 one continuous column. The first Section renders its own
                 top-border hairline, so we don't add a divider here. */}
             <ElementHeaderSection />
-            <Accordion type="multiple" value={open} onValueChange={setOpen} className="px-0 pb-6 w-full max-w-full">
+            <Accordion
+                type="multiple"
+                value={open}
+                onValueChange={setOpen}
+                className="w-full max-w-full px-0 pb-6"
+            >
                 <ContentSection />
                 <LayoutSection />
                 <SpacingSection />
@@ -62,7 +67,7 @@ export const StyleTabV2 = observer(function StyleTabV2() {
                 <EffectsSection />
                 <TransformsSection />
                 <TransitionsSection />
-                <InteractionsSection />
+                <CursorInputSection />
                 <CustomPropertiesSection />
             </Accordion>
         </ScrollArea>

@@ -41,8 +41,11 @@ const StyleTab = env.NEXT_PUBLIC_STYLE_PANEL_V3
 const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.CommentsTab), {
     ssr: false,
 });
+const InteractionsTab = dynamic(() => import('./interactions-tab').then((m) => m.InteractionsTab), {
+    ssr: false,
+});
 
-type RightPanelTab = 'style' | 'chat';
+type RightPanelTab = 'style' | 'interactions' | 'chat';
 
 const DEFAULT_PANEL_WIDTH = 352;
 // While the project is being scaffolded from a prompt the chat is the primary
@@ -72,7 +75,7 @@ export const RightPanel = observer(() => {
     const isCommentMode = editorEngine.state.editorMode === EditorMode.COMMENT;
 
     useEffect(() => {
-        if (isCodeMode && activeTab === 'style') {
+        if (isCodeMode && (activeTab === 'style' || activeTab === 'interactions')) {
             setActiveTab('chat');
         }
     }, [isCodeMode, activeTab]);
@@ -108,6 +111,9 @@ export const RightPanel = observer(() => {
     }, [hasElementSelection, isCodeMode, activeTab]);
 
     const showStyleDot = hasElementSelection && activeTab !== 'style' && !isCodeMode;
+    const hasAnyInteractions =
+        editorEngine.interactions.isLoaded && editorEngine.interactions.interactions.length > 0;
+    const showInteractionsDot = hasAnyInteractions && activeTab !== 'interactions' && !isCodeMode;
 
     return (
         <div
@@ -242,6 +248,42 @@ export const RightPanel = observer(() => {
                                                 </Tooltip>
                                             );
                                         })()}
+                                        {(() => {
+                                            const interactionsTrigger = (
+                                                <TabsTrigger
+                                                    value="interactions"
+                                                    disabled={isCodeMode}
+                                                    className={cn(
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                        isCodeMode &&
+                                                            'cursor-not-allowed opacity-40',
+                                                    )}
+                                                >
+                                                    <Icons.CursorArrow className="h-3 w-3" />
+                                                    {t(
+                                                        transKeys.editor.panels.edit.tabs
+                                                            .interactions.name,
+                                                    )}
+                                                    {showInteractionsDot && (
+                                                        <span className="bg-foreground-brand absolute top-1 right-1 h-1.5 w-1.5 rounded-full" />
+                                                    )}
+                                                </TabsTrigger>
+                                            );
+                                            if (!isCodeMode) return interactionsTrigger;
+                                            return (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        {interactionsTrigger}
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="bottom" hideArrow>
+                                                        {t(
+                                                            transKeys.editor.panels.edit.tabs
+                                                                .interactions.availableInDesignMode,
+                                                        )}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            );
+                                        })()}
                                         <div className="bg-border-tab-divider h-3.5 w-px self-center" />
                                         <TabsTrigger
                                             value="chat"
@@ -322,6 +364,13 @@ export const RightPanel = observer(() => {
                                         chunk; gating render avoids paying for the
                                         observer subtree on first paint. */}
                                     {activeTab === 'style' && <StyleTab />}
+                                </TabsContent>
+
+                                <TabsContent
+                                    value="interactions"
+                                    className="min-h-0 flex-1 overflow-hidden"
+                                >
+                                    {activeTab === 'interactions' && <InteractionsTab />}
                                 </TabsContent>
 
                                 <TabsContent

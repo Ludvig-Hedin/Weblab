@@ -217,8 +217,8 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                         path: f.path,
                         content:
                             f.type === ProcessedFileType.BINARY
-                                ? Array.from(new Uint8Array(f.content as ArrayBuffer))
-                                : (f.content as string),
+                                ? Array.from(new Uint8Array(f.content))
+                                : f.content,
                     })),
                     runSetup: true,
                 });

@@ -260,7 +260,14 @@ export const BindDialog = observer(() => {
         } else if (b.kind === CmsBindingKind.CURRENT_FIELD) {
             setCurrentFieldKey(b.fieldKey);
         }
-    }, [open, oid, existingBinding, pagesQuery.data, bindingsQuery.isPending, pagesQuery.isPending]);
+    }, [
+        open,
+        oid,
+        existingBinding,
+        pagesQuery.data,
+        bindingsQuery.isPending,
+        pagesQuery.isPending,
+    ]);
 
     // When the user picks a collection without a registered detail page,
     // the PAGE_ITEM_FIELD radio gets disabled but the kind state can stay on

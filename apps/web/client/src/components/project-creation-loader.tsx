@@ -81,10 +81,7 @@ export function ProjectCreationLoader({
                             const isDone = step.ready;
                             const isActive = !isDone && index === activeIndex;
                             return (
-                                <li
-                                    key={index}
-                                    className="flex items-center gap-3"
-                                >
+                                <li key={index} className="flex items-center gap-3">
                                     <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                                         {isDone ? (
                                             <Icons.CheckCircled className="text-foreground-positive h-4 w-4" />

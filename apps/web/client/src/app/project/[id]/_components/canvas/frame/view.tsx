@@ -385,6 +385,7 @@ export const FrameComponent = observer(
                             `${PENPAL_PARENT_CHANNEL} (${frame.id}) - Method failed:`,
                             error,
                         );
+                        throw error;
                     }
                 };
             };
@@ -444,6 +445,13 @@ export const FrameComponent = observer(
                     serializeDocumentForOffline: promisifyMethod(
                         penpalChild?.serializeDocumentForOffline,
                     ),
+                    playInteraction: promisifyMethod(penpalChild?.playInteraction),
+                    pauseInteraction: promisifyMethod(penpalChild?.pauseInteraction),
+                    scrubInteraction: promisifyMethod(penpalChild?.scrubInteraction),
+                    applyInitialStates: promisifyMethod(penpalChild?.applyInitialStates),
+                    reloadInteractions: promisifyMethod(penpalChild?.reloadInteractions),
+                    applyInteractionsConfig: promisifyMethod(penpalChild?.applyInteractionsConfig),
+                    listInteractionTargets: promisifyMethod(penpalChild?.listInteractionTargets),
                 };
             }, [penpalChild]);
 

@@ -62,24 +62,16 @@ export const PositionSection = observer(function PositionSection() {
             {showOffsets && (
                 <>
                     <PropertyControl property="top" label="Top">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="right" label="Right">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="bottom" label="Bottom">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="left" label="Left">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                 </>
             )}

@@ -79,6 +79,14 @@ export class ActionManager {
             case 'remove-image':
                 this.removeImage(action);
                 break;
+            case 'add-interaction':
+            case 'update-interaction':
+            case 'remove-interaction':
+                // InteractionsManager performs the in-memory MobX update and
+                // live-iframe push directly; ActionManager.dispatch only sees
+                // these on history replay (undo/redo) — replay reapplies via
+                // CodeManager.write, which is wired in Phase D.
+                break;
             default:
                 assertNever(action);
         }

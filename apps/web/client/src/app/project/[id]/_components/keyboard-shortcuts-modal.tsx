@@ -1,8 +1,9 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
+import { Button } from '@weblab/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -12,8 +13,6 @@ import {
 } from '@weblab/ui/dialog';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Kbd } from '@weblab/ui/kbd';
-
-import { Button } from '@weblab/ui/button';
 
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
@@ -231,9 +230,7 @@ const MultiHotkeyRow = ({
         <span className="flex items-center gap-1">
             {hotkeys.map((h, i) => (
                 <span key={h.command} className="flex items-center gap-1">
-                    {i > 0 && (
-                        <span className="text-foreground-tertiary text-mini">{orLabel}</span>
-                    )}
+                    {i > 0 && <span className="text-foreground-tertiary text-mini">{orLabel}</span>}
                     <Kbd>
                         <span
                             className="text-mini inline-grid auto-cols-max grid-flow-col items-center gap-1.5 [&_kbd]:text-[1.1em]"

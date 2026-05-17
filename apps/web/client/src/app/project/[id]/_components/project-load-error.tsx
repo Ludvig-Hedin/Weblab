@@ -81,7 +81,7 @@ export const ProjectLoadError = observer(
                 // it is safe to call unconditionally. On success, MobX state
                 // clears reactively and `Main` swaps back to the editor UI.
                 await editorEngine.activeSandbox.session.reconnect(
-                    editorEngine.projectId,
+                    editorEngine.branches.activeBranch?.sandbox?.id ?? editorEngine.projectId,
                     user?.id,
                 );
             } catch (error) {

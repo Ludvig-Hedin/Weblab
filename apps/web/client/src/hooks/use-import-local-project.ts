@@ -237,7 +237,11 @@ export function useImportLocalProject() {
             // not delete it.
             forkedSandboxId = null;
 
-            setProgress({ filesUploaded: filesToUpload.length, filesTotal: filesToUpload.length, phase: 'done' });
+            setProgress({
+                filesUploaded: filesToUpload.length,
+                filesTotal: filesToUpload.length,
+                phase: 'done',
+            });
             if (newProject) {
                 router.push(`${Routes.PROJECT}/${newProject.id}`);
             }

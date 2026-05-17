@@ -59,6 +59,16 @@ export class StateManager {
     /** v4: routing dialog open flag (set/clear collection-page mapping). */
     cmsRoutingDialogOpen = false;
 
+    /**
+     * Per-page settings drawer. Opened from the cog on a page row in the
+     * left-panel Pages tab; renders a Webflow-style resizable surface scoped
+     * to one page. `pagePath` re-points when switching pages; `width` persists
+     * across opens within a session.
+     */
+    pageSettingsOpen = false;
+    pageSettingsPagePath: string | null = null;
+    pageSettingsWidth = 420;
+
     constructor() {
         makeAutoObservable(this);
     }
@@ -174,6 +184,24 @@ export class StateManager {
         this.cmsRoutingDialogOpen = open;
     }
 
+    openPageSettings(path: string) {
+        this.pageSettingsPagePath = path;
+        this.pageSettingsOpen = true;
+    }
+
+    setPageSettingsPagePath(path: string) {
+        this.pageSettingsPagePath = path;
+    }
+
+    closePageSettings() {
+        this.pageSettingsOpen = false;
+        this.pageSettingsPagePath = null;
+    }
+
+    setPageSettingsWidth(width: number) {
+        this.pageSettingsWidth = width;
+    }
+
     set canvasScrolling(value: boolean) {
         this._canvasScrolling = value;
         this.resetCanvasScrolling();
@@ -203,10 +231,18 @@ export class StateManager {
             this.pendingInsertElement = null;
             this.pendingInsertBlock = null;
             this.pendingInsertComponent = null;
+            this.leftPanelTab = null;
+            this.brandTab = null;
+            this.cmsTab = CmsTabValue.COLLECTIONS;
+            this.cmsSelectedCollectionId = null;
+            this.cmsEditingItemId = null;
+            this.cmsCurrentItemId = null;
             this.cmsCreateCollectionOpen = false;
             this.cmsBindDialogOpen = false;
             this.cmsBindTargetOid = null;
             this.cmsRoutingDialogOpen = false;
+            this.pageSettingsOpen = false;
+            this.pageSettingsPagePath = null;
         });
         this.resetCanvasScrollingDebounced.cancel();
     }

@@ -103,9 +103,7 @@ export const PositionSection = observer(() => {
         <div className="space-y-3">
             <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-foreground-tertiary text-mini ">
-                        Type
-                    </span>
+                    <span className="text-foreground-tertiary text-mini">Type</span>
                     <Select value={positionValue} onValueChange={handlePositionTypeChange}>
                         <SelectTrigger className="border-border/60 bg-background-secondary text-small h-8 w-[148px]">
                             <SelectValue />
@@ -124,9 +122,7 @@ export const PositionSection = observer(() => {
             <div className="grid grid-cols-2 gap-2">
                 {POSITION_FIELDS.map(({ key, label }) => (
                     <label key={key} className="space-y-1.5">
-                        <span className="text-foreground-tertiary text-[11px]">
-                            {label}
-                        </span>
+                        <span className="text-foreground-tertiary text-[11px]">{label}</span>
                         <Input
                             value={positionState[key]}
                             onChange={(event) => handleFieldDraftChange(key, event.target.value)}

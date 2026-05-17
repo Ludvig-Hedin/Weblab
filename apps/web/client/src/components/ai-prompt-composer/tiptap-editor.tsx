@@ -86,7 +86,7 @@ export function TipTapEditor({
             attributes: {
                 class: cn(
                     'text-small resize-none overflow-auto rounded-none text-left outline-none',
-                    'min-h-[44px] max-h-[40vh] cursor-text px-4 pb-3 pt-3.5',
+                    'max-h-[40vh] min-h-[44px] cursor-text px-4 pt-3.5 pb-3',
                     'text-foreground-primary caret-foreground-brand bg-transparent dark:bg-transparent',
                     'selection:bg-foreground-brand/30 selection:text-foreground-brand',
                     'focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
@@ -103,8 +103,7 @@ export function TipTapEditor({
                 // navigation, deletion, and modifier-key combos through unchanged.
                 if (
                     maxLength > 0 &&
-                    event.key &&
-                    event.key.length === 1 &&
+                    event.key?.length === 1 &&
                     !event.metaKey &&
                     !event.ctrlKey &&
                     !event.altKey
@@ -116,9 +115,7 @@ export function TipTapEditor({
                     );
                     const { from, to } = view.state.selection;
                     const selectedLength =
-                        from !== to
-                            ? view.state.doc.textBetween(from, to, '\n').length
-                            : 0;
+                        from !== to ? view.state.doc.textBetween(from, to, '\n').length : 0;
                     const effectiveLength = current.length - selectedLength;
                     if (effectiveLength >= maxLength) {
                         event.preventDefault();
@@ -145,11 +142,7 @@ export function TipTapEditor({
                 if (maxLength <= 0) return false;
                 const text = event.clipboardData?.getData('text/plain');
                 if (!text) return false;
-                const current = view.state.doc.textBetween(
-                    0,
-                    view.state.doc.content.size,
-                    '\n',
-                );
+                const current = view.state.doc.textBetween(0, view.state.doc.content.size, '\n');
                 const { from, to } = view.state.selection;
                 const selectedLength =
                     from !== to ? view.state.doc.textBetween(from, to, '\n').length : 0;

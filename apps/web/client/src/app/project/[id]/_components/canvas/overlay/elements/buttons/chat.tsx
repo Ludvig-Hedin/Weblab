@@ -29,18 +29,14 @@ export const OverlayChatInput = observer(
         const textareaRef = useRef<HTMLTextAreaElement>(null);
 
         const handleSubmit = async () => {
-            toast.promise(
-                async () => {
-                    void editorEngine.chat.sendMessage(inputState.value, ChatType.EDIT);
-                },
-                {
-                    loading: 'Sending message...',
-                    success: 'Message sent',
-                    error: 'Failed to send message',
-                },
-            );
-
-            setInputState(DEFAULT_INPUT_STATE);
+            setInputState((prev) => ({ ...prev, isSubmitting: true }));
+            try {
+                await editorEngine.chat.sendMessage(inputState.value, ChatType.EDIT);
+                setInputState(DEFAULT_INPUT_STATE);
+            } catch {
+                toast.error('Failed to send message');
+                setInputState((prev) => ({ ...prev, isSubmitting: false }));
+            }
         };
 
         return (
@@ -56,15 +52,17 @@ export const OverlayChatInput = observer(
             >
                 {!inputState.isInputting ? (
                     // Chat Button
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setInputState((prev) => ({ ...prev, isInputting: true }))}
-                        className="hover:text-foreground-primary flex w-full flex-row items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors"
+                        className="hover:text-foreground-primary flex w-full flex-row items-center gap-2 rounded-lg px-2.5 py-1.5"
                     >
                         <Icons.Sparkles className="h-4 w-4" />
                         <span className="text-mini !font-medium whitespace-nowrap">
                             {t(transKeys.editor.panels.edit.tabs.chat.miniChat.button)}
                         </span>
-                    </button>
+                    </Button>
                 ) : (
                     // Input Field
                     <div className="relative flex w-[280px] flex-row items-center gap-1">

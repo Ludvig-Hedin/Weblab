@@ -73,7 +73,9 @@ export const CmsPill = observer(() => {
         <div style={containerStyle}>
             <div className="bg-foreground-primary text-background text-mini flex items-center gap-1 rounded-full px-2 py-0.5 font-medium shadow-sm">
                 <Icons.Cube className="h-3 w-3" />
-                <span className="max-w-[200px] truncate">{label}</span>
+                <span className="max-w-[200px] truncate" title={label}>
+                    {label}
+                </span>
             </div>
         </div>
     );

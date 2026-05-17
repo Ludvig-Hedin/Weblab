@@ -34,6 +34,7 @@ import {
     renamePageInSandbox,
     scanPagesFromSandbox,
     updatePageMetadataInSandbox,
+    updatePageSchemaMarkupInSandbox,
     validateNextJsRoute,
 } from './helper';
 
@@ -440,6 +441,9 @@ export class PagesManager {
             nextPath?: string;
             metadata: PageMetadata;
             settings: PageEditorSettings;
+            /** Raw JSON-LD string. Empty string / undefined removes any existing
+             *  `<script type="application/ld+json">` from the page. */
+            schemaMarkup?: string;
         },
     ): Promise<string> {
         const normalizedCurrentPath = normalizePagePath(pagePath);
@@ -494,6 +498,17 @@ export class PagesManager {
             normalizedNextPath,
             data.metadata,
         );
+        if (data.schemaMarkup !== undefined) {
+            try {
+                await updatePageSchemaMarkupInSandbox(
+                    this.editorEngine.activeSandbox,
+                    normalizedNextPath,
+                    data.schemaMarkup,
+                );
+            } catch (err) {
+                console.error('[PagesManager] Schema markup update failed — continuing:', err);
+            }
+        }
         await updatePageSettingsInSandbox(
             this.editorEngine.activeSandbox,
             normalizedNextPath,

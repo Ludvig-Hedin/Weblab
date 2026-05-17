@@ -243,10 +243,12 @@ const getDefaultNodeName = (path: string, isRoot = false): string => {
 const createPageNode = ({
     path,
     metadata,
+    schemaMarkup,
     isRoot = false,
 }: {
     path: string;
     metadata?: PageMetadata;
+    schemaMarkup?: string;
     isRoot?: boolean;
 }): PageNode => {
     const normalizedPath = normalizePagePath(path);
@@ -260,6 +262,7 @@ const createPageNode = ({
         defaultName,
         name: defaultName,
         metadata: metadata ?? {},
+        schemaMarkup,
         settings: undefined,
         children: [],
         isActive: false,
@@ -512,7 +515,7 @@ export const scanAppDirectory = async (
     }
 
     const fileEntries: (FileEntry | null)[] = [pageFile, layoutFile || null];
-    const { pageMetadata, layoutMetadata } = await getPageAndLayoutMetadata(
+    const { pageMetadata, layoutMetadata, pageSchemaMarkup } = await getPageAndLayoutMetadata(
         fileEntries,
         sandboxManager,
         dir,
@@ -525,6 +528,7 @@ export const scanAppDirectory = async (
     const pageNode = createPageNode({
         path: currentPath,
         metadata: metadata ?? {},
+        schemaMarkup: pageSchemaMarkup,
         isRoot,
     });
 
@@ -1296,6 +1300,261 @@ async function updateMetadataInFile(
     await sandboxManager.writeFile(filePath, formattedContent);
 }
 
+// ─── Schema markup (JSON-LD) ─────────────────────────────────────────────────
+//
+// Schema markup is *not* a Next.js `metadata` field. It lives as a
+// `<script type="application/ld+json">…</script>` inside the page component's
+// JSX. We inject/extract that script from the root JSX element of the default
+// export so files stay the source of truth (round-trips through the page scan).
+
+const LD_JSON_SCRIPT_TYPE = 'application/ld+json';
+
+const isLdJsonScriptElement = (node: T.Node | null | undefined): node is T.JSXElement => {
+    if (!node || !t.isJSXElement(node)) {
+        return false;
+    }
+    const name = node.openingElement.name;
+    if (!t.isJSXIdentifier(name) || name.name !== 'script') {
+        return false;
+    }
+    const typeAttr = node.openingElement.attributes.find(
+        (attr): attr is T.JSXAttribute =>
+            t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'type',
+    );
+    return Boolean(
+        typeAttr &&
+        t.isStringLiteral(typeAttr.value) &&
+        typeAttr.value.value === LD_JSON_SCRIPT_TYPE,
+    );
+};
+
+const getDangerouslySetInnerHtml = (element: T.JSXElement): string | undefined => {
+    const attr = element.openingElement.attributes.find(
+        (a): a is T.JSXAttribute =>
+            t.isJSXAttribute(a) &&
+            t.isJSXIdentifier(a.name) &&
+            a.name.name === 'dangerouslySetInnerHTML',
+    );
+    if (!attr?.value || !t.isJSXExpressionContainer(attr.value)) {
+        return undefined;
+    }
+    const expr = attr.value.expression;
+    if (!t.isObjectExpression(expr)) {
+        return undefined;
+    }
+    const htmlProp = expr.properties.find(
+        (p): p is T.ObjectProperty =>
+            t.isObjectProperty(p) &&
+            ((t.isIdentifier(p.key) && p.key.name === '__html') ||
+                (t.isStringLiteral(p.key) && p.key.value === '__html')),
+    );
+    if (!htmlProp || !t.isStringLiteral(htmlProp.value)) {
+        return undefined;
+    }
+    return htmlProp.value.value;
+};
+
+const buildLdJsonScriptElement = (json: string): T.JSXElement => {
+    return t.jsxElement(
+        t.jsxOpeningElement(
+            t.jsxIdentifier('script'),
+            [
+                t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral(LD_JSON_SCRIPT_TYPE)),
+                t.jsxAttribute(
+                    t.jsxIdentifier('dangerouslySetInnerHTML'),
+                    t.jsxExpressionContainer(
+                        t.objectExpression([
+                            t.objectProperty(t.identifier('__html'), t.stringLiteral(json)),
+                        ]),
+                    ),
+                ),
+            ],
+            true, // self-closing
+        ),
+        null,
+        [],
+        true,
+    );
+};
+
+/**
+ * Locate the JSX root that the default-exported page component returns.
+ * Supports the two common shapes:
+ *   - `export default function Page() { return <jsx/>; }`
+ *   - `export default () => <jsx/>;` or `export default () => { return <jsx/>; }`
+ * Other shapes (`const Page = …; export default Page;`, conditional returns,
+ * returning a component reference with no children) fall through and are
+ * skipped — caller decides whether that's an error or a no-op.
+ */
+const findDefaultExportRootJsx = (ast: T.File): T.JSXElement | T.JSXFragment | null => {
+    let result: T.JSXElement | T.JSXFragment | null = null;
+
+    const unwrap = (node: T.Node | null | undefined): void => {
+        if (!node) return;
+        let target: T.Node = node;
+        while (t.isParenthesizedExpression?.(target)) {
+            target = (target as unknown as { expression: T.Node }).expression;
+        }
+        if (t.isJSXElement(target) || t.isJSXFragment(target)) {
+            result = target;
+        }
+    };
+
+    traverse(ast, {
+        ExportDefaultDeclaration(path) {
+            const decl = path.node.declaration;
+            if (t.isFunctionDeclaration(decl) || t.isFunctionExpression(decl)) {
+                if (decl.body && t.isBlockStatement(decl.body)) {
+                    for (const stmt of decl.body.body) {
+                        if (t.isReturnStatement(stmt)) {
+                            unwrap(stmt.argument);
+                            if (result) break; // stop at first JSX return; skip guard-clause nulls
+                        }
+                    }
+                }
+            } else if (t.isArrowFunctionExpression(decl)) {
+                if (t.isBlockStatement(decl.body)) {
+                    for (const stmt of decl.body.body) {
+                        if (t.isReturnStatement(stmt)) {
+                            unwrap(stmt.argument);
+                            if (result) break; // stop at first JSX return; skip guard-clause nulls
+                        }
+                    }
+                } else {
+                    unwrap(decl.body);
+                }
+            }
+            path.stop();
+        },
+    });
+
+    return result;
+};
+
+const findLdJsonScriptIndex = (root: T.JSXElement | T.JSXFragment): number =>
+    root.children.findIndex((child) => isLdJsonScriptElement(child));
+
+const setScriptOnRoot = (root: T.JSXElement | T.JSXFragment, scriptEl: T.JSXElement) => {
+    const existingIdx = findLdJsonScriptIndex(root);
+    if (existingIdx >= 0) {
+        root.children[existingIdx] = scriptEl;
+        return;
+    }
+    if (t.isJSXFragment(root)) {
+        root.children.unshift(scriptEl);
+        return;
+    }
+    // JSXElement: ensure not self-closing so children can be added.
+    if (root.openingElement.selfClosing) {
+        root.openingElement.selfClosing = false;
+        root.closingElement = t.jsxClosingElement(t.cloneNode(root.openingElement.name));
+        root.children = [scriptEl];
+        return;
+    }
+    root.children = [scriptEl, ...root.children];
+};
+
+const removeScriptFromRoot = (root: T.JSXElement | T.JSXFragment): boolean => {
+    const existingIdx = findLdJsonScriptIndex(root);
+    if (existingIdx < 0) {
+        return false;
+    }
+    root.children.splice(existingIdx, 1);
+    return true;
+};
+
+/**
+ * Extract the JSON-LD payload (raw string) from a page file's source, if a
+ * `<script type="application/ld+json">` is present in the default export's
+ * top-level JSX. Returns undefined when there is no such script (or when the
+ * file can't be parsed). Used by the page scan.
+ */
+export const extractSchemaMarkupFromContent = async (
+    content: string | Uint8Array,
+): Promise<string | undefined> => {
+    try {
+        if (typeof content !== 'string') {
+            return undefined;
+        }
+        const ast = getAstFromContent(content);
+        if (!ast) {
+            return undefined;
+        }
+        const root = findDefaultExportRootJsx(ast);
+        if (!root) {
+            return undefined;
+        }
+        const scriptIdx = findLdJsonScriptIndex(root);
+        if (scriptIdx < 0) {
+            return undefined;
+        }
+        const scriptEl = root.children[scriptIdx] as T.JSXElement;
+        return getDangerouslySetInnerHtml(scriptEl);
+    } catch (error) {
+        console.error('Error extracting schema markup:', error);
+        return undefined;
+    }
+};
+
+/**
+ * Inject (or replace, or remove) the JSON-LD `<script>` in a page file.
+ * Pass an empty string / undefined to clear any existing markup. Throws when
+ * the page file can't be located or the default export has no JSX root we can
+ * safely modify — callers should surface those errors to the user.
+ */
+export const updatePageSchemaMarkupInSandbox = async (
+    sandboxManager: SandboxManager,
+    pagePath: string,
+    schemaMarkup: string | undefined,
+): Promise<void> => {
+    const routerConfig = await sandboxManager.getRouterConfig();
+
+    if (!routerConfig) {
+        throw new Error('Could not detect Next.js router type');
+    }
+    if (routerConfig.type !== RouterType.APP) {
+        throw new Error('Schema markup update is only supported for App Router projects for now.');
+    }
+
+    const pageFilePath = getPageFilePathForRoute(routerConfig.basePath, pagePath);
+    const pageExists = await pathExists(sandboxManager, pageFilePath);
+    if (!pageExists) {
+        throw new Error('Page not found');
+    }
+
+    const file = await sandboxManager.readFile(pageFilePath);
+    if (typeof file !== 'string') {
+        throw new Error('Page file is not a text file');
+    }
+
+    const ast = getAstFromContent(file);
+    if (!ast) {
+        throw new Error(`Failed to parse page file ${pageFilePath}`);
+    }
+
+    const root = findDefaultExportRootJsx(ast);
+    if (!root) {
+        throw new Error(
+            'Could not locate a JSX return in the default export — schema markup not written.',
+        );
+    }
+
+    const trimmed = (schemaMarkup ?? '').trim();
+    if (!trimmed) {
+        const removed = removeScriptFromRoot(root);
+        if (!removed) {
+            return; // nothing to do
+        }
+    } else {
+        const scriptEl = buildLdJsonScriptElement(trimmed);
+        setScriptOnRoot(root, scriptEl);
+    }
+
+    const { code } = generate(ast);
+    const formatted = await formatContent(pageFilePath, code);
+    await sandboxManager.writeFile(pageFilePath, formatted);
+};
+
 export const addSetupTask = async (sandboxManager: SandboxManager) => {
     const tasks = {
         setupTasks: ['bun install'],
@@ -1356,21 +1615,28 @@ const getPageAndLayoutMetadata = async (
 ): Promise<{
     pageMetadata: PageMetadata | undefined;
     layoutMetadata: PageMetadata | undefined;
+    pageSchemaMarkup: string | undefined;
 }> => {
     if (!fileResults || fileResults.length === 0) {
-        return { pageMetadata: undefined, layoutMetadata: undefined };
+        return {
+            pageMetadata: undefined,
+            layoutMetadata: undefined,
+            pageSchemaMarkup: undefined,
+        };
     }
 
     const [pageFileResult, layoutFileResult] = fileResults;
 
     let pageMetadata: PageMetadata | undefined;
     let layoutMetadata: PageMetadata | undefined;
+    let pageSchemaMarkup: string | undefined;
 
     if (pageFileResult && !pageFileResult.isDirectory) {
         try {
             const filePath = dir ? `${dir}/${pageFileResult.name}` : pageFileResult.path;
             const fileContent = await sandboxManager.readFile(filePath);
             pageMetadata = await extractMetadata(fileContent);
+            pageSchemaMarkup = await extractSchemaMarkupFromContent(fileContent);
         } catch (error) {
             console.error(`Error reading page file ${pageFileResult.path}:`, error);
         }
@@ -1386,5 +1652,5 @@ const getPageAndLayoutMetadata = async (
         }
     }
 
-    return { pageMetadata, layoutMetadata };
+    return { pageMetadata, layoutMetadata, pageSchemaMarkup };
 };

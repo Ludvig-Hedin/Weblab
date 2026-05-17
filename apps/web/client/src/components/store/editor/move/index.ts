@@ -68,14 +68,20 @@ export class MoveManager {
             altDuplicate,
         };
 
-        this.dragPreparationTimer = setTimeout(() => {
+        const timerId = setTimeout(() => {
             void (async () => {
                 if (this.isPreparing) {
                     await this.prepareDrag(el, frameData);
                 }
-                this.dragPreparationTimer = null;
+                // Only clear the ref if this is still the active timer.
+                // A new drag started during prepareDrag would have replaced
+                // dragPreparationTimer; nulling unconditionally would lose that ref.
+                if (this.dragPreparationTimer === timerId) {
+                    this.dragPreparationTimer = null;
+                }
             })();
         }, this.MIN_DRAG_PREPARATION_TIME);
+        this.dragPreparationTimer = timerId;
     }
 
     cancelDragPreparation() {
@@ -139,7 +145,7 @@ export class MoveManager {
 
         if (this.state.originalIndex === null) {
             await this.prepareDrag(this.state.dragTarget, frameData);
-            if (!this.state || this.state.originalIndex === null) {
+            if (this.state?.originalIndex == null) {
                 return;
             }
         }

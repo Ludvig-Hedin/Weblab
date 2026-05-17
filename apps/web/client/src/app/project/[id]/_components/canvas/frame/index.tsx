@@ -13,9 +13,9 @@ import type { IFrameView } from './view';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
-import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
 import { api } from '@/trpc/react';
 import { RightClickMenu } from '../../right-click-menu';
+import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
 import { isFrameBridgeReady, shouldUnlockCodeSandboxPreview } from './frame-connection';
 import { GestureScreen } from './gesture';
@@ -73,7 +73,7 @@ function ErrorLine({ line, index }: { line: string; index: number }) {
         );
     }
     // Line number with pipe: " 13 │  content"
-    const lineNumMatch = line.match(/^(\s{0,5}\d{1,5}\s*│)(.*)$/);
+    const lineNumMatch = /^(\s{0,5}\d{1,5}\s*│)(.*)$/.exec(line);
     if (lineNumMatch) {
         return (
             <div key={index} className="flex">
@@ -101,7 +101,7 @@ function ErrorLine({ line, index }: { line: string; index: number }) {
         );
     }
     // "Caused by:" header
-    if (/^Caused by:/.test(line)) {
+    if (line.startsWith('Caused by:')) {
         return (
             <div key={index} className="text-foreground-secondary mt-2 font-medium">
                 {line}
@@ -109,7 +109,7 @@ function ErrorLine({ line, index }: { line: string; index: number }) {
         );
     }
     // Import trace
-    if (/^Import trace/.test(line)) {
+    if (line.startsWith('Import trace')) {
         return (
             <div key={index} className="text-foreground-tertiary mt-2">
                 {line}
@@ -384,7 +384,7 @@ export const FrameView = observer(
                                                 <Icons.ExclamationTriangle className="text-destructive h-3 w-3" />
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-foreground-primary text-small font-medium leading-tight">
+                                                <p className="text-foreground-primary text-small leading-tight font-medium">
                                                     Build error
                                                 </p>
                                                 <p className="text-foreground-tertiary text-mini mt-0.5 leading-tight">

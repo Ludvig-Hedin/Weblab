@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import {
     CommandDialog,
@@ -106,10 +106,9 @@ export function ProjectsCommandPalette() {
                         value="Focus search filter projects"
                         onSelect={() =>
                             run(() => {
-                                const input =
-                                    document.querySelector<HTMLInputElement>(
-                                        'input[placeholder="Search projects"]',
-                                    );
+                                const input = document.querySelector<HTMLInputElement>(
+                                    'input[placeholder="Search projects"]',
+                                );
                                 input?.focus();
                                 input?.select();
                             })

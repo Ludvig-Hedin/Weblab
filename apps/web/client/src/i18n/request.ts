@@ -1,5 +1,6 @@
+import type { IntlError } from 'next-intl';
 import { cookies, headers } from 'next/headers';
-import { IntlErrorCode, type IntlError } from 'next-intl';
+import { IntlErrorCode } from 'next-intl';
 import { getRequestConfig } from 'next-intl/server';
 
 import { Language } from '@weblab/constants';

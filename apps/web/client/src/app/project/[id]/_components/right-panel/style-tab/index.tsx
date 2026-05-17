@@ -113,9 +113,7 @@ const Section = ({
 );
 
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-    <span className="text-foreground-tertiary text-[11px]">
-        {children}
-    </span>
+    <span className="text-foreground-tertiary text-[11px]">{children}</span>
 );
 
 const FieldRow = ({

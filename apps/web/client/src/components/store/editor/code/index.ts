@@ -38,6 +38,12 @@ export class CodeManager {
                     action.diffs[0].path,
                     action.diffs[0].generated,
                 );
+            } else if (
+                action.type === 'add-interaction' ||
+                action.type === 'update-interaction' ||
+                action.type === 'remove-interaction'
+            ) {
+                await this.editorEngine.interactions.applyHistoryAction(action);
             } else {
                 const requests = await this.collectRequests(action);
                 await this.writeRequest(requests);
@@ -99,6 +105,13 @@ export class CodeManager {
                 return getRemoveImageRequests(action);
             case 'write-code':
                 return await getWriteCodeRequests(action);
+            case 'add-interaction':
+            case 'update-interaction':
+            case 'remove-interaction':
+                // Interaction writes are handled by InteractionsManager via a
+                // dedicated CodeManager path (Phase D). They produce no
+                // standard CodeDiffRequest entries.
+                return [];
             default:
                 assertNever(action);
         }

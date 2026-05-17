@@ -1,6 +1,10 @@
 import debounce from 'lodash.debounce';
 
-import { WEBLAB_CACHE_DIRECTORY, WEBLAB_PRELOAD_SCRIPT_FILE } from '@weblab/constants';
+import {
+    WEBLAB_CACHE_DIRECTORY,
+    WEBLAB_IX_RUNTIME_FILE,
+    WEBLAB_PRELOAD_SCRIPT_FILE,
+} from '@weblab/constants';
 import { RouterType } from '@weblab/models';
 import {
     addOidsToAst,
@@ -9,7 +13,9 @@ import {
     getAstFromContent,
     getContentFromAst,
     getContentFromTemplateNode,
-    injectPreloadScript,
+    getOidToIxIdMap,
+    injectWeblabBootstrapScripts,
+    preserveIxIds,
 } from '@weblab/parser';
 import { isRootLayoutFile, pathsEqual } from '@weblab/utility';
 
@@ -62,15 +68,20 @@ export class CodeFileSystem extends FileSystem {
 
     private async processJsxFile(path: string, content: string): Promise<string> {
         let processedContent = content;
+        let ixIdRewrites = new Map<string, string>();
 
         const ast = getAstFromContent(content);
         if (ast) {
             if (isRootLayoutFile(path, this.options.routerType)) {
-                injectPreloadScript(ast);
+                injectWeblabBootstrapScripts(ast);
             }
 
             const existingOids = await this.getFileOids(path);
-            const { ast: processedAst } = addOidsToAst(ast, existingOids);
+            const { ast: oidAst } = addOidsToAst(ast, existingOids);
+
+            const existingIxIds = await this.getGlobalIxIdsExcludingFile(path);
+            const { ast: processedAst, rewrites } = preserveIxIds(oidAst, existingIxIds);
+            ixIdRewrites = rewrites;
 
             processedContent = await getContentFromAst(processedAst, content);
         } else {
@@ -80,7 +91,35 @@ export class CodeFileSystem extends FileSystem {
         const formattedContent = await formatContent(path, processedContent);
         await this.updateMetadataForFile(path, formattedContent);
 
+        if (ixIdRewrites.size > 0) {
+            this.pendingIxIdRewrites.push({ path, rewrites: ixIdRewrites });
+        }
+
         return formattedContent;
+    }
+
+    /**
+     * IX-id rewrites discovered during JSX processing. Consumed by the editor
+     * to remap `.weblab/interactions.json` entries that referenced the
+     * rewritten ids. Cleared after caller reads via `consumePendingIxIdRewrites`.
+     */
+    private pendingIxIdRewrites: Array<{ path: string; rewrites: Map<string, string> }> = [];
+
+    consumePendingIxIdRewrites(): Array<{ path: string; rewrites: Map<string, string> }> {
+        const list = this.pendingIxIdRewrites;
+        this.pendingIxIdRewrites = [];
+        return list;
+    }
+
+    private async getGlobalIxIdsExcludingFile(path: string): Promise<Set<string>> {
+        const index = await this.loadIndex();
+        const ids = new Set<string>();
+        for (const metadata of Object.values(index)) {
+            if (!metadata.ixId) continue;
+            if (pathsEqual(metadata.path, path)) continue;
+            ids.add(metadata.ixId);
+        }
+        return ids;
     }
 
     private async getFileOids(path: string): Promise<Set<string>> {
@@ -113,12 +152,16 @@ export class CodeFileSystem extends FileSystem {
             branchId: this.branchId,
         });
 
+        const oidToIxId = getOidToIxIdMap(ast);
+
         for (const [oid, node] of templateNodeMap.entries()) {
             const code = await getContentFromTemplateNode(node, content);
+            const ixId = oidToIxId.get(oid);
             const metadata: JsxElementMetadata = {
                 ...node,
                 oid,
                 code: code || '',
+                ...(ixId ? { ixId } : {}),
             };
             index[oid] = metadata;
         }
@@ -136,6 +179,16 @@ export class CodeFileSystem extends FileSystem {
             this.debouncedRebuild();
         }
         return metadata;
+    }
+
+    async getJsxElementMetadataByIxId(ixId: string): Promise<JsxElementMetadata | undefined> {
+        const index = await this.loadIndex();
+        for (const metadata of Object.values(index)) {
+            if (metadata.ixId === ixId) {
+                return metadata;
+            }
+        }
+        return undefined;
     }
 
     async rebuildIndex(): Promise<void> {
@@ -166,12 +219,16 @@ export class CodeFileSystem extends FileSystem {
                                 branchId: this.branchId,
                             });
 
+                            const oidToIxId = getOidToIxIdMap(ast);
+
                             for (const [oid, node] of templateNodeMap.entries()) {
                                 const code = await getContentFromTemplateNode(node, content);
+                                const ixId = oidToIxId.get(oid);
                                 index[oid] = {
                                     ...node,
                                     oid,
                                     code: code || '',
+                                    ...(ixId ? { ixId } : {}),
                                 };
                             }
 
@@ -253,11 +310,16 @@ export class CodeFileSystem extends FileSystem {
         }
     }
 
-    private debouncedSaveIndexToFile = debounce(this.undobounceSaveIndexToFile, 1000);
+    private debouncedSaveIndexToFile = debounce(() => void this.undobounceSaveIndexToFile(), 1000);
 
     private isJsxFile(path: string): boolean {
-        // Exclude the weblab preload script from JSX processing
+        // Exclude the weblab preload script and the IX runtime bundle from JSX
+        // processing — they're hand-authored JS that lives in `public/` and
+        // must not be parsed as user JSX.
         if (path.endsWith(WEBLAB_PRELOAD_SCRIPT_FILE)) {
+            return false;
+        }
+        if (path.endsWith(WEBLAB_IX_RUNTIME_FILE)) {
             return false;
         }
         return /\.(jsx?|tsx?)$/i.test(path);

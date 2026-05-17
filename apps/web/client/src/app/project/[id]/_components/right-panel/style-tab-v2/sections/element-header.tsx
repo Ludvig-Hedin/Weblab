@@ -218,18 +218,18 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
     );
 
     return (
-        <div className="flex flex-col px-3 py-2 w-full max-w-full">
+        <div className="flex w-full max-w-full flex-col px-3 py-2">
             {/* Collapsed view: one-line CSS-selector summary. Brand-blue tag
                 token, secondary `#id`, tertiary `.class`. Click expands to
                 the editable rows below. Saves ~80px of always-on chrome and
                 gives the panel its single most Weblab-feeling cue. */}
-            <div className="flex items-center gap-2 w-full max-w-full">
+            <div className="flex w-full max-w-full items-center gap-2">
                 <button
                     type="button"
                     onClick={() => setExpanded((v) => !v)}
                     aria-expanded={expanded}
                     aria-label="Toggle element details"
-                    className="group/selector flex min-w-0 flex-1 items-center gap-1 truncate text-mini text-left font-mono"
+                    className="group/selector text-mini flex min-w-0 flex-1 items-center gap-1 truncate text-left font-mono"
                     title={`<${tagName}${idValue ? `#${idValue}` : ''}${classes.length ? `.${classes.join('.')}` : ''}>`}
                 >
                     <ChevronDown
@@ -239,19 +239,14 @@ export const ElementHeaderSection = observer(function ElementHeaderSection() {
                         )}
                     />
                     <span className="text-foreground-brand">{tagName}</span>
-                    {idValue && (
-                        <span className="text-foreground-secondary">#{idValue}</span>
-                    )}
+                    {idValue && <span className="text-foreground-secondary">#{idValue}</span>}
                     {classes.map((c) => (
                         <span key={c} className="text-foreground-tertiary">
                             .{c}
                         </span>
                     ))}
                 </button>
-                <ElementMenu
-                    expanded={expanded}
-                    onExpand={() => setExpanded((v) => !v)}
-                />
+                <ElementMenu expanded={expanded} onExpand={() => setExpanded((v) => !v)} />
             </div>
             {expanded && (
                 <div className="flex flex-col gap-1.5 pt-2">

@@ -165,9 +165,7 @@ function CornerInput({ property, label }: { property: string; label: string }) {
                 className="text-center"
                 aria-label={`Radius ${label}`}
             />
-            <span className="text-foreground-tertiary text-[10px] leading-none">
-                {label}
-            </span>
+            <span className="text-foreground-tertiary text-[10px] leading-none">{label}</span>
         </div>
     );
 }

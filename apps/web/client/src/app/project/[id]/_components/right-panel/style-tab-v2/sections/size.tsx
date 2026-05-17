@@ -59,9 +59,7 @@ function PairedRow({ label, widthProperty, heightProperty }: PairedRowProps) {
                         className="text-center"
                         aria-label={widthProperty}
                     />
-                    <span className="text-foreground-tertiary text-[10px] leading-none">
-                        W
-                    </span>
+                    <span className="text-foreground-tertiary text-[10px] leading-none">W</span>
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
                     <NumberInput
@@ -71,9 +69,7 @@ function PairedRow({ label, widthProperty, heightProperty }: PairedRowProps) {
                         className="text-center"
                         aria-label={heightProperty}
                     />
-                    <span className="text-foreground-tertiary text-[10px] leading-none">
-                        H
-                    </span>
+                    <span className="text-foreground-tertiary text-[10px] leading-none">H</span>
                 </div>
             </div>
         </div>

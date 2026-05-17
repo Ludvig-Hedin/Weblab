@@ -24,6 +24,7 @@ export enum EditorAttributes {
     DATA_WEBLAB_INSTANCE_ID = 'data-oiid',
     DATA_WEBLAB_DOM_ID = 'data-odid',
     DATA_WEBLAB_COMPONENT_NAME = 'data-ocname',
+    DATA_WEBLAB_IX_ID = 'data-wb-ix',
 
     // Data attributes
     DATA_WEBLAB_IGNORE = 'data-weblab-ignore',

@@ -146,6 +146,8 @@ export const TopBar = observer(
 
         const handleDeleteBreakpoint = () => {
             if (groupSiblings.length <= 1) return;
+            if (!confirm(`Remove "${frame.breakpoint?.name ?? 'this breakpoint'}" from the group?`))
+                return;
             void editorEngine.frames.delete(frame.id);
         };
 

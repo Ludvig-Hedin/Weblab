@@ -20,7 +20,6 @@ import {
     isFolderNode,
     isPageNode,
 } from '@/components/store/editor/pages/helper';
-import { useStateManager } from '@/components/store/state';
 import { PageModal } from '../../page-tab/page-modal';
 
 interface PageTreeNodeProps {
@@ -35,7 +34,6 @@ interface PageTreeNodeProps {
 
 export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style }) => {
     const editorEngine = useEditorEngine();
-    const stateManager = useStateManager();
     const supportsFolderOperations =
         editorEngine.activeSandbox.routerConfig?.type === RouterType.APP;
     const [modalState, setModalState] = useState<{
@@ -124,7 +122,8 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
             return;
         }
         try {
-            await editorEngine.pages.duplicatePage(node.data.path, node.data.path);
+            const targetPath = node.data.path.replace(/\/?$/, '-copy');
+            await editorEngine.pages.duplicatePage(node.data.path, targetPath);
 
             toast('Page duplicated!');
         } catch (error) {
@@ -141,8 +140,7 @@ export const PageTreeNode: React.FC<PageTreeNodeProps> = observer(({ node, style
             return;
         }
 
-        stateManager.settingsTab = node.data.path;
-        stateManager.isSettingsModalOpen = true;
+        editorEngine.state.openPageSettings(node.data.path);
     };
 
     const icon = useMemo(() => {

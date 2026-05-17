@@ -1,16 +1,9 @@
 'use client';
 
-import {
-    motion,
-    type Transition,
-    type Variants,
-} from 'motion/react';
-import {
-    Children,
-    Fragment,
-    type ElementType,
-    type ReactNode,
-} from 'react';
+import type { Transition, Variants } from 'motion/react';
+import type { ElementType, ReactNode } from 'react';
+import { Children, Fragment } from 'react';
+import { motion } from 'motion/react';
 
 import { useReducedMotion } from '@weblab/ui/hooks';
 

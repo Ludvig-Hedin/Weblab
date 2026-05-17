@@ -41,7 +41,8 @@ export const MobileLayout = observer(() => {
         if (!el) return;
 
         function getTouchDist(touches: TouchList) {
-            const t0 = touches[0]!, t1 = touches[1]!;
+            const t0 = touches[0]!,
+                t1 = touches[1]!;
             return Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
         }
 
@@ -152,7 +153,7 @@ export const MobileLayout = observer(() => {
                     aria-labelledby="mobile-tab-preview"
                     ref={previewRef}
                     className={cn(
-                        'bg-background-weblab relative h-full w-full overflow-hidden touch-none',
+                        'bg-background-weblab relative h-full w-full touch-none overflow-hidden',
                         activeTab !== 'preview' && 'hidden',
                     )}
                 >

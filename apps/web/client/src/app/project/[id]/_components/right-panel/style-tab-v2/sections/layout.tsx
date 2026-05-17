@@ -1,5 +1,6 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import {
     AlignCenterHorizontal,
     AlignCenterVertical,
@@ -19,7 +20,6 @@ import {
     Rows3,
     StretchHorizontal,
     StretchVertical,
-    type LucideIcon,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
@@ -132,8 +132,7 @@ export const LayoutSection = observer(function LayoutSection() {
         display.value === 'grid' ||
         display.value === 'inline-grid';
     const isFlexOnly = display.value === 'flex' || display.value === 'inline-flex';
-    const isColumn =
-        flexDirection.value === 'column' || flexDirection.value === 'column-reverse';
+    const isColumn = flexDirection.value === 'column' || flexDirection.value === 'column-reverse';
 
     return (
         <Section id="layout" title="Layout" icon={LayoutGrid} setCount={setCount}>
@@ -187,9 +186,7 @@ export const LayoutSection = observer(function LayoutSection() {
                         )}
                     </PropertyControl>
                     <PropertyControl property="gap" label="Gap">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                 </>
             )}

@@ -249,7 +249,7 @@ export const subscriptionRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
-            if (!ctx.user || !ctx.user.email) {
+            if (!ctx.user?.email) {
                 return { errorCode: 'not_authenticated' as const };
             }
             const userId = ctx.user.id;

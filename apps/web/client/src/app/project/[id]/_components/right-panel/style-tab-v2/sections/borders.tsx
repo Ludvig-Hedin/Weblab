@@ -9,9 +9,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@webla
 import { cn } from '@weblab/ui/utils';
 
 import { ColorField } from '../controls/color-field';
+import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
 import { InlineButton } from '../controls/inline-button';
 import { PropertyControl } from '../controls/property-control';
-import { PROPERTY_LABEL_OFFSET_CLASS } from '../controls/constants';
 import { PropertyLabel } from '../controls/property-label';
 import { SelectField } from '../controls/select-field';
 import { useStyleSetter } from '../hooks/use-style-setter';
@@ -158,9 +158,7 @@ function CornerInput({ property, label }: { property: CornerProperty; label: str
                 className="text-center"
                 aria-label={`Radius ${label}`}
             />
-            <span className="text-foreground-tertiary text-[10px] leading-none">
-                {label}
-            </span>
+            <span className="text-foreground-tertiary text-[10px] leading-none">{label}</span>
         </div>
     );
 }

@@ -147,6 +147,27 @@ export function undoAction(action: Action): Action {
                 ...action,
                 type: 'insert-image',
             };
+        case 'add-interaction':
+            return {
+                type: 'remove-interaction',
+                next: null,
+                prev: action.next,
+                branchId: action.branchId,
+            };
+        case 'remove-interaction':
+            return {
+                type: 'add-interaction',
+                next: action.prev,
+                prev: null,
+                branchId: action.branchId,
+            };
+        case 'update-interaction':
+            return {
+                type: 'update-interaction',
+                next: action.prev,
+                prev: action.next,
+                branchId: action.branchId,
+            };
         default:
             assertNever(action);
     }

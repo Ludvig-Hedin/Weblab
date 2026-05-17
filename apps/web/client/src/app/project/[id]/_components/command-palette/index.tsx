@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { observer } from 'mobx-react-lite';
+import { useTranslations } from 'next-intl';
 
-import type { LayerNode } from '@weblab/models';
-import { EditorMode, InsertMode } from '@weblab/models';
+import type { InsertMode, LayerNode } from '@weblab/models';
+import { EditorMode } from '@weblab/models';
 import {
     CommandDialog,
     CommandEmpty,
@@ -19,11 +19,11 @@ import {
 import { Icons } from '@weblab/ui/icons';
 
 import { Hotkey } from '@/components/hotkey';
-import { ELEMENT_PALETTE_ITEMS } from '../element-palette';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
+import { ELEMENT_PALETTE_ITEMS } from '../element-palette';
 
 const MAX_ELEMENT_RESULTS = 150;
 
@@ -109,13 +109,13 @@ export const CommandPalette = observer(() => {
 
                 <CommandGroup heading="Insert">
                     {ELEMENT_PALETTE_ITEMS.map((item) => {
-                        const Icon = Icons[item.icon as keyof typeof Icons];
+                        const Icon = Icons[item.icon];
                         return (
                             <CommandItem
                                 key={item.mode}
                                 value={`insert ${item.label} ${item.keywords.join(' ')}`}
                                 onSelect={() =>
-                                    run(() => editorEngine.state.setInsertMode(item.mode as InsertMode))
+                                    run(() => editorEngine.state.setInsertMode(item.mode))
                                 }
                             >
                                 {Icon ? <Icon /> : null}

@@ -3,6 +3,7 @@ import type { TemplateNode } from '@weblab/models';
 export interface JsxElementMetadata extends TemplateNode {
     oid: string;
     code: string;
+    ixId?: string;
 }
 
 // projectId/branchId -> oid -> metadata

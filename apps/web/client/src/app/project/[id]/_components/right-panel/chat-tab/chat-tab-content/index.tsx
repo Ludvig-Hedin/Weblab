@@ -93,10 +93,7 @@ export const ChatTabContent = ({
         const OLLAMA_PROBE_TIMEOUT_MS = 5_000;
         const probeSignal: AbortSignal =
             typeof AbortSignal !== 'undefined' && 'any' in AbortSignal
-                ? AbortSignal.any([
-                      controller.signal,
-                      AbortSignal.timeout(OLLAMA_PROBE_TIMEOUT_MS),
-                  ])
+                ? AbortSignal.any([controller.signal, AbortSignal.timeout(OLLAMA_PROBE_TIMEOUT_MS)])
                 : controller.signal;
         // Fallback timeout for browsers without AbortSignal.any (older Safari,
         // older Firefox ESR). Aborts via the same controller so the .catch

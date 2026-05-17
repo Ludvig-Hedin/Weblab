@@ -30,8 +30,8 @@ function getUserColor(userId: string): string {
     const hue = Math.abs(hash) % 360;
     // hsl(hue, 70%, 60%) → rgba — fixed S=0.70, L=0.60
     const h = hue / 360;
-    const q = 0.60 + 0.70 - 0.60 * 0.70; // 0.88
-    const p = 2 * 0.60 - q; // 0.32
+    const q = 0.6 + 0.7 - 0.6 * 0.7; // 0.88
+    const p = 2 * 0.6 - q; // 0.32
     const ch = (t: number) => {
         const n = ((t % 1) + 1) % 1;
         if (n < 1 / 6) return p + (q - p) * 6 * n;

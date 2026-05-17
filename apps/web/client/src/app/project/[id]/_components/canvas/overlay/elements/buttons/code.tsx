@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite';
 
 import { EditorMode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
@@ -28,14 +29,15 @@ export const OverlayOpenCode = observer(({ isInputting }: { isInputting: boolean
                 'relative flex border',
             )}
         >
-            <button
+            <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleCodeButtonClick}
-                className="hover:text-foreground-primary flex w-full flex-row items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors"
-                title="Open in Code"
+                className="hover:text-foreground-primary rounded-lg"
                 aria-label="Open in Code"
             >
                 <Icons.Code className="h-4 w-4" />
-            </button>
+            </Button>
         </div>
     );
 });

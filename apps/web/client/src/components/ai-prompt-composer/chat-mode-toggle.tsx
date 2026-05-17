@@ -70,7 +70,7 @@ export const ChatModeToggle = observer(
                             disabled={disabled}
                             aria-label={`Mode: ${currentMode.label}`}
                             className={cn(
-                                'text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary group text-xs flex h-7 items-center gap-1 rounded-md px-1.5 font-normal',
+                                'text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary group flex h-7 items-center gap-1 rounded-md px-1.5 text-xs font-normal',
                                 disabled && 'cursor-not-allowed opacity-50',
                             )}
                         >

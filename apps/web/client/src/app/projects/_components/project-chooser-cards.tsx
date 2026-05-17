@@ -163,9 +163,7 @@ export function ProjectChooserCards({
             )}
             <div className="flex w-full items-center gap-3">
                 <div className="bg-foreground/10 h-px flex-1" />
-                <span className="text-foreground-tertiary text-xs ">
-                    or pick a starting point
-                </span>
+                <span className="text-foreground-tertiary text-xs">or pick a starting point</span>
                 <div className="bg-foreground/10 h-px flex-1" />
             </div>
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">

@@ -1,7 +1,8 @@
 'use client';
 
-import { motion, type Transition } from 'motion/react';
+import type { Transition } from 'motion/react';
 import { type ReactNode } from 'react';
+import { motion } from 'motion/react';
 
 import { useReducedMotion } from '@weblab/ui/hooks';
 

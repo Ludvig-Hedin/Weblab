@@ -1,5 +1,6 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import {
     AlignCenter,
@@ -15,7 +16,6 @@ import {
     Strikethrough,
     Type,
     Underline,
-    type LucideIcon,
 } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
@@ -225,9 +225,7 @@ export const TypographySection = observer(function TypographySection() {
             {displayAdvanced && (
                 <>
                     <div className="border-border/30 mx-3 mt-1 mb-0.5 flex items-center gap-2 border-t pt-1">
-                        <span className="text-foreground-secondary text-micro">
-                            Advanced
-                        </span>
+                        <span className="text-foreground-secondary text-micro">Advanced</span>
                         {!advancedSetCount && (
                             <button
                                 type="button"
@@ -286,9 +284,7 @@ export const TypographySection = observer(function TypographySection() {
                         )}
                     </PropertyControl>
                     <PropertyControl property="text-indent" label="Indent">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="column-count" label="Columns">
                         {({ value, commit }) => (
@@ -302,9 +298,7 @@ export const TypographySection = observer(function TypographySection() {
                         )}
                     </PropertyControl>
                     <PropertyControl property="-webkit-text-stroke-width" label="Stroke">
-                        {({ value, commit }) => (
-                            <NumberInput value={value} onCommit={commit} />
-                        )}
+                        {({ value, commit }) => <NumberInput value={value} onCommit={commit} />}
                     </PropertyControl>
                     <PropertyControl property="-webkit-text-stroke-color" label="Stroke color">
                         {({ value, commit }) => <ColorField value={value} onCommit={commit} />}

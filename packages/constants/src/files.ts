@@ -26,7 +26,38 @@ export const DEPRECATED_PRELOAD_SCRIPT_SRCS = [
     isDev ? WEBLAB_PROD_PRELOAD_SCRIPT_SRC : WEBLAB_DEV_PRELOAD_SCRIPT_SRC,
 ];
 
+// IX runtime — Webflow-style Interactions runtime bundle. Ships into user's
+// preview iframe AND published site. Distinct from preload script (which is
+// editor-only). Read by `<Script>` injected in root layout / static HTML head.
+export const WEBLAB_IX_RUNTIME_FILE = 'weblab-ix-runtime.js';
+export const WEBLAB_DEV_IX_RUNTIME_SRC = `/${WEBLAB_IX_RUNTIME_FILE}`;
+export const WEBLAB_DEV_IX_RUNTIME_PATH = `public/${WEBLAB_IX_RUNTIME_FILE}`;
+const WEBLAB_PROD_IX_RUNTIME_SRC = `/${WEBLAB_IX_RUNTIME_FILE}`;
+export const WEBLAB_IX_RUNTIME_SRC = isDev
+    ? WEBLAB_DEV_IX_RUNTIME_SRC
+    : WEBLAB_PROD_IX_RUNTIME_SRC;
+export const DEPRECATED_IX_RUNTIME_SRCS: string[] = [];
+
+// Interactions config — source of truth in `.weblab/interactions.json`, mirrored
+// to `public/_weblab/interactions.json` (Next.js) or `__weblab-interactions.json`
+// (static HTML root) so the runtime can fetch it at page load.
+export const WEBLAB_INTERACTIONS_FILE = 'interactions.json';
+export const WEBLAB_INTERACTIONS_INITIAL_CSS_FILE = 'interactions-initial.css';
+export const WEBLAB_INTERACTIONS_CACHE_PATH = `${WEBLAB_CACHE_DIRECTORY}/${WEBLAB_INTERACTIONS_FILE}`;
+export const WEBLAB_INTERACTIONS_PUBLIC_DIR = 'public/_weblab';
+export const WEBLAB_INTERACTIONS_PUBLIC_PATH = `${WEBLAB_INTERACTIONS_PUBLIC_DIR}/${WEBLAB_INTERACTIONS_FILE}`;
+export const WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH = `${WEBLAB_INTERACTIONS_PUBLIC_DIR}/${WEBLAB_INTERACTIONS_INITIAL_CSS_FILE}`;
+export const WEBLAB_INTERACTIONS_STATIC_HTML_PATH = `__weblab-${WEBLAB_INTERACTIONS_FILE}`;
+export const WEBLAB_INTERACTIONS_STATIC_HTML_INITIAL_CSS_PATH = `__weblab-${WEBLAB_INTERACTIONS_INITIAL_CSS_FILE}`;
+export const WEBLAB_INTERACTIONS_PUBLIC_SRC = `/_weblab/${WEBLAB_INTERACTIONS_FILE}`;
+export const WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_SRC = `/_weblab/${WEBLAB_INTERACTIONS_INITIAL_CSS_FILE}`;
+
 export const DEFAULT_IMAGE_DIRECTORY = 'public';
+
+// Files in otherwise-excluded directories that we DO want to sync (the
+// `.weblab/` cache is excluded wholesale, but interactions.json must
+// round-trip so external editors can read/write it).
+export const SYNC_FILE_OVERRIDES = [WEBLAB_INTERACTIONS_CACHE_PATH];
 
 export const EXCLUDED_SYNC_PATHS = [
     ...BASE_EXCLUDED_DIRECTORIES,
@@ -35,6 +66,7 @@ export const EXCLUDED_SYNC_PATHS = [
     CUSTOM_OUTPUT_DIR,
     WEBLAB_CACHE_DIRECTORY,
     WEBLAB_DEV_PRELOAD_SCRIPT_PATH,
+    WEBLAB_DEV_IX_RUNTIME_PATH,
 ];
 
 export const IGNORED_UPLOAD_DIRECTORIES = [...BASE_EXCLUDED_DIRECTORIES, CUSTOM_OUTPUT_DIR];

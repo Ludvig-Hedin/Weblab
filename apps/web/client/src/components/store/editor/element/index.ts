@@ -153,7 +153,7 @@ export class ElementsManager {
 
             removeAction.codeBlock = metadata.code;
 
-            this.editorEngine.action.run(removeAction).catch((err) => {
+            await this.editorEngine.action.run(removeAction).catch((err) => {
                 console.error('Error deleting element', err);
             });
         }

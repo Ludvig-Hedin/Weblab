@@ -273,7 +273,9 @@ export const ModelSelectorV2 = ({
                                             onMouseLeave={() => setHoveredCloudId(null)}
                                             className={cn(
                                                 'relative flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-xs',
-                                                isSelected && !isHovered && 'bg-background-secondary',
+                                                isSelected &&
+                                                    !isHovered &&
+                                                    'bg-background-secondary',
                                             )}
                                             style={{ background: 'transparent' }}
                                         >
@@ -281,7 +283,11 @@ export const ModelSelectorV2 = ({
                                                 <motion.div
                                                     layoutId="cloud-model-hover-bg"
                                                     className="bg-background-secondary absolute inset-0 rounded-md"
-                                                    transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+                                                    transition={{
+                                                        type: 'spring',
+                                                        bounce: 0,
+                                                        duration: 0.2,
+                                                    }}
                                                 />
                                             )}
                                             <ProviderIcon
@@ -308,171 +314,172 @@ export const ModelSelectorV2 = ({
                         )}
 
                         {/* Sub-provider groups (Ollama, Codex, Claude Code, Gemini CLI, OpenCode, Cursor) hidden for now */}
-                        {false && subProviders.map((entry) => {
-                            const status = statuses[entry.kind];
-                            const ready = status.kind === 'ready';
-                            const loading = status.kind === 'loading';
-                            const models = ready ? modelsForEntry(entry, status) : [];
+                        {false &&
+                            subProviders.map((entry) => {
+                                const status = statuses[entry.kind];
+                                const ready = status.kind === 'ready';
+                                const loading = status.kind === 'loading';
+                                const models = ready ? modelsForEntry(entry, status) : [];
 
-                            const groupClass =
-                                '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
+                                const groupClass =
+                                    '[&_[cmdk-group-heading]]:text-foreground-tertiary [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:flex [&_[cmdk-group-heading]]:items-center [&_[cmdk-group-heading]]:gap-1.5';
 
-                            if (loading) {
-                                return (
-                                    <CommandGroup
-                                        key={entry.kind}
-                                        heading={entry.label}
-                                        className={groupClass}
-                                    >
-                                        <CommandItem
-                                            disabled
-                                            value={`${entry.label} loading`}
-                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                if (loading) {
+                                    return (
+                                        <CommandGroup
+                                            key={entry.kind}
+                                            heading={entry.label}
+                                            className={groupClass}
                                         >
-                                            <ProviderIcon
-                                                name={entry.icon}
-                                                className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
-                                            />
-                                            <span className="text-foreground-tertiary">
-                                                Detecting…
-                                            </span>
-                                        </CommandItem>
-                                    </CommandGroup>
-                                );
-                            }
-                            if (status.kind === 'desktop-only') {
-                                return (
-                                    <CommandGroup
-                                        key={entry.kind}
-                                        heading={entry.label}
-                                        className={groupClass}
-                                    >
-                                        <CommandItem
-                                            disabled
-                                            value={`${entry.label} desktop`}
-                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs opacity-60"
-                                        >
-                                            <ProviderIcon
-                                                name={entry.icon}
-                                                className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
-                                            />
-                                            <span className="text-foreground-secondary truncate">
-                                                Available in the {APP_NAME} desktop app
-                                            </span>
-                                        </CommandItem>
-                                    </CommandGroup>
-                                );
-                            }
-                            if (status.kind === 'install' || status.kind === 'sign-in') {
-                                const action =
-                                    status.kind === 'install'
-                                        ? `Install ${entry.label}…`
-                                        : `Sign in to ${entry.label}…`;
-                                return (
-                                    <CommandGroup
-                                        key={entry.kind}
-                                        heading={entry.label}
-                                        className={groupClass}
-                                    >
-                                        <CommandItem
-                                            value={`${entry.label} ${action}`}
-                                            onSelect={() => openSetup(entry)}
-                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
-                                        >
-                                            <ProviderIcon
-                                                name={entry.icon}
-                                                className="text-foreground-secondary h-3.5 w-3.5 shrink-0"
-                                            />
-                                            <span className="text-foreground-primary truncate">
-                                                {action}
-                                            </span>
-                                            <StatusPill status={status} />
-                                        </CommandItem>
-                                    </CommandGroup>
-                                );
-                            }
-
-                            // Ready
-                            return (
-                                <CommandGroup
-                                    key={entry.kind}
-                                    heading={entry.label}
-                                    className={groupClass}
-                                >
-                                    {models.length === 0 ? (
-                                        <CommandItem
-                                            disabled
-                                            value={`${entry.label} empty`}
-                                            className="text-foreground-tertiary rounded-md px-2 py-1.5 text-xs"
-                                        >
-                                            No models available
-                                        </CommandItem>
-                                    ) : (
-                                        models.map((m) => (
                                             <CommandItem
-                                                key={`${entry.kind}:${m.id}`}
-                                                value={`${m.label} ${m.id} ${entry.label}`}
-                                                onSelect={() => handleSelectModel(m.id)}
-                                                className={cn(
-                                                    'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
-                                                    m.id === selectedId &&
-                                                        'bg-background-secondary',
-                                                )}
+                                                disabled
+                                                value={`${entry.label} loading`}
+                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                             >
                                                 <ProviderIcon
                                                     name={entry.icon}
                                                     className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
                                                 />
-                                                <span className="text-foreground-primary truncate font-medium">
-                                                    {m.label}
+                                                <span className="text-foreground-tertiary">
+                                                    Detecting…
                                                 </span>
-                                                {m.id === selectedId && (
-                                                    <Icons.Check className="text-foreground-secondary ml-auto h-3.5 w-3.5 shrink-0" />
-                                                )}
                                             </CommandItem>
-                                        ))
-                                    )}
-
-                                    {entry.ollamaSpecials && hasCliBridge && (
-                                        <>
-                                            <CommandItem
-                                                value={`${entry.label} pull model`}
-                                                onSelect={openPullDialog}
-                                                className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
-                                            >
-                                                <Icons.Plus className="h-3.5 w-3.5 shrink-0" />
-                                                <span>Pull model…</span>
-                                            </CommandItem>
-                                            <CommandItem
-                                                value={`${entry.label} quit ollama`}
-                                                onSelect={handleQuitOllama}
-                                                className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
-                                            >
-                                                <Icons.Stop className="h-3.5 w-3.5 shrink-0" />
-                                                <span>Quit Ollama</span>
-                                            </CommandItem>
-                                        </>
-                                    )}
-
-                                    {entry.webOAuth && !hasCliBridge && (
-                                        <CommandItem
-                                            value={`${entry.label} disconnect`}
-                                            onSelect={() => requestDisconnect(entry)}
-                                            disabled={disconnectMutation.isPending}
-                                            className="text-foreground-tertiary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                        </CommandGroup>
+                                    );
+                                }
+                                if (status.kind === 'desktop-only') {
+                                    return (
+                                        <CommandGroup
+                                            key={entry.kind}
+                                            heading={entry.label}
+                                            className={groupClass}
                                         >
-                                            <span>
-                                                {disconnectMutation.isPending &&
-                                                disconnectMutation.variables?.provider ===
-                                                    entry.kind
-                                                    ? `Disconnecting ${entry.label}…`
-                                                    : `Disconnect ${entry.label}`}
-                                            </span>
-                                        </CommandItem>
-                                    )}
-                                </CommandGroup>
-                            );
-                        })}
+                                            <CommandItem
+                                                disabled
+                                                value={`${entry.label} desktop`}
+                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs opacity-60"
+                                            >
+                                                <ProviderIcon
+                                                    name={entry.icon}
+                                                    className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                                                />
+                                                <span className="text-foreground-secondary truncate">
+                                                    Available in the {APP_NAME} desktop app
+                                                </span>
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    );
+                                }
+                                if (status.kind === 'install' || status.kind === 'sign-in') {
+                                    const action =
+                                        status.kind === 'install'
+                                            ? `Install ${entry.label}…`
+                                            : `Sign in to ${entry.label}…`;
+                                    return (
+                                        <CommandGroup
+                                            key={entry.kind}
+                                            heading={entry.label}
+                                            className={groupClass}
+                                        >
+                                            <CommandItem
+                                                value={`${entry.label} ${action}`}
+                                                onSelect={() => openSetup(entry)}
+                                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                            >
+                                                <ProviderIcon
+                                                    name={entry.icon}
+                                                    className="text-foreground-secondary h-3.5 w-3.5 shrink-0"
+                                                />
+                                                <span className="text-foreground-primary truncate">
+                                                    {action}
+                                                </span>
+                                                <StatusPill status={status} />
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    );
+                                }
+
+                                // Ready
+                                return (
+                                    <CommandGroup
+                                        key={entry.kind}
+                                        heading={entry.label}
+                                        className={groupClass}
+                                    >
+                                        {models.length === 0 ? (
+                                            <CommandItem
+                                                disabled
+                                                value={`${entry.label} empty`}
+                                                className="text-foreground-tertiary rounded-md px-2 py-1.5 text-xs"
+                                            >
+                                                No models available
+                                            </CommandItem>
+                                        ) : (
+                                            models.map((m) => (
+                                                <CommandItem
+                                                    key={`${entry.kind}:${m.id}`}
+                                                    value={`${m.label} ${m.id} ${entry.label}`}
+                                                    onSelect={() => handleSelectModel(m.id)}
+                                                    className={cn(
+                                                        'flex items-center gap-2 rounded-md px-2 py-1.5 text-xs',
+                                                        m.id === selectedId &&
+                                                            'bg-background-secondary',
+                                                    )}
+                                                >
+                                                    <ProviderIcon
+                                                        name={entry.icon}
+                                                        className="text-foreground-tertiary h-3.5 w-3.5 shrink-0"
+                                                    />
+                                                    <span className="text-foreground-primary truncate font-medium">
+                                                        {m.label}
+                                                    </span>
+                                                    {m.id === selectedId && (
+                                                        <Icons.Check className="text-foreground-secondary ml-auto h-3.5 w-3.5 shrink-0" />
+                                                    )}
+                                                </CommandItem>
+                                            ))
+                                        )}
+
+                                        {entry.ollamaSpecials && hasCliBridge && (
+                                            <>
+                                                <CommandItem
+                                                    value={`${entry.label} pull model`}
+                                                    onSelect={openPullDialog}
+                                                    className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                                >
+                                                    <Icons.Plus className="h-3.5 w-3.5 shrink-0" />
+                                                    <span>Pull model…</span>
+                                                </CommandItem>
+                                                <CommandItem
+                                                    value={`${entry.label} quit ollama`}
+                                                    onSelect={handleQuitOllama}
+                                                    className="text-foreground-secondary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                                >
+                                                    <Icons.Stop className="h-3.5 w-3.5 shrink-0" />
+                                                    <span>Quit Ollama</span>
+                                                </CommandItem>
+                                            </>
+                                        )}
+
+                                        {entry.webOAuth && !hasCliBridge && (
+                                            <CommandItem
+                                                value={`${entry.label} disconnect`}
+                                                onSelect={() => requestDisconnect(entry)}
+                                                disabled={disconnectMutation.isPending}
+                                                className="text-foreground-tertiary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
+                                            >
+                                                <span>
+                                                    {disconnectMutation.isPending &&
+                                                    disconnectMutation.variables?.provider ===
+                                                        entry.kind
+                                                        ? `Disconnecting ${entry.label}…`
+                                                        : `Disconnect ${entry.label}`}
+                                                </span>
+                                            </CommandItem>
+                                        )}
+                                    </CommandGroup>
+                                );
+                            })}
 
                         <CommandSeparator className="hidden" />
                     </CommandList>
