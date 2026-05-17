@@ -51,7 +51,7 @@ const SCROLL_BEHAVIOR_OPTIONS = [
     { value: 'smooth', label: 'Smooth' },
 ];
 
-export const InteractionsSection = observer(function InteractionsSection() {
+export const CursorInputSection = observer(function CursorInputSection() {
     const props = [
         useStyleValue('cursor'),
         useStyleValue('pointer-events'),
@@ -62,7 +62,12 @@ export const InteractionsSection = observer(function InteractionsSection() {
     const setCount = props.filter((v) => v.isSet).length;
 
     return (
-        <Section id="interactions" title="Interactions" icon={MousePointerClick} setCount={setCount}>
+        <Section
+            id="cursor-input"
+            title="Cursor & input"
+            icon={MousePointerClick}
+            setCount={setCount}
+        >
             <PropertyControl property="cursor" label="Cursor">
                 {({ value, commit }) => (
                     <SelectField value={value} options={CURSOR_OPTIONS} onCommit={commit} />

@@ -1,4 +1,5 @@
 import type { CodeDiff } from '../code';
+import type { Interaction } from '../interactions';
 import { type ActionLocation, type IndexActionLocation } from './location';
 import { type ActionTarget, type StyleActionTarget } from './target';
 
@@ -109,6 +110,32 @@ export interface RemoveImageAction extends BaseImageAction {
     type: 'remove-image';
 }
 
+export interface AddInteractionAction {
+    type: 'add-interaction';
+    next: Interaction;
+    prev: null;
+    branchId: string;
+}
+
+export interface UpdateInteractionAction {
+    type: 'update-interaction';
+    next: Interaction;
+    prev: Interaction;
+    branchId: string;
+}
+
+export interface RemoveInteractionAction {
+    type: 'remove-interaction';
+    next: null;
+    prev: Interaction;
+    branchId: string;
+}
+
+export type InteractionAction =
+    | AddInteractionAction
+    | UpdateInteractionAction
+    | RemoveInteractionAction;
+
 export type Action =
     | UpdateStyleAction
     | InsertElementAction
@@ -119,4 +146,7 @@ export type Action =
     | UngroupElementsAction
     | WriteCodeAction
     | InsertImageAction
-    | RemoveImageAction;
+    | RemoveImageAction
+    | AddInteractionAction
+    | UpdateInteractionAction
+    | RemoveInteractionAction;
