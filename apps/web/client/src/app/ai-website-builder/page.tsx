@@ -52,8 +52,8 @@ export default function AiWebsiteBuilderPage() {
                     {APP_NAME} is an AI website builder for teams that already have a React or
                     Next.js codebase. The AI is constrained to your real components and design
                     tokens. Every change ships as a pull request reviewable in GitHub. Bring your
-                    own model — Claude, GPT, Gemini, DeepSeek, Mistral, or local Ollama. Open
-                    source and self-hostable.
+                    own model — Claude, GPT, Gemini, DeepSeek, Mistral, or local Ollama. Open source
+                    and self-hostable.
                 </p>
             </section>
 
@@ -61,16 +61,16 @@ export default function AiWebsiteBuilderPage() {
                 {/* Hero */}
                 <section className="px-4 pt-32 pb-24 sm:px-6 md:px-8 md:pt-40 md:pb-32">
                     <div className="mx-auto max-w-6xl">
-                        <p className="text-foreground-tertiary mb-6 text-xs font-medium ">
+                        <p className="text-foreground-tertiary mb-6 text-xs font-medium">
                             AI Website Builder
                         </p>
                         <h1 className="mb-8 max-w-4xl text-5xl leading-[1.05] font-light text-balance md:text-7xl">
                             AI website builder for the codebase you already own
                         </h1>
                         <p className="text-foreground-secondary mb-12 max-w-2xl text-lg md:text-xl">
-                            Most AI website builders regenerate a new app from a prompt.{' '}
-                            {APP_NAME} edits your real React components, respects your design
-                            tokens, and writes every change as a pull request to your GitHub repo.
+                            Most AI website builders regenerate a new app from a prompt. {APP_NAME}{' '}
+                            edits your real React components, respects your design tokens, and
+                            writes every change as a pull request to your GitHub repo.
                         </p>
                         <div className="flex flex-wrap gap-3">
                             <Button asChild size="lg">
@@ -92,9 +92,9 @@ export default function AiWebsiteBuilderPage() {
                         <div className="space-y-6 text-lg leading-relaxed">
                             <p className="text-foreground-secondary">
                                 Generative AI website builders sound magical and ship slop. The
-                                model invents a new button, a new spacing scale, a new color, a
-                                new component name. You end up with a tree of orphan code that
-                                ignores everything your team already built.
+                                model invents a new button, a new spacing scale, a new color, a new
+                                component name. You end up with a tree of orphan code that ignores
+                                everything your team already built.
                             </p>
                             <p className="text-foreground-secondary">
                                 {APP_NAME} reverses that contract. The AI sees your existing
@@ -113,9 +113,7 @@ export default function AiWebsiteBuilderPage() {
                 {/* Capabilities */}
                 <section className="bg-foreground-primary/[0.02] border-foreground-primary/10 border-t px-4 py-24 sm:px-6 md:px-8 md:py-32">
                     <div className="mx-auto max-w-6xl">
-                        <h2 className="mb-16 text-4xl font-light md:text-5xl">
-                            What the AI does
-                        </h2>
+                        <h2 className="mb-16 text-4xl font-light md:text-5xl">What the AI does</h2>
                         <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
                             {[
                                 [
@@ -164,13 +162,13 @@ export default function AiWebsiteBuilderPage() {
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-foreground-primary/10 bg-foreground-primary/[0.03] border-b">
-                                        <th className="px-6 py-4 text-sm font-normal ">
+                                        <th className="px-6 py-4 text-sm font-normal">
                                             Capability
                                         </th>
-                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal ">
+                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal">
                                             {APP_NAME}
                                         </th>
-                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal ">
+                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal">
                                             Generative AI builders
                                         </th>
                                     </tr>
@@ -207,11 +205,7 @@ export default function AiWebsiteBuilderPage() {
                                             'GitHub PR with CI, comments, file-by-file',
                                             'Generated chat thread + preview',
                                         ],
-                                        [
-                                            'Self-host',
-                                            'Yes — open source',
-                                            'No',
-                                        ],
+                                        ['Self-host', 'Yes — open source', 'No'],
                                     ].map(([feature, weblab, other]) => (
                                         <tr
                                             key={feature}
@@ -269,9 +263,7 @@ export default function AiWebsiteBuilderPage() {
                 {/* Related */}
                 <section className="border-foreground-primary/10 border-t px-4 py-20 sm:px-6 md:px-8">
                     <div className="mx-auto max-w-4xl">
-                        <p className="text-foreground-tertiary mb-4 text-sm ">
-                            Related reading
-                        </p>
+                        <p className="text-foreground-tertiary mb-4 text-sm">Related reading</p>
                         <ul className="space-y-3 text-lg">
                             <li>
                                 <Link

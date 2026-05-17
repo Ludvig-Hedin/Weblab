@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';

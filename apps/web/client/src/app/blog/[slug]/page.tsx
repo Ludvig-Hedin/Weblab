@@ -263,9 +263,7 @@ export default async function BlogPostPage({ params }: Props) {
             {/* CTA Section */}
             <section className="border-foreground-primary/10 border-t">
                 <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-24 text-center md:px-8">
-                    <p className="text-foreground-tertiary mb-3 text-xs font-medium">
-                        Get started
-                    </p>
+                    <p className="text-foreground-tertiary mb-3 text-xs font-medium">Get started</p>
                     <h2 className="text-foreground-primary mb-8 text-4xl font-light tracking-tight text-balance md:text-5xl">
                         Start building with {APP_NAME}
                     </h2>

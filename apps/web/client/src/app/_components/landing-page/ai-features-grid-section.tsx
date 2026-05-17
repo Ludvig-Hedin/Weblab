@@ -1,14 +1,7 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 
-const CARDS = [
-    'feedback',
-    'library',
-    'globalStyles',
-    'responsive',
-    'layers',
-    'templates',
-] as const;
+const CARDS = ['feedback', 'library', 'globalStyles', 'responsive', 'layers', 'templates'] as const;
 
 export function AiFeaturesGridSection() {
     const t = useTranslations('landing.aiFeaturesGrid') as (key: string) => string;

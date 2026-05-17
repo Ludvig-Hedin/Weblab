@@ -1,6 +1,6 @@
-import { useTranslations } from 'next-intl';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { useCreateManager } from '@/components/store/create';
 

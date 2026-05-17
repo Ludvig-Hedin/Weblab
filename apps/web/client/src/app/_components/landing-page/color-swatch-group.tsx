@@ -25,7 +25,7 @@ export function ColorSwatchGroup({ label, colorClasses }: ColorSwatchGroupProps)
                     />
                 ))}
                 {/* 12th swatch: plus icon */}
-                <div className="border-foreground-tertiary/50 group hover:bg-foreground-tertiary/20 hover:border-foreground-tertiary/80 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-dashed bg-foreground-primary">
+                <div className="border-foreground-tertiary/50 group hover:bg-foreground-tertiary/20 hover:border-foreground-tertiary/80 bg-foreground-primary flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-dashed">
                     <Icons.Plus className="text-foreground-tertiary group-hover:text-foreground-primary text-xl leading-none select-none" />
                 </div>
             </div>

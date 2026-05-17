@@ -5,7 +5,6 @@ import { useTranslations } from 'next-intl';
 import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
-
 import { ContactLink } from '../landing-page/contact-link';
 
 const GITHUB_ADVISORY_URL = 'https://github.com/Ludvig-Hedin/Weblab/security/advisories/new';
@@ -17,13 +16,28 @@ export function SecurityContact() {
         <section id="contact" className="scroll-mt-24">
             <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
                 <div className="mb-12 max-w-3xl">
-                    <Reveal as="p" delay={0} y={12} className="heading-style-h6 text-foreground-secondary mb-4">
+                    <Reveal
+                        as="p"
+                        delay={0}
+                        y={12}
+                        className="heading-style-h6 text-foreground-secondary mb-4"
+                    >
                         Contact
                     </Reveal>
-                    <Reveal as="h2" delay={0.1} y={16} className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                    <Reveal
+                        as="h2"
+                        delay={0.1}
+                        y={16}
+                        className="heading-style-h3 text-foreground-primary mb-4 text-balance"
+                    >
                         {t('title')}
                     </Reveal>
-                    <Reveal as="p" delay={0.2} y={12} className="text-foreground-secondary text-regularPlus text-balance">
+                    <Reveal
+                        as="p"
+                        delay={0.2}
+                        y={12}
+                        className="text-foreground-secondary text-regularPlus text-balance"
+                    >
                         {t('subtitle')}
                     </Reveal>
                 </div>
@@ -42,7 +56,7 @@ export function SecurityContact() {
                             <ContactLink
                                 user="contact"
                                 domain="weblab.build"
-                                className="text-foreground-primary mt-auto inline-flex items-center gap-1.5 font-mono text-small hover:underline"
+                                className="text-foreground-primary text-small mt-auto inline-flex items-center gap-1.5 font-mono hover:underline"
                                 title={t('emailCard.cta')}
                             >
                                 contact@weblab.build
@@ -65,7 +79,7 @@ export function SecurityContact() {
                                 href={GITHUB_ADVISORY_URL}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-foreground-primary mt-auto inline-flex items-center gap-1.5 font-mono text-small hover:underline"
+                                className="text-foreground-primary text-small mt-auto inline-flex items-center gap-1.5 font-mono hover:underline"
                                 title={t('githubCard.cta')}
                             >
                                 {t('githubCard.cta')}

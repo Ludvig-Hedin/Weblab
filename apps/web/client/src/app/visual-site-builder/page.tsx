@@ -62,7 +62,7 @@ export default function VisualSiteBuilderPage() {
                 {/* Hero */}
                 <section className="px-4 pt-32 pb-24 sm:px-6 md:px-8 md:pt-40 md:pb-32">
                     <div className="mx-auto max-w-6xl">
-                        <p className="text-foreground-tertiary mb-6 text-xs font-medium ">
+                        <p className="text-foreground-tertiary mb-6 text-xs font-medium">
                             Visual Site Builder
                         </p>
                         <h1 className="mb-8 max-w-4xl text-5xl leading-[1.05] font-light text-balance md:text-7xl">
@@ -99,14 +99,14 @@ export default function VisualSiteBuilderPage() {
                             </p>
                             <p className="text-foreground-secondary">
                                 {APP_NAME} flips it. The canvas reads your real React code. The
-                                components on the left panel are the ones already in your repo.
-                                The colors are your tokens. The output is a pull request to your
-                                GitHub repository — reviewable by engineers, mergeable on your
-                                schedule, deployable to your infrastructure.
+                                components on the left panel are the ones already in your repo. The
+                                colors are your tokens. The output is a pull request to your GitHub
+                                repository — reviewable by engineers, mergeable on your schedule,
+                                deployable to your infrastructure.
                             </p>
                             <p className="text-foreground-secondary">
-                                Designers get a visual surface. Engineers keep code as the source
-                                of truth. Everyone ships the same artifact.
+                                Designers get a visual surface. Engineers keep code as the source of
+                                truth. Everyone ships the same artifact.
                             </p>
                         </div>
                     </div>
@@ -118,20 +118,16 @@ export default function VisualSiteBuilderPage() {
                         <h2 className="mb-16 text-4xl font-light md:text-5xl">How it works</h2>
                         <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm ">
-                                    Step 1
-                                </p>
+                                <p className="text-foreground-tertiary mb-3 text-sm">Step 1</p>
                                 <h3 className="mb-3 text-2xl font-light">Connect your repo</h3>
                                 <p className="text-foreground-secondary leading-relaxed">
                                     Point {APP_NAME} at a React or Next.js GitHub repository. We
-                                    parse your components, design tokens, and routes. Nothing
-                                    leaves your repo unless you ship a PR.
+                                    parse your components, design tokens, and routes. Nothing leaves
+                                    your repo unless you ship a PR.
                                 </p>
                             </div>
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm ">
-                                    Step 2
-                                </p>
+                                <p className="text-foreground-tertiary mb-3 text-sm">Step 2</p>
                                 <h3 className="mb-3 text-2xl font-light">Design on canvas</h3>
                                 <p className="text-foreground-secondary leading-relaxed">
                                     Drag your real components onto an infinite canvas. Adjust
@@ -140,14 +136,12 @@ export default function VisualSiteBuilderPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-foreground-tertiary mb-3 text-sm ">
-                                    Step 3
-                                </p>
+                                <p className="text-foreground-tertiary mb-3 text-sm">Step 3</p>
                                 <h3 className="mb-3 text-2xl font-light">Ship a pull request</h3>
                                 <p className="text-foreground-secondary leading-relaxed">
                                     When the design is ready, hit "Open PR". {APP_NAME} writes a
-                                    clean diff against your codebase. Engineers review it in
-                                    GitHub like any other PR. Merge to deploy.
+                                    clean diff against your codebase. Engineers review it in GitHub
+                                    like any other PR. Merge to deploy.
                                 </p>
                             </div>
                         </div>
@@ -157,20 +151,18 @@ export default function VisualSiteBuilderPage() {
                 {/* Side-by-side */}
                 <section className="border-foreground-primary/10 border-t px-4 py-24 sm:px-6 md:px-8 md:py-32">
                     <div className="mx-auto max-w-5xl">
-                        <h2 className="mb-12 text-4xl font-light md:text-5xl">
-                            How it compares
-                        </h2>
+                        <h2 className="mb-12 text-4xl font-light md:text-5xl">How it compares</h2>
                         <div className="border-foreground-primary/10 overflow-x-auto rounded-lg border">
                             <table className="w-full text-left">
                                 <thead>
                                     <tr className="border-foreground-primary/10 bg-foreground-primary/[0.03] border-b">
-                                        <th className="px-6 py-4 text-sm font-normal ">
+                                        <th className="px-6 py-4 text-sm font-normal">
                                             Capability
                                         </th>
-                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal ">
+                                        <th className="text-foreground-primary px-6 py-4 text-sm font-normal">
                                             {APP_NAME}
                                         </th>
-                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal ">
+                                        <th className="text-foreground-tertiary px-6 py-4 text-sm font-normal">
                                             Hosted drag-and-drop builders
                                         </th>
                                     </tr>
@@ -202,11 +194,7 @@ export default function VisualSiteBuilderPage() {
                                             'Code lives in your repo from day one',
                                             'Code lives on the vendor — export is an escape hatch',
                                         ],
-                                        [
-                                            'Open source',
-                                            'Yes — self-host for free',
-                                            'No',
-                                        ],
+                                        ['Open source', 'Yes — self-host for free', 'No'],
                                         [
                                             'Built for teams',
                                             'Designer + engineer workflow with PR review',
@@ -275,8 +263,8 @@ export default function VisualSiteBuilderPage() {
                             <div>
                                 <h3 className="mb-3 text-xl font-medium">Frontend teams</h3>
                                 <p className="text-foreground-secondary leading-relaxed">
-                                    Cut weeks from the design-implement-review loop. Designers
-                                    edit the real components, engineers review the diff in GitHub.
+                                    Cut weeks from the design-implement-review loop. Designers edit
+                                    the real components, engineers review the diff in GitHub.
                                 </p>
                             </div>
                             <div>
@@ -304,8 +292,8 @@ export default function VisualSiteBuilderPage() {
                             <div>
                                 <h3 className="mb-3 text-xl font-medium">Solo product builders</h3>
                                 <p className="text-foreground-secondary leading-relaxed">
-                                    Move from concept to deployed page without leaving the canvas
-                                    or babysitting a framework you'd rather not touch by hand.
+                                    Move from concept to deployed page without leaving the canvas or
+                                    babysitting a framework you'd rather not touch by hand.
                                 </p>
                             </div>
                         </div>
@@ -315,9 +303,7 @@ export default function VisualSiteBuilderPage() {
                 {/* Related reading */}
                 <section className="border-foreground-primary/10 border-t px-4 py-20 sm:px-6 md:px-8">
                     <div className="mx-auto max-w-4xl">
-                        <p className="text-foreground-tertiary mb-4 text-sm ">
-                            Related reading
-                        </p>
+                        <p className="text-foreground-tertiary mb-4 text-sm">Related reading</p>
                         <ul className="space-y-3 text-lg">
                             <li>
                                 <Link

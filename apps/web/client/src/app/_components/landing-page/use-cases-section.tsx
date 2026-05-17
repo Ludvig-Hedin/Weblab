@@ -68,9 +68,7 @@ export function UseCasesSection() {
 
                 {/* Right: copy + tabs */}
                 <div className="flex flex-col">
-                    <span className="text-mini text-foreground-primary/80">
-                        {t('eyebrow')}
-                    </span>
+                    <span className="text-mini text-foreground-primary/80">{t('eyebrow')}</span>
 
                     <ul className="mt-5 flex flex-col">
                         {USE_CASES.map((u, idx) => {
@@ -204,7 +202,7 @@ function ReferencesVisual() {
                             <RefChip
                                 icon={<Icons.File className="h-3 w-3" />}
                                 title="brand-guide.pdf"
-                                meta="p. 4–6"
+                                meta="p. 4-6"
                             />
                             <RefChip
                                 icon={<Icons.Figma className="h-3 w-3" />}
@@ -559,9 +557,7 @@ function ConnectVisual() {
                     <span className="absolute top-4 bottom-4 left-0 w-[2px] rounded-r bg-[var(--foreground-brand)]" />
 
                     <div className="px-5 pt-5 pb-5">
-                        <span className="text-style-tagline">
-                            Connect repository
-                        </span>
+                        <span className="text-style-tagline">Connect repository</span>
                         <div className="text-foreground-primary mt-2 text-[14px] font-light tracking-tight">
                             Open the project you already have.
                         </div>

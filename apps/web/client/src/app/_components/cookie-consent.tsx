@@ -56,7 +56,7 @@ export function CookieConsent() {
             }}
         >
             <span className="block">{t('title')}</span>
-            <span className="text-foreground-secondary mt-1 block text-small leading-relaxed">
+            <span className="text-foreground-secondary text-small mt-1 block leading-relaxed">
                 {t('body')}
             </span>
         </CookieConsentLib>

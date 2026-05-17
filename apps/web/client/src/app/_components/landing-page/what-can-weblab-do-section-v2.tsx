@@ -400,17 +400,13 @@ function BrandVisual() {
         <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col overflow-hidden rounded-xl border">
             {/* Header */}
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <div className="text-style-tagline">
-                    Tokens
-                </div>
+                <div className="text-style-tagline">Tokens</div>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
 
             {/* Colors */}
             <div className="flex flex-col gap-1 px-2 py-2.5">
-                <div className="text-style-tagline mb-0.5 px-1.5">
-                    Colors
-                </div>
+                <div className="text-style-tagline mb-0.5 px-1.5">Colors</div>
                 {colorTokens.map((t) => (
                     <div
                         key={t.name}
@@ -451,9 +447,7 @@ function BrandVisual() {
 
             {/* Typography */}
             <div className="border-foreground-primary/10 flex flex-col gap-1 border-t px-2 py-2.5">
-                <div className="text-style-tagline mb-0.5 px-1.5">
-                    Typography
-                </div>
+                <div className="text-style-tagline mb-0.5 px-1.5">Typography</div>
                 {typeTokens.map((t) => (
                     <div
                         key={t.name}
@@ -507,9 +501,7 @@ function LayersVisual() {
             onMouseLeave={cycle.onMouseLeave}
         >
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <span className="text-style-tagline">
-                    {t('layersTitle')}
-                </span>
+                <span className="text-style-tagline">{t('layersTitle')}</span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
             <div className="flex flex-col py-1.5">
@@ -634,9 +626,7 @@ function RevisionVisual() {
         >
             <div className="border-foreground-primary/10 flex items-center gap-2 border-b px-4 py-3">
                 <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
-                <span className="text-style-tagline">
-                    {t('revisionToday')}
-                </span>
+                <span className="text-style-tagline">{t('revisionToday')}</span>
             </div>
             <div className="flex flex-col">
                 {versions.map((v, idx) => {

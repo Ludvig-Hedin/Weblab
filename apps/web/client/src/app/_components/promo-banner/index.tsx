@@ -1,22 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import type { PromoBanner as PromoBannerConfig } from '@/lib/promo-banners';
+import { getActiveBanner, PROMO_BANNER_DISMISSED_STORAGE_PREFIX } from '@/lib/promo-banners';
 import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
-
-import {
-    PROMO_BANNER_DISMISSED_STORAGE_PREFIX,
-    getActiveBanner,
-    type PromoBanner as PromoBannerConfig,
-} from '@/lib/promo-banners';
 
 /**
  * CSS variable consumed by `WebsiteLayout` to position the TopBar below the
@@ -44,7 +40,7 @@ export function PromoBanner({ locale, bannerOverride, forceShow }: PromoBannerPr
 
     useEffect(() => {
         setMounted(true);
-        if (forceShow || !banner || !banner.dismissible) return;
+        if (forceShow || !banner?.dismissible) return;
         try {
             const stored = window.localStorage.getItem(
                 PROMO_BANNER_DISMISSED_STORAGE_PREFIX + banner.id,
@@ -56,7 +52,10 @@ export function PromoBanner({ locale, bannerOverride, forceShow }: PromoBannerPr
     }, [banner, forceShow]);
 
     const isVisible = Boolean(
-        mounted && banner && (banner.locales ? banner.locales.includes(locale ?? 'en') : true) && !dismissed,
+        mounted &&
+        banner &&
+        (banner.locales ? banner.locales.includes(locale ?? 'en') : true) &&
+        !dismissed,
     );
 
     // Reflect visibility on the document element so the rest of the layout

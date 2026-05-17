@@ -62,7 +62,10 @@ export function FAQSection({
         >
             <div className="mx-auto flex max-w-6xl flex-col items-start gap-16 sm:gap-24 md:flex-row md:gap-12">
                 <div className="flex flex-1 flex-col items-start">
-                    <Reveal as="h2" className="heading-style-h2 text-foreground-primary mt-4 mb-12 max-w-3xl text-balance">
+                    <Reveal
+                        as="h2"
+                        className="heading-style-h2 text-foreground-primary mt-4 mb-12 max-w-3xl text-balance"
+                    >
                         {resolvedTitle.split('\n').map((line, index) => (
                             <React.Fragment key={index}>
                                 {line}

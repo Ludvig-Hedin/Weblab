@@ -136,7 +136,7 @@ export function RevisionHistory() {
                     Revision history
                 </span>
                 <p className="text-foreground-secondary text-regular">
-                    Never lose your progress – revert when you need to
+                    Never lose your progress. Revert when you need to.
                 </p>
             </div>
         </div>

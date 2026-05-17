@@ -2,9 +2,9 @@
 
 import type { MotionValue } from 'framer-motion';
 import { useRef } from 'react';
-import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 

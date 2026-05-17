@@ -13,7 +13,7 @@ export function AiFeaturesHero() {
         <div className="flex w-full flex-col items-center justify-center px-8 py-4 text-center text-lg">
             <div className="relative z-20 flex max-w-5xl flex-col items-center gap-4 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary text-xs font-medium mb-2"
+                    className="text-foreground-secondary mb-2 text-xs font-medium"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -48,11 +48,7 @@ export function AiFeaturesHero() {
                     transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    <Button
-                        asChild
-                        size="lg"
-                        className="cursor-pointer"
-                    >
+                    <Button asChild size="lg" className="cursor-pointer">
                         <a href={Routes.PROJECTS}>
                             Get Started
                             <Icons.ArrowRight className="ml-2 h-4 w-4" />

@@ -1,7 +1,7 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Language, LANGUAGE_DISPLAY_NAMES } from '@weblab/constants';
 import {
@@ -24,15 +24,14 @@ export function LocaleSwitcher() {
     };
 
     const currentName =
-        LANGUAGE_DISPLAY_NAMES[currentLocale as Language] ??
-        LANGUAGE_DISPLAY_NAMES[Language.English];
+        LANGUAGE_DISPLAY_NAMES[currentLocale] ?? LANGUAGE_DISPLAY_NAMES[Language.English];
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <button
                     aria-label={t('label')}
-                    className="flex items-center gap-1.5 rounded-full bg-foreground-primary/[0.07] px-3 py-1.5 text-small text-foreground-secondary transition-colors duration-150 hover:text-foreground-primary focus:outline-none"
+                    className="bg-foreground-primary/[0.07] text-small text-foreground-secondary hover:text-foreground-primary flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors duration-150 focus:outline-none"
                 >
                     <Icons.Globe className="h-3.5 w-3.5 shrink-0" />
                     <span>{currentName}</span>
@@ -49,9 +48,7 @@ export function LocaleSwitcher() {
                             className="flex items-center justify-between gap-4"
                         >
                             <span>{LANGUAGE_DISPLAY_NAMES[lang]}</span>
-                            {isActive ? (
-                                <Icons.Check className="h-3.5 w-3.5 opacity-80" />
-                            ) : null}
+                            {isActive ? <Icons.Check className="h-3.5 w-3.5 opacity-80" /> : null}
                         </DropdownMenuItem>
                     );
                 })}

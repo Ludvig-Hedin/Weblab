@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { useReducedMotion } from '@weblab/ui/hooks';
 import { Icons } from '@weblab/ui/icons';

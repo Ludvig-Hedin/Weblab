@@ -34,15 +34,19 @@ export default function LoginPage() {
         version: null,
     });
     useEffect(() => {
-        const bridge = (window as unknown as { weblabDesktop?: WeblabDesktopBridge })
-            .weblabDesktop;
+        const bridge = (window as unknown as { weblabDesktop?: WeblabDesktopBridge }).weblabDesktop;
         if (bridge?.target === 'desktop') {
             setDesktop({ isDesktop: true, version: bridge.version ?? null });
         }
     }, []);
 
     return (
-        <div className="flex h-screen w-screen items-center justify-center">
+        <div className="relative flex h-screen w-screen items-center justify-center">
+            {/* Invisible drag strip so the window is movable in desktop mode. Uses an
+                absolute overlay instead of adding desktop-drag-region to the outer div,
+                which would apply the macOS traffic-light padding-left and shift the
+                centered content off-axis. */}
+            <div className="desktop-drag-region pointer-events-none absolute inset-x-0 top-0 h-10" />
             <div className="flex h-full w-full flex-col justify-between space-y-8 overflow-auto px-6 py-10 sm:max-w-xl sm:px-16 sm:py-16">
                 <div className="flex items-center space-x-2">
                     {desktop.isDesktop ? (

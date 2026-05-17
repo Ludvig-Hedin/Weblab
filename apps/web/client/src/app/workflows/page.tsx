@@ -138,7 +138,7 @@ export default function WorkflowsPage() {
                 </div>
 
                 {/* Workflows Grid */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-3">
                             {workflows.map((workflow, index) => (
@@ -149,7 +149,7 @@ export default function WorkflowsPage() {
                                     {workflow.available ? (
                                         <Link
                                             href={workflow.href}
-                                            className="group border-foreground-primary/10 hover:border-foreground-primary/30 flex h-full flex-col gap-4 rounded-lg border bg-background-secondary p-8 transition-all duration-300"
+                                            className="group border-foreground-primary/10 hover:border-foreground-primary/30 bg-background-secondary flex h-full flex-col gap-4 rounded-lg border p-8 transition-all duration-300"
                                         >
                                             {workflow.logo ? (
                                                 <img
@@ -174,7 +174,7 @@ export default function WorkflowsPage() {
                                             </div>
                                         </Link>
                                     ) : (
-                                        <div className="border-foreground-primary/10 flex h-full flex-col gap-4 rounded-lg border bg-background-secondary p-8">
+                                        <div className="border-foreground-primary/10 bg-background-secondary flex h-full flex-col gap-4 rounded-lg border p-8">
                                             {workflow.logo ? (
                                                 <img
                                                     src={workflow.logo}

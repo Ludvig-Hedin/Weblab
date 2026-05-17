@@ -68,76 +68,76 @@ export function CodeOneToOneSection() {
     return (
         <section className="relative mx-auto flex min-h-[480px] w-full max-w-6xl justify-center bg-transparent px-8">
             <Reveal className="pointer-events-none absolute top-0 left-0 z-10 mx-auto w-full max-w-6xl">
-                <h2 className="heading-style-h2 ml-12 max-w-4xl text-left text-foreground-primary drop-shadow-xl">
+                <h2 className="heading-style-h2 text-foreground-primary ml-12 max-w-4xl text-left drop-shadow-xl">
                     {t('headingLine1')}
                     <br />
                     {t('headingLine2')}
                 </h2>
             </Reveal>
             <Reveal delay={0.1}>
-            <div
-                className="relative mx-auto mt-24 flex min-h-[420px] w-full max-w-6xl items-center justify-start"
-                style={{ paddingTop: '7vw' }}
-            >
-                {/* Left: Mock Website */}
-                <div className="relative z-10 flex h-[320px] w-full max-w-[800px] flex-col items-center justify-center rounded-2xl bg-card shadow-xl">
-                    <div className="flex h-full w-full flex-col justify-between gap-6 p-8">
-                        {mockDivs.map((div) => (
-                            <div
-                                key={div.id}
-                                className={`border-border/10 flex h-14 w-full cursor-pointer items-center justify-end rounded-lg border pr-8 text-xl font-light transition ${selectedDiv === div.id ? 'border-foreground-brand bg-background-brand/10' : 'bg-card hover:border-foreground-brand/50'}`}
-                                onClick={() => setSelectedDiv(div.id)}
-                                style={{
-                                    boxShadow:
-                                        selectedDiv === div.id
-                                            ? '0 0 0 2px var(--foreground-brand)'
-                                            : undefined,
-                                }}
-                            >
-                                <span className="text-foreground-primary">{div.label}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                {/* Right: Code Overlay */}
                 <div
-                    className="absolute top-1/2 right-24 z-20 -translate-y-1/2"
-                    style={{ transform: 'translateY(-50%) translateX(20%)' }}
+                    className="relative mx-auto mt-24 flex min-h-[420px] w-full max-w-6xl items-center justify-start"
+                    style={{ paddingTop: '7vw' }}
                 >
-                    <div className="bg-background/80 border-border/10 text-small text-foreground-secondary relative flex h-[400px] w-[440px] flex-col overflow-hidden rounded-2xl border border-[0.5px] p-3 text-left font-mono shadow-xl shadow-black/40 backdrop-blur-xl">
-                        <div className="pointer-events-none absolute inset-0 rounded-2xl border border-foreground-primary/10 p-5 shadow-2xl">
-                            <pre className="relative z-10 whitespace-pre-wrap">
-                                {mockCode.map((line, idx) => {
-                                    // Highlight lines if selectedDiv matches
-                                    const highlight =
-                                        selectedDiv &&
-                                        mockDivs
-                                            .find((d) => d.id === selectedDiv)
-                                            ?.codeLines.includes(idx);
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`text-small flex flex-row items-start rounded px-0 transition ${highlight ? 'bg-foreground-brand/20 text-foreground-brand' : ''}`}
-                                        >
-                                            <span
-                                                className="text-small text-foreground-tertiary/50 mr-2 w-6 pt-0.5 text-left font-mono select-none"
-                                                aria-hidden="true"
+                    {/* Left: Mock Website */}
+                    <div className="bg-card relative z-10 flex h-[320px] w-full max-w-[800px] flex-col items-center justify-center rounded-2xl shadow-xl">
+                        <div className="flex h-full w-full flex-col justify-between gap-6 p-8">
+                            {mockDivs.map((div) => (
+                                <div
+                                    key={div.id}
+                                    className={`border-border/10 flex h-14 w-full cursor-pointer items-center justify-end rounded-lg border pr-8 text-xl font-light transition ${selectedDiv === div.id ? 'border-foreground-brand bg-background-brand/10' : 'bg-card hover:border-foreground-brand/50'}`}
+                                    onClick={() => setSelectedDiv(div.id)}
+                                    style={{
+                                        boxShadow:
+                                            selectedDiv === div.id
+                                                ? '0 0 0 2px var(--foreground-brand)'
+                                                : undefined,
+                                    }}
+                                >
+                                    <span className="text-foreground-primary">{div.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Right: Code Overlay */}
+                    <div
+                        className="absolute top-1/2 right-24 z-20 -translate-y-1/2"
+                        style={{ transform: 'translateY(-50%) translateX(20%)' }}
+                    >
+                        <div className="bg-background/80 border-border/10 text-small text-foreground-secondary relative flex h-[400px] w-[440px] flex-col overflow-hidden rounded-2xl border border-[0.5px] p-3 text-left font-mono shadow-xl shadow-black/40 backdrop-blur-xl">
+                            <div className="border-foreground-primary/10 pointer-events-none absolute inset-0 rounded-2xl border p-5 shadow-2xl">
+                                <pre className="relative z-10 whitespace-pre-wrap">
+                                    {mockCode.map((line, idx) => {
+                                        // Highlight lines if selectedDiv matches
+                                        const highlight =
+                                            selectedDiv &&
+                                            mockDivs
+                                                .find((d) => d.id === selectedDiv)
+                                                ?.codeLines.includes(idx);
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className={`text-small flex flex-row items-start rounded px-0 transition ${highlight ? 'bg-foreground-brand/20 text-foreground-brand' : ''}`}
                                             >
-                                                {idx + 1}
-                                            </span>
-                                            <span
-                                                dangerouslySetInnerHTML={{
-                                                    __html: highlightCode(line),
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </pre>
+                                                <span
+                                                    className="text-small text-foreground-tertiary/50 mr-2 w-6 pt-0.5 text-left font-mono select-none"
+                                                    aria-hidden="true"
+                                                >
+                                                    {idx + 1}
+                                                </span>
+                                                <span
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: highlightCode(line),
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </pre>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             </Reveal>
         </section>
     );

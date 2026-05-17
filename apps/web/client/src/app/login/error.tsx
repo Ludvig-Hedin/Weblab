@@ -57,9 +57,7 @@ export default function ErrorPage({
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">
             <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
-                <p className="text-foreground-tertiary text-sm ">
-                    {COPY.EYEBROW}
-                </p>
+                <p className="text-foreground-tertiary text-sm">{COPY.EYEBROW}</p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">{COPY.TITLE}</h1>
                 <p className="text-foreground-secondary mt-4 text-sm leading-6">{COPY.BODY}</p>
                 {reference && reference !== 'unknown' && (

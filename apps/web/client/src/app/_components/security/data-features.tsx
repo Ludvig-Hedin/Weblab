@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 
-import { Compliance1, type ComplianceFeature } from '@/components/compliance1';
+import type { ComplianceFeature } from '@/components/compliance1';
+import { Compliance1 } from '@/components/compliance1';
 
 export function SecurityDataFeatures() {
     const tFn = useTranslations('security.data');
@@ -11,7 +12,11 @@ export function SecurityDataFeatures() {
     const features: ComplianceFeature[] = [
         { title: t('items.tls.title'), description: t('items.tls.body'), badgeAlt: 'TLS' },
         { title: t('items.oauth.title'), description: t('items.oauth.body'), badgeAlt: 'OAuth' },
-        { title: t('items.aiTraining.title'), description: t('items.aiTraining.body'), badgeAlt: 'AI' },
+        {
+            title: t('items.aiTraining.title'),
+            description: t('items.aiTraining.body'),
+            badgeAlt: 'AI',
+        },
         { title: t('items.oss.title'), description: t('items.oss.body'), badgeAlt: 'OSS' },
     ];
 
@@ -22,13 +27,11 @@ export function SecurityDataFeatures() {
             description={t('subtitle')}
             badges={[
                 {
-                    image:
-                        'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/GDPR.svg',
+                    image: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/GDPR.svg',
                     alt: 'GDPR-aligned',
                 },
                 {
-                    image:
-                        'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/CCPA.svg',
+                    image: 'https://deifkwefumgah.cloudfront.net/shadcnblocks/block/compliance/CCPA.svg',
                     alt: 'CCPA-aligned',
                 },
             ]}

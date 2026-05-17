@@ -2,7 +2,6 @@
 
 import { motion } from 'motion/react';
 
-
 import { ExternalRoutes } from '@/utils/constants';
 import { WebsiteLayout } from '../_components/website-layout';
 
@@ -16,7 +15,12 @@ function AppIcon() {
     return (
         <div className="bg-foreground-primary relative h-24 w-24 overflow-hidden rounded-[22px] shadow-xl">
             <div className="absolute inset-0 flex items-center justify-center p-5">
-                <svg viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
+                <svg
+                    viewBox="0 0 76 76"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-full w-full"
+                >
                     {SYMBOL_PATHS.map((d, i) => (
                         <path key={i} d={d} className="fill-background-primary" />
                     ))}
@@ -29,7 +33,7 @@ function AppIcon() {
 export default function DownloadPage() {
     return (
         <WebsiteLayout>
-            <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 pb-20 pt-20">
+            <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-6 pt-20 pb-20">
                 <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -41,9 +45,7 @@ export default function DownloadPage() {
 
                     {/* Heading */}
                     <div className="flex flex-col items-center gap-3">
-                        <h1 className="heading-style-h1 text-foreground-primary">
-                            Desktop app
-                        </h1>
+                        <h1 className="heading-style-h1 text-foreground-primary">Desktop app</h1>
                         <p className="text-foreground-secondary max-w-md text-base leading-relaxed">
                             Get the desktop app for the ultimate Weblab experience.
                         </p>

@@ -3,8 +3,8 @@
 import './contributor.css';
 
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
@@ -108,7 +108,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                     return (
                         <div
                             key={`inner-${i}`}
-                            className="border-foreground-primary/40 counter-spin absolute overflow-hidden rounded-full border border-[0.5px] bg-foreground-primary/20 shadow-lg"
+                            className="border-foreground-primary/40 counter-spin bg-foreground-primary/20 absolute overflow-hidden rounded-full border border-[0.5px] shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
@@ -143,7 +143,7 @@ const FloatingRings = ({ repo }: { repo: string }) => {
                     return (
                         <div
                             key={`outer-${i}`}
-                            className="border-foreground-primary/40 counter-spin-reverse absolute overflow-hidden rounded-full border border-[0.5px] bg-foreground-primary/20 shadow-lg"
+                            className="border-foreground-primary/40 counter-spin-reverse bg-foreground-primary/20 absolute overflow-hidden rounded-full border border-[0.5px] shadow-lg"
                             style={{
                                 width: '56px',
                                 height: '56px',
@@ -219,7 +219,10 @@ export function ContributorSection({
             >
                 {/* Floating Circles: two concentric rings */}
                 <FloatingRings repo={repo} />
-                <Reveal as="h2" className="heading-style-h3 text-foreground-primary mb-2 text-center">
+                <Reveal
+                    as="h2"
+                    className="heading-style-h3 text-foreground-primary mb-2 text-center"
+                >
                     {t('headingLine1')}
                     <br />
                     {isLoading
@@ -233,7 +236,10 @@ export function ContributorSection({
                 >
                     {t('body')}
                 </Reveal>
-                <Reveal delay={0.2} className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
+                <Reveal
+                    delay={0.2}
+                    className="flex w-full flex-col items-center justify-center gap-4 md:flex-row"
+                >
                     <Link
                         href={githubLink}
                         target="_blank"

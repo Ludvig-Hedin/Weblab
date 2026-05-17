@@ -10,7 +10,10 @@ export function tokenToHex(value: string): string {
     if (/^#[0-9a-fA-F]{3,8}$/.test(v)) return v;
     // Legacy HSL triplet: "H S% L%"
     try {
-        const parts = v.replace(/%/g, '').split(/[\s,]+/).map(Number);
+        const parts = v
+            .replace(/%/g, '')
+            .split(/[\s,]+/)
+            .map(Number);
         if (parts.length < 3 || parts.some(isNaN)) return '#888888';
         const [h = 0, s = 50, l = 50] = parts;
         const sl = s / 100;
@@ -19,7 +22,9 @@ export function tokenToHex(value: string): string {
         const f = (n: number) => {
             const k = (n + h / 30) % 12;
             const c = ll - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-            return Math.round(255 * c).toString(16).padStart(2, '0');
+            return Math.round(255 * c)
+                .toString(16)
+                .padStart(2, '0');
         };
         return `#${f(0)}${f(8)}${f(4)}`;
     } catch {

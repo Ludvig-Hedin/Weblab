@@ -1567,11 +1567,27 @@
                 "region": "Region"
             },
             "rows": {
-                "supabase": { "name": "Supabase", "purpose": "Autentisering + Postgres-databas", "region": "EU" },
-                "openrouter": { "name": "OpenRouter", "purpose": "LLM-routing för AI-funktioner", "region": "USA" },
-                "stripe": { "name": "Stripe", "purpose": "Betalningshantering", "region": "USA / EU" },
+                "supabase": {
+                    "name": "Supabase",
+                    "purpose": "Autentisering + Postgres-databas",
+                    "region": "EU"
+                },
+                "openrouter": {
+                    "name": "OpenRouter",
+                    "purpose": "LLM-routing för AI-funktioner",
+                    "region": "USA"
+                },
+                "stripe": {
+                    "name": "Stripe",
+                    "purpose": "Betalningshantering",
+                    "region": "USA / EU"
+                },
                 "railway": { "name": "Railway", "purpose": "Applikationshosting", "region": "USA" },
-                "github": { "name": "GitHub", "purpose": "OAuth-inloggning + repository-sync", "region": "USA" },
+                "github": {
+                    "name": "GitHub",
+                    "purpose": "OAuth-inloggning + repository-sync",
+                    "region": "USA"
+                },
                 "posthog": { "name": "PostHog", "purpose": "Produktanalys", "region": "EU" },
                 "gleap": { "name": "Gleap", "purpose": "Användarfeedback-widget", "region": "EU" },
                 "resend": { "name": "Resend", "purpose": "Transaktionell e-post", "region": "EU" }
@@ -1740,18 +1756,39 @@
                 "label": "Produkt",
                 "links": {
                     "ai": { "title": "AI", "description": "AI-driven design" },
-                    "aiFrontend": { "title": "AI för frontend", "description": "AI som följer ditt designsystem" },
-                    "visualBuilder": { "title": "Visuell byggare", "description": "Skapa på en canvas" },
-                    "prototyping": { "title": "Prototyper", "description": "Snabb prototyputveckling" },
-                    "claudeCode": { "title": "Claude Code", "description": "Visuellt lager för Claude Code" },
-                    "vibeCoding": { "title": "Vibe Coding", "description": "Teamsamarbete för vibe coding" },
-                    "allFeatures": { "title": "Alla funktioner", "description": "Se allt Weblab erbjuder" }
+                    "aiFrontend": {
+                        "title": "AI för frontend",
+                        "description": "AI som följer ditt designsystem"
+                    },
+                    "visualBuilder": {
+                        "title": "Visuell byggare",
+                        "description": "Skapa på en canvas"
+                    },
+                    "prototyping": {
+                        "title": "Prototyper",
+                        "description": "Snabb prototyputveckling"
+                    },
+                    "claudeCode": {
+                        "title": "Claude Code",
+                        "description": "Visuellt lager för Claude Code"
+                    },
+                    "vibeCoding": {
+                        "title": "Vibe Coding",
+                        "description": "Teamsamarbete för vibe coding"
+                    },
+                    "allFeatures": {
+                        "title": "Alla funktioner",
+                        "description": "Se allt Weblab erbjuder"
+                    }
                 }
             },
             "resources": {
                 "label": "Resurser",
                 "links": {
-                    "documentation": { "title": "Dokumentation", "description": "Lär dig använda Weblab" },
+                    "documentation": {
+                        "title": "Dokumentation",
+                        "description": "Lär dig använda Weblab"
+                    },
                     "blog": { "title": "Blogg", "description": "Nyheter och uppdateringar" },
                     "github": { "title": "GitHub", "description": "Visa källkoden" }
                 }
@@ -2264,7 +2301,10 @@
             "product": {
                 "title": "Produkt",
                 "pricing": { "label": "Priser", "title": "Visa Weblabs priser" },
-                "download": { "label": "Ladda ner", "title": "Ladda ner Weblab för Mac, Windows, Linux och iOS" },
+                "download": {
+                    "label": "Ladda ner",
+                    "title": "Ladda ner Weblab för Mac, Windows, Linux och iOS"
+                },
                 "myProjects": { "label": "Mina projekt", "title": "Visa dina projekt" }
             },
             "legal": {
@@ -2282,11 +2322,23 @@
             },
             "features": {
                 "title": "Funktioner",
-                "overview": { "label": "Funktionsöversikt", "title": "Visa alla Weblab-funktioner" },
+                "overview": {
+                    "label": "Funktionsöversikt",
+                    "title": "Visa alla Weblab-funktioner"
+                },
                 "ai": { "label": "AI", "title": "AI-drivna utvecklingsverktyg" },
-                "visualBuilder": { "label": "Visuell byggare", "title": "Verktyg för visuell byggare" },
-                "prototyping": { "label": "Prototyper", "title": "Funktioner för snabb prototyputveckling" },
-                "aiFrontend": { "label": "AI för frontend", "title": "AI som följer ditt designsystem" }
+                "visualBuilder": {
+                    "label": "Visuell byggare",
+                    "title": "Verktyg för visuell byggare"
+                },
+                "prototyping": {
+                    "label": "Prototyper",
+                    "title": "Funktioner för snabb prototyputveckling"
+                },
+                "aiFrontend": {
+                    "label": "AI för frontend",
+                    "title": "AI som följer ditt designsystem"
+                }
             },
             "followUs": {
                 "title": "Följ oss",

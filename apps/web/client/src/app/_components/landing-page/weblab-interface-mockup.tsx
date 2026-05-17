@@ -459,9 +459,7 @@ function CodeModePanel() {
         <div className="bg-background-canvas absolute inset-0 top-11 z-[5] flex">
             {/* Explorer */}
             <div className="border-border-bar bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
-                <div className="text-foreground-tertiary mb-1 px-1 text-[10px]">
-                    Explorer
-                </div>
+                <div className="text-foreground-tertiary mb-1 px-1 text-[10px]">Explorer</div>
                 {FILE_TREE.map((f) => {
                     const isActive = f.file === activeFile;
                     return (
@@ -1765,9 +1763,7 @@ export function WeblabInterfaceMockup() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
-                                    <div className="text-foreground-tertiary text-[10px]">
-                                        Fill
-                                    </div>
+                                    <div className="text-foreground-tertiary text-[10px]">Fill</div>
                                     <div className="border-border bg-background-secondary/60 flex items-center gap-2 rounded px-2 py-1.5 text-[11px]">
                                         <div className="bg-foreground-brand ring-border h-3.5 w-3.5 rounded ring-1" />
                                         <span className="text-foreground font-mono">#4F46E5</span>

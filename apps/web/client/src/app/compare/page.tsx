@@ -1,5 +1,5 @@
-import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
@@ -45,7 +45,9 @@ export default async function CompareIndexPage() {
                         </p>
                         <div className="mt-12">
                             <Button asChild>
-                                <Link href="/projects">{t('tryButton', { appName: APP_NAME })}</Link>
+                                <Link href="/projects">
+                                    {t('tryButton', { appName: APP_NAME })}
+                                </Link>
                             </Button>
                         </div>
                     </div>

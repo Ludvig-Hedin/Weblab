@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 export function HighDemand() {
     const t = useTranslations('landing.hero');

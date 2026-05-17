@@ -37,7 +37,7 @@ function TestimonialCard({
                         />
                     ) : (
                         <div
-                            className="flex h-full w-full items-center justify-center bg-foreground-primary/10"
+                            className="bg-foreground-primary/10 flex h-full w-full items-center justify-center"
                             style={{ background: profileColor }}
                         ></div>
                     )}

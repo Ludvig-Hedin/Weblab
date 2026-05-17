@@ -99,9 +99,7 @@ export function ResponsiveWebsiteBlock() {
 
                         {/* "View Work" Button */}
                         <div className="hover:bg-opacity-90 mb-12 w-24 cursor-pointer bg-[#8E837D] p-2 text-center transition-opacity">
-                            <p className="text-[10px] font-medium text-white">
-                                VIEW WORK
-                            </p>
+                            <p className="text-[10px] font-medium text-white">VIEW WORK</p>
                         </div>
                         {/* Three-column minimalist text */}
                         <div

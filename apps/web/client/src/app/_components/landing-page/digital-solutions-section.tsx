@@ -218,7 +218,7 @@ function SlideCard({
         >
             <div className="flex flex-col justify-between gap-6 p-4">
                 <div>
-                    <h3 className="heading-style-h4 text-foreground-primary mt-3 tracking-tight leading-[110%]">
+                    <h3 className="heading-style-h4 text-foreground-primary mt-3 leading-[110%] tracking-tight">
                         {slide.title}
                     </h3>
                     <p className="text-foreground-secondary mt-4 max-w-sm text-base tracking-tight">
@@ -243,11 +243,17 @@ function SlideCard({
 }
 
 // ─── Visuals ─────────────────────────────────────────────────────────────
-// Calm monochrome miniatures. One whisper of brand blue per visual.
+// Glassy product miniatures. Brand blue carries the eye; green and red
+// step in only where they read as real product semantics: added vs.
+// removed, live, resolved.
 
 const BRAND = 'var(--foreground-brand)';
 const BRAND_SOFT = 'color-mix(in srgb, var(--foreground-brand) 16%, transparent)';
 const BRAND_RING = 'color-mix(in srgb, var(--foreground-brand) 40%, transparent)';
+const ADD = '#3fb950';
+const ADD_SOFT = 'color-mix(in srgb, #3fb950 18%, transparent)';
+const REMOVE = '#f0533f';
+const REMOVE_SOFT = 'color-mix(in srgb, #f0533f 16%, transparent)';
 
 function VisualChrome({
     label,
@@ -259,47 +265,35 @@ function VisualChrome({
     children: React.ReactNode;
 }) {
     return (
-        <div className="border-foreground-primary/10 bg-background/40 relative h-full w-full overflow-hidden rounded-xl border">
-            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
-                <span className="text-style-tagline">
-                    {label}
-                </span>
+        <div className="border-foreground-primary/10 bg-background-secondary/40 relative h-full w-full overflow-hidden rounded-2xl border backdrop-blur-sm">
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3.5 py-2.5">
+                <span className="text-style-tagline">{label}</span>
                 {right}
             </div>
-            <div className="relative h-[calc(100%-2rem)]">{children}</div>
+            <div className="relative h-[calc(100%-2.5rem)]">{children}</div>
         </div>
     );
 }
 
-function Cursor({
-    name,
-    style,
-    flip = false,
-}: {
-    name: string;
-    style: React.CSSProperties;
-    flip?: boolean;
-}) {
+// Soft radiating dot — small looping pulse for "live / active" states.
+function PulseDot({ color = BRAND, size = 6 }: { color?: string; size?: number }) {
     return (
-        <div className="pointer-events-none absolute" style={style}>
-            <svg
-                width="12"
-                height="12"
-                viewBox="0 0 14 14"
-                fill="none"
-                style={{ transform: flip ? 'scaleX(-1)' : undefined }}
-            >
-                <path
-                    d="M2 1.5L11 7.5L7 8.5L5.5 12.5L2 1.5Z"
-                    fill={BRAND}
-                    stroke="var(--background)"
-                    strokeWidth="1.2"
-                />
-            </svg>
-            <span className="text-style-tagline border-foreground-primary/10 bg-background ml-2 inline-block rounded border px-1.5 py-0.5">
-                {name}
-            </span>
-        </div>
+        <span
+            className="relative inline-flex shrink-0"
+            style={{ width: size, height: size }}
+            aria-hidden
+        >
+            <motion.span
+                className="absolute inset-0 rounded-full"
+                style={{ backgroundColor: color }}
+                animate={{ opacity: [0.55, 0, 0.55], scale: [1, 2.6, 1] }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut' }}
+            />
+            <span
+                className="relative rounded-full"
+                style={{ width: size, height: size, backgroundColor: color }}
+            />
+        </span>
     );
 }
 
@@ -312,7 +306,10 @@ function CollabVisual() {
                     <span className="border-background bg-foreground-secondary text-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
                         A
                     </span>
-                    <span className="border-background bg-foreground-tertiary text-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
+                    <span
+                        className="border-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium text-white"
+                        style={{ backgroundColor: BRAND }}
+                    >
                         M
                     </span>
                     <span className="border-background border-foreground-primary/10 text-foreground-tertiary bg-background inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-medium">
@@ -321,51 +318,68 @@ function CollabVisual() {
                 </div>
             }
         >
-            <div className="flex h-full gap-3 p-3">
-                {/* Artboard 1 — selection */}
-                <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-style-tagline mb-2">
-                        Home
-                    </div>
+            {/* One artboard, one thread — not a wall of cards. */}
+            <div className="h-full p-4">
+                <div className="border-foreground-primary/10 bg-background/60 relative h-full overflow-hidden rounded-xl border p-4">
+                    <div className="text-foreground-quadranary mb-2.5 text-[8px]">Home</div>
                     <div className="space-y-1.5">
                         <div className="bg-foreground-primary/15 h-1.5 w-3/4 rounded-full" />
                         <div className="bg-foreground-primary/15 h-1.5 w-1/2 rounded-full" />
                     </div>
-                    <div className="relative mt-3 inline-block">
-                        <div className="bg-foreground-primary text-background rounded-md px-2 py-1 text-[8px] font-medium">
+
+                    {/* selected element — brand ring + handle */}
+                    <div className="relative mt-4 inline-block">
+                        <div className="bg-foreground-primary text-background rounded-md px-2.5 py-1 text-[9px] font-medium">
                             Get started
                         </div>
                         <div
-                            className="pointer-events-none absolute -inset-1 rounded-md ring-1 ring-inset"
+                            className="pointer-events-none absolute -inset-1 rounded-md"
+                            style={{ boxShadow: `inset 0 0 0 1.5px ${BRAND}` }}
+                        />
+                        <span
+                            className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full"
                             style={{
-                                boxShadow: `inset 0 0 0 1.5px ${BRAND}`,
+                                backgroundColor: BRAND,
+                                boxShadow: '0 0 0 1.5px var(--background)',
                             }}
                         />
                     </div>
-                    <Cursor name="Alex" style={{ right: 22, bottom: 30 }} />
-                </div>
-                {/* Artboard 2 — comment */}
-                <div className="border-foreground-primary/10 bg-background relative flex-1 rounded-lg border p-3">
-                    <div className="text-style-tagline mb-2">
-                        Pricing
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                        <div className="bg-foreground-primary/10 h-7 rounded" />
-                        <div className="bg-foreground-primary/10 h-7 rounded" />
-                    </div>
-                    <div className="mt-2 space-y-1">
-                        <div className="bg-foreground-primary/15 h-1 w-2/3 rounded-full" />
-                        <div className="bg-foreground-primary/15 h-1 w-1/2 rounded-full" />
-                    </div>
-                    {/* Comment pin */}
-                    <div
+
+                    {/* comment pin */}
+                    <motion.div
                         className="absolute flex h-5 w-5 items-center justify-center rounded-full rounded-bl-none text-[9px] font-medium text-white"
-                        style={{ top: 22, right: 14, backgroundColor: BRAND }}
+                        style={{ top: 16, right: 16, backgroundColor: BRAND }}
+                        animate={{ scale: [1, 1.12, 1] }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
                     >
                         2
-                    </div>
-                    {/* Thread popover */}
-                    <div className="border-foreground-primary/10 bg-background absolute right-2 bottom-2 left-2 rounded-lg border p-2">
+                    </motion.div>
+
+                    {/* drifting teammate cursor */}
+                    <motion.div
+                        className="pointer-events-none absolute"
+                        style={{ left: 96, top: 56 }}
+                        animate={{ x: [0, 30, 14, 0], y: [0, 18, 44, 0] }}
+                        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                            <path
+                                d="M2 1.5L11 7.5L7 8.5L5.5 12.5L2 1.5Z"
+                                fill={BRAND}
+                                stroke="var(--background)"
+                                strokeWidth="1.2"
+                            />
+                        </svg>
+                        <span
+                            className="ml-2 inline-block rounded-full px-1.5 py-0.5 text-[8px] font-medium text-white"
+                            style={{ backgroundColor: BRAND }}
+                        >
+                            Alex
+                        </span>
+                    </motion.div>
+
+                    {/* resolved thread */}
+                    <div className="border-foreground-primary/10 bg-background absolute right-3 bottom-3 left-3 rounded-xl border p-2.5">
                         <div className="flex items-center gap-1.5">
                             <span
                                 className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full text-[7px] font-medium text-white"
@@ -376,11 +390,27 @@ function CollabVisual() {
                             <span className="text-foreground-primary text-[9px] font-medium">
                                 Maya
                             </span>
-                            <span className="text-foreground-quadranary font-mono text-[8px]">
-                                · 2m
+                            <span className="text-foreground-quadranary text-[8px]">2m ago</span>
+                            <span
+                                className="ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[8px] font-medium"
+                                style={{ backgroundColor: ADD_SOFT, color: ADD }}
+                            >
+                                <svg
+                                    width="7"
+                                    height="7"
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M2 6.5L5 9.5L10 3.5" />
+                                </svg>
+                                resolved
                             </span>
                         </div>
-                        <p className="text-foreground-secondary mt-0.5 text-[8px] leading-tight font-light">
+                        <p className="text-foreground-secondary mt-1 text-[8px] leading-tight font-light">
                             Can we use the spacing-md token here?
                         </p>
                     </div>
@@ -393,67 +423,63 @@ function CollabVisual() {
 function BranchesVisual() {
     return (
         <VisualChrome
-            label="branches · 3 active"
+            label="branches · 2 active"
             right={
-                <div className="text-style-tagline flex items-center gap-1.5">
+                <div className="text-foreground-tertiary flex items-center gap-1.5 text-[9px]">
                     <span className="bg-foreground-primary h-1.5 w-1.5 rounded-full" />
                     main
                 </div>
             }
         >
-            <div className="relative px-6 py-5">
-                {/* vertical stem */}
-                <div className="bg-foreground-primary/20 absolute top-8 bottom-6 left-7 w-px" />
+            <div className="relative h-full px-6 py-6">
+                {/* vertical stem connecting main → merge */}
+                <div className="bg-foreground-primary/15 absolute top-9 bottom-10 left-[1.81rem] w-px" />
 
                 {/* main */}
                 <div className="relative flex items-center gap-3">
                     <div className="border-foreground-primary bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
-                    <div className="flex flex-1 items-center gap-2.5">
-                        <div className="border-foreground-primary/10 bg-background h-8 w-12 overflow-hidden rounded border">
-                            <div className="bg-foreground-primary/10 h-2" />
-                            <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/4 rounded-full" />
-                            <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/2 rounded-full" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
-                                main
-                            </div>
-                            <div className="text-foreground-quadranary font-mono text-[9px]">
-                                latest release · 12m ago
-                            </div>
+                    <div>
+                        <div className="text-foreground-primary text-[10px] font-medium">main</div>
+                        <div className="text-foreground-quadranary text-[9px]">
+                            latest release · 12m ago
                         </div>
                     </div>
                 </div>
 
-                {/* branch 1 — active */}
-                <div className="relative mt-4 flex items-center gap-3 pl-5">
+                {/* active feature branch — one preview thumb, not a stack */}
+                <div className="relative mt-6 flex items-center gap-3 pl-5">
                     <div className="border-foreground-primary/20 absolute top-1 left-1.5 h-4 w-4 rounded-bl-md border-b border-l" />
-                    <div
-                        className="z-10 h-2.5 w-2.5 rounded-full"
-                        style={{
-                            backgroundColor: BRAND,
-                            boxShadow: `0 0 0 3px ${BRAND_SOFT}`,
-                        }}
-                    />
+                    <span className="relative z-10 flex h-2.5 w-2.5 shrink-0">
+                        <motion.span
+                            className="absolute inset-0 rounded-full"
+                            style={{ backgroundColor: BRAND }}
+                            animate={{ opacity: [0.5, 0, 0.5], scale: [1, 2.4, 1] }}
+                            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut' }}
+                        />
+                        <span
+                            className="relative h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: BRAND }}
+                        />
+                    </span>
                     <div className="flex flex-1 items-center gap-2.5">
                         <div
-                            className="bg-background h-8 w-12 overflow-hidden rounded border"
+                            className="bg-background h-9 w-12 shrink-0 overflow-hidden rounded-md border"
                             style={{ borderColor: BRAND_RING }}
                         >
-                            <div className="h-2" style={{ backgroundColor: BRAND_SOFT }} />
+                            <div className="h-2.5" style={{ backgroundColor: BRAND_SOFT }} />
                             <div className="bg-foreground-primary/15 m-1.5 h-1 w-2/3 rounded-full" />
                             <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/2 rounded-full" />
                         </div>
                         <div className="flex-1">
-                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
+                            <div className="text-foreground-primary text-[10px] font-medium">
                                 feature/pricing-v2
                             </div>
-                            <div className="text-foreground-quadranary font-mono text-[9px]">
+                            <div className="text-foreground-quadranary text-[9px]">
                                 checkpoint · 4m ago
                             </div>
                         </div>
                         <span
-                            className="rounded-full px-2 py-0.5 font-mono text-[9px] font-medium"
+                            className="rounded-full px-2 py-0.5 text-[9px] font-medium"
                             style={{ backgroundColor: BRAND_SOFT, color: BRAND }}
                         >
                             restore
@@ -461,34 +487,25 @@ function BranchesVisual() {
                     </div>
                 </div>
 
-                {/* branch 2 */}
-                <div className="relative mt-4 flex items-center gap-3 pl-5">
-                    <div className="border-foreground-primary/20 absolute top-1 left-1.5 h-4 w-4 rounded-bl-md border-b border-l" />
-                    <div className="border-foreground-primary/20 bg-background z-10 h-2.5 w-2.5 rounded-full border-2" />
-                    <div className="flex flex-1 items-center gap-2.5">
-                        <div className="border-foreground-primary/10 bg-background h-8 w-12 overflow-hidden rounded border">
-                            <div className="bg-foreground-primary/10 h-2" />
-                            <div className="bg-foreground-primary/15 m-1.5 h-1 w-3/5 rounded-full" />
-                            <div className="bg-foreground-primary/15 mx-1.5 h-1 w-1/3 rounded-full" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-foreground-primary font-mono text-[10px] font-medium">
-                                feature/landing-redo
-                            </div>
-                            <div className="text-foreground-quadranary font-mono text-[9px]">
-                                preview · 2m ago
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* merge */}
-                <div className="relative mt-4 flex items-center gap-3">
+                {/* merge ready — colored diff */}
+                <div className="relative mt-6 flex items-center gap-3">
                     <div className="bg-foreground-primary z-10 h-2.5 w-2.5 rounded-full" />
-                    <div className="text-foreground-tertiary font-mono text-[10px]">
-                        merge ready · diff <span className="text-foreground-primary">+124</span>{' '}
-                        <span className="text-foreground-quadranary">/</span>{' '}
-                        <span className="text-foreground-quadranary">-38</span>
+                    <div className="flex items-center gap-2 text-[10px]">
+                        <span className="text-foreground-tertiary">merge ready</span>
+                        <motion.span
+                            className="rounded-full px-1.5 py-0.5 font-medium"
+                            style={{ backgroundColor: ADD_SOFT, color: ADD }}
+                            animate={{ opacity: [0.7, 1, 0.7] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                            +124
+                        </motion.span>
+                        <span
+                            className="rounded-full px-1.5 py-0.5 font-medium"
+                            style={{ backgroundColor: REMOVE_SOFT, color: REMOVE }}
+                        >
+                            -38
+                        </span>
                     </div>
                 </div>
             </div>
@@ -505,22 +522,22 @@ function CmsVisual() {
     ];
     const fields = [
         { label: 'Title', value: 'Launch week, day 3' },
-        { label: 'Slug', value: '/blog/launch-week-day-3' },
-        { label: 'Author', value: '↳ authors/maya' },
+        { label: 'Author', value: 'authors / maya' },
     ];
     return (
         <VisualChrome
             label="cms · collections"
             right={
-                <span className="text-foreground-quadranary font-mono text-[9px]">
-                    last sync · just now
-                </span>
+                <div className="flex items-center gap-1.5">
+                    <PulseDot color={ADD} size={5} />
+                    <span className="text-foreground-quadranary text-[9px]">synced</span>
+                </div>
             }
         >
-            <div className="grid h-full grid-cols-[110px_1fr]">
+            <div className="grid h-full grid-cols-[104px_1fr]">
                 {/* Collections sidebar */}
-                <div className="border-foreground-primary/10 bg-background/30 space-y-1 border-r p-2">
-                    <div className="text-foreground-quadranary mb-1 px-2 font-mono text-[8px] ">
+                <div className="border-foreground-primary/10 bg-background/40 space-y-1 border-r p-2">
+                    <div className="text-foreground-quadranary mb-1 px-2 text-[8px]">
                         Collections
                     </div>
                     {collections.map((c) => (
@@ -534,7 +551,7 @@ function CmsVisual() {
                         >
                             <span className="font-light">{c.name}</span>
                             <span
-                                className={`font-mono text-[9px] ${
+                                className={`text-[9px] ${
                                     c.active
                                         ? 'text-foreground-tertiary'
                                         : 'text-foreground-quadranary'
@@ -546,34 +563,40 @@ function CmsVisual() {
                     ))}
                 </div>
                 {/* Item editor */}
-                <div className="overflow-hidden p-3">
-                    <div className="text-foreground-quadranary font-mono text-[9px] ">
+                <div className="flex flex-col gap-1.5 overflow-hidden p-3">
+                    <div className="text-foreground-quadranary text-[9px]">
                         Editing · post / launch-week
                     </div>
-                    <div className="mt-2 space-y-1.5">
-                        {fields.map((f) => (
-                            <div
-                                key={f.label}
-                                className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5"
-                            >
-                                <div className="text-foreground-quadranary font-mono text-[8px] ">
-                                    {f.label}
-                                </div>
-                                <div className="text-foreground-primary mt-0.5 text-[10px] font-light">
-                                    {f.value}
-                                </div>
-                            </div>
-                        ))}
-                        <div className="border-foreground-primary/10 bg-background rounded-md border px-2 py-1.5">
-                            <div className="text-foreground-quadranary font-mono text-[8px] ">
-                                Body
-                            </div>
-                            <div className="mt-1 space-y-1">
-                                <div className="bg-foreground-primary/15 h-1 w-11/12 rounded-full" />
-                                <div className="bg-foreground-primary/15 h-1 w-10/12 rounded-full" />
-                                <div className="bg-foreground-primary/15 h-1 w-7/12 rounded-full" />
+                    {fields.map((f) => (
+                        <div
+                            key={f.label}
+                            className="border-foreground-primary/10 bg-background/60 rounded-lg border px-2.5 py-1.5"
+                        >
+                            <div className="text-foreground-quadranary text-[8px]">{f.label}</div>
+                            <div className="text-foreground-primary mt-0.5 text-[10px] font-light">
+                                {f.value}
                             </div>
                         </div>
+                    ))}
+                    <div className="border-foreground-primary/10 bg-background/60 rounded-lg border px-2.5 py-1.5">
+                        <div className="text-foreground-quadranary text-[8px]">Body</div>
+                        <div className="mt-1 space-y-1">
+                            <div className="bg-foreground-primary/15 h-1 w-11/12 rounded-full" />
+                            <div className="bg-foreground-primary/15 h-1 w-8/12 rounded-full" />
+                        </div>
+                    </div>
+                    <div className="mt-auto flex items-center gap-2">
+                        <span
+                            className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[9px] font-medium"
+                            style={{ backgroundColor: ADD_SOFT, color: ADD }}
+                        >
+                            <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: ADD }}
+                            />
+                            Published
+                        </span>
+                        <span className="text-foreground-quadranary text-[9px]">no code push</span>
                     </div>
                 </div>
             </div>
@@ -582,41 +605,50 @@ function CmsVisual() {
 }
 
 function DeployVisual() {
+    const logLines: { text: string; tone: 'dim' | 'ok' | 'add' }[] = [
+        { text: '$ bun run build', tone: 'dim' },
+        { text: '✓ Compiled in 4.2s', tone: 'ok' },
+        { text: '✓ Bundled · 248kb gzipped', tone: 'ok' },
+        { text: '✓ Deployed to production', tone: 'add' },
+    ];
+    const toneColor: Record<'dim' | 'ok' | 'add', string> = {
+        dim: 'var(--foreground-quadranary)',
+        ok: 'var(--foreground-secondary)',
+        add: ADD,
+    };
     return (
         <VisualChrome
             label="deployments"
             right={
                 <div
                     className="flex items-center gap-1.5 rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: BRAND_SOFT }}
+                    style={{ backgroundColor: ADD_SOFT }}
                 >
-                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: BRAND }} />
-                    <span className="font-mono text-[9px] font-medium" style={{ color: BRAND }}>
+                    <PulseDot color={ADD} size={5} />
+                    <span className="text-[9px] font-medium" style={{ color: ADD }}>
                         Live · 14s ago
                     </span>
                 </div>
             }
         >
-            <div className="space-y-2.5 p-3">
-                {/* Active deploy card */}
-                <div className="border-foreground-primary/10 bg-background rounded-xl border p-3">
+            <div className="flex h-full flex-col gap-2.5 p-3">
+                {/* Active deploy */}
+                <div className="border-foreground-primary/10 bg-background/60 rounded-xl border p-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <span className="text-foreground-primary font-mono text-[10px] font-medium">
+                            <span className="text-foreground-primary text-[10px] font-medium">
                                 feature/landing-redo
                             </span>
-                            <span className="text-foreground-quadranary font-mono text-[9px]">
-                                · 7f3a92c
-                            </span>
+                            <span className="text-foreground-quadranary text-[9px]">7f3a92c</span>
                         </div>
                         <span
-                            className="rounded-full px-2 py-0.5 text-[9px] font-medium text-white"
-                            style={{ backgroundColor: BRAND }}
+                            className="rounded-full px-2 py-0.5 text-[9px] font-medium"
+                            style={{ backgroundColor: ADD_SOFT, color: ADD }}
                         >
                             Live
                         </span>
                     </div>
-                    <div className="border-foreground-primary/10 bg-background-secondary/60 mt-2 flex items-center gap-1.5 rounded-md border px-2 py-1.5">
+                    <div className="border-foreground-primary/10 bg-background-secondary/60 mt-2 flex items-center gap-1.5 rounded-lg border px-2 py-1.5">
                         <svg
                             width="10"
                             height="10"
@@ -631,51 +663,39 @@ function DeployVisual() {
                             <path d="M7 5L9 3C10.3 1.7 11.7 1.7 11 3C10.3 4.3 9 5 8 5" />
                             <path d="M4.5 7.5L7.5 4.5" />
                         </svg>
-                        <span className="text-foreground-secondary flex-1 truncate font-mono text-[9px]">
+                        <span className="text-foreground-secondary flex-1 truncate text-[9px]">
                             weblab.build/preview/7f3a
                         </span>
-                        <span className="text-style-tagline border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
+                        <span className="border-foreground-primary/10 bg-background text-foreground-tertiary rounded border px-1.5 py-0.5 text-[8px]">
                             copy
                         </span>
                     </div>
                 </div>
 
-                {/* Build log */}
-                <div className="border-foreground-primary/10 bg-background-secondary/60 text-foreground-tertiary rounded-xl border p-3 font-mono text-[9px] leading-tight">
-                    <div className="text-foreground-quadranary">$ bun run build</div>
-                    <div className="text-foreground-secondary mt-0.5">✓ Compiled in 4.2s</div>
-                    <div className="text-foreground-secondary mt-0.5">
-                        ✓ Bundled · 248kb gzipped
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5" style={{ color: BRAND }}>
-                        <svg
-                            width="9"
-                            height="9"
-                            viewBox="0 0 12 12"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                {/* Build log — lines stream in */}
+                <div className="border-foreground-primary/10 bg-background-secondary/60 flex-1 rounded-xl border p-3 text-[9px] leading-relaxed">
+                    {logLines.map((l, i) => (
+                        <motion.div
+                            key={l.text}
+                            initial={{ opacity: 0, x: -4 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 + i * 0.4, duration: 0.4, ease: 'easeOut' }}
+                            style={{ color: toneColor[l.tone] }}
                         >
-                            <path d="M2 6.5L5 9.5L10 3.5" />
-                        </svg>
-                        Deployed to production
-                    </div>
+                            {l.text}
+                        </motion.div>
+                    ))}
                 </div>
 
-                {/* History */}
-                <div className="text-style-tagline flex items-center gap-2">
+                {/* Footer */}
+                <div className="text-foreground-tertiary flex items-center gap-2 text-[9px]">
                     <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.6
                     </span>
                     <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
                         v1.5
                     </span>
-                    <span className="border-foreground-primary/10 bg-background rounded border px-1.5 py-0.5">
-                        v1.4
-                    </span>
-                    <span className="text-foreground-quadranary">· domain weblab.build</span>
+                    <span className="text-foreground-quadranary">domain weblab.build</span>
                 </div>
             </div>
         </VisualChrome>

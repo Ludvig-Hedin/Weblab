@@ -129,7 +129,7 @@ export async function devLogin(returnUrl?: string | null) {
                 avatar_url: SEED_USER.AVATAR_URL,
             },
         });
-        if (createUserError && createUserError.message === 'fetch failed') {
+        if (createUserError?.message === 'fetch failed') {
             throw new Error(fetchFailedHint);
         }
         // Ignore "User already registered" — email exists with a different UUID;

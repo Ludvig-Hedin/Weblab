@@ -43,15 +43,30 @@ const Compare7 = ({
             <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
                 <div className="mb-12 max-w-3xl">
                     {eyebrow ? (
-                        <Reveal as="p" delay={0} y={12} className="heading-style-h6 text-foreground-secondary mb-4">
+                        <Reveal
+                            as="p"
+                            delay={0}
+                            y={12}
+                            className="heading-style-h6 text-foreground-secondary mb-4"
+                        >
                             {eyebrow}
                         </Reveal>
                     ) : null}
-                    <Reveal as="h2" delay={0.1} y={16} className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                    <Reveal
+                        as="h2"
+                        delay={0.1}
+                        y={16}
+                        className="heading-style-h3 text-foreground-primary mb-4 text-balance"
+                    >
                         {heading}
                     </Reveal>
                     {description ? (
-                        <Reveal as="p" delay={0.2} y={12} className="text-foreground-secondary text-regularPlus text-balance">
+                        <Reveal
+                            as="p"
+                            delay={0.2}
+                            y={12}
+                            className="text-foreground-secondary text-regularPlus text-balance"
+                        >
                             {description}
                         </Reveal>
                     ) : null}
@@ -85,7 +100,7 @@ const Compare7 = ({
                                                 : ''
                                         }
                                     >
-                                        <td className="text-foreground-secondary px-5 py-4 font-mono text-small">
+                                        <td className="text-foreground-secondary text-small px-5 py-4 font-mono">
                                             {row.feature}
                                         </td>
                                         <td className="text-foreground-primary text-regular bg-foreground-primary/5 px-5 py-4">

@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
-import { Compare7, type Compare7Row } from '@/components/compare7';
+import type { Compare7Row } from '@/components/compare7';
+import { Compare7 } from '@/components/compare7';
 
 const rowKeys = ['code', 'source', 'export', 'aiOptOut', 'standards', 'region'] as const;
 

@@ -95,7 +95,7 @@ export function HeroV2() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-            <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 lg:max-w-6xl md:grid-cols-2 lg:gap-12">
+            <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 md:grid-cols-2 lg:max-w-6xl lg:gap-12">
                 <div className="flex w-full max-w-[545px] flex-col items-start gap-5 lg:justify-self-start">
                     <SplitText
                         as="h1"
@@ -181,7 +181,7 @@ export function HeroV2() {
                     (EditorBar, panel widths) that collapse below ~720px wide.
                     Pin the mockup to a min desktop width and clip overflow so
                     it shows cropped-but-readable on phones instead of squished. */}
-                <div className="relative min-w-[1100px] sm:min-w-0 pt-10">
+                <div className="relative min-w-[1100px] pt-10 sm:min-w-0">
                     <WeblabInterfaceMockup />
                     <div className="from-background pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t to-transparent lg:h-24" />
                 </div>

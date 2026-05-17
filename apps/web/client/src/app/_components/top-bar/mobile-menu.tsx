@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import * as Portal from '@radix-ui/react-portal';
 import { AnimatePresence, motion } from 'motion/react';
+import { useTranslations } from 'next-intl';
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@weblab/ui/accordion';
 import { cn } from '@weblab/ui/utils';
@@ -66,7 +66,11 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                             <div className="h-12 flex-shrink-0" />
 
                             <div className="flex flex-1 flex-col overflow-y-auto px-6 pt-8 pb-10">
-                                <Accordion type="single" collapsible className="border-foreground/10 w-full border-t">
+                                <Accordion
+                                    type="single"
+                                    collapsible
+                                    className="border-foreground/10 w-full border-t"
+                                >
                                     {NAVIGATION_CATEGORIES.map((category, i) => (
                                         <motion.div
                                             key={category.labelKey}
@@ -82,7 +86,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                                 value={category.labelKey}
                                                 className="border-foreground/10 border-b last:border-b"
                                             >
-                                                <AccordionTrigger className="text-foreground-primary py-3.5 hover:no-underline [&>svg]:text-foreground-tertiary [&>svg]:size-4 [&>svg]:translate-y-0">
+                                                <AccordionTrigger className="text-foreground-primary [&>svg]:text-foreground-tertiary py-3.5 hover:no-underline [&>svg]:size-4 [&>svg]:translate-y-0">
                                                     <span className="text-[1.25rem] leading-none font-light tracking-tight">
                                                         {t(category.labelKey)}
                                                     </span>

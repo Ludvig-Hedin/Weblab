@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 
 import { Icons } from '@weblab/ui/icons';
 
@@ -27,7 +27,7 @@ export function ThemeSwitcher() {
 
     return (
         <div
-            className="flex items-center gap-0.5 rounded-full bg-foreground-primary/[0.07] px-1.5 py-1.5"
+            className="bg-foreground-primary/[0.07] flex items-center gap-0.5 rounded-full px-1.5 py-1.5"
             role="group"
             aria-label={t('label')}
         >

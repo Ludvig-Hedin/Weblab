@@ -82,12 +82,11 @@ export function ButtonsDemo() {
                     surface for "last used" / selected pills.{' '}
                     <strong className="text-foreground-secondary">warning</strong> — soft amber
                     surface for pending / attention states (not destructive actions).{' '}
-                    <strong className="text-foreground-secondary">danger</strong> — soft red
-                    surface for error / offline status (different from{' '}
+                    <strong className="text-foreground-secondary">danger</strong> — soft red surface
+                    for error / offline status (different from{' '}
                     <code className="font-mono">destructive</code>, which is a solid red CTA for
-                    delete actions).{' '}
-                    <strong className="text-foreground-secondary">chip</strong> — small
-                    rounded-sm filter pill for cards/mockups.{' '}
+                    delete actions). <strong className="text-foreground-secondary">chip</strong> —
+                    small rounded-sm filter pill for cards/mockups.{' '}
                     <strong className="text-foreground-secondary">compact</strong> — h-7 status
                     badge pill.
                 </p>
@@ -158,8 +157,7 @@ export function ButtonsDemo() {
                 <p className="text-foreground-tertiary mt-3 max-w-2xl text-xs">
                     Use the <code className="font-mono">loading</code> prop instead of composing a
                     spinner manually — it disables the button, sets{' '}
-                    <code className="font-mono">aria-busy</code>, and renders the canonical
-                    spinner.
+                    <code className="font-mono">aria-busy</code>, and renders the canonical spinner.
                 </p>
             </Section>
 
@@ -311,8 +309,8 @@ export function ButtonsDemo() {
 
             <Section title="Deviations found in code (audit)" tag="buttons">
                 <p className="text-foreground-tertiary mb-6 max-w-3xl text-xs">
-                    Real off-spec patterns currently shipping in the app, paired with the
-                    canonical replacement. Use this as the reference when migrating.
+                    Real off-spec patterns currently shipping in the app, paired with the canonical
+                    replacement. Use this as the reference when migrating.
                 </p>
 
                 <div className="flex flex-col gap-4">
@@ -412,9 +410,7 @@ export function ButtonsDemo() {
             <Section title="When raw <button> is OK" tag="buttons">
                 <ul className="text-foreground-tertiary max-w-3xl space-y-2 text-xs">
                     <li>
-                        <strong className="text-foreground-secondary">
-                            Editor toolbar chrome
-                        </strong>{' '}
+                        <strong className="text-foreground-secondary">Editor toolbar chrome</strong>{' '}
                         — <code className="font-mono">ToolbarButton</code> wraps{' '}
                         <code className="font-mono">Button</code> with its own surface language.
                         Keep contained inside{' '}
@@ -432,9 +428,9 @@ export function ButtonsDemo() {
                             Card / row entire-surface clicks
                         </strong>{' '}
                         — wrapping an entire card in{' '}
-                        <code className="font-mono">&lt;button&gt;</code> for click-to-open is
-                        fine; inherit the card's chrome and skip{' '}
-                        <code className="font-mono">Button</code> styling.
+                        <code className="font-mono">&lt;button&gt;</code> for click-to-open is fine;
+                        inherit the card's chrome and skip <code className="font-mono">Button</code>{' '}
+                        styling.
                     </li>
                     <li>
                         <strong className="text-foreground-secondary">

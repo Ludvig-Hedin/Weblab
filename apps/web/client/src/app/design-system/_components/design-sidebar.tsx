@@ -129,7 +129,8 @@ function SidebarBody({
                 const children: SubSection[] = [];
                 if (groupEl) {
                     // Walk forward until we hit the next group's id element.
-                    let cursor: HTMLElement | null = groupEl.nextElementSibling as HTMLElement | null;
+                    let cursor: HTMLElement | null =
+                        groupEl.nextElementSibling as HTMLElement | null;
                     const nextGroupIdx = groups.findIndex((x) => x.id === g.id) + 1;
                     const stopId = groups[nextGroupIdx]?.id;
                     while (cursor && cursor.id !== stopId) {
@@ -188,7 +189,7 @@ function SidebarBody({
                         onClick={() => onJump(g.id)}
                         title={g.label}
                         className={cn(
-                            'flex h-7 w-7 items-center justify-center rounded text-[10px] font-mono transition-colors',
+                            'flex h-7 w-7 items-center justify-center rounded font-mono text-[10px] transition-colors',
                             activeId === g.id
                                 ? 'bg-foreground/10 text-foreground'
                                 : 'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground',
@@ -204,9 +205,7 @@ function SidebarBody({
     return (
         <div className="flex h-full flex-col">
             <div className="border-border flex shrink-0 items-center justify-between border-b px-3 py-2.5">
-                <p className="text-foreground-tertiary text-mini font-medium">
-                    Design system
-                </p>
+                <p className="text-foreground-tertiary text-mini font-medium">Design system</p>
                 {toggle && (
                     <button
                         type="button"

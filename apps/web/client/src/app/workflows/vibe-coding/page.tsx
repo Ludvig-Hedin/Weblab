@@ -64,7 +64,7 @@ function VibeCodingHero() {
         <div className="flex w-full flex-col items-center justify-center px-8 py-4 text-center text-lg">
             <div className="relative z-20 flex max-w-5xl flex-col items-center gap-4 pt-4 pb-2">
                 <motion.p
-                    className="text-foreground-secondary text-xs font-medium mb-2"
+                    className="text-foreground-secondary mb-2 text-xs font-medium"
                     initial={{ opacity: 0, filter: 'blur(4px)' }}
                     animate={{ opacity: 1, filter: 'blur(0px)' }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -99,11 +99,7 @@ function VibeCodingHero() {
                     transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
                     style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
                 >
-                    <Button
-                        asChild
-                        size="lg"
-                        className="cursor-pointer"
-                    >
+                    <Button asChild size="lg" className="cursor-pointer">
                         <a href={Routes.PROJECTS}>
                             Get Started
                             <Icons.ArrowRight className="ml-2 h-4 w-4" />
@@ -148,12 +144,15 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* Hero Section */}
-                <div className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12" id="hero">
+                <div
+                    className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12"
+                    id="hero"
+                >
                     <VibeCodingHero />
                 </div>
 
                 {/* The Problem Section */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"
@@ -215,7 +214,7 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* The Solution Section */}
-                <section className="w-full bg-background pt-32 pb-16">
+                <section className="bg-background w-full pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"
@@ -297,7 +296,7 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* How It Works Section */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"
@@ -350,7 +349,7 @@ export default function VibeCodingWorkflowPage() {
                 </section>
 
                 {/* Comparison Section */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"

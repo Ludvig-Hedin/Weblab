@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { useTranslations } from 'next-intl';
 import {
     motion,
     useAnimationFrame,
@@ -12,6 +11,7 @@ import {
     useVelocity,
     wrap,
 } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 import { cn } from '@weblab/ui/utils';
 

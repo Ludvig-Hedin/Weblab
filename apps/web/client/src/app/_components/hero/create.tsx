@@ -1,12 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import type { Editor } from '@tiptap/react';
 import localforage from 'localforage';
 import { observer } from 'mobx-react-lite';
 import { AnimatePresence } from 'motion/react';
+import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
@@ -16,6 +15,7 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { compressImageInBrowser } from '@weblab/utility';
 
+import type { Editor } from '@tiptap/react';
 import { useAuthContext } from '@/app/auth/auth-context';
 import { validateImageLimit } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/helpers';
 import { ImagePill } from '@/app/project/[id]/_components/right-panel/chat-tab/context-pills/image-pill';
@@ -323,8 +323,7 @@ export const Create = observer(
             // Read actual content from TipTap editor (ground truth) rather than
             // React state, which can lag or contain placeholder text on init.
             const currentText =
-                editorRef.current?.getText({ blockSeparator: '\n' }).trim() ??
-                inputValue.trim();
+                editorRef.current?.getText({ blockSeparator: '\n' }).trim() ?? inputValue.trim();
             const next = currentText ? `${currentText} ${trimmed}` : trimmed;
             setInputValue(next);
             requestAnimationFrame(adjustTextareaHeight);

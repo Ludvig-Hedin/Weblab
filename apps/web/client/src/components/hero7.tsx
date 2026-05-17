@@ -45,12 +45,7 @@ const Hero7 = ({
     className,
 }: Hero7Props) => {
     return (
-        <section
-            className={cn(
-                'relative overflow-hidden',
-                className,
-            )}
-        >
+        <section className={cn('relative overflow-hidden', className)}>
             {backdrop ? (
                 <div
                     aria-hidden="true"
@@ -62,7 +57,7 @@ const Hero7 = ({
             <div className="relative mx-auto w-full max-w-6xl px-4 py-24 text-center sm:px-6 md:px-8 md:py-32">
                 {eyebrow ? (
                     <Reveal as="div" delay={0} y={12}>
-                        <span className="text-foreground-tertiary border-foreground-primary/15 bg-background-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-small">
+                        <span className="text-foreground-tertiary border-foreground-primary/15 bg-background-primary text-small inline-flex items-center gap-2 rounded-full border px-3 py-1">
                             {eyebrowIcon}
                             {eyebrow}
                         </span>
@@ -80,7 +75,7 @@ const Hero7 = ({
                         as="p"
                         delay={0.3}
                         y={16}
-                        className="text-foreground-secondary mx-auto mt-6 max-w-2xl text-balance text-regularPlus"
+                        className="text-foreground-secondary text-regularPlus mx-auto mt-6 max-w-2xl text-balance"
                     >
                         {description}
                     </Reveal>
@@ -101,7 +96,12 @@ const Hero7 = ({
                             </Button>
                         ) : null}
                         {secondaryButton ? (
-                            <Button asChild size="lg" variant="outline" className="rounded-full px-6">
+                            <Button
+                                asChild
+                                size="lg"
+                                variant="outline"
+                                className="rounded-full px-6"
+                            >
                                 <Link href={secondaryButton.href} className="gap-2">
                                     {secondaryButton.text}
                                     {secondaryButton.icon}

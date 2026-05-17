@@ -32,7 +32,7 @@ declare const messages: {
             "hint": "Select a collection to view its items.",
             "create": {
                 "title": "New collection",
-                "description": "Collections group items that share a structure — e.g. blog posts, docs, team members.",
+                "description": "Collections group items that share a structure, like blog posts, docs, team members.",
                 "name": "Name",
                 "namePlaceholder": "Blog posts",
                 "slug": "Slug",
@@ -60,7 +60,7 @@ declare const messages: {
             "noFieldsBody": "Add fields to this collection so items have something to fill in.",
             "addFields": "Add fields",
             "noItemsTitle": "No items yet",
-            "noItemsBody": "Add your first item — it'll appear here."
+            "noItemsBody": "Add your first item, and it'll appear here."
         },
         "itemEditor": {
             "headerNew": "New {name} item",
@@ -77,17 +77,17 @@ declare const messages: {
         "fields": {
             "needCollection": "Select a collection from the Collections tab to edit its fields.",
             "back": "Back",
-            "title": "{name} — Fields",
+            "title": "{name}: Fields",
             "addField": "Add field",
             "emptyTitle": "No fields yet",
-            "emptyBody": "Add fields to define the shape of items in this collection — Title, Slug, Date, Image, and so on.",
+            "emptyBody": "Add fields to define the shape of items in this collection: Title, Slug, Date, Image, and so on.",
             "requiredSuffix": "required",
             "addDialog": {
                 "title": "Add field",
                 "name": "Name",
                 "namePlaceholder": "Title",
                 "key": "Key",
-                "keyHelp": "Used in bindings — e.g. {example}.",
+                "keyHelp": "Used in bindings, for example {example}.",
                 "type": "Type",
                 "help": "Help text (optional)",
                 "required": "Required",
@@ -370,7 +370,7 @@ declare const messages: {
     "welcome": {
         "title": "Welcome to Weblab",
         "titleReturn": "Welcome back to Weblab",
-        "description": "Design and ship production websites with AI — no dev handoff required.",
+        "description": "Design and ship production websites with AI, no dev handoff required.",
         "alpha": "Alpha",
         "login": {
             "github": "Sign in with GitHub",
@@ -421,12 +421,12 @@ declare const messages: {
         "minutesAgo": "{minutes}m ago",
         "hoursAgo": "{hours}h ago",
         "daysAgo": "{days}d ago",
-        "heading": "You're offline — showing {count, plural, one {# cached project} other {# cached projects}}",
+        "heading": "You're offline. Showing {count, plural, one {# cached project} other {# cached projects}}",
         "body": "Open one to keep editing. Changes save locally and sync when you reconnect.",
         "cachedAt": "Cached {time}"
     },
     "selectProject": {
-        "pendingImportTitle": "Welcome back — pick the folder you wanted to import?",
+        "pendingImportTitle": "Welcome back. Pick the folder you wanted to import?",
         "pendingImportBody": "You tried to open a local folder before signing in. Browsers only allow that picker right after a click, so click below to continue.",
         "chooseFolder": "Choose folder",
         "notNow": "Not now",
@@ -438,7 +438,7 @@ declare const messages: {
         "select": "Select",
         "sortLastViewed": "Last viewed",
         "sortDateCreated": "Date created",
-        "sortAlphabetical": "A–Z",
+        "sortAlphabetical": "A to Z",
         "sortLabel": "Sort",
         "filterLabel": "Filter",
         "filterStatus": "Publish status",
@@ -473,7 +473,7 @@ declare const messages: {
         "statusDraft": "Draft",
         "noResultsTitle": "Nothing matches",
         "noResultsBody": "Try a broader search or clear your filters.",
-        "createFolderEmpty": "No folders yet — group related projects to find them faster.",
+        "createFolderEmpty": "No folders yet. Group related projects to find them faster.",
         "opening": "Opening {name}…",
         "openProjectAria": "Open {name}",
         "projectSelected": "{count, plural, one {project selected} other {projects selected}}",
@@ -544,23 +544,23 @@ declare const messages: {
         "reasons": {
             "missing_email": {
                 "title": "We need your email to sign you in",
-                "body": "Your provider returned no email address — usually because your GitHub email is set to private. Make your primary email public in GitHub settings, or sign in with a magic link instead."
+                "body": "Your provider returned no email address, usually because your GitHub email is set to private. Make your primary email public in GitHub settings, or sign in with a magic link instead."
             },
             "missing_user_id": {
                 "title": "Sign in is incomplete",
-                "body": "Your provider returned a partial response. Try again — if it keeps failing, sign in with a magic link instead."
+                "body": "Your provider returned a partial response. Try again. If it keeps failing, sign in with a magic link instead."
             },
             "db_upsert_failed": {
                 "title": "We couldn't create your account",
-                "body": "We signed you out for safety. Try again in a moment — if it persists, contact support and include the error code below."
+                "body": "We signed you out for safety. Try again in a moment. If it persists, contact support and include the error code below."
             },
             "missing_code": {
                 "title": "Sign-in link is incomplete",
-                "body": "The sign-in link was missing required information. Try signing in again — if the problem persists, request a new link."
+                "body": "The sign-in link was missing required information. Try signing in again. If the problem persists, request a new link."
             },
             "callback_exception": {
                 "title": "Sign-in was interrupted",
-                "body": "Something went wrong on our side while finishing sign-in. Try again in a moment — if it persists, contact support and include the error code below."
+                "body": "Something went wrong on our side while finishing sign-in. Try again in a moment. If it persists, contact support and include the error code below."
             },
             "oauth": {
                 "title": "Your provider couldn't complete sign-in",
@@ -568,7 +568,7 @@ declare const messages: {
             },
             "default": {
                 "title": "We could not finish sign in",
-                "body": "The sign-in link may have expired, or the window closed too early. Try again — if the problem persists, contact support."
+                "body": "The sign-in link may have expired, or the window closed too early. Try again. If the problem persists, contact support."
             }
         }
     },
@@ -577,7 +577,7 @@ declare const messages: {
         "backHome": "Back to home"
     },
     "comparePage": {
-        "srBody": "Compare {appName} to Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com, and Onlook — pick the right tool for your team.",
+        "srBody": "Compare {appName} to Lovable, Bolt, v0, Webflow, Framer, Replit, Claude Code, Emergent, Wix, one.com, and Onlook. Pick the right tool for your team.",
         "heroHeading": "{appName} vs everyone else",
         "heroBody": "Most AI design tools generate new code from scratch. {appName} edits your real React components on a visual canvas and ships pull requests engineers can merge.",
         "tryButton": "Try {appName}",
@@ -640,41 +640,41 @@ declare const messages: {
     },
     "downloadPage": {
         "heading": "Download {appName}",
-        "subhead": "The same {appName}, wrapped natively for your device. Sign in once — your session syncs with the web app.",
+        "subhead": "The same {appName}, wrapped natively for your device. Sign in once, and your session syncs with the web app.",
         "mac": {
             "title": "macOS",
-            "subtitle": "Universal — Apple Silicon & Intel",
+            "subtitle": "Universal, Apple Silicon & Intel",
             "cta": "Download for macOS"
         },
         "ios": {
             "title": "iOS",
-            "subtitle": "iPhone & iPad — iOS 16 or later",
+            "subtitle": "iPhone & iPad, iOS 16 or later",
             "cta": "Get on TestFlight"
         },
         "beta": "BETA",
         "recommended": "Recommended",
         "comingSoon": "Coming soon",
-        "footnotePart1": "Sign-in works the same as the web app — Google, GitHub or email. Desktop and iOS apps route OAuth through your system browser, then drop you back in already signed in. Looking for older versions? Browse the ",
+        "footnotePart1": "Sign-in works the same as the web app: Google, GitHub or email. Desktop and iOS apps route OAuth through your system browser, then drop you back in already signed in. Looking for older versions? Browse the ",
         "footnoteLink": "full release archive",
         "footnotePart2": "."
     },
     "aboutPage": {
         "srTitle": "About Weblab: The Visual Editor for React",
-        "srBody": "Weblab was founded to obliterate the divide between creativity and implementation. We're building a bridge between designers and developers — a visual editor that works with your real React components. AI is constrained to your design system. Changes become mergeable pull requests. Weblab is open source under Apache 2.0.",
+        "srBody": "Weblab was founded to obliterate the divide between creativity and implementation. We're building a bridge between designers and developers, a visual editor that works with your real React components. AI is constrained to your design system. Changes become mergeable pull requests. Weblab is open source under Apache 2.0.",
         "srCompanyFacts": "Company Facts",
         "srBasedSweden": "Based in Sweden",
-        "srOpenSource": "Open source — Apache 2.0 licensed, public GitHub repository",
+        "srOpenSource": "Open source, Apache 2.0 licensed, public GitHub repository",
         "srFounder": "Founder",
-        "srFounderItem": "Ludvig Hedin — Founder.",
+        "srFounderItem": "Ludvig Hedin, Founder.",
         "srValues": "Our Values",
-        "srSpeed": "Speed — Setting an olympic pace, relentlessness, strategy through execution.",
-        "srResilience": "Resilience — Enduring challenges without losing momentum.",
-        "srReinvention": "Reinvention — Creativity in approaching problems, pushing beyond state-of-the-art.",
-        "srCompetence": "Competence — Taking pride in work, inspiring others with taste and technique.",
+        "srSpeed": "Speed. Setting an olympic pace, relentlessness, strategy through execution.",
+        "srResilience": "Resilience. Enduring challenges without losing momentum.",
+        "srReinvention": "Reinvention. Creativity in approaching problems, pushing beyond state-of-the-art.",
+        "srCompetence": "Competence. Taking pride in work, inspiring others with taste and technique.",
         "heroLine1": "Design deserves",
         "heroLine2": "better tools",
         "heroBodyPart1": "Weblab was founded to obliterate the divide between creativity and implementation.",
-        "heroBodyPart2": "For too long, the most brilliant creative teams have been severed by the complexity of tools. We're building Weblab from Sweden — a bridge that will end the gap between creativity and implementation.",
+        "heroBodyPart2": "For too long, the most brilliant creative teams have been severed by the complexity of tools. We're building Weblab from Sweden, a bridge that will end the gap between creativity and implementation.",
         "heroBodyPart3": "Open source under Apache 2.0. Built in public on ",
         "heroBodyPart4": ".",
         "githubLink": "GitHub",
@@ -694,7 +694,7 @@ declare const messages: {
             },
             "resilience": {
                 "title": "Resilience",
-                "body": "Enduring challenges without losing momentum – grit, stamina, and drive."
+                "body": "Enduring challenges without losing momentum. Grit, stamina, and drive."
             },
             "reinvention": {
                 "title": "Reinvention",
@@ -714,7 +714,7 @@ declare const messages: {
             },
             "passion": {
                 "title": "Passion",
-                "body": "We're allergic to apathy. We want people who give a damn about design, devtools, or AI – and have receipts."
+                "body": "We're allergic to apathy. We want people who give a damn about design, devtools, or AI, and have receipts."
             },
             "excellence": {
                 "title": "Excellence",
@@ -729,7 +729,7 @@ declare const messages: {
     },
     "faqPage": {
         "heading": "Frequently Asked Questions",
-        "subhead": "Everything you need to know about Weblab — the AI-powered visual editor for frontend development.",
+        "subhead": "Everything you need to know about Weblab, the AI-powered visual editor for frontend development.",
         "topics": "Topics",
         "stillQuestions": "Still have questions?",
         "getStarted": "Get Started",
@@ -740,7 +740,7 @@ declare const messages: {
                 "title": "About Weblab",
                 "q1": {
                     "question": "What is Weblab?",
-                    "answer": "Weblab is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. Unlike generic AI code generators, Weblab constrains AI to your design system. Changes become pull requests engineers can merge directly — no export, no translation, no throwaway prototypes."
+                    "answer": "Weblab is an AI-powered visual editor for design. It connects to your existing codebase and lets designers and developers create interfaces using real components. Unlike generic AI code generators, Weblab constrains AI to your design system. Changes become pull requests engineers can merge directly, with no export, no translation, and no throwaway prototypes."
                 },
                 "q2": {
                     "question": "Who is Weblab for?",
@@ -748,22 +748,22 @@ declare const messages: {
                 },
                 "q3": {
                     "question": "What makes Weblab different from other design tools?",
-                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. Weblab works with your real components — what you design IS the code. There's no handoff because designers and developers work in the same artifact. Changes become PRs, not specs. AI is constrained to your design system, so there's no brand drift."
+                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. Weblab works with your real components, so what you design IS the code. There's no handoff because designers and developers work in the same artifact. Changes become PRs, not specs. AI is constrained to your design system, so there's no brand drift."
                 },
                 "q4": {
                     "question": "What makes Weblab different from AI code generators?",
-                    "answer": "AI code generators create new code from scratch using generic HTML/CSS. The output needs to be translated to work with your real components. Weblab is different — it connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed."
+                    "answer": "AI code generators create new code from scratch using generic HTML/CSS. The output needs to be translated to work with your real components. Weblab is different. It connects to your existing component library and constrains AI to YOUR design system. Outputs are consistent, on-brand, and directly mergeable. No translation step needed."
                 }
             },
             "features": {
                 "title": "Features & Capabilities",
                 "q1": {
                     "question": "What are Weblab's main features?",
-                    "answer": "Weblab offers: (1) An infinite canvas for visual design with real code running underneath, (2) AI that's constrained to your design system — no brand drift, (3) Real-time team collaboration with spatial comments, (4) Direct GitHub integration — changes become mergeable PRs, (5) Support for your existing components, colors, and design tokens, (6) A visual interface that requires no coding for designers."
+                    "answer": "Weblab offers: (1) An infinite canvas for visual design with real code running underneath, (2) AI that's constrained to your design system with no brand drift, (3) Real-time team collaboration with spatial comments, (4) Direct GitHub integration, so changes become mergeable PRs, (5) Support for your existing components, colors, and design tokens, (6) A visual interface that requires no coding for designers."
                 },
                 "q2": {
                     "question": "How does Weblab's AI work?",
-                    "answer": "Weblab's AI is constrained to your design system. When you ask AI to make changes, it can only use components, colors, and tokens that exist in your codebase. This prevents brand drift and ensures outputs match your design system. You can point at elements visually rather than describing them in text — the AI understands the exact selector, component, and styles."
+                    "answer": "Weblab's AI is constrained to your design system. When you ask AI to make changes, it can only use components, colors, and tokens that exist in your codebase. This prevents brand drift and ensures outputs match your design system. You can point at elements visually rather than describing them in text, so the AI understands the exact selector, component, and styles."
                 },
                 "q3": {
                     "question": "Does Weblab support real-time collaboration?",
@@ -790,7 +790,7 @@ declare const messages: {
                 },
                 "q4": {
                     "question": "Does Weblab work with my existing React components?",
-                    "answer": "Yes. Weblab connects to your codebase and lets you design with your real components — the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives."
+                    "answer": "Yes. Weblab connects to your codebase and lets you design with your real components: the buttons, cards, and layouts your engineers already built. AI suggestions use your actual component API, not generic alternatives."
                 },
                 "q5": {
                     "question": "How does Weblab integrate with GitHub?",
@@ -801,7 +801,7 @@ declare const messages: {
                 "title": "Workflow & Collaboration",
                 "q1": {
                     "question": "How do designers and developers collaborate in Weblab?",
-                    "answer": "Designers and developers work in the same artifact — there's no handoff. Designers make visual changes on the canvas, which become real code changes. Developers can review and refine in their IDE. Changes are submitted as PRs for team review. Spatial comments let team members communicate directly on the canvas."
+                    "answer": "Designers and developers work in the same artifact, so there's no handoff. Designers make visual changes on the canvas, which become real code changes. Developers can review and refine in their IDE. Changes are submitted as PRs for team review. Spatial comments let team members communicate directly on the canvas."
                 },
                 "q2": {
                     "question": "Can I use Weblab with my existing development workflow?",
@@ -809,11 +809,11 @@ declare const messages: {
                 },
                 "q3": {
                     "question": "How does Weblab work with Claude Code or other AI coding tools?",
-                    "answer": "Weblab complements AI coding tools like Claude Code. Claude Code is great for building in the terminal — Weblab adds the visual layer designers need. Use Claude Code to scaffold components, then use Weblab to visually iterate and refine. Changes from both tools merge into the same codebase."
+                    "answer": "Weblab complements AI coding tools like Claude Code. Claude Code is great for building in the terminal, and Weblab adds the visual layer designers need. Use Claude Code to scaffold components, then use Weblab to visually iterate and refine. Changes from both tools merge into the same codebase."
                 },
                 "q4": {
                     "question": "Can I share my work with stakeholders who don't use Weblab?",
-                    "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI — not static mockups that might not match the final product."
+                    "answer": "Yes. Since Weblab works with real code, you can share your work directly as you created it on the canvas. Stakeholders see real, working UI, not static mockups that might not match the final product."
                 }
             },
             "company": {
@@ -841,7 +841,7 @@ declare const messages: {
         "contactUs": "Contact us",
         "getStarted": "Get Started",
         "andMore": "And more...",
-        "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users – Please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
+        "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users, please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
         "disclaimerLink": "GitHub repository",
         "disclaimerPart2": " or reach out to us to schedule a call.",
         "mailto": {
@@ -870,7 +870,7 @@ declare const messages: {
                 "description": "Navigate your React component tree with precise control over every element"
             },
             "models": {
-                "title": "Pick your model — or bring your own key",
+                "title": "Pick your model, or bring your own key",
                 "description": "Claude Opus 4.7 and Sonnet 4.6, GPT-5.5, Gemini 3.1 Pro, DeepSeek V4 Pro, Kimi K2.6, plus local models via Ollama on the desktop app. Dial reasoning from Fast to Deep."
             },
             "openSource": {
@@ -902,7 +902,7 @@ declare const messages: {
             "basic": {
                 "name": "Basic",
                 "price": "$0/month",
-                "description": "Explore and experiment — no credit card required.",
+                "description": "Explore and experiment. No credit card required.",
                 "features": [
                     "Visual code editor access",
                     "Unlimited projects",
@@ -1156,9 +1156,9 @@ declare const messages: {
                             "fix": "Fix",
                             "fixPrompt": "How can I resolve these errors? If you propose a fix, please make it concise.",
                             "fixToastError": "Failed to send fix error message. Please try again.",
-                            "consoleNoErrors": "Console — no errors",
-                            "consoleErrors": "Console — {count, plural, one {# error} other {# errors}}",
-                            "consoleViewAndFix": "Console — view & fix errors",
+                            "consoleNoErrors": "Console: no errors",
+                            "consoleErrors": "Console: {count, plural, one {# error} other {# errors}}",
+                            "consoleViewAndFix": "Console: view & fix errors",
                             "noErrors": "No errors",
                             "errorCount": "{count, plural, one {# error} other {# errors}}",
                             "fixWithAi": "Fix with AI",
@@ -1212,7 +1212,7 @@ declare const messages: {
                             "tooltip": "Controls how long the model thinks before answering. Fast is best for most edits; Deep helps on hard tasks.",
                             "fast": {
                                 "label": "Fast",
-                                "hint": "Skip thinking — answer immediately"
+                                "hint": "Skip thinking, answer immediately"
                             },
                             "light": {
                                 "label": "Light",
@@ -1286,6 +1286,99 @@ declare const messages: {
                         "cancel": "Cancel",
                         "addComment": "Add a comment...",
                         "addReply": "Add a reply..."
+                    },
+                    "interactions": {
+                        "name": "Interactions",
+                        "availableInDesignMode": "Available in Design mode",
+                        "tabIndicator": "This element has interactions",
+                        "empty": {
+                            "noSelection": {
+                                "title": "No element selected",
+                                "body": "Pick an element to add a click, hover, or load animation."
+                            },
+                            "noInteractions": {
+                                "title": "No interactions yet",
+                                "body": "Click + to add a click, hover, or load animation.",
+                                "cta": "Add trigger"
+                            }
+                        },
+                        "sections": {
+                            "elementTrigger": {
+                                "title": "Element trigger",
+                                "addAria": "Add element trigger"
+                            },
+                            "pageTrigger": {
+                                "title": "Page trigger",
+                                "addAria": "Add page trigger",
+                                "hint": "Plays when the page loads."
+                            }
+                        },
+                        "triggerTypes": {
+                            "click": "Mouse click (tap)",
+                            "hover": "Mouse hover",
+                            "pageLoad": "Page load",
+                            "scroll": "Scroll",
+                            "scrollComingSoon": "Scroll — coming soon",
+                            "custom": "Custom event",
+                            "customComingSoon": "Custom event — coming soon"
+                        },
+                        "row": {
+                            "menu": {
+                                "rename": "Rename",
+                                "duplicate": "Duplicate",
+                                "delete": "Delete"
+                            }
+                        },
+                        "editor": {
+                            "back": "Back",
+                            "renamePlaceholder": "Interaction name",
+                            "save": "Save",
+                            "reset": "Reset",
+                            "unsaved": "Unsaved",
+                            "duration": "Duration",
+                            "loop": "Loop",
+                            "playhead": "Playhead",
+                            "play": "Play",
+                            "pause": "Pause",
+                            "skipToStart": "Skip to start",
+                            "skipToEnd": "Skip to end",
+                            "transport": "Transport",
+                            "addAction": "Add action",
+                            "actionTypes": {
+                                "move": "Move",
+                                "scale": "Scale",
+                                "rotate": "Rotate",
+                                "opacity": "Opacity",
+                                "size": "Size",
+                                "backgroundColor": "Background color"
+                            },
+                            "triggerSettings": {
+                                "title": "Trigger settings",
+                                "activeOn": "Active on",
+                                "breakpoints": {
+                                    "desktop": "Desktop",
+                                    "tablet": "Tablet",
+                                    "phone": "Phone"
+                                },
+                                "target": {
+                                    "label": "Target",
+                                    "self": "Self",
+                                    "sibling": "Sibling",
+                                    "child": "Child",
+                                    "class": "Class",
+                                    "selfHint": "Only the selected element",
+                                    "classHint": "All elements with this class",
+                                    "siblingPlaceholder": "Pick a sibling",
+                                    "childPlaceholder": "Pick a child"
+                                }
+                            },
+                            "discardConfirm": {
+                                "title": "Discard unsaved changes?",
+                                "body": "Your timeline edits will be lost.",
+                                "cancel": "Keep editing",
+                                "confirm": "Discard"
+                            }
+                        }
                     }
                 }
             },
@@ -1472,7 +1565,7 @@ declare const messages: {
                 },
                 "oss": {
                     "title": "Open source",
-                    "body": "Weblab is Apache-2.0 licensed. The full source is on GitHub — audit it, fork it, run it yourself."
+                    "body": "Weblab is Apache-2.0 licensed. The full source is on GitHub. Audit it, fork it, run it yourself."
                 },
                 "supabase": {
                     "title": "Supabase-backed storage",
@@ -1480,7 +1573,7 @@ declare const messages: {
                 },
                 "stripe": {
                     "title": "Payments via Stripe",
-                    "body": "Card data is handled by Stripe — PCI-DSS Level 1. We never see your card number."
+                    "body": "Card data is handled by Stripe, PCI-DSS Level 1. We never see your card number."
                 }
             }
         },
@@ -1519,7 +1612,7 @@ declare const messages: {
         "compare": {
             "eyebrow": "Vs typical builders",
             "title": "How we compare",
-            "subtitle": "Weblab versus typical site builders — where your data stands.",
+            "subtitle": "Weblab versus typical site builders, and where your data stands.",
             "columns": {
                 "feature": "Feature",
                 "weblab": "Weblab",
@@ -1528,7 +1621,7 @@ declare const messages: {
             "rows": {
                 "code": {
                     "label": "Your code",
-                    "weblab": "Yours — real React in your Git repo",
+                    "weblab": "Yours, real React in your Git repo",
                     "typical": "Locked into a proprietary format"
                 },
                 "source": {
@@ -1543,7 +1636,7 @@ declare const messages: {
                 },
                 "aiOptOut": {
                     "label": "AI training opt-out",
-                    "weblab": "Default — your code is never used",
+                    "weblab": "Default, your code is never used",
                     "typical": "Opt-in by default"
                 },
                 "standards": {
@@ -1568,11 +1661,27 @@ declare const messages: {
                 "region": "Region"
             },
             "rows": {
-                "supabase": { "name": "Supabase", "purpose": "Auth + Postgres database", "region": "EU" },
-                "openrouter": { "name": "OpenRouter", "purpose": "LLM routing for AI features", "region": "US" },
-                "stripe": { "name": "Stripe", "purpose": "Payment processing", "region": "US / EU" },
+                "supabase": {
+                    "name": "Supabase",
+                    "purpose": "Auth + Postgres database",
+                    "region": "EU"
+                },
+                "openrouter": {
+                    "name": "OpenRouter",
+                    "purpose": "LLM routing for AI features",
+                    "region": "US"
+                },
+                "stripe": {
+                    "name": "Stripe",
+                    "purpose": "Payment processing",
+                    "region": "US / EU"
+                },
                 "railway": { "name": "Railway", "purpose": "Application hosting", "region": "US" },
-                "github": { "name": "GitHub", "purpose": "OAuth sign-in + repository sync", "region": "US" },
+                "github": {
+                    "name": "GitHub",
+                    "purpose": "OAuth sign-in + repository sync",
+                    "region": "US"
+                },
                 "posthog": { "name": "PostHog", "purpose": "Product analytics", "region": "EU" },
                 "gleap": { "name": "Gleap", "purpose": "User feedback widget", "region": "EU" },
                 "resend": { "name": "Resend", "purpose": "Transactional email", "region": "EU" }
@@ -1583,7 +1692,7 @@ declare const messages: {
         "badges": {
             "eyebrow": "Standards",
             "title": "What Weblab is built to meet",
-            "subtitle": "We design to the bar customers expect — without overstating audits we have not completed.",
+            "subtitle": "We design to the bar customers expect, without overstating audits we have not completed.",
             "gdpr": "GDPR-aligned",
             "ccpa": "CCPA-aligned",
             "apache": "Apache-2.0",
@@ -1592,7 +1701,7 @@ declare const messages: {
         },
         "contact": {
             "title": "Talk to us about security",
-            "subtitle": "Questions, compliance reviews, or vulnerability reports — we read every message.",
+            "subtitle": "Questions, compliance reviews, or vulnerability reports. We read every message.",
             "emailCard": {
                 "title": "General security questions",
                 "body": "Reach out for compliance reviews, DPA requests, or anything else.",
@@ -1615,11 +1724,11 @@ declare const messages: {
         "root": {
             "title": "Weblab - AI Visual Website Builder for React Teams",
             "description": "AI visual website builder for React and Next.js teams. Design with real components, edit code visually, and ship pull requests instead of prototypes.",
-            "ogImageAlt": "Weblab — AI visual website builder for React teams"
+            "ogImageAlt": "Weblab: AI visual website builder for React teams"
         },
         "pricing": {
-            "title": "Pricing | Weblab — Visual Editor for React",
-            "description": "Weblab pricing — start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.",
+            "title": "Pricing | Weblab Visual Editor for React",
+            "description": "Weblab pricing: start free, scale with your team. Visual editor for React with AI constrained to your design system. Transparent paid plans.",
             "ogImageAlt": "Weblab pricing"
         },
         "faq": {
@@ -1629,17 +1738,17 @@ declare const messages: {
         },
         "about": {
             "title": "About Weblab | The Visual Editor for React",
-            "description": "Meet the founder behind Weblab — an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.",
+            "description": "Meet the founder behind Weblab, an AI visual editor for frontend teams. Built in Sweden to bridge creativity and implementation. Open source.",
             "ogImageAlt": "About Weblab"
         },
         "features": {
-            "title": "Features | Weblab — AI Visual Editor for React Teams",
+            "title": "Features | Weblab AI Visual Editor for React Teams",
             "description": "Explore Weblab's features: AI constrained to your design system, infinite canvas, real-time collaboration, version history, and GitHub PR output.",
             "ogImageAlt": "Weblab features preview"
         },
         "featuresAi": {
             "title": "AI Visual Editor | Build UIs with AI Using Your Design System | Weblab",
-            "description": "Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system — no brand drift, no throwaway code. Changes become mergeable PRs.",
+            "description": "Weblab is an AI-powered visual editor that builds frontend UIs using your real React components. AI is constrained to your design system, with no brand drift and no throwaway code. Changes become mergeable PRs.",
             "ogImageAlt": "Weblab AI visual editor preview"
         },
         "featuresBuilder": {
@@ -1649,7 +1758,7 @@ declare const messages: {
         },
         "featuresPrototype": {
             "title": "AI Prototype Generator | Create Functional React Prototypes | Weblab",
-            "description": "Weblab generates functional React prototypes with real interactions — not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.",
+            "description": "Weblab generates functional React prototypes with real interactions, not static mockups. From idea to interactive prototype in minutes. Perfect for rapid prototyping and product validation.",
             "ogImageAlt": "Weblab prototype generator preview"
         },
         "featuresAiFrontend": {
@@ -1664,17 +1773,17 @@ declare const messages: {
         },
         "workflowsClaudeCode": {
             "title": "Claude Code for Designers: Add a Visual Canvas to Your Workflow | Weblab",
-            "description": "Designers using Claude Code need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.",
+            "description": "Designers using Claude Code need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
             "ogImageAlt": "Weblab Claude Code workflow preview"
         },
         "workflowsVibeCoding": {
             "title": "Vibe Coding for Teams: Add Collaboration to Your AI Workflow | Weblab",
-            "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs — not throwaway prototypes.",
+            "description": "Vibe coding has a collaboration problem. Weblab solves it. Design with your real components on an infinite canvas, work together in real-time, and ship PRs, not throwaway prototypes.",
             "ogImageAlt": "Weblab vibe coding workflow preview"
         },
         "workflowsCodex": {
             "title": "Codex for Designers: Add a Visual Canvas to Your Workflow | Weblab",
-            "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs — with your real components, team collaboration, and PR output.",
+            "description": "Designers using OpenAI Codex need a visual layer. Weblab gives you an infinite canvas for your AI-built UIs, with your real components, team collaboration, and PR output.",
             "ogImageAlt": "Weblab Codex workflow preview"
         },
         "download": {
@@ -1684,11 +1793,11 @@ declare const messages: {
         },
         "changelog": {
             "title": "Changelog | Weblab",
-            "description": "Latest updates, new features, and improvements to Weblab — the AI visual editor for React teams.",
+            "description": "Latest updates, new features, and improvements to Weblab, the AI visual editor for React teams.",
             "ogImageAlt": "Weblab changelog"
         },
         "compare": {
-            "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow, and more — Compare AI Design Tools",
+            "title": "Weblab vs Lovable, Bolt, v0, Replit, Webflow, and more. Compare AI Design Tools",
             "description": "Compare Weblab to Lovable, Bolt, v0, Replit, Webflow, and more. Weblab is the visual editor that works with your real React components and ships pull requests instead of throwaway code.",
             "ogImageAlt": "Compare Weblab"
         },
@@ -1704,28 +1813,28 @@ declare const messages: {
         },
         "security": {
             "title": "Security & Compliance | Weblab",
-            "description": "How Weblab handles your data — encryption, OAuth sign-in, AI training opt-out, subprocessors, and our compliance posture.",
+            "description": "How Weblab handles your data: encryption, OAuth sign-in, AI training opt-out, subprocessors, and our compliance posture.",
             "ogImageAlt": "Weblab security and compliance"
         },
         "sitemap": {
             "title": "Sitemap | Weblab",
-            "description": "Complete sitemap for weblab.build — the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
+            "description": "Complete sitemap for weblab.build, the AI-powered visual editor for frontend development. Browse all pages including features, workflows, resources, and documentation.",
             "ogImageAlt": "Weblab sitemap"
         },
         "aiWebsiteBuilder": {
             "title": "AI Website Builder for React & Next.js Codebases | Weblab",
             "description": "AI website builder for React teams. AI edits your real components, respects your design tokens, and ships every change as a pull request. Open source.",
-            "ogImageAlt": "Weblab — AI website builder for React and Next.js"
+            "ogImageAlt": "Weblab: AI website builder for React and Next.js"
         },
         "visualSiteBuilder": {
             "title": "Visual Site Builder for React & Next.js Teams | Weblab",
             "description": "Visual site builder for React and Next.js. Design with your real components on an infinite canvas. Ship pull requests, not mockups. Open source.",
-            "ogImageAlt": "Weblab — visual site builder for React and Next.js teams"
+            "ogImageAlt": "Weblab: visual site builder for React and Next.js teams"
         },
         "websiteBuilder": {
             "title": "Website Builder for Teams Who Own a Codebase | Weblab",
             "description": "Website builder for teams with a React or Next.js codebase. Visual canvas, real components, AI assistance, pull-request output. Open source. Free to self-host.",
-            "ogImageAlt": "Weblab — website builder for teams with a codebase"
+            "ogImageAlt": "Weblab: website builder for teams with a codebase"
         }
     },
     "nav": {
@@ -1746,18 +1855,39 @@ declare const messages: {
                 "label": "Product",
                 "links": {
                     "ai": { "title": "AI", "description": "AI-powered design" },
-                    "aiFrontend": { "title": "AI for Frontend", "description": "AI constrained to your design system" },
-                    "visualBuilder": { "title": "Visual Builder", "description": "Craft on a canvas" },
-                    "prototyping": { "title": "Prototyping", "description": "Rapid prototype creation" },
-                    "claudeCode": { "title": "Claude Code", "description": "Visual layer for Claude Code" },
-                    "vibeCoding": { "title": "Vibe Coding", "description": "Team collaboration for vibe coding" },
-                    "allFeatures": { "title": "All Features", "description": "See everything Weblab offers" }
+                    "aiFrontend": {
+                        "title": "AI for Frontend",
+                        "description": "AI constrained to your design system"
+                    },
+                    "visualBuilder": {
+                        "title": "Visual Builder",
+                        "description": "Craft on a canvas"
+                    },
+                    "prototyping": {
+                        "title": "Prototyping",
+                        "description": "Rapid prototype creation"
+                    },
+                    "claudeCode": {
+                        "title": "Claude Code",
+                        "description": "Visual layer for Claude Code"
+                    },
+                    "vibeCoding": {
+                        "title": "Vibe Coding",
+                        "description": "Team collaboration for vibe coding"
+                    },
+                    "allFeatures": {
+                        "title": "All Features",
+                        "description": "See everything Weblab offers"
+                    }
                 }
             },
             "resources": {
                 "label": "Resources",
                 "links": {
-                    "documentation": { "title": "Documentation", "description": "Learn how to use Weblab" },
+                    "documentation": {
+                        "title": "Documentation",
+                        "description": "Learn how to use Weblab"
+                    },
                     "blog": { "title": "Blog", "description": "News and updates" },
                     "github": { "title": "GitHub", "description": "View the source code" }
                 }
@@ -1834,7 +1964,7 @@ declare const messages: {
             },
             "pages": {
                 "label": "Pages",
-                "description": "Plan your site like a sitemap. Add a page, set its route, share a layout — without leaving the canvas."
+                "description": "Plan your site like a sitemap. Add a page, set its route, share a layout, without leaving the canvas."
             },
             "code": {
                 "label": "Code",
@@ -1859,7 +1989,7 @@ declare const messages: {
                 "gptMini": "Smaller, faster GPT for everyday work",
                 "sonnet": "Anthropic's flagship, industry-leading for coding",
                 "opus": "Most capable Claude for the hardest problems",
-                "haiku": "Compact Claude — fast and affordable",
+                "haiku": "Compact Claude, fast and affordable",
                 "gemini": "Google's frontier multimodal model",
                 "deepseek": "Open-weight reasoning at frontier quality",
                 "deepseekFlash": "Speed-tuned DeepSeek for high throughput",
@@ -1884,7 +2014,7 @@ declare const messages: {
             },
             "shipPrs": {
                 "title": "Ship PRs, Not Prototypes",
-                "body": "Your changes become a real pull request. Engineers review and merge — no handoff, no translation."
+                "body": "Your changes become a real pull request. Engineers review and merge, with no handoff and no translation."
             },
             "shortcuts": {
                 "title": "Power User Shortcuts",
@@ -1900,7 +2030,7 @@ declare const messages: {
             "titleLine1": "Built for the work",
             "titleLine2": "between \"looks good\"",
             "titleLine3": "and \"it's live.\"",
-            "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys — the parts of shipping that other tools hand off, Weblab keeps in one place.",
+            "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys. The parts of shipping that other tools hand off, Weblab keeps in one place.",
             "startBuilding": "Start building",
             "play": "Play",
             "pause": "Pause",
@@ -1913,17 +2043,17 @@ declare const messages: {
                 "branches": {
                     "eyebrow": "Safe experiments",
                     "title": "Branch the canvas like you branch the code.",
-                    "description": "Try a redesign on a branch, preview it live, and merge only when you're happy. Every change is a checkpoint — restore any time."
+                    "description": "Try a redesign on a branch, preview it live, and merge only when you're happy. Every change is a checkpoint you can restore any time."
                 },
                 "cms": {
                     "eyebrow": "Content, native",
                     "title": "Edit content where you edit design.",
-                    "description": "Collections, fields, and bindings live next to your components. Pull from Payload, Strapi, or a built-in store — and ship copy changes without a code push."
+                    "description": "Collections, fields, and bindings live next to your components. Pull from Payload, Strapi, or a built-in store, and ship copy changes without a code push."
                 },
                 "deploy": {
                     "eyebrow": "Ship to production",
                     "title": "Publish to a live URL in one click.",
-                    "description": "Preview every branch on its own URL. Promote to your custom domain when it's ready. Real code, real builds, real production — no export step."
+                    "description": "Preview every branch on its own URL. Promote to your custom domain when it's ready. Real code, real builds, real production, with no export step."
                 }
             }
         },
@@ -1935,13 +2065,13 @@ declare const messages: {
         "featuresIntro": {
             "eyebrow": "Native Design Tool Features",
             "headline": "Familiar to Designers. Trusted by Engineers.",
-            "body": "A canvas that feels intuitive, with real code underneath. Engineers can merge what you create directly — no handoff, no rebuilding."
+            "body": "A canvas that feels intuitive, with real code underneath. Engineers can merge what you create directly, with no handoff and no rebuilding."
         },
         "featuresGrid": {
             "components": {
                 "eyebrow": "Your Real Components",
                 "title": "Design with what engineers built",
-                "body": "Use the buttons, cards, and layouts your team already created. Not generic HTML — your actual design system, ready to drag onto the canvas."
+                "body": "Use the buttons, cards, and layouts your team already created. Not generic HTML, but your actual design system, ready to drag onto the canvas."
             },
             "teams": {
                 "eyebrow": "Built for Teams",
@@ -1951,7 +2081,7 @@ declare const messages: {
             "prs": {
                 "eyebrow": "Ship PRs, Not Prototypes",
                 "title": "Changes become pull requests",
-                "body": "Your changes become a real pull request. Engineers review and merge — no handoff, no translation, no rebuilding from specs."
+                "body": "Your changes become a real pull request. Engineers review and merge, with no handoff, no translation, and no rebuilding from specs."
             },
             "layers": {
                 "eyebrow": "Layer Management",
@@ -1966,7 +2096,7 @@ declare const messages: {
             "history": {
                 "eyebrow": "Version History",
                 "title": "Never lose your progress",
-                "body": "{appName} automatically saves project snapshots. Experiment with confidence — roll back to any previous version with one click."
+                "body": "{appName} automatically saves project snapshots. Experiment with confidence, and roll back to any previous version with one click."
             }
         },
         "aiFeaturesGrid": {
@@ -2026,7 +2156,7 @@ declare const messages: {
         "aiFeaturesIntro": {
             "eyebrow": "Design on an Infinite Canvas",
             "headline": "Point at what you want. AI knows exactly what you mean.",
-            "body": "No more describing \"the button in the top right\" — just click it. AI is constrained to your design system, so outputs stay on-brand every time."
+            "body": "No more describing \"the button in the top right.\" Just click it. AI is constrained to your design system, so outputs stay on-brand every time."
         },
         "aiBenefits": {
             "codeGen": {
@@ -2049,12 +2179,12 @@ declare const messages: {
             "aiContext": {
                 "eyebrow": "AI That Understands Context",
                 "headline": "AI Constrained to Your Design System",
-                "body": "Reference images, designs, and docs in chat. AI sees what you see — no more explaining from scratch. Outputs use your real components, colors, and tokens. No drift. No off-brand results."
+                "body": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch. Outputs use your real components, colors, and tokens. No drift. No off-brand results."
             },
             "canvas": {
                 "eyebrow": "Canvas Manipulation",
                 "headline": "Design on an Infinite Canvas",
-                "body": "Drag, resize, and arrange elements directly on the canvas. See changes in real code instantly — no switching between tools. Point at what you want. AI knows exactly what you mean."
+                "body": "Drag, resize, and arrange elements directly on the canvas. See changes in real code instantly, with no switching between tools. Point at what you want. AI knows exactly what you mean."
             },
             "guardrails": {
                 "eyebrow": "Design System Guardrails",
@@ -2075,7 +2205,7 @@ declare const messages: {
         "builderFeaturesIntro": {
             "eyebrow": "Works With Your Codebase",
             "headline": "Connect Your Existing Project. Start Designing in Minutes.",
-            "body": "No rebuilding. No migration. Connect your React, Next.js, or Vue project and design with your real components — the ones your engineers already built."
+            "body": "No rebuilding. No migration. Connect your React, Next.js, or Vue project and design with your real components, the ones your engineers already built."
         },
         "builderBenefits": {
             "visualReact": {
@@ -2156,7 +2286,7 @@ declare const messages: {
         },
         "terminalSection": {
             "heading": "Real code. Real terminal. Real control.",
-            "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal — no lock-in, no black box."
+            "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
         },
         "whatCanWeblabDoV2": {
             "headingAi": "AI",
@@ -2178,7 +2308,7 @@ declare const messages: {
                 "aiAssistant": {
                     "subtitle": "AI Assistant",
                     "title": "AI that understands context",
-                    "paragraph": "Reference images, designs, and docs in chat. AI sees what you see — no more explaining from scratch."
+                    "paragraph": "Reference images, designs, and docs in chat. AI sees what you see, with no more explaining from scratch."
                 },
                 "canvas": {
                     "subtitle": "Canvas",
@@ -2188,17 +2318,17 @@ declare const messages: {
                 "components": {
                     "subtitle": "Components",
                     "title": "Your real components",
-                    "paragraph": "Reuse your existing design system — buttons, cards, navs. Live components, not screenshots."
+                    "paragraph": "Reuse your existing design system: buttons, cards, navs. Live components, not screenshots."
                 },
                 "brand": {
                     "subtitle": "Tokens",
                     "title": "Your colors and tokens, one panel",
-                    "paragraph": "Browse every design token in your project — colors, typography, spacing — and apply them with a click. Every change stays on-brand."
+                    "paragraph": "Browse every design token in your project, across colors, typography, and spacing, and apply them with a click. Every change stays on-brand."
                 },
                 "structure": {
                     "subtitle": "Structure",
                     "title": "Navigate your code as layers",
-                    "paragraph": "A live tree of your DOM. Click any node to jump to it on the canvas — no inspector hunting."
+                    "paragraph": "A live tree of your DOM. Click any node to jump to it on the canvas, with no inspector hunting."
                 },
                 "history": {
                     "subtitle": "History",
@@ -2218,11 +2348,11 @@ declare const messages: {
             "items": {
                 "what": {
                     "question": "What is {appName}?",
-                    "answer": "{appName} is a visual design canvas that connects to your existing codebase. Designers drag real components onto an infinite canvas, make changes visually, and submit pull requests — no coding required."
+                    "answer": "{appName} is a visual design canvas that connects to your existing codebase. Designers drag real components onto an infinite canvas, make changes visually, and submit pull requests, with no coding required."
                 },
                 "differentDesign": {
                     "question": "How is {appName} different from other design tools?",
-                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. {appName} works with your real components — what you design IS the code. Changes become PRs, not handoff specs."
+                    "answer": "Traditional design tools create static mockups that must be rebuilt in code. {appName} works with your real components, so what you design IS the code. Changes become PRs, not handoff specs."
                 },
                 "differentAi": {
                     "question": "How is {appName} different from AI code generators?",
@@ -2230,7 +2360,7 @@ declare const messages: {
                 },
                 "code": {
                     "question": "Do I need to know how to code?",
-                    "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath — you don't need to touch it unless you want to."
+                    "answer": "No. Designers use a visual canvas with familiar tools. Real code runs underneath, so you don't need to touch it unless you want to."
                 },
                 "collaborate": {
                     "question": "Can my team collaborate?",
@@ -2264,12 +2394,18 @@ declare const messages: {
                 "blog": { "label": "Blog", "title": "Read the Weblab blog" },
                 "githubRepo": { "label": "GitHub Repo", "title": "View Weblab on GitHub" },
                 "changelog": { "label": "Changelog", "title": "See what's new in Weblab" },
-                "compare": { "label": "Compare", "title": "See how Weblab compares to alternatives" }
+                "compare": {
+                    "label": "Compare",
+                    "title": "See how Weblab compares to alternatives"
+                }
             },
             "product": {
                 "title": "Product",
                 "pricing": { "label": "Pricing", "title": "View Weblab pricing" },
-                "download": { "label": "Download", "title": "Download Weblab for Mac, Windows, Linux & iOS" },
+                "download": {
+                    "label": "Download",
+                    "title": "Download Weblab for Mac, Windows, Linux & iOS"
+                },
                 "myProjects": { "label": "My Projects", "title": "View your projects" }
             },
             "legal": {
@@ -2291,7 +2427,10 @@ declare const messages: {
                 "ai": { "label": "AI", "title": "AI-powered development tools" },
                 "visualBuilder": { "label": "Visual Builder", "title": "Visual builder tools" },
                 "prototyping": { "label": "Prototyping", "title": "Rapid prototyping features" },
-                "aiFrontend": { "label": "AI for Frontend", "title": "AI constrained to your design system" }
+                "aiFrontend": {
+                    "label": "AI for Frontend",
+                    "title": "AI constrained to your design system"
+                }
             },
             "followUs": {
                 "title": "Follow Us",

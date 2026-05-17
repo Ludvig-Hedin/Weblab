@@ -6,7 +6,6 @@ import { NonProjectSettingsModal } from '@/components/ui/settings-modal/non-proj
 import { Routes } from '@/utils/constants';
 import { AuthModal } from './auth-modal';
 import { ChangelogGrid } from './changelog-grid';
-import { SmoothScrollProvider } from './smooth-scroll-provider';
 import { HeroV2 } from './hero-v2';
 import { CTASection } from './landing-page/cta-section';
 import { DigitalSolutionsSection } from './landing-page/digital-solutions-section';
@@ -17,30 +16,31 @@ import { ScrollingVelocitySection } from './landing-page/scrolling-velocity-sect
 import { TerminalSection } from './landing-page/terminal-section';
 import { UseCasesSection } from './landing-page/use-cases-section';
 import { WhatCanWeblabDoSectionV2 } from './landing-page/what-can-weblab-do-section-v2';
+import { SmoothScrollProvider } from './smooth-scroll-provider';
 import { WebsiteLayout } from './website-layout';
 
 export function HomePageClient() {
     return (
         <CreateManagerProvider>
             <SmoothScrollProvider>
-            <WebsiteLayout showFooter={true}>
-                <div className="flex w-full items-center justify-center pt-24" id="hero">
-                    <HeroV2 />
-                </div>
-                <ResponsiveMockupSection />
-                <DigitalSolutionsSection />
-                <UseCasesSection />
-                <WhatCanWeblabDoSectionV2 />
-                <ModelAgnosticSection />
-                <TerminalSection />
-                {/* <ScrollingVelocitySection /> */}
-                <FAQSection />
-                <ChangelogGrid limit={4} />
-                <CTASection href={Routes.PROJECTS} />
-                <AuthModal />
-                <NonProjectSettingsModal />
-                <SubscriptionModal />
-            </WebsiteLayout>
+                <WebsiteLayout showFooter={true}>
+                    <div className="flex w-full items-center justify-center pt-24" id="hero">
+                        <HeroV2 />
+                    </div>
+                    <ResponsiveMockupSection />
+                    <DigitalSolutionsSection />
+                    {/*  <UseCasesSection /> */}
+                    <WhatCanWeblabDoSectionV2 />
+                    <ModelAgnosticSection />
+                    <TerminalSection />
+                    {/* <ScrollingVelocitySection /> */}
+                    <FAQSection />
+                    <ChangelogGrid limit={4} />
+                    <CTASection href={Routes.PROJECTS} />
+                    <AuthModal />
+                    <NonProjectSettingsModal />
+                    <SubscriptionModal />
+                </WebsiteLayout>
             </SmoothScrollProvider>
         </CreateManagerProvider>
     );

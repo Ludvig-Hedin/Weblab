@@ -105,9 +105,7 @@ export function ComparisonPage({ content }: { content: ComparisonContent }) {
                             <table className="w-full min-w-full text-left">
                                 <thead>
                                     <tr className="border-foreground-tertiary/20 bg-foreground-tertiary/5 border-b">
-                                        <th className="px-6 py-4 text-sm font-normal">
-                                            Feature
-                                        </th>
+                                        <th className="px-6 py-4 text-sm font-normal">Feature</th>
                                         <th className="px-6 py-4 text-sm font-normal">
                                             {APP_NAME}
                                         </th>
@@ -212,9 +210,7 @@ export function ComparisonPage({ content }: { content: ComparisonContent }) {
                 {hasBlogDeepDive && (
                     <section className="border-foreground-tertiary/10 border-t py-24">
                         <div className="mx-auto max-w-4xl px-8">
-                            <p className="text-foreground-tertiary mb-3 text-sm">
-                                Deep dive
-                            </p>
+                            <p className="text-foreground-tertiary mb-3 text-sm">Deep dive</p>
                             <h2 className="mb-6 text-3xl font-light md:text-4xl">
                                 Read the long-form comparison
                             </h2>
@@ -235,9 +231,7 @@ export function ComparisonPage({ content }: { content: ComparisonContent }) {
                 {/* Other comparisons */}
                 <section className="border-foreground-tertiary/10 border-t py-24">
                     <div className="mx-auto max-w-6xl px-8">
-                        <p className="text-foreground-tertiary mb-6 text-sm">
-                            Other comparisons
-                        </p>
+                        <p className="text-foreground-tertiary mb-6 text-sm">Other comparisons</p>
                         <div className="flex flex-wrap gap-x-8 gap-y-3">
                             {[
                                 { slug: 'lovable', name: 'Lovable' },

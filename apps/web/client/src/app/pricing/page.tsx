@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import type { IconProps } from '@weblab/ui/icons';
 import { APP_NAME } from '@weblab/constants';

@@ -56,9 +56,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             let stagedReturnUrl: string | null = returnUrl;
             if (!stagedReturnUrl) {
                 const stored = await localforage.getItem<string>(LocalForageKeys.RETURN_URL);
-                const { loadAiPromptCreateDraft, AI_PROMPT_CREATE_RESUME_PATH } = await import(
-                    '@/components/ai-prompt-composer/create-draft'
-                );
+                const { loadAiPromptCreateDraft, AI_PROMPT_CREATE_RESUME_PATH } =
+                    await import('@/components/ai-prompt-composer/create-draft');
                 if (stored === AI_PROMPT_CREATE_RESUME_PATH) {
                     const draft = await loadAiPromptCreateDraft();
                     stagedReturnUrl = draft ? stored : null;
@@ -86,9 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 const opened = await openOAuth(result.url);
                 if (!opened) {
-                    throw new Error(
-                        'Could not open your browser to continue sign-in.',
-                    );
+                    throw new Error('Could not open your browser to continue sign-in.');
                 }
                 return;
             }

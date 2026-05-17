@@ -106,12 +106,15 @@ export default function ClaudeCodeWorkflowPage() {
                 </section>
 
                 {/* Hero Section */}
-                <div className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12" id="hero">
+                <div
+                    className="flex w-full items-center justify-center pt-20 pb-10 md:pt-24 md:pb-12"
+                    id="hero"
+                >
                     <ClaudeCodeHero />
                 </div>
 
                 {/* The Problem Section */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"
@@ -173,7 +176,7 @@ export default function ClaudeCodeWorkflowPage() {
                 </section>
 
                 {/* The Solution Section */}
-                <section className="w-full bg-background pt-32 pb-16">
+                <section className="bg-background w-full pt-32 pb-16">
                     <div className="mx-auto max-w-6xl px-8">
                         <motion.h2
                             className="text-foreground-secondary mb-6 text-sm font-medium"
@@ -255,7 +258,7 @@ export default function ClaudeCodeWorkflowPage() {
                 </section>
 
                 {/* Coming Soon: MCP Integration */}
-                <section className="w-full bg-background py-32">
+                <section className="bg-background w-full py-32">
                     <div className="mx-auto max-w-6xl px-8">
                         <div className="border-foreground-primary/10 rounded-2xl border bg-gradient-to-b from-white/5 to-transparent p-12 md:p-16">
                             <motion.div

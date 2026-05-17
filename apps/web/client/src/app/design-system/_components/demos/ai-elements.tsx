@@ -54,7 +54,7 @@ export function AIElementsDemo() {
                     <CodeBlock
                         code={`const greet = (name: string) => \`Hello, \${name}!\`;`}
                         language="ts"
-                        className="border-border bg-background-secondary [&_pre]:!bg-background-secondary [&_pre]:!p-3 [&_code]:!text-[12px] [&_code]:!leading-relaxed [&_*]:!text-foreground [&_.token.keyword]:!text-foreground-secondary [&_.token.function]:!text-foreground [&_.token.string]:!text-foreground-tertiary [&_.token.punctuation]:!text-foreground-tertiary [&_.token.operator]:!text-foreground-tertiary [&_.token.template-string]:!text-foreground-tertiary"
+                        className="border-border bg-background-secondary [&_pre]:!bg-background-secondary [&_*]:!text-foreground [&_.token.keyword]:!text-foreground-secondary [&_.token.function]:!text-foreground [&_.token.string]:!text-foreground-tertiary [&_.token.punctuation]:!text-foreground-tertiary [&_.token.operator]:!text-foreground-tertiary [&_.token.template-string]:!text-foreground-tertiary [&_code]:!text-[12px] [&_code]:!leading-relaxed [&_pre]:!p-3"
                     >
                         <CodeBlockCopyButton className="h-6 w-6 [&>svg]:!size-3" />
                     </CodeBlock>

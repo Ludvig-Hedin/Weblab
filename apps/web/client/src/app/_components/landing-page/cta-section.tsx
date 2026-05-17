@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
 

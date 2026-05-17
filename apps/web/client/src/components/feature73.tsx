@@ -36,28 +36,36 @@ interface Feature73Props {
  * top (geometric pattern or icon stamp) instead of stock imagery, followed
  * by title + body. Borders only, no card backgrounds.
  */
-const Feature73 = ({
-    eyebrow,
-    heading,
-    description,
-    items,
-    button,
-    className,
-}: Feature73Props) => {
+const Feature73 = ({ eyebrow, heading, description, items, button, className }: Feature73Props) => {
     return (
         <section className={cn(className)}>
             <div className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32">
                 <div className="mb-16 max-w-3xl">
                     {eyebrow ? (
-                        <Reveal as="p" delay={0} y={12} className="heading-style-h6 text-foreground-secondary mb-4">
+                        <Reveal
+                            as="p"
+                            delay={0}
+                            y={12}
+                            className="heading-style-h6 text-foreground-secondary mb-4"
+                        >
                             {eyebrow}
                         </Reveal>
                     ) : null}
-                    <Reveal as="h2" delay={0.1} y={16} className="heading-style-h3 text-foreground-primary mb-4 text-balance">
+                    <Reveal
+                        as="h2"
+                        delay={0.1}
+                        y={16}
+                        className="heading-style-h3 text-foreground-primary mb-4 text-balance"
+                    >
                         {heading}
                     </Reveal>
                     {description ? (
-                        <Reveal as="p" delay={0.2} y={12} className="text-foreground-secondary text-regularPlus text-balance">
+                        <Reveal
+                            as="p"
+                            delay={0.2}
+                            y={12}
+                            className="text-foreground-secondary text-regularPlus text-balance"
+                        >
                             {description}
                         </Reveal>
                     ) : null}
@@ -92,7 +100,7 @@ const Feature73 = ({
                                 {item.href ? (
                                     <Link
                                         href={item.href}
-                                        className="text-foreground-tertiary group-hover:text-foreground-primary mt-2 inline-flex items-center gap-1 text-small transition-colors"
+                                        className="text-foreground-tertiary group-hover:text-foreground-primary text-small mt-2 inline-flex items-center gap-1 transition-colors"
                                     >
                                         {item.learnMoreLabel ?? 'Learn more'}
                                         <span aria-hidden="true">→</span>
@@ -106,7 +114,7 @@ const Feature73 = ({
                     <div className="mt-16 flex justify-start">
                         <Link
                             href={button.href}
-                            className="text-foreground-primary border-foreground-primary/15 hover:bg-background-secondary inline-flex items-center gap-2 rounded-md border px-4 py-2 text-regular transition-colors"
+                            className="text-foreground-primary border-foreground-primary/15 hover:bg-background-secondary text-regular inline-flex items-center gap-2 rounded-md border px-4 py-2 transition-colors"
                         >
                             {button.text}
                             {button.icon}

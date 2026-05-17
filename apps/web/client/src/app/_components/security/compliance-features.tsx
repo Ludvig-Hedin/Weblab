@@ -4,7 +4,8 @@ import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 
-import { Feature43, type Feature43Item } from '@/components/feature43';
+import type { Feature43Item } from '@/components/feature43';
+import { Feature43 } from '@/components/feature43';
 
 export function SecurityComplianceFeatures() {
     const tFn = useTranslations('security.compliance');
@@ -59,7 +60,7 @@ export function SecurityComplianceFeatures() {
             />
             {/* Disclaimer sits in its own wrapper so the Feature43 grid stays clean */}
             <div className="mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6 md:px-8">
-                <p className="text-foreground-tertiary max-w-3xl text-small leading-relaxed">
+                <p className="text-foreground-tertiary text-small max-w-3xl leading-relaxed">
                     {t('disclaimer')}
                 </p>
             </div>

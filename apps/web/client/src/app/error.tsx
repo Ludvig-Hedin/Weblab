@@ -25,9 +25,7 @@ export default function RootErrorBoundary({
     return (
         <div className="bg-background flex min-h-screen items-center justify-center px-6">
             <div className="border-border bg-card w-full max-w-md rounded-2xl border p-8 text-center shadow-2xl">
-                <p className="text-foreground-tertiary text-sm ">
-                    Unexpected error
-                </p>
+                <p className="text-foreground-tertiary text-sm">Unexpected error</p>
                 <h1 className="text-foreground mt-3 text-3xl font-semibold">
                     Something went wrong
                 </h1>
@@ -36,9 +34,7 @@ export default function RootErrorBoundary({
                 </p>
                 {reference && (
                     <div className="border-border bg-background mt-4 rounded-md border p-3 text-left">
-                        <p className="text-foreground-tertiary text-xs">
-                            Error reference
-                        </p>
+                        <p className="text-foreground-tertiary text-xs">Error reference</p>
                         <p className="text-foreground-secondary mt-1 font-mono text-xs break-all">
                             {reference}
                         </p>

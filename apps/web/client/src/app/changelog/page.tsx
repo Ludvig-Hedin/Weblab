@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import { format, isValid, parseISO } from 'date-fns';
+import { getTranslations } from 'next-intl/server';
 
 import { WebsiteLayout } from '@/app/_components/website-layout';
 import { breadcrumbSchema } from '@/app/seo';

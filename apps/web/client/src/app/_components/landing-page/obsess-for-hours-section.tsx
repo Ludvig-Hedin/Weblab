@@ -5,7 +5,7 @@ import { vujahdayScript } from '../../fonts';
 export function ObsessForHoursSection() {
     const t = useTranslations('landing.obsessForHours');
     return (
-        <div className="bg-background-weblab/80 mx-auto flex w-full flex-col items-start gap-16 px-4 py-24 sm:gap-24 sm:px-6 md:gap-12 md:px-8 md:py-32 md:flex-row md:gap-12">
+        <div className="bg-background-weblab/80 mx-auto flex w-full flex-col items-start gap-16 px-4 py-24 sm:gap-24 sm:px-6 md:flex-row md:gap-12 md:px-8 md:py-32">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-12">
                 {/* Responsive heading */}
                 <div className="mb-12 flex w-full flex-col items-center justify-center md:flex-row md:gap-1">

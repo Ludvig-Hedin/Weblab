@@ -150,7 +150,8 @@ export const SEMANTIC_TOKENS: ColorTokenData[] = [
         name: 'primary',
         cssVar: '--primary',
         value: '60 9.1% 97.8%',
-        description: 'Brand-neutral high-emphasis surface. Used for solid primary buttons and the active progress bar fill.',
+        description:
+            'Brand-neutral high-emphasis surface. Used for solid primary buttons and the active progress bar fill.',
         usage: 'bg-primary, text-primary — primary Button, Progress fill.',
     },
     {
@@ -206,7 +207,8 @@ export const SEMANTIC_TOKENS: ColorTokenData[] = [
         name: 'destructive',
         cssVar: '--destructive',
         value: '0 72% 51%',
-        description: 'High-emphasis danger color for destructive actions, errors, and delete states.',
+        description:
+            'High-emphasis danger color for destructive actions, errors, and delete states.',
         usage: 'bg-destructive, text-destructive, border-destructive — destructive Button, error Alert, delete menu item.',
     },
     {
@@ -269,7 +271,8 @@ export const SEMANTIC_TOKENS: ColorTokenData[] = [
         name: 'popover',
         cssVar: '--popover',
         value: '20 14.3% 4.1%',
-        description: 'Floating surface background for menus, tooltips, popovers, and command palettes.',
+        description:
+            'Floating surface background for menus, tooltips, popovers, and command palettes.',
         usage: 'bg-popover — DropdownMenu, Popover, Command, Select.',
     },
     {
@@ -356,7 +359,8 @@ export const FOREGROUND_TOKENS: ColorTokenData[] = [
         name: 'foreground-success',
         cssVar: '--foreground-success',
         value: '206 100% 44%',
-        description: 'Success semantic foreground. Currently aliases the blue palette — flip with the design system when greens are introduced.',
+        description:
+            'Success semantic foreground. Currently aliases the blue palette — flip with the design system when greens are introduced.',
         usage: 'text-foreground-success — "Added", "Verified", "Published".',
     },
     {

@@ -51,7 +51,7 @@ export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSw
                     />
                 </button>
                 <div className="min-w-0 flex-1">
-                    <p className="text-foreground truncate text-xs font-medium leading-tight">
+                    <p className="text-foreground truncate text-xs leading-tight font-medium">
                         {name}
                     </p>
                     <p className="text-foreground-tertiary truncate font-mono text-[10px] leading-tight">

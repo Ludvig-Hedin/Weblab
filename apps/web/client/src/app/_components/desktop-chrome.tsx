@@ -8,8 +8,9 @@ import { useEffect } from 'react';
 // apps/desktop/preload.js — see `window.weblabDesktop.target === 'desktop'`.
 export function DesktopChrome() {
     useEffect(() => {
-        const bridge = (window as unknown as { weblabDesktop?: { target?: string; platform?: string } })
-            .weblabDesktop;
+        const bridge = (
+            window as unknown as { weblabDesktop?: { target?: string; platform?: string } }
+        ).weblabDesktop;
         if (bridge?.target !== 'desktop') return;
         const root = document.documentElement;
         root.dataset.desktop = 'true';

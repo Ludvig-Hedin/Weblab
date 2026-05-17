@@ -1,8 +1,8 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import localforage from 'localforage';
+import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons/index';
 

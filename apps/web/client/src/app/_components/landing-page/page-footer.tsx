@@ -294,7 +294,9 @@ export function Footer() {
                         <LocaleSwitcher />
                     </div>
                     <div className="text-foreground-tertiary text-small flex items-center gap-3">
-                        <span>{t('legal.copyright', { year: String(new Date().getFullYear()) })}</span>
+                        <span>
+                            {t('legal.copyright', { year: String(new Date().getFullYear()) })}
+                        </span>
                         <span
                             aria-hidden="true"
                             className="bg-foreground-tertiary/40 inline-block h-1 w-1 shrink-0 rounded-full"

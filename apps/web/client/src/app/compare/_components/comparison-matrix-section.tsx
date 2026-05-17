@@ -49,16 +49,13 @@ function CellContent({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
     if (value === true) {
         inner = (
             <span className="inline-flex items-center justify-center">
-                <Check
-                    className="h-4 w-4 text-emerald-500"
-                    strokeWidth={2.5}
-                />
+                <Check className="h-4 w-4 text-emerald-500" strokeWidth={2.5} />
             </span>
         );
     } else if (value === false) {
         inner = (
             <span className="inline-flex items-center justify-center">
-                <X className="text-foreground-primary opacity-[40%] h-4 w-4" strokeWidth={2} />
+                <X className="text-foreground-primary h-4 w-4 opacity-[40%]" strokeWidth={2} />
             </span>
         );
     } else if (value === 'partial') {
@@ -275,9 +272,7 @@ export function ComparisonMatrixSection() {
                 <div className="mx-auto max-w-6xl px-8">
                     {/* Heading */}
                     <div className="mb-16">
-                        <p className="text-foreground-tertiary mb-3 text-sm">
-                            Feature comparison
-                        </p>
+                        <p className="text-foreground-tertiary mb-3 text-sm">Feature comparison</p>
                         <h2 className="text-foreground-primary mb-4 text-4xl font-light md:text-5xl">
                             {APP_NAME} vs the field
                         </h2>

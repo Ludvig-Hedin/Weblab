@@ -185,9 +185,7 @@ function Headline() {
     const t = useTranslations('landing.modelAgnostic');
     return (
         <Reveal className="max-w-md">
-            <div className="text-style-tagline">
-                {t('eyebrow')}
-            </div>
+            <div className="text-style-tagline">{t('eyebrow')}</div>
             <SplitText
                 as="h2"
                 delay={0.05}
