@@ -1,7 +1,7 @@
 'use client';
 
-import { observer } from 'mobx-react-lite';
 import { useRouter } from 'next/navigation';
+import { observer } from 'mobx-react-lite';
 
 import { Language, LANGUAGE_DISPLAY_NAMES } from '@weblab/constants';
 import { Label } from '@weblab/ui/label';

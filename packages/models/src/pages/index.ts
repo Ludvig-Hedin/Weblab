@@ -21,6 +21,13 @@ export interface PageNode {
     defaultName: string;
     name: string;
     metadata?: PageMetadata;
+    /**
+     * Raw JSON-LD string injected into the page as
+     * `<script type="application/ld+json">…</script>`. Source of truth lives in
+     * the page file; this is populated by the page scan and round-trips through
+     * `updatePageSchemaMarkupInSandbox`.
+     */
+    schemaMarkup?: string;
     settings?: PageEditorSettings;
     children?: PageNode[];
     isActive: boolean;
@@ -41,6 +48,16 @@ export interface PageMetadata {
     icons?: null | Icons;
     openGraph?: null | OpenGraph;
     robots?: null | Robots;
+    alternates?: null | Alternates;
+}
+
+/**
+ * Next.js `metadata.alternates`. Currently only `canonical` is surfaced in the
+ * page settings drawer; `languages` / `media` / `types` can be added later
+ * without breaking the AST round-trip (generic object serializer).
+ */
+export interface Alternates {
+    canonical?: string;
 }
 
 type IconURL = string | URL;

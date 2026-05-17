@@ -1,7 +1,15 @@
-import { DEPRECATED_PRELOAD_SCRIPT_SRCS, WEBLAB_PRELOAD_SCRIPT_SRC } from '@weblab/constants';
+import {
+    DEPRECATED_IX_RUNTIME_SRCS,
+    DEPRECATED_PRELOAD_SCRIPT_SRCS,
+    WEBLAB_INTERACTIONS_PUBLIC_SRC,
+    WEBLAB_IX_RUNTIME_SRC,
+    WEBLAB_PRELOAD_SCRIPT_SRC,
+} from '@weblab/constants';
 
 import type { T } from '../packages';
 import { t, traverse } from '../packages';
+
+const IX_RUNTIME_SCRIPT_ID = 'weblab-ix-runtime';
 
 export const injectPreloadScript = (ast: T.File): T.File => {
     const hasScriptImport = isScriptImported(ast);
@@ -287,6 +295,202 @@ export function removeAllPreloadScripts(ast: T.File): void {
             }
         },
     });
+}
+
+// ============================================================================
+// IX runtime injection (mirrors preload injection above — second sibling
+// `<Script>` tag loads `@weblab/web-preload/ix-runtime`, attaches a
+// `data-interactions-src` attribute so the runtime knows where to fetch its
+// config JSON, and rides the same Next.js / static-HTML body-finding
+// traversal.)
+// ============================================================================
+
+function getIxRuntimeScript(): T.JSXElement {
+    return t.jsxElement(
+        t.jsxOpeningElement(
+            t.jsxIdentifier('Script'),
+            [
+                t.jsxAttribute(t.jsxIdentifier('src'), t.stringLiteral(WEBLAB_IX_RUNTIME_SRC)),
+                t.jsxAttribute(t.jsxIdentifier('strategy'), t.stringLiteral('afterInteractive')),
+                t.jsxAttribute(t.jsxIdentifier('type'), t.stringLiteral('module')),
+                t.jsxAttribute(t.jsxIdentifier('id'), t.stringLiteral(IX_RUNTIME_SCRIPT_ID)),
+                t.jsxAttribute(
+                    t.jsxIdentifier('data-interactions-src'),
+                    t.stringLiteral(WEBLAB_INTERACTIONS_PUBLIC_SRC),
+                ),
+            ],
+            false,
+        ),
+        t.jsxClosingElement(t.jsxIdentifier('Script')),
+        [],
+        false,
+    );
+}
+
+function addIxRuntimeScriptToJSXElement(node: T.JSXElement): void {
+    const alreadyInjected = node.children.some(
+        (child) =>
+            t.isJSXElement(child) &&
+            t.isJSXIdentifier(child.openingElement.name, { name: 'Script' }) &&
+            child.openingElement.attributes.some(
+                (attr) =>
+                    t.isJSXAttribute(attr) &&
+                    t.isJSXIdentifier(attr.name, { name: 'src' }) &&
+                    t.isStringLiteral(attr.value, { value: WEBLAB_IX_RUNTIME_SRC }),
+            ),
+    );
+    if (!alreadyInjected) {
+        node.children.push(t.jsxText('\n'));
+        node.children.push(getIxRuntimeScript());
+        node.children.push(t.jsxText('\n'));
+    }
+}
+
+export function injectIxRuntimeScript(ast: T.File): T.File {
+    const hasScriptImport = isScriptImported(ast);
+    if (!hasScriptImport) addScriptImport(ast);
+
+    const { scriptCount, deprecatedScriptCount, injectedCorrectly } = scanForIxRuntimeScript(ast);
+
+    if (scriptCount === 1 && deprecatedScriptCount === 0 && injectedCorrectly) {
+        return ast;
+    }
+
+    if (scriptCount > 1) {
+        removeAllIxRuntimeScripts(ast);
+    }
+
+    removeDeprecatedIxRuntimeScripts(ast);
+
+    let scriptInjected = false;
+
+    traverse(ast, {
+        JSXElement(path) {
+            const name = path.node.openingElement.name;
+            if (!t.isJSXIdentifier(name)) return;
+
+            if (name.name === 'body' && !scriptInjected) {
+                addIxRuntimeScriptToJSXElement(path.node);
+                scriptInjected = true;
+            }
+        },
+    });
+
+    // If no <body> exists yet, the preload injection step will create one and
+    // its handler appends the preload tag. The IX runtime tag is added as a
+    // sibling on the next pass after the body exists — the orchestrator
+    // re-runs both injections in sequence to converge.
+
+    return ast;
+}
+
+export function scanForIxRuntimeScript(ast: T.File): {
+    scriptCount: number;
+    deprecatedScriptCount: number;
+    injectedCorrectly: boolean;
+} {
+    let scriptCount = 0;
+    let deprecatedScriptCount = 0;
+    let injectedCorrectly = false;
+
+    traverse(ast, {
+        JSXElement(path) {
+            const isScript = t.isJSXIdentifier(path.node.openingElement.name, { name: 'Script' });
+            if (!isScript) return;
+
+            const srcAttr = path.node.openingElement.attributes.find(
+                (attr) =>
+                    t.isJSXAttribute(attr) &&
+                    t.isJSXIdentifier(attr.name, { name: 'src' }) &&
+                    t.isStringLiteral(attr.value),
+            ) as T.JSXAttribute | undefined;
+
+            const src = srcAttr?.value;
+            if (!src || !t.isStringLiteral(src)) return;
+            if (src.value === WEBLAB_IX_RUNTIME_SRC) {
+                scriptCount++;
+                const parentBodyPath = path.findParent((parentPath) => {
+                    if (parentPath.isJSXElement()) {
+                        const name = parentPath.node.openingElement.name;
+                        return t.isJSXIdentifier(name, { name: 'body' });
+                    }
+                    return false;
+                });
+                if (parentBodyPath) {
+                    injectedCorrectly = true;
+                }
+            } else if (
+                DEPRECATED_IX_RUNTIME_SRCS.some((deprecatedSrc) => src.value === deprecatedSrc)
+            ) {
+                deprecatedScriptCount++;
+            }
+        },
+    });
+
+    return {
+        scriptCount,
+        deprecatedScriptCount,
+        injectedCorrectly: scriptCount === 1 && injectedCorrectly,
+    };
+}
+
+export function removeAllIxRuntimeScripts(ast: T.File): void {
+    traverse(ast, {
+        JSXElement(path) {
+            const isScript = t.isJSXIdentifier(path.node.openingElement.name, { name: 'Script' });
+            if (!isScript) return;
+
+            const srcAttr = path.node.openingElement.attributes.find(
+                (attr) =>
+                    t.isJSXAttribute(attr) &&
+                    t.isJSXIdentifier(attr.name, { name: 'src' }) &&
+                    t.isStringLiteral(attr.value),
+            ) as T.JSXAttribute | undefined;
+
+            const src = srcAttr?.value;
+            if (src && t.isStringLiteral(src) && src.value === WEBLAB_IX_RUNTIME_SRC) {
+                path.remove();
+            }
+        },
+    });
+}
+
+export function removeDeprecatedIxRuntimeScripts(ast: T.File): void {
+    if (DEPRECATED_IX_RUNTIME_SRCS.length === 0) return;
+    traverse(ast, {
+        JSXElement(path) {
+            const isScript = t.isJSXIdentifier(path.node.openingElement.name, { name: 'Script' });
+            if (!isScript) return;
+
+            const srcAttr = path.node.openingElement.attributes.find(
+                (attr) =>
+                    t.isJSXAttribute(attr) &&
+                    t.isJSXIdentifier(attr.name, { name: 'src' }) &&
+                    t.isStringLiteral(attr.value),
+            ) as T.JSXAttribute | undefined;
+
+            const src = srcAttr?.value;
+            if (
+                src &&
+                t.isStringLiteral(src) &&
+                DEPRECATED_IX_RUNTIME_SRCS.some((deprecatedSrc) => src.value === deprecatedSrc)
+            ) {
+                path.remove();
+            }
+        },
+    });
+}
+
+/**
+ * One-call orchestrator. Inject the preload script first (creates `<html>` /
+ * `<body>` if missing), then inject the IX runtime as a sibling inside the
+ * resulting `<body>`. Idempotent: re-running on an already-injected layout
+ * is a no-op modulo dedup of accidental duplicates.
+ */
+export function injectWeblabBootstrapScripts(ast: T.File): T.File {
+    injectPreloadScript(ast);
+    injectIxRuntimeScript(ast);
+    return ast;
 }
 
 export function scanForPreloadScript(ast: T.File): {

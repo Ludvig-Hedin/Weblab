@@ -51,6 +51,21 @@ interface MetadataFormProps {
     defaultDescription?: string;
     isRoot?: boolean;
     leadingContent?: React.ReactNode;
+    /** Slot rendered after the Open Graph block and before the sticky save bar.
+     *  Used by the page settings drawer to host Schema markup + Access control
+     *  without re-implementing the SEO/OG sections. */
+    trailingContent?: React.ReactNode;
+    // ── Open Graph overrides ─────────────────────────────────────────────────
+    /** When true, save logic mirrors the SEO title into `metadata.openGraph.title`. */
+    ogTitleSameAsSeo?: boolean;
+    ogTitle?: string;
+    onOgTitleChange?: (value: string) => void;
+    onOgTitleSameAsSeoChange?: (value: boolean) => void;
+    /** When true, save logic mirrors the SEO description into `metadata.openGraph.description`. */
+    ogDescriptionSameAsSeo?: boolean;
+    ogDescription?: string;
+    onOgDescriptionChange?: (value: string) => void;
+    onOgDescriptionSameAsSeoChange?: (value: boolean) => void;
 }
 
 const DEFAULT_TITLE = 'My New App';
@@ -77,6 +92,15 @@ export const MetadataForm = ({
     currentMetadata,
     isRoot,
     leadingContent,
+    trailingContent,
+    ogTitleSameAsSeo,
+    ogTitle,
+    onOgTitleChange,
+    onOgTitleSameAsSeoChange,
+    ogDescriptionSameAsSeo,
+    ogDescription,
+    onOgDescriptionChange,
+    onOgDescriptionSameAsSeoChange,
 }: MetadataFormProps) => {
     const imagePickerRef = useRef<ImagePickerRef>(null);
     const faviconRef = useRef<FaviconRef>(null);
@@ -210,14 +234,77 @@ export const MetadataForm = ({
                     </div>
                 </div>
                 <Separator />
-                {/* Bug fix #59: Removed stale "TODO: Implement" comment — ImagePicker and
-                    Favicon below are wired through onImageSelect / onFaviconSelect props. */}
                 <div className="flex flex-col gap-4">
-                    <h2 className="text-title3">Imagery</h2>
+                    <h2 className="text-title3">Open Graph</h2>
+                    {onOgTitleChange && onOgTitleSameAsSeoChange && (
+                        <div className="text-foreground-weblab flex flex-col gap-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex max-w-52 flex-col">
+                                    <p className="text-regular font-medium">OG Title</p>
+                                    <p className="text-small">
+                                        Headline shown when this page is shared on social.
+                                    </p>
+                                </div>
+                                <Input
+                                    placeholder="Open Graph title"
+                                    value={ogTitleSameAsSeo ? title : (ogTitle ?? '')}
+                                    onChange={(event) => onOgTitleChange(event.target.value)}
+                                    disabled={disabled || ogTitleSameAsSeo}
+                                    className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
+                                />
+                            </div>
+                            <label className="text-mini text-foreground-secondary col-start-2 flex cursor-pointer items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    className="accent-foreground-brand h-3.5 w-3.5"
+                                    checked={Boolean(ogTitleSameAsSeo)}
+                                    onChange={(event) =>
+                                        onOgTitleSameAsSeoChange(event.target.checked)
+                                    }
+                                    disabled={disabled}
+                                />
+                                Same as SEO title tag
+                            </label>
+                        </div>
+                    )}
+                    {onOgDescriptionChange && onOgDescriptionSameAsSeoChange && (
+                        <div className="text-foreground-weblab flex flex-col gap-2">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex max-w-52 flex-col">
+                                    <p className="text-regular font-medium">OG Description</p>
+                                    <p className="text-small">
+                                        Short description shown under the OG title on social.
+                                    </p>
+                                </div>
+                                <Textarea
+                                    placeholder="Open Graph description"
+                                    value={
+                                        ogDescriptionSameAsSeo ? description : (ogDescription ?? '')
+                                    }
+                                    onChange={(event) => onOgDescriptionChange(event.target.value)}
+                                    disabled={disabled || ogDescriptionSameAsSeo}
+                                    className="text-miniPlus bg-background-secondary/75 text-foreground-primary border-background-secondary/75 col-span-1 min-h-20 break-words backdrop-blur-lg transition-all duration-150 ease-in-out"
+                                    style={{ resize: 'none', lineHeight: '1.5' }}
+                                />
+                            </div>
+                            <label className="text-mini text-foreground-secondary col-start-2 flex cursor-pointer items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    className="accent-foreground-brand h-3.5 w-3.5"
+                                    checked={Boolean(ogDescriptionSameAsSeo)}
+                                    onChange={(event) =>
+                                        onOgDescriptionSameAsSeoChange(event.target.checked)
+                                    }
+                                    disabled={disabled}
+                                />
+                                Same as SEO meta description
+                            </label>
+                        </div>
+                    )}
                     <div className="text-foreground-weblab grid grid-cols-2">
                         <div className="flex max-w-52 flex-col">
-                            <p className="text-regular font-medium">Social Preview</p>
-                            <p className="text-small">Cropped to 1200 × 630 pixels</p>
+                            <p className="text-regular font-medium">Social Preview Image</p>
+                            <p className="text-small">Cropped to 1200 × 630 pixels.</p>
                         </div>
                         <div>
                             <ImagePicker
@@ -244,6 +331,12 @@ export const MetadataForm = ({
                         </div>
                     )}
                 </div>
+                {trailingContent && (
+                    <>
+                        <Separator />
+                        {trailingContent}
+                    </>
+                )}
             </div>
 
             {/* Pinned buttons at the bottom */}

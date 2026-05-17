@@ -1254,7 +1254,8 @@ export const projectRouter = createTRPCRouter({
                 })
                 .sort((a, b) => {
                     const rankDiff =
-                        PROJECT_ROLE_RANK[a.memberRole] - PROJECT_ROLE_RANK[b.memberRole];
+                        (PROJECT_ROLE_RANK[a.memberRole] ?? 99) -
+                        (PROJECT_ROLE_RANK[b.memberRole] ?? 99);
                     if (rankDiff !== 0) return rankDiff;
                     return (a.displayName ?? a.email ?? '').localeCompare(
                         b.displayName ?? b.email ?? '',

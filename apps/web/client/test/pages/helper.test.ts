@@ -1,7 +1,12 @@
 import type { ReaddirEntry } from '@codesandbox/sdk';
 import { RouterType } from '@weblab/models';
 import { describe, expect, mock, test } from 'bun:test';
-import { scanAppDirectory, updatePageMetadataInSandbox } from '../../src/components/store/editor/pages/helper';
+import {
+    extractSchemaMarkupFromContent,
+    scanAppDirectory,
+    updatePageMetadataInSandbox,
+    updatePageSchemaMarkupInSandbox,
+} from '../../src/components/store/editor/pages/helper';
 
 interface MockSandboxManager {
     readDir: (dir: string) => Promise<ReaddirEntry[]>;
@@ -137,5 +142,123 @@ describe('updatePageMetadataInSandbox', () => {
         expect(writtenContent).toContain('robots');
         expect(writtenContent).toContain('index: false');
         expect(writtenContent).toContain('follow: true');
+    });
+
+    test('writes alternates.canonical for canonical URL', async () => {
+        let writtenContent = '';
+
+        const mockSandboxManager: MockSandboxManager = {
+            readDir: mock(() => Promise.resolve([])),
+            readFile: mock((path: string) => {
+                if (path === 'app/page.tsx') {
+                    return Promise.resolve(
+                        'export default function Page() { return <div>Test</div>; }',
+                    );
+                }
+                throw new Error(`Unexpected read: ${path}`);
+            }),
+            writeFile: mock((_path: string, content: string | Uint8Array) => {
+                writtenContent =
+                    typeof content === 'string' ? content : Buffer.from(content).toString('utf8');
+                return Promise.resolve();
+            }),
+            fileExists: mock((path: string) => Promise.resolve(path === 'app/page.tsx')),
+            getRouterConfig: mock(() =>
+                Promise.resolve({ type: RouterType.APP, basePath: 'app' }),
+            ),
+            routerConfig: { type: RouterType.APP, basePath: 'app' },
+        };
+
+        await updatePageMetadataInSandbox(mockSandboxManager as any, '/', {
+            title: 'Home',
+            alternates: {
+                canonical: 'https://example.com/',
+            },
+        });
+
+        expect(writtenContent).toContain('alternates');
+        expect(writtenContent).toContain('canonical:');
+        expect(writtenContent).toContain('https://example.com/');
+    });
+});
+
+describe('updatePageSchemaMarkupInSandbox', () => {
+    const initialPageContent = `export default function Page() {\n  return <main>Hello</main>;\n}\n`;
+
+    const buildMockSandbox = (
+        initial: string,
+    ): { sandbox: MockSandboxManager; getWritten: () => string } => {
+        let current = initial;
+        return {
+            getWritten: () => current,
+            sandbox: {
+                readDir: mock(() => Promise.resolve([])),
+                readFile: mock((path: string) => {
+                    if (path === 'app/page.tsx') {
+                        return Promise.resolve(current);
+                    }
+                    throw new Error(`Unexpected read: ${path}`);
+                }),
+                writeFile: mock((path: string, content: string | Uint8Array) => {
+                    if (path !== 'app/page.tsx') {
+                        throw new Error(`Unexpected write: ${path}`);
+                    }
+                    current =
+                        typeof content === 'string'
+                            ? content
+                            : Buffer.from(content).toString('utf8');
+                    return Promise.resolve();
+                }),
+                fileExists: mock((path: string) => Promise.resolve(path === 'app/page.tsx')),
+                getRouterConfig: mock(() =>
+                    Promise.resolve({ type: RouterType.APP, basePath: 'app' }),
+                ),
+                routerConfig: { type: RouterType.APP, basePath: 'app' },
+            },
+        };
+    };
+
+    test('round-trips JSON-LD as <script type="application/ld+json"> in the page JSX', async () => {
+        const json = '{"@context":"https://schema.org","@type":"WebPage","name":"About"}';
+        const { sandbox, getWritten } = buildMockSandbox(initialPageContent);
+
+        await updatePageSchemaMarkupInSandbox(sandbox as any, '/', json);
+
+        const written = getWritten();
+        expect(written).toContain('type="application/ld+json"');
+        expect(written).toContain('dangerouslySetInnerHTML');
+        expect(written).toContain('@context');
+
+        const extracted = await extractSchemaMarkupFromContent(written);
+        expect(extracted).toBe(json);
+    });
+
+    test('removes the script when passed an empty string', async () => {
+        const json = '{"@type":"WebPage"}';
+        const { sandbox, getWritten } = buildMockSandbox(initialPageContent);
+
+        await updatePageSchemaMarkupInSandbox(sandbox as any, '/', json);
+        expect(getWritten()).toContain('application/ld+json');
+
+        await updatePageSchemaMarkupInSandbox(sandbox as any, '/', '');
+        const cleared = getWritten();
+        expect(cleared).not.toContain('application/ld+json');
+        expect(await extractSchemaMarkupFromContent(cleared)).toBeUndefined();
+    });
+
+    test('replaces an existing JSON-LD script without duplicating it', async () => {
+        const first = '{"@type":"WebPage","name":"first"}';
+        const second = '{"@type":"WebPage","name":"second"}';
+        const { sandbox, getWritten } = buildMockSandbox(initialPageContent);
+
+        await updatePageSchemaMarkupInSandbox(sandbox as any, '/', first);
+        await updatePageSchemaMarkupInSandbox(sandbox as any, '/', second);
+        const written = getWritten();
+
+        // Exactly one ld+json script should remain.
+        const occurrences = written.split('application/ld+json').length - 1;
+        expect(occurrences).toBe(1);
+        expect(written).toContain('second');
+        expect(written).not.toContain('first');
     });
 });

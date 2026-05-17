@@ -74,6 +74,67 @@ export function addKeyToElement(element: T.JSXElement | T.JSXFragment, replace =
     }
 }
 
+export function getIxIdFromJsxElement(element: T.JSXOpeningElement): string | null {
+    const attribute = element.attributes.find(
+        (attr): attr is T.JSXAttribute =>
+            t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_IX_ID,
+    );
+
+    if (!attribute?.value) {
+        return null;
+    }
+
+    if (t.isStringLiteral(attribute.value)) {
+        return attribute.value.value;
+    }
+
+    return null;
+}
+
+export function ensureIxIdOnElement(
+    element: T.JSXElement | T.JSXFragment,
+    ixId: string,
+): void {
+    if (!t.isJSXElement(element)) {
+        return;
+    }
+
+    const attributes = element.openingElement.attributes;
+    const existingIndex = attributes.findIndex(
+        (attr) =>
+            t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_IX_ID,
+    );
+
+    const newAttr = t.jsxAttribute(
+        t.jsxIdentifier(EditorAttributes.DATA_WEBLAB_IX_ID),
+        t.stringLiteral(ixId),
+    );
+
+    if (existingIndex !== -1) {
+        attributes.splice(existingIndex, 1, newAttr);
+    } else {
+        attributes.push(newAttr);
+    }
+}
+
+export function removeIxIdFromElement(element: T.JSXElement | T.JSXFragment): void {
+    if (!t.isJSXElement(element)) {
+        return;
+    }
+
+    const attributes = element.openingElement.attributes;
+    for (let i = attributes.length - 1; i >= 0; i--) {
+        const attr = attributes[i];
+        if (
+            attr &&
+            t.isJSXAttribute(attr) &&
+            attr.name.name === EditorAttributes.DATA_WEBLAB_IX_ID
+        ) {
+            attributes.splice(i, 1);
+        }
+    }
+}
+
 export const jsxFilter = (
     child: T.JSXElement | T.JSXExpressionContainer | T.JSXFragment | T.JSXSpreadChild | T.JSXText,
 ) => t.isJSXElement(child) || t.isJSXFragment(child);
