@@ -54,6 +54,17 @@ const TRACKING_OPTIONS = [
     'tracking-widest',
 ];
 
+// Design-system foreground tokens (left curated to avoid clashes with the
+// `text-xs/sm/base/...` size scale, which uses the same `text-*` prefix).
+const TEXT_COLOR_OPTIONS = [
+    'text-foreground',
+    'text-foreground-primary',
+    'text-foreground-secondary',
+    'text-foreground-tertiary',
+    'text-foreground-brand',
+    'text-muted-foreground',
+];
+
 function ClassSelect({
     label,
     options,
@@ -173,22 +184,28 @@ export const TextStyleEditor = observer(function TextStyleEditor({
                 current={pick(LEADING_OPTIONS)}
                 onChange={(v) => applyChange(LEADING_OPTIONS, v)}
             />
-            {showMore ? (
+            <ClassSelect
+                label="Color"
+                options={TEXT_COLOR_OPTIONS}
+                current={pick(TEXT_COLOR_OPTIONS)}
+                onChange={(v) => applyChange(TEXT_COLOR_OPTIONS, v)}
+            />
+            {showMore && (
                 <ClassSelect
                     label="Tracking"
                     options={TRACKING_OPTIONS}
                     current={pick(TRACKING_OPTIONS)}
                     onChange={(v) => applyChange(TRACKING_OPTIONS, v)}
                 />
-            ) : (
-                <button
-                    type="button"
-                    onClick={() => setShowMore(true)}
-                    className="text-foreground-secondary hover:text-foreground-primary text-mini self-start"
-                >
-                    More…
-                </button>
             )}
+            <button
+                type="button"
+                onClick={() => setShowMore((v) => !v)}
+                aria-expanded={showMore}
+                className="text-foreground-secondary hover:text-foreground-primary text-mini self-start"
+            >
+                {showMore ? 'Less' : 'More…'}
+            </button>
             <div className="text-foreground-tertiary text-micro truncate font-mono">
                 {style.className}
             </div>

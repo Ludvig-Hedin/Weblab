@@ -206,11 +206,10 @@ export function buildTokenSections(input: BuildInput): TokenSectionData[] {
             bucket.rows.push(row);
         }
 
-        const groups = [...groupMap.values()].sort((a, b) => a.label.localeCompare(b.label));
-        for (const group of groups) {
-            group.rows.sort((a, b) => a.label.localeCompare(b.label));
-        }
-        ungrouped.sort((a, b) => a.label.localeCompare(b.label));
+        // Preserve scan order — alphabetical sort would put `sm/md/lg/xl` out
+        // of size order, which is rarely what the author intended. Insertion
+        // order tracks the CSS source, which IS the author's intent.
+        const groups = [...groupMap.values()];
 
         return {
             id,

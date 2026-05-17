@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 
 import {
@@ -15,6 +14,7 @@ import type { TokenGroupData } from './lib/group-tokens';
 import type { ConfirmFn } from './lib/token-mutations';
 import { useEditorEngine } from '@/components/store/editor';
 import { deleteGroup, renameGroup } from './lib/group-ops';
+import { useLocalStorageState } from './lib/use-local-storage-state';
 import { TokenRow } from './token-row';
 
 export interface TokenGroupProps {
@@ -40,7 +40,12 @@ export function TokenGroup({
 }: TokenGroupProps) {
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
-    const [open, setOpen] = useState(true);
+    // Persist collapse across panel close/reopen — the panel unmounts when
+    // the user switches left-panel tabs, and re-collapsing every time is noise.
+    const [open, setOpen] = useLocalStorageState<boolean>(
+        `weblab.brand-tab.group:${group.key}`,
+        true,
+    );
 
     const handleRenameGroup = async () => {
         const name = window.prompt('Rename group', group.label);
@@ -65,7 +70,7 @@ export function TokenGroup({
                 <ContextMenuTrigger asChild>
                     <button
                         type="button"
-                        onClick={() => setOpen((v) => !v)}
+                        onClick={() => setOpen(!open)}
                         aria-expanded={open}
                         className="text-foreground-secondary hover:text-foreground-primary flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors"
                     >

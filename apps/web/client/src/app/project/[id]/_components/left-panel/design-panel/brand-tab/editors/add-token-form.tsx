@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
@@ -40,6 +40,13 @@ export const AddTokenForm = observer(function AddTokenForm({
     const [name, setName] = useState('');
     const [value, setValue] = useState(isTextStyle ? VALUE_PLACEHOLDER['text-styles'] : '');
     const [busy, setBusy] = useState(false);
+    const nameRef = useRef<HTMLInputElement | null>(null);
+
+    // Focus the Name field when the form opens. Ref+effect instead of the
+    // `autoFocus` prop so we don't trip the `jsx-a11y/no-autofocus` warning.
+    useEffect(() => {
+        nameRef.current?.focus();
+    }, []);
 
     const canSubmit = slugify(name.trim()).length > 0 && value.trim().length > 0 && !busy;
 
@@ -69,9 +76,13 @@ export const AddTokenForm = observer(function AddTokenForm({
             <div className="flex flex-col gap-1">
                 <Label className="text-micro text-foreground-secondary">Name</Label>
                 <Input
+                    ref={nameRef}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={sectionId === 'colors' ? 'brand-primary' : 'name'}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') void submit();
+                    }}
                     className="text-mini h-7"
                 />
             </div>

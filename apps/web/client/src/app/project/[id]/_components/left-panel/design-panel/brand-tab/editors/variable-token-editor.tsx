@@ -158,6 +158,13 @@ export const VariableTokenEditor = observer(function VariableTokenEditor({
 
     const commitValues = () => persist(light, hasDark && dark.trim() ? dark.trim() : null);
 
+    // Picking a literal hex through the picker would silently overwrite a
+    // `var(--…)` reference — drop the picker affordance whenever the current
+    // value IS a var ref. The user can still edit the ref via the text input.
+    const isVarRef = (v: string) => v.trim().startsWith('var(--');
+    const lightAllowsPicker = isColor && !isVarRef(light);
+    const darkAllowsPicker = isColor && !isVarRef(dark);
+
     const pickColor = (mode: 'light' | 'dark', hex: string) => {
         if (mode === 'light') {
             setLight(hex);
@@ -202,7 +209,7 @@ export const VariableTokenEditor = observer(function VariableTokenEditor({
                     swatch={isAlias ? row.value : light}
                     onChange={setLight}
                     onCommit={() => void commitValues()}
-                    onPickColor={isColor ? (hex) => pickColor('light', hex) : undefined}
+                    onPickColor={lightAllowsPicker ? (hex) => pickColor('light', hex) : undefined}
                 />
             </Field>
             {hasDark ? (
@@ -213,7 +220,7 @@ export const VariableTokenEditor = observer(function VariableTokenEditor({
                         swatch={isAlias ? (row.darkValue ?? dark) : dark}
                         onChange={setDark}
                         onCommit={() => void commitValues()}
-                        onPickColor={isColor ? (hex) => pickColor('dark', hex) : undefined}
+                        onPickColor={darkAllowsPicker ? (hex) => pickColor('dark', hex) : undefined}
                     />
                 </Field>
             ) : (

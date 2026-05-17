@@ -50,7 +50,7 @@ export const CarouselNavigator: FC<CarouselNavigatorProps> = ({
     const goNext = () => onIndexChange((currentIndex + 1) % totalSlides);
 
     return (
-        <motion.div className="border-foreground-primary/10 bg-background-weblab/60 inline-flex items-center justify-center gap-0.5 rounded-full border px-1.5 py-1 font-sans backdrop-blur-md transition-colors duration-300">
+        <motion.div className="bg-muted inline-flex items-center justify-center gap-0.5 rounded-full px-1.5 py-1 font-sans transition-colors duration-300">
             <ArrowButton onClick={goPrev} themeColor={theme.button} aria-label="Previous slide">
                 <ChevronLeft size={14} strokeWidth={2.25} />
             </ArrowButton>

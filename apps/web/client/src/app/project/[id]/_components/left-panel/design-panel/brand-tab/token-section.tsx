@@ -72,7 +72,7 @@ export function TokenSection({
                     {adding && <AddTokenForm sectionId={section.id} onClose={onCloseAdd} />}
                     {isEmpty && !adding && (
                         <p className="text-foreground-tertiary text-mini px-4 py-1.5">
-                            No {section.title.toLowerCase()} yet.
+                            No {section.title.toLowerCase()} yet — click + to add one.
                         </p>
                     )}
                     <div className="flex flex-col gap-0.5 px-2">

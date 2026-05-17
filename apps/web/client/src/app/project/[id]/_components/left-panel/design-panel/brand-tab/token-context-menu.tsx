@@ -18,6 +18,7 @@ import type { TokenRowData } from './lib/group-tokens';
 import type { ConfirmFn } from './lib/token-mutations';
 import { useEditorEngine } from '@/components/store/editor';
 import { duplicateToken, moveTokenToGroup, parseTokenName } from './lib/group-ops';
+import { slugify } from './lib/token-mutations';
 
 export interface TokenContextMenuProps {
     row: TokenRowData;
@@ -44,7 +45,11 @@ export const TokenContextMenu = observer(function TokenContextMenu({
     const editorEngine = useEditorEngine();
     const tokens = editorEngine.tokens;
     const currentGroup = parseTokenName(row.name, row.kind === 'text-style').group;
-    const otherGroups = groupLabels.filter((group) => group !== currentGroup);
+    // `currentGroup` comes from the raw `-` name (lowercase); `groupLabels`
+    // come from `splitGroupLeaf(displayName)` (capitalized). Compare on slug
+    // so the token's own group doesn't show as a (no-op) target.
+    const currentGroupSlug = currentGroup ? slugify(currentGroup) : null;
+    const otherGroups = groupLabels.filter((group) => slugify(group) !== currentGroupSlug);
 
     const handleDelete = async () => {
         const ok = await confirm({

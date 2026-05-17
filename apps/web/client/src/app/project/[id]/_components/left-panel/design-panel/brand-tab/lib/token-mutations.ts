@@ -24,12 +24,19 @@ export function slugify(name: string): string {
         .replace(/[^a-z0-9-]/g, '');
 }
 
-/** Parse a color-style value string into a structured ref. */
+/**
+ * Parse a color-style value string into a structured ref. Handles
+ * `var(--foo, fallback)` by stripping the fallback — only the variable name
+ * lives in the structured ref.
+ */
 export function parseColorRef(value: string): ColorStyleRef {
     const v = value.trim();
-    return v.startsWith('var(--') && v.endsWith(')')
-        ? { type: 'var', var: v.slice(6, -1) }
-        : { type: 'literal', value: v };
+    if (v.startsWith('var(--') && v.endsWith(')')) {
+        const inner = v.slice(6, -1);
+        const varName = inner.split(',')[0]!.trim();
+        return { type: 'var', var: varName };
+    }
+    return { type: 'literal', value: v };
 }
 
 /** Render a structured color-style ref back to an editable string. */
