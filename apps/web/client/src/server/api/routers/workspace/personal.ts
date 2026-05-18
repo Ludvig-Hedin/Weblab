@@ -37,30 +37,63 @@ export async function resolvePersonalWorkspaceId(
         (userEmail?.split('@')[0] ?? '') ||
         'Personal';
 
-    return await db.transaction(async (tx) => {
-        const [created] = await tx
-            .insert(workspaces)
-            .values({
-                name: `${displayName}'s Workspace`,
-                slug: `personal-${userId}`,
-                kind: WorkspaceKind.PERSONAL,
-                createdByUserId: userId,
-            })
-            .returning();
-        if (!created) {
-            throw new TRPCError({
-                code: 'INTERNAL_SERVER_ERROR',
-                message: 'Failed to ensure personal workspace',
-            });
+    try {
+        return await db.transaction(async (tx) => {
+            const [created] = await tx
+                .insert(workspaces)
+                .values({
+                    name: `${displayName}'s Workspace`,
+                    slug: `personal-${userId}`,
+                    kind: WorkspaceKind.PERSONAL,
+                    createdByUserId: userId,
+                })
+                .returning();
+            if (!created) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to ensure personal workspace',
+                });
+            }
+            await tx
+                .insert(workspaceMembers)
+                .values({
+                    workspaceId: created.id,
+                    userId,
+                    role: WorkspaceRole.OWNER,
+                })
+                .onConflictDoNothing();
+            return created.id;
+        });
+    } catch (error) {
+        // Two parallel signup tabs can both pass the `existing` check above and
+        // race the INSERT — second one hits the workspaces_slug_unique 23505.
+        // Re-fetch on conflict so the loser still returns the now-existing id
+        // instead of throwing a confusing 500 on first signup.
+        const isUniqueViolation =
+            !!error &&
+            typeof error === 'object' &&
+            (((error as { code?: unknown }).code === '23505') ||
+                (typeof (error as { message?: unknown }).message === 'string' &&
+                    ((error as { message: string }).message).includes('duplicate key')));
+        if (!isUniqueViolation) {
+            throw error;
         }
-        await tx
+        const winner = await db.query.workspaces.findFirst({
+            where: and(
+                eq(workspaces.createdByUserId, userId),
+                eq(workspaces.kind, WorkspaceKind.PERSONAL),
+            ),
+        });
+        if (!winner) {
+            // Shouldn't happen — the 23505 means a row was successfully written.
+            throw error;
+        }
+        // Ensure the member row exists in case the losing tx aborted before it
+        // (winner's tx already inserts it, this is belt-and-suspenders).
+        await db
             .insert(workspaceMembers)
-            .values({
-                workspaceId: created.id,
-                userId,
-                role: WorkspaceRole.OWNER,
-            })
+            .values({ workspaceId: winner.id, userId, role: WorkspaceRole.OWNER })
             .onConflictDoNothing();
-        return created.id;
-    });
+        return winner.id;
+    }
 }

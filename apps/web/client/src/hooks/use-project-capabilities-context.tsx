@@ -87,9 +87,10 @@ function useAccessLostHandler(projectId: string | null | undefined) {
             if (surfacedRef.current) return;
             surfacedRef.current = true;
             // Refresh caps so UI affordances re-render with the new (denied)
-            // state. The query is the trust gate for UI; server is the trust
-            // gate for data.
-            void utils.user.capabilities.invalidate({ projectId });
+            // state. Invalidate ALL capabilities queries (no input filter) —
+            // they may have been issued with `{ projectId, workspaceId }`
+            // shapes that won't match a `{ projectId }`-only filter.
+            void utils.user.capabilities.invalidate();
             toast.error('You no longer have access to this project', {
                 description: 'Refresh the page to continue.',
                 action: {

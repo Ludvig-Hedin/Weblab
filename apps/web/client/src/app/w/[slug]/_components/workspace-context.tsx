@@ -42,11 +42,16 @@ export function WorkspaceProvider({
         }
         // Cookie is readable server-side from /projects → lets the cold-load
         // redirect land on the user's last-visited workspace instead of
-        // always bouncing to personal. 1-year TTL.
+        // always bouncing to personal. 1-year TTL. `Secure` is appended on
+        // HTTPS so browsers don't downgrade to non-secure transport (modern
+        // browsers warn on Secure-less cookies via HTTPS pages).
         try {
+            const isHttps =
+                typeof window !== 'undefined' && window.location.protocol === 'https:';
             document.cookie =
                 `${LAST_WORKSPACE_SLUG_COOKIE}=${encodeURIComponent(workspace.slug)};` +
-                ` Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+                ` Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax` +
+                (isHttps ? '; Secure' : '');
         } catch {
             // ignored
         }

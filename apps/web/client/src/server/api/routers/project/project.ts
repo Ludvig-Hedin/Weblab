@@ -1,7 +1,7 @@
 import FirecrawlApp from '@mendable/firecrawl-js';
 import { TRPCError } from '@trpc/server';
 import { generateText } from 'ai';
-import { and, eq, gt, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, ne } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -496,7 +496,15 @@ export const projectRouter = createTRPCRouter({
                 console.error('project not found');
                 return null;
             }
-            return fromDbProject(project);
+            // Surface workspaceId + accessMode alongside the mapped Project
+            // model. fromDbProject() strips DB-only columns, but the editor
+            // breadcrumb routes back to /w/{slug}/projects via workspaceId
+            // and the settings/access page reads accessMode.
+            return {
+                ...fromDbProject(project),
+                workspaceId: project.workspaceId,
+                accessMode: project.accessMode,
+            };
         }),
     getEditorBootstrap: protectedProcedure
         .input(z.object({ projectId: z.string() }))
@@ -1042,30 +1050,25 @@ export const projectRouter = createTRPCRouter({
             // already-doomed row.
             const projectId = input.id;
             await ctx.db.transaction(async (tx) => {
-                const lockedRows = await tx.execute(sql`
-                    SELECT id, workspace_id, name
-                    FROM projects
-                    WHERE id = ${projectId}
-                    FOR UPDATE
-                `);
-                const locked = (
-                    lockedRows as unknown as Array<{
-                        id: string;
-                        workspace_id: string | null;
-                        name: string;
-                    }>
-                )[0];
+                const lockedRows = await tx
+                    .select({
+                        id: projects.id,
+                        workspaceId: projects.workspaceId,
+                        name: projects.name,
+                    })
+                    .from(projects)
+                    .where(eq(projects.id, projectId))
+                    .for('update');
+                const locked = lockedRows[0];
                 if (!locked) {
                     throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
                 }
                 await requireCap(tx, ctx.user.id, 'project.delete', { projectId });
                 await tx.delete(userProjects).where(eq(userProjects.projectId, projectId));
                 await tx.delete(projects).where(eq(projects.id, projectId));
-                // NB: no dedicated PROJECT_DELETED audit event in the
-                // current enum (audit_event_kind in 0034). Deletion still
-                // shows in the workspace's audit trail via the cascade-cleared
-                // project_id; a follow-up should add a PROJECT_DELETED enum
-                // value in a new migration + here.
+                // NB: no dedicated PROJECT_DELETED audit event in the current
+                // enum (audit_event_kind in 0034). Follow-up should add it +
+                // emit an audit row here.
                 void locked;
             });
         }),

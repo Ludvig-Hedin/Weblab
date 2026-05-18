@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { TRPCError } from '@trpc/server';
-import { addDays, isAfter } from 'date-fns';
-import { and, eq } from 'drizzle-orm';
+import { addDays } from 'date-fns';
+import { and, eq, lt } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { checkAcceptable, isEmailMatch } from '@weblab/auth';
@@ -120,26 +120,25 @@ export const workspaceInvitationRouter = createTRPCRouter({
             await requireCap(ctx.db, ctx.user.id, 'workspace.invite', {
                 workspaceId: input.workspaceId,
             });
+            // Bulk-flip any pending row past expiry in a single UPDATE — two
+            // concurrent list reads would otherwise both fire N per-row
+            // updates each (2N writes). Idempotent under the WHERE clause.
+            const now = new Date();
+            await ctx.db
+                .update(workspaceInvitations)
+                .set({ status: InvitationStatus.EXPIRED, updatedAt: now })
+                .where(
+                    and(
+                        eq(workspaceInvitations.workspaceId, input.workspaceId),
+                        eq(workspaceInvitations.status, InvitationStatus.PENDING),
+                        lt(workspaceInvitations.expiresAt, now),
+                    ),
+                );
             const rows = await ctx.db.query.workspaceInvitations.findMany({
                 where: eq(workspaceInvitations.workspaceId, input.workspaceId),
                 limit: 200,
                 with: { invitedBy: true },
             });
-            const now = new Date();
-            const stale = rows.filter(
-                (r) => r.status === InvitationStatus.PENDING && isAfter(now, r.expiresAt),
-            );
-            if (stale.length > 0) {
-                await Promise.all(
-                    stale.map((r) =>
-                        ctx.db
-                            .update(workspaceInvitations)
-                            .set({ status: InvitationStatus.EXPIRED, updatedAt: now })
-                            .where(eq(workspaceInvitations.id, r.id)),
-                    ),
-                );
-                stale.forEach((r) => (r.status = InvitationStatus.EXPIRED));
-            }
             return rows.map((r) => ({
                 ...r,
                 // @ts-expect-error - see note above on fromDbUser typing

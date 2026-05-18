@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { and, count, eq, ne, sql } from 'drizzle-orm';
+import { and, count, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { projects, workspaceMembers, workspaces } from '@weblab/db';
@@ -219,20 +219,17 @@ export const workspaceRouter = createTRPCRouter({
             // leaving an audit row that lies + a FK RESTRICT 500. Pg row-level
             // lock blocks the create until this tx commits or rolls back.
             return await ctx.db.transaction(async (tx) => {
-                const wsRows = await tx.execute(sql`
-                    SELECT id, name, slug, kind
-                    FROM workspaces
-                    WHERE id = ${input.workspaceId}
-                    FOR UPDATE
-                `);
-                const ws = (
-                    wsRows as unknown as Array<{
-                        id: string;
-                        name: string;
-                        slug: string;
-                        kind: string;
-                    }>
-                )[0];
+                const lockedRows = await tx
+                    .select({
+                        id: workspaces.id,
+                        name: workspaces.name,
+                        slug: workspaces.slug,
+                        kind: workspaces.kind,
+                    })
+                    .from(workspaces)
+                    .where(eq(workspaces.id, input.workspaceId))
+                    .for('update');
+                const ws = lockedRows[0];
                 if (!ws) {
                     throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace not found' });
                 }
