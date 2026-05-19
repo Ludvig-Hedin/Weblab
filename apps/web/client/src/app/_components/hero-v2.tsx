@@ -90,12 +90,12 @@ export function HeroV2() {
 
     return (
         <motion.div
-            className="flex w-full flex-col items-center gap-38 px-4 py-2 lg:pt-8"
+            className="flex w-full flex-col items-center gap-38 px-4 py-2 sm:px-6 md:px-8 lg:pt-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
         >
-            <section className="grid w-full max-w-7xl grid-cols-1 items-start gap-10 md:grid-cols-2 lg:max-w-6xl lg:gap-12">
+            <section className="grid w-full max-w-6xl grid-cols-1 items-start gap-10 md:grid-cols-2 lg:gap-12">
                 <div className="flex w-full max-w-[545px] flex-col items-start gap-5 lg:justify-self-start">
                     <SplitText
                         as="h1"
@@ -172,7 +172,7 @@ export function HeroV2() {
             </section>
 
             <motion.div
-                className="w-full max-w-7xl overflow-x-clip"
+                className="w-full max-w-6xl overflow-x-clip"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}

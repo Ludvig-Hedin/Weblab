@@ -127,7 +127,7 @@ export function TerminalSection() {
             className="bg-background relative flex w-screen items-center justify-center overflow-hidden py-20 md:py-28"
             id="terminal"
         >
-            <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-6 md:flex-row md:gap-16">
+            <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-4 sm:px-6 md:flex-row md:gap-16 md:px-8">
                 {/* Copy — left */}
                 <Reveal className="w-full max-w-md text-left">
                     <h2 className="heading-style-h3 text-foreground-primary mb-4 tracking-tight text-balance">

@@ -18,7 +18,7 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
     const entries = CHANGELOG_ENTRIES.slice(0, limit);
 
     return (
-        <section className="mx-auto w-full max-w-6xl px-4 py-16 md:px-8">
+        <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 md:px-8">
             <div className="mb-6 flex items-baseline justify-between">
                 <div>
                     <p className="heading-style-h6 text-foreground-tertiary mb-1">

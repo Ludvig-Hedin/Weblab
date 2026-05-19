@@ -21,7 +21,7 @@ export function Footer() {
 
     return (
         <footer className="text-foreground-primary border-foreground-primary/10 mt-24 w-full border-t">
-            <div className="mx-auto w-full max-w-7xl px-6 pt-20 pb-10 sm:px-8 lg:pt-24">
+            <div className="mx-auto w-full max-w-6xl px-4 pt-20 pb-10 sm:px-6 md:px-8 lg:pt-24">
                 {/* Giant wordmark */}
                 <BrandWordmark
                     aria-hidden="true"

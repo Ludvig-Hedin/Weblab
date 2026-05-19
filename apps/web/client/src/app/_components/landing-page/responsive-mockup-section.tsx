@@ -279,7 +279,7 @@ export function ResponsiveMockupSection() {
             {/* Mobile: panel 1 — canvas + AI prompt input */}
             <div className="md:hidden">
                 <div
-                    className="relative flex w-full flex-col items-center gap-8 px-6 py-16"
+                    className="relative flex w-full flex-col items-center gap-8 px-4 py-16 sm:px-6"
                     id="features-mobile-1"
                 >
                     <PromptOnCanvasAsset />
@@ -296,7 +296,7 @@ export function ResponsiveMockupSection() {
 
                 {/* Mobile: panel 2 — design ↔ code */}
                 <div
-                    className="relative flex w-full flex-col items-center gap-8 px-6 py-16"
+                    className="relative flex w-full flex-col items-center gap-8 px-4 py-16 sm:px-6"
                     id="features-mobile-2"
                 >
                     <DesignToCodeAsset />

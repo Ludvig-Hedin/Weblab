@@ -729,7 +729,7 @@ const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = 
 export function WhatCanWeblabDoSectionV2() {
     const t = useTranslations('landing.whatCanWeblabDoV2') as (key: string) => string;
     return (
-        <section className="mx-auto w-full max-w-6xl px-4 py-32 md:px-8">
+        <section className="mx-auto w-full max-w-6xl px-4 py-32 sm:px-6 md:px-8">
             <motion.div
                 initial={REVEAL.initial}
                 whileInView={REVEAL.whileInView}
