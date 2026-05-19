@@ -32,10 +32,21 @@ import { emitInitialCss } from './css-emitter';
 export class InteractionsManager {
     private _doc: InteractionsDocument = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
     private _loaded = false;
+    private _isDirty = false;
+    private _lastSavedAt: number | null = null;
     private flushTimer: ReturnType<typeof setTimeout> | null = null;
+    private beforeUnloadHandler: (() => void) | null = null;
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
+    }
+
+    get isDirty(): boolean {
+        return this._isDirty;
+    }
+
+    get lastSavedAt(): number | null {
+        return this._lastSavedAt;
     }
 
     get document(): InteractionsDocument {
@@ -67,6 +78,41 @@ export class InteractionsManager {
     async init(): Promise<void> {
         await this.loadFromDisk();
         this._loaded = true;
+        this.attachBeforeUnload();
+    }
+
+    /**
+     * Browsers GC the page between the last edit and `clear()` if the user
+     * closes the tab or navigates away. With a 600ms debounce on disk writes,
+     * any edit within that window is lost. Register a beforeunload handler
+     * that synchronously fires the pending flush so the JSON file is on disk
+     * before the tab unloads. The handler is a no-op when nothing is pending.
+     */
+    private attachBeforeUnload() {
+        if (typeof window === 'undefined') return;
+        if (this.beforeUnloadHandler) return;
+        const handler = () => {
+            if (!this._isDirty) return;
+            // Cancel debounce, fire synchronous write path. The disk write
+            // itself is still async (CodeFileSystem.writeFile returns a
+            // Promise) and the browser may not await it before unload — but
+            // the request is enqueued in ZenFS / the provider before navigate.
+            if (this.flushTimer) {
+                clearTimeout(this.flushTimer);
+                this.flushTimer = null;
+            }
+            // Cannot await — beforeunload is sync. Fire-and-forget.
+            void this.flushNow();
+        };
+        window.addEventListener('beforeunload', handler);
+        this.beforeUnloadHandler = handler;
+    }
+
+    private detachBeforeUnload() {
+        if (typeof window === 'undefined') return;
+        if (!this.beforeUnloadHandler) return;
+        window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+        this.beforeUnloadHandler = null;
     }
 
     // TODO(bug-hunt): wire `CodeFileSystem.consumePendingIxIdRewrites` so that
@@ -84,8 +130,11 @@ export class InteractionsManager {
             clearTimeout(this.flushTimer);
             this.flushTimer = null;
         }
+        this.detachBeforeUnload();
         this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
         this._loaded = false;
+        this._isDirty = false;
+        this._lastSavedAt = null;
     }
 
     async loadFromDisk(): Promise<void> {
@@ -317,6 +366,7 @@ export class InteractionsManager {
     }
 
     private scheduleDiskFlush(): void {
+        this._isDirty = true;
         if (this.flushTimer) {
             clearTimeout(this.flushTimer);
         }
@@ -354,6 +404,8 @@ export class InteractionsManager {
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, json);
                 await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_INITIAL_CSS_PATH, initialCss);
             }
+            this._isDirty = false;
+            this._lastSavedAt = Date.now();
         } catch (err) {
             console.warn('[InteractionsManager] Failed to persist interactions:', err);
         }
