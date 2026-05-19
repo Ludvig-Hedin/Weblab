@@ -74,11 +74,7 @@ const ModelSelectorLegacy = ({
                     aria-label={`Model: ${currentLabel}`}
                     className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary text-mini h-7 gap-1 rounded-md px-1.5 font-normal"
                 >
-                    {/* Hide the label on narrow panels; the chevron stays as the affordance. */}
-                    <span
-                        title={currentLabel}
-                        className="hidden max-w-[160px] truncate @[260px]:inline"
-                    >
+                    <span title={currentLabel} className="max-w-[160px] truncate">
                         {currentLabel}
                     </span>
                     <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 shrink-0" />
