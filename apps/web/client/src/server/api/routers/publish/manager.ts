@@ -10,7 +10,6 @@ import {
     DefaultSettings,
     EXCLUDED_PUBLISH_DIRECTORIES,
     SUPPORTED_LOCK_FILES,
-    WEBLAB_IX_RUNTIME_FILE,
     WEBLAB_PRELOAD_SCRIPT_FILE,
 } from '@weblab/constants';
 import { addBuiltWithScript, injectBuiltWithScript } from '@weblab/growth';
@@ -338,6 +337,10 @@ export class PublishManager {
      * Check if a file should be skipped
      */
     private shouldSkipFile(filePath: string): boolean {
+        // NOTE: WEBLAB_PRELOAD_SCRIPT_FILE is editor-only (penpal bridge to
+        // parent) so it's stripped from publish. WEBLAB_IX_RUNTIME_FILE is
+        // the opposite — it runs animations on the LIVE published site, so
+        // it must ship with the deploy alongside `_weblab/interactions.json`.
         return (
             filePath.includes('node_modules') ||
             filePath.includes('.git/') ||
@@ -345,8 +348,7 @@ export class PublishManager {
             filePath.includes('/dist/') ||
             filePath.includes('/build/') ||
             filePath.includes('/coverage/') ||
-            filePath.endsWith(`/${WEBLAB_PRELOAD_SCRIPT_FILE}`) ||
-            filePath.endsWith(`/${WEBLAB_IX_RUNTIME_FILE}`)
+            filePath.endsWith(`/${WEBLAB_PRELOAD_SCRIPT_FILE}`)
         );
     }
 
