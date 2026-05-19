@@ -16,6 +16,17 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-17 — Interactions system, multi-provider hosting, brand tokens, page settings
+Author: Claude Sonnet 4.6
+Area: `packages/models/interactions`, `packages/parser`, `apps/web/preload/ix-runtime`, editor interactions store, hosting provider adapters, brand-tab, page-settings-drawer
+Summary: Eight feature + bugfix commits shipped in one session after a comprehensive bug-hunt review.
+New: animation interactions system (InteractionsManager, ix-runtime preload bundle, timeline editor UI); multi-provider hosting with Vercel/Netlify/Cloudflare/Railway/Render adapters and redesigned publish dropdown; brand token editor with groups/variable tokens/text styles; page settings drawer with schema markup parser injection.
+Bug fixes: duplicatePage same-path overwrite, session.task null crash, resumeSyncInit double-call, EditorState.clear() missing tab resets, refetch() void→Promise, promisifyMethod error swallowed, deployment relation name collision, project role NaN sort, URL() constructor crash in site settings, dead code in domain verify helpers.
+Files: 8 commits, ~260 files changed, 12,800+ insertions
+Links: commits f1fb6953a..bfa1f928e
+
+---
+
 ## 2026-05-14 — Assets panel (Webflow-style rework of the Images tab)
 Author: Claude Opus 4.7
 Area: `apps/web/client` — editor left panel; `@weblab/utility`, `@weblab/constants`
