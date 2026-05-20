@@ -6,4 +6,9 @@ dockerfilePath = "Dockerfile"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+# On 2026-05-20 the container crashed silently and Railway gave up after 10
+# retries, leaving zero healthy replicas and a 502 at the apex for hours.
+# 50 lets us survive a burst of consecutive crashes (e.g. flapping OOMs) while
+# the next deploy or fix lands.
+# See docs/agent-memory/architecture-decisions.md (2026-05-20 entry).
+restartPolicyMaxRetries = 50

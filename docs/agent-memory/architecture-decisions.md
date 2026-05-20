@@ -18,6 +18,60 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-20 — Harden Railway client service against silent crashes
+
+Decision: Add three layered defenses against the silent-crash failure mode that
+took down `weblab.build` (apex) for several hours on 2026-05-20:
+
+1. **Process-level crash handlers** in `apps/web/client/src/instrumentation.ts` —
+   `unhandledRejection`, `uncaughtException`, and `SIGTERM` listeners that log a
+   fingerprint to stdout before Node exits. We deliberately do **not** swallow
+   the error: letting Node terminate is correct so Railway restarts the
+   container under the `ON_FAILURE` policy. The handlers exist only to leave a
+   breadcrumb in Railway logs so the next crash isn't invisible.
+2. **`restartPolicyMaxRetries: 10 → 50`** in `railway.toml`, `docs/railway.toml`,
+   and `apps/docs/railway.toml`. With only 10 retries, a burst of flapping
+   crashes (e.g. consecutive OOMs during a traffic spike) drives the replica
+   count to zero and Railway gives up — at that point the edge returns
+   `502 Application failed to respond` until a human manually redeploys.
+   50 retries buys hours of headroom while still bounding the loop.
+3. **`NODE_OPTIONS=--max-old-space-size=2048`** Railway env var on the `Source`
+   service. Default V8 heap is ~1.5 GB on 64-bit Node; raising it to 2 GB
+   gives Next.js SSR room while keeping the cap well below the container
+   memory limit. Crucially, hitting the heap cap throws a JS-side
+   `JavaScript heap out of memory` (which our `uncaughtException` handler can
+   log) instead of triggering a kernel SIGKILL OOM (which leaves zero trace).
+
+Context: On 2026-05-19 at 21:25 UTC the production container's log stream went
+silent mid-execution. Over the next ~25 hours every replica died, Railway
+exhausted its 10 retries, and `weblab.build` started serving Cloudflare 502s
+backed by `x-railway-fallback: true` from the Railway edge. `docs.weblab.build`
+stayed up because it is a separate Railway service with its own replicas.
+Discovery took longer than it should have because the silent crash left no
+stack trace anywhere — no Railway log, no Sentry event, no Langfuse trace.
+
+Alternatives considered: (a) Switching `restartPolicyType` to `ALWAYS`. Rejected
+because it would mask hard failures (e.g. bad config) that genuinely need a
+fresh deploy. (b) Adding an external uptime monitor only. Deferred —
+necessary but doesn't reduce time-to-recovery once the crash is detected.
+(c) Tuning Railway autoscaling. Out of scope for this incident.
+
+Rationale: These three changes are cheap, additive, and don't touch product
+logic. Together they turn the silent-crash failure mode into one that (i)
+leaves logs we can grep, (ii) self-heals across many more crash bursts, and
+(iii) prefers a catchable JS exception over an uncatchable SIGKILL. An
+external uptime monitor pointed at `/api/health` is the natural next step and
+is tracked separately.
+
+Status: Active. Revisit if (a) we see retries exhausted again — bump further or
+move to `ALWAYS`; or (b) we add Sentry/Better Stack and want to remove the
+stdout-only crash log path.
+
+Touched: `apps/web/client/src/instrumentation.ts`, `railway.toml`,
+`docs/railway.toml`, `apps/docs/railway.toml`, Railway env var `NODE_OPTIONS`.
+
+---
+
 ## 2026-05-13 — Dual cloud sandbox provider rollout
 
 Decision: Add Vercel Sandbox as a second cloud runtime behind

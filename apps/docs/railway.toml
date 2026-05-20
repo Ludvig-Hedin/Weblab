@@ -7,4 +7,7 @@ startCommand = "bun run start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+# Bumped 10 → 50 after the 2026-05-20 apex outage (see
+# docs/agent-memory/architecture-decisions.md). Survive flapping crashes
+# rather than giving up and serving 502s from the edge.
+restartPolicyMaxRetries = 50

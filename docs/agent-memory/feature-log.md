@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-20 — Harden Railway client service against silent crashes
+Author: Claude Sonnet 4.7
+Area: `apps/web/client` (deploy/instrumentation), Railway service config
+Summary: Production apex `weblab.build` started returning Cloudflare 502s after the Railway container died silently (no logs, no stack trace) and Railway exhausted its 10-retry restart budget. Added stdout crash handlers (`unhandledRejection`/`uncaughtException`/`SIGTERM`) in `instrumentation.ts` so the next silent crash leaves a fingerprint, bumped `restartPolicyMaxRetries` 10 → 50 across all three Railway services, and set `NODE_OPTIONS=--max-old-space-size=2048` on the client service so heap exhaustion throws a catchable JS exception instead of a kernel SIGKILL.
+Files: `apps/web/client/src/instrumentation.ts`, `railway.toml`, `docs/railway.toml`, `apps/docs/railway.toml`
+Links: `docs/agent-memory/architecture-decisions.md` (2026-05-20 entry)
+
+---
+
 ## 2026-05-17 — Interactions system, multi-provider hosting, brand tokens, page settings
 Author: Claude Sonnet 4.6
 Area: `packages/models/interactions`, `packages/parser`, `apps/web/preload/ix-runtime`, editor interactions store, hosting provider adapters, brand-tab, page-settings-drawer
