@@ -55,7 +55,17 @@ function registerProcessCrashHandlers() {
 }
 
 export function register() {
-    registerProcessCrashHandlers();
+    // `register()` is invoked once per Next.js runtime (nodejs + edge). The
+    // process crash handlers use `process.on`, which is a Node.js-only API —
+    // calling it on the Edge Runtime aborts the instrumentation hook with
+    // "A Node.js API is used (process.on) which is not supported in the Edge
+    // Runtime" and breaks middleware on every request. Gate strictly on the
+    // Node.js runtime. `NEXT_RUNTIME` is injected by Next.js itself and is
+    // intentionally not part of the validated `@/env` schema.
+    // eslint-disable-next-line no-restricted-properties
+    if (process.env.NEXT_RUNTIME === 'nodejs') {
+        registerProcessCrashHandlers();
+    }
 
     const hasLangfuseConfig = Boolean(env.LANGFUSE_SECRET_KEY && env.LANGFUSE_PUBLIC_KEY);
 
