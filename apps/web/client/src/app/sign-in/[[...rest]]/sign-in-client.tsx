@@ -68,12 +68,23 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                         </p>
                     </div>
                     <ClerkAuthForm returnUrl={returnUrl} />
-                    <p className="text-small text-foreground-weblab">
+                </div>
+                {/* Footer row: version label on the left, terms on the right,
+                    both rendered in the same muted tertiary color so they
+                    read as one piece of metadata at the bottom of the page.
+                    On narrow viewports the terms wrap below the version. */}
+                <div className="text-small text-foreground-tertiary flex w-full flex-col items-center justify-between gap-2 sm:flex-row">
+                    <p>
+                        {t(transKeys.welcome.version, {
+                            version: desktop.version ?? pkg.version,
+                        })}
+                    </p>
+                    <p>
                         {t(transKeys.welcome.terms.agreement)}{' '}
                         <Link
                             href="https://weblab.build/privacy-policy"
                             target="_blank"
-                            className="text-foreground-secondary hover:text-foreground-primary underline transition-colors duration-200"
+                            className="hover:text-foreground-primary underline transition-colors duration-200"
                         >
                             {t(transKeys.welcome.terms.privacy)}
                         </Link>{' '}
@@ -81,17 +92,10 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                         <Link
                             href="https://weblab.build/terms-of-service"
                             target="_blank"
-                            className="text-foreground-secondary hover:text-foreground-primary underline transition-colors duration-200"
+                            className="hover:text-foreground-primary underline transition-colors duration-200"
                         >
                             {t(transKeys.welcome.terms.tos)}
                         </Link>
-                    </p>
-                </div>
-                <div className="text-small text-foreground-tertiary flex flex-row space-x-1">
-                    <p>
-                        {t(transKeys.welcome.version, {
-                            version: desktop.version ?? pkg.version,
-                        })}
                     </p>
                 </div>
             </div>

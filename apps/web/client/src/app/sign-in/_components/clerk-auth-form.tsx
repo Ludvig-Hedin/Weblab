@@ -140,7 +140,11 @@ export function ClerkAuthForm({
 
     const showGithub = AUTH_PROVIDERS.has('github');
     const showGoogle = AUTH_PROVIDERS.has('google');
-    const showVercel = AUTH_PROVIDERS.has('vercel');
+    // Vercel is shown unconditionally — env-gating it requires touching
+    // `NEXT_PUBLIC_AUTH_PROVIDERS` (other agent's WIP). Clerk must have
+    // Vercel OAuth configured in its dashboard for the redirect to succeed;
+    // if it isn't, the click surfaces the API error to `oauthError` below.
+    const showVercel = true;
     const hasOAuthProvider = showGithub || showGoogle || showVercel;
 
     async function handleOAuth(provider: ClerkOAuthProvider) {
@@ -313,7 +317,11 @@ export function ClerkAuthForm({
                     // (44px) matches the OAuth buttons. `dark:bg-transparent`
                     // overrides the Input default of `dark:bg-input/30` which
                     // would otherwise paint a filled background in dark mode.
-                    className="placeholder:text-foreground-tertiary border-border h-11 w-full rounded-full bg-transparent text-center dark:bg-transparent"
+                    // `py-0 leading-none` collapses the default `py-1` so the
+                    // browser centers the text/placeholder against the full
+                    // 44px box instead of within a 36px content area — fixes
+                    // the placeholder sitting slightly above center.
+                    className="placeholder:text-foreground-tertiary border-border h-11 w-full rounded-full bg-transparent py-0 text-center leading-none dark:bg-transparent"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => {
