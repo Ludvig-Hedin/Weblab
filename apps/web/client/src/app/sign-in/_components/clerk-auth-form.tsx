@@ -7,15 +7,14 @@ import { useRouter } from 'next/navigation';
 // API from its main entry, which is an experimental shape (`SignInFutureResource`)
 // missing `authenticateWithRedirect` / `prepareFirstFactor`. The legacy export
 // is the stable v6-style API our custom flow targets.
-import { useSignIn } from '@clerk/nextjs/legacy';
+import { useSignIn, useSignUp } from '@clerk/nextjs/legacy';
 import { useTranslations } from 'next-intl';
 
-import { SignInMethod } from '@weblab/models/auth';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
+import { cn } from '@weblab/ui/utils';
 
-import { LoginButton } from '@/app/_components/login-button';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
 import { LocalForageKeys } from '@/utils/constants';
@@ -23,6 +22,12 @@ import { LocalForageKeys } from '@/utils/constants';
 // Per-tab key used to hand the email off to /sign-in/verify without putting
 // PII in the URL (would leak into history, Referer, analytics).
 const SIGN_IN_EMAIL_KEY = 'weblab-clerk-sign-in-email';
+
+// Per-tab key flagging whether the active Clerk attempt is a sign-in (existing
+// user) or sign-up (new user). Verify page uses this to call the right
+// `attempt*` method.
+const SIGN_IN_MODE_KEY = 'weblab-clerk-sign-in-mode';
+export type ClerkOtpMode = 'sign-in' | 'sign-up';
 
 // Per-tab key tracking the last successful OTP send. Mirrors the Supabase
 // /login form's cooldown so the UX is identical.
@@ -50,15 +55,37 @@ interface ClerkAuthFormProps {
     providerButtonClassName?: string;
 }
 
+// Inline Vercel triangle. No icon component exists for it in `@weblab/ui` yet;
+// inlining avoids adding a one-off to the shared package.
+function VercelLogo({ className }: { className?: string }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            className={className}
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+        >
+            <path d="M12 3l10 18H2L12 3z" />
+        </svg>
+    );
+}
+
+// `oauth_*` strategy literal for each provider. Pinned here so the strategy
+// → Clerk-provider mapping lives in one place.
+type ClerkOAuthProvider = 'github' | 'google' | 'vercel';
+const OAUTH_STRATEGIES = {
+    github: 'oauth_github',
+    google: 'oauth_google',
+    vercel: 'oauth_vercel',
+} as const;
+
 /**
- * Custom sign-in form for Clerk mode. Renders the same OAuth row + email-OTP
- * layout as the Supabase-backed AuthForm on /login, but drives Clerk's sign-in
- * primitives so we get our own design with no Clerk branding.
- *
- * - OAuth providers use `signIn.authenticateWithRedirect` so Clerk owns the
- *   provider round-trip; we hand it our SSO callback path.
- * - Email uses the `email_code` strategy. The 6-digit code is verified on
- *   `/sign-in/verify`.
+ * Custom sign-in / sign-up form for Clerk mode. Renders a single OTP form
+ * that handles both existing and new users — we try `signIn.create` first
+ * and fall back to `signUp.create` when Clerk reports the identifier isn't
+ * registered yet. The UI is identical for either case (no password, no
+ * separate sign-up surface).
  */
 export function ClerkAuthForm({
     returnUrl = null,
@@ -67,7 +94,9 @@ export function ClerkAuthForm({
 }: ClerkAuthFormProps) {
     const t = useTranslations();
     const router = useRouter();
-    const { isLoaded, signIn } = useSignIn();
+    const { isLoaded: isSignInLoaded, signIn } = useSignIn();
+    const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+    const isLoaded = isSignInLoaded && isSignUpLoaded;
 
     const [email, setEmail] = useState('');
     const [isEmailLoading, setIsEmailLoading] = useState(false);
@@ -111,15 +140,15 @@ export function ClerkAuthForm({
 
     const showGithub = AUTH_PROVIDERS.has('github');
     const showGoogle = AUTH_PROVIDERS.has('google');
-    const hasOAuthProvider = showGithub || showGoogle;
+    const showVercel = AUTH_PROVIDERS.has('vercel');
+    const hasOAuthProvider = showGithub || showGoogle || showVercel;
 
-    async function handleOAuth(provider: 'github' | 'google') {
+    async function handleOAuth(provider: ClerkOAuthProvider) {
         if (!isLoaded || !signIn) return;
         setOauthError(null);
-        const strategy = provider === 'github' ? 'oauth_github' : 'oauth_google';
         try {
             await signIn.authenticateWithRedirect({
-                strategy,
+                strategy: OAUTH_STRATEGIES[provider],
                 // Clerk needs an in-app callback to finalize the session it
                 // built from the OAuth provider redirect. /sign-in/sso-callback
                 // mounts <AuthenticateWithRedirectCallback /> for that.
@@ -140,24 +169,44 @@ export function ClerkAuthForm({
 
     async function handleSendCode(e: React.FormEvent) {
         e.preventDefault();
-        if (!isLoaded || !signIn) return;
+        if (!isLoaded || !signIn || !signUp) return;
         const normalizedEmail = email.trim().toLowerCase();
         if (!normalizedEmail) return;
         setIsEmailLoading(true);
         setEmailError(null);
-        try {
-            // Single-call path: passing `strategy: 'email_code'` to `create`
-            // both starts the SignIn attempt and ships the OTP email — the
-            // previous two-call sequence (`create` then `prepareFirstFactor`)
-            // doubled the round-trip count and was the visible "loads for a
-            // few seconds before the code page" delay.
-            await signIn.create({
-                strategy: 'email_code',
-                identifier: normalizedEmail,
-            });
 
+        // Inner helper: try the sign-in path first, fall back to sign-up when
+        // Clerk reports the identifier isn't registered. Returns the resolved
+        // mode so the verify page can call the matching attempt method.
+        async function startOtpFlow(): Promise<ClerkOtpMode> {
+            if (!signIn || !signUp) throw new Error('Clerk not loaded.');
+            try {
+                await signIn.create({
+                    strategy: 'email_code',
+                    identifier: normalizedEmail,
+                });
+                return 'sign-in';
+            } catch (err) {
+                type ClerkAPIErrorLike = {
+                    errors?: Array<{ code?: string; message?: string; longMessage?: string }>;
+                };
+                const apiErr = err as ClerkAPIErrorLike;
+                const code = apiErr?.errors?.[0]?.code;
+                // `form_identifier_not_found` is Clerk's "no user with this
+                // email" error. Anything else (network, rate limit, identifier
+                // invalid) we propagate so the outer catch shows it.
+                if (code !== 'form_identifier_not_found') throw err;
+                await signUp.create({ emailAddress: normalizedEmail });
+                await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                return 'sign-up';
+            }
+        }
+
+        try {
+            const mode = await startOtpFlow();
             try {
                 sessionStorage.setItem(SIGN_IN_EMAIL_KEY, normalizedEmail);
+                sessionStorage.setItem(SIGN_IN_MODE_KEY, mode);
                 sessionStorage.setItem(SIGN_IN_OTP_LAST_SEND_KEY, String(Date.now()));
                 // Persist across tabs / page reloads for next visit autofill.
                 // localStorage (not sessionStorage) so the browser remembers
@@ -177,7 +226,9 @@ export function ClerkAuthForm({
             // Clerk surfaces a ClerkAPIResponseError-shaped object on failure;
             // unwrap the first message for user-facing display.
             const fallback = 'Something went wrong. Please try again.';
-            type ClerkAPIErrorLike = { errors?: Array<{ message?: string; longMessage?: string }> };
+            type ClerkAPIErrorLike = {
+                errors?: Array<{ message?: string; longMessage?: string }>;
+            };
             const apiErr = err as ClerkAPIErrorLike;
             const first = apiErr?.errors?.[0];
             setEmailError(first?.longMessage ?? first?.message ?? fallback);
@@ -186,37 +237,59 @@ export function ClerkAuthForm({
         }
     }
 
+    // Square, icon-only OAuth button. Sits in a row alongside its siblings.
+    // The visual height matches the email submit button (h-11 = 44px) so the
+    // form has a single button-height system.
+    const oauthButtonClass =
+        'flex h-11 flex-1 items-center justify-center rounded-full border border-border bg-background-weblab text-foreground-primary transition-colors hover:bg-background-secondary disabled:cursor-not-allowed disabled:opacity-60';
+
     return (
-        <div className="flex flex-col space-y-4">
+        <div className="flex w-full flex-col items-center space-y-4">
             {hasOAuthProvider && (
-                <div className="flex flex-col space-y-2">
+                <div className="flex w-full items-center justify-center gap-2">
                     {showGithub && (
-                        <LoginButton
-                            className={providerButtonClassName}
-                            returnUrl={returnUrl}
-                            method={SignInMethod.GITHUB}
-                            icon={<Icons.GitHubLogo className="mr-2 h-4 w-4" />}
-                            translationKey="github"
-                            providerName="GitHub"
-                            onClickOverride={() => handleOAuth('github')}
-                        />
+                        <button
+                            type="button"
+                            aria-label={t(transKeys.welcome.login.github)}
+                            onClick={() => void handleOAuth('github')}
+                            disabled={!isLoaded}
+                            className={cn(oauthButtonClass, providerButtonClassName)}
+                        >
+                            <Icons.GitHubLogo className="h-5 w-5" />
+                            <span className="sr-only">{t(transKeys.welcome.login.github)}</span>
+                        </button>
                     )}
                     {showGoogle && (
-                        <LoginButton
-                            className={providerButtonClassName}
-                            returnUrl={returnUrl}
-                            method={SignInMethod.GOOGLE}
-                            icon={<Icons.GoogleLogo viewBox="0 0 24 24" className="mr-2 h-4 w-4" />}
-                            translationKey="google"
-                            providerName="Google"
-                            onClickOverride={() => handleOAuth('google')}
-                        />
+                        <button
+                            type="button"
+                            aria-label={t(transKeys.welcome.login.google)}
+                            onClick={() => void handleOAuth('google')}
+                            disabled={!isLoaded}
+                            className={cn(oauthButtonClass, providerButtonClassName)}
+                        >
+                            <Icons.GoogleLogo viewBox="0 0 24 24" className="h-5 w-5" />
+                            <span className="sr-only">{t(transKeys.welcome.login.google)}</span>
+                        </button>
+                    )}
+                    {showVercel && (
+                        <button
+                            type="button"
+                            aria-label="Sign in with Vercel"
+                            onClick={() => void handleOAuth('vercel')}
+                            disabled={!isLoaded}
+                            className={cn(oauthButtonClass, providerButtonClassName)}
+                        >
+                            <VercelLogo className="h-5 w-5" />
+                            <span className="sr-only">Sign in with Vercel</span>
+                        </button>
                     )}
                 </div>
             )}
-            {oauthError && <p className="text-small text-red-500">{oauthError}</p>}
+            {oauthError && (
+                <p className="text-small w-full text-center text-red-500">{oauthError}</p>
+            )}
             {hasOAuthProvider && (
-                <div className="flex items-center gap-3">
+                <div className="flex w-full items-center gap-3">
                     <div className="bg-border h-px flex-1" />
                     <span className="text-small text-foreground-tertiary">or</span>
                     <div className="bg-border h-px flex-1" />
@@ -226,7 +299,7 @@ export function ClerkAuthForm({
                 onSubmit={(event) => {
                     void handleSendCode(event);
                 }}
-                className="space-y-2"
+                className="w-full space-y-2"
             >
                 <Input
                     type="email"
@@ -236,7 +309,11 @@ export function ClerkAuthForm({
                     name="email"
                     id="weblab-sign-in-email"
                     placeholder={t(transKeys.welcome.login.emailPlaceholder)}
-                    className="placeholder:text-foreground-tertiary"
+                    // Fully rounded, border-only (no fill), centered text. h-11
+                    // (44px) matches the OAuth buttons. `dark:bg-transparent`
+                    // overrides the Input default of `dark:bg-input/30` which
+                    // would otherwise paint a filled background in dark mode.
+                    className="placeholder:text-foreground-tertiary border-border h-11 w-full rounded-full bg-transparent text-center dark:bg-transparent"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => {
@@ -256,11 +333,16 @@ export function ClerkAuthForm({
                     autoFocus
                     maxLength={254}
                 />
-                {emailError && <p className="text-small text-red-500">{emailError}</p>}
+                {emailError && (
+                    <p className="text-small w-full text-center text-red-500">{emailError}</p>
+                )}
                 <Button
                     type="submit"
                     variant="outline"
-                    className="w-full"
+                    // `text-[14px]` pins the label to 14px so it doesn't grow
+                    // alongside other `text-regular` defaults. `h-11` keeps
+                    // visual height aligned with OAuth buttons.
+                    className="h-11 w-full rounded-full text-[14px]"
                     disabled={isEmailLoading || !email || cooldownSecondsRemaining > 0 || !isLoaded}
                 >
                     {isEmailLoading ? (
@@ -274,12 +356,11 @@ export function ClerkAuthForm({
                         t(transKeys.welcome.login.email)
                     )}
                 </Button>
-                <p className="text-small text-foreground-tertiary">
+                <p className="text-small text-foreground-tertiary w-full text-center">
                     Don&apos;t have an account?{' '}
-                    {/* `next/link` keeps the navigation client-side so we don't
-                        tear down the ClerkProvider tree (and lose the in-flight
-                        signIn singleton) on every nav between /sign-in and
-                        /sign-up. Raw <a> would do a full reload. */}
+                    {/* /sign-up redirects to /sign-in; the form below already
+                        creates the account on first OTP if the email isn't
+                        registered. Link kept for accessibility / bookmarks. */}
                     <Link
                         href={
                             returnUrl

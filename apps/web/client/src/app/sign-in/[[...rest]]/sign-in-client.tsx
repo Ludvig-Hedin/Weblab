@@ -46,7 +46,7 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
         <div className="relative flex h-screen w-screen items-center justify-center">
             {/* Invisible drag strip so the window is movable in desktop mode. */}
             <div className="desktop-drag-region pointer-events-none absolute inset-x-0 top-0 h-10" />
-            <div className="flex h-full w-full flex-col justify-between space-y-8 overflow-auto px-6 py-10 sm:max-w-xl sm:px-16 sm:py-16">
+            <div className="flex h-full w-full flex-col items-center justify-between overflow-auto px-6 py-10 sm:max-w-xl sm:px-16 sm:py-16">
                 <div className="flex items-center space-x-2">
                     {desktop.isDesktop ? (
                         <BrandLogo className="h-5" />
@@ -56,10 +56,14 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                         </Link>
                     )}
                 </div>
-                <div className="space-y-8">
-                    <div className="space-y-4">
+                <div className="flex w-full flex-col items-center space-y-8 text-center">
+                    {/* Tight title → description spacing (space-y-2) keeps the
+                        two lines reading as one block. `text-balance` shifts
+                        the line break so we never strand a single word like
+                        "required" on the second line at sm/md widths. */}
+                    <div className="space-y-2">
                         <h1 className="text-title1 leading-tight">{t(transKeys.welcome.title)}</h1>
-                        <p className="text-foreground-weblab text-regular">
+                        <p className="text-foreground-weblab text-regular text-balance">
                             {t(transKeys.welcome.description)}
                         </p>
                     </div>

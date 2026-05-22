@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 // See clerk-auth-form.tsx for why we import from the legacy subpath.
-import { useSignIn } from '@clerk/nextjs/legacy';
+import { useSignIn, useSignUp } from '@clerk/nextjs/legacy';
 import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
@@ -20,8 +20,10 @@ import { sanitizeReturnUrl } from '@/utils/url';
 const RESEND_COOLDOWN = 60;
 const RESEND_COOLDOWN_MS = RESEND_COOLDOWN * 1000;
 
-// Must match the key written by /sign-in/_components/clerk-auth-form.tsx.
+// Must match the keys written by /sign-in/_components/clerk-auth-form.tsx.
 const SIGN_IN_EMAIL_KEY = 'weblab-clerk-sign-in-email';
+const SIGN_IN_MODE_KEY = 'weblab-clerk-sign-in-mode';
+type ClerkOtpMode = 'sign-in' | 'sign-up';
 // Cross-tab durable key written by the same form on send. We don't clear it
 // on session-end; only on successful verify, when the user has clearly
 // committed to this email and we don't need to keep it staged any more.
@@ -39,9 +41,12 @@ export default function ClerkVerifyPage() {
     const sentAtParam = searchParams.get('sentAt');
     const sentAt = sentAtParam ? Number(sentAtParam) : null;
 
-    const { isLoaded, signIn, setActive } = useSignIn();
+    const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
+    const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+    const isLoaded = isSignInLoaded && isSignUpLoaded;
 
     const [email, setEmail] = useState<string | null>(null);
+    const [mode, setMode] = useState<ClerkOtpMode>('sign-in');
 
     const initialCountdown = (() => {
         if (!sentAt || Number.isNaN(sentAt)) return 0;
@@ -57,12 +62,19 @@ export default function ClerkVerifyPage() {
     const [isResending, setIsResending] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Hydrate email from sessionStorage. If it's missing (direct nav, refresh
-    // in a new tab, sessionStorage threw), bounce back to /sign-in.
+    // Hydrate email + mode from sessionStorage. If email is missing (direct
+    // nav, refresh in a new tab, sessionStorage threw), bounce back to
+    // /sign-in. The mode tells us which Clerk attempt method to call —
+    // `signIn.attemptFirstFactor` for existing users, `signUp.attemptEmail-
+    // AddressVerification` for new ones. Defaults to 'sign-in' so an
+    // upgrade path from an older session that wrote only the email key
+    // still works.
     useEffect(() => {
         let stored: string | null = null;
+        let storedMode: string | null = null;
         try {
             stored = sessionStorage.getItem(SIGN_IN_EMAIL_KEY);
+            storedMode = sessionStorage.getItem(SIGN_IN_MODE_KEY);
         } catch {
             stored = null;
         }
@@ -71,6 +83,7 @@ export default function ClerkVerifyPage() {
             return;
         }
         setEmail(stored);
+        if (storedMode === 'sign-up') setMode('sign-up');
     }, [router]);
 
     // Mirror the Supabase verify page: clear the stash on tab close so it
@@ -108,21 +121,27 @@ export default function ClerkVerifyPage() {
 
     async function handleVerify(value: string) {
         if (value.length !== 6 || isVerifying) return;
-        if (!isLoaded || !signIn || !setActive || !email) return;
+        if (!isLoaded || !signIn || !signUp || !setActive || !email) return;
         setIsVerifying(true);
         setError(null);
         try {
-            const result = await signIn.attemptFirstFactor({
-                strategy: 'email_code',
-                code: value,
-            });
+            // Call the matching Clerk attempt method for the active mode.
+            // `signIn.attemptFirstFactor` finalizes an existing user; for new
+            // signups Clerk uses `signUp.attemptEmailAddressVerification`.
+            const result =
+                mode === 'sign-up'
+                    ? await signUp.attemptEmailAddressVerification({ code: value })
+                    : await signIn.attemptFirstFactor({
+                          strategy: 'email_code',
+                          code: value,
+                      });
 
             if (result.status === 'complete') {
                 // Clerk's types declare `createdSessionId` as `string | null`.
-                // For a status==='complete' email_code flow it's always set,
-                // but the guard keeps us from silently calling setActive with
-                // null if Clerk ever regresses — that would log the user out
-                // of any existing session without creating a new one.
+                // For a complete email_code flow it's always set, but the
+                // guard keeps us from silently calling setActive with null if
+                // Clerk ever regresses — that would log the user out of any
+                // existing session without creating a new one.
                 if (!result.createdSessionId) {
                     setError('Sign-in did not complete. Please try again.');
                     setOtp('');
@@ -130,6 +149,7 @@ export default function ClerkVerifyPage() {
                 }
                 try {
                     sessionStorage.removeItem(SIGN_IN_EMAIL_KEY);
+                    sessionStorage.removeItem(SIGN_IN_MODE_KEY);
                     // Drop the durable prefill too — the user is now signed
                     // in, so the next visit to /sign-in is presumably a
                     // *different* user on this device.
@@ -139,7 +159,10 @@ export default function ClerkVerifyPage() {
                 }
                 await setActive({ session: result.createdSessionId });
                 const safe = sanitizeReturnUrl(returnUrl);
-                const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : Routes.PROJECTS;
+                // New users land on /profile-setup so they can pick a name;
+                // existing users go straight to projects (or their returnUrl).
+                const fallback = mode === 'sign-up' ? Routes.PROFILE_SETUP : Routes.PROJECTS;
+                const finalReturnUrl = returnUrl && safe !== Routes.HOME ? safe : fallback;
                 router.push(finalReturnUrl);
                 return;
             }
@@ -151,7 +174,7 @@ export default function ClerkVerifyPage() {
             // so they can restart. Log status server-side via the URL hash so
             // ops can grep for it if it ever fires in production.
             if (env.NODE_ENV !== 'production') {
-                console.warn('[sign-in/verify] unexpected SignIn status', result.status);
+                console.warn('[sign-in/verify] unexpected status', result.status, mode);
             }
             router.replace(`/sign-in?reason=${encodeURIComponent(`status:${result.status}`)}`);
             return;
@@ -183,20 +206,22 @@ export default function ClerkVerifyPage() {
 
     async function handleResend() {
         if (resendCountdown > 0 || isResending) return;
-        if (!isLoaded || !signIn || !email) return;
+        if (!isLoaded || !signIn || !signUp || !email) return;
         setIsResending(true);
         setError(null);
         try {
-            // Use the same single-call API the send path uses so resend
-            // matches it on both latency (one round-trip, not two) and on the
-            // Clerk state machine. Passing `strategy: 'email_code'` to
-            // `create` re-arms a fresh SignIn attempt AND ships a new code in
-            // one request — also recovers from any expired attempt without a
-            // separate fallback branch.
-            await signIn.create({
-                strategy: 'email_code',
-                identifier: email,
-            });
+            // Re-arm the matching Clerk attempt for the active mode. Passing
+            // `strategy: 'email_code'` to `signIn.create` ships a fresh code
+            // in one request. For sign-up we re-create + re-prepare.
+            if (mode === 'sign-up') {
+                await signUp.create({ emailAddress: email });
+                await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+            } else {
+                await signIn.create({
+                    strategy: 'email_code',
+                    identifier: email,
+                });
+            }
 
             setResendCountdown(RESEND_COOLDOWN);
             setOtp('');
