@@ -98,7 +98,7 @@ export async function generateMetadata(): Promise<Metadata> {
             description,
             images: [
                 {
-                    url: absoluteUrl('/og-image.png'),
+                    url: absoluteUrl('/assets/web-preview.webp'),
                     width: 1200,
                     height: 630,
                     alt: ogAlt,
@@ -113,7 +113,7 @@ export async function generateMetadata(): Promise<Metadata> {
             creator: '@weblab',
             images: [
                 {
-                    url: absoluteUrl('/og-image.png'),
+                    url: absoluteUrl('/assets/web-preview.webp'),
                     width: 1200,
                     height: 630,
                     alt: ogAlt,

@@ -56,7 +56,8 @@ Observed active areas:
 - **Auth flow hardening** — `NEXT_PUBLIC_SITE_URL` for proper redirect
   handling, sign-out and provider integration fixes.
 - **Marketing / SEO expansion** — blog redesign, comparison pages, structured
-  data, sitemap improvements.
+  data, sitemap improvements, and global Open Graph metadata now points at
+  `/assets/web-preview.webp`.
 - **Weblab brand migration and cleanup** across app routes, metadata, copy,
   constants, package metadata, docs, and public assets (ongoing).
 - **AI prompt composer unification** — homepage, create-project,
