@@ -1,6 +1,8 @@
 import { Buffer } from 'node:buffer';
 import { Sandbox } from '@vercel/sandbox';
 
+import { EMPTY_INTERACTIONS_DOCUMENT } from '@weblab/models';
+
 import type {
     CopyFileOutput,
     CopyFilesInput,
@@ -61,7 +63,12 @@ import {
 const DEFAULT_PORT = 3000;
 const DEFAULT_RUNTIME = 'node24';
 const DEFAULT_TIMEOUT_MS = 45 * 60 * 1000;
-const DEFAULT_DEV_COMMAND = 'npm run dev -- --hostname 0.0.0.0';
+// `--turbopack` runs Next 15's Turbopack bundler instead of webpack.
+// Stable in Next 15.x. Cold-compiles the first page request 5-10x
+// faster, which dominates the perceived "blank project loading
+// forever" time. The `--` separates npm args from script args so
+// both `--turbopack` and `--hostname` reach `next dev`.
+const DEFAULT_DEV_COMMAND = 'npm run dev -- --turbopack --hostname 0.0.0.0';
 const PROJECT_ROOT = '/vercel/sandbox';
 
 export interface VercelSandboxProviderOptions {
@@ -109,6 +116,19 @@ function splitShellCommand(command: string) {
     };
 }
 
+async function isNextDevServerRunning(sandbox: Sandbox): Promise<boolean> {
+    const result = await sandbox.runCommand(
+        splitShellCommand('pgrep -f "[n]ext-server|[n]ext dev --hostname 0.0.0.0" >/dev/null'),
+    );
+    return result.exitCode === 0;
+}
+
+async function stopNextDevServers(sandbox: Sandbox): Promise<void> {
+    await sandbox.runCommand(
+        splitShellCommand('pkill -f "[n]ext-server|[n]ext dev --hostname 0.0.0.0" || true'),
+    );
+}
+
 function createOutput(
     sandbox: Sandbox,
     port: number,
@@ -131,7 +151,7 @@ async function resumeFromSnapshot(snapshotId: string, port: number) {
         source: { type: 'snapshot', snapshotId },
         ports: [port],
         timeout: getTimeoutMs(),
-        resources: { vcpus: 2 },
+        resources: { vcpus: 4 },
         ...getCredentials(),
     });
 }
@@ -152,7 +172,7 @@ async function scaffoldNextProject(sandbox: Sandbox) {
             content: JSON.stringify(
                 {
                     scripts: {
-                        dev: 'next dev',
+                        dev: 'next dev --turbopack',
                         build: 'next build',
                         start: 'next start',
                     },
@@ -187,6 +207,14 @@ async function scaffoldNextProject(sandbox: Sandbox) {
         {
             path: 'src/app/globals.css',
             content: "@import 'tailwindcss';\n",
+        },
+        {
+            path: 'public/_weblab/interactions.json',
+            content: JSON.stringify(EMPTY_INTERACTIONS_DOCUMENT, null, 2),
+        },
+        {
+            path: 'public/_weblab/interactions-initial.css',
+            content: '',
         },
         {
             path: 'tsconfig.json',
@@ -261,7 +289,7 @@ export class VercelSandboxProvider extends Provider {
                 source: { type: 'snapshot', snapshotId: this.options.snapshotId },
                 ports: [this.options.port ?? DEFAULT_PORT],
                 timeout: getTimeoutMs(this.options.timeoutMs),
-                resources: { vcpus: 2 },
+                resources: { vcpus: 4 },
                 ...getCredentials(),
             });
         }
@@ -284,7 +312,7 @@ export class VercelSandboxProvider extends Provider {
                   ports: [port],
                   runtime: DEFAULT_RUNTIME,
                   timeout: getTimeoutMs(),
-                  resources: { vcpus: 2 },
+                  resources: { vcpus: 4 },
                   ...getCredentials(),
               });
 
@@ -318,7 +346,7 @@ export class VercelSandboxProvider extends Provider {
             ports: [port],
             runtime: DEFAULT_RUNTIME,
             timeout: getTimeoutMs(),
-            resources: { vcpus: 2 },
+            resources: { vcpus: 4 },
             ...getCredentials(),
         });
 
@@ -522,12 +550,14 @@ cp -a "$src" "$dst"
         const sandbox = this.requireSandbox();
         await sandbox.runCommand(splitShellCommand('npm install'));
         // Pre-warm the dev server so it starts compiling before the editor
-        // opens the preview iframe. If the port is already bound the new
-        // process exits immediately without affecting the running instance.
-        await sandbox.runCommand({
-            ...splitShellCommand(this.options.devCommand ?? DEFAULT_DEV_COMMAND),
-            detached: true,
-        });
+        // opens the preview iframe. Do not spawn duplicate Next dev servers:
+        // they can fight over the same .next output and leave preview assets 404ing.
+        if (!(await isNextDevServerRunning(sandbox))) {
+            await sandbox.runCommand({
+                ...splitShellCommand(this.options.devCommand ?? DEFAULT_DEV_COMMAND),
+                detached: true,
+            });
+        }
         return {};
     }
 
@@ -675,7 +705,7 @@ class VercelTask extends ProviderTask {
     }
 
     async open(_dimensions?: ProviderTerminalShellSize): Promise<string> {
-        if (!this.activeCommand) {
+        if (!this.activeCommand && !(await isNextDevServerRunning(this.sandbox))) {
             await this.run();
         }
         return this.activeCommand?.open() ?? '';
@@ -691,6 +721,7 @@ class VercelTask extends ProviderTask {
 
     async restart(): Promise<void> {
         await this.stop().catch(() => undefined);
+        await stopNextDevServers(this.sandbox);
         await this.run();
     }
 

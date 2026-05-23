@@ -12,7 +12,7 @@ import { cn } from '@weblab/ui/utils';
 import type { PromoBanner as PromoBannerConfig } from '@/lib/promo-banners';
 import { getActiveBanner, PROMO_BANNER_DISMISSED_STORAGE_PREFIX } from '@/lib/promo-banners';
 import { api } from '@/trpc/react';
-import { LocalForageKeys, Routes } from '@/utils/constants';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 
 /**
  * CSS variable consumed by `WebsiteLayout` to position the TopBar below the
@@ -142,8 +142,7 @@ function PromoBannerView({ banner, onDismiss }: PromoBannerViewProps) {
                 switch (result.errorCode) {
                     case 'not_authenticated': {
                         const next = `/api/promo-resume?banner=${encodeURIComponent(banner.id)}`;
-                        const url = `${Routes.LOGIN}?${LocalForageKeys.RETURN_URL}=${encodeURIComponent(next)}`;
-                        router.push(url);
+                        router.push(getSignInUrlClient(next));
                         return;
                     }
                     case 'already_subscribed':

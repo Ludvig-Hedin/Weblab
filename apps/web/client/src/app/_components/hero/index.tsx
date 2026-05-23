@@ -10,6 +10,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useAuthContext } from '@/app/auth/auth-context';
 import { PROJECT_SUGGESTIONS } from '@/app/projects/_components/select';
+import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
@@ -20,7 +21,14 @@ import { UnicornBackground } from './unicorn-background';
 
 function GetStarted() {
     const router = useRouter();
-    const { data: user } = api.user.get.useQuery();
+    // Gate the protected query on the cookie heuristic so anonymous landing
+    // visitors don't fire a guaranteed-401 `user.get` round-trip on every
+    // page load (previously logged a `TRPCClientError: UNAUTHORIZED` to the
+    // console and wasted a request).
+    const hasAuthCookie = useHasAuthCookie();
+    const { data: user } = api.user.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const { setIsAuthModalOpen } = useAuthContext();
     const t = useTranslations('landing.hero');
 
@@ -44,7 +52,10 @@ function GetStarted() {
 }
 
 export function Hero() {
-    const { data: user } = api.user.get.useQuery();
+    const hasAuthCookie = useHasAuthCookie();
+    const { data: user } = api.user.get.useQuery(undefined, {
+        enabled: hasAuthCookie === true,
+    });
     const [isCreatingProject, setIsCreatingProject] = useState(false);
     const t = useTranslations('landing.hero');
 

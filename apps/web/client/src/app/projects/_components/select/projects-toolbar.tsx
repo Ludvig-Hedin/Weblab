@@ -371,7 +371,7 @@ export const ProjectsToolbar = ({
                 <div
                     role="group"
                     aria-label={t('layoutGrid')}
-                    className="bg-foreground/4 border-foreground/8 flex items-center gap-0.5 rounded-md border p-0.5"
+                    className="flex items-center gap-0.5"
                 >
                     {layoutButtons.map((option) => {
                         const Icon = ICON_BY_VIEW[option.value];
@@ -385,10 +385,10 @@ export const ProjectsToolbar = ({
                                         aria-pressed={isActive}
                                         onClick={() => onViewChange(option.value)}
                                         className={cn(
-                                            'inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors',
+                                            'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border transition-colors',
                                             isActive
-                                                ? 'text-foreground bg-foreground/14 shadow-foreground/10 shadow-[inset_0_0_0_1px]'
-                                                : 'text-foreground-tertiary hover:text-foreground hover:bg-foreground/6',
+                                                ? 'border-foreground/10 bg-foreground/8 text-foreground'
+                                                : 'text-foreground-tertiary hover:border-foreground/10 hover:bg-foreground/6 hover:text-foreground border-transparent',
                                         )}
                                     >
                                         <Icon className="h-3.5 w-3.5" />

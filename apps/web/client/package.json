@@ -17,6 +17,9 @@
     "type": "module",
     "scripts": {
         "dev": "lsof -ti:3000 | xargs kill -9 2>/dev/null; next dev --turbo --port 3000",
+        "convex:dev": "convex dev",
+        "convex:deploy": "convex dev --once",
+        "convex:codegen": "convex codegen",
         "lint": "eslint . --max-warnings 0",
         "format": "eslint --fix .",
         "typecheck": "tsc --noEmit",
@@ -35,6 +38,7 @@
     "dependencies": {
         "@ai-sdk/provider-utils": "^3.0.10",
         "@ai-sdk/react": "2.0.60",
+        "@clerk/nextjs": "^7.3.7",
         "@codemirror/lang-css": "^6.2.0",
         "@codemirror/lang-html": "^6.4.7",
         "@codemirror/lang-javascript": "^6.2.3",
@@ -86,6 +90,7 @@
         "blob-util": "^2.0.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "convex": "^1.39.1",
         "culori": "^4.0.1",
         "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
@@ -132,6 +137,7 @@
         "shiki": "^4.0.2",
         "strip-ansi": "^7.1.0",
         "superjson": "^2.2.1",
+        "svix": "^1.94.0",
         "tailwind-merge": "^3.6.0",
         "tldts": "^7.0.12",
         "tw-animate-css": "^1.2.5",

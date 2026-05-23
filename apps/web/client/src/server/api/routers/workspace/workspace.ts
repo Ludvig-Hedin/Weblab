@@ -114,29 +114,49 @@ export const workspaceRouter = createTRPCRouter({
         const name = `${displayName}'s Workspace`;
         const slug = `personal-${ctx.user.id}`;
 
-        return await ctx.db.transaction(async (tx) => {
-            const [created] = await tx
-                .insert(workspaces)
-                .values({
-                    name,
-                    slug,
-                    kind: WorkspaceKind.PERSONAL,
-                    createdByUserId: ctx.user.id,
-                })
-                .returning();
-            if (!created) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: 'Failed to create personal workspace',
+        try {
+            return await ctx.db.transaction(async (tx) => {
+                const [created] = await tx
+                    .insert(workspaces)
+                    .values({
+                        name,
+                        slug,
+                        kind: WorkspaceKind.PERSONAL,
+                        createdByUserId: ctx.user.id,
+                    })
+                    .returning();
+                if (!created) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: 'Failed to create personal workspace',
+                    });
+                }
+                await tx.insert(workspaceMembers).values({
+                    workspaceId: created.id,
+                    userId: ctx.user.id,
+                    role: WorkspaceRole.OWNER,
                 });
-            }
-            await tx.insert(workspaceMembers).values({
-                workspaceId: created.id,
-                userId: ctx.user.id,
-                role: WorkspaceRole.OWNER,
+                return created;
             });
-            return created;
-        });
+        } catch (err: unknown) {
+            // 23505 = unique violation. Concurrent tabs (or webhook + first
+            // login) can race here. Re-query and return the winner row
+            // instead of bubbling a 500 — matches `resolvePersonalWorkspaceId`.
+            const code =
+                typeof err === 'object' && err !== null && 'code' in err
+                    ? (err as { code?: string }).code
+                    : undefined;
+            if (code === '23505') {
+                const winner = await ctx.db.query.workspaces.findFirst({
+                    where: and(
+                        eq(workspaces.createdByUserId, ctx.user.id),
+                        eq(workspaces.kind, WorkspaceKind.PERSONAL),
+                    ),
+                });
+                if (winner) return winner;
+            }
+            throw err;
+        }
     }),
 
     /**

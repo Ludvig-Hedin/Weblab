@@ -31,13 +31,17 @@ import { ChatPanelDropdown } from './chat-tab/panel-dropdown';
 //
 // Module-scope flag check so the chosen panel is decided once at bundle eval —
 // avoids a render-time conditional and lets `dynamic()` keep its lazy chunk.
-const StyleTab = env.NEXT_PUBLIC_STYLE_PANEL_V3
-    ? dynamic(() => import('./style-tab-v3').then((m) => m.StyleTabV3), {
+const StyleTab = env.NEXT_PUBLIC_STYLE_PANEL_V4
+    ? dynamic(() => import('./style-tab-v4').then((m) => m.StyleTabV4), {
           ssr: false,
       })
-    : dynamic(() => import('./style-tab-v2').then((m) => m.StyleTabV2), {
-          ssr: false,
-      });
+    : env.NEXT_PUBLIC_STYLE_PANEL_V3
+      ? dynamic(() => import('./style-tab-v3').then((m) => m.StyleTabV3), {
+            ssr: false,
+        })
+      : dynamic(() => import('./style-tab-v2').then((m) => m.StyleTabV2), {
+            ssr: false,
+        });
 const CommentsTab = dynamic(() => import('./comments-tab').then((m) => m.CommentsTab), {
     ssr: false,
 });
@@ -161,7 +165,7 @@ export const RightPanel = observer(() => {
                     <DropdownManagerProvider>
                         {isCommentMode ? (
                             <div className="flex h-full min-w-0 flex-col gap-0">
-                                <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
+                                <div className="flex h-10 w-full flex-row items-center border-b px-2">
                                     <div className="flex flex-1 items-center gap-1.5 px-1">
                                         <Icons.ChatBubble className="text-foreground-secondary h-3 w-3" />
                                         <span className="text-foreground-primary text-mini font-medium">
@@ -201,8 +205,8 @@ export const RightPanel = observer(() => {
                                 onValueChange={(value) => setActiveTab(value as RightPanelTab)}
                                 className="flex h-full min-w-0 flex-col gap-0"
                             >
-                                <div className="border-border-bar flex h-10 w-full flex-row items-center border-b px-2">
-                                    <TabsList className="bg-background-tab-strip/70 h-8 gap-0 rounded-md p-0.5">
+                                <div className="flex h-10 w-full flex-row items-center border-b px-2">
+                                    <TabsList className="bg-background-tab-strip h-8 gap-0 rounded-md p-0.5">
                                         {(() => {
                                             // The tooltip explains "Available in Design
                                             // mode" and is only meaningful in CODE mode.
@@ -218,7 +222,7 @@ export const RightPanel = observer(() => {
                                                     value="style"
                                                     disabled={isCodeMode}
                                                     className={cn(
-                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:border-border-tab-active text-mini relative h-7 gap-1.5 rounded-sm border border-transparent px-2.5',
+                                                        'data-[state=active]:bg-background-tab-active data-[state=active]:text-mini relative h-7 gap-1.5 rounded-md px-2.5',
                                                         isCodeMode &&
                                                             'cursor-not-allowed opacity-40',
                                                     )}

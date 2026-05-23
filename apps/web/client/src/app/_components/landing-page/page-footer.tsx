@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { BrandSymbol, BrandWordmark } from '@weblab/ui/brand';
-import { Icons } from '@weblab/ui/icons';
 
 import { ExternalRoutes, Routes } from '@/utils/constants';
 import { ContactLink } from './contact-link';
@@ -30,16 +29,17 @@ export function Footer() {
 
                 {/* Column groups */}
                 <div className="mt-12 flex flex-col gap-y-12 sm:mt-16 lg:mt-20 lg:flex-row lg:items-start lg:justify-between lg:gap-x-12">
-                    {/* Left group: small mark + Company / Resources / Product / Legal */}
-                    <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
-                        <Link
-                            href="/"
-                            aria-label={t('brandHomeAria')}
-                            className="hidden lg:block lg:shrink-0 lg:pt-1"
-                        >
-                            <BrandSymbol className="text-foreground-primary h-8 w-8" />
-                        </Link>
+                    {/* Left: brand symbol */}
+                    <Link
+                        href="/"
+                        aria-label={t('brandHomeAria')}
+                        className="hidden lg:block lg:shrink-0 lg:pt-1"
+                    >
+                        <BrandSymbol className="text-foreground-primary h-8 w-8" />
+                    </Link>
 
+                    {/* Right: all link columns */}
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
                         <div>
                             <h3 className={headingClass}>{t('company.title')}</h3>
                             <ul className={columnClass}>
@@ -192,99 +192,12 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Right group: Follow Us / Workflows / Features */}
-                    <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
-                        <div>
-                            <h3 className={headingClass}>{t('followUs.title')}</h3>
-                            <div className="flex items-center gap-6">
-                                <a
-                                    href={ExternalRoutes.GITHUB}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={t('followUs.github.title')}
-                                    aria-label={t('followUs.github.title')}
-                                    className="text-foreground-secondary hover:text-foreground-primary transition-colors duration-150 hover:scale-110"
-                                >
-                                    <Icons.GitHubLogo className="h-5 w-5" />
-                                </a>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className={headingClass}>{t('workflows.title')}</h3>
-                            <ul className={columnClass}>
-                                <li>
-                                    <a
-                                        href={Routes.WORKFLOWS_CLAUDE_CODE}
-                                        className={linkClass}
-                                        title={t('workflows.claudeCode.title')}
-                                    >
-                                        {t('workflows.claudeCode.label')}
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href={Routes.WORKFLOWS_VIBE_CODING}
-                                        className={linkClass}
-                                        title={t('workflows.vibeCoding.title')}
-                                    >
-                                        {t('workflows.vibeCoding.label')}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3 className={headingClass}>{t('features.title')}</h3>
-                            <ul className={columnClass}>
-                                <li>
-                                    <a
-                                        href={Routes.FEATURES}
-                                        className={linkClass}
-                                        title={t('features.overview.title')}
-                                    >
-                                        {t('features.overview.label')}
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href={Routes.FEATURES_AI}
-                                        className={linkClass}
-                                        title={t('features.ai.title')}
-                                    >
-                                        {t('features.ai.label')}
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href={Routes.FEATURES_BUILDER}
-                                        className={linkClass}
-                                        title={t('features.visualBuilder.title')}
-                                    >
-                                        {t('features.visualBuilder.label')}
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href={Routes.FEATURES_PROTOTYPE}
-                                        className={linkClass}
-                                        title={t('features.prototyping.title')}
-                                    >
-                                        {t('features.prototyping.label')}
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href={Routes.FEATURES_AI_FRONTEND}
-                                        className={linkClass}
-                                        title={t('features.aiFrontend.title')}
-                                    >
-                                        {t('features.aiFrontend.label')}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
+                    {/* Hidden: Follow Us / Workflows / Features columns */}
+                    {/* <div className="grid grid-cols-2 gap-x-10 gap-y-12 sm:grid-cols-3 lg:flex lg:flex-nowrap lg:items-start lg:gap-x-12">
+                        <div>followUs</div>
+                        <div>workflows</div>
+                        <div>features</div>
+                    </div> */}
                 </div>
 
                 {/* Bottom bar */}

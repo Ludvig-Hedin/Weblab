@@ -144,7 +144,7 @@ export const VersionRow = observer(
 
                 setIsCheckoutSuccess(true);
                 setTimeout(() => {
-                    stateManager.isSettingsModalOpen = false;
+                    stateManager.setIsSettingsModalOpen(false);
                 }, 1000);
             } catch (error) {
                 toast.error('Failed to restore backup', {

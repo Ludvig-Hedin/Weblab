@@ -116,7 +116,17 @@ export function ProjectCard({
                 className={cn(
                     'rounded-xl p-1.5 transition-colors duration-200',
                     selected ? 'bg-foreground/8' : 'bg-transparent',
+                    !selectionMode && 'cursor-pointer',
                 )}
+                onClick={
+                    !selectionMode
+                        ? (e) => {
+                              if ((e.target as HTMLElement).closest('a')) return;
+                              handleOpenClick();
+                              router.push(projectHref);
+                          }
+                        : undefined
+                }
             >
                 <div className="relative">
                     {selectionMode ? (
@@ -155,7 +165,7 @@ export function ProjectCard({
                     <div
                         role="presentation"
                         className={cn(
-                            'absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 p-1.5 backdrop-blur-md transition-opacity',
+                            'absolute top-3 left-3 z-30 flex h-8 w-8 items-center justify-center rounded-sm border border-white/10 bg-black/50 backdrop-blur-md transition-opacity',
                             selectionMode || selected
                                 ? 'opacity-100'
                                 : 'opacity-0 group-hover/card:opacity-100',
@@ -182,15 +192,7 @@ export function ProjectCard({
                                     ? 'opacity-0'
                                     : 'group-hover/card:opacity-0',
                             )}
-                        >
-                            <span
-                                className={cn(
-                                    'h-1.5 w-1.5 animate-pulse rounded-full',
-                                    isRecentlyActive ? 'bg-emerald-400/90' : 'bg-emerald-400/70',
-                                )}
-                                aria-hidden
-                            />
-                        </div>
+                        ></div>
                     )}
 
                     {!selectionMode && (
@@ -297,6 +299,7 @@ export function ProjectCard({
                                 href={siteUrl}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-foreground-tertiary hover:text-foreground mt-1 flex items-center gap-2 text-xs transition-colors"
                             >
                                 <Icons.ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />

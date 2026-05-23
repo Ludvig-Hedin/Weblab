@@ -12,8 +12,6 @@ import {
     TerminalAnimationContent,
     TerminalAnimationOutput,
     TerminalAnimationRoot,
-    TerminalAnimationTabList,
-    TerminalAnimationTabTrigger,
     TerminalAnimationTrailingPrompt,
     TerminalAnimationWindow,
 } from '@/components/ui/terminal-animation';
@@ -130,6 +128,9 @@ export function TerminalSection() {
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-4 sm:px-6 md:flex-row md:gap-16 md:px-8">
                 {/* Copy — left */}
                 <Reveal className="w-full max-w-md text-left">
+                    <div className="text-style-tagline text-foreground-tertiary mb-3">
+                        {t('eyebrow')}
+                    </div>
                     <h2 className="heading-style-h3 text-foreground-primary mb-4 tracking-tight text-balance">
                         {t('heading')}
                     </h2>
@@ -195,23 +196,7 @@ export function TerminalSection() {
                                     </TerminalAnimationTrailingPrompt>
                                 </TerminalAnimationContent>
 
-                                <div className="flex justify-center pb-6">
-                                    <TerminalAnimationTabList className="border-foreground-primary/10 bg-foreground-primary/5 inline-flex items-center gap-0 rounded-lg border px-1 py-1">
-                                        {tabs.map((tab, i) => (
-                                            <TerminalAnimationTabTrigger
-                                                className={cn(
-                                                    'cursor-pointer rounded-md px-3.5 py-1 font-mono text-xs transition-all duration-150 md:text-sm',
-                                                    'data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:font-medium',
-                                                    'data-[state=inactive]:text-foreground-secondary data-[state=inactive]:hover:text-foreground-primary',
-                                                )}
-                                                index={i}
-                                                key={tab.label}
-                                            >
-                                                {tab.label}
-                                            </TerminalAnimationTabTrigger>
-                                        ))}
-                                    </TerminalAnimationTabList>
-                                </div>
+                                {/* tab bar hidden — auto-cycles through install/build/deploy/test */}
                             </TerminalAnimationWindow>
                         </TerminalAnimationContainer>
                     </TerminalAnimationRoot>

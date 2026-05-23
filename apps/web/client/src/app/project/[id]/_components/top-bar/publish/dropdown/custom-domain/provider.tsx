@@ -24,9 +24,9 @@ const useCustomDomain = () => {
     const isPro = product?.type === ProductType.PRO;
 
     const openCustomDomain = (): void => {
-        editorEngine.state.publishOpen = false;
-        stateManager.settingsTab = SettingsTabValue.DOMAIN;
-        stateManager.isSettingsModalOpen = true;
+        editorEngine.state.setPublishOpen(false);
+        stateManager.setSettingsTab(SettingsTabValue.DOMAIN);
+        stateManager.setIsSettingsModalOpen(true);
     };
 
     const publish = async () => {

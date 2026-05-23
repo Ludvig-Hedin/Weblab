@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { FrameworkId } from '@weblab/framework';
 import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
@@ -112,7 +112,9 @@ export class CreateManager {
                 tags: ['prompt', userId],
             };
 
-            this.phase = 'forking-sandbox';
+            runInAction(() => {
+                this.phase = 'forking-sandbox';
+            });
             const [{ sandboxId, previewUrl, sandboxRuntime }, projectName] = await Promise.all([
                 api.sandbox.fork.mutate({
                     sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
@@ -133,7 +135,9 @@ export class CreateManager {
                 );
             }
 
-            this.phase = 'creating-project';
+            runInAction(() => {
+                this.phase = 'creating-project';
+            });
             const project = createDefaultProject({
                 overrides: {
                     name: projectName,
@@ -173,12 +177,16 @@ export class CreateManager {
             // Sandbox is now attached to a project — clear so the catch path
             // does not try to delete it as an orphan.
             forkedSandboxId = null;
-            this.phase = 'opening-editor';
+            runInAction(() => {
+                this.phase = 'opening-editor';
+            });
             return newProject;
         } catch (error) {
             console.error(error);
-            this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-            this.phase = 'idle';
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+                this.phase = 'idle';
+            });
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
@@ -251,7 +259,9 @@ export class CreateManager {
             return newProject;
         } catch (error) {
             console.error(error);
-            this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            });
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
@@ -384,7 +394,9 @@ export class CreateManager {
             return newProject;
         } catch (error) {
             console.error(error);
-            this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            runInAction(() => {
+                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            });
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })

@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import { toast } from 'sonner';
 
 import { type ChatConversation } from '@weblab/models';
@@ -23,7 +23,9 @@ export class ConversationManager {
     }
 
     async applyConversations(conversations: ChatConversation[]) {
-        this.conversations = conversations;
+        runInAction(() => {
+            this.conversations = conversations;
+        });
         if (conversations.length === 0) {
             await this.startNewConversation();
             return;
@@ -88,7 +90,9 @@ export class ConversationManager {
 
     async startNewConversation() {
         try {
-            this.creatingConversation = true;
+            runInAction(() => {
+                this.creatingConversation = true;
+            });
             if (this.current?.messageCount === 0 && !this.current?.title) {
                 // Already in a fresh, untitled conversation — nothing to create.
                 return;
@@ -96,18 +100,22 @@ export class ConversationManager {
             const newConversation = await api.chat.conversation.upsert.mutate({
                 projectId: this.editorEngine.projectId,
             });
-            this.current = {
-                ...newConversation,
-                messageCount: 0,
-            };
-            this.conversations.push(newConversation);
+            runInAction(() => {
+                this.current = {
+                    ...newConversation,
+                    messageCount: 0,
+                };
+                this.conversations.push(newConversation);
+            });
         } catch (error) {
             console.error('Error starting new conversation', error);
             toast.error('Error starting new conversation.', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {
-            this.creatingConversation = false;
+            runInAction(() => {
+                this.creatingConversation = false;
+            });
         }
     }
 
@@ -118,10 +126,12 @@ export class ConversationManager {
             return;
         }
 
-        this.current = {
-            ...match,
-            messageCount: 0,
-        };
+        runInAction(() => {
+            this.current = {
+                ...match,
+                messageCount: 0,
+            };
+        });
         this.writeLastActiveConversationId(id);
     }
 
@@ -143,7 +153,9 @@ export class ConversationManager {
 
         clearQueue(id);
 
-        this.conversations.splice(index, 1);
+        runInAction(() => {
+            this.conversations.splice(index, 1);
+        });
         if (this.current?.id === id) {
             if (this.conversations.length > 0 && !!this.conversations[0]) {
                 void this.selectConversation(this.conversations[0].id);
@@ -166,19 +178,22 @@ export class ConversationManager {
             console.error('Error generating conversation title. No title returned.');
             return;
         }
-        // Update local active conversation
-        this.current = {
-            ...this.current,
-            title,
-        };
-        // Update in local conversations list
-        const index = this.conversations.findIndex((c) => c.id === this.current?.id);
-        if (index !== -1 && this.conversations[index]) {
-            this.conversations[index] = {
-                ...this.conversations[index],
+        runInAction(() => {
+            if (!this.current) return;
+            // Update local active conversation
+            this.current = {
+                ...this.current,
                 title,
             };
-        }
+            // Update in local conversations list
+            const index = this.conversations.findIndex((c) => c.id === this.current?.id);
+            if (index !== -1 && this.conversations[index]) {
+                this.conversations[index] = {
+                    ...this.conversations[index],
+                    title,
+                };
+            }
+        });
     }
 
     async getConversationsFromStorage(id: string): Promise<ChatConversation[] | null> {

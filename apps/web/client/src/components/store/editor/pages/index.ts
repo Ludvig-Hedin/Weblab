@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { PageEditorSettings, PageMetadata, PageNode } from '@weblab/models/pages';
 
@@ -56,7 +56,9 @@ export class PagesManager {
             if (this._isScanning) {
                 return;
             }
-            this._isScanning = true;
+            runInAction(() => {
+                this._isScanning = true;
+            });
             const realPages = await scanPagesFromSandbox(this.editorEngine.activeSandbox);
             const settingsMap = await getPageSettingsMap(this.editorEngine.activeSandbox);
             this.setPages(applyPageSettingsToNodes(realPages, settingsMap));
@@ -65,7 +67,9 @@ export class PagesManager {
             console.error('Failed to scan pages from sandbox:', error);
             this.setPages([]);
         } finally {
-            this._isScanning = false;
+            runInAction(() => {
+                this._isScanning = false;
+            });
         }
     }
 

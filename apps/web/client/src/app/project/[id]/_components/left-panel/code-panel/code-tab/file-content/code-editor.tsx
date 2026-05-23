@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import { observer } from 'mobx-react-lite';
+import { useTheme } from 'next-themes';
 
 import type { CodeNavigationTarget } from '@weblab/models';
 import {
@@ -68,6 +69,8 @@ export const CodeEditor = observer(
         onFocusChatInput,
     }: CodeEditorProps) => {
         const editorEngine = useEditorEngine();
+        const { resolvedTheme } = useTheme();
+        const isDarkTheme = resolvedTheme !== 'light';
         const { tabAutocomplete: tabAutocompleteEnabled } = useAiFeatureFlags();
         // Read the user's preferred chat model so tab-complete uses it
         // instead of falling back to the route's server-side default.
@@ -379,12 +382,12 @@ export const CodeEditor = observer(
                         {file.type === 'text' && typeof file.content === 'string' && (
                             <>
                                 <CodeMirror
-                                    key={file.path}
+                                    key={`${file.path}::${isDarkTheme ? 'dark' : 'light'}`}
                                     value={file.content}
                                     height="100%"
-                                    theme="dark"
+                                    theme={isDarkTheme ? 'dark' : 'light'}
                                     extensions={[
-                                        ...getBasicSetup(onSaveFile),
+                                        ...getBasicSetup(onSaveFile, isDarkTheme),
                                         ...getExtensions(getLanguageFromFileName(file.path)),
                                         ...selectionExtension,
                                     ]}

@@ -97,7 +97,7 @@ export function ChipInput({
             // container only when a chip or the trailing input receives
             // keyboard focus — never on mouse-click.
             className={cn(
-                'border-input bg-foreground/5 hover:bg-foreground/[0.08] has-[:focus-visible]:border-ring has-[:focus-visible]:ring-foreground-brand/30 flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[6px] border p-1 transition-colors has-[:focus-visible]:ring-[3px] dark:bg-[rgb(43,43,43)] dark:hover:bg-[rgb(50,50,50)]',
+                'bg-background-secondary hover:bg-background-tertiary dark:hover:bg-[#181818] has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-1 transition-colors dark:bg-[#101010]',
                 className,
             )}
             onMouseDown={(event) => {
@@ -134,7 +134,7 @@ export function ChipInput({
                     }}
                     onClick={() => focusChip(index)}
                     aria-label={`${chip}. Press Backspace to remove.`}
-                    className="bg-foreground/[0.12] text-foreground-primary hover:bg-foreground/[0.18] focus-visible:ring-foreground-brand/30 text-mini inline-flex h-5 items-center gap-1 rounded-[4px] px-1.5 transition-colors outline-none focus-visible:ring-[3px]"
+                    className="bg-foreground-brand/15 text-foreground-brand hover:bg-foreground-brand/25 focus-visible:ring-foreground-brand/30 text-mini inline-flex h-5 items-center gap-1 rounded-[4px] px-1.5 transition-colors outline-none focus-visible:ring-[3px]"
                 >
                     <span className="max-w-[120px] truncate">{chip}</span>
                     {!readOnly && (
@@ -149,7 +149,7 @@ export function ChipInput({
                                 event.stopPropagation();
                                 removeAt(index);
                             }}
-                            className="text-foreground-secondary hover:text-foreground-primary cursor-pointer leading-none"
+                            className="text-foreground-brand/70 hover:text-foreground-brand cursor-pointer leading-none"
                         >
                             ×
                         </span>

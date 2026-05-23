@@ -6,7 +6,7 @@ import { userProviderConnections } from '@weblab/db';
 import { db } from '@weblab/db/src/client';
 
 import { encryptProviderToken } from '@/server/utils/provider-tokens';
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser } from '@/utils/auth/current-user';
 import { getOAuthConfig, parseProvider } from '../../_lib/oauth-config';
 
 /**
@@ -52,11 +52,11 @@ export async function GET(
         return NextResponse.json({ error: 'unknown_provider' }, { status: 404 });
     }
 
-    const supabase = await createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
+    const user = await getCurrentUser();
+    if (!user) {
         return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
     }
+    const userData = { user };
 
     const code = request.nextUrl.searchParams.get('code');
     const stateFromQuery = request.nextUrl.searchParams.get('state');

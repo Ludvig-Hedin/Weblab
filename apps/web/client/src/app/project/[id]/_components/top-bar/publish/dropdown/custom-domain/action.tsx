@@ -22,7 +22,9 @@ export const ActionSection = () => {
             {!failedOrCancelled && (
                 <Button onClick={publish} className="w-full" disabled={isDeploying || isLoading}>
                     {isLoading && <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />}
-                    {deployment?.status === DeploymentStatus.COMPLETED ? 'Update' : `Publish to ${customDomain.url}`}
+                    {deployment?.status === DeploymentStatus.COMPLETED
+                        ? 'Update'
+                        : `Publish to ${customDomain.url}`}
                 </Button>
             )}
             {failedOrCancelled && (

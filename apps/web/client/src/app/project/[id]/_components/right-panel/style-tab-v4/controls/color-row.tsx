@@ -1,0 +1,281 @@
+'use client';
+
+import * as React from 'react';
+
+import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
+import { cn } from '@weblab/ui/utils';
+
+import { FIELD_BASE_CLASSES } from './constants';
+import { IconConnectToken, IconEye, IconEyedropper, IconEyeOff } from './glyphs';
+import { IconButtonSm } from './icon-button-sm';
+
+export interface ColorRowProps {
+    /** Current full value (`#ff0000`, `rgba(0,0,0,0.5)`, var(--accent), etc.). */
+    value: string;
+    /** Commit handler when hex/alpha/visibility changes. */
+    onCommit: (value: string) => void;
+    /** Whether the property is currently set on the element. Drives the eye-icon state. */
+    visible?: boolean;
+    /** Toggle property visibility (set/unset). */
+    onToggleVisible?: () => void;
+    /** Open the color picker popover content (passes the existing v3 ColorField popover if available). */
+    pickerContent?: React.ReactNode;
+    /** Optional connect-to-token slot — if provided, renders the connect button which calls this on click. */
+    onConnect?: () => void;
+    /** Optional eyedropper handler. */
+    onEyedropper?: () => void;
+    className?: string;
+}
+
+interface ParsedColor {
+    /** Uppercase 6-digit hex (no leading `#`) when the input was hex-resolvable. */
+    hex: string;
+    /** 0–100 alpha percent. */
+    alpha: number;
+    /**
+     * The original CSS value when the input could not be reduced to a hex
+     * (named color, var(), hsl(), currentColor, etc.). Used so the swatch
+     * can render the real color via a sample div and the hex input can
+     * show the raw value rather than going blank.
+     */
+    raw: string | null;
+}
+
+/** Convert hsl(h, s%, l%[, a]) → hex via DOM canvas. */
+function cssColorToHex(value: string): { hex: string; alpha: number } | null {
+    if (typeof document === 'undefined') return null;
+    try {
+        // Use a fresh detached element + getComputedStyle for browser-native parsing.
+        const probe = document.createElement('span');
+        probe.style.color = value;
+        document.body.appendChild(probe);
+        const resolved = window.getComputedStyle(probe).color;
+        document.body.removeChild(probe);
+        if (!resolved) return null;
+        const m = /^rgba?\(([^)]+)\)$/.exec(resolved);
+        if (!m?.[1]) return null;
+        const parts = m[1].split(',').map((s) => s.trim());
+        const [r, g, b, a] = parts;
+        return {
+            hex:
+                toHex2(parseInt(r ?? '0', 10)) +
+                toHex2(parseInt(g ?? '0', 10)) +
+                toHex2(parseInt(b ?? '0', 10)),
+            alpha: a ? Math.round(parseFloat(a) * 100) : 100,
+        };
+    } catch {
+        return null;
+    }
+}
+
+function parseHex(input: string): ParsedColor {
+    const raw = input.trim();
+    const trimmed = raw.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+        return { hex: trimmed.toUpperCase(), alpha: 100, raw: null };
+    }
+    if (/^[0-9a-fA-F]{8}$/.test(trimmed)) {
+        const alphaHex = trimmed.slice(6);
+        const alpha = Math.round((parseInt(alphaHex, 16) / 255) * 100);
+        return { hex: trimmed.slice(0, 6).toUpperCase(), alpha, raw: null };
+    }
+    if (/^[0-9a-fA-F]{3}$/.test(trimmed)) {
+        const expanded = trimmed
+            .split('')
+            .map((c) => c + c)
+            .join('')
+            .toUpperCase();
+        return { hex: expanded, alpha: 100, raw: null };
+    }
+    const rgba = /^rgba?\(([^)]+)\)$/.exec(raw);
+    if (rgba?.[1]) {
+        const parts = rgba[1].split(',').map((s) => s.trim());
+        const [r, g, b, a] = parts;
+        const hex =
+            toHex2(parseInt(r ?? '0', 10)) +
+            toHex2(parseInt(g ?? '0', 10)) +
+            toHex2(parseInt(b ?? '0', 10));
+        const alpha = a ? Math.round(parseFloat(a) * 100) : 100;
+        return { hex, alpha, raw: null };
+    }
+    if (raw === '' || raw === 'transparent' || raw === 'inherit' || raw === 'currentColor') {
+        return { hex: '', alpha: 100, raw: raw || null };
+    }
+    // Fallback: ask the browser to resolve hsl(), named colors, etc.
+    const resolved = cssColorToHex(raw);
+    if (resolved) return { ...resolved, raw: null };
+    // Last resort: keep the raw string so the swatch can render it and the
+    // hex input doesn't go blank.
+    return { hex: '', alpha: 100, raw };
+}
+
+function toHex2(n: number): string {
+    const v = Math.max(0, Math.min(255, Math.round(n)));
+    return v.toString(16).padStart(2, '0').toUpperCase();
+}
+
+function buildHexWithAlpha(hex: string, alpha: number): string {
+    if (!hex) return '';
+    if (alpha >= 100) return `#${hex}`;
+    const a = Math.max(0, Math.min(255, Math.round((alpha / 100) * 255)));
+    return `#${hex}${a.toString(16).padStart(2, '0').toUpperCase()}`;
+}
+
+/**
+ * Unified color row used by Fill / Text color / Stroke / Outline.
+ * Layout:
+ *   [ 20×20 swatch ] [ hex input ] [ alpha % ] [ eye ] [ eyedropper ] [ connect ]
+ */
+export function ColorRow({
+    value,
+    onCommit,
+    visible = true,
+    onToggleVisible,
+    pickerContent,
+    onConnect,
+    onEyedropper,
+    className,
+}: ColorRowProps) {
+    const { hex, alpha, raw } = parseHex(value);
+    // Logical-OR is intentional here: `hex` and `raw` are strings that can be
+    // empty, and we want empty to fall through to the next option, not be
+    // preserved like `??` would.
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    const [hexDraft, setHexDraft] = React.useState(hex || raw || '');
+    const [alphaDraft, setAlphaDraft] = React.useState(alpha);
+
+    React.useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        setHexDraft(hex || raw || '');
+        setAlphaDraft(alpha);
+    }, [hex, alpha, raw]);
+
+    const commitHex = (nextHex: string) => {
+        const cleaned = nextHex.replace(/^#/, '').toUpperCase();
+        if (cleaned === hex) return;
+        // When the user types something hex-shaped, normalise to hex; otherwise
+        // commit the raw value verbatim so var(--token) / named colors round-trip.
+        if (/^[0-9A-F]{3}$|^[0-9A-F]{6}$|^[0-9A-F]{8}$/.test(cleaned)) {
+            const next = buildHexWithAlpha(cleaned, alphaDraft);
+            if (next) onCommit(next);
+        } else if (nextHex.trim() !== value) {
+            onCommit(nextHex.trim());
+        }
+    };
+
+    const commitAlpha = (nextAlpha: number) => {
+        const clamped = Math.max(0, Math.min(100, nextAlpha));
+        if (clamped === alpha) return;
+        const next = buildHexWithAlpha(hexDraft, clamped);
+        if (next) onCommit(next);
+    };
+
+    return (
+        <div
+            className={cn(
+                FIELD_BASE_CLASSES,
+                'flex h-[32px] min-w-0 items-center gap-2 pr-[6px] pl-[6px]',
+                className,
+            )}
+        >
+            {/* Swatch — opens picker via popover (pickerContent prop) */}
+            <Popover>
+                <PopoverTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label="Open color picker"
+                        title="Open color picker"
+                        className="border-foreground/10 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-[5px] border outline-none focus-visible:ring-[3px]"
+                        style={(() => {
+                            // Hex value rendered as-is. Raw CSS value (var, named, hsl)
+                            // gets passed straight through so the swatch shows the
+                            // real colour. Empty value → diagonal red-hatch pattern.
+                            if (hex) return { backgroundColor: `#${hex}` };
+                            if (raw) return { backgroundColor: raw };
+                            return {
+                                backgroundColor: 'transparent',
+                                backgroundImage:
+                                    'linear-gradient(45deg, rgba(255,0,0,0.4) 25%, transparent 25%, transparent 50%, rgba(255,0,0,0.4) 50%, rgba(255,0,0,0.4) 75%, transparent 75%, transparent)',
+                                backgroundSize: '6px 6px',
+                            };
+                        })()}
+                    />
+                </PopoverTrigger>
+                {pickerContent && (
+                    <PopoverContent align="start" className="w-[260px] p-2">
+                        {pickerContent}
+                    </PopoverContent>
+                )}
+            </Popover>
+
+            {/* Hex input — tabular */}
+            <input
+                type="text"
+                value={hexDraft}
+                spellCheck={false}
+                onChange={(e) => setHexDraft(e.target.value.replace(/^#/, '').toUpperCase())}
+                onBlur={() => commitHex(hexDraft)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitHex(hexDraft);
+                        e.currentTarget.blur();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setHexDraft(hex);
+                        e.currentTarget.blur();
+                    }
+                }}
+                aria-label="Hex value"
+                className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+            />
+
+            {/* Alpha — fixed width, divider left */}
+            <div className="border-foreground/[0.05] flex h-full shrink-0 items-center border-l pl-2">
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    value={alphaDraft}
+                    onChange={(e) => {
+                        const n = Number.parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
+                        setAlphaDraft(Number.isNaN(n) ? 0 : n);
+                    }}
+                    onBlur={() => commitAlpha(alphaDraft)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitAlpha(alphaDraft);
+                            e.currentTarget.blur();
+                        }
+                    }}
+                    aria-label="Alpha"
+                    className="text-foreground-secondary w-[28px] cursor-text bg-transparent text-right text-[12px] tabular-nums outline-none"
+                    style={{ fontVariantNumeric: 'tabular-nums' }}
+                />
+                <span className="text-muted-foreground ml-0.5 text-[11px]">%</span>
+            </div>
+
+            {/* Visibility eye */}
+            {onToggleVisible && (
+                <IconButtonSm label={visible ? 'Hide' : 'Show'} onClick={onToggleVisible}>
+                    {visible ? <IconEye size={13} /> : <IconEyeOff size={13} />}
+                </IconButtonSm>
+            )}
+
+            {/* Eyedropper */}
+            {onEyedropper && (
+                <IconButtonSm label="Pick from canvas" onClick={onEyedropper}>
+                    <IconEyedropper size={13} />
+                </IconButtonSm>
+            )}
+
+            {/* Connect to token */}
+            {onConnect && (
+                <IconButtonSm label="Connect to color token" onClick={onConnect}>
+                    <IconConnectToken size={13} />
+                </IconButtonSm>
+            )}
+        </div>
+    );
+}

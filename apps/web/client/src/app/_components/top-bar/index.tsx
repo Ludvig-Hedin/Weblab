@@ -52,7 +52,9 @@ export const TopBar = () => {
 
                 {/* Desktop dropdowns - hidden on mobile/tablet */}
                 <div className="ml-3 hidden items-center gap-5 lg:flex">
-                    {NAVIGATION_CATEGORIES.map((category) => (
+                    {NAVIGATION_CATEGORIES.filter(
+                        (c) => c.labelKey !== 'nav.categories.product.label',
+                    ).map((category) => (
                         <DropdownMenu
                             key={category.labelKey}
                             labelKey={category.labelKey}

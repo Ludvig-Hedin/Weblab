@@ -183,7 +183,7 @@ export const CommandPalette = observer(() => {
                         value="Go to Settings settings preferences"
                         onSelect={() =>
                             run(() => {
-                                stateManager.isSettingsModalOpen = true;
+                                stateManager.setIsSettingsModalOpen(true);
                             })
                         }
                     >

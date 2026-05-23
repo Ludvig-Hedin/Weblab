@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { TopBar } from '@/app/projects/_components/top-bar';
 import { api } from '@/trpc/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
 import { SettingsNav } from './_components/settings-nav';
 
@@ -13,6 +14,14 @@ interface SettingsLayoutProps {
 
 export default async function WorkspaceSettingsLayout({ children, params }: SettingsLayoutProps) {
     const { slug } = await params;
+
+    // Mirror /w/[slug]/layout: redirect anonymous visitors to sign-in
+    // before the tRPC call throws UNAUTHORIZED.
+    const user = await getCurrentUser();
+    if (!user) {
+        redirect(getSignInUrl(`/w/${slug}/settings`));
+    }
+
     const workspace = await api.workspace.getBySlug({ slug });
     if (!workspace) {
         redirect(Routes.PROJECTS);

@@ -14,13 +14,13 @@ export default function Document() {
           type="module"
           src="https://cdn.jsdelivr.net/gh/onlook-dev/onlook@main/apps/web/preload/dist/index.js"
           data-oid="m4pfglr" />
-
+        
 
                 <Script
           type="module"
           src="https://cdn.jsdelivr.net/gh/onlook-dev/web@latest/apps/web/preload/dist/index.js"
           data-oid="yujojk-" />
-
+        
             </head>
             <body className={'h-screen antialiased'} data-oid="lb.txaa">
                 <ThemeProvider
@@ -29,7 +29,7 @@ export default function Document() {
           enableSystem
           disableTransitionOnChange
           data-oid="3tbrd3_">
-
+          
                     <Navbar data-oid="ctrg0y3" />
                     <main className="" data-oid="j990_9w">
                         {/* @ts-ignore */}
@@ -38,6 +38,6 @@ export default function Document() {
                     <Footer data-oid="j7nr0na" />
                 </ThemeProvider>
             
-        <Script src="https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js" strategy="afterInteractive" type="module" id="weblab-preload-script"></Script>
-      </body>
+<Script src="https://cdn.jsdelivr.net/gh/Ludvig-Hedin/Weblab@ec326199ed4eb89b135594a4ad57277c625aa9ac/apps/web/client/public/weblab-preload-script.js" strategy="afterInteractive" type="module" id="weblab-preload-script"></Script>
+</body>
         </html>);}

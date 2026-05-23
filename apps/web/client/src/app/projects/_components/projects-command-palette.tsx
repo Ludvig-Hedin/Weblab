@@ -91,8 +91,8 @@ export function ProjectsCommandPalette() {
                         value="Open settings preferences account"
                         onSelect={() =>
                             run(() => {
-                                stateManager.settingsTab = SettingsTabValue.ACCOUNT;
-                                stateManager.isSettingsModalOpen = true;
+                                stateManager.setSettingsTab(SettingsTabValue.ACCOUNT);
+                                stateManager.setIsSettingsModalOpen(true);
                             })
                         }
                     >

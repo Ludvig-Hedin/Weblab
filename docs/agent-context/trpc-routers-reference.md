@@ -4,7 +4,9 @@ Complete map of every tRPC router currently exported from
 `apps/web/client/src/server/api/root.ts`. Read this before adding API endpoints
 to avoid duplicating an existing router or namespace collision.
 
-> **Total: 21 routers** registered in `appRouter`. All routers must be added to
+> **Total: 27 routers** registered in `appRouter` (added since this doc was
+> last refreshed: `hostingConnection`, `pageAccess`, `skills`, `workspace`,
+> `workspaceMember`, `workspaceInvitation`). All routers must be added to
 > `root.ts` or they are unreachable from the client.
 
 ## Registration

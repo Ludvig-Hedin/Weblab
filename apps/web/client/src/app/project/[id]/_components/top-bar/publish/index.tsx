@@ -33,7 +33,7 @@ export const PublishButton = observer(() => {
                 modal={false}
                 open={editorEngine.state.publishOpen}
                 onOpenChange={(open: boolean) => {
-                    editorEngine.state.publishOpen = open;
+                    editorEngine.state.setPublishOpen(open);
                 }}
             >
                 <TriggerButton />

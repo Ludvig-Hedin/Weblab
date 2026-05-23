@@ -77,6 +77,7 @@ export class InteractionsManager {
 
     async init(): Promise<void> {
         await this.loadFromDisk();
+        await this.flushNow();
         this._loaded = true;
         this.attachBeforeUnload();
     }
@@ -138,25 +139,54 @@ export class InteractionsManager {
     }
 
     async loadFromDisk(): Promise<void> {
+        const branchData = this.editorEngine.branches.activeBranchData;
+        const codeEditor = branchData?.codeEditor;
+        if (!codeEditor) return;
+        let needsPublicSeed = false;
         try {
-            const branchData = this.editorEngine.branches.activeBranchData;
-            const codeEditor = branchData?.codeEditor;
-            if (!codeEditor) return;
             const raw = await codeEditor.readFile(WEBLAB_INTERACTIONS_CACHE_PATH);
             if (typeof raw !== 'string' || raw.trim().length === 0) {
                 this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
-                return;
+                needsPublicSeed = true;
+            } else {
+                const parsed = JSON.parse(raw) as InteractionsDocument;
+                if (parsed.version !== 1 || !Array.isArray(parsed.interactions)) {
+                    console.warn('[InteractionsManager] Unsupported document shape');
+                    this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
+                    needsPublicSeed = true;
+                } else {
+                    this._doc = parsed;
+                }
             }
-            const parsed = JSON.parse(raw) as InteractionsDocument;
-            if (parsed.version !== 1 || !Array.isArray(parsed.interactions)) {
-                console.warn('[InteractionsManager] Unsupported document shape');
-                this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
-                return;
-            }
-            this._doc = parsed;
         } catch {
             // No file yet — empty doc.
             this._doc = cloneDoc(EMPTY_INTERACTIONS_DOCUMENT);
+            needsPublicSeed = true;
+        }
+
+        // CSB BLANK template ships without `public/_weblab/interactions.json`,
+        // so every fresh sandbox preview burns repeated 404s on the IX runtime
+        // fetch until the user creates their first interaction. Seed the public
+        // path with the empty document on first load so the runtime gets a
+        // clean 200 instead. Best-effort — a write failure is harmless (the
+        // runtime treats 404 as "no interactions").
+        if (needsPublicSeed) {
+            try {
+                const emptyJson = JSON.stringify(EMPTY_INTERACTIONS_DOCUMENT, null, 2);
+                await codeEditor.writeFile(WEBLAB_INTERACTIONS_PUBLIC_PATH, emptyJson);
+            } catch (err) {
+                // EEXIST is normal when `public/` already exists in the
+                // template (the underlying recursive-mkdir collides). The
+                // runtime still treats a 404 on the JSON as "no interactions"
+                // so this is purely best-effort. Only log unexpected errors.
+                const message = err instanceof Error ? err.message : String(err);
+                if (!/EEXIST|file exists/i.test(message)) {
+                    console.warn(
+                        '[InteractionsManager] Failed to seed empty interactions.json:',
+                        err,
+                    );
+                }
+            }
         }
     }
 

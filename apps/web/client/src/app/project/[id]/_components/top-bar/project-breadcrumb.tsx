@@ -225,7 +225,7 @@ export const ProjectBreadcrumb = observer(() => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => (stateManager.isSettingsModalOpen = true)}
+                        onClick={() => stateManager.setIsSettingsModalOpen(true)}
                     >
                         <div className="center group flex flex-row items-center">
                             <Icons.Gear className="mr-2 transition-transform group-hover:rotate-12" />

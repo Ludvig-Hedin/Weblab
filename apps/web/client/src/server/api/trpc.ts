@@ -17,6 +17,7 @@ import { db } from '@weblab/db/src/client';
 import type { User } from '@supabase/supabase-js';
 import { createAdminClient } from '@/utils/supabase/admin';
 import { createClient } from '@/utils/supabase/server';
+import { getClerkBridgedUser, isClerkActive } from './auth-bridge';
 
 /**
  * 1. CONTEXT
@@ -31,6 +32,22 @@ import { createClient } from '@/utils/supabase/server';
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
+    if (isClerkActive()) {
+        // Phase 5: identity comes from Clerk, bridged to the existing Drizzle
+        // `users` row by email. `ctx.supabase` is still populated so routers
+        // that hit `ctx.supabase.storage` (preview-image upload) continue to
+        // work — but constructed lazily here to avoid the cookie-jar read on
+        // every request when Clerk owns the session.
+        const supabase = await createClient();
+        const user = await getClerkBridgedUser();
+        return {
+            db,
+            supabase,
+            user,
+            ...opts,
+        };
+    }
+
     const supabase = await createClient();
     const {
         data: { user },

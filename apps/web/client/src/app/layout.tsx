@@ -9,6 +9,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { Toaster } from '@weblab/ui/sonner';
 
+import { ClerkConvexProviders } from '@/components/clerk-convex-providers';
 import RB2BLoader from '@/components/rb2b-loader';
 import { TelemetryProvider } from '@/components/telemetry-provider';
 import { AppearanceProvider } from '@/components/ui/appearance-provider';
@@ -203,28 +204,30 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body>
                 {isProduction && <RB2BLoader />}
                 <SWRegister />
-                <TRPCReactProvider>
-                    <FeatureFlagsProvider>
-                        <TelemetryProvider>
-                            <ThemeProvider
-                                attribute="class"
-                                defaultTheme="system"
-                                enableSystem
-                                disableTransitionOnChange
-                            >
-                                <AppearanceProvider>
-                                    <AuthProvider>
-                                        <NextIntlClientProvider>
-                                            {children}
-                                            <Toaster />
-                                            <CookieConsent />
-                                        </NextIntlClientProvider>
-                                    </AuthProvider>
-                                </AppearanceProvider>
-                            </ThemeProvider>
-                        </TelemetryProvider>
-                    </FeatureFlagsProvider>
-                </TRPCReactProvider>
+                <ClerkConvexProviders>
+                    <TRPCReactProvider>
+                        <FeatureFlagsProvider>
+                            <TelemetryProvider>
+                                <ThemeProvider
+                                    attribute="class"
+                                    defaultTheme="system"
+                                    enableSystem
+                                    disableTransitionOnChange
+                                >
+                                    <AppearanceProvider>
+                                        <AuthProvider>
+                                            <NextIntlClientProvider>
+                                                {children}
+                                                <Toaster />
+                                                <CookieConsent />
+                                            </NextIntlClientProvider>
+                                        </AuthProvider>
+                                    </AppearanceProvider>
+                                </ThemeProvider>
+                            </TelemetryProvider>
+                        </FeatureFlagsProvider>
+                    </TRPCReactProvider>
+                </ClerkConvexProviders>
             </body>
         </html>
     );

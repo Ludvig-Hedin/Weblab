@@ -90,7 +90,7 @@ export const ReasoningEffortPills = ({
 
     return (
         <div className={cn('flex flex-col gap-1.5', className)}>
-            <div className="text-foreground-tertiary text-mini flex items-center justify-between font-normal">
+            <div className="text-foreground-tertiary flex items-center justify-between text-[10px] font-normal">
                 <span>{effortLabel}</span>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -124,7 +124,7 @@ export const ReasoningEffortPills = ({
                                     onClick={() => onChange(option.value)}
                                     onKeyDown={(event) => handleKeyDown(event, index)}
                                     className={cn(
-                                        'text-mini focus-visible:ring-ring rounded-[6px] px-2 py-1 font-medium transition-colors focus-visible:ring-1 focus-visible:outline-none',
+                                        'text-xs focus-visible:ring-ring rounded-[6px] px-2 py-1 font-medium transition-colors focus-visible:ring-1 focus-visible:outline-none',
                                         active
                                             ? 'bg-background-primary text-foreground-primary shadow-sm'
                                             : 'text-foreground-tertiary hover:text-foreground-secondary',

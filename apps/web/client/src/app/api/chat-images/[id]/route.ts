@@ -2,7 +2,7 @@ import { type NextRequest } from 'next/server';
 
 import { getImage } from '@weblab/ai';
 
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser } from '@/utils/auth/current-user';
 
 /**
  * Serves an AI-generated image from the in-memory image cache populated by
@@ -19,10 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         return new Response('Bad request', { status: 400 });
     }
 
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) {
         return new Response('Unauthorized', { status: 401 });
     }

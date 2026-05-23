@@ -26,13 +26,26 @@ import { errorFixExtensions } from './error-fix';
 import { inlineEditField, inlineEditKeymap, inlineEditTheme } from './inline-edit';
 import { tabCompleteExtensions } from './tab-complete';
 
-// Custom colors for CodeMirror
+// Custom syntax colors — dark theme uses saturated brights on dark surfaces;
+// light theme uses GitHub-light-style darker shades for legibility on white.
 const customColors = {
     orange: '#FFAC60',
     purple: '#C478FF',
     blue: '#3FA4FF',
     green: '#1AC69C',
     pink: '#FF32C6',
+};
+
+const customLightColors = {
+    red: '#d73a49', // keywords
+    blue: '#005cc5', // numbers, properties, atoms, attributes
+    deepBlue: '#032f62', // strings, regexps
+    purple: '#6f42c1', // types, classes, function names
+    green: '#22863a', // JSX tags
+    gray: '#6a737d', // comments
+    near: '#24292e', // operators, punctuation, variables
+    orange: '#e36209', // literals
+    error: '#cb2431', // invalid
 };
 
 // Basic theme for CodeMirror
@@ -53,8 +66,8 @@ export const basicTheme = {
 export const customDarkTheme = EditorView.theme(
     {
         '&': {
-            color: '#ffffff',
-            backgroundColor: '#181818',
+            color: 'var(--foreground)',
+            backgroundColor: 'var(--background-canvas)',
             fontSize: '12px',
             userSelect: 'none !important',
         },
@@ -62,7 +75,7 @@ export const customDarkTheme = EditorView.theme(
             padding: '10px 0',
             lineHeight: '1.5',
             caretColor: customColors.blue,
-            backgroundColor: '#181818',
+            backgroundColor: 'var(--background-canvas)',
             userSelect: 'text !important',
         },
         '.cm-focused': {
@@ -94,21 +107,21 @@ export const customDarkTheme = EditorView.theme(
             backgroundColor: `${customColors.blue}33`,
         },
         '.cm-gutters': {
-            backgroundColor: '#141414 !important',
-            color: '#6b7280 !important',
+            backgroundColor: 'var(--background-bar) !important',
+            color: 'var(--foreground-quadranary) !important',
             border: 'none !important',
-            borderRight: '1px solid #252525 !important',
+            borderRight: '1px solid var(--border-bar) !important',
             width: '45px !important',
         },
         '.cm-foldGutter': {
             width: '12px !important',
         },
         '.cm-gutterElement': {
-            color: '#6b7280',
+            color: 'var(--foreground-quadranary)',
             width: '12px !important',
         },
         '.cm-lineNumbers .cm-gutterElement': {
-            color: '#6b7280',
+            color: 'var(--foreground-quadranary)',
             fontSize: '12px',
         },
         '.cm-activeLine': {
@@ -117,9 +130,13 @@ export const customDarkTheme = EditorView.theme(
         '.cm-activeLineGutter': {
             backgroundColor: 'rgba(255, 255, 255, 0.05)',
         },
+        '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
+            backgroundColor: 'rgba(63, 164, 255, 0.18)',
+            outline: '1px solid rgba(63, 164, 255, 0.35)',
+        },
         '.cm-foldPlaceholder': {
-            backgroundColor: '#1f2937',
-            border: '1px solid #374151',
+            backgroundColor: 'var(--background-secondary)',
+            border: '1px solid var(--border)',
             color: customColors.blue,
         },
         // Scrollbar styling
@@ -128,14 +145,14 @@ export const customDarkTheme = EditorView.theme(
             height: '8px',
         },
         '.cm-scroller::-webkit-scrollbar-track': {
-            backgroundColor: '#141414',
+            backgroundColor: 'var(--background-bar)',
         },
         '.cm-scroller::-webkit-scrollbar-thumb': {
-            backgroundColor: '#374151',
+            backgroundColor: 'var(--border-active)',
             borderRadius: '4px',
         },
         '.cm-scroller::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: '#4b5563',
+            backgroundColor: 'var(--border-hover)',
         },
         '.cm-scroller': {
             scrollBehavior: 'smooth',
@@ -203,6 +220,168 @@ export const customDarkHighlightStyle = HighlightStyle.define([
 
     // Invalid/Error
     { tag: tags.invalid, color: '#ef4444', textDecoration: 'underline' },
+]);
+
+// Light theme for code editor — surface colors come from CSS variables which
+// are already theme-aware (--background-canvas / --background-bar / --border-bar
+// resolve to white/light in :root). Only theme-specific overrides live here.
+export const customLightTheme = EditorView.theme(
+    {
+        '&': {
+            color: 'var(--foreground)',
+            backgroundColor: 'var(--background-canvas)',
+            fontSize: '12px',
+            userSelect: 'none !important',
+        },
+        '.cm-content': {
+            padding: '10px 0',
+            lineHeight: '1.5',
+            caretColor: customLightColors.blue,
+            backgroundColor: 'var(--background-canvas)',
+            userSelect: 'text !important',
+        },
+        '.cm-focused': {
+            outline: 'none',
+        },
+        '&.cm-focused .cm-cursor': {
+            borderLeftColor: customLightColors.blue,
+            borderLeftWidth: '2px',
+        },
+        '&.cm-focused .cm-selectionBackground, ::selection': {
+            backgroundColor: `${customLightColors.blue}26`,
+        },
+        '&.cm-editor.cm-focused .cm-selectionBackground': {
+            backgroundColor: `${customLightColors.blue}26 !important`,
+        },
+        '&.cm-editor .cm-selectionBackground': {
+            backgroundColor: `${customLightColors.blue}26 !important`,
+        },
+        '&.cm-editor .cm-content ::selection': {
+            backgroundColor: `${customLightColors.blue}26 !important`,
+        },
+        '.cm-line ::selection': {
+            backgroundColor: `${customLightColors.blue}26 !important`,
+        },
+        '::selection': {
+            backgroundColor: `${customLightColors.blue}26 !important`,
+        },
+        '.cm-selectionBackground': {
+            backgroundColor: `${customLightColors.blue}26`,
+        },
+        '.cm-gutters': {
+            backgroundColor: 'var(--background-bar) !important',
+            color: 'var(--foreground-quadranary) !important',
+            border: 'none !important',
+            borderRight: '1px solid var(--border-bar) !important',
+            width: '45px !important',
+        },
+        '.cm-foldGutter': {
+            width: '12px !important',
+        },
+        '.cm-gutterElement': {
+            color: 'var(--foreground-quadranary)',
+            width: '12px !important',
+        },
+        '.cm-lineNumbers .cm-gutterElement': {
+            color: 'var(--foreground-quadranary)',
+            fontSize: '12px',
+        },
+        '.cm-activeLine': {
+            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        },
+        '.cm-activeLineGutter': {
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+        },
+        '.cm-matchingBracket, &.cm-focused .cm-matchingBracket': {
+            backgroundColor: 'rgba(3, 47, 98, 0.12)',
+            outline: '1px solid rgba(3, 47, 98, 0.25)',
+        },
+        '.cm-foldPlaceholder': {
+            backgroundColor: 'var(--background-secondary)',
+            border: '1px solid var(--border)',
+            color: customLightColors.blue,
+        },
+        // Scrollbar styling — same shape as dark, surfaces come from tokens
+        '.cm-scroller::-webkit-scrollbar': {
+            width: '8px',
+            height: '8px',
+        },
+        '.cm-scroller::-webkit-scrollbar-track': {
+            backgroundColor: 'var(--background-bar)',
+        },
+        '.cm-scroller::-webkit-scrollbar-thumb': {
+            backgroundColor: 'var(--border-active)',
+            borderRadius: '4px',
+        },
+        '.cm-scroller::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: 'var(--border-hover)',
+        },
+        '.cm-scroller': {
+            scrollBehavior: 'smooth',
+        },
+        '.cm-search-highlight': {
+            backgroundColor: 'rgba(255, 196, 0, 0.35)',
+        },
+        '.cm-element-highlight': {
+            backgroundColor: 'rgba(34, 134, 58, 0.18)',
+            padding: '0.1735em 0',
+            boxDecorationBreak: 'clone',
+        },
+    },
+    { dark: false },
+);
+
+// Light syntax highlighting — GitHub-light-style palette tuned for white bg.
+export const customLightHighlightStyle = HighlightStyle.define([
+    // Keywords
+    { tag: tags.keyword, color: customLightColors.red, fontWeight: 'bold' },
+    { tag: tags.controlKeyword, color: customLightColors.red, fontWeight: 'bold' },
+    { tag: tags.operatorKeyword, color: customLightColors.red },
+
+    // Strings & regexps
+    { tag: tags.string, color: customLightColors.deepBlue },
+    { tag: tags.regexp, color: customLightColors.deepBlue },
+
+    // Numbers / bool / null
+    { tag: tags.number, color: customLightColors.blue },
+    { tag: tags.bool, color: customLightColors.blue },
+    { tag: tags.null, color: customLightColors.blue },
+
+    // Functions
+    { tag: tags.function(tags.variableName), color: customLightColors.purple },
+    { tag: tags.function(tags.propertyName), color: customLightColors.purple },
+
+    // Variables & properties
+    { tag: tags.variableName, color: customLightColors.near },
+    { tag: tags.propertyName, color: customLightColors.blue },
+    { tag: tags.attributeName, color: customLightColors.blue },
+
+    // Types and classes
+    { tag: tags.typeName, color: customLightColors.purple },
+    { tag: tags.className, color: customLightColors.purple },
+    { tag: tags.namespace, color: customLightColors.purple },
+
+    // Comments
+    { tag: tags.comment, color: customLightColors.gray, fontStyle: 'italic' },
+    { tag: tags.lineComment, color: customLightColors.gray, fontStyle: 'italic' },
+    { tag: tags.blockComment, color: customLightColors.gray, fontStyle: 'italic' },
+
+    // Operators / punctuation
+    { tag: tags.operator, color: customLightColors.near },
+    { tag: tags.punctuation, color: customLightColors.near },
+    { tag: tags.bracket, color: customLightColors.near },
+
+    // Tags (HTML/JSX)
+    { tag: tags.tagName, color: customLightColors.green },
+    { tag: tags.angleBracket, color: customLightColors.near },
+
+    // Special tokens
+    { tag: tags.atom, color: customLightColors.blue },
+    { tag: tags.literal, color: customLightColors.orange },
+    { tag: tags.unit, color: customLightColors.blue },
+
+    // Invalid/Error
+    { tag: tags.invalid, color: customLightColors.error, textDecoration: 'underline' },
 ]);
 
 const searchHighlightEffect = StateEffect.define<{ term: string }>();
@@ -376,7 +555,7 @@ export function scrollToFirstMatch(view: EditorView, term: string): boolean {
     return false;
 }
 
-export const getBasicSetup = (saveFile: () => void) => {
+export const getBasicSetup = (saveFile: () => void, isDark = true) => {
     const baseExtensions = [
         highlightActiveLine(),
         highlightActiveLineGutter(),
@@ -408,8 +587,8 @@ export const getBasicSetup = (saveFile: () => void) => {
         ...errorFixExtensions(),
         ...tabCompleteExtensions(),
 
-        customDarkTheme,
-        syntaxHighlighting(customDarkHighlightStyle),
+        isDark ? customDarkTheme : customLightTheme,
+        syntaxHighlighting(isDark ? customDarkHighlightStyle : customLightHighlightStyle),
     ];
 
     return baseExtensions;

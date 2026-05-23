@@ -46,7 +46,7 @@ export const ErrorMessage = observer(({ error: chatError }: ErrorMessageProps) =
                 <Button
                     variant="default"
                     className="mx-10 w-full"
-                    onClick={() => (stateManager.isSubscriptionModalOpen = true)}
+                    onClick={() => stateManager.setIsSubscriptionModalOpen(true)}
                 >
                     Get more {usage.period === 'day' ? 'daily' : 'monthly'} credits
                 </Button>

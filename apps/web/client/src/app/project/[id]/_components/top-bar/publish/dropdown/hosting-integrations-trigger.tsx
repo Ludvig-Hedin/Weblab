@@ -11,7 +11,7 @@ export const HostingIntegrationsTriggerSection = ({ onOpenIntegrations }: Props)
     const editorEngine = useEditorEngine();
 
     const handleClick = () => {
-        editorEngine.state.publishOpen = false;
+        editorEngine.state.setPublishOpen(false);
         onOpenIntegrations();
     };
 

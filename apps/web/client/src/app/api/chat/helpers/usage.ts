@@ -4,7 +4,7 @@ import type { Usage } from '@weblab/models';
 import { UsageType } from '@weblab/models';
 
 import { createClient as createTRPCClient } from '@/trpc/request-server';
-import { createClient as createSupabaseClient } from '@/utils/supabase/request-server';
+import { getCurrentUser } from '@/utils/auth/current-user';
 
 export const checkMessageLimit = async (
     req: NextRequest,
@@ -39,12 +39,11 @@ export const checkMessageLimit = async (
     };
 };
 
-export const getSupabaseUser = async (request: NextRequest) => {
-    const supabase = await createSupabaseClient(request);
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-    return user;
+// Keeps the legacy name so callers don't churn; underlying impl is now
+// flag-aware (Supabase vs Clerk bridge). The `request` arg is unused under
+// the new path but kept for API stability.
+export const getSupabaseUser = async (_request: NextRequest) => {
+    return getCurrentUser();
 };
 
 export const incrementUsage = async (

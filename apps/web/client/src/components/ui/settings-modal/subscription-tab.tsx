@@ -41,8 +41,8 @@ export const SubscriptionTab = observer(() => {
     });
 
     const handleUpgradePlan = () => {
-        stateManager.isSubscriptionModalOpen = true;
-        stateManager.isSettingsModalOpen = false;
+        stateManager.setIsSubscriptionModalOpen(true);
+        stateManager.setIsSettingsModalOpen(false);
         setIsManageDropdownOpen(false);
     };
 

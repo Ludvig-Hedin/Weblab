@@ -401,16 +401,31 @@ export class ChatContext {
 
     async getCreateContext() {
         try {
-            const createContext: MessageContext[] = [];
-            const pageContext = await this.getDefaultPageContext();
-            const styleGuideContext = await this.getDefaultStyleGuideContext();
-            if (pageContext) {
-                createContext.push(pageContext);
+            // The sandbox file-system catches up to the editor a few seconds
+            // after fork — the first call typically lands before
+            // `app/page.tsx` and globals.css are mounted, leaving the AI
+            // with no page or style-guide context for the first message of
+            // a freshly-created project. Retry a handful of times with a
+            // short backoff so the context is populated when it matters.
+            const RETRY_DELAYS_MS = [0, 500, 1000, 2000, 3000];
+            for (const delay of RETRY_DELAYS_MS) {
+                if (delay > 0) {
+                    await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+                const createContext: MessageContext[] = [];
+                const pageContext = await this.getDefaultPageContext();
+                const styleGuideContext = await this.getDefaultStyleGuideContext();
+                if (pageContext) {
+                    createContext.push(pageContext);
+                }
+                if (styleGuideContext) {
+                    createContext.push(...styleGuideContext);
+                }
+                if (createContext.length > 0) {
+                    return createContext;
+                }
             }
-            if (styleGuideContext) {
-                createContext.push(...styleGuideContext);
-            }
-            return createContext;
+            return [];
         } catch (error) {
             console.error('Error getting create context', error);
             return [];
@@ -437,7 +452,19 @@ export class ChatContext {
                 try {
                     fileContent = await branchData.codeEditor.readFile(pagePath);
                 } catch (error) {
-                    console.error('Error getting default page context', error);
+                    // ENOENT is expected during sandbox cold-boot — the
+                    // template files arrive a few hundred ms after the
+                    // codeFs is mounted. The caller (`getCreateContext`)
+                    // already retries via the resume effect on the next
+                    // project-ready tick, so swallow this case to keep the
+                    // console clean. Real I/O failures still log.
+                    const message = error instanceof Error ? error.message : String(error);
+                    if (!/ENOENT|No such file or directory/i.test(message)) {
+                        console.warn('[chat-context] readFile failed for default page context', {
+                            pagePath,
+                            error,
+                        });
+                    }
                     continue;
                 }
 
@@ -469,7 +496,11 @@ export class ChatContext {
 
             const styleGuide = await this.editorEngine.theme.initializeTailwindColorContent();
             if (!styleGuide) {
-                throw new Error('No style guide found');
+                // Sandbox files are still booting — globals.css / tailwind
+                // config haven't synced yet. The create flow retries on the
+                // next project-ready tick, so don't pollute the console with
+                // a thrown error here.
+                return null;
             }
             const tailwindConfigContext: FileMessageContext = {
                 type: MessageContextType.FILE,

@@ -3,8 +3,9 @@
 Comprehensive reference for every package in `packages/*`. Read the relevant
 section before importing from a package or adding a new one.
 
-> **Total: 25 packages.** All published under the `@weblab/*` scope. Changes
-> ripple into dependent packages — scope changes narrowly.
+> **Total: 28 packages** (incl. `@weblab/auth` capability layer). All published
+> under the `@weblab/*` scope. Changes ripple into dependent packages — scope
+> changes narrowly.
 
 ## Quick Index
 

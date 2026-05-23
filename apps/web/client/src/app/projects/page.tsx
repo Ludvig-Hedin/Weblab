@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 
 import { LAST_WORKSPACE_SLUG_COOKIE } from '@/app/w/[slug]/_components/workspace-context';
 import { api } from '@/trpc/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
+import { Routes } from '@/utils/constants';
 
 /**
  * Legacy `/projects` route. Workspaces own the canonical project list at
@@ -19,6 +21,11 @@ import { api } from '@/trpc/server';
  * always-personal bounce.
  */
 export default async function LegacyProjectsPage() {
+    const user = await getCurrentUser();
+    if (!user) {
+        redirect(getSignInUrl(Routes.PROJECTS));
+    }
+
     const workspaces = await api.workspace.list();
     if (workspaces.length > 0) {
         const cookieStore = await cookies();

@@ -106,8 +106,9 @@ export function HeroV2() {
                     >
                         {'AI visual website builder '}
                         <span
-                            className={`font-normal italic ${vujahdayScript.className} ml-1 text-[3rem] leading-[1.0] sm:text-[3.6rem] lg:text-[4rem]`}
+                            className={`font-normal italic ${vujahdayScript.className} leading-[0.95]`}
                         >
+                            {' '}
                             for builders
                         </span>
                     </SplitText>
@@ -183,7 +184,6 @@ export function HeroV2() {
                     it shows cropped-but-readable on phones instead of squished. */}
                 <div className="relative min-w-[1100px] pt-10 sm:min-w-0">
                     <WeblabInterfaceMockup />
-                    <div className="from-background pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t to-transparent lg:h-24" />
                 </div>
             </motion.div>
         </motion.div>

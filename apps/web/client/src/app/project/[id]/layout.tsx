@@ -5,28 +5,23 @@ import { SUPPORT_EMAIL } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons/index';
 
 import { api } from '@/trpc/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/server';
-import { getReturnUrlQueryParam } from '@/utils/url';
 
 export default async function Layout({
     params,
     children,
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
-    const supabase = await createClient();
-    // Fire auth + access check in parallel. `api.project.hasAccess` runs its
-    // own auth check on the tRPC side, so we don't need `getUser()` to land
-    // first — we just need to redirect when there's no signed-in Supabase
-    // user. Verified user via Supabase Auth rather than the forgeable
-    // session cookie.
-    const [userResult, hasAccess] = await Promise.all([
-        supabase.auth.getUser(),
-        api.project.hasAccess({ projectId }),
-    ]);
-    if (!userResult.data.user) {
-        redirect(`${Routes.LOGIN}?${getReturnUrlQueryParam(`/project/${projectId}`)}`);
+    // Sequential by design: `api.project.hasAccess` is a `protectedProcedure`
+    // that throws UNAUTHORIZED when there's no session. Running it in
+    // parallel with `getCurrentUser()` would surface a 500 instead of the
+    // redirect-to-sign-in we want for anonymous deep-link traffic.
+    const user = await getCurrentUser();
+    if (!user) {
+        redirect(getSignInUrl(`/project/${projectId}`));
     }
+    const hasAccess = await api.project.hasAccess({ projectId });
     if (!hasAccess) {
         return <NoAccess />;
     }

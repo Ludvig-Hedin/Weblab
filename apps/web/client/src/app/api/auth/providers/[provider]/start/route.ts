@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { getOAuthConfig, isProviderConfigured, parseProvider } from '../../_lib/oauth-config';
 import { deriveChallenge, generateState, generateVerifier } from '../../_lib/pkce';
 
@@ -35,16 +35,18 @@ export async function GET(
         return NextResponse.json({ error: 'unknown_provider' }, { status: 404 });
     }
 
-    const supabase = await createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
+    const user = await getCurrentUser();
+    if (!user) {
         // This route is reached via top-level navigation (e.g. settings link),
         // so a JSON 401 leaves the user staring at a raw error page with no
-        // way back. Redirect to login with a returnUrl so they can recover.
-        const loginUrl = new URL('/login', request.nextUrl.origin);
-        loginUrl.searchParams.set('returnUrl', request.nextUrl.pathname + request.nextUrl.search);
-        return NextResponse.redirect(loginUrl.toString());
+        // way back. Redirect to the flag-aware sign-in so they can recover.
+        const signInUrl = new URL(
+            getSignInUrl(request.nextUrl.pathname + request.nextUrl.search),
+            request.nextUrl.origin,
+        );
+        return NextResponse.redirect(signInUrl.toString());
     }
+    const userData = { user };
 
     if (!isProviderConfigured(provider)) {
         // Don't echo env-var names back to end users — leaks server config.

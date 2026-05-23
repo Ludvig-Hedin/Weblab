@@ -3,8 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { APP_NAME } from '@weblab/constants';
 
-import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 
 export const metadata: Metadata = {
     title: APP_NAME,
@@ -12,13 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
-    const supabase = await createClient();
-    // Use getUser() (verified via Supabase Auth) rather than getSession() which decodes a forgeable cookie.
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) {
-        redirect(Routes.LOGIN);
+        redirect(getSignInUrl());
     }
     return <>{children}</>;
 }

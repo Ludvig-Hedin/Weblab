@@ -9,10 +9,10 @@ const inputVariants = cva(
     {
         variants: {
             size: {
-                xs: 'h-7 px-2 py-1 text-xs file:h-5 file:text-xs',
-                sm: 'h-8 px-3 py-1 text-sm file:h-6 file:text-sm',
-                default: 'h-9 px-3 py-1 text-base file:h-7 file:text-sm md:text-sm',
-                lg: 'h-10 px-3.5 py-2 text-base file:h-8 file:text-sm',
+                xs: 'text-mini file:text-mini h-7 px-4 py-1 file:h-5',
+                sm: 'text-small file:text-small h-8 px-4 py-1 file:h-6',
+                default: 'text-regular file:text-small h-9 px-4 py-1 file:h-7',
+                lg: 'text-regular file:text-small h-10 px-4 py-2 file:h-8',
             },
         },
         defaultVariants: {

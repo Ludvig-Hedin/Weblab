@@ -66,7 +66,7 @@ export function SegmentedDisplay({
                     onValueChange={(next) => onCommit(next ?? '')}
                     aria-label={ariaLabel}
                     className={cn(
-                        'border-input bg-foreground/5 flex h-[28px] w-full divide-x divide-[var(--input)] overflow-hidden rounded-[6px] border dark:bg-[rgb(43,43,43)]',
+                        'border-transparent bg-background-secondary dark:bg-[#101010] flex h-[28px] w-full divide-x divide-[var(--border)] overflow-hidden rounded-[10px] border',
                         className,
                     )}
                 >
@@ -88,8 +88,8 @@ export function SegmentedDisplay({
                                     className={cn(
                                         'text-foreground-secondary hover:text-foreground-primary text-mini focus-visible:ring-foreground-brand/30 h-full min-w-0 flex-1 shrink cursor-pointer gap-1.5 rounded-none px-2 shadow-none transition-[background-color,color,box-shadow,transform] duration-150 outline-none focus-visible:ring-[3px] active:scale-[0.97]',
                                         isSet
-                                            ? 'data-[state=on]:bg-background data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm dark:data-[state=on]:bg-[rgb(72,72,72)]'
-                                            : 'data-[state=on]:bg-foreground/8 data-[state=on]:text-foreground-secondary',
+                                            ? 'data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand'
+                                            : 'data-[state=on]:bg-foreground-brand/10 data-[state=on]:text-foreground-brand/90',
                                     )}
                                 >
                                     {option.icon}

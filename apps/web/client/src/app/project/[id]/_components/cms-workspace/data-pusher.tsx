@@ -140,7 +140,26 @@ export const CmsDataPusher = observer(() => {
             // Skip silently; the 2s interval re-pushes once penpal connects.
             if (typeof view.setCmsData !== 'function') continue;
             const payload = buildFramePayload(view.src);
-            if (payload) void view.setCmsData(payload);
+            if (!payload) continue;
+            // The handshake can also tear down between the `typeof` check and
+            // the actual call when the preview iframe reloads — penpal then
+            // throws a "destroyed connection" error that used to spam the
+            // console. Swallow it; the 2s retry interval re-pushes once the
+            // new handshake completes. Unexpected errors still surface.
+            try {
+                void Promise.resolve(view.setCmsData(payload)).catch((err: unknown) => {
+                    const message = err instanceof Error ? err.message : String(err);
+                    if (/destroyed connection|connection is destroyed/i.test(message)) {
+                        return;
+                    }
+                    console.warn('[cms-workspace] setCmsData failed:', err);
+                });
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                if (!/destroyed connection|connection is destroyed/i.test(message)) {
+                    console.warn('[cms-workspace] setCmsData threw:', err);
+                }
+            }
         }
     };
 

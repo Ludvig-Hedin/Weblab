@@ -109,7 +109,13 @@ export function AuthForm({
 
     const showGithub = AUTH_PROVIDERS.has('github');
     const showGoogle = AUTH_PROVIDERS.has('google');
-    const showDevLogin = env.NEXT_PUBLIC_SHOW_DEV_LOGIN;
+    // `[DEV] Sign in as demo user` is supabase-only — it calls
+    // `devLogin` which issues a Supabase magic link. In clerk mode it
+    // would just bounce through `/sign-in?returnUrl=/projects` without
+    // creating a session, leaving the user confused. Hide it unless the
+    // active provider is Supabase.
+    const showDevLogin =
+        env.NEXT_PUBLIC_SHOW_DEV_LOGIN && env.NEXT_PUBLIC_AUTH_PROVIDER !== 'clerk';
     const hasOAuthProvider = showGithub || showGoogle;
     const hasAnyProvider = hasOAuthProvider || showDevLogin;
 
@@ -133,11 +139,15 @@ export function AuthForm({
             // via router.push in the same tab) can read it back.
             try {
                 sessionStorage.setItem(LOGIN_EMAIL_KEY, normalizedEmail);
+                // Stamp the successful-send timestamp so the cooldown UI
+                // survives navigation back to /login.
+                sessionStorage.setItem(LOGIN_OTP_LAST_SEND_KEY, String(Date.now()));
             } catch {
                 // sessionStorage can throw in private mode or when over quota.
                 // The verify page handles a missing email by redirecting back
                 // to /login?missing=email, so this fallback is acceptable.
             }
+            setCooldownSecondsRemaining(Math.ceil(OTP_SEND_COOLDOWN_MS / 1000));
             const params = new URLSearchParams();
             if (returnUrl) params.set(LocalForageKeys.RETURN_URL, returnUrl);
             // Stamp the time the OTP was sent so the verify page can compute
@@ -159,7 +169,7 @@ export function AuthForm({
                 <div
                     className={
                         providerLayout === 'row'
-                            ? 'flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2'
+                            ? 'flex flex-col space-y-2'
                             : 'flex flex-col space-y-2'
                     }
                 >
@@ -234,13 +244,15 @@ export function AuthForm({
                     type="submit"
                     variant="outline"
                     className="w-full"
-                    disabled={isEmailLoading || !email}
+                    disabled={isEmailLoading || !email || cooldownSecondsRemaining > 0}
                 >
                     {isEmailLoading ? (
                         <>
                             <Icons.LoadingSpinner className="mr-2 h-4 w-4 animate-spin" />
                             {t(transKeys.welcome.login.sending)}
                         </>
+                    ) : cooldownSecondsRemaining > 0 ? (
+                        `Resend in ${cooldownSecondsRemaining}s`
                     ) : (
                         t(transKeys.welcome.login.email)
                     )}

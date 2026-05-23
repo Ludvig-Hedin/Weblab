@@ -46,8 +46,7 @@ export function WorkspaceProvider({
         // HTTPS so browsers don't downgrade to non-secure transport (modern
         // browsers warn on Secure-less cookies via HTTPS pages).
         try {
-            const isHttps =
-                typeof window !== 'undefined' && window.location.protocol === 'https:';
+            const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
             document.cookie =
                 `${LAST_WORKSPACE_SLUG_COOKIE}=${encodeURIComponent(workspace.slug)};` +
                 ` Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax` +

@@ -8,10 +8,10 @@ import { Accordion } from '@weblab/ui/accordion';
 import { ScrollArea } from '@weblab/ui/scroll-area';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { useInteractionsSectionState } from './hooks/use-section-state';
 import { ElementHeaderSection } from '../style-tab-v2/sections/element-header';
 import { NoSelectionEmptyState } from './empty-states/no-selection';
 import { makeInteraction } from './factories';
+import { useInteractionsSectionState } from './hooks/use-section-state';
 import { ElementTriggerSection } from './sections/element-trigger-section';
 import { PageTriggerSection } from './sections/page-trigger-section';
 
@@ -42,8 +42,10 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
     const selectedBranchId = selected?.branchId ?? null;
     useEffect(() => {
         let cancelled = false;
+        // Clear stale state immediately so a quick selection swap can't render
+        // the previous element's interactions while the new metadata loads.
+        setSelectedIxId(null);
         if (!selectedOid || !selectedBranchId) {
-            setSelectedIxId(null);
             return () => {
                 cancelled = true;
             };
@@ -51,7 +53,6 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
         const branchData = editorEngine.branches.getBranchDataById(selectedBranchId);
         const codeEditor = branchData?.codeEditor;
         if (!codeEditor) {
-            setSelectedIxId(null);
             return () => {
                 cancelled = true;
             };
@@ -63,12 +64,16 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
         return () => {
             cancelled = true;
         };
+        // `allInteractions.length` is included so that after ensureIxIdForOid
+        // stamps a fresh ixId on the selected element (which appends to
+        // allInteractions), the metadata is re-resolved and the new id shows
+        // up immediately. The reset at the top of the effect guards against
+        // a stale ixId leaking across selections.
     }, [editorEngine, selectedOid, selectedBranchId, allInteractions.length]);
 
     const elementInteractions: Interaction[] = selectedIxId
         ? allInteractions.filter(
-              (ix) =>
-                  ix.trigger.kind !== 'page-load' && ix.trigger.sourceIxId === selectedIxId,
+              (ix) => ix.trigger.kind !== 'page-load' && ix.trigger.sourceIxId === selectedIxId,
           )
         : [];
 

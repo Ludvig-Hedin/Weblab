@@ -20,28 +20,24 @@ export const userSettingsRouter = createTRPCRouter({
     upsert: protectedProcedure.input(userSettingsUpdateSchema).mutation(async ({ ctx, input }) => {
         const user = ctx.user;
 
-        const existingSettings = await ctx.db.query.userSettings.findFirst({
-            where: eq(userSettings.userId, user.id),
-        });
-
-        if (!existingSettings) {
-            const newSettings = { ...createDefaultUserSettings(user.id), ...input };
-            const [insertedSettings] = await ctx.db
-                .insert(userSettings)
-                .values(newSettings)
-                .returning();
-            return fromDbUserSettings(insertedSettings ?? newSettings);
-        }
-        const [updatedSettings] = await ctx.db
-            .update(userSettings)
-            .set(input)
-            .where(eq(userSettings.userId, user.id))
+        // Single round-trip via Postgres ON CONFLICT — the unique constraint on
+        // `user_settings.user_id` (see schema) lets Drizzle resolve to either
+        // an insert (defaults + input) or an update (input only). The previous
+        // select-then-write pattern doubled the latency of every settings save.
+        const insertValues = { ...createDefaultUserSettings(user.id), ...input };
+        const [row] = await ctx.db
+            .insert(userSettings)
+            .values(insertValues)
+            .onConflictDoUpdate({
+                target: userSettings.userId,
+                set: input,
+            })
             .returning();
 
-        if (!updatedSettings) {
-            throw new Error('Failed to update user settings');
+        if (!row) {
+            throw new Error('Failed to upsert user settings');
         }
 
-        return fromDbUserSettings(updatedSettings);
+        return fromDbUserSettings(row);
     }),
 });

@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 import type {
     ColorStyle,
@@ -161,33 +161,38 @@ export class TokensManager {
         try {
             const path = await this.findGlobalsCssPath();
             if (!isCurrent()) return;
-            this._cssPath = path;
-            if (!path) {
-                resetState();
-                this.scanError = null;
-                return;
-            }
-            const content = await this.editorEngine.activeSandbox.readFile(path);
+            const content =
+                path === null ? null : await this.editorEngine.activeSandbox.readFile(path);
             if (!isCurrent()) return;
-            if (typeof content !== 'string') {
-                resetState();
+            runInAction(() => {
+                this._cssPath = path;
+                if (!path) {
+                    resetState();
+                    this.scanError = null;
+                    return;
+                }
+                if (typeof content !== 'string') {
+                    resetState();
+                    this.scanError = null;
+                    return;
+                }
+                const scan = parseTokensFromGlobalsCss(content);
+                const snap = snapshotFromScan(scan);
+                this.variables = snap.variables;
+                this.colorStyles = snap.colorStyles;
+                this.textStyles = snap.textStyles;
+                this._hasThemeBlock = snap.hasThemeBlock;
+                this._hasDarkBlock = snap.hasDarkBlock;
                 this.scanError = null;
-                return;
-            }
-            const scan = parseTokensFromGlobalsCss(content);
-            const snap = snapshotFromScan(scan);
-            if (!isCurrent()) return;
-            this.variables = snap.variables;
-            this.colorStyles = snap.colorStyles;
-            this.textStyles = snap.textStyles;
-            this._hasThemeBlock = snap.hasThemeBlock;
-            this._hasDarkBlock = snap.hasDarkBlock;
-            this.scanError = null;
+            });
         } catch (error) {
             console.error('TokensManager.scan failed', error);
             if (!isCurrent()) return;
-            resetState();
-            this.scanError = error instanceof Error ? error.message : 'Failed to read globals.css';
+            runInAction(() => {
+                resetState();
+                this.scanError =
+                    error instanceof Error ? error.message : 'Failed to read globals.css';
+            });
         }
     }
 

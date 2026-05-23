@@ -45,6 +45,19 @@ export class SandboxManager {
     private suppressSyncInit = false;
     preloadScriptState: PreloadScriptState = PreloadScriptState.NOT_INJECTED;
     routerConfig: RouterConfig | null = null;
+    /**
+     * Set true by the primary (Desktop) frame once its penpal handshake
+     * completes. Sibling breakpoint frames wait on this before mounting
+     * their own iframe so the CSB dev server only cold-compiles once,
+     * then serves cached chunks to siblings. Without this all 3
+     * breakpoint frames hit `next dev` in parallel during the first
+     * compile and triple the perceived load time.
+     */
+    primaryFrameAlive = false;
+
+    setPrimaryFrameAlive(alive: boolean) {
+        this.primaryFrameAlive = alive;
+    }
 
     constructor(
         private branch: Branch,

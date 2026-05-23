@@ -73,7 +73,7 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                     both rendered in the same muted tertiary color so they
                     read as one piece of metadata at the bottom of the page.
                     On narrow viewports the terms wrap below the version. */}
-                <div className="text-small text-foreground-tertiary flex w-full flex-col items-center justify-between gap-2 sm:flex-row">
+                <div className="text-small text-foreground-tertiary flex w-full flex-col items-center justify-between gap-2">
                     <p>
                         {t(transKeys.welcome.version, {
                             version: desktop.version ?? pkg.version,

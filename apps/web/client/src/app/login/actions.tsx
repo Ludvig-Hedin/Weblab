@@ -91,7 +91,7 @@ export async function login(
 }
 
 export async function devLogin(returnUrl?: string | null) {
-    if (process.env.NODE_ENV === 'production') {
+    if (env.NODE_ENV === 'production') {
         throw new Error('Dev login is disabled in production');
     }
     if (!env.NEXT_PUBLIC_SHOW_DEV_LOGIN) {
@@ -136,19 +136,12 @@ export async function devLogin(returnUrl?: string | null) {
         // generateLink below will still work.
     }
 
-    // Build the callback URL so Supabase redirects back after verifying the
-    // magic link, matching the same pattern the OAuth login() action uses.
     const origin = env.NEXT_PUBLIC_SITE_URL;
-    const callbackUrl = new URL(`${origin}${Routes.AUTH_CALLBACK}`);
     const sanitizedReturnUrl = sanitizeReturnUrl(returnUrl ?? null, { origin });
-    if (sanitizedReturnUrl !== Routes.HOME) {
-        callbackUrl.searchParams.set('returnUrl', sanitizedReturnUrl);
-    }
 
     const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
         type: 'magiclink',
         email: SEED_USER.EMAIL,
-        options: { redirectTo: callbackUrl.toString() },
     });
 
     if (linkError) {
@@ -159,14 +152,52 @@ export async function devLogin(returnUrl?: string | null) {
         throw new Error(`Demo sign-in failed: ${linkError.message}`);
     }
 
-    if (!linkData?.properties?.action_link) {
-        throw new Error('Demo sign-in failed: no action link returned.');
+    const tokenHash =
+        linkData?.properties && 'hashed_token' in linkData.properties
+            ? linkData.properties.hashed_token
+            : undefined;
+    if (!tokenHash) {
+        throw new Error('Demo sign-in failed: no token returned.');
     }
 
-    // Redirect the browser through the Supabase magic-link verify URL.
-    // Supabase will verify the token and redirect to callbackUrl with ?code=,
-    // which the existing /auth/callback route exchanges for a session.
-    redirect(linkData.properties.action_link);
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: 'magiclink',
+    });
+    if (verifyError) {
+        console.error('devLogin: verifyOtp failed', verifyError);
+        throw new Error(`Demo sign-in failed: ${verifyError.message}`);
+    }
+
+    const user = verifyData.user;
+    if (!user?.email) {
+        await supabase.auth.signOut();
+        throw new Error('Demo sign-in failed: no user email returned.');
+    }
+
+    await db
+        .insert(users)
+        .values({
+            id: user.id,
+            firstName: SEED_USER.FIRST_NAME,
+            lastName: SEED_USER.LAST_NAME,
+            displayName: SEED_USER.DISPLAY_NAME,
+            email: user.email,
+            avatarUrl: SEED_USER.AVATAR_URL,
+        })
+        .onConflictDoUpdate({
+            target: [users.id],
+            set: {
+                email: user.email,
+                updatedAt: new Date(),
+            },
+        });
+
+    const redirectTarget =
+        sanitizedReturnUrl !== Routes.HOME
+            ? `${Routes.AUTH_REDIRECT}?returnUrl=${encodeURIComponent(sanitizedReturnUrl)}`
+            : Routes.AUTH_REDIRECT;
+    redirect(redirectTarget);
 }
 
 export async function sendEmailOtp(email: string): Promise<{ error?: string }> {
@@ -231,5 +262,10 @@ export async function verifyEmailOtp(
         },
     });
 
-    return { redirectTo: Routes.AUTH_REDIRECT };
+    // Land on the projects dashboard directly for OTP signups. The previous
+    // `Routes.AUTH_REDIRECT` chain went through `/auth/redirect`, which reads
+    // a stale `returnUrl` from localforage left by an unrelated earlier
+    // session — that produced unexpected destinations for first-time
+    // signups arriving from an email link.
+    return { redirectTo: Routes.PROJECTS };
 }

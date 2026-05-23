@@ -27,8 +27,8 @@ export const CustomDomain = observer(() => {
             return (
                 <UpgradePrompt
                     onClick={() => {
-                        stateManager.isSettingsModalOpen = false;
-                        stateManager.isSubscriptionModalOpen = true;
+                        stateManager.setIsSettingsModalOpen(false);
+                        stateManager.setIsSubscriptionModalOpen(true);
                     }}
                 />
             );

@@ -250,8 +250,8 @@ export const KeyboardShortcutsModal = observer(() => {
 
     const openCustomize = () => {
         editorEngine.state.setHotkeysOpen(false);
-        stateManager.settingsTab = SettingsTabValue.SHORTCUTS;
-        stateManager.isSettingsModalOpen = true;
+        stateManager.setSettingsTab(SettingsTabValue.SHORTCUTS);
+        stateManager.setIsSettingsModalOpen(true);
     };
 
     return (

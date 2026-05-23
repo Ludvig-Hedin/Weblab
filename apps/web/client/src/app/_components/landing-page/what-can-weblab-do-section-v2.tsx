@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
-import { vujahdayScript } from '@/app/fonts';
+import { Routes } from '@/utils/constants';
 import { DirectEditingInteractive } from '../shared/mockups/direct-editing-interactive';
 import { ClaudeIcon } from './provider-icons';
 
@@ -330,56 +331,72 @@ function AiAssistantVisual() {
 }
 
 function ComponentsVisual() {
-    const items = [
-        { label: 'Button' },
-        { label: 'Card' },
-        { label: 'Hero' },
-        { label: 'Nav' },
-        { label: 'Pricing' },
-        { label: 'Footer' },
+    const items: { label: string; Icon: React.ComponentType<{ className?: string }>; color: string; meta: string }[] = [
+        { label: 'Button', Icon: Icons.Button, color: 'text-blue-400', meta: 'ui' },
+        { label: 'Card', Icon: Icons.Box, color: 'text-violet-400', meta: 'layout' },
+        { label: 'Hero', Icon: Icons.Section, color: 'text-emerald-400', meta: 'section' },
+        { label: 'Navbar', Icon: Icons.Frame, color: 'text-amber-400', meta: 'nav' },
+        { label: 'Pricing', Icon: Icons.CreditCard, color: 'text-pink-400', meta: 'section' },
+        { label: 'Footer', Icon: Icons.Layers, color: 'text-sky-400', meta: 'layout' },
     ];
     const cycle = useAmbientCycle(items.length, 2200);
     return (
         <div
-            className="grid w-full max-w-sm grid-cols-3 gap-2.5"
+            className="border-foreground-primary/10 bg-background-secondary/40 w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            {items.map((it, idx) => {
-                const isActive = idx === cycle.index;
-                return (
-                    <button
-                        key={it.label}
-                        type="button"
-                        onClick={() => cycle.setIndex(idx)}
-                        className={cn(
-                            'group/tile border-foreground-primary/10 bg-background relative flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-all duration-200',
-                            'hover:bg-foreground-primary/[0.04] hover:-translate-y-0.5',
-                        )}
-                    >
-                        {isActive && (
-                            <motion.span
-                                layoutId="components-active"
-                                transition={{
-                                    type: 'spring',
-                                    stiffness: 380,
-                                    damping: 34,
-                                    mass: 0.45,
-                                }}
-                                className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset"
-                                style={{
-                                    boxShadow: `inset 0 0 0 1.5px ${BRAND}`,
-                                }}
-                                aria-hidden
-                            />
-                        )}
-                        <Icons.Component className="text-foreground-tertiary h-5 w-5 transition-transform duration-200 group-hover/tile:scale-110" />
-                        <span className="text-foreground-secondary text-mini group-hover/tile:text-foreground-primary font-light tracking-tight transition-colors duration-200">
-                            {it.label}
-                        </span>
-                    </button>
-                );
-            })}
+            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
+                <span className="text-style-tagline">Components</span>
+                <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+            </div>
+            <div className="flex flex-col py-1.5">
+                {items.map((it, idx) => {
+                    const isActive = idx === cycle.index;
+                    return (
+                        <button
+                            key={it.label}
+                            type="button"
+                            onClick={() => cycle.setIndex(idx)}
+                            className={cn(
+                                'group/row relative mx-1.5 flex h-8 w-[calc(100%-0.75rem)] items-center gap-2.5 rounded-lg px-2 text-left transition-colors duration-200',
+                                isActive
+                                    ? 'bg-foreground-primary/[0.06]'
+                                    : 'hover:bg-foreground-primary/[0.03]',
+                            )}
+                        >
+                            {isActive && (
+                                <motion.span
+                                    layoutId="components-active"
+                                    transition={{
+                                        type: 'spring',
+                                        stiffness: 380,
+                                        damping: 34,
+                                        mass: 0.45,
+                                    }}
+                                    className="pointer-events-none absolute inset-0 rounded-lg"
+                                    style={{ boxShadow: `inset 0 0 0 1px ${BRAND}` }}
+                                    aria-hidden
+                                />
+                            )}
+                            <it.Icon className={cn('h-3.5 w-3.5 shrink-0', it.color)} />
+                            <span
+                                className={cn(
+                                    'flex-1 text-[11px] font-light tracking-tight',
+                                    isActive
+                                        ? 'text-foreground-primary'
+                                        : 'text-foreground-secondary',
+                                )}
+                            >
+                                {it.label}
+                            </span>
+                            <span className="text-foreground-tertiary font-mono text-[9px] tabular-nums">
+                                {it.meta}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -397,7 +414,7 @@ function BrandVisual() {
         { name: 'Berkeley Mono', sample: 'Aa', meta: 'Mono · 13/20', mono: true },
     ];
     return (
-        <div className="border-foreground-primary/10 bg-background flex w-full max-w-sm flex-col overflow-hidden rounded-xl border">
+        <div className="border-foreground-primary/10 bg-background-secondary/40 flex w-full max-w-sm flex-col overflow-hidden rounded-2xl border backdrop-blur-sm">
             {/* Header */}
             <div className="border-foreground-primary/10 flex items-center justify-between border-b px-3 py-2">
                 <div className="text-style-tagline">Tokens</div>
@@ -496,7 +513,7 @@ function LayersVisual() {
 
     return (
         <div
-            className="border-foreground-primary/10 bg-background w-full max-w-sm overflow-hidden rounded-xl border"
+            className="border-foreground-primary/10 bg-background-secondary/40 w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
@@ -620,7 +637,7 @@ function RevisionVisual() {
     const cycle = useAmbientCycle(versions.length, 3000);
     return (
         <div
-            className="border-foreground-primary/10 bg-background w-full max-w-sm overflow-hidden rounded-xl border"
+            className="border-foreground-primary/10 bg-background-secondary/40 w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-sm"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
@@ -735,24 +752,27 @@ export function WhatCanWeblabDoSectionV2() {
                 whileInView={REVEAL.whileInView}
                 viewport={REVEAL.viewport}
                 transition={REVEAL.transition}
-                className="mb-20 flex flex-col items-start gap-4"
+                className="mb-20 grid grid-cols-1 gap-12 md:grid-cols-2"
             >
                 <h2 className="heading-style-h2 text-foreground-primary">
-                    <span className="text-foreground-primary">{t('headingAi')}</span>{' '}
-                    <span className="text-foreground-tertiary">•</span>{' '}
-                    <span className="font-mono">{t('headingCode')}</span>{' '}
-                    <span className="text-foreground-tertiary">•</span>{' '}
-                    <span
-                        className={`${vujahdayScript.className} text-5xl not-italic md:text-6xl lg:text-7xl`}
-                    >
-                        {t('headingDesign')}
-                    </span>
+                    {t('headingAi')} • {t('headingCode')} • {t('headingDesign')}
                     <br />
                     {t('headingSideBySide')}
                 </h2>
-                <p className="text-foreground-secondary max-w-xl text-base leading-relaxed font-light tracking-tight md:text-lg">
-                    {t('subhead')}
-                </p>
+                <div className="flex flex-col items-start justify-end gap-6">
+                    <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight">
+                        {t('subhead')}
+                    </p>
+                    <Link
+                        href={Routes.PROJECTS}
+                        className="text-foreground-primary group bg-foreground-primary/5 hover:bg-foreground-primary/10 inline-flex items-center gap-3 rounded-full py-1 pr-1 pl-4 text-sm font-medium transition-colors"
+                    >
+                        {t('cta')}
+                        <span className="bg-foreground-primary text-background inline-flex h-7 w-7 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5">
+                            <Icons.ArrowRight className="h-3.5 w-3.5" />
+                        </span>
+                    </Link>
+                </div>
             </motion.div>
             <div className="flex flex-col gap-20 md:gap-28">
                 {FEATURE_KEYS.map((key, i) => (

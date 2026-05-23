@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { convertToModelMessages, generateObject } from 'ai';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -8,6 +9,7 @@ import { conversations } from '@weblab/db';
 import { LLMProvider, OPENROUTER_MODELS } from '@weblab/models';
 import { ChatSuggestionsSchema } from '@weblab/models/chat';
 
+import { requireCap } from '../../permissions/requireCap';
 import { createTRPCRouter, protectedProcedure } from '../../trpc';
 
 export const suggestionsRouter = createTRPCRouter({
@@ -24,6 +26,23 @@ export const suggestionsRouter = createTRPCRouter({
             }),
         )
         .mutation(async ({ ctx, input }) => {
+            // Gate on project membership. The conversation belongs to a
+            // project; require `project.use_ai` before generating suggestions
+            // AND before writing them back. Without this, any authed user
+            // could overwrite `conversations.suggestions` for any project ID
+            // (RLS catches it today via auth.uid(); post-Convex it must be
+            // enforced at the application layer).
+            const conversation = await ctx.db.query.conversations.findFirst({
+                where: eq(conversations.id, input.conversationId),
+                columns: { id: true, projectId: true },
+            });
+            if (!conversation) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversation not found' });
+            }
+            await requireCap(ctx.db, ctx.user.id, 'project.use_ai', {
+                projectId: conversation.projectId,
+            });
+
             const { model, headers } = initModel({
                 provider: LLMProvider.OPENROUTER,
                 model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,

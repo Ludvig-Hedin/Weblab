@@ -13,4 +13,20 @@ export class StateManager {
     constructor() {
         makeAutoObservable(this);
     }
+
+    // Explicit action setters so callers don't trigger MobX strict-mode
+    // "modified outside action" warnings via raw property writes. Methods on
+    // a `makeAutoObservable` class are auto-wrapped as actions; direct field
+    // assignment from outside the class is not.
+    setIsSubscriptionModalOpen(open: boolean) {
+        this.isSubscriptionModalOpen = open;
+    }
+
+    setIsSettingsModalOpen(open: boolean) {
+        this.isSettingsModalOpen = open;
+    }
+
+    setSettingsTab(tab: SettingsTabValue | string) {
+        this.settingsTab = tab;
+    }
 }

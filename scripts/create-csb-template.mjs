@@ -28,7 +28,7 @@ const FILES = {
             version: '0.1.0',
             private: true,
             scripts: {
-                dev: 'next dev -p 3000 -H 0.0.0.0',
+                dev: 'next dev --turbopack -p 3000 -H 0.0.0.0',
                 build: 'next build',
                 start: 'next start -p 3000 -H 0.0.0.0',
                 lint: 'next lint',

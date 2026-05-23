@@ -74,10 +74,16 @@ export default function VerifyPage() {
         setEmail(stored);
     }, [router]);
 
-    // CR-103: Clear the stashed email on unmount and on beforeunload so it
-    // doesn't persist in browsers that restore sessionStorage across tab
-    // restores ("Continue where you left off"). On-success cleanup already
-    // fires in handleVerify; this is the defence-in-depth path.
+    // CR-103: Clear the stashed email on `beforeunload` so it doesn't
+    // persist across tab restores ("Continue where you left off"). On
+    // successful verify, `handleVerify` clears it explicitly.
+    //
+    // NOTE: previously this effect also cleared the email on unmount, which
+    // tripped a React 19 strict-mode double-effect bug — the cleanup ran on
+    // the first mount/unmount cycle, wiped the stash, and the second mount
+    // then redirected back to `/login` because the email lookup returned
+    // null. Result: visible OTP page flash → bounced back to login, even
+    // though the OTP email was sent. Removing the unmount-clear fixes that.
     useEffect(() => {
         const clearEmail = () => {
             try {
@@ -89,7 +95,6 @@ export default function VerifyPage() {
         window.addEventListener('beforeunload', clearEmail);
         return () => {
             window.removeEventListener('beforeunload', clearEmail);
-            clearEmail();
         };
     }, []);
 

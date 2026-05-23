@@ -3,7 +3,7 @@ import { type Metadata } from 'next';
 import { APP_NAME } from '@weblab/constants';
 
 import { HandleAuth } from '@/app/invitation/[id]/_components/auth';
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser } from '@/utils/auth/current-user';
 
 export const metadata: Metadata = {
     title: APP_NAME,
@@ -11,10 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
     // Mirror /invitation/[id]/layout: render the login prompt instead of
     // letting the protectedProcedure 401 silently behind a "Loading…" spinner.

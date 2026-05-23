@@ -50,6 +50,17 @@ const nextConfig: NextConfig = {
                 destination: '/project/:id',
                 permanent: false,
             },
+            // Convenience aliases for the all-sections showcase page.
+            {
+                source: '/blocks',
+                destination: '/features/blocks',
+                permanent: false,
+            },
+            {
+                source: '/design-system/blocks',
+                destination: '/features/blocks',
+                permanent: false,
+            },
         ];
     },
     async headers() {

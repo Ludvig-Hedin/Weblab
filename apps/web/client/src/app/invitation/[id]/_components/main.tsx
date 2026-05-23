@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
@@ -9,16 +10,17 @@ import { Icons } from '@weblab/ui/icons';
 import { Skeleton } from '@weblab/ui/skeleton';
 
 import { api } from '@/trpc/react';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
+import { signOutEverywhere } from '@/utils/auth/sign-out';
 import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/client';
 import { resetTelemetry } from '@/utils/telemetry';
-import { getReturnUrlQueryParam } from '@/utils/url';
 
 export function Main({ invitationId }: { invitationId: string }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const token = useSearchParams().get('token');
+    const { signOut: clerkSignOut } = useClerk();
     const {
         data: invitation,
         isLoading: loadingInvitation,
@@ -42,12 +44,11 @@ export function Main({ invitationId }: { invitationId: string }) {
     });
 
     const handleReAuthenticate = async () => {
-        const supabase = createClient();
         // Clear analytics/feedback identities before signing out
         void resetTelemetry();
-        await supabase.auth.signOut();
+        await signOutEverywhere(() => clerkSignOut());
         const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-        router.push(`${Routes.LOGIN}?${getReturnUrlQueryParam(currentUrl)}`);
+        router.push(getSignInUrlClient(currentUrl));
     };
 
     const error = getInvitationError || acceptInvitationError;

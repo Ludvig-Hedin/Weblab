@@ -132,6 +132,7 @@ export const PositionSection = observer(function PositionSection() {
                         onCommit={commit}
                         defaultUnit=""
                         units={[]}
+                        keywords={['auto']}
                         allowKeywords
                     />
                 )}

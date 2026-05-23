@@ -17,6 +17,7 @@ export const OfflineBanner = observer(() => {
     const [pending, setPending] = useState(0);
     const [dead, setDead] = useState(0);
     const [panelOpen, setPanelOpen] = useState(false);
+    const [dismissed, setDismissed] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -37,44 +38,72 @@ export const OfflineBanner = observer(() => {
         };
     }, [editorEngine.projectId]);
 
-    if (online && !isOfflineSession && pending === 0 && dead === 0) {
-        return null;
-    }
+    // Re-show on new failures or going offline — those need attention.
+    useEffect(() => {
+        if (dead > 0) setDismissed(false);
+    }, [dead]);
+    useEffect(() => {
+        if (!online) setDismissed(false);
+    }, [online]);
 
-    const bgClass = online ? 'bg-background-warning' : 'bg-destructive/10';
-    const borderClass = online ? 'border-border-warning' : 'border-destructive/30';
-    const textClass = online ? 'text-foreground-warning' : 'text-destructive';
+    if (online && !isOfflineSession && pending === 0 && dead === 0) return null;
+    if (dismissed) return null;
+
+    const isWarning = online;
 
     return (
         <>
-            <button
-                type="button"
-                style={{ backdropFilter: 'blur(20px)' }}
-                onClick={() => setPanelOpen(true)}
-                className={`pointer-events-auto flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-xs transition hover:opacity-90 ${bgClass} ${borderClass} ${textClass}`}
+            <div
+                className={[
+                    'pointer-events-auto w-[210px] rounded-xl border px-3 py-2.5 text-xs shadow-lg',
+                    isWarning
+                        ? 'bg-background-warning/90 border-border-warning/60 text-foreground-warning'
+                        : 'bg-destructive/10 border-destructive/25 text-destructive',
+                ].join(' ')}
+                style={{ backdropFilter: 'blur(16px)' }}
             >
-                <Icons.InfoCircled className="h-3.5 w-3.5 shrink-0" />
-                <div className="flex flex-1 flex-col gap-0.5">
-                    {!online ? (
-                        <>
-                            <span className="font-medium">You're offline.</span>
-                            <span className="opacity-80">
-                                Edits save locally and will sync when you reconnect.
-                                {pending > 0 ? ` ${pending} pending.` : ''}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            <span className="font-medium">Syncing offline changes…</span>
-                            <span className="opacity-80">
-                                {pending} change{pending === 1 ? '' : 's'} remaining.
-                                {dead > 0 ? ` ${dead} could not be synced.` : ''}
-                            </span>
-                        </>
-                    )}
+                {/* Header row: icon + title + dismiss */}
+                <div className="flex items-start gap-2">
+                    <Icons.InfoCircled className="mt-px h-3.5 w-3.5 shrink-0 opacity-80" />
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        {!online ? (
+                            <>
+                                <span className="font-medium leading-tight">You're offline.</span>
+                                <span className="opacity-65 leading-snug">
+                                    Edits save locally and sync on reconnect.
+                                    {pending > 0 ? ` ${pending} pending.` : ''}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="font-medium leading-tight">Syncing offline changes</span>
+                                <span className="opacity-65 leading-snug">
+                                    {pending} change{pending === 1 ? '' : 's'} remaining.
+                                    {dead > 0 ? ` ${dead} failed.` : ''}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setDismissed(true)}
+                        aria-label="Dismiss"
+                        className="mt-px -mr-0.5 rounded p-0.5 opacity-40 transition-opacity hover:opacity-80"
+                    >
+                        <Icons.CrossS className="h-3 w-3" />
+                    </button>
                 </div>
-                <span className="opacity-70">Details →</span>
-            </button>
+
+                {/* Details link */}
+                <button
+                    type="button"
+                    onClick={() => setPanelOpen(true)}
+                    className="mt-2 flex items-center gap-1 opacity-60 transition-opacity hover:opacity-100"
+                >
+                    <span className="underline underline-offset-2">Details</span>
+                    <Icons.ArrowRight className="h-2.5 w-2.5" />
+                </button>
+            </div>
             <OfflinePanel open={panelOpen} onOpenChange={setPanelOpen} />
         </>
     );

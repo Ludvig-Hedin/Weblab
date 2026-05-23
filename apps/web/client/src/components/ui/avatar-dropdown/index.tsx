@@ -19,8 +19,10 @@ import { getInitials } from '@weblab/utility';
 import { useStateManager } from '@/components/store/state';
 import { transKeys } from '@/i18n/keys';
 import { api } from '@/trpc/react';
-import { LocalForageKeys, Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/client';
+import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
+import { signOutEverywhere } from '@/utils/auth/sign-out';
+import { LocalForageKeys } from '@/utils/constants';
 import { openFeedbackWidget, resetTelemetry } from '@/utils/telemetry';
 import { SettingsTabValue } from '../settings-modal/helpers';
 import { UsageSection } from './plans';
@@ -42,7 +44,9 @@ function deriveFirstNameFromEmail(email: string | null | undefined): string | nu
 
 export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const stateManager = useStateManager();
-    const supabase = createClient();
+    // `useSafeClerk` falls back to a no-op `signOut` in supabase mode so we
+    // never invoke the raw Clerk hook outside its provider.
+    const { signOut: clerkSignOut } = useSafeClerk();
     const t = useTranslations();
 
     const { data: user } = api.user.get.useQuery();
@@ -63,8 +67,8 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const handleSignOut = async () => {
         // Reset MobX modal flags so settings/subscription dialogs from the
         // previous account don't leak across the sign-out boundary.
-        stateManager.isSettingsModalOpen = false;
-        stateManager.isSubscriptionModalOpen = false;
+        stateManager.setIsSettingsModalOpen(false);
+        stateManager.setIsSubscriptionModalOpen(false);
         // Clear analytics/feedback identities before signing out
         void resetTelemetry();
         // Clear user-scoped offline state so the next sign-in (potentially a
@@ -85,22 +89,23 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
         } catch (err) {
             console.warn('[avatar-dropdown] failed to clear offline state on sign-out', err);
         }
-        await supabase.auth.signOut();
-        // Hard-navigate to /login. A soft router.push would keep the
-        // React Query cache (incl. user.get) populated, leaving the navbar
-        // showing the avatar even after the session cookie was cleared.
-        window.location.assign(Routes.LOGIN);
+        // `clerkSignOut` is a no-op in supabase mode (see useSafeClerk).
+        await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
+        // Hard-navigate. A soft router.push would keep the React Query
+        // cache (incl. user.get) populated, leaving the navbar showing
+        // the avatar even after the session cookies were cleared.
+        window.location.assign(getSignInUrlClient());
     };
 
     const handleOpenSubscription = () => {
-        stateManager.settingsTab = SettingsTabValue.SUBSCRIPTION;
-        stateManager.isSettingsModalOpen = true;
+        stateManager.setSettingsTab(SettingsTabValue.SUBSCRIPTION);
+        stateManager.setIsSettingsModalOpen(true);
         setOpen(false);
     };
 
     const handleOpenSettings = () => {
-        stateManager.settingsTab = SettingsTabValue.ACCOUNT;
-        stateManager.isSettingsModalOpen = true;
+        stateManager.setSettingsTab(SettingsTabValue.ACCOUNT);
+        stateManager.setIsSettingsModalOpen(true);
         setOpen(false);
     };
 
@@ -142,7 +147,19 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
                 >
                     <Avatar className={className}>
                         {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={initials} />}
-                        <AvatarFallback>{initials}</AvatarFallback>
+                        {/* `delayMs` hides the initials chip during the
+                            brief window before `AvatarImage` resolves —
+                            otherwise visitors with valid avatars flash the
+                            "Y" / "L" placeholder on every cold load. 300ms is
+                            long enough to hide the flash on cached avatars
+                            (paint <100ms) without leaving a noticeable blank
+                            circle on cold network loads. When
+                            `user.avatarUrl` is absent, Radix renders the
+                            fallback immediately. When it fails to load,
+                            Radix swaps to the fallback after the delay. */}
+                        <AvatarFallback delayMs={user?.avatarUrl ? 300 : 0}>
+                            {user ? initials : ''}
+                        </AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>

@@ -1,3 +1,4 @@
+import { REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { EditorEngine } from '../engine';
@@ -45,6 +46,11 @@ function getUserColor(userId: string): string {
     return `rgba(${r}, ${g}, ${b}, 1)`;
 }
 
+function getStringMetadata(metadata: Record<string, unknown>, key: string): string | undefined {
+    const value = metadata[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 export class PresenceManager {
     /** Presence data for every OTHER user currently in this project. */
     remoteUsers = observable.map<string, RemoteUser>();
@@ -54,17 +60,28 @@ export class PresenceManager {
     private channel: RealtimeChannel | null = null;
     private myPresence: PresencePayload | null = null;
     private lastCursorUpdate = 0;
+    private initRunId = 0;
     private static readonly CURSOR_THROTTLE_MS = 50;
 
     constructor(private editorEngine: EditorEngine) {
-        makeAutoObservable(this);
+        makeAutoObservable<this, 'channel' | 'myPresence' | 'lastCursorUpdate' | 'initRunId'>(
+            this,
+            {
+                channel: false,
+                myPresence: false,
+                lastCursorUpdate: false,
+                initRunId: false,
+            },
+        );
     }
 
     async init() {
+        const initRunId = ++this.initRunId;
+
         // Bug fix #1: Guard against double-init (StrictMode, hot reload).
         // Tear down the old channel before creating a new one.
         if (this.channel) {
-            this.channel.unsubscribe();
+            await this.channel.unsubscribe();
             this.channel = null;
         }
 
@@ -72,22 +89,33 @@ export class PresenceManager {
         const {
             data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user || initRunId !== this.initRunId) return;
 
         runInAction(() => {
             this.currentUserId = user.id;
         });
 
         const projectId = this.editorEngine.projectId;
+        const topic = `presence:${projectId}`;
+        await Promise.all(
+            supabase
+                .getChannels()
+                .filter((channel) => channel.topic === `realtime:${topic}`)
+                .map((channel) => supabase.removeChannel(channel)),
+        );
+
+        if (initRunId !== this.initRunId) return;
+
+        const metadata = user.user_metadata as Record<string, unknown>;
 
         this.myPresence = {
             userId: user.id,
             displayName:
-                user.user_metadata?.full_name ??
-                user.user_metadata?.name ??
+                getStringMetadata(metadata, 'full_name') ??
+                getStringMetadata(metadata, 'name') ??
                 user.email ??
                 'Unknown',
-            avatarUrl: user.user_metadata?.avatar_url ?? undefined,
+            avatarUrl: getStringMetadata(metadata, 'avatar_url'),
             cursorX: null,
             cursorY: null,
         };
@@ -95,7 +123,7 @@ export class PresenceManager {
         // Capture in a local const so TypeScript can narrow the type through the
         // chained .on().subscribe() calls. (this.channel is RealtimeChannel | null,
         // so the compiler can't narrow it on a mutable property.)
-        const channel = supabase.channel(`presence:${projectId}`, {
+        const channel = supabase.channel(topic, {
             config: { presence: { key: user.id } },
         });
         this.channel = channel;
@@ -124,15 +152,17 @@ export class PresenceManager {
                     }
                 });
             })
-            .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
+            .subscribe((status) => {
+                if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) {
                     // Bug fix #2 cont'd: re-check both channel and myPresence are still live.
                     if (!this.channel || !this.myPresence) return;
-                    await this.channel.track(this.myPresence);
-                } else if (status === 'CHANNEL_ERROR') {
+                    void this.channel.track(this.myPresence).catch((err) => {
+                        console.warn('[PresenceManager] Failed to track presence:', err);
+                    });
+                } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
                     // Bug fix #11: log channel errors instead of silently ignoring them.
                     console.warn('[PresenceManager] Realtime channel error for project', projectId);
-                } else if (status === 'TIMED_OUT') {
+                } else if (status === REALTIME_SUBSCRIBE_STATES.TIMED_OUT) {
                     console.warn(
                         '[PresenceManager] Realtime channel timed out for project',
                         projectId,
@@ -162,7 +192,9 @@ export class PresenceManager {
     clearCursor() {
         if (!this.channel || !this.myPresence) return;
         this.myPresence = { ...this.myPresence, cursorX: null, cursorY: null };
-        this.channel.track(this.myPresence).catch(() => {});
+        void this.channel.track(this.myPresence).catch((err) => {
+            console.warn('[PresenceManager] Failed to clear presence cursor:', err);
+        });
     }
 
     /** Returns true if the given user currently has the project open. */
@@ -173,7 +205,7 @@ export class PresenceManager {
 
     clear() {
         if (this.channel) {
-            this.channel.unsubscribe();
+            void this.channel.unsubscribe();
             this.channel = null;
         }
         runInAction(() => {

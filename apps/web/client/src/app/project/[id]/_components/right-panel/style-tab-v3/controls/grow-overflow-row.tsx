@@ -87,13 +87,13 @@ const OVERFLOW_OPTIONS: OverflowOption[] = [
  * Focus ring is keyboard-only (`focus-visible:` on each segment).
  */
 const TOGGLE_GROUP_CLASS =
-    'border-input bg-foreground/5 dark:bg-foreground/[0.08] flex h-[28px] w-full divide-x divide-[var(--input)] rounded-[6px] border';
+    'border-transparent bg-background-secondary dark:bg-[#101010] flex h-[28px] w-full divide-x divide-[var(--border)] rounded-[10px] border';
 const TOGGLE_ITEM_BASE_CLASS =
-    'text-foreground-tertiary hover:text-foreground-primary flex h-full flex-1 cursor-pointer items-center justify-center rounded-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-foreground-brand/30 focus-visible:ring-[3px] focus-visible:ring-inset first:rounded-l-[6px] last:rounded-r-[6px]';
+    'text-foreground-tertiary hover:text-foreground-primary flex h-full flex-1 cursor-pointer items-center justify-center rounded-none transition-[background-color,color,box-shadow] outline-none focus-visible:ring-foreground-brand/30 focus-visible:ring-[3px] focus-visible:ring-inset first:rounded-l-[9px] last:rounded-r-[9px]';
 const TOGGLE_ITEM_STRONG_ACTIVE =
-    'data-[state=on]:bg-background data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm dark:data-[state=on]:bg-[rgb(72,72,72)]';
+    'data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand';
 const TOGGLE_ITEM_QUIET_ACTIVE =
-    'data-[state=on]:bg-foreground/8 data-[state=on]:text-foreground-secondary';
+    'data-[state=on]:bg-foreground-brand/10 data-[state=on]:text-foreground-brand/90';
 
 /** Resolve the per-segment class for the current `isSet` tier. */
 function toggleItemClass(isSet: boolean, extra?: string): string {

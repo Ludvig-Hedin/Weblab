@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import type { ActiveWorkspace } from './_components/workspace-context';
 import { api } from '@/trpc/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
 import { WorkspaceProvider } from './_components/workspace-context';
 
@@ -13,6 +14,16 @@ interface WorkspaceLayoutProps {
 
 export default async function WorkspaceLayout({ children, params }: WorkspaceLayoutProps) {
     const { slug } = await params;
+
+    // Auth gate first: `api.workspace.getBySlug` is a `protectedProcedure`,
+    // so an anonymous deep-link to /w/<slug>/projects would surface as a
+    // server-rendered UNAUTHORIZED error instead of the redirect-to-sign-in
+    // the user expects.
+    const user = await getCurrentUser();
+    if (!user) {
+        redirect(getSignInUrl(`/w/${slug}/projects`));
+    }
+
     const workspace = await api.workspace.getBySlug({ slug });
 
     if (!workspace) {

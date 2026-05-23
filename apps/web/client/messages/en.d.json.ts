@@ -1128,7 +1128,7 @@ declare const messages: {
                         "loadFailed": "Couldn’t load messages.",
                         "retry": "Retry",
                         "input": {
-                            "placeholder": "Type your message...",
+                            "placeholder": "Ask anything...",
                             "tooltip": "Chat with AI about the selected element"
                         },
                         "mode": {
@@ -1199,10 +1199,10 @@ declare const messages: {
                         "noActiveConversation": "No active conversation",
                         "startNewConversation": "Start a new conversation",
                         "starters": {
-                            "darkMode": "Add a dark mode toggle",
-                            "modernizeHero": "Make the hero section more modern",
-                            "mobileLayout": "Fix layout on mobile",
-                            "polish": "Polish typography and spacing"
+                            "darkMode": "Build a landing page",
+                            "modernizeHero": "Add a hero section",
+                            "mobileLayout": "Create a responsive navbar",
+                            "polish": "Design a pricing section"
                         },
                         "askPlaceholder": "Ask a question about your project...",
                         "planPlaceholder": "Describe what you want to plan...",
@@ -2027,9 +2027,8 @@ declare const messages: {
             }
         },
         "digitalSolutions": {
-            "titleLine1": "Built for the work",
-            "titleLine2": "between \"looks good\"",
-            "titleLine3": "and \"it's live.\"",
+            "titleLine1": "From canvas",
+            "titleLine2": "to deployed.",
             "body": "Once the first screen is on the canvas, the real work starts. Multiplayer, branching, content, deploys. The parts of shipping that other tools hand off, Weblab keeps in one place.",
             "startBuilding": "Start building",
             "play": "Play",
@@ -2285,6 +2284,7 @@ declare const messages: {
             "transparent": "& transparent"
         },
         "terminalSection": {
+            "eyebrow": "Your stack, your terminal",
             "heading": "Real code. Real terminal. Real control.",
             "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
         },
@@ -2294,6 +2294,7 @@ declare const messages: {
             "headingDesign": "Design",
             "headingSideBySide": "Side-by-side-by-side",
             "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
+            "cta": "Start building",
             "brandVisual": {
                 "tokens": "Tokens",
                 "background": "Background",

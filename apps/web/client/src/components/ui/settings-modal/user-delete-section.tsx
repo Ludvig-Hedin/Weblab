@@ -19,11 +19,13 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 
 import { api } from '@/trpc/react';
-import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/client';
+import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
+import { signOutEverywhere } from '@/utils/auth/sign-out';
 
 export const UserDeleteSection = observer(() => {
     const router = useRouter();
+    const { signOut: clerkSignOut } = useSafeClerk();
     const { data: user } = api.user.get.useQuery();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteEmail, setDeleteEmail] = useState('');
@@ -58,10 +60,9 @@ export const UserDeleteSection = observer(() => {
         setDeleteEmail('');
         setDeleteConfirmText('');
 
-        // Sign out
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        router.push(Routes.LOGIN);
+        // `clerkSignOut` is a no-op in supabase mode (see useSafeClerk).
+        await signOutEverywhere(isClerkMode() ? () => clerkSignOut() : undefined);
+        router.push(getSignInUrlClient());
     };
 
     const canProceedWithDelete = deleteEmail === user?.email && deleteConfirmText === 'DELETE';

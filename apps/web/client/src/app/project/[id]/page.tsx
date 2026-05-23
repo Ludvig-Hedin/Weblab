@@ -1,8 +1,29 @@
+import type { Metadata } from 'next';
+
+import { APP_NAME } from '@weblab/constants';
+
 import { api } from '@/trpc/server';
 import { Main } from './_components/main';
 import { OfflineEditorBootstrap } from './_components/offline-editor-bootstrap';
 import { ProjectLoadError } from './_components/project-load-error';
 import { ProjectProviders } from './providers';
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+    try {
+        const projectId = (await params).id;
+        const project = await api.project.get({ projectId });
+        if (project?.name) {
+            return { title: `${project.name} | ${APP_NAME}` };
+        }
+    } catch {
+        // fall through to default
+    }
+    return { title: APP_NAME };
+}
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
     const projectId = (await params).id;

@@ -10,6 +10,7 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useOptionalEditorEngine } from '@/components/store/editor';
 import { api } from '@/trpc/react';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { Routes } from '@/utils/constants';
 
 type Variant = 'invalid-id' | 'not-found' | 'unauthorized' | 'unknown';
@@ -101,7 +102,7 @@ export const ProjectLoadError = observer(
                     router.push(Routes.PROJECTS);
                     return;
                 case 'login':
-                    router.push(Routes.LOGIN);
+                    router.push(getSignInUrlClient());
                     return;
                 case 'retry':
                     void handleRetry();

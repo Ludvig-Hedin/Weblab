@@ -10,12 +10,11 @@ import {
     ConversationContent,
     ConversationScrollButton,
 } from '@weblab/ui/ai-elements';
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
-import { cn } from '@weblab/ui/utils';
 import { assertNever } from '@weblab/utility';
 
 import type { EditMessage } from '@/app/project/[id]/_hooks/use-chat';
-import type { MessageKeyPaths } from '@/i18n/keys';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
 import { AssistantMessage } from './assistant-message';
@@ -25,12 +24,12 @@ import { UserMessage } from './user-message';
 const STARTER_SUGGESTIONS = [
     {
         key: 'darkMode',
-        icon: Icons.Moon,
+        icon: Icons.Sparkles,
         transKey: transKeys.editor.panels.edit.tabs.chat.starters.darkMode,
     },
     {
         key: 'modernizeHero',
-        icon: Icons.Sparkles,
+        icon: Icons.LayoutWindow,
         transKey: transKeys.editor.panels.edit.tabs.chat.starters.modernizeHero,
     },
     {
@@ -123,33 +122,26 @@ export const ChatMessages = observer(
                             {t(transKeys.editor.panels.edit.tabs.chat.emptyState)}
                         </p>
                         {onSuggestionClick && (
-                            <ul
-                                className="flex w-full max-w-sm flex-col gap-1.5"
+                            <div
+                                className="flex flex-wrap justify-center gap-2"
                                 aria-label="Starter suggestions"
                             >
-                                {STARTER_SUGGESTIONS.map(
-                                    ({ key, icon: SuggestionIcon, transKey }) => {
-                                        const label = t(transKey);
-                                        return (
-                                            <li key={key}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => onSuggestionClick(label)}
-                                                    className={cn(
-                                                        'border-border/40 hover:border-border bg-background-secondary/40 hover:bg-background-secondary text-foreground-secondary hover:text-foreground-primary flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors',
-                                                        'focus-visible:ring-ring focus-visible:ring-1 focus-visible:outline-none',
-                                                    )}
-                                                >
-                                                    <SuggestionIcon className="text-foreground-tertiary h-3.5 w-3.5 shrink-0" />
-                                                    <span className="text-small truncate">
-                                                        {label}
-                                                    </span>
-                                                </button>
-                                            </li>
-                                        );
-                                    },
-                                )}
-                            </ul>
+                                {STARTER_SUGGESTIONS.map(({ key, icon: SuggestionIcon, transKey }) => {
+                                    const label = t(transKey);
+                                    return (
+                                        <Button
+                                            key={key}
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => onSuggestionClick(label)}
+                                        >
+                                            <SuggestionIcon className="h-3.5 w-3.5 shrink-0" />
+                                            {label}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 )

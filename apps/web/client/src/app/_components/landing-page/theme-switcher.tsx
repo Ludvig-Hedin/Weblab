@@ -8,10 +8,18 @@ import { Icons } from '@weblab/ui/icons';
 
 type ThemeOption = 'system' | 'light' | 'dark';
 
+function DarkIcon({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 12 12" fill="currentColor" className={className} aria-hidden>
+            <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5a3.5 3.5 0 1 0 4.5 4.5z" />
+        </svg>
+    );
+}
+
 const OPTIONS: { value: ThemeOption; Icon: React.ComponentType<{ className?: string }> }[] = [
     { value: 'system', Icon: Icons.Laptop },
     { value: 'light', Icon: Icons.Sun },
-    { value: 'dark', Icon: Icons.Moon },
+    { value: 'dark', Icon: DarkIcon },
 ];
 
 export function ThemeSwitcher() {
@@ -27,7 +35,7 @@ export function ThemeSwitcher() {
 
     return (
         <div
-            className="bg-foreground-primary/[0.07] flex items-center gap-0.5 rounded-full px-1.5 py-1.5"
+            className="bg-foreground-primary/[0.04] flex items-center gap-0.5 rounded-full px-1.5 py-1.5"
             role="group"
             aria-label={t('label')}
         >
@@ -41,13 +49,13 @@ export function ThemeSwitcher() {
                         aria-label={t(value)}
                         aria-pressed={isActive}
                         className={[
-                            'flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-colors duration-150',
+                            'flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full transition-colors duration-150',
                             isActive
-                                ? 'bg-foreground-primary/20 text-foreground-primary'
-                                : 'text-foreground-secondary hover:text-foreground-primary',
+                                ? 'bg-foreground-primary/10 text-foreground-primary'
+                                : 'text-foreground-tertiary hover:text-foreground-secondary',
                         ].join(' ')}
                     >
-                        <Icon className="h-3.5 w-3.5" />
+                        <Icon className="h-3 w-3" />
                     </button>
                 );
             })}

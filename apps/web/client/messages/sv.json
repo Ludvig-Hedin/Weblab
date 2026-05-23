@@ -1127,7 +1127,7 @@
                         "loadFailed": "Det gick inte att läsa in meddelanden.",
                         "retry": "Försök igen",
                         "input": {
-                            "placeholder": "Skriv ditt meddelande...",
+                            "placeholder": "Fråga vad som helst...",
                             "tooltip": "Chatta med AI om det markerade elementet"
                         },
                         "mode": {
@@ -1198,10 +1198,10 @@
                         "noActiveConversation": "Ingen aktiv konversation",
                         "startNewConversation": "Starta en ny konversation",
                         "starters": {
-                            "darkMode": "Lägg till växling för mörkt läge",
-                            "modernizeHero": "Gör hero-sektionen mer modern",
-                            "mobileLayout": "Fixa layouten på mobil",
-                            "polish": "Putsa typografi och avstånd"
+                            "darkMode": "Bygg en landningssida",
+                            "modernizeHero": "Lägg till en hero-sektion",
+                            "mobileLayout": "Skapa en responsiv navbar",
+                            "polish": "Designa en prissättningssektion"
                         },
                         "askPlaceholder": "Ställ en fråga om ditt projekt...",
                         "planPlaceholder": "Beskriv vad du vill planera...",
@@ -1930,9 +1930,8 @@
             }
         },
         "digitalSolutions": {
-            "titleLine1": "Byggt för jobbet",
-            "titleLine2": "mellan \"ser bra ut\"",
-            "titleLine3": "och \"det är live.\"",
+            "titleLine1": "Från canvas",
+            "titleLine2": "till live.",
             "body": "När första skärmen ligger på canvasen börjar det riktiga arbetet. Multiplayer, branchning, innehåll, deploys — de delarna av leveransen som andra verktyg lämnar över, håller Weblab på ett ställe.",
             "startBuilding": "Börja bygga",
             "play": "Spela",
@@ -2188,6 +2187,7 @@
             "transparent": "& transparent"
         },
         "terminalSection": {
+            "eyebrow": "Din stack, din terminal",
             "heading": "Riktig kod. Riktig terminal. Riktig kontroll.",
             "body": "Weblab skickar produktionsklar kod du kan installera, bygga, testa och deploya från din egen terminal – ingen inlåsning, ingen black box."
         },
@@ -2197,6 +2197,7 @@
             "headingDesign": "Design",
             "headingSideBySide": "Sida-vid-sida-vid-sida",
             "subhead": "Allt på en canvas. Inga flikar, ingen överlämning, ingen översättning som tappar bort något.",
+            "cta": "Börja bygga",
             "brandVisual": {
                 "tokens": "Tokens",
                 "background": "Bakgrund",

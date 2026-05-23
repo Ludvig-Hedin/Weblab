@@ -72,9 +72,9 @@ export async function resolvePersonalWorkspaceId(
         const isUniqueViolation =
             !!error &&
             typeof error === 'object' &&
-            (((error as { code?: unknown }).code === '23505') ||
+            ((error as { code?: unknown }).code === '23505' ||
                 (typeof (error as { message?: unknown }).message === 'string' &&
-                    ((error as { message: string }).message).includes('duplicate key')));
+                    (error as { message: string }).message.includes('duplicate key')));
         if (!isUniqueViolation) {
             throw error;
         }

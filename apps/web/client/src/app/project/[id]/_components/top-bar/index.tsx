@@ -103,8 +103,8 @@ export const TopBar = observer(() => {
                                 size="icon"
                                 className={headerIconBtnClass}
                                 onClick={() => {
-                                    stateManager.settingsTab = SettingsTabValue.VERSIONS;
-                                    stateManager.isSettingsModalOpen = true;
+                                    stateManager.setSettingsTab(SettingsTabValue.VERSIONS);
+                                    stateManager.setIsSettingsModalOpen(true);
                                 }}
                                 aria-label={t(transKeys.editor.toolbar.versionHistory)}
                             >

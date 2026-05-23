@@ -14,9 +14,31 @@ export const env = createEnv({
         VERCEL_PROJECT_ID: z.string().optional(),
         VERCEL_TOKEN: z.string().optional(),
         VERCEL_SANDBOX_TIMEOUT_MS: z.coerce.number().positive().optional(),
+        // Snapshot ID of a pre-built Vercel sandbox that contains a
+        // post-`npm install` Next.js scaffold. When set, `sandbox.fork`
+        // with the BLANK template resumes from this snapshot instead of
+        // re-running scaffold + npm install (saves 60-180s per blank
+        // project). Build with `bun scripts/create-vercel-template.mjs`
+        // and copy the printed snapshot id here.
+        VERCEL_BLANK_SNAPSHOT_ID: z.string().optional(),
         SUPABASE_URL: z.url(),
         SUPABASE_DATABASE_URL: z.url(),
         SUPABASE_SERVICE_ROLE_KEY: z.string(),
+
+        // Clerk auth (Phase 3: added alongside Supabase during transition)
+        CLERK_SECRET_KEY: z.string().optional(),
+        CLERK_WEBHOOK_SECRET: z.string().optional(),
+        CLERK_JWT_ISSUER_DOMAIN: z.url().optional(),
+
+        // Phase 5 auth bridge: chooses identity provider for tRPC + middleware.
+        // - 'supabase' (default): unchanged Supabase-backed auth
+        // - 'clerk': read Clerk JWT, bridge to existing Drizzle users row by email
+        WEBLAB_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('supabase'),
+        // Used by the Clerk webhook handler to delete the Clerk-side identity
+        // when the user deletes their account from inside Weblab. Without
+        // this the Clerk record orphans and the user can silently re-create
+        // their account on the same email.
+
         RESEND_API_KEY: z.string().optional(),
         FREESTYLE_API_KEY: z.string().optional(),
 
@@ -115,6 +137,20 @@ export const env = createEnv({
         NEXT_PUBLIC_SUPABASE_URL: z.string(),
         NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
+
+        // Convex (Phase 3: added alongside Drizzle during transition)
+        NEXT_PUBLIC_CONVEX_URL: z.url().optional(),
+
+        // Clerk client (Phase 3: added alongside Supabase Auth during transition)
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().default('/sign-in'),
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().default('/sign-up'),
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().default('/projects'),
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().default('/profile-setup'),
+
+        // Public mirror of WEBLAB_AUTH_PROVIDER so client components can route
+        // sign-out redirects to the correct entry point without a round-trip.
+        NEXT_PUBLIC_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('supabase'),
         NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
         NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
         NEXT_PUBLIC_GLEAP_API_KEY: z.string().optional(),
@@ -124,6 +160,7 @@ export const env = createEnv({
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(true),
         NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(true),
         NEXT_PUBLIC_STYLE_PANEL_V3: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_STYLE_PANEL_V4: z.coerce.boolean().default(false),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
@@ -146,6 +183,7 @@ export const env = createEnv({
         VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
         VERCEL_TOKEN: process.env.VERCEL_TOKEN,
         VERCEL_SANDBOX_TIMEOUT_MS: process.env.VERCEL_SANDBOX_TIMEOUT_MS,
+        VERCEL_BLANK_SNAPSHOT_ID: process.env.VERCEL_BLANK_SNAPSHOT_ID,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         NEXT_PUBLIC_FEATURE_COLLABORATION: process.env.NEXT_PUBLIC_FEATURE_COLLABORATION,
         NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
@@ -153,6 +191,7 @@ export const env = createEnv({
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: process.env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED,
         NEXT_PUBLIC_PROVIDER_PICKER_V2: process.env.NEXT_PUBLIC_PROVIDER_PICKER_V2,
         NEXT_PUBLIC_STYLE_PANEL_V3: process.env.NEXT_PUBLIC_STYLE_PANEL_V3,
+        NEXT_PUBLIC_STYLE_PANEL_V4: process.env.NEXT_PUBLIC_STYLE_PANEL_V4,
 
         // Supabase
         SUPABASE_URL:
@@ -166,6 +205,22 @@ export const env = createEnv({
         SUPABASE_SERVICE_ROLE_KEY:
             process.env.SUPABASE_SERVICE_ROLE_KEY ??
             (process.env.NODE_ENV === 'development' ? 'dev_supabase_service_role_key' : undefined),
+
+        // Convex (server-side observability of the public URL is convenient)
+        NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? process.env.CONVEX_URL,
+
+        // Clerk
+        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+        CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
+        CLERK_JWT_ISSUER_DOMAIN: process.env.CLERK_JWT_ISSUER_DOMAIN,
+        WEBLAB_AUTH_PROVIDER: process.env.WEBLAB_AUTH_PROVIDER,
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? process.env.CLERK_PUBLISHABLE_KEY,
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL,
+        NEXT_PUBLIC_AUTH_PROVIDER: process.env.NEXT_PUBLIC_AUTH_PROVIDER,
         NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
         NEXT_PUBLIC_SHOW_DEV_LOGIN: process.env.NEXT_PUBLIC_SHOW_DEV_LOGIN,
         NEXT_PUBLIC_SUPABASE_URL:
@@ -277,3 +332,22 @@ export const env = createEnv({
      */
     emptyStringAsUndefined: true,
 });
+
+// Server-only mirror check. `NEXT_PUBLIC_AUTH_PROVIDER` is frozen into the
+// client bundle at build time and CANNOT be changed by flipping the runtime
+// env at deploy time. If it diverges from the server-side flag, the editor
+// renders sign-in routes for one provider while the API uses the other —
+// a split-brain that produces auth bounces and 500s in production. Warn
+// loudly at boot rather than waiting for the symptom to surface in the field.
+if (typeof window === 'undefined' && !process.env.SKIP_ENV_VALIDATION) {
+    if (env.WEBLAB_AUTH_PROVIDER !== env.NEXT_PUBLIC_AUTH_PROVIDER) {
+        console.error(
+            `[env] WEBLAB_AUTH_PROVIDER=${env.WEBLAB_AUTH_PROVIDER} but ` +
+                `NEXT_PUBLIC_AUTH_PROVIDER=${env.NEXT_PUBLIC_AUTH_PROVIDER}. ` +
+                `These MUST match — the public mirror is baked into the client ` +
+                `bundle at build time. Sign-in URLs will diverge between server ` +
+                `and client and cause auth bounces. Set both to the same value ` +
+                `in your environment.`,
+        );
+    }
+}

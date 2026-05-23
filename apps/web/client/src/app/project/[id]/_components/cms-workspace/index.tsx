@@ -35,7 +35,7 @@ export const CmsWorkspace = observer(() => {
     return (
         <div
             className={cn(
-                'bg-background absolute inset-0 top-14 z-40 flex flex-col',
+                'bg-background-chrome absolute inset-0 top-14 z-40 flex flex-col',
                 'border-border border-t',
             )}
         >
@@ -44,7 +44,7 @@ export const CmsWorkspace = observer(() => {
                     value={tab}
                     onValueChange={(v) => editorEngine.state.setCmsTab(v as CmsTabValue)}
                 >
-                    <TabsList className="bg-background-tab-strip/70 h-9 gap-0 rounded-md p-0.5">
+                    <TabsList className="bg-background-tab-strip h-9 gap-0 rounded-md p-0.5">
                         <TabsTrigger value={CmsTabValue.COLLECTIONS} className={tabTriggerClass}>
                             <Icons.ListBullet className="h-3.5 w-3.5" />
                             {t(transKeys.cms.workspace.tabs.collections)}

@@ -54,6 +54,8 @@ export const InputContextPills = observer(() => {
         });
     }, [editorEngine.chat.context.context]);
 
+    if (sortedContexts.length === 0) return null;
+
     return (
         <div className="flex flex-row flex-wrap items-center gap-1.5 px-1 pt-1">
             <AnimatePresence mode="popLayout">

@@ -32,7 +32,9 @@ export class HistoryManager {
         private redoStack: Action[] = [],
         private inTransaction: TransactionState = { type: TransactionType.NOT_IN_TRANSACTION },
     ) {
-        makeAutoObservable(this);
+        makeAutoObservable<this, 'persistDebounced'>(this, {
+            persistDebounced: false,
+        });
     }
 
     get canUndo() {

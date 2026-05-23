@@ -3,8 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { APP_NAME } from '@weblab/constants';
 
-import { Routes } from '@/utils/constants';
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { ProjectCreationProvider } from './_context';
 
 export const metadata: Metadata = {
@@ -13,12 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (!user) {
-        redirect(Routes.LOGIN);
+        redirect(getSignInUrl());
     }
     return <ProjectCreationProvider totalSteps={2}>{children} </ProjectCreationProvider>;
 }

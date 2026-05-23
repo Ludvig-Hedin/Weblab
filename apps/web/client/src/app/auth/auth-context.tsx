@@ -7,10 +7,21 @@ import localforage from 'localforage';
 import { SignInMethod } from '@weblab/models/auth';
 import { toast } from '@weblab/ui/sonner';
 
+import { env } from '@/env';
 import { LocalForageKeys } from '@/utils/constants';
 import { devLogin, login } from '../login/actions';
 
 const LAST_SIGN_IN_METHOD_KEY = 'lastSignInMethod';
+
+function isNextRedirectSignal(error: unknown): boolean {
+    return (
+        error instanceof Error &&
+        (error.message === 'NEXT_REDIRECT' ||
+            ('digest' in error &&
+                typeof error.digest === 'string' &&
+                error.digest.startsWith('NEXT_REDIRECT')))
+    );
+}
 
 interface AuthContextType {
     signingInMethod: SignInMethod | null;
@@ -38,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             );
             setLastSignInMethod(lastSignInMethod);
         };
-        getLastSignInMethod();
+        void getLastSignInMethod();
     }, []);
 
     const handleLogin = async (
@@ -92,7 +103,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             await login(method, stagedReturnUrl);
         } catch (error) {
-            if (process.env.NODE_ENV !== 'production') {
+            if (isNextRedirectSignal(error)) {
+                return;
+            }
+            if (env.NODE_ENV !== 'production') {
                 console.error('Error signing in with method:', method, error);
             }
             throw error;
@@ -113,7 +127,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // → /auth/callback → app, identical to the OAuth flow.
             await devLogin(stagedReturnUrl);
         } catch (error) {
-            if (process.env.NODE_ENV !== 'production') {
+            if (isNextRedirectSignal(error)) {
+                return;
+            }
+            if (env.NODE_ENV !== 'production') {
                 console.error('Error signing in (demo):', error);
             }
             const message = error instanceof Error ? error.message : 'Unknown error';

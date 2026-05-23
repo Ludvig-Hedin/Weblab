@@ -11,7 +11,7 @@ export const DeployHistoryTriggerSection = ({ onOpenHistory }: Props) => {
     const editorEngine = useEditorEngine();
 
     const handleClick = () => {
-        editorEngine.state.publishOpen = false;
+        editorEngine.state.setPublishOpen(false);
         onOpenHistory();
     };
 

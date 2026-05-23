@@ -9,6 +9,7 @@ import { Icons } from '@weblab/ui/icons';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 import { api } from '@/trpc/react';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { Routes } from '@/utils/constants';
 
 export const AuthButton = () => {
@@ -37,7 +38,7 @@ export const AuthButton = () => {
                 </>
             ) : (
                 <Button variant="secondary" size="sm" asChild className="cursor-pointer">
-                    <Link href={Routes.LOGIN}>{t('signIn')}</Link>
+                    <Link href={getSignInUrlClient()}>{t('signIn')}</Link>
                 </Button>
             )}
         </div>

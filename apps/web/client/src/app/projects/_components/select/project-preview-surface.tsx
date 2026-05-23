@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
+import { api } from '@/trpc/react';
 import { getFaviconUrl } from './project-card-utils';
 
 interface ProjectPreviewSurfaceProps {
@@ -18,13 +19,14 @@ interface ProjectPreviewSurfaceProps {
 }
 
 // Loading placeholder shown beneath the image / iframe until one of them
-// paints. No grid, no initial letter — those read as "this is the project"
-// rather than "we are still loading," which confused users on the dashboard.
-// A neutral shimmer reads correctly as "fetching preview" and disappears
-// the instant a real preview arrives.
-const PreviewSkeleton = () => (
+// paints. Pulses only while actively waiting for a preview — cards with no
+// preview at all stay still so they don't throb forever.
+const PreviewSkeleton = ({ loading }: { loading: boolean }) => (
     <div
-        className="bg-foreground/4 absolute inset-0 animate-pulse overflow-hidden rounded-[inherit]"
+        className={cn(
+            'bg-foreground/4 absolute inset-0 overflow-hidden rounded-[inherit]',
+            loading && 'animate-pulse',
+        )}
         aria-hidden
     >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)]" />
@@ -63,6 +65,7 @@ export const ProjectPreviewSurface = ({
     className,
 }: ProjectPreviewSurfaceProps) => {
     const [imageFailed, setImageFailed] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeTimedOut, setIframeTimedOut] = useState(false);
     const [faviconFailed, setFaviconFailed] = useState(false);
@@ -72,6 +75,7 @@ export const ProjectPreviewSurface = ({
 
     useEffect(() => {
         setImageFailed(false);
+        setImageLoaded(false);
         setIframeLoaded(false);
         setIframeTimedOut(false);
         setFaviconFailed(false);
@@ -87,6 +91,35 @@ export const ProjectPreviewSurface = ({
     const iframeUrl: string | null =
         siteUrl && !isNonEmbeddable(siteUrl) ? siteUrl : (sandboxPreviewUrl ?? null);
 
+    // Server-side liveness probe. Iframe load handlers fire on 410 Gone
+    // responses (and render the CodeSandbox "this sandbox is gone" page
+    // inside the card), so the previous timeout-only fallback still ended
+    // up showing dead-sandbox HTML. Ask the server whether the URL is
+    // actually alive; if it's 410/404/network-error we skip the iframe
+    // entirely and fall back to the favicon / skeleton.
+    const probeUrl = !shouldRenderImage && iframeUrl ? iframeUrl : '';
+    const livenessQuery = api.sandbox.checkAlive.useQuery(
+        { previewUrl: probeUrl },
+        {
+            enabled: Boolean(probeUrl),
+            // Cache so a workspace with many cards doesn't fire dozens
+            // of HEADs every render. Five minutes is short enough that
+            // a restarted sandbox shows up reasonably soon.
+            staleTime: 5 * 60_000,
+            refetchOnWindowFocus: false,
+        },
+    );
+    const sandboxLooksDead =
+        livenessQuery.data?.state === 'gone' ||
+        livenessQuery.data?.state === 'notFound' ||
+        livenessQuery.data?.state === 'error';
+
+    // Pulse only while actively waiting for a preview to paint.
+    const isLoadingPreview =
+        (Boolean(imageUrl && !imageFailed) && !imageLoaded) ||
+        (Boolean(!imageUrl && iframeUrl) &&
+            (livenessQuery.isLoading || (!sandboxLooksDead && !iframeLoaded && !iframeTimedOut)));
+
     // Give the iframe 6 s before giving up and showing the skeleton fallback.
     // Without this, cards with unresponsive or iframe-blocking preview URLs
     // would display a blank white frame indefinitely.
@@ -97,7 +130,7 @@ export const ProjectPreviewSurface = ({
     }, [iframeLoaded, imageUrl, iframeUrl]);
 
     const shouldRenderIframe = Boolean(
-        !shouldRenderImage && iframeUrl && (iframeLoaded || !iframeTimedOut),
+        !shouldRenderImage && iframeUrl && !sandboxLooksDead && (iframeLoaded || !iframeTimedOut),
     );
     const showFavicon =
         !shouldRenderImage && !shouldRenderIframe && Boolean(faviconUrl && !faviconFailed);
@@ -107,7 +140,7 @@ export const ProjectPreviewSurface = ({
             ref={containerRef}
             className={cn('bg-background-canvas relative overflow-hidden rounded-xl', className)}
         >
-            <PreviewSkeleton />
+            <PreviewSkeleton loading={isLoadingPreview} />
 
             {/* Screenshot — load eagerly + decode async so the first paint
                 replaces the skeleton ASAP. fetchpriority="high" prompts the
@@ -121,6 +154,7 @@ export const ProjectPreviewSurface = ({
                     decoding="async"
                     // @ts-expect-error fetchpriority is valid HTML5 but missing from React types
                     fetchpriority="high"
+                    onLoad={() => setImageLoaded(true)}
                     onError={() => setImageFailed(true)}
                 />
             )}

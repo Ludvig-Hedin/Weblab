@@ -290,10 +290,10 @@
     --destructive: #dc2828; /* #dc2828 */
     --destructive-foreground: #ffffff; /* #ffffff */
 
-    --card: #ffffff; /* #ffffff */
+    --card: #fafafa; /* #fafafa — slightly raised above #ffffff backdrop */
     --card-foreground: #1a1a1a; /* #1a1a1a */
 
-    --popover: #ffffff; /* #ffffff */
+    --popover: #fafafa; /* #fafafa — slightly raised above #ffffff backdrop */
     --popover-foreground: #1a1a1a; /* #1a1a1a */
 
     --icon: #545454; /* #545454 */
@@ -302,8 +302,8 @@
     --icon-disabled: #333333; /* #333333 */
 
     --border: #e6e6e6; /* #e6e6e6 */
-    --border-active: #ababab; /* #ababab */
-    --border-hover: #919191; /* #919191 */
+    --border-active: #919191; /* #919191 — toned down from #ababab for less contrast */
+    --border-hover: #c7c7c7; /* #c7c7c7 — toned down from #919191 for less contrast */
     --border-success: #007fe0; /* #007fe0 blue[500] — semantic */
     --border-warning: #52b4ff; /* #52b4ff blue[300] — semantic */
 
@@ -326,7 +326,7 @@
     --accent-foreground: #1a1a1a; /* #1a1a1a */
 
     --input: #f2f2f2; /* #f2f2f2 */
-    --ring: #e6e6e6; /* #e6e6e6 */
+    --ring: #919191; /* #919191 — visible keyboard focus ring (was invisible at #e6e6e6) */
 
     --radius: 1rem;
 
@@ -564,13 +564,13 @@
     --secondary: #272727; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
     --secondary-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
 
-    --destructive: #dc2828; /* #dc2828 */
+    --destructive: #b91c1c; /* #b91c1c red[700] — toned down from #dc2828 for less contrast in dark mode */
     --destructive-foreground: #ffffff; /* #ffffff */
 
-    --card: #131314; /* #131314 */
+    --card: #1a1a1a; /* #1a1a1a — raised above #131314 backdrop */
     --card-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
 
-    --popover: #131314; /* #131314 */
+    --popover: #1a1a1a; /* #1a1a1a — raised above #131314 backdrop, was collapsing to background */
     --popover-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
 
     --icon: #919191; /* #919191 gray[300] */
@@ -579,22 +579,22 @@
     --icon-disabled: #ababab; /* #ababab gray[200] */
 
     --border: #1f1f1f; /* #1f1f1f gray[800] */
-    --border-active: #787878; /* #787878 gray[400] */
-    --border-hover: #616161; /* #616161 gray[500] */
+    --border-active: #525252; /* #525252 — toned down from #787878 for less contrast */
+    --border-hover: #404040; /* #404040 — toned down from #616161 for less contrast */
     --border-success: #007fe0; /* #007fe0 blue[500] — semantic */
     --border-warning: #52b4ff; /* #52b4ff blue[300] — semantic */
 
     /* Canvas editor surfaces (dark mode) — see docs in /design-system */
     --background-canvas: #1c1c1c; /* #1c1c1c — main canvas viewport */
     --background-chrome: #141414; /* #141414 — top bar, side panels */
-    --background-bar: #121212; /* #121212 — bottom toolbar */
-    --background-bar-active: #2e2e2e; /* #2e2e2e — pressed/active toolbar button */
-    --background-tab-strip: #262626; /* #262626 — tab list container */
-    --background-tab-active: #4a4a4a; /* #4a4a4a — active tab fill (bumped from #383838 for contrast against strip #262626) */
+    --background-bar: #141414; /* #141414 — bottom toolbar (was #121212, lifted to match chrome — bar should never sit below backdrop) */
+    --background-bar-active: #262626; /* #262626 — pressed/active toolbar button (toned down from #2e2e2e) */
+    --background-tab-strip: #2B2B2B; /* #2B2B2B — tab list container (matches v4 input fill) */
+    --background-tab-active: #404040; /* #404040 — active tab fill stands one step above the strip */
     --border-canvas: #212121; /* #212121 — 1px frame around canvas */
-    --border-bar: #242424; /* #242424 — bottom toolbar border */
-    --border-tab-active: #454545; /* #454545 — active tab border */
-    --border-tab-divider: #3d3d3d; /* #3d3d3d — 1×14 vertical divider in tab strip */
+    --border-bar: #1f1f1f; /* #1f1f1f — bottom toolbar border (aligned with --border) */
+    --border-tab-active: #2a2a2a; /* #2a2a2a — active tab border (subtle, was #454545) */
+    --border-tab-divider: #2a2a2a; /* #2a2a2a — 1×14 vertical divider in tab strip */
 
     --muted: #272727; /* #262626 (fixed malformed value) */
     --muted-foreground: #a3a3a3; /* #a3a3a3 — neutralized from 24 5.4% 63.9% (warm taupe) */
@@ -603,7 +603,7 @@
     --accent-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
 
     --input: #272727; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
-    --ring: #d3d3d3; /* #d4d4d4 — neutralized from 24 5.7% 82.9% (warm) */
+    --ring: #525252; /* #525252 — toned down from #d3d3d3 for less contrast (visible to keyboard nav, not aggressive) */
     --sidebar: #18181b;
     --sidebar-foreground: #f4f4f5;
     --sidebar-primary: #1d4ed8;
@@ -725,13 +725,22 @@
         @apply bg-background text-foreground;
     }
     /*
-     * No focus rings policy (CR-002): the previous global rule applied a
-     * ring-2 outline to every focusable element. Per product direction, we
-     * suppress focus rings entirely. NOTE: this removes the WCAG 2.4.7
-     * (Focus Visible) indicator for keyboard users — relying on hover/active
-     * background changes for affordance.
+     * Focus ring policy: keyboard-only.
      *
-     * Per-component `focus-visible:ring-*` and `focus-visible:border-ring`
-     * classes were removed in matching commits to globally enforce the policy.
+     * - `:focus` (covers mouse clicks) → no outline.
+     * - `:focus-visible` (keyboard navigation only) → subtle ring using --ring.
+     *
+     * Modern browsers route mouse focus through `:focus` without `:focus-visible`,
+     * so click-focus stays clean while keyboard users still get a visible target
+     * (WCAG 2.4.7). Components may opt out by setting `outline-none` on
+     * `:focus-visible` themselves.
      */
+    :is(button, [role='button'], a, input, textarea, select, [tabindex]):focus:not(:focus-visible) {
+        outline: none;
+    }
+    :is(button, [role='button'], a, input, textarea, select, [tabindex]):focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+        border-radius: inherit;
+    }
 }

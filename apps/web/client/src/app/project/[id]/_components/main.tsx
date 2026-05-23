@@ -19,9 +19,9 @@ import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
 import { EditorBar } from './editor-bar';
+import { OfflineBanner } from './offline-banner';
 import { LeftPanel } from './left-panel';
 import { MobileLayout } from './mobile-layout';
-import { OfflineBanner } from './offline-banner';
 import { OnboardingTour } from './onboarding-tour';
 import { PreviewOverlay } from './preview-overlay';
 import { ProjectLoadError } from './project-load-error';
@@ -259,11 +259,12 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     leak through). */}
                     {isPreview && <PreviewOverlay />}
 
-                    {/* Offline / sync banner. Visible only when the editor session
-                    is offline or there are queued/dead-letter writes. */}
-                    <div className="pointer-events-none absolute top-16 right-4 z-50 max-w-xs">
-                        <OfflineBanner />
-                    </div>
+                    {/* Offline / sync banner — floating chip, 12px below top bar, 12px from right edge. */}
+                    {!isPreview && !isCms && (
+                        <div className="pointer-events-none absolute right-3 z-50" style={{ top: '68px' }}>
+                            <OfflineBanner />
+                        </div>
+                    )}
 
                     {/* CMS workspace — sits below the top bar (top-14) and replaces
                     the canvas/side panels while in CMS mode. */}

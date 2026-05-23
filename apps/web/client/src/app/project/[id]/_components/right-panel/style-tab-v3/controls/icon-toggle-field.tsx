@@ -67,7 +67,7 @@ export function IconToggleField({
                     // Same row geometry as the other fields — see FIELD_BASE_CLASSES —
                     // but rendered as a segmented group: subtle dividers between items.
                     // No internal padding here; each item handles its own.
-                    'border-input bg-foreground/5 h-[30px] w-full divide-x divide-[var(--input)] rounded-[8px] border dark:bg-[rgb(43,43,43)]',
+                    'border-transparent bg-background-secondary dark:bg-[#101010] h-[30px] w-full divide-x divide-[var(--border)] rounded-[10px] border',
                     className,
                 )}
             >
@@ -89,10 +89,10 @@ export function IconToggleField({
                                 // forces the group to overflow the panel when
                                 // there are 6 options. Focus ring is keyboard-only.
                                 className={cn(
-                                    'text-foreground-tertiary hover:text-foreground-secondary focus-visible:ring-foreground-brand/30 h-full min-w-0 flex-1 shrink cursor-pointer rounded-none px-0 shadow-none transition-[background-color,color,box-shadow,transform] duration-150 outline-none first:rounded-l-[8px] last:rounded-r-[8px] focus-visible:ring-[3px] active:scale-[0.97]',
+                                    'text-foreground-tertiary hover:text-foreground-secondary focus-visible:ring-foreground-brand/30 h-full min-w-0 flex-1 shrink cursor-pointer rounded-none px-0 shadow-none transition-[background-color,color,box-shadow,transform] duration-150 outline-none first:rounded-l-[9px] last:rounded-r-[9px] focus-visible:ring-[3px] active:scale-[0.97]',
                                     isSet
-                                        ? 'data-[state=on]:bg-background data-[state=on]:text-foreground-primary data-[state=on]:shadow-sm dark:data-[state=on]:bg-[rgb(72,72,72)]'
-                                        : 'data-[state=on]:bg-foreground/8 data-[state=on]:text-foreground-secondary',
+                                        ? 'data-[state=on]:bg-foreground-brand/15 data-[state=on]:text-foreground-brand'
+                                        : 'data-[state=on]:bg-foreground-brand/10 data-[state=on]:text-foreground-brand/90',
                                 )}
                             >
                                 {option.icon}

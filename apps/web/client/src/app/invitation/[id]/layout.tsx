@@ -2,7 +2,7 @@ import { type Metadata } from 'next';
 
 import { APP_NAME } from '@weblab/constants';
 
-import { createClient } from '@/utils/supabase/server';
+import { getCurrentUser } from '@/utils/auth/current-user';
 import { HandleAuth } from './_components/auth';
 
 export const metadata: Metadata = {
@@ -11,10 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Layout({ children }: Readonly<{ children: React.ReactNode }>) {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
     if (!user) {
         return <HandleAuth />;

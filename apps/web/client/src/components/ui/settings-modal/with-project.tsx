@@ -34,7 +34,7 @@ export const SettingsModalWithProjects = observer(() => {
     useEffect(() => {
         if (!stateManager.isSettingsModalOpen) return;
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') stateManager.isSettingsModalOpen = false;
+            if (e.key === 'Escape') stateManager.setIsSettingsModalOpen(false);
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
@@ -131,7 +131,7 @@ export const SettingsModalWithProjects = observer(() => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="bg-background/80 fixed inset-0 z-50 backdrop-blur-sm"
-                        onClick={() => (stateManager.isSettingsModalOpen = false)}
+                        onClick={() => stateManager.setIsSettingsModalOpen(false)}
                     />
 
                     {/* Modal */}
@@ -151,7 +151,7 @@ export const SettingsModalWithProjects = observer(() => {
                                         variant="ghost"
                                         size="icon"
                                         className="ml-auto"
-                                        onClick={() => (stateManager.isSettingsModalOpen = false)}
+                                        onClick={() => stateManager.setIsSettingsModalOpen(false)}
                                     >
                                         <Icons.CrossS className="h-4 w-4" />
                                     </Button>
@@ -186,7 +186,7 @@ export const SettingsModalWithProjects = observer(() => {
                                                             : 'text-muted-foreground',
                                                     )}
                                                     onClick={() =>
-                                                        (stateManager.settingsTab = tab.label)
+                                                        stateManager.setSettingsTab(tab.label)
                                                     }
                                                 >
                                                     {tab.icon}
@@ -210,7 +210,7 @@ export const SettingsModalWithProjects = observer(() => {
                                                             : 'text-muted-foreground',
                                                     )}
                                                     onClick={() =>
-                                                        (stateManager.settingsTab = tab.label)
+                                                        stateManager.setSettingsTab(tab.label)
                                                     }
                                                 >
                                                     {tab.icon}

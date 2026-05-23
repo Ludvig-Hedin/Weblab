@@ -111,6 +111,8 @@ Deep dives:
 - `bun db:seed` — if seed data changed
 - `bun install` / `bun add <pkg>` — after adding a dependency
 - `bun format` — after bulk edits to normalize style
+- **DB migrations against remote Supabase** — preauthorized. Apply pending SQL files in `apps/backend/supabase/migrations/` directly via `psql "$SUPABASE_DATABASE_URL" -v ON_ERROR_STOP=1 -f <file>` or the Supabase MCP (`apply_migration`). Use `SUPABASE_DATABASE_URL` from root `.env`. Run additive + backfill migrations without asking. Apply in numeric order. Skip any migration whose header explicitly says "DO NOT APPLY" / requires a soak period (e.g., `0037_workspaces_drop_legacy.sql`).
+- **Sandbox bypass for DB connections** — pooler DNS (`*.pooler.supabase.com`) is blocked by the default sandbox. When `psql` fails with `could not translate host name`, retry the same command with `dangerouslyDisableSandbox: true`. Preauthorized for read/write against `SUPABASE_DATABASE_URL`.
 
 Run these proactively, not only when asked. If a command fails, fix the root cause and re-run.
 
@@ -120,11 +122,13 @@ You **must not** hand off a task to the owner unless one of these hard blockers 
 
 | Blocker | Example |
 |---------|---------|
-| Missing required env var not in `.env.local` | `STRIPE_SECRET_KEY` needed at runtime |
+| Missing required env var not in `.env` / `.env.local` | `STRIPE_SECRET_KEY` needed at runtime |
 | Requires login / OAuth browser flow | Supabase dashboard action, OAuth consent |
-| Targets production or shared infrastructure | Prod DB migration, prod secret rotation |
 | Interactive TTY prompt that cannot be automated | `bun db:reset` if it asks for confirmation |
 | External service credential or manual click | Vercel dashboard toggle, Railway env var |
+| Destructive migration with explicit "do not apply" header | `0037_workspaces_drop_legacy.sql` (soak required) |
+
+**NOT a blocker:** Remote Supabase DB writes / DDL / backfills. The shared remote project (`ttdazmwohrvxsliapwai`) is the dev DB for this repo. Run pending migrations against it directly.
 
 ### When you cannot run a command
 
@@ -350,3 +354,17 @@ Key routing rules:
 - Design system, brand → invoke design-consultation
 - Visual audit, design polish → invoke design-review
 - Architecture review → invoke plan-eng-review
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

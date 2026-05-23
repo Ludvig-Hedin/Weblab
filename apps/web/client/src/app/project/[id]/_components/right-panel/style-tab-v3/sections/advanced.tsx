@@ -199,7 +199,7 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
                 }}
                 placeholder="brand"
                 aria-label="Custom property name"
-                className="border-input bg-foreground/5 hover:bg-foreground/[0.08] focus-visible:border-ring focus-visible:ring-foreground-brand/30 text-mini text-foreground-primary placeholder:text-muted-foreground h-[30px] w-24 min-w-0 rounded-[8px] border px-[10px] transition-colors outline-none focus-visible:ring-[3px] dark:border-white/[0.08] dark:bg-[rgb(50,50,50)] dark:hover:border-white/[0.14] dark:hover:bg-[rgb(58,58,58)]"
+                className="border-border bg-background-secondary hover:bg-background-tertiary hover:border-border-hover focus-visible:border-ring focus-visible:ring-foreground-brand/30 text-mini text-foreground-primary placeholder:text-muted-foreground h-[30px] w-24 min-w-0 rounded-sm border px-[10px] transition-colors outline-none focus-visible:ring-[3px]"
             />
             <TextField
                 value={row.value}

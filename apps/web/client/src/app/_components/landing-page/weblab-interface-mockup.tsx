@@ -17,7 +17,7 @@ type TabId =
     | 'pages'
     | 'images'
     | 'branches';
-type ModeId = 'design' | 'code' | 'preview';
+type ModeId = 'design' | 'code' | 'preview' | 'cms';
 type RightTabId = 'style' | 'chat' | 'comments';
 type PreviewTheme = 'light' | 'dark';
 
@@ -25,6 +25,7 @@ const MODES: { id: ModeId; label: string }[] = [
     { id: 'design', label: 'Design' },
     { id: 'code', label: 'Code' },
     { id: 'preview', label: 'Preview' },
+    { id: 'cms', label: 'CMS' },
 ];
 
 function ModeToggle({
@@ -45,7 +46,7 @@ function ModeToggle({
                             type="button"
                             onClick={() => onChange(m.id)}
                             className={cn(
-                                'cursor-pointer bg-transparent px-3 py-1 text-[12px] whitespace-nowrap transition-colors duration-150 ease-in-out',
+                                'cursor-pointer bg-transparent px-2.5 py-1 text-[11px] whitespace-nowrap transition-colors duration-150 ease-in-out',
                                 m.id === activeMode
                                     ? 'text-foreground-primary'
                                     : 'text-foreground-secondary hover:text-foreground-primary',
@@ -90,27 +91,58 @@ const BRANCHES = [
     { id: 'cms', name: 'feature/cms', active: false, ahead: 0, behind: 3 },
 ];
 
-const PRESET_SENTENCE = 'Add a pricing section with 3 tiers';
-
 type ChatStep =
     | { kind: 'user'; text: string }
     | { kind: 'reasoning'; text: string }
     | { kind: 'tool'; tool: 'create_file' | 'edit_file'; file: string; detail: string }
     | { kind: 'ai'; text: string };
 
-const CHAT_SCRIPT: ChatStep[] = [
-    { kind: 'user', text: PRESET_SENTENCE },
-    { kind: 'reasoning', text: "I'll create a Pricing component and add it to the homepage." },
-    { kind: 'tool', tool: 'create_file', file: 'Pricing.tsx', detail: 'new file' },
-    { kind: 'tool', tool: 'edit_file', file: 'Home.tsx', detail: '1 edit' },
+type CanvasEffect = 'pricing' | 'hero' | 'restyle';
+
+interface ChatRound {
+    prompt: string;
+    reasoning: string;
+    tools: { tool: 'create_file' | 'edit_file'; file: string; detail: string }[];
+    ai: string;
+    effect: CanvasEffect;
+}
+
+const CHAT_ROUNDS: ChatRound[] = [
     {
-        kind: 'ai',
-        text: 'Done. Added a Pricing section with Starter, Pro, and Enterprise tiers below the hero.',
+        prompt: 'Add a pricing section with 3 tiers',
+        reasoning: "I'll create a Pricing component and add it to the homepage.",
+        tools: [
+            { tool: 'create_file', file: 'Pricing.tsx', detail: 'new file' },
+            { tool: 'edit_file', file: 'Home.tsx', detail: '1 edit' },
+        ],
+        ai: 'Done. Added a Pricing section with Starter, Pro, and Enterprise tiers below the hero.',
+        effect: 'pricing',
+    },
+    {
+        prompt: 'Make the hero headline larger',
+        reasoning: 'Bumping the h1 to text-7xl and tightening the leading.',
+        tools: [{ tool: 'edit_file', file: 'Hero.tsx', detail: '2 edits' }],
+        ai: 'Updated. The hero headline is now text-7xl with tighter leading.',
+        effect: 'hero',
+    },
+    {
+        prompt: 'Style the image cards with a teal accent border',
+        reasoning: 'Applying border-teal-300 to the Card component.',
+        tools: [{ tool: 'edit_file', file: 'Card.tsx', detail: '1 edit' }],
+        ai: 'Cards now have a teal accent border on hover and selection.',
+        effect: 'restyle',
     },
 ];
 
-const STEP_DELAYS_MS = [600, 1700, 2900, 4100, 5300];
-const LOOP_RESTART_MS = 13_000;
+// Per-phase timings (ms) inside a single round.
+const TYPE_CHAR_MS = 32; // composer typewriter speed
+const POST_TYPE_PAUSE_MS = 450; // pause after fully typed, before "send"
+const SEND_TO_REASONING_MS = 400;
+const REASONING_TO_TOOL_MS = 1400;
+const TOOL_STAGGER_MS = 900;
+const TOOLS_TO_AI_MS = 700;
+const AI_CHAR_MS = 14; // AI typewriter speed
+const ROUND_END_HOLD_MS = 2200; // pause after AI fully revealed before next round
 
 interface MockLayer {
     id: string;
@@ -456,7 +488,7 @@ function CodeModePanel() {
     const lines = CODE_FILES[activeFile] ?? [];
 
     return (
-        <div className="bg-background-canvas absolute inset-0 top-11 z-[5] flex">
+        <div className="bg-background-canvas absolute inset-0 top-14 z-[5] flex">
             {/* Explorer */}
             <div className="border-border-bar bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
                 <div className="text-foreground-tertiary mb-1 px-1 text-[10px]">Explorer</div>
@@ -608,14 +640,248 @@ function CodeModePanel() {
     );
 }
 
+type PreviewBreakpoint = 'Desktop' | 'Tablet' | 'Mobile';
+
+const PREVIEW_BREAKPOINTS: { id: PreviewBreakpoint; width: number; height: number }[] = [
+    { id: 'Desktop', width: 1440, height: 900 },
+    { id: 'Tablet', width: 768, height: 1024 },
+    { id: 'Mobile', width: 390, height: 844 },
+];
+
 function PreviewModePanel({ onExit }: { onExit: () => void }) {
+    const [breakpoint, setBreakpoint] = useState<PreviewBreakpoint>('Desktop');
+    const [breakpointMenuOpen, setBreakpointMenuOpen] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0);
+    const [fullscreen, setFullscreen] = useState(false);
+    const active = PREVIEW_BREAKPOINTS.find((b) => b.id === breakpoint)!;
+
+    // Visual scale only. Heights drive Tablet/Mobile so they don't overflow.
+    const frameStyle: React.CSSProperties = fullscreen
+        ? { width: '100%', height: '100%' }
+        : breakpoint === 'Desktop'
+          ? { width: 'min(92%, 900px)', aspectRatio: '16 / 10', maxHeight: '100%' }
+          : breakpoint === 'Tablet'
+            ? { height: '90%', aspectRatio: '3 / 4' }
+            : { height: '90%', aspectRatio: '9 / 19' };
+
     return (
         <div className="bg-background-canvas absolute inset-0 z-30 flex flex-col items-stretch">
-            {/* Exit bar pinned to top of preview */}
-            <div className="border-border bg-background-chrome flex h-10 shrink-0 items-center justify-between border-b px-3">
-                <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgb(52_211_153)]" />
-                    <span className="text-foreground-secondary text-[11px]">Preview</span>
+            {/* Tool chrome — matches real preview-overlay, not a fake browser. */}
+            <div className="border-border-bar bg-background-chrome relative z-10 flex h-11 shrink-0 items-center gap-1 border-b px-3">
+                {/* Left: navigation actions */}
+                <div className="flex flex-1 items-center gap-0.5">
+                    <button
+                        type="button"
+                        onClick={onExit}
+                        className="hover:bg-background-bar-active text-foreground-secondary hover:text-foreground-primary flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px]"
+                    >
+                        <Icons.ArrowLeft className="h-3.5 w-3.5" />
+                        <span>Close</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setReloadKey((k) => k + 1)}
+                        className="hover:bg-background-bar-active text-foreground-secondary hover:text-foreground-primary flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px]"
+                    >
+                        <Icons.Reload
+                            key={reloadKey}
+                            className="h-3.5 w-3.5 [animation:spin_0.5s_ease-out_1]"
+                        />
+                        <span>Reload</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setFullscreen((v) => !v)}
+                        className="hover:bg-background-bar-active text-foreground-secondary hover:text-foreground-primary flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px]"
+                    >
+                        <Icons.Corners className="h-3.5 w-3.5" />
+                        <span>{fullscreen ? 'Exit fullscreen' : 'Fullscreen'}</span>
+                    </button>
+                </div>
+
+                {/* Center: breakpoint dropdown + W/H */}
+                {!fullscreen && (
+                    <div className="flex items-center gap-1.5">
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setBreakpointMenuOpen((v) => !v)}
+                                onBlur={() => setTimeout(() => setBreakpointMenuOpen(false), 120)}
+                                className="bg-background-bar-active text-foreground-primary flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px]"
+                            >
+                                <span>{breakpoint}</span>
+                                <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3" />
+                            </button>
+                            {breakpointMenuOpen && (
+                                <div className="border-border bg-background-chrome absolute top-full left-1/2 z-50 mt-1 flex w-[140px] -translate-x-1/2 flex-col rounded-md border p-1 shadow-xl">
+                                    {PREVIEW_BREAKPOINTS.map((bp) => (
+                                        <button
+                                            key={bp.id}
+                                            type="button"
+                                            onMouseDown={() => {
+                                                setBreakpoint(bp.id);
+                                                setBreakpointMenuOpen(false);
+                                            }}
+                                            className={cn(
+                                                'hover:bg-background-bar-active flex items-center gap-2 rounded-sm px-2 py-1 text-left text-[11px]',
+                                                bp.id === breakpoint
+                                                    ? 'text-foreground-primary'
+                                                    : 'text-foreground-secondary',
+                                            )}
+                                        >
+                                            <span className="flex-1">{bp.id}</span>
+                                            <span className="text-foreground-tertiary tabular-nums">
+                                                {bp.width}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-background-bar-active text-foreground-primary flex h-7 items-center gap-1 rounded-md px-2 text-[11px] tabular-nums">
+                            <span className="w-9 text-right">{active.width}</span>
+                            <span className="text-foreground-tertiary text-[10px] font-medium">
+                                W
+                            </span>
+                        </div>
+                        <div className="bg-background-bar-active text-foreground-primary flex h-7 items-center gap-1 rounded-md px-2 text-[11px] tabular-nums">
+                            <span className="w-9 text-right">{active.height}</span>
+                            <span className="text-foreground-tertiary text-[10px] font-medium">
+                                H
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Right: Publish */}
+                <div className="flex flex-1 items-center justify-end">
+                    <button
+                        type="button"
+                        className="bg-foreground text-background flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium"
+                    >
+                        <Icons.Globe className="h-3.5 w-3.5" />
+                        <span>Publish</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Preview area */}
+            <div className="bg-background-canvas relative flex flex-1 items-center justify-center overflow-hidden p-6">
+                <div
+                    key={reloadKey}
+                    className="bg-background-secondary border-border/40 group relative overflow-hidden rounded-md border shadow-2xl shadow-black/50 transition-[width,max-width,aspect-ratio] duration-300 ease-out"
+                    style={frameStyle}
+                >
+                    <div className="h-full w-full overflow-hidden">
+                        {breakpoint === 'Mobile' ? <DesignMockupMobile /> : <DesignMockup />}
+                    </div>
+                    {/* Drag handle hints — visual only */}
+                    {!fullscreen && (
+                        <>
+                            <div className="bg-foreground-tertiary/30 absolute top-1/2 -left-1 h-12 w-1 -translate-y-1/2 rounded-full opacity-0 transition-opacity group-hover:opacity-100" />
+                            <div className="bg-foreground-tertiary/30 absolute top-1/2 -right-1 h-12 w-1 -translate-y-1/2 rounded-full opacity-0 transition-opacity group-hover:opacity-100" />
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+type CmsTab = 'collections' | 'fields' | 'sources';
+
+const CMS_COLLECTIONS = [
+    {
+        id: 'lairs',
+        name: 'Lairs',
+        count: 12,
+        updated: '2m ago',
+        slug: '/lairs',
+        fields: 6,
+    },
+    {
+        id: 'henchmen',
+        name: 'Henchmen',
+        count: 47,
+        updated: '1h ago',
+        slug: '/team',
+        fields: 4,
+    },
+    {
+        id: 'mood-board',
+        name: 'Mood Board',
+        count: 124,
+        updated: 'Yesterday',
+        slug: '/inspiration',
+        fields: 3,
+    },
+    {
+        id: 'tools',
+        name: 'Evil Tools',
+        count: 31,
+        updated: '3d ago',
+        slug: '/arsenal',
+        fields: 5,
+    },
+];
+
+const CMS_ENTRIES = [
+    { id: 1, title: 'Volcano lair — sublevel 7', status: 'Published', updated: 'May 18' },
+    { id: 2, title: 'Underwater glass vault', status: 'Published', updated: 'May 16' },
+    { id: 3, title: 'Brutalist mountain bunker', status: 'Draft', updated: 'May 14' },
+    { id: 4, title: 'Floating cloud fortress', status: 'Published', updated: 'May 12' },
+    { id: 5, title: 'Forgotten library reading room', status: 'Scheduled', updated: 'May 22' },
+];
+
+const CMS_FIELDS = [
+    { name: 'title', type: 'Text', required: true },
+    { name: 'cover', type: 'Image', required: true },
+    { name: 'body', type: 'Rich Text', required: false },
+    { name: 'capacity', type: 'Number', required: false },
+    { name: 'tags', type: 'Multi-select', required: false },
+    { name: 'published_at', type: 'Date', required: false },
+];
+
+function CmsModePanel({ onExit }: { onExit: () => void }) {
+    const [activeTab, setActiveTab] = useState<CmsTab>('collections');
+    const [activeCollection, setActiveCollection] = useState<string>('lairs');
+    return (
+        <div className="bg-background absolute inset-0 top-14 z-30 flex flex-col">
+            {/* Header */}
+            <div className="border-border bg-background-chrome flex h-11 shrink-0 items-center justify-between border-b px-3">
+                <div className="bg-background-tab-strip/70 flex h-8 items-center gap-0 rounded-md p-0.5">
+                    {[
+                        {
+                            id: 'collections' as const,
+                            label: 'Collections',
+                            icon: 'ListBullet' as const,
+                        },
+                        { id: 'fields' as const, label: 'Fields', icon: 'Tokens' as const },
+                        { id: 'sources' as const, label: 'Sources', icon: 'Layers' as const },
+                    ].map((tab, idx, arr) => {
+                        const Icon = Icons[tab.icon];
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <React.Fragment key={tab.id}>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={cn(
+                                        'flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-[11px] transition-colors',
+                                        isActive
+                                            ? 'bg-background-tab-active border-border-tab-active text-foreground'
+                                            : 'text-foreground-secondary hover:text-foreground border-transparent',
+                                    )}
+                                >
+                                    <Icon className="h-3 w-3" />
+                                    {tab.label}
+                                </button>
+                                {idx < arr.length - 1 && (
+                                    <div className="bg-border-tab-divider h-3 w-px self-center" />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
                 <button
                     type="button"
@@ -623,34 +889,232 @@ function PreviewModePanel({ onExit }: { onExit: () => void }) {
                     className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px]"
                 >
                     <Icons.CrossL className="h-3 w-3" />
-                    Exit preview
+                    Close CMS
                 </button>
             </div>
-            <div className="flex flex-1 items-start justify-center overflow-auto pt-8">
-                <div className="border-border bg-background-chrome relative w-[80%] max-w-3xl overflow-hidden rounded-lg border shadow-2xl">
-                    <div className="border-border bg-background-bar/80 flex h-7 items-center gap-2 border-b px-3">
-                        <div className="flex gap-1.5">
+
+            {activeTab === 'collections' && (
+                <div className="flex flex-1 overflow-hidden">
+                    {/* Collection list */}
+                    <div className="border-border bg-background-bar/40 flex w-56 shrink-0 flex-col border-r">
+                        <div className="border-border-bar/60 flex h-9 items-center justify-between border-b px-3">
+                            <span className="text-foreground-tertiary text-[10px] font-medium tracking-wide uppercase">
+                                Collections
+                            </span>
                             <button
                                 type="button"
-                                onClick={onExit}
-                                aria-label="Close preview"
-                                className="h-2.5 w-2.5 rounded-full bg-rose-400/60 transition-transform hover:scale-125"
-                            />
-                            <div className="h-2.5 w-2.5 rounded-full bg-amber-300/60" />
-                            <div className="h-2.5 w-2.5 rounded-full bg-emerald-400/60" />
+                                aria-label="New collection"
+                                className="text-foreground-tertiary hover:bg-background-secondary hover:text-foreground flex h-5 w-5 items-center justify-center rounded"
+                            >
+                                <Icons.Plus className="h-3 w-3" />
+                            </button>
                         </div>
-                        <div className="border-border bg-background-secondary/60 mx-2 flex h-4 flex-1 items-center gap-1.5 rounded-sm border-[0.5px] px-2">
-                            <Icons.LockClosed className="text-foreground-tertiary h-2.5 w-2.5" />
-                            <span className="text-foreground-tertiary truncate text-[10px]">
-                                villainterest.weblab.app
-                            </span>
+                        <div className="flex flex-col gap-0.5 p-1.5">
+                            {CMS_COLLECTIONS.map((c) => {
+                                const isActive = c.id === activeCollection;
+                                return (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => setActiveCollection(c.id)}
+                                        className={cn(
+                                            'flex flex-col items-stretch rounded px-2 py-1.5 text-left text-[11px] transition-colors',
+                                            isActive
+                                                ? 'bg-background-bar-active text-foreground'
+                                                : 'text-foreground-secondary hover:bg-background-secondary',
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            <Icons.Cube className="h-3 w-3 shrink-0" />
+                                            <span className="truncate font-medium">{c.name}</span>
+                                            <span className="text-foreground-tertiary ml-auto text-[10px] tabular-nums">
+                                                {c.count}
+                                            </span>
+                                        </div>
+                                        <div className="text-foreground-tertiary mt-0.5 ml-4.5 truncate font-mono text-[9px]">
+                                            {c.slug}
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
-                    <div className="bg-background-canvas relative aspect-[16/10] overflow-hidden">
-                        <DesignMockup />
+
+                    {/* Entries table */}
+                    <div className="flex flex-1 flex-col">
+                        <div className="border-border bg-background-chrome flex h-10 items-center justify-between border-b px-3">
+                            <div className="flex items-center gap-2">
+                                <Icons.Cube className="text-foreground-secondary h-3.5 w-3.5" />
+                                <span className="text-foreground text-[12px] font-medium capitalize">
+                                    {CMS_COLLECTIONS.find((c) => c.id === activeCollection)?.name}
+                                </span>
+                                <span className="text-foreground-tertiary text-[10px]">
+                                    {CMS_COLLECTIONS.find((c) => c.id === activeCollection)?.count}{' '}
+                                    entries
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <div className="border-border bg-background-secondary/60 flex h-6 items-center gap-1.5 rounded-md border px-2">
+                                    <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
+                                    <span className="text-foreground-tertiary text-[10px]">
+                                        Search…
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="border-border bg-foreground/95 text-background flex h-6 items-center gap-1 rounded-md border px-2 text-[10px] font-medium"
+                                >
+                                    <Icons.Plus className="h-3 w-3" />
+                                    New entry
+                                </button>
+                            </div>
+                        </div>
+                        <div className="border-border bg-background-bar/40 grid h-7 shrink-0 grid-cols-[1fr_5rem_5rem_2rem] items-center border-b px-3 text-[10px]">
+                            <span className="text-foreground-tertiary">Title</span>
+                            <span className="text-foreground-tertiary">Status</span>
+                            <span className="text-foreground-tertiary">Updated</span>
+                            <span></span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                            {CMS_ENTRIES.map((e) => (
+                                <div
+                                    key={e.id}
+                                    className="border-border/60 hover:bg-background-secondary/40 grid h-9 cursor-pointer grid-cols-[1fr_5rem_5rem_2rem] items-center border-b px-3 text-[11px]"
+                                >
+                                    <span className="text-foreground truncate">{e.title}</span>
+                                    <span
+                                        className={cn(
+                                            'inline-flex items-center gap-1 text-[10px]',
+                                            e.status === 'Published' &&
+                                                'text-emerald-600 dark:text-emerald-300',
+                                            e.status === 'Draft' && 'text-foreground-tertiary',
+                                            e.status === 'Scheduled' &&
+                                                'text-amber-600 dark:text-amber-300',
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                'h-1.5 w-1.5 rounded-full',
+                                                e.status === 'Published' && 'bg-emerald-400',
+                                                e.status === 'Draft' && 'bg-foreground-tertiary',
+                                                e.status === 'Scheduled' && 'bg-amber-400',
+                                            )}
+                                        />
+                                        {e.status}
+                                    </span>
+                                    <span className="text-foreground-tertiary text-[10px] tabular-nums">
+                                        {e.updated}
+                                    </span>
+                                    <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3 -rotate-90" />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {activeTab === 'fields' && (
+                <div className="flex flex-1 flex-col overflow-y-auto p-4">
+                    <div className="text-foreground-tertiary mb-2 text-[10px] font-medium tracking-wide uppercase">
+                        Schema — {CMS_COLLECTIONS.find((c) => c.id === activeCollection)?.name}
+                    </div>
+                    <div className="border-border bg-background-chrome max-w-2xl overflow-hidden rounded-md border">
+                        {CMS_FIELDS.map((f, i) => (
+                            <div
+                                key={f.name}
+                                className={cn(
+                                    'grid grid-cols-[1.5fr_1fr_5rem_2rem] items-center gap-3 px-3 py-2 text-[11px]',
+                                    i < CMS_FIELDS.length - 1 && 'border-border/60 border-b',
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Icons.Tokens className="text-foreground-tertiary h-3 w-3" />
+                                    <span className="text-foreground font-mono">{f.name}</span>
+                                </div>
+                                <span className="text-foreground-secondary text-[10px]">
+                                    {f.type}
+                                </span>
+                                {f.required ? (
+                                    <span className="text-[10px] text-amber-600 dark:text-amber-300">
+                                        Required
+                                    </span>
+                                ) : (
+                                    <span className="text-foreground-tertiary text-[10px]">
+                                        Optional
+                                    </span>
+                                )}
+                                <Icons.DotsHorizontal className="text-foreground-tertiary h-3 w-3" />
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        className="border-border bg-background-secondary/40 hover:bg-background-secondary text-foreground-secondary mt-2 flex h-8 max-w-2xl items-center justify-center gap-1.5 rounded-md border border-dashed text-[11px]"
+                    >
+                        <Icons.Plus className="h-3 w-3" />
+                        Add field
+                    </button>
+                </div>
+            )}
+
+            {activeTab === 'sources' && (
+                <div className="flex flex-1 flex-col gap-3 p-4">
+                    <div className="text-foreground-tertiary text-[10px] font-medium tracking-wide uppercase">
+                        Connected sources
+                    </div>
+                    <div className="grid max-w-2xl grid-cols-2 gap-2">
+                        {[
+                            { name: 'Supabase', status: 'Connected', icon: 'Layers' as const },
+                            { name: 'Notion', status: 'Connected', icon: 'File' as const },
+                            {
+                                name: 'Airtable',
+                                status: 'Not connected',
+                                icon: 'Component' as const,
+                            },
+                            { name: 'Sanity', status: 'Not connected', icon: 'Cube' as const },
+                        ].map((s) => {
+                            const Icon = Icons[s.icon] as React.FC<{ className?: string }>;
+                            const isConnected = s.status === 'Connected';
+                            return (
+                                <div
+                                    key={s.name}
+                                    className="border-border bg-background-chrome flex items-center justify-between gap-2 rounded-md border p-3"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Icon className="text-foreground-secondary h-4 w-4" />
+                                        <div className="flex flex-col">
+                                            <span className="text-foreground text-[12px]">
+                                                {s.name}
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    'text-[10px]',
+                                                    isConnected
+                                                        ? 'text-emerald-600 dark:text-emerald-300'
+                                                        : 'text-foreground-tertiary',
+                                                )}
+                                            >
+                                                {s.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className={cn(
+                                            'rounded-md px-2 py-1 text-[10px] font-medium',
+                                            isConnected
+                                                ? 'text-foreground-tertiary hover:bg-background-secondary'
+                                                : 'bg-foreground/95 text-background',
+                                        )}
+                                    >
+                                        {isConnected ? 'Manage' : 'Connect'}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -695,7 +1159,7 @@ function NotesComponent() {
 
 function UserMessage({ text }: { text: string }) {
     return (
-        <div className="flex w-full flex-row justify-end px-2">
+        <div className="animate-in fade-in slide-in-from-bottom-1 flex w-full flex-row justify-end px-2 duration-300">
             <div className="bg-background-secondary text-foreground-secondary border-border ml-8 flex w-[80%] flex-col rounded-lg rounded-br-none border-[0.5px] p-2 shadow-sm">
                 <div className="text-xs font-light">{text}</div>
             </div>
@@ -703,11 +1167,36 @@ function UserMessage({ text }: { text: string }) {
     );
 }
 
-function AiMessage({ text }: { text: string }) {
+function AiMessage({ text, typewriter = false }: { text: string; typewriter?: boolean }) {
+    const reduced = usePrefersReducedMotion();
+    const [revealed, setRevealed] = useState(typewriter && !reduced ? 0 : text.length);
+
+    useEffect(() => {
+        if (!typewriter || reduced) {
+            setRevealed(text.length);
+            return;
+        }
+        setRevealed(0);
+        let i = 0;
+        const id = setInterval(() => {
+            i += 1;
+            setRevealed(i);
+            if (i >= text.length) clearInterval(id);
+        }, AI_CHAR_MS);
+        return () => clearInterval(id);
+    }, [text, typewriter, reduced]);
+
+    const isFullyRevealed = revealed >= text.length;
+
     return (
-        <div className="flex w-full flex-row justify-start px-2">
+        <div className="animate-in fade-in flex w-full flex-row justify-start px-2 duration-500">
             <div className="text-foreground-primary mr-8 flex w-[90%] flex-col rounded-lg rounded-bl-none p-1">
-                <div className="mt-1 text-xs leading-4.5 font-light">{text}</div>
+                <div className="mt-1 text-xs leading-4.5 font-light">
+                    {text.slice(0, revealed)}
+                    {!isFullyRevealed && (
+                        <span className="bg-foreground/70 ml-0.5 inline-block h-3 w-px animate-pulse align-middle" />
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -715,7 +1204,7 @@ function AiMessage({ text }: { text: string }) {
 
 function ReasoningMessage({ text, active }: { text: string; active: boolean }) {
     return (
-        <div className="flex w-full flex-row justify-start px-2">
+        <div className="animate-in fade-in flex w-full flex-row justify-start px-2 duration-400">
             <div className="text-foreground-secondary flex items-start gap-1.5 px-1">
                 {active ? (
                     <Icons.LoadingSpinner className="mt-0.5 h-3 w-3 shrink-0 animate-spin" />
@@ -748,7 +1237,7 @@ function ToolCallCard({
     active: boolean;
 }) {
     return (
-        <div className="px-2">
+        <div className="animate-in fade-in slide-in-from-bottom-1 px-2 duration-300">
             <div className="border-border bg-background-secondary/60 relative rounded-md border backdrop-blur">
                 <div className="text-foreground-secondary flex items-center justify-between px-2 py-1.5">
                     <div className="flex min-w-0 items-center gap-1.5">
@@ -785,40 +1274,14 @@ function usePrefersReducedMotion() {
     return reduced;
 }
 
-function ScriptedChat() {
-    const reduced = usePrefersReducedMotion();
-    const [visible, setVisible] = useState(reduced ? CHAT_SCRIPT.length : 0);
+function ScriptedChat({ messages }: { messages: ChatStep[] }) {
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (reduced) {
-            setVisible(CHAT_SCRIPT.length);
-            return;
-        }
-
-        let stepTimers: ReturnType<typeof setTimeout>[] = [];
-        let loopTimer: ReturnType<typeof setTimeout>;
-
-        const play = () => {
-            setVisible(0);
-            stepTimers = STEP_DELAYS_MS.map((delay, i) =>
-                setTimeout(() => setVisible(i + 1), delay),
-            );
-            loopTimer = setTimeout(play, LOOP_RESTART_MS);
-        };
-
-        play();
-        return () => {
-            stepTimers.forEach(clearTimeout);
-            clearTimeout(loopTimer);
-        };
-    }, [reduced]);
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [visible]);
+    }, [messages]);
 
     return (
         <div
@@ -826,10 +1289,11 @@ function ScriptedChat() {
             className="flex flex-1 flex-col gap-2 overflow-y-auto py-3"
             style={{ scrollbarWidth: 'none' }}
         >
-            {CHAT_SCRIPT.slice(0, visible).map((step, idx) => {
-                const isLast = idx === visible - 1;
+            {messages.map((step, idx) => {
+                const isLast = idx === messages.length - 1;
                 if (step.kind === 'user') return <UserMessage key={idx} text={step.text} />;
-                if (step.kind === 'ai') return <AiMessage key={idx} text={step.text} />;
+                if (step.kind === 'ai')
+                    return <AiMessage key={idx} text={step.text} typewriter={isLast} />;
                 if (step.kind === 'reasoning')
                     return <ReasoningMessage key={idx} text={step.text} active={isLast} />;
                 return (
@@ -844,6 +1308,130 @@ function ScriptedChat() {
             })}
         </div>
     );
+}
+
+interface ChatSequenceState {
+    messages: ChatStep[];
+    composerText: string;
+    composerTyping: boolean; // true while typing OR before send (cursor visible)
+}
+
+function useChatSequence(onCanvasEffect: (effect: CanvasEffect) => void): ChatSequenceState {
+    const reduced = usePrefersReducedMotion();
+    const [messages, setMessages] = useState<ChatStep[]>([]);
+    const [composerText, setComposerText] = useState('');
+    const [composerTyping, setComposerTyping] = useState(true);
+    const effectRef = useRef(onCanvasEffect);
+    effectRef.current = onCanvasEffect;
+
+    useEffect(() => {
+        if (reduced) {
+            const last = CHAT_ROUNDS[CHAT_ROUNDS.length - 1]!;
+            setMessages([
+                { kind: 'user', text: last.prompt },
+                ...last.tools.map((t) => ({ kind: 'tool' as const, ...t })),
+                { kind: 'ai', text: last.ai },
+            ]);
+            setComposerText('');
+            setComposerTyping(false);
+            effectRef.current(last.effect);
+            return;
+        }
+
+        let cancelled = false;
+        const timers: ReturnType<typeof setTimeout>[] = [];
+        const intervals: ReturnType<typeof setInterval>[] = [];
+        const after = (fn: () => void, delay: number) => {
+            const id = setTimeout(() => {
+                if (!cancelled) fn();
+            }, delay);
+            timers.push(id);
+            return id;
+        };
+
+        const playRound = (idx: number) => {
+            if (cancelled) return;
+            const round = CHAT_ROUNDS[idx]!;
+
+            // 1. Typewriter prompt into composer.
+            setComposerText('');
+            setComposerTyping(true);
+            let charIdx = 0;
+            const typeId = setInterval(() => {
+                if (cancelled) {
+                    clearInterval(typeId);
+                    return;
+                }
+                charIdx += 1;
+                setComposerText(round.prompt.slice(0, charIdx));
+                if (charIdx >= round.prompt.length) {
+                    clearInterval(typeId);
+
+                    // 2. Pause, then "send": clear composer + push user message.
+                    after(() => {
+                        setComposerText('');
+                        setComposerTyping(false);
+                        setMessages((m) => [...m, { kind: 'user', text: round.prompt }]);
+
+                        // 3. Reasoning shimmer.
+                        after(() => {
+                            setMessages((m) => [
+                                ...m,
+                                { kind: 'reasoning', text: round.reasoning },
+                            ]);
+                        }, SEND_TO_REASONING_MS);
+
+                        // 4. Tool calls stagger in.
+                        round.tools.forEach((tool, i) => {
+                            after(
+                                () => {
+                                    setMessages((m) => [...m, { kind: 'tool', ...tool }]);
+                                    // Trigger canvas effect on last tool.
+                                    if (i === round.tools.length - 1) {
+                                        effectRef.current(round.effect);
+                                    }
+                                },
+                                SEND_TO_REASONING_MS + REASONING_TO_TOOL_MS + i * TOOL_STAGGER_MS,
+                            );
+                        });
+
+                        // 5. AI response.
+                        const aiDelay =
+                            SEND_TO_REASONING_MS +
+                            REASONING_TO_TOOL_MS +
+                            round.tools.length * TOOL_STAGGER_MS +
+                            TOOLS_TO_AI_MS;
+                        after(() => {
+                            setMessages((m) => [...m, { kind: 'ai', text: round.ai }]);
+                        }, aiDelay);
+
+                        // 6. After AI fully typewrites + hold → next round or restart.
+                        const aiRevealMs = round.ai.length * AI_CHAR_MS;
+                        const totalEnd = aiDelay + aiRevealMs + ROUND_END_HOLD_MS;
+                        after(() => {
+                            if (idx + 1 >= CHAT_ROUNDS.length) {
+                                // Reset for full loop.
+                                setMessages([]);
+                                playRound(0);
+                            } else {
+                                playRound(idx + 1);
+                            }
+                        }, totalEnd);
+                    }, POST_TYPE_PAUSE_MS);
+                }
+            }, TYPE_CHAR_MS);
+            intervals.push(typeId);
+        };
+
+        playRound(0);
+        return () => {
+            cancelled = true;
+            timers.forEach(clearTimeout);
+            intervals.forEach(clearInterval);
+        };
+    }, [reduced]);
+
+    return { messages, composerText, composerTyping };
 }
 
 export function WeblabInterfaceMockup() {
@@ -864,11 +1452,14 @@ export function WeblabInterfaceMockup() {
     const [canvasSelected, setCanvasSelected] = useState<'home' | 'mobile' | null>('home');
     const [activeRightTab, setActiveRightTab] = useState<RightTabId>('chat');
     const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'comment'>('cursor');
-    const [zoomPct, setZoomPct] = useState(100);
+    const [zoomPct, setZoomPct] = useState(75);
     const [previewTheme, setPreviewTheme] = useState<PreviewTheme>('dark');
     const [leftPanelPinned, setLeftPanelPinned] = useState(true);
     const [comments, setComments] = useState<{ id: number; x: number; y: number; text: string }[]>(
-        () => [{ id: Date.now(), x: 32, y: 38, text: 'Make this image larger' }],
+        () => [
+            { id: Date.now(), x: 32, y: 38, text: 'Make this image larger' },
+            { id: Date.now() + 1, x: 72, y: 22, text: 'Great heading, love it!' },
+        ],
     );
     const [openCommentId, setOpenCommentId] = useState<number | null>(null);
     const [restyleColor, setRestyleColor] = useState<(typeof RESTYLE_COLORS)[number]['id']>('teal');
@@ -902,13 +1493,144 @@ export function WeblabInterfaceMockup() {
         };
     }, []);
 
+    const [chatModelLabel] = useState('Sonnet 4.6');
+    const [chatComposerMode, setChatComposerMode] = useState<'Build' | 'Ask' | 'Plan'>('Build');
+    const [chatComposerOpen, setChatComposerOpen] = useState(false);
+    const [presence, setPresence] = useState([
+        { id: 'm', name: 'Mira', color: 'bg-amber-300', x: 68, y: 14 },
+        { id: 'k', name: 'Kai', color: 'bg-sky-300', x: 84, y: 72 },
+    ]);
+
+    // Chat sequence drives canvas demo: each round triggers a visible canvas change.
+    const handleCanvasEffect = useCallback(
+        (effect: CanvasEffect) => {
+            setCanvasSelected('home');
+            if (effect === 'pricing') {
+                setLayers((prev) => {
+                    if (prev.some((l) => l.id === 'pricing')) return prev;
+                    const footerIdx = prev.findIndex((l) => l.id === 'footer');
+                    const inserted: MockLayer = {
+                        id: 'pricing',
+                        name: 'Pricing Section',
+                        tagName: 'COMPONENT',
+                        level: 1,
+                        isInstance: false,
+                    };
+                    if (footerIdx < 0) return [...prev, inserted];
+                    const next = [...prev];
+                    next.splice(footerIdx, 0, inserted);
+                    return next;
+                });
+                setSelectedLayer('pricing');
+                setRestyleColor('brand');
+                triggerSaved();
+            } else if (effect === 'hero') {
+                setSelectedLayer('hero');
+                setRestyleColor('amber');
+                triggerSaved();
+            } else if (effect === 'restyle') {
+                setSelectedLayer('grid');
+                setRestyleColor('teal');
+                triggerSaved();
+            }
+        },
+        [triggerSaved],
+    );
+    const {
+        messages: chatMessages,
+        composerText,
+        composerTyping,
+    } = useChatSequence(handleCanvasEffect);
+
     const [isPanning, setIsPanning] = useState(false);
-    const [panOffset, setPanOffset] = useState({ x: 60, y: -30 });
+    const [isSpacePanning, setIsSpacePanning] = useState(false);
+    const [panOffset, setPanOffset] = useState({ x: 20, y: 10 });
     const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+    const canvasRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const el = canvasRef.current;
+        if (!el) return;
+        const onWheel = (e: WheelEvent) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            e.preventDefault();
+            const delta = -e.deltaY;
+            setZoomPct((z) => Math.max(25, Math.min(300, Math.round(z + delta * 0.6))));
+        };
+        el.addEventListener('wheel', onWheel, { passive: false });
+        return () => el.removeEventListener('wheel', onWheel);
+    }, []);
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.code !== 'Space' || e.repeat) return;
+            const t = e.target as HTMLElement;
+            if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+            e.preventDefault();
+            setIsSpacePanning(true);
+        };
+        const onKeyUp = (e: KeyboardEvent) => {
+            if (e.code !== 'Space') return;
+            setIsSpacePanning(false);
+            setIsPanning(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+        };
+    }, []);
+
+    useEffect(() => {
+        const waypoints = [
+            [
+                { x: 68, y: 14 },
+                { x: 42, y: 32 },
+                { x: 55, y: 58 },
+                { x: 76, y: 44 },
+                { x: 32, y: 25 },
+            ],
+            [
+                { x: 84, y: 72 },
+                { x: 62, y: 80 },
+                { x: 48, y: 65 },
+                { x: 70, y: 50 },
+                { x: 85, y: 85 },
+            ],
+        ];
+        const indices = [0, 0];
+        const timers: ReturnType<typeof setInterval>[] = [];
+        waypoints.forEach((pts, i) => {
+            const t = setInterval(
+                () => {
+                    indices[i] = ((indices[i] ?? 0) + 1) % pts.length;
+                    const pos = pts[indices[i]]!;
+                    setPresence((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...pos } : p)));
+                },
+                2400 + i * 1100,
+            );
+            timers.push(t);
+        });
+        return () => timers.forEach(clearInterval);
+    }, []);
+
+    useEffect(() => {
+        const id = setTimeout(() => {
+            setComments((prev) => [
+                ...prev,
+                { id: Date.now(), x: 48, y: 62, text: 'This button needs more padding' },
+            ]);
+        }, 8000);
+        return () => clearTimeout(id);
+    }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if ((e.target as HTMLElement).closest('[data-canvas-element]')) return;
-        if ((e.target as HTMLElement).closest('[data-restyle-pill]')) return;
+        const isMiddle = e.button === 1;
+        if (!isMiddle && activeTool !== 'hand' && !isSpacePanning) return;
+        if (!isMiddle && (e.target as HTMLElement).closest('[data-canvas-element]')) return;
+        if (!isMiddle && (e.target as HTMLElement).closest('[data-restyle-pill]')) return;
+        if (isMiddle) e.preventDefault();
         setIsPanning(true);
         setLastMousePos({ x: e.clientX, y: e.clientY });
     };
@@ -975,6 +1697,7 @@ export function WeblabInterfaceMockup() {
             {activeMode === 'preview' && (
                 <PreviewModePanel onExit={() => setActiveMode('design')} />
             )}
+            {activeMode === 'cms' && <CmsModePanel onExit={() => setActiveMode('design')} />}
             {/* Canvas content (behind chrome) — Design mode */}
             <div
                 className={cn(
@@ -982,8 +1705,9 @@ export function WeblabInterfaceMockup() {
                     activeMode !== 'design' && 'hidden',
                 )}
                 style={{
-                    transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
-                    transition: isPanning ? 'none' : 'transform 0.1s ease-out',
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomPct / 100})`,
+                    transformOrigin: '50% 0%',
+                    transition: isPanning ? 'none' : 'transform 0.15s ease-out',
                 }}
             >
                 <NotesComponent />
@@ -994,7 +1718,20 @@ export function WeblabInterfaceMockup() {
                         homeBorderClass,
                     )}
                     onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => setCanvasSelected('home')}
+                    onClick={(e) => {
+                        setCanvasSelected('home');
+                        if (activeTool === 'comment') {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const x = ((e.clientX - rect.left) / rect.width) * 100;
+                            const y = ((e.clientY - rect.top) / rect.height) * 100;
+                            setComments((prev) => [
+                                ...prev,
+                                { id: Date.now(), x, y, text: 'New comment' },
+                            ]);
+                            setActiveRightTab('comments');
+                            setActiveTool('cursor');
+                        }
+                    }}
                 >
                     <div className="absolute -top-7 left-1/2 z-50 flex h-6 w-full -translate-x-1/2 flex-row items-center gap-2.5 rounded-lg px-1 text-xs backdrop-blur-lg">
                         <div
@@ -1055,6 +1792,87 @@ export function WeblabInterfaceMockup() {
                         </div>
                     )}
                     <DesignMockup />
+                    {/* Comments anchored to the artboard so they pan/zoom with it. */}
+                    {comments.map((c) => (
+                        <div
+                            key={c.id}
+                            style={{ left: `${c.x}%`, top: `${c.y}%` }}
+                            className="pointer-events-auto absolute z-20 -translate-x-1/2 -translate-y-full"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenCommentId((id) => (id === c.id ? null : c.id));
+                                }}
+                                className="bg-foreground-brand text-background hover:bg-foreground-brand/90 flex h-6 w-6 items-center justify-center rounded-full rounded-bl-none shadow-lg ring-2 ring-white/20"
+                                aria-label="Comment"
+                            >
+                                <Icons.ChatBubble className="h-3 w-3" />
+                            </button>
+                            {openCommentId === c.id && (
+                                <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-44 rounded-md border p-2 shadow-xl">
+                                    <p className="text-foreground text-[11px]">{c.text}</p>
+                                    <div className="mt-1.5 flex items-center justify-between">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setComments((arr) =>
+                                                    arr.filter((x) => x.id !== c.id),
+                                                );
+                                                setOpenCommentId(null);
+                                            }}
+                                            className="text-foreground-tertiary hover:text-foreground text-[10px]"
+                                        >
+                                            Resolve
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenCommentId(null);
+                                            }}
+                                            className="text-foreground-tertiary hover:text-foreground text-[10px]"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {/* Live collaborator cursors — fake presence */}
+                    {presence.map((p) => (
+                        <div
+                            key={p.id}
+                            className="pointer-events-none absolute z-10 -translate-x-1 -translate-y-1"
+                            style={{
+                                left: `${p.x}%`,
+                                top: `${p.y}%`,
+                                transition:
+                                    'left 1.6s cubic-bezier(0.25, 0.1, 0.25, 1), top 1.6s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                            }}
+                        >
+                            <svg
+                                className="text-foreground h-3 w-3 drop-shadow"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                            >
+                                <path d="M2 2 L14 7 L8.5 9 L7 14 Z" />
+                            </svg>
+                            <span
+                                className={cn(
+                                    'ring-background-chrome ml-2 inline-block rounded-sm px-1 py-px text-[9px] font-medium text-black ring-1',
+                                    p.color,
+                                )}
+                            >
+                                {p.name}
+                            </span>
+                        </div>
+                    ))}
                 </div>
                 <div
                     data-canvas-element
@@ -1076,7 +1894,7 @@ export function WeblabInterfaceMockup() {
             </div>
 
             {/* Top Bar */}
-            <div className="border-border bg-background-chrome relative z-10 grid h-11 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
+            <div className="border-border bg-background-chrome relative z-10 grid h-14 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
                 {/* Left cluster: logo + project breadcrumb + branch + connection */}
                 <div className="flex min-w-0 items-center gap-1.5">
                     <Icons.WeblabLogo className="h-4.5 w-4.5 shrink-0" />
@@ -1088,10 +1906,6 @@ export function WeblabInterfaceMockup() {
                     <div className="bg-background-secondary/60 border-border/60 flex items-center gap-1 rounded-md border px-1.5 py-0.5">
                         <Icons.Branch className="text-foreground-secondary h-3 w-3" />
                         <span className="text-foreground-secondary text-[10.5px]">main</span>
-                    </div>
-                    <div className="ml-1 flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgb(52_211_153)]" />
-                        <span className="text-[10px] font-medium text-emerald-200">Online</span>
                     </div>
                 </div>
 
@@ -1123,19 +1937,6 @@ export function WeblabInterfaceMockup() {
                         aria-label="Diff"
                     >
                         <Icons.Code className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
-                        aria-label="CMS"
-                    >
-                        <Icons.Cube className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
-                        aria-label="Preview"
-                        onClick={() => setActiveMode('preview')}
-                    >
-                        <Icons.Play className="h-3.5 w-3.5" />
                     </button>
                     <div className="bg-border/60 mx-1 h-4 w-px" />
                     {/* Members avatar stack */}
@@ -1186,7 +1987,7 @@ export function WeblabInterfaceMockup() {
             </div>
 
             {/* Main Content */}
-            <div className="relative flex h-[calc(100%-2.75rem)]">
+            <div className="relative flex h-[calc(100%-3.5rem)]">
                 {/* Sidebar rail */}
                 <div className="bg-background-chrome border-border-bar flex h-full w-11 flex-col items-center justify-between border-r py-2 backdrop-blur-xl">
                     <div className="flex flex-col items-center gap-0.5">
@@ -1618,66 +2419,40 @@ export function WeblabInterfaceMockup() {
                     </div>
                 </div>
 
-                {/* Canvas */}
+                {/* Canvas — captures wheel zoom + pan tool */}
                 <div
+                    ref={canvasRef}
                     className={cn(
                         'relative flex flex-1 flex-col items-center justify-start',
-                        activeTool === 'cursor' && 'cursor-default',
-                        activeTool === 'hand' && 'cursor-grab active:cursor-grabbing',
-                        activeTool === 'comment' && 'cursor-crosshair',
+                        activeTool === 'cursor' && !isSpacePanning && 'cursor-default',
+                        (activeTool === 'hand' || isSpacePanning) &&
+                            !isPanning &&
+                            'cursor-grab',
+                        (activeTool === 'hand' || isSpacePanning) &&
+                            isPanning &&
+                            'cursor-grabbing',
+                        activeTool === 'comment' && !isSpacePanning && 'cursor-crosshair',
                     )}
-                    onMouseDown={activeTool === 'hand' ? handleMouseDown : undefined}
-                    onMouseMove={activeTool === 'hand' ? handleMouseMove : undefined}
-                    onMouseUp={activeTool === 'hand' ? handleMouseUp : undefined}
-                    onMouseLeave={activeTool === 'hand' ? handleMouseUp : undefined}
-                    onClick={(e) => {
-                        if (activeTool !== 'comment') return;
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const x = ((e.clientX - rect.left) / rect.width) * 100;
-                        const y = ((e.clientY - rect.top) / rect.height) * 100;
-                        setComments((c) => [...c, { id: Date.now(), x, y, text: 'New comment' }]);
-                        setActiveRightTab('comments');
-                    }}
-                >
-                    {activeMode === 'design' &&
-                        comments.map((c) => (
-                            <div
-                                key={c.id}
-                                style={{ left: `${c.x}%`, top: `${c.y}%` }}
-                                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-full"
-                            >
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setOpenCommentId((id) => (id === c.id ? null : c.id));
-                                    }}
-                                    className="bg-foreground-brand text-background hover:bg-foreground-brand/90 flex h-6 w-6 items-center justify-center rounded-full rounded-bl-none shadow-lg ring-2 ring-white/20"
-                                    aria-label="Comment"
-                                >
-                                    <Icons.ChatBubble className="h-3 w-3" />
-                                </button>
-                                {openCommentId === c.id && (
-                                    <div className="border-border bg-background-chrome absolute top-7 left-0 z-50 w-44 rounded-md border p-2 shadow-xl">
-                                        <p className="text-foreground text-[11px]">{c.text}</p>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setComments((arr) =>
-                                                    arr.filter((x) => x.id !== c.id),
-                                                );
-                                                setOpenCommentId(null);
-                                            }}
-                                            className="text-foreground-tertiary hover:text-foreground mt-1 text-[10px]"
-                                        >
-                                            Resolve
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                </div>
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                />
+
+                {/* Zoom-to-fit floating chip — appears when zoomed off 100% */}
+                {activeMode === 'design' && zoomPct !== 75 && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setZoomPct(75);
+                            setPanOffset({ x: 20, y: 10 });
+                        }}
+                        className="border-border-bar bg-background-bar text-foreground-secondary hover:bg-background-bar-active hover:text-foreground absolute right-[300px] bottom-16 z-30 flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] shadow-md backdrop-blur-2xl"
+                    >
+                        <Icons.Frame className="h-3 w-3" />
+                        Reset view
+                    </button>
+                )}
 
                 {/* Right Chat Panel — hidden in Preview */}
                 <div
@@ -1732,7 +2507,7 @@ export function WeblabInterfaceMockup() {
                                 </button>
                             </div>
                         </div>
-                        {activeRightTab === 'chat' && <ScriptedChat />}
+                        {activeRightTab === 'chat' && <ScriptedChat messages={chatMessages} />}
                         {activeRightTab === 'style' && (
                             <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
                                 <div className="flex items-center gap-2">
@@ -1784,47 +2559,154 @@ export function WeblabInterfaceMockup() {
                             </div>
                         )}
                         {activeRightTab === 'comments' && (
-                            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
-                                <Icons.ChatBubble className="text-foreground-tertiary h-5 w-5" />
-                                <span className="text-foreground-secondary text-[11px]">
-                                    No comments yet
-                                </span>
-                                <span className="text-foreground-tertiary text-[10px]">
-                                    Click anywhere on the canvas to leave a comment.
-                                </span>
+                            <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-2">
+                                {comments.length === 0 && (
+                                    <div className="text-foreground-tertiary mt-12 flex flex-col items-center gap-1.5 text-center">
+                                        <Icons.ChatBubble className="h-5 w-5" />
+                                        <span className="text-foreground-secondary text-[11px]">
+                                            No comments yet
+                                        </span>
+                                        <span className="text-[10px]">
+                                            Pick the comment tool and click the canvas.
+                                        </span>
+                                    </div>
+                                )}
+                                {comments.map((c) => (
+                                    <button
+                                        type="button"
+                                        key={c.id}
+                                        onClick={() => setOpenCommentId(c.id)}
+                                        className={cn(
+                                            'border-border hover:bg-background-secondary/60 flex flex-col items-stretch gap-1 rounded-md border p-2 text-left transition-colors',
+                                            openCommentId === c.id && 'bg-background-secondary/60',
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="bg-foreground-brand h-4 w-4 rounded-full rounded-bl-none" />
+                                            <span className="text-foreground text-[11px] font-medium">
+                                                You
+                                            </span>
+                                            <span className="text-foreground-tertiary ml-auto text-[9px]">
+                                                just now
+                                            </span>
+                                        </div>
+                                        <p className="text-foreground-secondary text-[11px] leading-snug">
+                                            {c.text}
+                                        </p>
+                                    </button>
+                                ))}
                             </div>
                         )}
                         {activeRightTab === 'chat' && (
-                            <div className="border-border bg-background-chrome flex flex-col items-start gap-1 border-t px-2.5 py-2">
-                                <textarea
-                                    value={PRESET_SENTENCE}
-                                    readOnly
-                                    className="text-foreground-primary placeholder-foreground-tertiary mb-3 h-14 w-full flex-1 resize-none rounded-lg bg-transparent px-0.5 pt-1 text-xs outline-none"
-                                    rows={2}
-                                    disabled
-                                />
-                                <div className="flex w-full flex-row items-center justify-between gap-2">
-                                    <button
-                                        className="flex flex-row items-center gap-2 rounded-lg px-1 py-1.5"
-                                        disabled
-                                    >
-                                        <Icons.Build className="text-foreground-tertiary h-4 w-4" />
-                                        <p className="text-foreground-secondary text-xs">Build</p>
-                                    </button>
-                                    <div className="flex flex-row gap-1">
+                            <div className="px-2 pb-2">
+                                <div
+                                    className={cn(
+                                        'border-border-bar bg-background-bar/70 focus-within:border-border flex flex-col rounded-lg border transition-colors',
+                                        chatComposerOpen && 'border-border bg-background-bar',
+                                    )}
+                                >
+                                    {/* Context pill row */}
+                                    <div className="flex flex-wrap items-center gap-1 px-2 pt-1.5">
+                                        <span className="border-border bg-background-secondary/70 text-foreground-secondary flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px]">
+                                            <Icons.File className="h-2.5 w-2.5" />
+                                            Hero.tsx
+                                            <button
+                                                type="button"
+                                                aria-label="Remove context"
+                                                className="text-foreground-tertiary hover:text-foreground -mr-0.5 ml-0.5"
+                                            >
+                                                <Icons.CrossL className="h-2 w-2" />
+                                            </button>
+                                        </span>
                                         <button
-                                            className="hover:bg-background-secondary rounded-lg px-2 py-1.5"
-                                            disabled
+                                            type="button"
+                                            className="text-foreground-tertiary hover:text-foreground inline-flex h-5 items-center gap-0.5 rounded px-1 text-[10px]"
+                                            aria-label="Add context"
                                         >
-                                            <Icons.Image className="text-foreground-tertiary h-4 w-4" />
-                                        </button>
-                                        <button
-                                            className="bg-foreground cursor-pointer rounded-full px-2 py-1.5"
-                                            disabled
-                                        >
-                                            <Icons.ArrowRight className="text-background h-3.5 w-3.5" />
+                                            <Icons.Plus className="h-2.5 w-2.5" />@ add
                                         </button>
                                     </div>
+                                    <div
+                                        role="textbox"
+                                        aria-readonly="true"
+                                        tabIndex={0}
+                                        onFocus={() => setChatComposerOpen(true)}
+                                        onBlur={() => setChatComposerOpen(false)}
+                                        onClick={() => setChatComposerOpen(true)}
+                                        className="text-foreground-primary placeholder-foreground-tertiary min-h-[44px] w-full cursor-text resize-none rounded-md bg-transparent px-2 py-1.5 text-[12px] leading-snug outline-none"
+                                    >
+                                        {composerText}
+                                        {composerTyping && (
+                                            <span className="bg-foreground/70 ml-0.5 inline-block h-3 w-px animate-pulse align-middle" />
+                                        )}
+                                    </div>
+                                    {/* Bottom controls — mirrors real composer */}
+                                    <div className="flex w-full items-center justify-between gap-1 px-1.5 pt-0.5 pb-1.5">
+                                        <div className="flex items-center gap-0.5">
+                                            <button
+                                                type="button"
+                                                aria-label="Mode menu"
+                                                onClick={() =>
+                                                    setChatComposerMode((m) =>
+                                                        m === 'Build'
+                                                            ? 'Ask'
+                                                            : m === 'Ask'
+                                                              ? 'Plan'
+                                                              : 'Build',
+                                                    )
+                                                }
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px]"
+                                            >
+                                                {chatComposerMode === 'Build' && (
+                                                    <Icons.Build className="h-3 w-3" />
+                                                )}
+                                                {chatComposerMode === 'Ask' && (
+                                                    <Icons.Ask className="h-3 w-3" />
+                                                )}
+                                                {chatComposerMode === 'Plan' && (
+                                                    <Icons.Plan className="h-3 w-3" />
+                                                )}
+                                                <span>{chatComposerMode}</span>
+                                                <Icons.ChevronDown className="h-2.5 w-2.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label="Model"
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px]"
+                                            >
+                                                <Icons.Sparkles className="h-3 w-3" />
+                                                <span>{chatModelLabel}</span>
+                                                <Icons.ChevronDown className="h-2.5 w-2.5" />
+                                            </button>
+                                        </div>
+                                        <div className="flex items-center gap-0.5">
+                                            <button
+                                                type="button"
+                                                aria-label="Attach image"
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 w-6 items-center justify-center rounded-md"
+                                            >
+                                                <Icons.Image className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label="Voice"
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 w-6 items-center justify-center rounded-md"
+                                            >
+                                                <Icons.Microphone className="h-3.5 w-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label="Send"
+                                                className="bg-foreground text-background flex h-6 w-6 items-center justify-center rounded-full"
+                                            >
+                                                <Icons.ArrowRight className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-foreground-tertiary mt-1.5 flex items-center justify-between px-1 text-[9px]">
+                                    <span>⌘↵ to run · @ for files · / for commands</span>
+                                    <span className="tabular-nums">8.2k / 200k</span>
                                 </div>
                             </div>
                         )}

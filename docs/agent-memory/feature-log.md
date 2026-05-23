@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-22 — Core flow QA fixes for login, editor boot, and sandbox preview
+Author: Codex (agent)
+Area: `apps/web/client` auth/editor flows, `packages/code-provider` Vercel Sandbox
+Summary: Real-browser QA covered dev login, signed-out project routing, blank project creation, editor boot, and preview iframes. Fixed the dev magic-link login path so it establishes a Supabase session directly, redirected signed-out `/projects` before protected tRPC calls, moved Node-only crash handlers out of Edge instrumentation, stopped MobX from wrapping the history debounced persister, made presence channel setup idempotent before subscribe, ensured blank projects include Weblab interaction runtime files, and prevented duplicate Next dev servers in Vercel Sandbox previews.
+Files: `apps/web/client/src/app/login/actions.tsx`, `apps/web/client/src/app/auth/auth-context.tsx`, `apps/web/client/src/app/projects/page.tsx`, `apps/web/client/src/instrumentation.ts`, `apps/web/client/src/instrumentation-crash-handlers.server.ts`, `apps/web/client/src/components/store/editor/{history,interactions,presence}/index.ts`, `packages/code-provider/src/providers/vercel-sandbox/index.ts`
+Links: n/a (internal QA)
+
+---
+
 ## 2026-05-20 — Harden Railway client service against silent crashes
 Author: Claude Sonnet 4.7
 Area: `apps/web/client` (deploy/instrumentation), Railway service config

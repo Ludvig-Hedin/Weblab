@@ -3,7 +3,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
 import type { Branch, Canvas, Frame as DbFrame, Project } from '@weblab/db';
-import { CodeProvider, getStaticCodeProvider } from '@weblab/code-provider';
+import {
+    CodeProvider,
+    createCodeProviderClient,
+    getStaticCodeProvider,
+} from '@weblab/code-provider';
 import { getSandboxPreviewUrl, Tags } from '@weblab/constants';
 import {
     branches,
@@ -55,7 +59,11 @@ function validateSourceProject(
 }
 
 /**
- * Forks all branches and creates sandbox projects for each
+ * Forks all branches and creates sandbox projects for each.
+ *
+ * Runs CodeSandbox creates in parallel — sequential awaits were the dominant
+ * cost on multi-branch templates (each create is 2-5s, so a 3-branch fork
+ * was 6-15s of pure latency).
  */
 async function forkAllBranches(
     sourceBranches: Branch[],
@@ -63,41 +71,71 @@ async function forkAllBranches(
     sandboxPort: number,
 ): Promise<Map<string, ForkedBranch>> {
     const CodesandboxProvider = await getStaticCodeProvider(CodeProvider.CodeSandbox);
-    const branchMapping = new Map<string, ForkedBranch>();
 
-    for (const sourceBranch of sourceBranches) {
-        if (!sourceBranch.sandboxId) {
-            throw new Error(`Branch ${sourceBranch.name} has no sandbox ID`);
-        }
+    const entries = await Promise.all(
+        sourceBranches.map(async (sourceBranch): Promise<[string, ForkedBranch]> => {
+            if (!sourceBranch.sandboxId) {
+                throw new Error(`Branch ${sourceBranch.name} has no sandbox ID`);
+            }
 
-        const newSandbox = await CodesandboxProvider.createProject({
-            source: 'template',
-            id: sourceBranch.sandboxId,
-            title: `${sourceProjectName} (Fork) - ${sourceBranch.name}`,
-            tags: ['template-fork'],
-            privacy: SANDBOX_PRIVACY,
-        });
+            const newSandbox = await CodesandboxProvider.createProject({
+                source: 'template',
+                id: sourceBranch.sandboxId,
+                title: `${sourceProjectName} (Fork) - ${sourceBranch.name}`,
+                tags: ['template-fork'],
+                privacy: SANDBOX_PRIVACY,
+            });
 
-        const newSandboxUrl = getSandboxPreviewUrl(
-            newSandbox.id,
-            sandboxPort,
-            newSandbox.previewToken,
-        );
-        const newBranch: Branch = {
-            ...sourceBranch,
-            id: uuidv4(),
-            sandboxId: newSandbox.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
+            const newSandboxUrl = getSandboxPreviewUrl(
+                newSandbox.id,
+                sandboxPort,
+                newSandbox.previewToken,
+            );
+            const newBranch: Branch = {
+                ...sourceBranch,
+                id: uuidv4(),
+                sandboxId: newSandbox.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
 
-        branchMapping.set(sourceBranch.id, {
-            newBranch,
-            newSandboxUrl,
-        });
-    }
+            return [sourceBranch.id, { newBranch, newSandboxUrl }];
+        }),
+    );
 
-    return branchMapping;
+    return new Map(entries);
+}
+
+/**
+ * Best-effort cleanup for fork-created sandboxes when the surrounding DB
+ * transaction fails. Mirrors the orphan-cleanup pattern in
+ * `project.createBlank` — the alternative is paid CodeSandbox resources
+ * leaking with no project row to authorize their later deletion.
+ */
+async function cleanupForkedSandboxes(branchMapping: Map<string, ForkedBranch>): Promise<void> {
+    await Promise.allSettled(
+        Array.from(branchMapping.values()).map(async ({ newBranch }) => {
+            try {
+                const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
+                    providerOptions: {
+                        codesandbox: {
+                            sandboxId: newBranch.sandboxId,
+                        },
+                    },
+                });
+                try {
+                    await provider.stopProject({}).catch(() => undefined);
+                } finally {
+                    await provider.destroy().catch(() => undefined);
+                }
+            } catch (cleanupErr) {
+                console.warn(
+                    `[fork] orphan cleanup failed for sandbox ${newBranch.sandboxId}`,
+                    cleanupErr,
+                );
+            }
+        }),
+    );
 }
 
 /**
@@ -213,87 +251,114 @@ export const fork = protectedProcedure
         // framework, so non-Next templates 404'd on first preview load.
         const sourceFramework = sourceProject.runtimeMetadata?.framework ?? null;
         const sandboxPort = getFrameworkAdapter(sourceFramework).template.port;
-        // TODO(bug-hunt): Sandbox provisioning happens BEFORE the DB
-        // transaction below. If the transaction throws (project insert
-        // collision, branch insert failure, canvas/frame insert error), every
-        // sandbox in `branchMapping` is leaked — paid CodeSandbox resources
-        // with no project row and no `branches` row, so the regular
-        // `sandbox.delete` endpoint will refuse them and `deleteOrphan` is
-        // never called. Multi-branch forks compound the leak (N orphans per
-        // failed fork). Mirror the orphan-cleanup pattern from
-        // `useCreateBlankProject` / `useImportLocalProject`: wrap the
-        // transaction in try/catch and call `sandbox.deleteOrphan` for each
-        // entry in `branchMapping` on failure.
-        const branchMapping = await forkAllBranches(
-            sourceProject.branches,
-            sourceProject.name,
-            sandboxPort,
-        );
 
-        // 3. Create the new project with forked data
-        const newProjectData = createNewProjectData(sourceProject, input.name);
-        const workspaceId = await resolvePersonalWorkspaceId(ctx.db, ctx.user.id, ctx.user.email);
+        // Sandbox provisioning happens BEFORE the DB transaction below. If the
+        // transaction throws (project insert collision, branch insert failure,
+        // canvas/frame insert error), every sandbox in `branchMapping` would
+        // be leaked — paid CodeSandbox resources with no `branches` row, so
+        // the regular `sandbox.delete` endpoint refuses them and
+        // `deleteOrphan` never runs. The outer try/catch below mirrors the
+        // orphan-cleanup pattern in `project.createBlank` and calls
+        // `cleanupForkedSandboxes` if anything after the fork-all step throws.
+        let createdSandboxes: Map<string, ForkedBranch> | null = null;
+        try {
+            const branchMapping = await forkAllBranches(
+                sourceProject.branches,
+                sourceProject.name,
+                sandboxPort,
+            );
+            createdSandboxes = branchMapping;
 
-        return await ctx.db.transaction(async (tx) => {
-            // Create the new project — fork lands in caller's personal workspace.
-            const [newProject] = await tx
-                .insert(projects)
-                .values({
-                    ...newProjectData,
-                    workspaceId,
-                    accessMode: ProjectAccessMode.WORKSPACE,
-                })
-                .returning();
-            if (!newProject) {
-                throw new Error('Failed to create project in database');
-            }
+            // 3. Create the new project with forked data
+            const newProjectData = createNewProjectData(sourceProject, input.name);
+            const workspaceId = await resolvePersonalWorkspaceId(
+                ctx.db,
+                ctx.user.id,
+                ctx.user.email,
+            );
 
-            // Create all branches for the new project
-            const newBranches = Array.from(branchMapping.values()).map(({ newBranch }) => ({
-                ...newBranch,
-                projectId: newProject.id,
-            }));
-            await tx.insert(branches).values(newBranches);
+            return await ctx.db.transaction(async (tx) => {
+                // Create the new project — fork lands in caller's personal workspace.
+                const [newProject] = await tx
+                    .insert(projects)
+                    .values({
+                        ...newProjectData,
+                        workspaceId,
+                        accessMode: ProjectAccessMode.WORKSPACE,
+                    })
+                    .returning();
+                if (!newProject) {
+                    throw new Error('Failed to create project in database');
+                }
 
-            // Create the user-project association
-            await tx.insert(userProjects).values({
-                userId: ctx.user.id,
-                projectId: newProject.id,
-                role: ProjectRole.OWNER,
-                memberRole: ProjectMemberRole.MANAGER,
-            });
-
-            // Handle canvas and frames
-            const sourceCanvas = sourceProject.canvas;
-            if (sourceCanvas) {
-                // Create new canvas
-                const newCanvas: Canvas = {
-                    id: uuidv4(),
+                // Create all branches for the new project
+                const newBranches = Array.from(branchMapping.values()).map(({ newBranch }) => ({
+                    ...newBranch,
                     projectId: newProject.id,
-                };
-                await tx.insert(canvases).values(newCanvas);
+                }));
+                await tx.insert(branches).values(newBranches);
 
-                // Create user canvas with default positioning
-                const newUserCanvas = createDefaultUserCanvas(ctx.user.id, newCanvas.id, {
-                    x: '120',
-                    y: '120',
-                    scale: '0.56',
+                // Create the user-project association
+                await tx.insert(userProjects).values({
+                    userId: ctx.user.id,
+                    projectId: newProject.id,
+                    role: ProjectRole.OWNER,
+                    memberRole: ProjectMemberRole.MANAGER,
                 });
-                await tx.insert(userCanvases).values(newUserCanvas);
 
-                // Handle frames
-                if (sourceCanvas.frames && sourceCanvas.frames.length > 0) {
-                    const newFrames = createMappedFrames(
-                        sourceCanvas.frames,
-                        newCanvas.id,
-                        branchMapping,
-                    );
+                // Handle canvas and frames
+                const sourceCanvas = sourceProject.canvas;
+                if (sourceCanvas) {
+                    // Create new canvas
+                    const newCanvas: Canvas = {
+                        id: uuidv4(),
+                        projectId: newProject.id,
+                    };
+                    await tx.insert(canvases).values(newCanvas);
 
-                    if (newFrames.length > 0) {
-                        await tx.insert(frames).values(newFrames);
+                    // Create user canvas with default positioning
+                    const newUserCanvas = createDefaultUserCanvas(ctx.user.id, newCanvas.id, {
+                        x: '120',
+                        y: '120',
+                        scale: '0.56',
+                    });
+                    await tx.insert(userCanvases).values(newUserCanvas);
+
+                    // Handle frames
+                    if (sourceCanvas.frames && sourceCanvas.frames.length > 0) {
+                        const newFrames = createMappedFrames(
+                            sourceCanvas.frames,
+                            newCanvas.id,
+                            branchMapping,
+                        );
+
+                        if (newFrames.length > 0) {
+                            await tx.insert(frames).values(newFrames);
+                        }
+                    } else {
+                        // Create default frames for default branch only
+                        const defaultFrames = createDefaultFramesForDefaultBranch(
+                            newCanvas.id,
+                            branchMapping,
+                        );
+
+                        if (defaultFrames.length > 0) {
+                            await tx.insert(frames).values(defaultFrames);
+                        }
                     }
                 } else {
-                    // Create default frames for default branch only
+                    // Create default canvas and frames if source had none
+                    const newCanvas = createDefaultCanvas(newProject.id);
+                    await tx.insert(canvases).values(newCanvas);
+
+                    const newUserCanvas = createDefaultUserCanvas(ctx.user.id, newCanvas.id, {
+                        x: '120',
+                        y: '120',
+                        scale: '0.56',
+                    });
+                    await tx.insert(userCanvases).values(newUserCanvas);
+
+                    // Create default frames for the default branch
                     const defaultFrames = createDefaultFramesForDefaultBranch(
                         newCanvas.id,
                         branchMapping,
@@ -303,45 +368,29 @@ export const fork = protectedProcedure
                         await tx.insert(frames).values(defaultFrames);
                     }
                 }
-            } else {
-                // Create default canvas and frames if source had none
-                const newCanvas = createDefaultCanvas(newProject.id);
-                await tx.insert(canvases).values(newCanvas);
 
-                const newUserCanvas = createDefaultUserCanvas(ctx.user.id, newCanvas.id, {
-                    x: '120',
-                    y: '120',
-                    scale: '0.56',
-                });
-                await tx.insert(userCanvases).values(newUserCanvas);
-
-                // Create default frames for the default branch
-                const defaultFrames = createDefaultFramesForDefaultBranch(
-                    newCanvas.id,
-                    branchMapping,
+                // Track the fork event
+                const allSandboxIds = Array.from(branchMapping.values()).map(
+                    ({ newBranch }) => newBranch.sandboxId,
                 );
 
-                if (defaultFrames.length > 0) {
-                    await tx.insert(frames).values(defaultFrames);
-                }
-            }
+                trackEvent({
+                    distinctId: ctx.user.id,
+                    event: 'user_fork_template',
+                    properties: {
+                        sourceProjectId: input.projectId,
+                        newProjectId: newProject.id,
+                        sandboxIds: allSandboxIds,
+                        branchCount: branchMapping.size,
+                    },
+                });
 
-            // Track the fork event
-            const allSandboxIds = Array.from(branchMapping.values()).map(
-                ({ newBranch }) => newBranch.sandboxId,
-            );
-
-            trackEvent({
-                distinctId: ctx.user.id,
-                event: 'user_fork_template',
-                properties: {
-                    sourceProjectId: input.projectId,
-                    newProjectId: newProject.id,
-                    sandboxIds: allSandboxIds,
-                    branchCount: branchMapping.size,
-                },
+                return newProject;
             });
-
-            return newProject;
-        });
+        } catch (error) {
+            if (createdSandboxes) {
+                await cleanupForkedSandboxes(createdSandboxes);
+            }
+            throw error;
+        }
     });

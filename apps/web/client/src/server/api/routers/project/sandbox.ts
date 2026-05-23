@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { Capability } from '@weblab/auth';
@@ -15,7 +15,7 @@ import {
     getSandboxPreviewUrl,
     PUBLIC_TEMPLATE_SANDBOX_IDS,
 } from '@weblab/constants';
-import { branches } from '@weblab/db';
+import { branches, frames } from '@weblab/db';
 import { shortenUuid } from '@weblab/utility/src/id';
 
 import { env } from '@/env';
@@ -228,7 +228,197 @@ const sandboxIdInput = z.object({
     sandboxId: z.string(),
 });
 
+type LivenessResult =
+    | { state: 'alive'; status: number }
+    | { state: 'gone'; status: 410 }
+    | { state: 'notFound'; status: 404 }
+    | { state: 'error'; status: number; message?: string };
+
+// Module-scoped cache + in-flight dedup for sandbox.checkAlive. Without
+// this, opening a project with multiple frames or polling from the
+// projects list can fire several HEADs per second against the same CSB
+// URL. CSB rate-limits aggressively and the redundant calls slow boot
+// detection for everyone on the same dyno. 5s TTL is short enough that
+// a sandbox flipping from notFound → alive is picked up within one
+// poll cycle, and long enough to coalesce burst probes.
+const LIVENESS_CACHE_TTL_MS = 5_000;
+const livenessCache = new Map<string, { result: LivenessResult; expiresAt: number }>();
+const livenessInFlight = new Map<string, Promise<LivenessResult>>();
+// Hard cap so a long-running server with thousands of unique URLs can
+// not exhaust memory. Entries are evicted oldest-first when over cap.
+const LIVENESS_CACHE_MAX_ENTRIES = 5_000;
+
+async function probeLiveness(previewUrl: string): Promise<LivenessResult> {
+    const now = Date.now();
+    const cached = livenessCache.get(previewUrl);
+    if (cached && cached.expiresAt > now) {
+        return cached.result;
+    }
+    const existing = livenessInFlight.get(previewUrl);
+    if (existing) return existing;
+
+    const probe = (async (): Promise<LivenessResult> => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5_000);
+            try {
+                const res = await fetch(previewUrl, {
+                    method: 'HEAD',
+                    redirect: 'manual',
+                    signal: controller.signal,
+                });
+                if (res.status === 410) return { state: 'gone', status: 410 };
+                if (res.status === 404) return { state: 'notFound', status: 404 };
+                if (res.status >= 200 && res.status < 400) {
+                    return { state: 'alive', status: res.status };
+                }
+                return { state: 'error', status: res.status };
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        } catch (err) {
+            return {
+                state: 'error',
+                status: 0,
+                message: err instanceof Error ? err.message : String(err),
+            };
+        }
+    })();
+
+    livenessInFlight.set(previewUrl, probe);
+    try {
+        const result = await probe;
+        livenessCache.set(previewUrl, {
+            result,
+            expiresAt: Date.now() + LIVENESS_CACHE_TTL_MS,
+        });
+        if (livenessCache.size > LIVENESS_CACHE_MAX_ENTRIES) {
+            // Map iteration is insertion order — oldest first.
+            const oldest = livenessCache.keys().next().value;
+            if (oldest !== undefined) livenessCache.delete(oldest);
+        }
+        return result;
+    } finally {
+        livenessInFlight.delete(previewUrl);
+    }
+}
+
 export const sandboxRouter = createTRPCRouter({
+    /**
+     * Server-side liveness check for a sandbox preview URL. Browsers can't
+     * read the HTTP status of an `<iframe>` load on a cross-origin
+     * sandbox, and a `mode: 'no-cors'` fetch returns an opaque response
+     * with status 0 — so the client can't distinguish 200 from 410 Gone.
+     * We do the HEAD here on the server (no CORS) and surface a typed
+     * result the editor can branch on:
+     *   - `alive`   : sandbox responded with a 2xx/3xx
+     *   - `gone`    : 410 (CodeSandbox has recycled the sandbox forever)
+     *   - `notFound`: 404
+     *   - `error`   : fetch failed (network / DNS / abort)
+     */
+    checkAlive: protectedProcedure
+        .input(z.object({ previewUrl: z.string().url() }))
+        .query(async ({ input }) => {
+            return probeLiveness(input.previewUrl);
+        }),
+    /**
+     * Restore a project whose sandbox has been recycled by CodeSandbox
+     * (HTTP 410 Gone). Forks the original snapshotId (stored on the branch's
+     * `runtimeMetadata.cloud.snapshotId`) into a fresh sandbox, then updates
+     * the branch + its frames so the editor reconnects to a live URL.
+     *
+     * Returns the new sandboxId + previewUrl; the client should refetch
+     * `userCanvas.getWithFrames` and reload the iframes to pick up the
+     * new url.
+     */
+    restore: protectedProcedure
+        .input(z.object({ branchId: z.string().uuid() }))
+        .mutation(async ({ input, ctx }) => {
+            const branch = await ctx.db.query.branches.findFirst({
+                where: eq(branches.id, input.branchId),
+            });
+            if (!branch) {
+                throw new TRPCError({ code: 'NOT_FOUND', message: 'Branch not found' });
+            }
+            await requireCap(ctx.db, ctx.user.id, 'project.update', {
+                projectId: branch.projectId,
+            });
+
+            const cloud =
+                branch.runtimeMetadata && typeof branch.runtimeMetadata === 'object'
+                    ? (
+                          branch.runtimeMetadata as {
+                              cloud?: {
+                                  snapshotId?: string | null;
+                                  port?: number | null;
+                                  provider?: 'code_sandbox' | 'vercel_sandbox' | null;
+                              };
+                          }
+                      ).cloud
+                    : undefined;
+
+            const snapshotId = cloud?.snapshotId;
+            if (!snapshotId) {
+                throw new TRPCError({
+                    code: 'PRECONDITION_FAILED',
+                    message:
+                        'No snapshot available to restore from. Re-create the project from scratch.',
+                });
+            }
+
+            const port = cloud?.port ?? DEFAULT_NEW_PROJECT_TEMPLATE.port;
+            const cloudProvider = getRequestedCloudProvider(cloud?.provider ?? undefined);
+            const StaticProvider = await getStaticCodeProvider(cloudProvider);
+            const fresh = await StaticProvider.createProject({
+                source: 'template',
+                id: snapshotId,
+                title: `${APP_NAME} – restored`,
+                tags: ['restore'],
+                privacy: SANDBOX_PRIVACY,
+                port,
+            });
+
+            const previewUrl = getPreviewUrl({
+                provider: cloudProvider,
+                sandboxId: fresh.id,
+                port,
+                previewToken: fresh.previewToken,
+                previewUrl: fresh.previewUrl,
+            });
+
+            const providerLiteral: CloudProvider =
+                cloudProvider === CodeProvider.VercelSandbox ? 'vercel_sandbox' : 'code_sandbox';
+            await ctx.db.transaction(async (tx) => {
+                await tx
+                    .update(branches)
+                    .set({
+                        sandboxId: fresh.id,
+                        runtimeMetadata: {
+                            ...(branch.runtimeMetadata ?? {}),
+                            cloud: {
+                                ...(cloud ?? {}),
+                                provider: providerLiteral,
+                                sandboxId: fresh.id,
+                                snapshotId: fresh.snapshotId ?? snapshotId,
+                                previewUrl,
+                                port,
+                            },
+                        },
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(branches.id, branch.id));
+                await tx
+                    .update(frames)
+                    .set({ url: previewUrl })
+                    .where(eq(frames.branchId, branch.id));
+            });
+
+            return {
+                sandboxId: fresh.id,
+                previewUrl,
+                snapshotId: fresh.snapshotId ?? snapshotId,
+            };
+        }),
     create: protectedProcedure
         .input(
             z.object({
@@ -401,9 +591,30 @@ export const sandboxRouter = createTRPCRouter({
                 try {
                     const cloudProvider = getRequestedCloudProvider(input.provider);
                     const StaticProvider = await getStaticCodeProvider(cloudProvider);
+                    // Vercel BLANK fast-path: if a pre-built Next.js
+                    // snapshot is configured AND the caller is forking
+                    // the canonical BLANK template, resume from snapshot
+                    // instead of re-running scaffold + `npm install`.
+                    // CSB BLANK already has node_modules baked in via
+                    // its own template machinery; this gates only on
+                    // Vercel where every blank fork currently pays the
+                    // ~60-180s install cost.
+                    const useVercelBlankSnapshot =
+                        cloudProvider === CodeProvider.VercelSandbox &&
+                        input.sandbox.id === DEFAULT_NEW_PROJECT_TEMPLATE.id &&
+                        !!env.VERCEL_BLANK_SNAPSHOT_ID;
+                    console.log('[sandbox.fork]', {
+                        cloudProvider,
+                        templateId: input.sandbox.id,
+                        useVercelBlankSnapshot,
+                        snapshotIdSet: !!env.VERCEL_BLANK_SNAPSHOT_ID,
+                    });
                     const sandbox = await StaticProvider.createProject({
                         source: 'template',
                         id: input.sandbox.id,
+                        snapshotId: useVercelBlankSnapshot
+                            ? env.VERCEL_BLANK_SNAPSHOT_ID
+                            : undefined,
 
                         // Metadata
                         title: input.config?.title,

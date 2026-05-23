@@ -5,8 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 
-import { Routes } from '@/utils/constants';
-import { getReturnUrlQueryParam } from '@/utils/url';
+import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 
 export const HandleAuth = () => {
     const router = useRouter();
@@ -15,7 +14,7 @@ export const HandleAuth = () => {
 
     const handleLogin = () => {
         const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-        router.push(`${Routes.LOGIN}?${getReturnUrlQueryParam(currentUrl)}`);
+        router.push(getSignInUrlClient(currentUrl));
     };
 
     return (

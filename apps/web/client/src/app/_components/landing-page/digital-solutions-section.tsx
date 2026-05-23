@@ -105,8 +105,6 @@ export function DigitalSolutionsSection() {
                         {t('titleLine1')}
                         <br />
                         {t('titleLine2')}
-                        <br />
-                        {t('titleLine3')}
                     </h2>
                     <div className="flex flex-col items-start justify-end gap-6">
                         <p className="text-foreground-secondary max-w-md text-base leading-relaxed font-light tracking-tight">
@@ -212,7 +210,7 @@ function SlideCard({
             animate={{ opacity: isActive ? 1 : 0.35, scale: isActive ? 1 : 0.98 }}
             whileHover={isActive ? undefined : { opacity: 0.6, scale: 0.99 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className={`grid grid-cols-1 gap-8 md:h-[30rem] md:grid-cols-[1fr_1.4fr] md:gap-12 ${
+            className={`bg-background-secondary grid grid-cols-1 gap-8 rounded-2xl p-6 md:h-[30rem] md:grid-cols-[1fr_1.4fr] md:gap-12 md:p-8 ${
                 isActive ? '' : 'cursor-pointer'
             }`}
         >
