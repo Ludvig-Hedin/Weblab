@@ -158,7 +158,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     `no-drag` so clicks still land. */}
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;})();`,
+                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;function addStrip(){if(!document.body||document.getElementById('weblab-desktop-drag-fallback'))return;var s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.className='desktop-drag-region';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;';document.body.appendChild(s);}function schedule(){setTimeout(addStrip,0);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}})();`,
                     }}
                 />
                 <style

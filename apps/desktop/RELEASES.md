@@ -3,6 +3,19 @@
 The Weblab desktop app is an Electron wrapper around [weblab.build](https://weblab.build).  
 This doc covers three paths: building locally, sharing with friends, and publishing an official release.
 
+## Changelog
+
+### v0.2.0
+
+- Window now drags from the top 38px on every route, including the root error boundary, sign-in, and any page that hasn't yet rendered its own drag region. Implemented as a CSS-only fallback strip injected on `load` so it survives renderer errors.
+- Renderer console warnings/errors are forwarded to the main process stdout so future "Something went wrong" reports leave a native trace.
+- New native recovery handlers for `did-fail-load` (one-shot auto-retry + Retry/Quit dialog), `render-process-gone` (Reload/Quit dialog), and `unresponsive` (Keep waiting/Reload dialog) — the app no longer leaves a blank or frozen window.
+- macOS chrome now uses the `under-window` vibrancy material so the hidden title-bar inset reads as native blurred chrome instead of a flat black bar.
+
+### v0.1.0
+
+- Initial release.
+
 ---
 
 ## Prerequisites

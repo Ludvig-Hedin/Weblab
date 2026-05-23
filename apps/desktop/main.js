@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, Menu, ipcMain, session } = require('electron');
+const { app, BrowserWindow, shell, Menu, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { registerIpcHandlers: registerCliIpc } = require('./weblab-cli');
@@ -153,6 +153,12 @@ function createWindow(initialURL) {
         backgroundColor: '#0a0a0a',
         title: APP_NAME,
         titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+        // macOS vibrancy gives the chrome a native blurred-material feel that
+        // also visually anchors the hidden title bar drag region even before
+        // the renderer mounts its CSS drag strip.
+        ...(process.platform === 'darwin'
+            ? { vibrancy: 'under-window', visualEffectState: 'active' }
+            : {}),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,
@@ -258,9 +264,113 @@ function createWindow(initialURL) {
         }
     });
 
+    // --- Robustness: surface renderer errors and recover from crashes -------
+
+    // Forward renderer console output (errors/warnings) to the main process so
+    // a user filing a bug report (or `Console.app` on macOS) actually has
+    // something to look at. Without this, a renderer-side throw like the one
+    // that fires our root error boundary leaves no native-side trace.
+    mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+        // Levels: 0=verbose, 1=info, 2=warning, 3=error.
+        if (level >= 2) {
+            const prefix = level === 3 ? '[renderer:error]' : '[renderer:warn]';
+            console.log(`${prefix} ${sourceId}:${line} ${message}`);
+        }
+    });
+
+    // Auto-retry once on transient load failures (network blip, DNS, etc.).
+    // ERR_ABORTED (-3) is fired for legitimate cancellations like Electron
+    // navigating away from the in-flight URL — ignore those. The retry latch
+    // resets every time the main frame finishes loading so each fresh attempt
+    // gets its own one-shot retry budget.
+    let didFailLoadRetried = false;
+    mainWindow.webContents.on('did-finish-load', () => {
+        didFailLoadRetried = false;
+    });
+    mainWindow.webContents.on(
+        'did-fail-load',
+        (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+            if (!isMainFrame) return;
+            if (errorCode === -3) return; // ERR_ABORTED
+            console.log(
+                `[main] did-fail-load code=${errorCode} desc="${errorDescription}" url=${validatedURL}`,
+            );
+            if (didFailLoadRetried) {
+                showLoadFailureDialog(errorDescription, validatedURL);
+                return;
+            }
+            didFailLoadRetried = true;
+            setTimeout(() => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.loadURL(validatedURL || DEFAULT_LAUNCH_URL);
+                }
+            }, 1000);
+        },
+    );
+
+    // Renderer process crashed or was killed — offer to relaunch instead of
+    // leaving a blank white window the user has to force-quit.
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+        console.log(`[main] render-process-gone reason=${details.reason} code=${details.exitCode}`);
+        if (details.reason === 'clean-exit') return;
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+            type: 'error',
+            buttons: ['Reload', 'Quit'],
+            defaultId: 0,
+            cancelId: 1,
+            title: 'Weblab crashed',
+            message: 'The Weblab window crashed.',
+            detail: `Reason: ${details.reason}`,
+        });
+        if (choice === 0 && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.reload();
+        } else {
+            app.quit();
+        }
+    });
+
+    // Detect a hung renderer and let the user decide whether to wait or kill.
+    mainWindow.on('unresponsive', () => {
+        console.log('[main] window unresponsive');
+        const choice = dialog.showMessageBoxSync(mainWindow, {
+            type: 'warning',
+            buttons: ['Keep waiting', 'Reload'],
+            defaultId: 0,
+            cancelId: 0,
+            title: 'Weblab is not responding',
+            message: 'The Weblab window has become unresponsive.',
+            detail: 'You can keep waiting, or reload the window to recover.',
+        });
+        if (choice === 1 && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.reload();
+        }
+    });
+
+    mainWindow.on('responsive', () => {
+        console.log('[main] window responsive again');
+    });
+
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
+}
+
+function showLoadFailureDialog(errorDescription, attemptedURL) {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+        type: 'error',
+        buttons: ['Retry', 'Quit'],
+        defaultId: 0,
+        cancelId: 1,
+        title: 'Could not load Weblab',
+        message: 'Weblab failed to load.',
+        detail: `${errorDescription}\n\nCheck your internet connection and try again.`,
+    });
+    if (choice === 0) {
+        mainWindow.loadURL(attemptedURL || DEFAULT_LAUNCH_URL);
+    } else {
+        app.quit();
+    }
 }
 
 function buildMenu() {
