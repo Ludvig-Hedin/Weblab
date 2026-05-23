@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import type { Capability } from '@weblab/auth';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 /**
  * Returns the caller's capability set for a given project, plus convenience
@@ -11,10 +13,11 @@ import { api } from '@/trpc/react';
  * the trust boundary — UI gating is a hint only.
  */
 export function useProjectCapabilities(projectId: string | null | undefined) {
-    const { data, isLoading } = api.user.capabilities.useQuery(
-        projectId ? { projectId } : { projectId: '' },
-        { enabled: !!projectId },
+    const data = useQuery(
+        api.users.capabilities,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
+    const isLoading = projectId ? data === undefined : false;
 
     return useMemo(() => {
         const caps = new Set<Capability>(data ?? []);

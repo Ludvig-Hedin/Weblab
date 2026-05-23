@@ -3,6 +3,8 @@
 import type { ToolUIPart } from 'ai';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { type z } from 'zod';
 
 import { AskUserQuestionTool, PlanCompleteTool } from '@weblab/ai/client';
@@ -13,14 +15,13 @@ import { Icons } from '@weblab/ui/icons';
 import { PlanApprovalCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-approval-card';
 import { PlanQuestionCard } from '@/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-question-card';
 import { CreateManagerProvider, useCreateManager } from '@/components/store/create';
-import { api } from '@/trpc/react';
 import { usePlanChat } from './use-plan-chat';
 
 function PlanPageInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const prompt = searchParams.get('prompt') ?? '';
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
     const createManager = useCreateManager();
 
     const { messages, isStreaming, stop, sendMessage } = usePlanChat();
@@ -49,10 +50,10 @@ function PlanPageInner() {
     };
 
     const handleBuildNow = async () => {
-        if (!user?.id || isCreating) return;
+        if (!user?._id || isCreating) return;
         setIsCreating(true);
         try {
-            const project = await createManager.startCreate(user.id, prompt, []);
+            const project = await createManager.startCreate(user._id, prompt, []);
             if (project) {
                 router.push(`/project/${project.id}`);
             }

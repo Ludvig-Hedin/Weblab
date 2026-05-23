@@ -1,12 +1,14 @@
 import { createContext, useContext, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import { DeploymentType, SettingsTabValue } from '@weblab/models';
 import { ProductType } from '@weblab/stripe';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 import { useSelectedProvider } from '../selected-provider';
 
 const useCustomDomain = () => {
@@ -14,9 +16,9 @@ const useCustomDomain = () => {
     const stateManager = useStateManager();
     const { selectedProvider } = useSelectedProvider();
     const [isLoading, setIsLoading] = useState(false);
-    const { data: subscription } = api.subscription.get.useQuery();
-    const { data: customDomain } = api.domain.custom.get.useQuery({
-        projectId: editorEngine.projectId,
+    const subscription = useQuery(api.subscriptions.get, {});
+    const customDomain = useQuery(api.domains.customGet, {
+        projectId: editorEngine.projectId as Id<'projects'>,
     });
     const { deployment, publish: runPublish, isDeploying } = useHostingType(DeploymentType.CUSTOM);
 

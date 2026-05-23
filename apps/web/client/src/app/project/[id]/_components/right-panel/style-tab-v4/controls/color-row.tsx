@@ -185,7 +185,7 @@ export function ColorRow({
                         type="button"
                         aria-label="Open color picker"
                         title="Open color picker"
-                        className="border-foreground/10 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-[5px] border outline-none focus-visible:ring-[3px]"
+                        className="border-foreground/10 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-xs border outline-none focus-visible:ring-[3px]"
                         style={(() => {
                             // Hex value rendered as-is. Raw CSS value (var, named, hsl)
                             // gets passed straight through so the swatch shows the

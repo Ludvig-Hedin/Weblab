@@ -113,7 +113,7 @@ export function HeroV2() {
                         </span>
                     </SplitText>
                     <motion.p
-                        className="text-foreground-secondary text-left text-sm leading-snug text-balance md:text-base"
+                        className="text-foreground-secondary text-left text-sm leading-[1.4] text-balance md:text-base"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
@@ -146,15 +146,15 @@ export function HeroV2() {
                         transition={{ duration: 0.5, delay: 0.45, ease: 'easeOut' }}
                     >
                         {user?.id ? (
-                            <>
-                                <PrimaryButton href={Routes.PROJECTS}>
-                                    Continue to projects
-                                </PrimaryButton>
-                                <SecondaryButton href={Routes.DOWNLOAD}>
-                                    <Icons.Download className="h-4 w-4" />
-                                    Download
-                                </SecondaryButton>
-                            </>
+                            // Signed-in users already see a "Projects" pill in
+                            // the top-right nav; surfacing "Continue to
+                            // projects" here too is redundant. Keep just the
+                            // Download CTA so signed-in visitors get a single
+                            // hero-level action.
+                            <SecondaryButton href={Routes.DOWNLOAD}>
+                                <Icons.Download className="h-4 w-4" />
+                                Download
+                            </SecondaryButton>
                         ) : (
                             <>
                                 <PrimaryButton onClick={handleGetStarted}>
@@ -173,16 +173,18 @@ export function HeroV2() {
             </section>
 
             <motion.div
-                className="w-full max-w-6xl overflow-x-clip"
+                className="w-full max-w-6xl overflow-x-clip min-[1400px]:max-w-[1320px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
             >
-                {/* On mobile the editor chrome has fixed pixel offsets
-                    (EditorBar, panel widths) that collapse below ~720px wide.
-                    Pin the mockup to a min desktop width and clip overflow so
-                    it shows cropped-but-readable on phones instead of squished. */}
-                <div className="relative min-w-[1100px] pt-10 sm:min-w-0">
+                {/* Editor chrome has fixed pixel offsets (rail w-12, panels
+                    w-56/w-72, EditorBar 268/288 insets) that get cramped
+                    below ~1280px wide. Pin to native desktop width and clip
+                    overflow on anything smaller than 1400px viewport so the
+                    mockup stays readable instead of squished at every step
+                    from phone to small desktop. */}
+                <div className="relative min-w-[1280px] pt-10 min-[1400px]:min-w-0">
                     <WeblabInterfaceMockup />
                 </div>
             </motion.div>

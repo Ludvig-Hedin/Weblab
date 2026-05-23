@@ -282,6 +282,189 @@ export const SEMANTIC_TOKENS: ColorTokenData[] = [
         description: 'Foreground paired with --popover.',
         usage: 'text-popover-foreground — text inside floating surfaces.',
     },
+    // ── New semantic surfaces (Codex-aligned dark palette, 2026-05-23) ──────
+    {
+        name: 'modal',
+        cssVar: '--modal',
+        value: '#212121',
+        description: 'Modal / dialog surface. Slightly raised above card.',
+        usage: 'bg-modal — Dialog, Alert dialog, Sheet content.',
+    },
+    {
+        name: 'modal-fg',
+        cssVar: '--modal-foreground',
+        value: '#ffffff',
+        description: 'Foreground paired with --modal.',
+        usage: 'text-modal-foreground — text inside modal/dialog.',
+    },
+    {
+        name: 'background-modal-hover',
+        cssVar: '--background-modal-hover',
+        value: '#2e2e2e',
+        description: 'Hover/selected row inside modal or popover.',
+        usage: 'hover:bg-background-modal-hover — dialog list items.',
+    },
+    {
+        name: 'background-popover-hover',
+        cssVar: '--background-popover-hover',
+        value: '#2e2e2e',
+        description: 'Hover/selected item inside popover/dropdown.',
+        usage: 'hover:bg-background-popover-hover — dropdown item.',
+    },
+    {
+        name: 'background-tooltip',
+        cssVar: '--background-tooltip',
+        value: '#3f3f3f',
+        description: 'Keyboard-shortcut tooltip pill (top of stack).',
+        usage: 'bg-background-tooltip — Tooltip, Kbd shortcut pill.',
+    },
+    {
+        name: 'foreground-tooltip',
+        cssVar: '--foreground-tooltip',
+        value: '#d6d6d6',
+        description: 'Text on --background-tooltip.',
+        usage: 'text-foreground-tooltip — tooltip label, kbd hint.',
+    },
+    {
+        name: 'background-input',
+        cssVar: '--background-input',
+        value: '#1c1c1c',
+        description: 'Form input fill — slightly inset feel.',
+        usage: 'bg-background-input — Input, Textarea, Select.',
+    },
+    {
+        name: 'background-chat-input',
+        cssVar: '--background-chat-input',
+        value: '#232323',
+        description: 'Chat composer fill (no border).',
+        usage: 'bg-background-chat-input — chat input box, prompt field.',
+    },
+    {
+        name: 'background-selected',
+        cssVar: '--background-selected',
+        value: '#242424',
+        description: 'Selected radio/checkbox card surface.',
+        usage: 'data-state=checked:bg-background-selected — radio card.',
+    },
+    {
+        name: 'background-sidebar',
+        cssVar: '--background-sidebar',
+        value: '#161616',
+        description: 'Recessed sidebar bg (1 step below app backdrop).',
+        usage: 'bg-background-sidebar — main sidebar container.',
+    },
+    {
+        name: 'background-sidebar-active',
+        cssVar: '--background-sidebar-active',
+        value: '#222222',
+        description: 'Sidebar active / hover / selected fill.',
+        usage: 'data-active:bg-background-sidebar-active — sidebar row.',
+    },
+    {
+        name: 'background-button-tertiary',
+        cssVar: '--background-button-tertiary',
+        value: '#1f1f1f',
+        description: 'Tertiary button fill (subtle, no border).',
+        usage: 'bg-background-button-tertiary — Button variant=tertiary.',
+    },
+    {
+        name: 'background-dropdown-trigger',
+        cssVar: '--background-dropdown-trigger',
+        value: '#1f1f1f',
+        description: 'Dropdown trigger fill (closed state).',
+        usage: 'bg-background-dropdown-trigger — Select trigger, DropdownMenu trigger.',
+    },
+    {
+        name: 'background-diff-added',
+        cssVar: '--background-diff-added',
+        value: '#193323',
+        description: 'Added/inserted diff hunk surface.',
+        usage: 'bg-background-diff-added — diff viewer added line.',
+    },
+    {
+        name: 'background-diff-removed',
+        cssVar: '--background-diff-removed',
+        value: '#411d1a',
+        description: 'Removed/deleted diff hunk surface.',
+        usage: 'bg-background-diff-removed — diff viewer removed line.',
+    },
+    {
+        name: 'foreground-diff-added',
+        cssVar: '--foreground-diff-added',
+        value: '#6fc57e',
+        description: 'Green text/icon for added items.',
+        usage: 'text-foreground-diff-added — +N tag, added file label.',
+    },
+    {
+        name: 'foreground-diff-removed',
+        cssVar: '--foreground-diff-removed',
+        value: '#e35446',
+        description: 'Red text/icon for removed items.',
+        usage: 'text-foreground-diff-removed — -N tag, removed file label.',
+    },
+    {
+        name: 'foreground-skill',
+        cssVar: '--foreground-skill',
+        value: '#ad7bf9',
+        description: 'Purple accent for skill / agent / capability badges.',
+        usage: 'text-foreground-skill — skill badge, agent tag.',
+    },
+    {
+        name: 'foreground-code-orange',
+        cssVar: '--foreground-code-orange',
+        value: '#ff9335',
+        description: 'Inline code highlight (warnings, keywords).',
+        usage: 'text-foreground-code-orange — code token, syntax accent.',
+    },
+    {
+        name: 'foreground-code-purple',
+        cssVar: '--foreground-code-purple',
+        value: '#bc69ff',
+        description: 'Inline code highlight (types, identifiers).',
+        usage: 'text-foreground-code-purple — code token, syntax accent.',
+    },
+    {
+        name: 'foreground-placeholder',
+        cssVar: '--foreground-placeholder',
+        value: '#4d4d4d',
+        description: 'Placeholder text for inputs / empty fields.',
+        usage: 'placeholder:text-foreground-placeholder — Input placeholder.',
+    },
+    {
+        name: 'border-card',
+        cssVar: '--border-card',
+        value: '#282828',
+        description: 'Card outline (slightly stronger than --border).',
+        usage: 'border-border-card — Card component outline.',
+    },
+    {
+        name: 'border-input',
+        cssVar: '--border-input',
+        value: '#1c1c1c',
+        description: 'Input outline (matches fill, near-invisible).',
+        usage: 'border-border-input — Input default border.',
+    },
+    {
+        name: 'border-search',
+        cssVar: '--border-search',
+        value: '#242424',
+        description: 'Search input outline (more visible than regular input).',
+        usage: 'border-border-search — search field.',
+    },
+    {
+        name: 'border-secondary',
+        cssVar: '--border-secondary',
+        value: '#2c2c2c',
+        description: 'Secondary button outline.',
+        usage: 'border-border-secondary — secondary Button border.',
+    },
+    {
+        name: 'border-popover',
+        cssVar: '--border-popover',
+        value: '#2d2d2d',
+        description: 'Popover outline.',
+        usage: 'border-border-popover — Popover, DropdownMenu border.',
+    },
 ];
 
 export const FOREGROUND_TOKENS: ColorTokenData[] = [
@@ -669,13 +852,21 @@ export const WEBSITE_TYPOGRAPHY = [
     },
 ];
 
-export const BODY_SCALE_RULES: Array<{ use: string; useThis: string; avoid: string }> = [
+export const BODY_SCALE_RULES: Array<{
+    use: string;
+    useThis: string;
+    avoid: string;
+}> = [
     {
         use: 'Long-form body paragraph',
         useThis: 'text-regular (light) or text-large (default body)',
         avoid: 'text-base, text-sm',
     },
-    { use: 'Lead paragraph under heading', useThis: 'text-large', avoid: 'text-lg, text-xl' },
+    {
+        use: 'Lead paragraph under heading',
+        useThis: 'text-large',
+        avoid: 'text-lg, text-xl',
+    },
     {
         use: 'Caption / metadata',
         useThis: 'text-mini (or text-mini-plus for emphasis)',

@@ -137,7 +137,7 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                     <div className="flex items-center justify-between">
                         <label className="text-foreground text-small">Name</label>
                         {isActiveBranch && (
-                            <span className="text-mini rounded bg-purple-800 px-2 py-1 text-purple-200">
+                            <span className="text-mini text-foreground-skill bg-foreground-skill/15 rounded px-2 py-1">
                                 Active
                             </span>
                         )}

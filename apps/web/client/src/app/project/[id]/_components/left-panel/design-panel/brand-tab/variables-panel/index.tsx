@@ -228,7 +228,11 @@ function AddVariableForm({ onCancel }: { onCancel: () => void }) {
             .replace(/\s+/g, '-')
             .replace(/[^a-z0-9-]/g, '');
         if (!slug || !light.trim()) return;
-        await tokens.addVariable({ name: slug, light, dark: hasDark ? dark : null });
+        await tokens.addVariable({
+            name: slug,
+            light,
+            dark: hasDark ? dark : null,
+        });
         onCancel();
     };
 

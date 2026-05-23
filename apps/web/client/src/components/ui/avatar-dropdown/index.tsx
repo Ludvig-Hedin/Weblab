@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { useTranslations } from 'next-intl';
 
@@ -18,7 +20,6 @@ import { getInitials } from '@weblab/utility';
 
 import { useStateManager } from '@/components/store/state';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
@@ -49,7 +50,7 @@ export const CurrentUserAvatar = ({ className }: { className?: string }) => {
     const { signOut: clerkSignOut } = useSafeClerk();
     const t = useTranslations();
 
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
     // Pick the most flattering, least-email-y label available. If
     // `displayName` matches the email sentinel (OTP signup skipped), fall
     // back to firstName → derived name → "You" so we never display the raw

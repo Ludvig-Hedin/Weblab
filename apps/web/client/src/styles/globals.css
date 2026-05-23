@@ -57,9 +57,13 @@ html[data-font-size='small']  { font-size: 13px; }
 html[data-font-size='medium'] { font-size: 14px; }
 html[data-font-size='large']  { font-size: 16px; }
 
-/* Font family */
-html[data-font-family='sans']  { font-family: Inter, var(--font-sans, ui-sans-serif, system-ui, sans-serif); }
-html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif; }
+/* Font family — system-first cascade so Mac users get SF Pro automatically.
+   Inter (loaded via next/font in layout.tsx) acts as the cross-platform fallback
+   so Windows/Linux still look consistent. Downloaded Electron app picks up
+   the host system font (Apple license forbids embedding SF Pro/Mono). */
+html[data-font-family='sans']  { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Segoe UI', system-ui, sans-serif; }
+html[data-font-family='serif'] { font-family: 'New York', Georgia, 'Times New Roman', serif; }
+html[data-font-family='mono']  { font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace; }
 
 /* TipTap chat input placeholder */
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -106,11 +110,13 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
    See /design-system for the live reference and usage rules.
    --------------------------------------------------------------------------- */
 @layer components {
+    /* Heading scale — medium weight (500) for stronger presence,
+       tightened tracking for compact, Codex-style typography. */
     .heading-style-h1 {
         font-size: 2.25rem;             /* 4xl  */
-        font-weight: 400;
+        font-weight: 500;
         line-height: 0.95;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.03em;
     }
     @media (min-width: 40rem)  { .heading-style-h1 { font-size: 3rem;    } } /* sm → 5xl */
     @media (min-width: 64rem)  { .heading-style-h1 { font-size: 3.75rem; } } /* lg → 6xl */
@@ -118,9 +124,9 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
     .heading-style-h2 {
         font-size: 2.25rem;             /* 4xl */
-        font-weight: 400;
+        font-weight: 500;
         line-height: 0.97;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.03em;
         text-wrap: balance;
     }
     @media (min-width: 40rem) { .heading-style-h2 { font-size: 2.75rem;    } } /* sm → 5xl */
@@ -128,7 +134,7 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
     .heading-style-h3 {
         font-size: 1.875rem;            /* 3xl */
-        font-weight: 400;
+        font-weight: 500;
         line-height: 1.0;
         letter-spacing: -0.025em;
         text-wrap: balance;
@@ -138,9 +144,9 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
     .heading-style-h4 {
         font-size: 1.5rem;              /* 2xl */
-        font-weight: 400;
+        font-weight: 500;
         line-height: 1.0;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.02em;
         text-wrap: balance;
     }
     @media (min-width: 40rem) { .heading-style-h4 { font-size: 1.875rem; } } /* sm → 3xl */
@@ -148,16 +154,16 @@ html[data-font-family='serif'] { font-family: Georgia, 'Times New Roman', serif;
 
     .heading-style-h5 {
         font-size: 1.25rem;             /* xl */
-        font-weight: 400;
+        font-weight: 500;
         line-height: 1.1;
-        letter-spacing: 0;
+        letter-spacing: -0.015em;
     }
 
     .heading-style-h6 {
         font-size: 0.875rem;             /* mini */
         line-height: 1;
         letter-spacing: -0.01em;
-        font-weight: 400;
+        font-weight: 500;
     }
 
     /* ── Tagline / eyebrow label style ─────────────────────────────────────────

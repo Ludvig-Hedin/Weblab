@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 
 import { Button } from '@weblab/ui/button';
@@ -9,7 +11,6 @@ import { Icons } from '@weblab/ui/icons';
 
 import type { ExternalTemplate } from './template-data';
 import { useAuthContext } from '@/app/auth/auth-context';
-import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
 interface ExternalTemplateActionsProps {
@@ -23,14 +24,14 @@ export function ExternalTemplateActions({
     size = 'default',
     className,
 }: ExternalTemplateActionsProps) {
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
 
     const creatingHref = `${Routes.PROJECT_CREATING}?templateId=${template.id}`;
 
     const handleUseTemplate = async () => {
-        if (!user?.id) {
+        if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, creatingHref);
             setIsAuthModalOpen(true);
             return;

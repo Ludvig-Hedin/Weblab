@@ -188,9 +188,9 @@ export const TreeNode = memo(
             const nodeClassName = useMemo(
                 () =>
                     cn('flex h-6 w-full cursor-pointer flex-row items-center pr-1', {
-                        'text-purple-600 dark:text-purple-300':
+                        'text-foreground-skill/70':
                             isComponentAncestor(node) && !node.data.instanceId && !hovered,
-                        'text-purple-500 dark:text-purple-200':
+                        'text-foreground-skill':
                             isComponentAncestor(node) && !node.data.instanceId && hovered,
                         'text-foreground-weblab':
                             !isComponentAncestor(node) &&
@@ -303,10 +303,10 @@ export const TreeNode = memo(
                                         className={cn(
                                             'mr-1.5 mb-[1px] ml-1 h-3 w-3 flex-none',
                                             hovered && !selected
-                                                ? 'text-purple-600 dark:text-purple-200'
+                                                ? 'text-foreground-skill'
                                                 : selected
-                                                  ? 'text-purple-100 dark:text-purple-100'
-                                                  : 'text-purple-500 dark:text-purple-300',
+                                                  ? 'text-foreground-skill dark:text-foreground-skill'
+                                                  : 'text-foreground-skill',
                                         )}
                                     />
                                 ) : (

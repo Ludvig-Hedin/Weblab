@@ -53,7 +53,7 @@ Best regards,
                     <p className="text-foreground text-sm font-semibold">{ENTERPRISE_TIER.price}</p>
                 </div>
                 <div className="mt-6">
-                    <Button size="sm" className="rounded-full" onClick={handleContactUs}>
+                    <Button size="lg" variant="outline" onClick={handleContactUs}>
                         {t(transKeys.pricing.enterprise.contactUs)}
                     </Button>
                 </div>

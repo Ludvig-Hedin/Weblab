@@ -84,7 +84,7 @@ export function PinPad({ sides, onCommitSide, onTogglePin, onClearAll, className
 
             {/* Center pad */}
             <div
-                className="bg-background-secondary relative h-[64px] w-[64px] rounded-[10px] dark:bg-[#262626]"
+                className="bg-background-secondary relative h-[64px] w-[64px] rounded-[10px]"
                 style={{ gridColumn: 2, gridRow: 2 }}
             >
                 <PadZone

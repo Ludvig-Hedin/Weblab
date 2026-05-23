@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useConvex, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { usePostHog } from 'posthog-js/react';
@@ -20,12 +22,12 @@ import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
 import { useDownloadProjectToFolder } from '@/hooks/use-download-project-to-folder';
 import { useProjectCapabilitiesContext } from '@/hooks/use-project-capabilities-context';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { CloneProjectDialog } from '../clone-project-dialog';
 import { NewProjectMenu } from './new-project-menu';
@@ -36,12 +38,12 @@ export const ProjectBreadcrumb = observer(() => {
     const stateManager = useStateManager();
     const posthog = usePostHog();
     const router = useRouter();
-    const { data: project } = api.project.get.useQuery({
-        projectId: editorEngine.projectId,
+    const project = useQuery(api.projects.get, {
+        projectId: editorEngine.projectId as Id<'projects'>,
     });
-    const utils = api.useUtils();
-    const { data: subscription } = api.subscription.get.useQuery();
-    const isPro = subscription?.product.type === ProductType.PRO;
+    const convex = useConvex();
+    const subscription = useQuery(api.subscriptions.get, {});
+    const isPro = subscription?.product?.type === ProductType.PRO;
     const { canView, canEdit, isLoading: capsLoading } = useProjectCapabilitiesContext();
     const showViewerPill = !capsLoading && canView && !canEdit;
     const t = useTranslations();
@@ -74,10 +76,10 @@ export const ProjectBreadcrumb = observer(() => {
                     finish(Routes.PROJECTS);
                     return;
                 }
-                utils.workspace.list
-                    .ensureData()
+                convex
+                    .query(api.workspaces.list, {})
                     .then((list) => {
-                        const target = list.find((w) => w.id === targetWsId);
+                        const target = list.find((w) => w._id === targetWsId);
                         finish(target ? `/w/${target.slug}/projects` : Routes.PROJECTS);
                     })
                     .catch(() => finish(Routes.PROJECTS));
@@ -106,7 +108,7 @@ export const ProjectBreadcrumb = observer(() => {
                 window.open(result.downloadUrl, '_blank');
 
                 posthog.capture('download_project_code', {
-                    projectId: project.id,
+                    projectId: project._id,
                     projectName: project.name,
                 });
 
@@ -121,7 +123,7 @@ export const ProjectBreadcrumb = observer(() => {
             });
 
             posthog.capture('download_project_code_failed', {
-                projectId: project.id,
+                projectId: project._id,
                 error: error instanceof Error ? error.message : 'Unknown error',
             });
         } finally {

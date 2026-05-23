@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
@@ -6,19 +8,20 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { getValidUrl, timeAgo } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 export const PreviewDomain = observer(() => {
     const editorEngine = useEditorEngine();
-    const { data: domains } = api.domain.getAll.useQuery({ projectId: editorEngine.projectId });
+    const projectId = editorEngine.projectId as Id<'projects'>;
+    const domains = useQuery(api.domains.getAll, { projectId });
     const preview = domains?.preview;
 
     if (!preview) {
         return <div>No preview domain found</div>;
     }
 
-    const lastUpdated = preview.publishedAt ? timeAgo(preview.publishedAt) : null;
+    const lastUpdated = preview.publishedAt ? timeAgo(new Date(preview.publishedAt)) : null;
     const baseUrl = preview.url;
     const validUrl = getValidUrl(baseUrl);
 

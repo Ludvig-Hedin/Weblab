@@ -114,7 +114,7 @@ export function ProjectCardContextMenu({
                             setShowDeleteDialog(true);
                         }}
                         disabled={isDeleting}
-                        className="cursor-pointer gap-2 text-red-400 hover:!bg-red-200/80 hover:!text-red-700 dark:text-red-200 dark:hover:!bg-red-800 dark:hover:!text-red-100"
+                        className="text-destructive hover:!bg-destructive/15 hover:!text-destructive cursor-pointer gap-2"
                     >
                         <Icons.Trash className="h-4 w-4" />
                         {t(transKeys.projects.actions.deleteProject)}

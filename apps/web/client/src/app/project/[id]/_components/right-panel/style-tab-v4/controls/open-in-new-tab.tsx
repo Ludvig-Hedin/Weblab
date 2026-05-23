@@ -38,10 +38,10 @@ export function OpenInNewTabCheckbox({
             <span
                 aria-hidden
                 className={cn(
-                    'flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+                    'flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-xs border transition-colors',
                     checked
                         ? 'bg-foreground-brand border-foreground-brand text-white'
-                        : 'bg-background-secondary border-foreground/10 dark:bg-[#262626]',
+                        : 'bg-background-secondary border-foreground/10',
                 )}
             >
                 {checked && <Check className="h-[10px] w-[10px]" strokeWidth={3} />}

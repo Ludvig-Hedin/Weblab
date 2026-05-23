@@ -11,7 +11,6 @@ import { cn } from '@weblab/ui/utils';
 
 import type { ComponentTemplate } from './templates';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { ComponentCard } from './component-card';
 import { COMPONENT_TEMPLATES, TEMPLATE_CATEGORIES } from './templates';
 
@@ -20,8 +19,9 @@ export const ComponentsTab = observer(() => {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-    const { data: userComponents, isLoading: isLoadingComponents } =
-        api.forward.components.listProjectComponents.useQuery({}, { staleTime: 30_000 });
+    // TODO(convex-migration): forward router was tRPC-only and is being removed; restore project component scanning via a Convex action when available
+    const userComponents = [] as ComponentInsertData[];
+    const isLoadingComponents = false;
 
     const filteredTemplates = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();

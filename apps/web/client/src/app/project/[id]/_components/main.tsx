@@ -19,9 +19,9 @@ import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
 import { EditorBar } from './editor-bar';
-import { OfflineBanner } from './offline-banner';
 import { LeftPanel } from './left-panel';
 import { MobileLayout } from './mobile-layout';
+import { OfflineBanner } from './offline-banner';
 import { OnboardingTour } from './onboarding-tour';
 import { PreviewOverlay } from './preview-overlay';
 import { ProjectLoadError } from './project-load-error';
@@ -120,7 +120,12 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
         };
     }, []);
 
-    if (error) {
+    // Don't pre-empt the editor mount on a sandbox connection error — when the
+    // remote sandbox is unreachable (synthetic test project, deployment with
+    // no CSB/Vercel credentials, transient outage), we still want the canvas
+    // shell, layers panel, and AI chat to render so the user gets context for
+    // what's broken. The bottom-bar surfaces the reconnect state separately.
+    if (error && error.toLowerCase().includes('no project')) {
         return <ProjectLoadError variant="unknown" message={error} />;
     }
 
@@ -261,7 +266,10 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
 
                     {/* Offline / sync banner — floating chip, 12px below top bar, 12px from right edge. */}
                     {!isPreview && !isCms && (
-                        <div className="pointer-events-none absolute right-3 z-50" style={{ top: '68px' }}>
+                        <div
+                            className="pointer-events-none absolute right-3 z-50"
+                            style={{ top: '68px' }}
+                        >
                             <OfflineBanner />
                         </div>
                     )}

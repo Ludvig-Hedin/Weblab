@@ -1,6 +1,16 @@
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { EditorEngine } from '../engine';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.comment.comment.list` → `api.comments.listByProject`,
+// `api.comment.comment.create` → `api.comments.create`,
+// `api.comment.comment.update` → `api.comments.update`,
+// `api.comment.comment.delete` → `api.comments.remove`,
+// `api.comment.comment.resolve` → `api.comments.resolve`,
+// `api.comment.comment.unresolve` → `api.comments.unresolve`,
+// `api.comment.reply.create` → `api.commentReplies.create`,
+// `api.comment.reply.delete` → `api.commentReplies.remove` once a Convex
+// HTTP client with Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 
 export interface ProjectComment {

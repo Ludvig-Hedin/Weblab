@@ -19,7 +19,11 @@ import { inferProviderFromModelId } from '@weblab/ai/client';
 
 type CliEvent =
     | { streamId: string; kind: 'part'; payload: UIMessageChunk }
-    | { streamId: string; kind: 'error'; payload: { message: string; code?: string } }
+    | {
+          streamId: string;
+          kind: 'error';
+          payload: { message: string; code?: string };
+      }
     | { streamId: string; kind: 'finish' };
 
 type CliBridge = {

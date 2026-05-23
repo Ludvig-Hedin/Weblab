@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -12,7 +14,6 @@ import { Icons } from '@weblab/ui/icons';
 import { useAuthContext } from '@/app/auth/auth-context';
 import { CreateManagerProvider, useCreateManager } from '@/components/store/create';
 import { isNotAuthenticatedError } from '@/components/store/create/manager';
-import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { getExternalTemplate } from '../_components/templates/template-data';
 
@@ -64,7 +65,8 @@ function CreatingContent() {
     const params = useSearchParams();
     const templateId = params.get('templateId');
 
-    const { data: user, isLoading: isLoadingUser } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
+    const isLoadingUser = user === undefined;
     const { setIsAuthModalOpen } = useAuthContext();
     const createManager = useCreateManager();
 
@@ -93,7 +95,7 @@ function CreatingContent() {
     // ── Redirect to login if the user isn't signed in ────────────────────────
     useEffect(() => {
         if (isLoadingUser) return;
-        if (!user?.id) {
+        if (!user?._id) {
             // Store return URL so we come back after login
             void localforage.setItem(
                 LocalForageKeys.RETURN_URL,
@@ -101,11 +103,11 @@ function CreatingContent() {
             );
             setIsAuthModalOpen(true);
         }
-    }, [isLoadingUser, user?.id, setIsAuthModalOpen]);
+    }, [isLoadingUser, user?._id, setIsAuthModalOpen]);
 
     // ── Start creation once we have a user ───────────────────────────────────
     useEffect(() => {
-        if (!user?.id || !template || hasStarted.current) return;
+        if (!user?._id || !template || hasStarted.current) return;
         hasStarted.current = true;
 
         const run = async () => {
@@ -116,7 +118,7 @@ function CreatingContent() {
             try {
                 setPhase('importing');
                 const project = await createManager.startPublicGitHubTemplate({
-                    userId: user.id,
+                    userId: user._id,
                     name: template.name,
                     description: template.shortDescription,
                     repoUrl: template.repoUrl,
@@ -159,7 +161,7 @@ function CreatingContent() {
         };
 
         void run();
-    }, [user?.id, template, createManager, router, setIsAuthModalOpen]);
+    }, [user?._id, template, createManager, router, setIsAuthModalOpen]);
 
     // ── Derived state ────────────────────────────────────────────────────────
     const currentStepIndex =

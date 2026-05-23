@@ -50,7 +50,10 @@ export const ImgSelected = memo(({ availableWidth = 0 }: { availableWidth?: numb
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'img-selected-overflow-dropdown',
     });
-    const { visibleCount } = useMeasureGroup({ availableWidth, count: IMG_SELECTED_GROUPS.length });
+    const { visibleCount } = useMeasureGroup({
+        availableWidth,
+        count: IMG_SELECTED_GROUPS.length,
+    });
 
     const visibleGroups = IMG_SELECTED_GROUPS.slice(0, visibleCount);
     const overflowGroups = [...IMG_SELECTED_GROUPS.slice(visibleCount), ...MUST_EXTEND_GROUPS];

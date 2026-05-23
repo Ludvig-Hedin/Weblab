@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
@@ -11,7 +13,6 @@ import { Icons } from '@weblab/ui/icons';
 import { useAuthContext } from '@/app/auth/auth-context';
 import { PROJECT_SUGGESTIONS } from '@/app/projects/_components/select';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { vujahdayScript } from '../../fonts';
 import { JustShippedStrip } from '../landing-page/just-shipped-strip';
@@ -26,14 +27,12 @@ function GetStarted() {
     // page load (previously logged a `TRPCClientError: UNAUTHORIZED` to the
     // console and wasted a request).
     const hasAuthCookie = useHasAuthCookie();
-    const { data: user } = api.user.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const { setIsAuthModalOpen } = useAuthContext();
     const t = useTranslations('landing.hero');
 
     const handleClick = () => {
-        if (!user?.id) {
+        if (!user?._id) {
             setIsAuthModalOpen(true);
             return;
         }
@@ -53,9 +52,7 @@ function GetStarted() {
 
 export function Hero() {
     const hasAuthCookie = useHasAuthCookie();
-    const { data: user } = api.user.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const [isCreatingProject, setIsCreatingProject] = useState(false);
     const t = useTranslations('landing.hero');
 
@@ -73,7 +70,10 @@ export function Hero() {
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
                         animate={{ opacity: 1, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, ease: 'easeOut' }}
-                        style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
+                        style={{
+                            willChange: 'opacity, filter',
+                            transform: 'translateZ(0)',
+                        }}
                     >
                         {t('headline')} <br />
                         <span
@@ -87,7 +87,10 @@ export function Hero() {
                         initial={{ opacity: 0, filter: 'blur(4px)' }}
                         animate={{ opacity: 1, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
-                        style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
+                        style={{
+                            willChange: 'opacity, filter',
+                            transform: 'translateZ(0)',
+                        }}
                     >
                         {t('subhead')}
                     </motion.p>
@@ -103,7 +106,7 @@ export function Hero() {
                         cardKey={0}
                         isCreatingProject={isCreatingProject}
                         setIsCreatingProject={setIsCreatingProject}
-                        user={user ?? null}
+                        user={(user ?? null) as never}
                         variant="hero"
                         suggestions={PROJECT_SUGGESTIONS}
                     />
@@ -114,7 +117,7 @@ export function Hero() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.55, ease: 'easeOut' }}
                 >
-                    {user?.id ? (
+                    {user?._id ? (
                         <>
                             <Link
                                 href={Routes.PROJECTS}

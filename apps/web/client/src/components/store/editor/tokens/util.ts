@@ -323,7 +323,11 @@ function ensureBlock(root: Root, kind: 'theme-block' | 'root' | 'dark'): AtRule 
             if (!found) found = at;
         });
         if (found) return found;
-        const at = postcss.atRule({ name: 'theme', params: '', raws: { before: '\n\n' } });
+        const at = postcss.atRule({
+            name: 'theme',
+            params: '',
+            raws: { before: '\n\n' },
+        });
         at.raws.semicolon = true;
         root.append(at);
         return at;

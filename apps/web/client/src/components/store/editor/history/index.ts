@@ -30,7 +30,9 @@ export class HistoryManager {
         private branchId: string,
         private undoStack: Action[] = [],
         private redoStack: Action[] = [],
-        private inTransaction: TransactionState = { type: TransactionType.NOT_IN_TRANSACTION },
+        private inTransaction: TransactionState = {
+            type: TransactionType.NOT_IN_TRANSACTION,
+        },
     ) {
         makeAutoObservable<this, 'persistDebounced'>(this, {
             persistDebounced: false,

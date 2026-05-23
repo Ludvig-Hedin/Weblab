@@ -335,7 +335,11 @@ export const customLightTheme = EditorView.theme(
 export const customLightHighlightStyle = HighlightStyle.define([
     // Keywords
     { tag: tags.keyword, color: customLightColors.red, fontWeight: 'bold' },
-    { tag: tags.controlKeyword, color: customLightColors.red, fontWeight: 'bold' },
+    {
+        tag: tags.controlKeyword,
+        color: customLightColors.red,
+        fontWeight: 'bold',
+    },
     { tag: tags.operatorKeyword, color: customLightColors.red },
 
     // Strings & regexps
@@ -364,7 +368,11 @@ export const customLightHighlightStyle = HighlightStyle.define([
     // Comments
     { tag: tags.comment, color: customLightColors.gray, fontStyle: 'italic' },
     { tag: tags.lineComment, color: customLightColors.gray, fontStyle: 'italic' },
-    { tag: tags.blockComment, color: customLightColors.gray, fontStyle: 'italic' },
+    {
+        tag: tags.blockComment,
+        color: customLightColors.gray,
+        fontStyle: 'italic',
+    },
 
     // Operators / punctuation
     { tag: tags.operator, color: customLightColors.near },
@@ -381,7 +389,11 @@ export const customLightHighlightStyle = HighlightStyle.define([
     { tag: tags.unit, color: customLightColors.blue },
 
     // Invalid/Error
-    { tag: tags.invalid, color: customLightColors.error, textDecoration: 'underline' },
+    {
+        tag: tags.invalid,
+        color: customLightColors.error,
+        textDecoration: 'underline',
+    },
 ]);
 
 const searchHighlightEffect = StateEffect.define<{ term: string }>();
@@ -513,7 +525,9 @@ export function clearElementHighlight() {
     return clearElementHighlightEffect.of(null);
 }
 
-export const scrollToLineColumn = debounce(undebounceScrollToLineColumn, 100, { leading: true });
+export const scrollToLineColumn = debounce(undebounceScrollToLineColumn, 100, {
+    leading: true,
+});
 
 function undebounceScrollToLineColumn(view: EditorView, line: number, column: number): void {
     const doc = view.state.doc;

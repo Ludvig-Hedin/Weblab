@@ -1,3 +1,5 @@
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models/hosting';
@@ -15,14 +17,15 @@ import {
 import { Button } from '@weblab/ui/button';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
-import { api } from '@/trpc/react';
 
 export const DangerZone = observer(() => {
     const editorEngine = useEditorEngine();
+    const projectId = editorEngine.projectId as Id<'projects'>;
 
-    const { data: domains } = api.domain.getAll.useQuery({ projectId: editorEngine.projectId });
+    const domains = useQuery(api.domains.getAll, { projectId });
     const { deployment: unpublishPreviewDeployment, unpublish: runUnpublishPreview } =
         useHostingType(DeploymentType.UNPUBLISH_PREVIEW);
     const { deployment: unpublishCustomDeployment, unpublish: runUnpublishCustom } = useHostingType(

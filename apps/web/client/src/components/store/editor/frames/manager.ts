@@ -8,6 +8,11 @@ import { calculateNonOverlappingPosition } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.frame.delete` → `api.frames.remove`,
+// `api.frame.create` → `api.frames.create`,
+// `api.frame.update` → `api.frames.update` once a Convex HTTP client with
+// Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 import { roundDimensions } from './dimension';
 import { FrameNavigationManager } from './navigation';
@@ -460,7 +465,10 @@ export class FramesManager {
         return this.selected.length > 0;
     }
 
-    calculateNonOverlappingPosition(proposedFrame: Frame): { x: number; y: number } {
+    calculateNonOverlappingPosition(proposedFrame: Frame): {
+        x: number;
+        y: number;
+    } {
         const allFrames = this.getAll().map((frameData) => frameData.frame);
         return calculateNonOverlappingPosition(proposedFrame, allFrames);
     }

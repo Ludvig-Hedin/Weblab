@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import {
@@ -19,8 +21,8 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 interface CloneProjectDialogProps {
@@ -33,7 +35,7 @@ export const CloneProjectDialog = observer(
     ({ isOpen, onClose, projectName }: CloneProjectDialogProps) => {
         const editorEngine = useEditorEngine();
         const router = useRouter();
-        const { mutateAsync: cloneProject } = api.project.fork.useMutation();
+        const cloneProject = useAction(api.projectActions.fork);
         const [cloneProjectName, setCloneProjectName] = useState(
             projectName ? `${projectName} (Clone)` : '',
         );
@@ -90,14 +92,14 @@ export const CloneProjectDialog = observer(
                 }
 
                 const clonedProject = await cloneProject({
-                    projectId: editorEngine.projectId,
+                    projectId: editorEngine.projectId as Id<'projects'>,
                     name: cloneProjectName.trim(),
                 });
 
                 if (clonedProject) {
                     toast.success('Project cloned successfully');
                     onClose();
-                    router.push(`${Routes.PROJECT}/${clonedProject.id}`);
+                    router.push(`${Routes.PROJECT}/${clonedProject.projectId}`);
                 } else {
                     toast.error('Failed to clone project', {
                         description: 'No project was returned from the server.',

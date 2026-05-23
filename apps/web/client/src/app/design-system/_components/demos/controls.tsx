@@ -30,7 +30,12 @@ export function ControlsDemo() {
                         { id: 'c1', label: 'Unchecked', checked: false },
                         { id: 'c2', label: 'Checked', checked: true },
                         { id: 'c3', label: 'Disabled', disabled: true },
-                        { id: 'c4', label: 'Disabled checked', checked: true, disabled: true },
+                        {
+                            id: 'c4',
+                            label: 'Disabled checked',
+                            checked: true,
+                            disabled: true,
+                        },
                     ].map(({ id, label, checked, disabled }) => (
                         <div key={id} className="flex items-center gap-2">
                             <Checkbox id={id} defaultChecked={checked} disabled={disabled} />

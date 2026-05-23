@@ -19,7 +19,13 @@ export const DomainSection = () => {
                     <div className="ml-auto flex items-center gap-2">
                         <p className="text-foreground-positive">Live</p>
                         <p>•</p>
-                        <p>Updated {timeAgo(deployment.updatedAt)} ago</p>
+                        <p>
+                            Updated{' '}
+                            {timeAgo(
+                                deployment.updatedAt ? new Date(deployment.updatedAt) : new Date(),
+                            )}{' '}
+                            ago
+                        </p>
                     </div>
                 )}
                 {deployment?.status === DeploymentStatus.FAILED && (

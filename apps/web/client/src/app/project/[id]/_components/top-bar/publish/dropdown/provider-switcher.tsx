@@ -1,9 +1,11 @@
 'use client';
 
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
+
 import { HOSTING_PROVIDER_LABELS, HostingProvider } from '@weblab/models';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 
-import { api } from '@/trpc/react';
 import { useSelectedProvider } from './selected-provider';
 
 interface Props {
@@ -12,7 +14,7 @@ interface Props {
 
 export const ProviderSwitcher = ({ onOpenIntegrations }: Props) => {
     const { selectedProvider, setSelectedProvider } = useSelectedProvider();
-    const { data: connections } = api.hostingConnection.list.useQuery();
+    const connections = useQuery(api.hostingConnections.list, {});
     const connectedProviders = connections?.map((c) => c.provider) ?? [];
 
     return (

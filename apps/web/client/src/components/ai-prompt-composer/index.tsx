@@ -92,7 +92,7 @@ function getVariantClasses(variant: NonNullable<AiPromptComposerProps['variant']
                 root: 'w-[600px] max-w-full',
                 surface: '',
                 textarea: '',
-                button: 'h-9 w-9',
+                button: 'h-9 w-9 rounded-full',
                 icon: 'h-5 w-5',
                 footer: 'px-2 pt-2 pb-2',
             };
@@ -364,7 +364,7 @@ export function AiPromptComposer({
                                 onTranscript={onTranscript}
                                 disabled={disabled || isSubmitting}
                                 className={classes.button}
-                                iconClassName={classes.icon}
+                                iconClassName={cn(classes.icon, variant === 'create' && 'h-4 w-4')}
                             />
                         )}
                         <Tooltip>

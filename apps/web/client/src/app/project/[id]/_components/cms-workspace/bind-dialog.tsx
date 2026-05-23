@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -20,9 +22,9 @@ import { RadioGroup, RadioGroupItem } from '@weblab/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 type ItemBindKind =
     | CmsBindingKind.ITEM_FIELD
@@ -74,63 +76,83 @@ export const BindDialog = observer(() => {
     // List-descendant state (CURRENT_FIELD).
     const [currentFieldKey, setCurrentFieldKey] = useState<string>('');
 
-    const utils = api.useUtils();
+    // Convex live queries auto-revalidate — no manual invalidation needed.
 
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && open },
+    const collections = useQuery(
+        api.cmsCollections.list,
+        projectId && open ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
-    const bindingsQuery = api.cms.binding.listForProject.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && open },
+    const bindings = useQuery(
+        api.cmsBindings.listForProject,
+        projectId && open ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
     // v4: query collection-page registrations so we can offer PAGE_ITEM_FIELD.
-    const pagesQuery = api.cms.collectionPage.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && open },
+    const pages = useQuery(
+        api.cmsCollectionPages.list,
+        projectId && open ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
 
     // Item-mode supporting queries — gated to avoid hitting the API when in
     // list / list-descendant mode.
     const activeItemCollectionId = mode === 'item' ? itemCollectionId : '';
-    const itemFieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId: projectId ?? '', collectionId: activeItemCollectionId },
-        { enabled: !!projectId && !!activeItemCollectionId && open },
+    const itemFieldsList = useQuery(
+        api.cmsFields.listByCollection,
+        projectId && activeItemCollectionId && open
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: activeItemCollectionId as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
-    const itemsQuery = api.cms.item.list.useQuery(
-        { projectId: projectId ?? '', collectionId: activeItemCollectionId },
-        { enabled: !!projectId && !!activeItemCollectionId && open },
+    const itemsList = useQuery(
+        api.cmsItems.list,
+        projectId && activeItemCollectionId && open
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: activeItemCollectionId as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
 
     // List mode: pull fields for the selected collection (used for sort picker).
-    const repeatFieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId: projectId ?? '', collectionId: repeatCollectionId },
-        { enabled: !!projectId && !!repeatCollectionId && open && mode === 'list' },
+    const repeatFieldsList = useQuery(
+        api.cmsFields.listByCollection,
+        projectId && repeatCollectionId && open && mode === 'list'
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: repeatCollectionId as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
 
     // List-descendant: parent's binding gives us the inherited collection.
     const parentBinding = useMemo(() => {
         if (mode !== 'list-descendant' || !parentListOid) return null;
-        return bindingsQuery.data?.find((b) => b.oid === parentListOid) ?? null;
-    }, [bindingsQuery.data, mode, parentListOid]);
+        return bindings?.find((b) => b.oid === parentListOid) ?? null;
+    }, [bindings, mode, parentListOid]);
     const inheritedCollectionId =
         parentBinding && parentBinding.binding.kind === CmsBindingKind.REPEAT
             ? parentBinding.binding.collectionId
             : '';
-    const descendantFieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId: projectId ?? '', collectionId: inheritedCollectionId },
-        {
-            enabled: !!projectId && !!inheritedCollectionId && open && mode === 'list-descendant',
-        },
+    const descendantFieldsList = useQuery(
+        api.cmsFields.listByCollection,
+        projectId && inheritedCollectionId && open && mode === 'list-descendant'
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: inheritedCollectionId as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
 
-    const upsertMutation = api.cms.binding.upsert.useMutation();
-    const removeMutation = api.cms.binding.remove.useMutation();
+    const upsertMutation = useMutation(api.cmsBindings.upsert);
+    const removeMutation = useMutation(api.cmsBindings.remove);
+    const [isUpserting, setIsUpserting] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
 
     const existingBinding = useMemo(() => {
         if (!oid) return null;
-        return bindingsQuery.data?.find((b) => b.oid === oid) ?? null;
-    }, [bindingsQuery.data, oid]);
+        return bindings?.find((b) => b.oid === oid) ?? null;
+    }, [bindings, oid]);
 
     // Detect the element's role on dialog open. Async because the iframe
     // call is over Penpal.
@@ -216,10 +238,10 @@ export const BindDialog = observer(() => {
             lastOidRef.current = oid;
         }
         if (preFillRef.current) return;
-        // Wait for queries to actually have data — `isPending` is true until
-        // the first response. Using `isLoading` would treat stale cache as
+        // Wait for queries to actually have data — Convex returns `undefined`
+        // while loading. Using a cached "isLoading" would treat stale cache as
         // ready and skip a fresh fetch on reopen against a different oid.
-        if (bindingsQuery.isPending || pagesQuery.isPending) return;
+        if (bindings === undefined || pages === undefined) return;
         preFillRef.current = true;
         if (!existingBinding) {
             setItemCollectionId('');
@@ -248,7 +270,7 @@ export const BindDialog = observer(() => {
             setItemBindKind(CmsBindingKind.PAGE_ITEM_FIELD);
             // No collection on the binding — populate from the first
             // registration so the field picker has data.
-            const firstReg = pagesQuery.data?.[0];
+            const firstReg = pages?.[0];
             setItemCollectionId(firstReg?.collectionId ?? '');
             setItemFieldKey(b.fieldKey);
             setItemId('');
@@ -260,14 +282,7 @@ export const BindDialog = observer(() => {
         } else if (b.kind === CmsBindingKind.CURRENT_FIELD) {
             setCurrentFieldKey(b.fieldKey);
         }
-    }, [
-        open,
-        oid,
-        existingBinding,
-        pagesQuery.data,
-        bindingsQuery.isPending,
-        pagesQuery.isPending,
-    ]);
+    }, [open, oid, existingBinding, pages, bindings]);
 
     // When the user picks a collection without a registered detail page,
     // the PAGE_ITEM_FIELD radio gets disabled but the kind state can stay on
@@ -276,11 +291,11 @@ export const BindDialog = observer(() => {
     useEffect(() => {
         if (itemBindKind !== CmsBindingKind.PAGE_ITEM_FIELD) return;
         if (!itemCollectionId) return;
-        const mappedIds = (pagesQuery.data ?? []).map((p) => p.collectionId);
+        const mappedIds = (pages ?? []).map((p) => p.collectionId as string);
         if (!mappedIds.includes(itemCollectionId)) {
             setItemBindKind(CmsBindingKind.ITEM_FIELD);
         }
-    }, [itemBindKind, itemCollectionId, pagesQuery.data]);
+    }, [itemBindKind, itemCollectionId, pages]);
 
     const close = () => editorEngine.state.closeCmsBindDialog();
 
@@ -289,6 +304,7 @@ export const BindDialog = observer(() => {
         // DOM detection still in flight — Save button is also disabled in
         // this state, but guard programmatic/keyboard paths too.
         if (mode === 'unknown') return;
+        setIsUpserting(true);
         try {
             if (mode === 'list') {
                 if (!repeatCollectionId) {
@@ -307,8 +323,8 @@ export const BindDialog = observer(() => {
                     toast.error(t(transKeys.cms.bind.repeat.invalidLimit));
                     return;
                 }
-                await upsertMutation.mutateAsync({
-                    projectId,
+                await upsertMutation({
+                    projectId: projectId as Id<'projects'>,
                     oid,
                     binding: {
                         kind: CmsBindingKind.REPEAT,
@@ -328,8 +344,8 @@ export const BindDialog = observer(() => {
                     toast.error(t(transKeys.cms.bind.current.pickField));
                     return;
                 }
-                await upsertMutation.mutateAsync({
-                    projectId,
+                await upsertMutation({
+                    projectId: projectId as Id<'projects'>,
                     oid,
                     binding: {
                         kind: CmsBindingKind.CURRENT_FIELD,
@@ -349,8 +365,8 @@ export const BindDialog = observer(() => {
                     toast.error(t(transKeys.cms.bind.pickItem));
                     return;
                 }
-                await upsertMutation.mutateAsync({
-                    projectId,
+                await upsertMutation({
+                    projectId: projectId as Id<'projects'>,
                     oid,
                     binding:
                         itemBindKind === CmsBindingKind.ITEM_FIELD
@@ -372,33 +388,36 @@ export const BindDialog = observer(() => {
                                 },
                 });
             }
-            await utils.cms.binding.listForProject.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            // Convex live queries auto-revalidate — no manual invalidation needed.
             toast.success(t(transKeys.cms.bind.successSaved));
             close();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.bind.failed));
+        } finally {
+            setIsUpserting(false);
         }
     };
 
     const handleRemove = async () => {
         if (!projectId || !oid) return;
+        setIsRemoving(true);
         try {
-            await removeMutation.mutateAsync({ projectId, oid });
-            await utils.cms.binding.listForProject.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            await removeMutation({ projectId: projectId as Id<'projects'>, oid });
+            // Convex live queries auto-revalidate — no manual invalidation needed.
             toast.success(t(transKeys.cms.bind.successRemoved));
             close();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.bind.removeFailed));
+        } finally {
+            setIsRemoving(false);
         }
     };
 
-    const collections = collectionsQuery.data ?? [];
-    const itemFields = itemFieldsQuery.data ?? [];
-    const items = itemsQuery.data ?? [];
-    const repeatFields = repeatFieldsQuery.data ?? [];
-    const descendantFields = descendantFieldsQuery.data ?? [];
+    const collectionList = collections ?? [];
+    const itemFields = itemFieldsList ?? [];
+    const items = itemsList ?? [];
+    const repeatFields = repeatFieldsList ?? [];
+    const descendantFields = descendantFieldsList ?? [];
 
     return (
         <Dialog open={open} onOpenChange={(o) => (!o ? close() : null)}>
@@ -429,8 +448,8 @@ export const BindDialog = observer(() => {
                     </div>
                 ) : mode === 'list' ? (
                     <RepeatForm
-                        collections={collections}
-                        fields={repeatFields}
+                        collections={collectionList as never}
+                        fields={repeatFields as never}
                         collectionId={repeatCollectionId}
                         setCollectionId={(v) => {
                             setRepeatCollectionId(v);
@@ -449,19 +468,19 @@ export const BindDialog = observer(() => {
                         parentConfigured={
                             !!parentBinding && parentBinding.binding.kind === CmsBindingKind.REPEAT
                         }
-                        inheritedCollection={collections.find(
-                            (c) => c.id === inheritedCollectionId,
-                        )}
-                        fields={descendantFields}
+                        inheritedCollection={
+                            collectionList.find((c) => c._id === inheritedCollectionId) as never
+                        }
+                        fields={descendantFields as never}
                         fieldKey={currentFieldKey}
                         setFieldKey={setCurrentFieldKey}
                         t={t}
                     />
                 ) : (
                     <ItemForm
-                        collections={collections}
-                        fields={itemFields}
-                        items={items}
+                        collections={collectionList as never}
+                        fields={itemFields as never}
+                        items={items as never}
                         collectionId={itemCollectionId}
                         setCollectionId={(v) => {
                             setItemCollectionId(v);
@@ -474,7 +493,7 @@ export const BindDialog = observer(() => {
                         setKind={setItemBindKind}
                         itemId={itemId}
                         setItemId={setItemId}
-                        pageMappedCollectionIds={(pagesQuery.data ?? []).map((p) => p.collectionId)}
+                        pageMappedCollectionIds={(pages ?? []).map((p) => p.collectionId as string)}
                         t={t}
                     />
                 )}
@@ -485,7 +504,7 @@ export const BindDialog = observer(() => {
                             <Button
                                 variant="ghost"
                                 onClick={handleRemove}
-                                disabled={removeMutation.isPending}
+                                disabled={isRemoving}
                                 className="text-red"
                             >
                                 {t(transKeys.cms.bind.remove)}
@@ -496,10 +515,7 @@ export const BindDialog = observer(() => {
                         <Button variant="ghost" onClick={close}>
                             {t(transKeys.cms.bind.cancel)}
                         </Button>
-                        <Button
-                            onClick={handleSave}
-                            disabled={upsertMutation.isPending || mode === 'unknown'}
-                        >
+                        <Button onClick={handleSave} disabled={isUpserting || mode === 'unknown'}>
                             {existingBinding
                                 ? t(transKeys.cms.bind.update)
                                 : t(transKeys.cms.bind.bind)}

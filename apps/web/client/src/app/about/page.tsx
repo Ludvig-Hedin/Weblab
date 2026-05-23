@@ -167,7 +167,7 @@ export default function AboutPage() {
                                 <img
                                     src="/ludvig.webp"
                                     alt={t('founderName')}
-                                    className="aspect-square h-28 w-28 flex-shrink-0 rounded-2xl bg-neutral-800 object-cover"
+                                    className="bg-background-tertiary aspect-square h-28 w-28 flex-shrink-0 rounded-2xl object-cover"
                                 />
                                 <div className="flex flex-col">
                                     <h4 className="text-title3 md:text-largePlus mb-1">

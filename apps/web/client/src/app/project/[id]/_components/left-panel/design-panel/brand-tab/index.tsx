@@ -42,7 +42,10 @@ function filterSections(sections: TokenSectionData[], query: string): TokenSecti
     return sections.map((section) => {
         const rows = section.rows.filter((r) => matches(r.label, r.name));
         const groups = section.groups
-            .map((g) => ({ ...g, rows: g.rows.filter((r) => matches(r.label, r.name)) }))
+            .map((g) => ({
+                ...g,
+                rows: g.rows.filter((r) => matches(r.label, r.name)),
+            }))
             .filter((g) => g.rows.length > 0);
         const count = rows.length + groups.reduce((n, g) => n + g.rows.length, 0);
         return { ...section, rows, groups, count };

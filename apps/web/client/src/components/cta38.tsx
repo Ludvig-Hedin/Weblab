@@ -1,4 +1,5 @@
-import { Button } from '@/components/ui/button';
+import { Button } from '@weblab/ui/button';
+
 import { cn } from '@/lib/utils';
 
 interface CtaButton {
@@ -56,7 +57,7 @@ const Cta38 = (props: Props) => {
                         <div className="mt-2 flex flex-col gap-3 sm:flex-row">
                             {buttons?.primary && (
                                 <Button
-                                    size="lg"
+                                    size="pill"
                                     variant="secondary"
                                     className="bg-white text-slate-950 hover:bg-white/90 dark:bg-slate-950 dark:text-slate-50 dark:hover:bg-slate-950/90"
                                     asChild
@@ -66,7 +67,7 @@ const Cta38 = (props: Props) => {
                             )}
                             {buttons?.secondary && (
                                 <Button
-                                    size="lg"
+                                    size="pill"
                                     variant="outline"
                                     className="border-white/30 text-white hover:bg-white/10 hover:text-white dark:border-slate-950/30 dark:text-slate-950 dark:hover:bg-slate-950/10 dark:hover:text-slate-950"
                                     asChild

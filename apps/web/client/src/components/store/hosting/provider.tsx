@@ -1,15 +1,17 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useMemo } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation, useQuery } from 'convex/react';
 
 import type { HostingProvider as HostingProviderEnum } from '@weblab/models';
 import { type Deployment } from '@weblab/db';
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Doc, Id } from '../../../../convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 interface PublishParams {
     projectId: string;
@@ -34,7 +36,7 @@ interface HostingContextValue {
     ) => Promise<{ deploymentId: string } | null>;
     cancel: (type: DeploymentType) => Promise<void>;
 
-    // Utilities
+    // Utilities — Convex live queries auto-refresh, so these are no-ops.
     refetch: (type: DeploymentType) => Promise<unknown>;
     refetchAll: () => void;
 }
@@ -45,77 +47,74 @@ interface HostingProviderProps {
     children: ReactNode;
 }
 
+/**
+ * Convex deployment rows use `_id`/`_creationTime` while the existing
+ * `Deployment` model (and every consumer in this directory) uses
+ * `id`/`createdAt`. Adapt at the boundary so downstream UI continues to
+ * compile unchanged.
+ */
+function toDeployment(row: Doc<'deployments'> | null | undefined): Deployment | null {
+    if (!row) return null;
+    return {
+        id: row._id,
+        type: row.type,
+        status: row.status,
+        sandboxId: row.sandboxId ?? null,
+        message: row.message ?? null,
+        buildLog: row.buildLog ?? null,
+        error: row.error ?? null,
+        progress: row.progress ?? null,
+        urls: row.urls ?? null,
+        envVars: row.envVars ?? null,
+        provider: row.provider,
+        projectId: row.projectId,
+        requestedBy: row.requestedBy,
+        buildScript: row.buildScript ?? null,
+        buildFlags: row.buildFlags ?? null,
+        createdAt: new Date(row._creationTime),
+        updatedAt: new Date(row.updatedAt ?? row._creationTime),
+    } as unknown as Deployment;
+}
+
 export const HostingProvider = ({ children }: HostingProviderProps) => {
     const editorEngine = useEditorEngine();
-    const [subscriptionStates, setSubscriptionStates] = useState<Record<DeploymentType, boolean>>({
-        [DeploymentType.PREVIEW]: false,
-        [DeploymentType.CUSTOM]: false,
-        [DeploymentType.UNPUBLISH_PREVIEW]: false,
-        [DeploymentType.UNPUBLISH_CUSTOM]: false,
+    const projectId = editorEngine.projectId as Id<'projects'>;
+
+    // Convex live queries — no `refetchInterval` needed; they auto-refresh
+    // whenever the underlying data changes.
+    const previewRow = useQuery(api.deployments.getByType, {
+        projectId,
+        type: DeploymentType.PREVIEW,
+    });
+    const customRow = useQuery(api.deployments.getByType, {
+        projectId,
+        type: DeploymentType.CUSTOM,
+    });
+    const unpublishPreviewRow = useQuery(api.deployments.getByType, {
+        projectId,
+        type: DeploymentType.UNPUBLISH_PREVIEW,
+    });
+    const unpublishCustomRow = useQuery(api.deployments.getByType, {
+        projectId,
+        type: DeploymentType.UNPUBLISH_CUSTOM,
     });
 
-    // API hooks for all deployment types
-    const previewQuery = api.publish.deployment.getByType.useQuery(
-        {
-            projectId: editorEngine.projectId,
-            type: DeploymentType.PREVIEW,
-        },
-        {
-            refetchInterval: subscriptionStates[DeploymentType.PREVIEW] ? 1000 : false,
-        },
-    );
-
-    const customQuery = api.publish.deployment.getByType.useQuery(
-        {
-            projectId: editorEngine.projectId,
-            type: DeploymentType.CUSTOM,
-        },
-        {
-            refetchInterval: subscriptionStates[DeploymentType.CUSTOM] ? 1000 : false,
-        },
-    );
-
-    const unpublishPreviewQuery = api.publish.deployment.getByType.useQuery(
-        {
-            projectId: editorEngine.projectId,
-            type: DeploymentType.UNPUBLISH_PREVIEW,
-        },
-        {
-            refetchInterval: subscriptionStates[DeploymentType.UNPUBLISH_PREVIEW] ? 1000 : false,
-        },
-    );
-
-    const unpublishCustomQuery = api.publish.deployment.getByType.useQuery(
-        {
-            projectId: editorEngine.projectId,
-            type: DeploymentType.UNPUBLISH_CUSTOM,
-        },
-        {
-            refetchInterval: subscriptionStates[DeploymentType.UNPUBLISH_CUSTOM] ? 1000 : false,
-        },
-    );
-
-    // Mutations
-    const { mutateAsync: runCreateDeployment } = api.publish.deployment.create.useMutation();
-    const { mutateAsync: runUpdateDeployment } = api.publish.deployment.update.useMutation();
-    const { mutateAsync: runDeployment } = api.publish.deployment.run.useMutation();
-    const { mutateAsync: runUnpublish } = api.publish.unpublish.useMutation();
-    const { mutateAsync: runCancel } = api.publish.deployment.cancel.useMutation();
+    // Mutations / actions
+    const runCreateDeployment = useMutation(api.deployments.create);
+    const runUpdateDeployment = useMutation(api.deployments.update);
+    const runDeployment = useAction(api.publishActions.run);
+    const runUnpublish = useAction(api.publishActions.unpublish);
+    const runCancel = useMutation(api.deployments.cancel);
 
     // Organize deployments by type
     const deployments = useMemo(
         () => ({
-            [DeploymentType.PREVIEW]: previewQuery.data,
-            [DeploymentType.CUSTOM]: customQuery.data,
-            [DeploymentType.UNPUBLISH_PREVIEW]: unpublishPreviewQuery.data,
-            [DeploymentType.UNPUBLISH_CUSTOM]: unpublishCustomQuery.data,
+            [DeploymentType.PREVIEW]: toDeployment(previewRow),
+            [DeploymentType.CUSTOM]: toDeployment(customRow),
+            [DeploymentType.UNPUBLISH_PREVIEW]: toDeployment(unpublishPreviewRow),
+            [DeploymentType.UNPUBLISH_CUSTOM]: toDeployment(unpublishCustomRow),
         }),
-        [
-            previewQuery.data,
-            customQuery.data,
-            unpublishPreviewQuery.data,
-            unpublishCustomQuery.data,
-        ],
+        [previewRow, customRow, unpublishPreviewRow, unpublishCustomRow],
     );
 
     // Check if any deployment is in progress
@@ -126,36 +125,20 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
         );
     };
 
-    // Stop polling when deployments complete, start polling when in progress
-    useEffect(() => {
-        Object.entries(deployments).forEach(([type, deployment]) => {
-            if (
-                deployment?.status === DeploymentStatus.IN_PROGRESS ||
-                deployment?.status === DeploymentStatus.PENDING
-            ) {
-                setSubscriptionStates((prev) => ({
-                    ...prev,
-                    [type as DeploymentType]: true,
-                }));
-            } else {
-                setSubscriptionStates((prev) => ({
-                    ...prev,
-                    [type as DeploymentType]: false,
-                }));
-            }
-        });
-    }, [deployments]);
-
     // Publish function
     const publish = async (params: PublishParams): Promise<{ success: boolean } | null> => {
         let deployment: Deployment | null = null;
         try {
-            setSubscriptionStates((prev) => ({
-                ...prev,
-                [params.type]: true,
-            }));
-
-            deployment = await runCreateDeployment(params);
+            const row = await runCreateDeployment({
+                projectId: params.projectId as Id<'projects'>,
+                type: params.type,
+                sandboxId: params.sandboxId,
+                buildScript: params.buildScript,
+                buildFlags: params.buildFlags,
+                envVars: params.envVars,
+                provider: params.provider,
+            });
+            deployment = toDeployment(row);
             if (!deployment) {
                 throw new Error('Failed to create deployment');
             }
@@ -164,13 +147,10 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
                 description: `Deployment ID: ${deployment.id}`,
             });
 
-            // Refetch the specific deployment
-            await refetch(params.type);
             await runDeployment({
-                deploymentId: deployment.id,
+                deploymentId: deployment.id as Id<'deployments'>,
             });
 
-            void refetch(params.type);
             toast.success('Deployment success!');
 
             return {
@@ -180,7 +160,7 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
             toast.error('Failed to publish deployment');
             if (deployment) {
                 await runUpdateDeployment({
-                    id: deployment.id,
+                    id: deployment.id as Id<'deployments'>,
                     status: DeploymentStatus.FAILED,
                     error: error instanceof Error ? error.message : 'Unknown error',
                 });
@@ -194,18 +174,10 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
     // Unpublish function
     const unpublish = async (projectId: string, type: DeploymentType) => {
         try {
-            setSubscriptionStates((prev) => ({
-                ...prev,
-                [type]: true,
-            }));
-
             const response = await runUnpublish({
-                projectId,
+                projectId: projectId as Id<'projects'>,
                 type,
             });
-
-            // Refetch the specific deployment
-            await refetch(type);
             return response;
         } catch {
             toast.error('Failed to unpublish deployment');
@@ -213,50 +185,32 @@ export const HostingProvider = ({ children }: HostingProviderProps) => {
         }
     };
 
-    // Refetch functions — return the promise so callers can await it.
-    const refetch = (type: DeploymentType): Promise<unknown> => {
-        switch (type) {
-            case DeploymentType.PREVIEW:
-                return previewQuery.refetch();
-            case DeploymentType.CUSTOM:
-                return customQuery.refetch();
-            case DeploymentType.UNPUBLISH_PREVIEW:
-                return unpublishPreviewQuery.refetch();
-            case DeploymentType.UNPUBLISH_CUSTOM:
-                return unpublishCustomQuery.refetch();
-        }
+    // Convex live queries auto-refresh — these refetch shims exist for API
+    // compatibility with the previous tRPC-based provider.
+    const refetch = (_type: DeploymentType): Promise<unknown> => Promise.resolve();
+    const refetchAll = () => {
+        // No-op: live queries handle refresh automatically.
     };
 
     const cancel = async (type: DeploymentType) => {
-        if (!deployments[type]) {
+        const target = deployments[type];
+        if (!target) {
             toast.error('No deployment found');
             return;
         }
         try {
             await runCancel({
-                deploymentId: deployments[type].id,
+                deploymentId: target.id as Id<'deployments'>,
             });
             toast.success('Deployment cancelled');
-            void refetch(type);
         } catch (error) {
             toast.error('Failed to cancel deployment');
             console.error(error);
         }
     };
 
-    const refetchAll = () => {
-        void previewQuery.refetch();
-        void customQuery.refetch();
-        void unpublishPreviewQuery.refetch();
-        void unpublishCustomQuery.refetch();
-    };
     const value: HostingContextValue = {
-        deployments: {
-            preview: deployments.preview ?? null,
-            custom: deployments.custom ?? null,
-            unpublish_preview: deployments.unpublish_preview ?? null,
-            unpublish_custom: deployments.unpublish_custom ?? null,
-        },
+        deployments,
         isDeploying,
         publish,
         unpublish,

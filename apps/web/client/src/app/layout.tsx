@@ -19,6 +19,7 @@ import { TRPCReactProvider } from '@/trpc/react';
 import { CookieConsent } from './_components/cookie-consent';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
+import { ViewTransitionNoiseSuppress } from './_components/view-transition-noise-suppress';
 import { AuthProvider } from './auth/auth-context';
 import { absoluteUrl, organizationSchema, softwareApplicationSchema, websiteSchema } from './seo';
 
@@ -188,7 +189,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <link rel="dns-prefetch" href="https://docs.weblab.build" />
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify(organizationSchema),
+                    }}
                 />
                 <script
                     type="application/ld+json"
@@ -204,6 +207,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body>
                 {isProduction && <RB2BLoader />}
                 <SWRegister />
+                <ViewTransitionNoiseSuppress />
                 <ClerkConvexProviders>
                     <TRPCReactProvider>
                         <FeatureFlagsProvider>

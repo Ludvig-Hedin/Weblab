@@ -88,7 +88,7 @@ const Hero7 = ({
                         className="mt-10 flex flex-wrap items-center justify-center gap-3"
                     >
                         {primaryButton ? (
-                            <Button asChild size="lg" className="rounded-full px-6">
+                            <Button asChild size="pill">
                                 <Link href={primaryButton.href} className="gap-2">
                                     {primaryButton.text}
                                     {primaryButton.icon}
@@ -96,12 +96,7 @@ const Hero7 = ({
                             </Button>
                         ) : null}
                         {secondaryButton ? (
-                            <Button
-                                asChild
-                                size="lg"
-                                variant="outline"
-                                className="rounded-full px-6"
-                            >
+                            <Button asChild size="pill" variant="outline">
                                 <Link href={secondaryButton.href} className="gap-2">
                                     {secondaryButton.text}
                                     {secondaryButton.icon}

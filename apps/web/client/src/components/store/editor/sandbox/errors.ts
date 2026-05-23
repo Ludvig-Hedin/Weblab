@@ -22,3 +22,27 @@ export function isShellStartupError(error: string | null | undefined): boolean {
         lower.includes('container is not ready')
     );
 }
+
+/**
+ * Vercel reclaims idle sandbox VMs after a timeout. Once gone, every
+ * `Sandbox.get(sandboxId)` call from the SDK throws an `APIError` with
+ * the message `Status code 410 is not ok`, which the server wraps and
+ * tRPC re-throws on the client as a `TRPCClientError` with the same
+ * message. Detect either shape so the session layer can short-circuit
+ * the project-open cascade (sync engine, git init, dev-task open, etc.)
+ * and let the existing `useSandboxLiveness` Restore CTA take over
+ * instead of spamming the error badge with 9+ identical 410 toasts.
+ */
+export function isSandboxGoneError(error: unknown): boolean {
+    if (!error) return false;
+    let message: string;
+    if (typeof error === 'string') {
+        message = error;
+    } else if (error instanceof Error) {
+        message = error.message;
+    } else {
+        const raw = (error as { message?: unknown })?.message;
+        message = typeof raw === 'string' ? raw : '';
+    }
+    return /\b410\b/.test(message) && /is not ok|gone/i.test(message);
+}

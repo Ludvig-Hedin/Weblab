@@ -179,7 +179,7 @@ export function StyleChipPicker({
                     type="button"
                     onClick={onDetach}
                     aria-label={`Detach ${kind.toLowerCase()}`}
-                    className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] transition-colors"
+                    className="text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-colors"
                 >
                     <X className="size-3" />
                 </button>
@@ -190,7 +190,7 @@ export function StyleChipPicker({
                 aria-label={customOpen ? 'Hide custom controls' : 'Show custom controls'}
                 aria-pressed={customOpen}
                 className={cn(
-                    'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] transition-all duration-150',
+                    'text-foreground-tertiary hover:bg-foreground/5 hover:text-foreground-primary flex h-5 w-5 shrink-0 items-center justify-center rounded-xs transition-all duration-150',
                     customOpen ? 'bg-foreground/10 text-foreground-primary rotate-180' : 'rotate-0',
                 )}
             >

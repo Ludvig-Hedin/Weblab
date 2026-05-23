@@ -126,21 +126,23 @@ export const ChatMessages = observer(
                                 className="flex flex-wrap justify-center gap-2"
                                 aria-label="Starter suggestions"
                             >
-                                {STARTER_SUGGESTIONS.map(({ key, icon: SuggestionIcon, transKey }) => {
-                                    const label = t(transKey);
-                                    return (
-                                        <Button
-                                            key={key}
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => onSuggestionClick(label)}
-                                        >
-                                            <SuggestionIcon className="h-3.5 w-3.5 shrink-0" />
-                                            {label}
-                                        </Button>
-                                    );
-                                })}
+                                {STARTER_SUGGESTIONS.map(
+                                    ({ key, icon: SuggestionIcon, transKey }) => {
+                                        const label = t(transKey);
+                                        return (
+                                            <Button
+                                                key={key}
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => onSuggestionClick(label)}
+                                            >
+                                                <SuggestionIcon className="h-3.5 w-3.5 shrink-0" />
+                                                {label}
+                                            </Button>
+                                        );
+                                    },
+                                )}
                             </div>
                         )}
                     </div>

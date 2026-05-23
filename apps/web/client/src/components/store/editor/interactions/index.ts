@@ -251,7 +251,9 @@ export class InteractionsManager {
             const snapshot = cloneDoc(this._doc);
             for (const fd of this.editorEngine.frames.getAll()) {
                 const view = fd.view as
-                    | { applyInteractionsConfig?: (doc: InteractionsDocument) => Promise<void> }
+                    | {
+                          applyInteractionsConfig?: (doc: InteractionsDocument) => Promise<void>;
+                      }
                     | undefined;
                 view?.applyInteractionsConfig?.(snapshot).catch(() => {
                     // Tolerate frames that haven't loaded the runtime yet.
@@ -273,7 +275,9 @@ export class InteractionsManager {
     async scrub(ixId: string, animationId: string, tMs: number): Promise<void> {
         for (const fd of this.editorEngine.frames.getAll()) {
             const view = fd.view as
-                | { scrubInteraction?: (a: string, b: string, t: number) => Promise<void> }
+                | {
+                      scrubInteraction?: (a: string, b: string, t: number) => Promise<void>;
+                  }
                 | undefined;
             await view?.scrubInteraction?.(ixId, animationId, tMs);
         }

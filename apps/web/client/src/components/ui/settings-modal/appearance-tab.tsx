@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';
 
 import { cn } from '@weblab/ui/utils';
-
-import { api } from '@/trpc/react';
 
 type ThemeOption = 'light' | 'dark' | 'system';
 type AccentOption = 'blue' | 'red' | 'green' | 'neutral';
@@ -14,7 +14,12 @@ type FontFamilyOption = 'sans' | 'serif';
 type FontSizeOption = 'small' | 'medium' | 'large';
 type DensityOption = 'compact' | 'comfortable';
 
-const ACCENT_COLORS: { value: AccentOption; label: string; bg: string; ring: string }[] = [
+const ACCENT_COLORS: {
+    value: AccentOption;
+    label: string;
+    bg: string;
+    ring: string;
+}[] = [
     {
         value: 'blue',
         label: 'Blue',
@@ -73,18 +78,12 @@ function SegmentedControl<T extends string>({
 }
 
 export const AppearanceTab = observer(() => {
-    const apiUtils = api.useUtils();
-    const { data: userSettings } = api.user.settings.get.useQuery();
-    const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-        onSuccess: () => void apiUtils.user.settings.get.invalidate(),
-        onError: () => void apiUtils.user.settings.get.invalidate(),
-    });
+    const userSettings = useQuery(api.users.getSettings);
+    const updateSettingsMutation = useMutation(api.users.updateSettings);
     const { setTheme } = useTheme();
 
-    const appearance = userSettings?.appearance;
-
     const update = useCallback(
-        (patch: Record<string, unknown>) => {
+        async (patch: Record<string, unknown>) => {
             // Optimistically apply data-* attrs
             const html = document.documentElement;
             if ('accentColor' in patch)
@@ -94,9 +93,13 @@ export const AppearanceTab = observer(() => {
             if ('fontFamily' in patch)
                 html.setAttribute('data-font-family', patch.fontFamily as string);
             if ('theme' in patch) setTheme(patch.theme as string);
-            updateSettings(patch);
+            try {
+                await updateSettingsMutation(patch as Parameters<typeof updateSettingsMutation>[0]);
+            } catch (error) {
+                console.error('Failed to update settings', error);
+            }
         },
-        [updateSettings, setTheme],
+        [updateSettingsMutation, setTheme],
     );
 
     return (
@@ -115,8 +118,8 @@ export const AppearanceTab = observer(() => {
                         { value: 'dark', label: 'Dark' },
                         { value: 'system', label: 'System' },
                     ]}
-                    value={(appearance?.theme ?? 'system') as ThemeOption}
-                    onChange={(v) => update({ theme: v })}
+                    value={(userSettings?.theme ?? 'system') as ThemeOption}
+                    onChange={(v) => void update({ theme: v })}
                 />
             </section>
 
@@ -134,11 +137,11 @@ export const AppearanceTab = observer(() => {
                             key={color.value}
                             type="button"
                             title={color.label}
-                            onClick={() => update({ accentColor: color.value })}
+                            onClick={() => void update({ accentColor: color.value })}
                             className={cn(
                                 'ring-offset-background h-7 w-7 rounded-full ring-2 ring-offset-2 transition-all',
                                 color.bg,
-                                appearance?.accentColor === color.value
+                                userSettings?.accentColor === color.value
                                     ? color.ring
                                     : 'ring-transparent',
                             )}
@@ -160,8 +163,8 @@ export const AppearanceTab = observer(() => {
                         { value: 'sans', label: 'Sans-serif' },
                         { value: 'serif', label: 'Serif' },
                     ]}
-                    value={(appearance?.fontFamily ?? 'sans') as FontFamilyOption}
-                    onChange={(v) => update({ fontFamily: v })}
+                    value={(userSettings?.fontFamily ?? 'sans') as FontFamilyOption}
+                    onChange={(v) => void update({ fontFamily: v })}
                 />
             </section>
 
@@ -179,8 +182,8 @@ export const AppearanceTab = observer(() => {
                         { value: 'medium', label: 'Medium' },
                         { value: 'large', label: 'Large' },
                     ]}
-                    value={(appearance?.fontSize ?? 'medium') as FontSizeOption}
-                    onChange={(v) => update({ fontSize: v })}
+                    value={(userSettings?.fontSize ?? 'medium') as FontSizeOption}
+                    onChange={(v) => void update({ fontSize: v })}
                 />
             </section>
 
@@ -197,8 +200,8 @@ export const AppearanceTab = observer(() => {
                         { value: 'compact', label: 'Compact' },
                         { value: 'comfortable', label: 'Comfortable' },
                     ]}
-                    value={(appearance?.uiDensity ?? 'comfortable') as DensityOption}
-                    onChange={(v) => update({ uiDensity: v })}
+                    value={(userSettings?.uiDensity ?? 'comfortable') as DensityOption}
+                    onChange={(v) => void update({ uiDensity: v })}
                 />
             </section>
         </div>

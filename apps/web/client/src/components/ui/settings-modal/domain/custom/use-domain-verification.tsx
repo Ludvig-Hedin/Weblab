@@ -1,13 +1,15 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { CustomDomainVerification } from '@weblab/db/src/schema/domain/custom/verification';
 import type { DomainInfo } from '@weblab/models';
 import { VerificationRequestStatus } from '@weblab/models';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 export enum VerificationState {
     INPUTTING_DOMAIN = 'inputting_domain',
@@ -37,40 +39,53 @@ const DomainVerificationContext = createContext<DomainVerificationContextType | 
     undefined,
 );
 
+const adaptVerification = (
+    raw: { _id: string; fullDomain: string; status: string } | null | undefined,
+): CustomDomainVerification | null => {
+    if (!raw) return null;
+    return { ...(raw as unknown as CustomDomainVerification), id: raw._id };
+};
+
 export const DomainVerificationProvider = ({ children }: { children: ReactNode }) => {
     const editorEngine = useEditorEngine();
+    const projectId = editorEngine.projectId as Id<'projects'>;
 
     const [verificationState, setVerificationState] = useState(VerificationState.INPUTTING_DOMAIN);
     const [error, setError] = useState<string | null>(null);
 
-    const { data: customDomain, refetch: refetchCustomDomain } = api.domain.custom.get.useQuery({
-        projectId: editorEngine.projectId,
+    const customDomainRaw = useQuery(api.domains.customGet, { projectId });
+    const verificationRaw = useQuery(api.domains.verificationGetActive, {
+        projectId,
     });
-    const { data: verification, refetch: refetchVerification } =
-        api.domain.verification.getActive.useQuery({ projectId: editorEngine.projectId });
-    const { mutateAsync: createDomainVerification } = api.domain.verification.create.useMutation();
-    const { mutateAsync: removeDomainVerification } = api.domain.verification.remove.useMutation();
-    const { mutateAsync: verifyDomain } = api.domain.verification.verify.useMutation();
-    const { data: ownedDomains = [] } = api.domain.custom.getOwnedDomains.useQuery();
-    const { mutateAsync: verifyOwnedDomain } =
-        api.domain.verification.verifyOwnedDomain.useMutation();
-    const { mutateAsync: removeProjectCustomDomain } = api.domain.custom.remove.useMutation();
+    const ownedDomains = useQuery(api.domains.customGetOwnedDomains) ?? [];
+
+    const createDomainVerification = useAction(api.domainActions.verificationCreate);
+    const removeDomainVerification = useAction(api.domainActions.verificationRemove);
+    const verifyDomain = useAction(api.domainActions.verificationVerify);
+    const verifyOwnedDomain = useAction(api.domainActions.verificationVerifyOwnedDomain);
+    const removeProjectCustomDomain = useAction(api.domainActions.customRemove);
+
+    const verification = adaptVerification(
+        verificationRaw as Parameters<typeof adaptVerification>[0],
+    );
+    const customDomain = (customDomainRaw ?? null) as DomainInfo | null;
+
     const [domainInput, setDomainInput] = useState(verification?.fullDomain ?? '');
 
     useEffect(() => {
-        if (verification === undefined) {
+        if (verificationRaw === undefined) {
             return;
         }
-        if (verification === null) {
+        if (verificationRaw === null) {
             setVerificationState(VerificationState.INPUTTING_DOMAIN);
             return;
         }
-        if (verification.status === VerificationRequestStatus.PENDING) {
+        if (verificationRaw.status === VerificationRequestStatus.PENDING) {
             setVerificationState(VerificationState.VERIFICATION_CREATED);
-        } else if (verification.status === VerificationRequestStatus.VERIFIED) {
+        } else if (verificationRaw.status === VerificationRequestStatus.VERIFIED) {
             setVerificationState(VerificationState.VERIFIED);
         }
-    }, [verification]);
+    }, [verificationRaw]);
 
     const createVerificationRequest = async () => {
         try {
@@ -78,14 +93,13 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
             setError(null);
             const verificationRequest = await createDomainVerification({
                 domain: domainInput,
-                projectId: editorEngine.projectId,
+                projectId,
             });
             if (!verificationRequest) {
                 setError('Failed to create domain verification');
                 setVerificationState(VerificationState.INPUTTING_DOMAIN);
                 return;
             }
-            await refetchVerification();
             setError(null);
         } catch (error) {
             setError(
@@ -96,14 +110,13 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
 
     const removeVerificationRequest = async () => {
         try {
-            if (!verification) {
+            if (!verificationRaw) {
                 setError('No verification request to remove');
                 return;
             }
             await removeDomainVerification({
-                verificationId: verification.id,
+                verificationId: verificationRaw._id as Id<'customDomainVerification'>,
             });
-            await refetchVerification();
             setVerificationState(VerificationState.INPUTTING_DOMAIN);
             setError(null);
         } catch (error) {
@@ -115,18 +128,17 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
 
     const verifyVerificationRequest = async () => {
         try {
-            if (!verification) {
+            if (!verificationRaw) {
                 setError('No verification request to verify');
                 return;
             }
             const { success, failureReason } = await verifyDomain({
-                verificationId: verification.id,
+                verificationId: verificationRaw._id as Id<'customDomainVerification'>,
             });
             if (!success || failureReason) {
                 setError(failureReason ?? 'Failed to verify domain');
                 return;
             }
-            await Promise.all([refetchVerification(), refetchCustomDomain()]);
             setVerificationState(VerificationState.VERIFIED);
             toast.success('Domain verified');
             setError(null);
@@ -140,13 +152,12 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
             setError(null);
             const { success, failureReason } = await verifyOwnedDomain({
                 fullDomain: domain,
-                projectId: editorEngine.projectId,
+                projectId,
             });
             if (!success || failureReason) {
                 setError(failureReason ?? 'Failed to reuse domain');
                 return;
             }
-            await refetchVerification();
             setVerificationState(VerificationState.VERIFIED);
             setError(null);
         } catch (error) {
@@ -158,13 +169,12 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
         try {
             const res = await removeProjectCustomDomain({
                 domain,
-                projectId: editorEngine.projectId,
+                projectId,
             });
             if (!res) {
                 setError('Failed to remove verified domain');
                 return;
             }
-            await refetchVerification();
             setVerificationState(VerificationState.INPUTTING_DOMAIN);
             setError(null);
         } catch (error) {
@@ -180,8 +190,8 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
                 createVerificationRequest,
                 removeVerificationRequest,
                 verifyVerificationRequest,
-                customDomain: customDomain ?? null,
-                verification: verification ?? null,
+                customDomain,
+                verification,
                 verificationState,
                 error,
                 ownedDomains,

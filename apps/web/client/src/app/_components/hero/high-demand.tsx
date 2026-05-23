@@ -14,7 +14,7 @@ export function HighDemand() {
 
     return (
         <motion.p
-            className="mt-2 max-w-xl rounded-xl border border-amber-300 bg-amber-900/80 p-2 px-4 text-center text-sm text-amber-300"
+            className="border-foreground-warning bg-foreground-warning/20 text-foreground-warning mt-2 max-w-xl rounded-xl border p-2 px-4 text-center text-sm"
             initial={{ opacity: 0, filter: 'blur(4px)' }}
             animate={{ opacity: 1, filter: 'blur(0px)' }}
             transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}

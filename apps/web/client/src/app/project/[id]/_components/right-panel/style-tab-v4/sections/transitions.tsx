@@ -2,7 +2,9 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { NumberField, PropertyControl, SelectField, TextField } from '../controls';
+import { GroupShell, IconNumberInput, LabeledSelectInput, LabeledTextInput } from '../controls';
+import { useStyleSetter } from '../hooks/use-style-setter';
+import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
 const TIMING_OPTIONS = [
@@ -11,57 +13,79 @@ const TIMING_OPTIONS = [
     { value: 'ease-in', label: 'Ease in' },
     { value: 'ease-out', label: 'Ease out' },
     { value: 'ease-in-out', label: 'Ease in-out' },
-];
+] as const;
+
+const TIME_UNITS = ['ms', 's'] as const;
 
 /**
- * Transitions — a dedicated section for the CSS transition family. Previously
- * lived behind a CustomExpander in Advanced; promoted to its own section so
- * motion settings sit alongside Effects (where they're most often reached
- * for). Carries the shorthand plus the four longhands — property, duration,
- * easing, delay — for full CSS coverage.
+ * Transitions section — shorthand + four longhands. Each row is a GroupShell
+ * wrapping a v4 primitive; ported from v3 PropertyControl grammar.
  */
 export const TransitionsSection = observer(function TransitionsSection() {
+    const transition = useStyleValue('transition');
+    const transitionProperty = useStyleValue('transition-property');
+    const transitionDuration = useStyleValue('transition-duration');
+    const transitionTiming = useStyleValue('transition-timing-function');
+    const transitionDelay = useStyleValue('transition-delay');
+
+    const transitionSetter = useStyleSetter('transition');
+    const transitionPropertySetter = useStyleSetter('transition-property');
+    const transitionDurationSetter = useStyleSetter('transition-duration');
+    const transitionTimingSetter = useStyleSetter('transition-timing-function');
+    const transitionDelaySetter = useStyleSetter('transition-delay');
+
     return (
         <Section id="transitions" title="Transitions">
-            <PropertyControl property="transition" label="Shorthand">
-                {({ value, commit }) => (
-                    <TextField value={value} onCommit={commit} placeholder="all 200ms ease" />
-                )}
-            </PropertyControl>
-            <PropertyControl property="transition-property" label="Property">
-                {({ value, commit }) => (
-                    <TextField
-                        value={value}
-                        onCommit={commit}
-                        placeholder='"all" or "opacity, transform"'
+            <div className="flex flex-col gap-3 px-3 pb-3">
+                <GroupShell label="Shorthand" onReset={() => transitionSetter.set('')}>
+                    <LabeledTextInput
+                        label="Value"
+                        value={transition.value}
+                        onCommit={transitionSetter.set}
+                        placeholder="all 200ms ease"
                     />
-                )}
-            </PropertyControl>
-            <PropertyControl property="transition-duration" label="Duration">
-                {({ value, commit }) => (
-                    <NumberField
-                        value={value}
-                        onCommit={commit}
+                </GroupShell>
+
+                <GroupShell label="Property" onReset={() => transitionPropertySetter.set('')}>
+                    <LabeledTextInput
+                        label="Prop"
+                        value={transitionProperty.value}
+                        onCommit={transitionPropertySetter.set}
+                        placeholder="all"
+                    />
+                </GroupShell>
+
+                <GroupShell label="Duration" onReset={() => transitionDurationSetter.set('')}>
+                    <IconNumberInput
+                        value={transitionDuration.value}
+                        onCommit={transitionDurationSetter.set}
+                        units={TIME_UNITS}
                         defaultUnit="ms"
-                        units={['ms', 's']}
+                        placeholder="200ms"
+                        aria-label="Transition duration"
                     />
-                )}
-            </PropertyControl>
-            <PropertyControl property="transition-timing-function" label="Easing">
-                {({ value, commit }) => (
-                    <SelectField value={value} options={TIMING_OPTIONS} onCommit={commit} />
-                )}
-            </PropertyControl>
-            <PropertyControl property="transition-delay" label="Delay">
-                {({ value, commit }) => (
-                    <NumberField
-                        value={value}
-                        onCommit={commit}
+                </GroupShell>
+
+                <GroupShell label="Easing" onReset={() => transitionTimingSetter.set('')}>
+                    <LabeledSelectInput
+                        label="Ease"
+                        value={transitionTiming.value}
+                        options={TIMING_OPTIONS}
+                        onCommit={transitionTimingSetter.set}
+                    />
+                </GroupShell>
+
+                <GroupShell label="Delay" onReset={() => transitionDelaySetter.set('')}>
+                    <IconNumberInput
+                        value={transitionDelay.value}
+                        onCommit={transitionDelaySetter.set}
+                        units={TIME_UNITS}
                         defaultUnit="ms"
-                        units={['ms', 's']}
+                        placeholder="0ms"
+                        aria-label="Transition delay"
                     />
-                )}
-            </PropertyControl>
+                </GroupShell>
+            </div>
         </Section>
     );
 });

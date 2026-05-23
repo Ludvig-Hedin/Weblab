@@ -21,7 +21,13 @@ export const TerminalArea = observer(({ children }: { children: React.ReactNode 
     // Collect terminal sessions from all branches
     const allTerminalSessions = new Map<
         string,
-        { name: string; branchName: string; branchId: string; sessionId: string; session: any }
+        {
+            name: string;
+            branchName: string;
+            branchId: string;
+            sessionId: string;
+            session: any;
+        }
     >();
     let activeSessionId: string | null = null;
 

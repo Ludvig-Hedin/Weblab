@@ -325,7 +325,7 @@ export const ElementSection = observer(function ElementSection() {
                                 align="end"
                                 side="bottom"
                                 sideOffset={4}
-                                className="w-[240px] rounded-[12px] p-2"
+                                className="w-[240px] rounded-md p-2"
                                 onOpenAutoFocus={(e) => e.preventDefault()}
                             >
                                 <textarea
@@ -347,7 +347,7 @@ export const ElementSection = observer(function ElementSection() {
                                     }}
                                     rows={4}
                                     spellCheck={false}
-                                    className="text-foreground-primary placeholder:text-muted-foreground bg-background-secondary w-full resize-none rounded-[10px] p-2 font-mono text-[11.5px] outline-none dark:bg-[#262626]"
+                                    className="text-foreground-primary placeholder:text-muted-foreground bg-background-secondary w-full resize-none rounded-[10px] p-2 font-mono text-[11.5px] outline-none"
                                     placeholder="Paste or type Tailwind classes…"
                                     aria-label="Raw className editor"
                                 />

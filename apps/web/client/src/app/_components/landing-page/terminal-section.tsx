@@ -16,6 +16,7 @@ import {
     TerminalAnimationWindow,
 } from '@/components/ui/terminal-animation';
 import { cn } from '@/lib/utils';
+import { FEATURE_BACKDROP_SRCS, FeatureBackdrop } from './feature-backdrop';
 
 // Brand-aligned color tokens for terminal lines.
 // Stick to brand blue + neutral grays — no rainbow.
@@ -94,7 +95,11 @@ const tabs: TabContent[] = [
             { text: '  ✓ Uploading', color: C.ok, delay: 200 },
             { text: '  ✓ Finalizing', color: C.ok, delay: 200 },
             { text: '', delay: 80 },
-            { text: '  Production: https://weblab.build', color: C.brand, delay: 400 },
+            {
+                text: '  Production: https://weblab.build',
+                color: C.brand,
+                delay: 400,
+            },
             { text: '', delay: 80 },
             { text: '  ✓ Deployment complete', color: C.ok, delay: 250 },
         ],
@@ -104,7 +109,11 @@ const tabs: TabContent[] = [
         command: 'bun test',
         lines: [
             { text: '', delay: 80 },
-            { text: '  PASS  src/components/Button.test.tsx', color: C.mute, delay: 200 },
+            {
+                text: '  PASS  src/components/Button.test.tsx',
+                color: C.mute,
+                delay: 200,
+            },
             { text: '    ✓ renders correctly', color: C.ok, delay: 100 },
             { text: '    ✓ handles click events', color: C.ok, delay: 100 },
             { text: '  PASS  src/utils/format.test.ts', color: C.mute, delay: 150 },
@@ -140,7 +149,10 @@ export function TerminalSection() {
                 </Reveal>
 
                 {/* Terminal — right */}
-                <div className="w-full flex-1">
+                <FeatureBackdrop
+                    src={FEATURE_BACKDROP_SRCS.sand}
+                    className="w-full flex-1 p-6 md:p-10"
+                >
                     <TerminalAnimationRoot
                         alwaysDark={true}
                         className="relative flex w-full justify-center"
@@ -200,7 +212,7 @@ export function TerminalSection() {
                             </TerminalAnimationWindow>
                         </TerminalAnimationContainer>
                     </TerminalAnimationRoot>
-                </div>
+                </FeatureBackdrop>
             </div>
         </section>
     );

@@ -10,7 +10,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
         <SwitchPrimitive.Root
             data-slot="switch"
             className={cn(
-                'peer data-[state=unchecked]:bg-input dark:data-[state=unchecked]:bg-input/80 inline-flex h-5 w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs outline-hidden transition-all disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[rgb(52,199,89)]',
+                'peer data-[state=unchecked]:bg-background-tertiary dark:data-[state=unchecked]:bg-background-tertiary data-[state=checked]:bg-foreground-brand inline-flex h-5 w-8 shrink-0 items-center rounded-full border border-transparent shadow-xs outline-hidden transition-all disabled:cursor-not-allowed disabled:opacity-50',
                 className,
             )}
             {...props}

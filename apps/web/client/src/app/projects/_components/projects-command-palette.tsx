@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -17,7 +19,6 @@ import { Icons } from '@weblab/ui/icons';
 
 import { useStateManager } from '@/components/store/state';
 import { SettingsTabValue } from '@/components/ui/settings-modal/helpers';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 export function ProjectsCommandPalette() {
@@ -26,7 +27,7 @@ export function ProjectsCommandPalette() {
     const stateManager = useStateManager();
     const [open, setOpen] = useState(false);
 
-    const { data: projects } = api.project.list.useQuery(undefined, { enabled: open });
+    const projects = useQuery(api.projects.list, open ? {} : 'skip');
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -59,10 +60,10 @@ export function ProjectsCommandPalette() {
                     <CommandGroup heading={t('headingJump')}>
                         {projects.slice(0, 25).map((project) => (
                             <CommandItem
-                                key={project.id}
-                                value={`Open ${project.name} project ${project.id}`}
+                                key={project._id}
+                                value={`Open ${project.name} project ${project._id}`}
                                 onSelect={() =>
-                                    run(() => router.push(`${Routes.PROJECT}/${project.id}`))
+                                    run(() => router.push(`${Routes.PROJECT}/${project._id}`))
                                 }
                             >
                                 <Icons.Cube />

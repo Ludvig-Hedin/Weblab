@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { CmsSourceType } from '@weblab/models';
@@ -19,8 +21,8 @@ import { toast } from '@weblab/ui/sonner';
 import { Tabs, TabsList, TabsTrigger } from '@weblab/ui/tabs';
 import { Textarea } from '@weblab/ui/textarea';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 interface Props {
     projectId: string;
@@ -36,7 +38,12 @@ type ExternalSourceType = CmsSourceType.PAYLOAD | CmsSourceType.STRAPI | CmsSour
 type CredentialState = Record<string, string>;
 
 const DEFAULT_CREDS: Record<ExternalSourceType, CredentialState> = {
-    [CmsSourceType.PAYLOAD]: { baseUrl: '', apiKey: '', usersSlug: '', collectionSlugs: '' },
+    [CmsSourceType.PAYLOAD]: {
+        baseUrl: '',
+        apiKey: '',
+        usersSlug: '',
+        collectionSlugs: '',
+    },
     [CmsSourceType.STRAPI]: { baseUrl: '', apiToken: '', contentTypes: '' },
     [CmsSourceType.REST]: { baseUrl: '', apiKey: '', endpointsJson: '' },
 };
@@ -53,9 +60,12 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     // edits creds or switches tabs while a test is pending.
     const testReqRef = useRef(0);
 
-    const utils = api.useUtils();
-    const testMutation = api.cms.source.testConnection.useMutation();
-    const createMutation = api.cms.source.create.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const testConnectionAction = useAction(api.cmsActions.sourceTestConnection);
+    // Action wraps mutation + encrypts credentials server-side via lib/cmsCredentials.
+    const createSource = useAction(api.cmsActions.sourceCreate);
+    const [isTesting, setIsTesting] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
 
     const reset = () => {
         setType(CmsSourceType.PAYLOAD);
@@ -122,9 +132,10 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
     const handleTest = async () => {
         const reqId = ++testReqRef.current;
         setTestStatus(null);
+        setIsTesting(true);
         try {
-            const result = await testMutation.mutateAsync({
-                projectId,
+            const result = await testConnectionAction({
+                projectId: projectId as Id<'projects'>,
                 type,
                 credentials: stripBlank(creds[type]),
             });
@@ -136,6 +147,8 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
             const reason = err instanceof Error ? err.message : 'Unknown error';
             setTestStatus({ ok: false, reason });
             toast.error(reason);
+        } finally {
+            setIsTesting(false);
         }
     };
 
@@ -148,12 +161,15 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
             toast.error(t(transKeys.cms.sources.connect.testFirst));
             return;
         }
+        setIsCreating(true);
         try {
-            const created = await createMutation.mutateAsync({
-                projectId,
+            // Action encrypts `credentials` server-side before persisting via
+            // cmsSources.create internalMutation. UI passes plaintext.
+            const created = await createSource({
+                projectId: projectId as Id<'projects'>,
                 type,
                 name: name.trim(),
-                credentials: stripBlank(creds[type]),
+                credentials: stripBlank(creds[type]) as never,
             });
             // Server contract: create returns the new source. Treat a missing
             // payload as a hard error rather than silently skipping the
@@ -162,14 +178,16 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
             if (!created) {
                 throw new Error('Source was not returned by the server');
             }
-            await utils.cms.source.list.invalidate({ projectId });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success(t(transKeys.cms.sources.connect.created));
-            onSourceCreated(created.id);
+            onSourceCreated(created._id);
             close();
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : t(transKeys.cms.sources.connect.failed),
             );
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -246,16 +264,12 @@ export const ConnectSourceDialog = ({ projectId, open, onOpenChange, onSourceCre
                         {t(transKeys.cms.sources.connect.cancel)}
                     </Button>
                     <div className="flex gap-2">
-                        <Button
-                            variant="secondary"
-                            onClick={handleTest}
-                            disabled={testMutation.isPending}
-                        >
+                        <Button variant="secondary" onClick={handleTest} disabled={isTesting}>
                             {t(transKeys.cms.sources.connect.testButton)}
                         </Button>
                         <Button
                             onClick={handleSave}
-                            disabled={createMutation.isPending || testStatus?.ok !== true}
+                            disabled={isCreating || testStatus?.ok !== true}
                         >
                             {t(transKeys.cms.sources.connect.saveButton)}
                         </Button>

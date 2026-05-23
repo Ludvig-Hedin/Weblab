@@ -4,22 +4,23 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
 type ThemeOption = 'system' | 'light' | 'dark';
 
-function DarkIcon({ className }: { className?: string }) {
-    return (
-        <svg viewBox="0 0 12 12" fill="currentColor" className={className} aria-hidden>
-            <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5a3.5 3.5 0 1 0 4.5 4.5z" />
-        </svg>
-    );
-}
-
-const OPTIONS: { value: ThemeOption; Icon: React.ComponentType<{ className?: string }> }[] = [
+const OPTIONS: {
+    value: ThemeOption;
+    Icon: React.ComponentType<{ className?: string }>;
+}[] = [
     { value: 'system', Icon: Icons.Laptop },
     { value: 'light', Icon: Icons.Sun },
-    { value: 'dark', Icon: DarkIcon },
+    { value: 'dark', Icon: Icons.Moon },
 ];
 
 export function ThemeSwitcher() {
@@ -31,34 +32,39 @@ export function ThemeSwitcher() {
         setMounted(true);
     }, []);
 
-    const current = (theme ?? 'system') as ThemeOption;
+    const current = (mounted ? (theme ?? 'system') : 'system') as ThemeOption;
+    const CurrentIcon = OPTIONS.find((o) => o.value === current)?.Icon ?? Icons.Laptop;
 
     return (
-        <div
-            className="bg-foreground-primary/[0.04] flex items-center gap-0.5 rounded-full px-1.5 py-1.5"
-            role="group"
-            aria-label={t('label')}
-        >
-            {OPTIONS.map(({ value, Icon }) => {
-                const isActive = mounted && current === value;
-                return (
-                    <button
-                        key={value}
-                        type="button"
-                        onClick={() => setTheme(value)}
-                        aria-label={t(value)}
-                        aria-pressed={isActive}
-                        className={[
-                            'flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-full transition-colors duration-150',
-                            isActive
-                                ? 'bg-foreground-primary/10 text-foreground-primary'
-                                : 'text-foreground-tertiary hover:text-foreground-secondary',
-                        ].join(' ')}
-                    >
-                        <Icon className="h-3 w-3" />
-                    </button>
-                );
-            })}
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    aria-label={t('label')}
+                    className="bg-foreground-primary/[0.07] text-small text-foreground-secondary hover:text-foreground-primary flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors duration-150 focus:outline-none"
+                >
+                    <CurrentIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{t(current)}</span>
+                    <Icons.ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[10rem]">
+                {OPTIONS.map(({ value, Icon }) => {
+                    const isActive = current === value;
+                    return (
+                        <DropdownMenuItem
+                            key={value}
+                            onSelect={() => setTheme(value)}
+                            className="flex items-center justify-between gap-4"
+                        >
+                            <span className="flex items-center gap-2">
+                                <Icon className="h-3.5 w-3.5 opacity-80" />
+                                {t(value)}
+                            </span>
+                            {isActive ? <Icons.Check className="h-3.5 w-3.5 opacity-80" /> : null}
+                        </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

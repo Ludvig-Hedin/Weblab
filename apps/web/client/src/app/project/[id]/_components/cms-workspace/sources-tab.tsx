@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useConvex, useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -16,10 +18,10 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { ConnectSourceDialog } from './connect-source-dialog';
 import { EditSourceDialog } from './edit-source-dialog';
 import { MapCollectionsDialog } from './map-collections-dialog';
@@ -40,31 +42,32 @@ export const SourcesTab = observer(() => {
     const [mappingSourceId, setMappingSourceId] = useState<string | null>(null);
     const [syncingId, setSyncingId] = useState<string | null>(null);
 
-    const sourcesQuery = api.cms.source.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId },
+    const sourcesData = useQuery(
+        api.cmsSources.list,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
-    const utils = api.useUtils();
-    const syncMutation = api.cms.source.sync.useMutation();
-    const deleteMutation = api.cms.source.delete.useMutation();
-    const testExistingMutation = api.cms.source.testExisting.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const convex = useConvex();
+    const syncAction = useAction(api.cmsActions.sourceSync);
+    const deleteMutation = useMutation(api.cmsSources.remove);
+    const testExistingAction = useAction(api.cmsActions.sourceTestExisting);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
     const [testingId, setTestingId] = useState<string | null>(null);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     if (!projectId) return null;
-    const sources = sourcesQuery.data ?? [];
+    const sources = sourcesData ?? [];
 
     const handleSync = async (sourceId: string, prune = false) => {
         setSyncingId(sourceId);
         try {
-            const result = await syncMutation.mutateAsync({ projectId, sourceId, prune });
-            await utils.cms.collection.list.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
-            await utils.cms.item.list.invalidate({ projectId });
-            // Remote schema may have added/removed fields — refresh field
-            // lists so the editor and bind picker don't show stale keys.
-            await utils.cms.field.listByCollection.invalidate({ projectId });
+            const result = await syncAction({
+                projectId: projectId as Id<'projects'>,
+                sourceId: sourceId as Id<'cmsSources'>,
+                prune,
+            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             const prunedSuffix = result.pruned > 0 ? ` (${result.pruned} pruned)` : '';
             toast.success(
                 `${t(transKeys.cms.sources.refreshDonePrefix)} ${result.written} ${t(transKeys.cms.sources.refreshDoneSuffix)}${prunedSuffix}`,
@@ -93,7 +96,10 @@ export const SourcesTab = observer(() => {
     const handleTest = async (sourceId: string) => {
         setTestingId(sourceId);
         try {
-            const result = await testExistingMutation.mutateAsync({ projectId, sourceId });
+            const result = await testExistingAction({
+                projectId: projectId as Id<'projects'>,
+                sourceId: sourceId as Id<'cmsSources'>,
+            });
             if (result.ok) {
                 toast.success('Connection works');
             } else {
@@ -106,29 +112,59 @@ export const SourcesTab = observer(() => {
         }
     };
 
-    const handleDelete = async (sourceId: string) => {
+    const handleDelete = async (source: (typeof sources)[number]) => {
+        // Fetch the blast radius on demand so the confirm dialog can show
+        // concrete numbers. A failure here falls back to a softer copy —
+        // we'd rather show *something* meaningful than block the user.
+        let impact: { collectionCount: number; itemCount: number } = {
+            collectionCount: 0,
+            itemCount: 0,
+        };
+        let impactKnown = true;
+        try {
+            impact = await convex.query(api.cmsSources.getDeleteImpact, {
+                projectId: projectId as Id<'projects'>,
+                sourceId: source._id as Id<'cmsSources'>,
+            });
+        } catch {
+            impactKnown = false;
+        }
+        const { collectionCount, itemCount } = impact;
+        const description = !impactKnown
+            ? t(transKeys.cms.sources.deleteConfirm)
+            : collectionCount === 0
+              ? `No collections currently use this source. ${itemCount} ${
+                    itemCount === 1 ? 'item remains' : 'items remain'
+                } locally (already saved). This cannot be undone.`
+              : `${collectionCount} ${
+                    collectionCount === 1 ? 'collection' : 'collections'
+                } will lose their sync link. ${itemCount} ${
+                    itemCount === 1 ? 'item remains' : 'items remain'
+                } locally (already saved). This cannot be undone.`;
+
         const ok = await confirm({
-            title: t(transKeys.cms.sources.deleteConfirm),
-            confirmLabel: 'Delete',
+            title: `Delete “${source.name}”?`,
+            description,
+            confirmLabel: 'Delete source',
             destructive: true,
         });
         if (!ok) return;
+        setIsDeleting(true);
         try {
-            await deleteMutation.mutateAsync({ projectId, sourceId });
-            // DB cascade removes collections → fields → items. Invalidate every
-            // dependent cache so the UI doesn't show ghost rows.
-            await Promise.all([
-                utils.cms.source.list.invalidate({ projectId }),
-                utils.cms.collection.list.invalidate({ projectId }),
-                utils.cms.item.list.invalidate({ projectId }),
-                utils.cms.binding.snapshot.invalidate({ projectId }),
-            ]);
+            await deleteMutation({
+                projectId: projectId as Id<'projects'>,
+                sourceId: source._id as Id<'cmsSources'>,
+            });
+            // Convex live queries auto-revalidate — DB cascade triggers source/
+            // collection/item/binding query reruns automatically.
             if (editorEngine.state.cmsSelectedCollectionId) {
                 editorEngine.state.setCmsSelectedCollectionId(null);
             }
             toast.success(t(transKeys.cms.sources.deleted));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.sources.deleteFailed));
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -153,7 +189,7 @@ export const SourcesTab = observer(() => {
                     <ul className="space-y-2">
                         {sources.map((s) => (
                             <li
-                                key={s.id}
+                                key={s._id}
                                 className="border-border flex items-center justify-between rounded-md border px-3 py-2.5"
                             >
                                 <div className="flex flex-col">
@@ -180,22 +216,22 @@ export const SourcesTab = observer(() => {
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                onClick={() => void handleTest(s.id)}
-                                                disabled={testingId === s.id}
+                                                onClick={() => void handleTest(s._id)}
+                                                disabled={testingId === s._id}
                                             >
-                                                {testingId === s.id ? 'Testing…' : 'Test'}
+                                                {testingId === s._id ? 'Testing…' : 'Test'}
                                             </Button>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                onClick={() => setEditingSourceId(s.id)}
+                                                onClick={() => setEditingSourceId(s._id)}
                                             >
                                                 <Icons.Pencil className="h-3.5 w-3.5" />
                                             </Button>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
-                                                onClick={() => setMappingSourceId(s.id)}
+                                                onClick={() => setMappingSourceId(s._id)}
                                             >
                                                 {t(transKeys.cms.sources.mapButton)}
                                             </Button>
@@ -204,22 +240,22 @@ export const SourcesTab = observer(() => {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        disabled={syncingId === s.id}
+                                                        disabled={syncingId === s._id}
                                                     >
-                                                        {syncingId === s.id
+                                                        {syncingId === s._id
                                                             ? t(transKeys.cms.sources.refreshing)
                                                             : t(transKeys.cms.sources.refresh)}
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem
-                                                        onClick={() => void handleSync(s.id)}
+                                                        onClick={() => void handleSync(s._id)}
                                                     >
                                                         Refresh (keep removed)
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            void handleSyncWithPrune(s.id)
+                                                            void handleSyncWithPrune(s._id)
                                                         }
                                                         className="text-red"
                                                     >
@@ -231,10 +267,8 @@ export const SourcesTab = observer(() => {
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-red"
-                                                onClick={() => void handleDelete(s.id)}
-                                                disabled={
-                                                    deleteMutation.isPending || syncingId === s.id
-                                                }
+                                                onClick={() => void handleDelete(s)}
+                                                disabled={isDeleting || syncingId === s._id}
                                             >
                                                 <Icons.Trash className="h-3.5 w-3.5" />
                                             </Button>

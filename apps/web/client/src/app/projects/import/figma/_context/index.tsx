@@ -3,7 +3,9 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api as convexApi } from '@convex/_generated/api';
 import { TRPCClientError } from '@trpc/client';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { FigmaTopLevelFrame } from '@weblab/figma';
@@ -12,6 +14,7 @@ import { SandboxTemplates, Templates } from '@weblab/constants';
 import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@weblab/figma';
 
 import type { ProcessedFile } from '@/app/projects/types';
+import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
 import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
@@ -84,14 +87,20 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         useState<FigmaFinalizeProgress>(INITIAL_FINALIZE_PROGRESS);
     const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(convexApi.users.me, {});
+    // TODO(convex-migration): port api.sandbox.* — no Convex equivalents yet (fork, startOrphan,
+    // deleteOrphan, orphanBulkUpload). Leaving tRPC calls for sandbox-only orchestration.
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
-    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
     const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
-    const { mutateAsync: fetchFileMutation } = api.figma.fetchFile.useMutation();
+    const createProjectMutation = useMutation(convexApi.projects.create);
+    const removeProjectMutation = useMutation(convexApi.projects.remove);
+    const createProject = (args: Parameters<typeof createProjectMutation>[0]) =>
+        createProjectMutation(args);
+    const deleteProject = ({ id }: { id: string }) =>
+        removeProjectMutation({ projectId: id as Id<'projects'> });
+    const fetchFileMutation = useAction(convexApi.figmaActions.fetchFile);
 
     /**
      * Tracks the in-flight finalize so cancel() can abort and clean up any
@@ -114,7 +123,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             setFrames(result.frames);
             setSelectedFrameIds(new Set(result.frames.map((f) => f.id)));
             setCurrentStep(1);
-        } catch (err) {
+        } catch (err: unknown) {
             setFetchError(err instanceof Error ? err.message : 'Failed to fetch file');
         } finally {
             setIsFetching(false);
@@ -134,7 +143,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const deselectAll = () => setSelectedFrameIds(new Set());
 
     const doCreateProject = async () => {
-        if (!user?.id) return;
+        if (!user?._id) return;
         const selectedFrames = frames.filter((f) => selectedFrameIds.has(f.id));
         if (selectedFrames.length === 0) return;
 
@@ -164,7 +173,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 // No hardcoded provider — server uses configured WEBLAB_CLOUD_PROVIDER.
                 config: {
                     title: `Figma import – ${fileName}`,
-                    tags: ['figma', 'imported', user.id],
+                    tags: ['figma', 'imported', user._id],
                 },
             });
             inFlightSandboxId.current = forkedSandbox.sandboxId;
@@ -205,7 +214,10 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 });
                 await orphanBulkUpload({
                     sandboxId: forkedSandbox.sandboxId,
-                    files: files.map((f) => ({ path: f.path, content: f.content as string })),
+                    files: files.map((f) => ({
+                        path: f.path,
+                        content: f.content as string,
+                    })),
                     runSetup: true,
                 });
                 setFinalizeProgress({
@@ -220,7 +232,7 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                     providerOptions: {
                         codesandbox: {
                             sandboxId: forkedSandbox.sandboxId,
-                            userId: user.id,
+                            userId: user._id,
                             initClient: true,
                             keepActiveWhileConnected: false,
                             getSession: async (sandboxId) =>
@@ -262,29 +274,24 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 totalFiles: files.length,
             });
             const project = await createProject({
-                project: {
-                    name: fileName || 'Figma Import',
-                    description: `Imported from Figma: ${fileName}`,
-                    // Figma scaffolding writes a Next.js src/app/page.tsx, so
-                    // hint the framework upfront to avoid the preload-injector
-                    // race on first load.
-                    runtimeMetadata: { framework: 'nextjs' },
-                },
+                name: fileName || 'Figma Import',
+                description: `Imported from Figma: ${fileName}`,
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
                 sandboxRuntime: forkedSandbox.sandboxRuntime,
+                framework: 'nextjs',
             });
 
             if (!project) throw new Error('Failed to create project');
-            inFlightProjectId.current = project.id;
+            inFlightProjectId.current = project._id;
             setFinalizeProgress({
                 phase: 'opening-editor',
                 filesUploaded: files.length,
                 totalFiles: files.length,
             });
             didOpenEditor = true;
-            router.push(`${Routes.PROJECT}/${project.id}`);
-        } catch (err) {
+            router.push(`${Routes.PROJECT}/${project._id}`);
+        } catch (err: unknown) {
             if (err instanceof DOMException && err.name === 'AbortError') {
                 return;
             }
@@ -300,20 +307,17 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                       : fallback;
             setFinalizeError(message);
             if (inFlightSandboxId.current && !inFlightProjectId.current) {
-                await deleteOrphanSandbox({ sandboxId: inFlightSandboxId.current }).catch(
-                    (cleanupError) => {
-                        console.warn(
-                            'Failed to clean up orphan sandbox after Figma import error:',
-                            {
-                                sandboxId: inFlightSandboxId.current,
-                                error:
-                                    cleanupError instanceof Error
-                                        ? cleanupError.message
-                                        : String(cleanupError),
-                            },
-                        );
-                    },
-                );
+                await deleteOrphanSandbox({
+                    sandboxId: inFlightSandboxId.current,
+                }).catch((cleanupError: any) => {
+                    console.warn('Failed to clean up orphan sandbox after Figma import error:', {
+                        sandboxId: inFlightSandboxId.current,
+                        error:
+                            cleanupError instanceof Error
+                                ? cleanupError.message
+                                : String(cleanupError),
+                    });
+                });
             }
             inFlightSandboxId.current = null;
             inFlightProjectId.current = null;
@@ -363,13 +367,13 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         const sandboxCreated = inFlightSandboxId.current !== null;
 
         if (projectIdToClean) {
-            void deleteProject({ id: projectIdToClean }).catch((err) => {
+            void deleteProject({ id: projectIdToClean }).catch((err: any) => {
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
         } else if (sandboxCreated) {
             const sandboxIdToClean = inFlightSandboxId.current;
             if (sandboxIdToClean) {
-                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err) => {
+                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err: any) => {
                     console.error('Failed to clean up orphan sandbox on cancel:', err);
                 });
             }

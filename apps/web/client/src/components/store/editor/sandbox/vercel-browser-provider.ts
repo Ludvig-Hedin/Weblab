@@ -51,6 +51,11 @@ import {
     ProviderTerminal,
 } from '@weblab/code-provider';
 
+// TODO(convex-migration): `api.sandbox.*` endpoints (fileWrite, fileRename,
+// fileStat, fileDelete, fileList, fileRead, fileDownload, fileCopy, fileMkdir,
+// commandRun, commandRunBackground, gitStatus, delete, taskOpen, taskRestart)
+// have no Convex equivalent yet — sandbox proxy lives outside the Convex
+// migration scope. Keeping tRPC client until sandbox routes are ported.
 import { api } from '@/trpc/client';
 
 export interface VercelBrowserProviderOptions {

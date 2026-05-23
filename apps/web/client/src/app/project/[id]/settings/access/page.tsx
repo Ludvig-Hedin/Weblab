@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import { ProjectAccessMode, ProjectMemberRole, WorkspaceRole } from '@weblab/models';
@@ -11,8 +13,8 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useProjectCapabilities } from '@/hooks/use-project-capabilities';
-import { api } from '@/trpc/react';
 
 const MEMBER_ROLE_LABEL: Record<ProjectMemberRole, string> = {
     [ProjectMemberRole.MANAGER]: 'Manager',
@@ -30,61 +32,71 @@ const WORKSPACE_ROLE_LABEL: Record<WorkspaceRole, string> = {
 
 export default function ProjectAccessPage() {
     const params = useParams<{ id: string }>();
-    const projectId = params.id;
-    const utils = api.useUtils();
+    const projectId = params.id as Id<'projects'>;
 
-    const { data: project, isLoading } = api.project.get.useQuery({ projectId });
+    const project = useQuery(api.projects.get, { projectId });
+    const isLoading = project === undefined;
     const { canManageAccess, canInvite } = useProjectCapabilities(projectId);
 
-    const { data: access, isLoading: accessLoading } = api.project.listAccess.useQuery(
-        { projectId },
-        { enabled: !!projectId },
-    );
+    const access = useQuery(api.projects.listAccess, projectId ? { projectId } : 'skip');
+    const accessLoading = access === undefined;
 
-    const setAccess = api.project.setAccessMode.useMutation({
-        onSuccess: async () => {
+    const setAccessMutation = useMutation(api.projects.setAccessMode);
+    const setAccess = async (accessMode: ProjectAccessMode) => {
+        try {
+            await setAccessMutation({ projectId, accessMode });
             toast.success('Access updated');
-            await utils.project.get.invalidate({ projectId });
-            await utils.project.listAccess.invalidate({ projectId });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to update access');
+        }
+    };
 
-    const updateMemberRole = api.member.updateRole.useMutation({
-        onSuccess: async () => {
+    const updateMemberRoleMutation = useMutation(api.projectMembers.updateRole);
+    const updateMemberRole = async (userId: Id<'users'>, memberRole: ProjectMemberRole) => {
+        try {
+            await updateMemberRoleMutation({ projectId, userId, memberRole });
             toast.success('Role updated');
-            await utils.project.listAccess.invalidate({ projectId });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to update role');
+        }
+    };
 
-    const removeMember = api.member.remove.useMutation({
-        onSuccess: async () => {
+    const removeMemberMutation = useMutation(api.projectMembers.remove);
+    const removeMember = async (userId: Id<'users'>) => {
+        try {
+            await removeMemberMutation({ projectId, userId });
             toast.success('Member removed');
-            await utils.project.listAccess.invalidate({ projectId });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to remove member');
+        }
+    };
 
-    const revokeInvite = api.invitation.revoke.useMutation({
-        onSuccess: async () => {
+    const revokeInviteMutation = useMutation(api.projectInvitations.revoke);
+    const revokeInvite = async (id: Id<'projectInvitations'>) => {
+        try {
+            await revokeInviteMutation({ id });
             toast.success('Invitation revoked');
-            await utils.project.listAccess.invalidate({ projectId });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to revoke invitation');
+        }
+    };
 
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviteRole, setInviteRole] = useState<ProjectMemberRole>(ProjectMemberRole.EDITOR);
-    const createInvite = api.invitation.create.useMutation({
-        onSuccess: async () => {
-            toast.success(`Invite sent to ${inviteEmail}`);
+    const createInviteAction = useAction(api.projectInvitationActions.create);
+    const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+    const createInvite = async (inviteeEmail: string, memberRole: ProjectMemberRole) => {
+        setIsCreatingInvite(true);
+        try {
+            await createInviteAction({ projectId, inviteeEmail, memberRole });
+            toast.success(`Invite sent to ${inviteeEmail}`);
             setInviteEmail('');
-            await utils.project.listAccess.invalidate({ projectId });
-            await utils.invitation.list.invalidate({ projectId });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+        } finally {
+            setIsCreatingInvite(false);
+        }
+    };
 
     if (isLoading) {
         return <div className="p-6 text-sm">Loading…</div>;
@@ -113,21 +125,14 @@ export default function ProjectAccessPage() {
                         label="Everyone in the workspace can access"
                         description="Workspace members will see this project on their dashboard. Their role in the workspace controls what they can do."
                         disabled={!canManageAccess}
-                        onSelect={() =>
-                            setAccess.mutate({ projectId, accessMode: ProjectAccessMode.WORKSPACE })
-                        }
+                        onSelect={() => void setAccess(ProjectAccessMode.WORKSPACE)}
                     />
                     <AccessOption
                         active={currentMode === ProjectAccessMode.RESTRICTED}
                         label="Restricted to selected people"
                         description="Only workspace owners/admins and explicit project members can see this project. Normal workspace members will lose access."
                         disabled={!canManageAccess}
-                        onSelect={() =>
-                            setAccess.mutate({
-                                projectId,
-                                accessMode: ProjectAccessMode.RESTRICTED,
-                            })
-                        }
+                        onSelect={() => void setAccess(ProjectAccessMode.RESTRICTED)}
                     />
                 </div>
             </section>
@@ -178,16 +183,10 @@ export default function ProjectAccessPage() {
                         </div>
                         <Button
                             size="compact"
-                            disabled={!inviteEmail.trim() || createInvite.isPending}
-                            onClick={() =>
-                                createInvite.mutate({
-                                    projectId,
-                                    inviteeEmail: inviteEmail.trim(),
-                                    memberRole: inviteRole,
-                                })
-                            }
+                            disabled={!inviteEmail.trim() || isCreatingInvite}
+                            onClick={() => void createInvite(inviteEmail.trim(), inviteRole)}
                         >
-                            {createInvite.isPending ? 'Sending…' : 'Send invite'}
+                            {isCreatingInvite ? 'Sending…' : 'Send invite'}
                         </Button>
                     </div>
                 </section>
@@ -244,11 +243,10 @@ export default function ProjectAccessPage() {
                                             <Select
                                                 value={m.memberRole}
                                                 onValueChange={(v) =>
-                                                    updateMemberRole.mutate({
-                                                        projectId,
-                                                        userId: m.userId,
-                                                        memberRole: v as ProjectMemberRole,
-                                                    })
+                                                    void updateMemberRole(
+                                                        m.userId,
+                                                        v as ProjectMemberRole,
+                                                    )
                                                 }
                                             >
                                                 <SelectTrigger className="w-32">
@@ -269,12 +267,7 @@ export default function ProjectAccessPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="compact"
-                                                onClick={() =>
-                                                    removeMember.mutate({
-                                                        projectId,
-                                                        userId: m.userId,
-                                                    })
-                                                }
+                                                onClick={() => void removeMember(m.userId)}
                                             >
                                                 Remove
                                             </Button>
@@ -312,7 +305,7 @@ export default function ProjectAccessPage() {
                                     <Button
                                         variant="ghost"
                                         size="compact"
-                                        onClick={() => revokeInvite.mutate({ id: inv.id })}
+                                        onClick={() => void revokeInvite(inv.id)}
                                     >
                                         Revoke
                                     </Button>

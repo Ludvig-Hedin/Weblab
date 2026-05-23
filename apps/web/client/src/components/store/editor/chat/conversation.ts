@@ -6,6 +6,13 @@ import { type ChatConversation } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
 import { clearQueue } from '@/app/project/[id]/_hooks/use-chat/queue-storage';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.chat.conversation.upsert` → `api.conversations.upsert`,
+// `api.chat.conversation.generateTitle` → `api.chatActions.generateTitle`,
+// `api.chat.conversation.getAll` → `api.conversations.listByProject`,
+// `api.chat.conversation.update` → `api.conversations.update`,
+// `api.chat.conversation.delete` → `api.conversations.remove` once a Convex
+// HTTP client with Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 import { lastActiveConversationKey } from '@/utils/constants';
 

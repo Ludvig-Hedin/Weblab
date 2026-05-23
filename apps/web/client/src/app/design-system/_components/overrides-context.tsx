@@ -53,7 +53,11 @@ const InspectorContext = createContext<InspectorContextValue | null>(null);
 const RepoContext = createContext<RepoContextValue>({ repoRoot: null });
 
 function loadPersisted(): PersistedShape {
-    const defaults: PersistedShape = { overrides: {}, radiusScale: 1, transitionSpeed: 1 };
+    const defaults: PersistedShape = {
+        overrides: {},
+        radiusScale: 1,
+        transitionSpeed: 1,
+    };
     try {
         if (typeof window === 'undefined') return defaults;
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -68,7 +72,11 @@ function loadPersisted(): PersistedShape {
                 transitionSpeed: typeof obj.transitionSpeed === 'number' ? obj.transitionSpeed : 1,
             };
         }
-        return { overrides: obj as TokenOverrides, radiusScale: 1, transitionSpeed: 1 };
+        return {
+            overrides: obj as TokenOverrides,
+            radiusScale: 1,
+            transitionSpeed: 1,
+        };
     } catch {
         return defaults;
     }
@@ -130,7 +138,11 @@ export function OverridesProvider({ children }: { children: ReactNode }) {
 
     const save = useCallback(() => {
         try {
-            const payload: PersistedShape = { overrides, radiusScale, transitionSpeed };
+            const payload: PersistedShape = {
+                overrides,
+                radiusScale,
+                transitionSpeed,
+            };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
             setSavedOverrides({ ...overrides });
         } catch {

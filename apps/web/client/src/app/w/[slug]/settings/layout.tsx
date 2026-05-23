@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchQuery } from 'convex/nextjs';
 
 import { TopBar } from '@/app/projects/_components/top-bar';
-import { api } from '@/trpc/server';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
 import { SettingsNav } from './_components/settings-nav';
@@ -16,18 +18,29 @@ export default async function WorkspaceSettingsLayout({ children, params }: Sett
     const { slug } = await params;
 
     // Mirror /w/[slug]/layout: redirect anonymous visitors to sign-in
-    // before the tRPC call throws UNAUTHORIZED.
+    // before the Convex call throws UNAUTHORIZED.
     const user = await getCurrentUser();
     if (!user) {
         redirect(getSignInUrl(`/w/${slug}/settings`));
     }
 
-    const workspace = await api.workspace.getBySlug({ slug });
+    const { getToken } = await auth();
+    const token = await getToken({ template: 'convex' });
+
+    const workspace = await fetchQuery(
+        api.workspaces.getBySlug,
+        { slug },
+        { token: token ?? undefined },
+    );
     if (!workspace) {
         redirect(Routes.PROJECTS);
     }
 
-    const caps = await api.user.capabilities({ workspaceId: workspace.id });
+    const caps = await fetchQuery(
+        api.users.capabilities,
+        { workspaceId: workspace._id },
+        { token: token ?? undefined },
+    );
     const canUpdate = caps.includes('workspace.update');
     const canManageMembers = caps.includes('workspace.manage_members');
     const canInvite = caps.includes('workspace.invite');

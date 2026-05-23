@@ -198,6 +198,14 @@ export const LayoutSection = observer(function LayoutSection() {
                 {/* 3. Padding */}
                 <GroupShell
                     label="Padding"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'padding-top', value: '' },
+                            { property: 'padding-right', value: '' },
+                            { property: 'padding-bottom', value: '' },
+                            { property: 'padding-left', value: '' },
+                        ])
+                    }
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSide />}
@@ -236,6 +244,14 @@ export const LayoutSection = observer(function LayoutSection() {
                 {/* 4. Margin */}
                 <GroupShell
                     label="Margin"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'margin-top', value: '' },
+                            { property: 'margin-right', value: '' },
+                            { property: 'margin-bottom', value: '' },
+                            { property: 'margin-left', value: '' },
+                        ])
+                    }
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSideDashed />}

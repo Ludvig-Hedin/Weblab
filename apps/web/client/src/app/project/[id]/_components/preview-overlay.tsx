@@ -369,7 +369,10 @@ export const PreviewOverlay = observer(() => {
     const [size, setSize] = useState<PreviewSize | null>(null);
     const [fullscreen, setFullscreen] = useState(false);
     const previewAreaRef = useRef<HTMLDivElement>(null);
-    const [areaSize, setAreaSize] = useState<PreviewSize>({ width: 0, height: 0 });
+    const [areaSize, setAreaSize] = useState<PreviewSize>({
+        width: 0,
+        height: 0,
+    });
     const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Resolved each render — MobX `observer` re-runs the component when the

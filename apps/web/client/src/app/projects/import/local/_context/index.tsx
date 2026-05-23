@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api as convexApi } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { Provider } from '@weblab/code-provider';
@@ -12,6 +14,7 @@ import { SandboxTemplates, Templates } from '@weblab/constants';
 import { detectFrameworkFromFiles, getFrameworkAdapter } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
+import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
 import { env } from '@/env';
 import { api } from '@/trpc/react';
@@ -132,11 +135,14 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         useState<ImportFinalizeProgress>(INITIAL_FINALIZE_PROGRESS);
     const [framework, setFramework] = useState<FrameworkId>('nextjs');
     const isMultiFrameworkEnabled = env.NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED;
-    const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
+    const user = useQuery(convexApi.users.me, {});
+    const createProject = useMutation(convexApi.projects.create);
+    const removeProjectMutation = useMutation(convexApi.projects.remove);
+    const deleteProject = ({ id }: { id: string }) =>
+        removeProjectMutation({ projectId: id as Id<'projects'> });
+    // TODO(convex-migration): port api.sandbox.* — no Convex equivalents yet.
     const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
     const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
-    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
     const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
     const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
 
@@ -175,7 +181,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             });
             setError(null);
 
-            if (!user?.id) {
+            if (!user?._id) {
                 setError('Sign in again before importing this project.');
                 return;
             }
@@ -197,8 +203,8 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 },
                 // No hardcoded provider — server uses configured WEBLAB_CLOUD_PROVIDER.
                 config: {
-                    title: `Imported project - ${user.id}`,
-                    tags: ['imported', 'local', user.id],
+                    title: `Imported project - ${user._id}`,
+                    tags: ['imported', 'local', user._id],
                 },
             });
             inFlightSandboxId.current = forkedSandbox.sandboxId;
@@ -234,7 +240,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                     providerOptions: {
                         codesandbox: {
                             sandboxId: forkedSandbox.sandboxId,
-                            userId: user.id,
+                            userId: user._id,
                             initClient: true,
                             keepActiveWhileConnected: false,
                             getSession: async (sandboxId) => {
@@ -281,24 +287,18 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
                 totalFiles: projectData.files.length,
             });
             const project = await createProject({
-                project: {
-                    name: projectData.name ?? 'New project',
-                    description: 'Your new project',
-                    // Persist the picked framework so the chat route, editor
-                    // pipelines, and any future framework-aware UI can read it
-                    // back. Stored inside the existing jsonb runtime metadata
-                    // column so this lands without a DB migration.
-                    runtimeMetadata: { framework },
-                },
+                name: projectData.name ?? 'New project',
+                description: 'Your new project',
                 sandboxId: forkedSandbox.sandboxId,
                 sandboxUrl: forkedSandbox.previewUrl,
                 sandboxRuntime: forkedSandbox.sandboxRuntime,
+                framework,
             });
             if (!project) {
                 setError('Project setup finished, but the project could not be created.');
                 return;
             }
-            inFlightProjectId.current = project.id;
+            inFlightProjectId.current = project._id;
             setFinalizeProgress({
                 phase: 'opening-editor',
                 filesUploaded: projectData.files.length,
@@ -306,8 +306,8 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             });
             // Open the project
             didOpenEditor = true;
-            router.push(`${Routes.PROJECT}/${project.id}`);
-        } catch (error) {
+            router.push(`${Routes.PROJECT}/${project._id}`);
+        } catch (error: unknown) {
             if (error instanceof DOMException && error.name === 'AbortError') {
                 // cancel() will already have surfaced its own toast.
                 return;
@@ -315,17 +315,17 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             console.error('Error creating project:', error);
             setError('Failed to create project');
             if (inFlightSandboxId.current && !inFlightProjectId.current) {
-                await deleteOrphanSandbox({ sandboxId: inFlightSandboxId.current }).catch(
-                    (cleanupError) => {
-                        console.warn('Failed to clean up orphan sandbox after import error:', {
-                            sandboxId: inFlightSandboxId.current,
-                            error:
-                                cleanupError instanceof Error
-                                    ? cleanupError.message
-                                    : String(cleanupError),
-                        });
-                    },
-                );
+                await deleteOrphanSandbox({
+                    sandboxId: inFlightSandboxId.current,
+                }).catch((cleanupError: any) => {
+                    console.warn('Failed to clean up orphan sandbox after import error:', {
+                        sandboxId: inFlightSandboxId.current,
+                        error:
+                            cleanupError instanceof Error
+                                ? cleanupError.message
+                                : String(cleanupError),
+                    });
+                });
             }
             inFlightSandboxId.current = null;
             inFlightProjectId.current = null;
@@ -372,7 +372,7 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         try {
             const detected = await detectFrameworkFromFiles(toProjectFiles(files));
             if (detected) setFramework(detected);
-        } catch (err) {
+        } catch (err: unknown) {
             // Detection failures are non-fatal — log for diagnostics and
             // leave the picker at its current value.
             console.warn('[import] framework auto-detection failed', err);
@@ -454,13 +454,13 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
         const sandboxCreated = inFlightSandboxId.current !== null;
 
         if (projectIdToClean) {
-            void deleteProject({ id: projectIdToClean }).catch((err) => {
+            void deleteProject({ id: projectIdToClean }).catch((err: any) => {
                 console.error('Failed to clean up orphan project on cancel:', err);
             });
         } else if (sandboxCreated) {
             const sandboxIdToClean = inFlightSandboxId.current;
             if (sandboxIdToClean) {
-                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err) => {
+                void deleteOrphanSandbox({ sandboxId: sandboxIdToClean }).catch((err: any) => {
                     console.error('Failed to clean up orphan sandbox on cancel:', err);
                 });
             }
@@ -554,7 +554,7 @@ export const uploadToSandbox = async (
                     throw new Error('Provider rejected the file write');
                 }
             }
-        } catch (fileError) {
+        } catch (fileError: unknown) {
             console.error(`Error uploading file ${file.path}:`, fileError);
             throw new Error(
                 `Failed to upload file: ${file.path} - ${fileError instanceof Error ? fileError.message : 'Unknown error'}`,

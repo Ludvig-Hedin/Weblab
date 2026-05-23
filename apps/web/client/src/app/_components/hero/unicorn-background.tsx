@@ -49,7 +49,11 @@ export function UnicornBackground() {
                 const x = w / 2 + Math.sin(t) * w * 0.35;
                 const y = h / 2 + Math.sin(t * 0.71) * h * 0.25;
                 container.dispatchEvent(
-                    new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }),
+                    new MouseEvent('mousemove', {
+                        bubbles: true,
+                        clientX: x,
+                        clientY: y,
+                    }),
                 );
                 rafId = requestAnimationFrame(tick);
             };

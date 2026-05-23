@@ -44,8 +44,9 @@ export function Section({ id, title, setCount, children, className, actions }: S
                         // section header, quiet enough not to compete with the
                         // controls below. Hover lifts to primary; chevron tints
                         // up on the same hover path.
-                        'group/section-header text-small hover:text-foreground-primary flex w-full items-center gap-2 px-3 py-2 font-medium tracking-tight transition-colors outline-none [&[data-state=open]>svg]:rotate-180',
-                        hasSet ? 'text-foreground-primary' : 'text-foreground-secondary',
+                        'group/section-header text-foreground-primary hover:text-foreground-primary flex w-full items-center gap-2 px-3 py-2.5 text-[13px] font-semibold tracking-tight transition-colors outline-none [&[data-state=open]>svg]:rotate-180',
+                        // hasSet still drives accent dot rendering, no longer
+                        // a color delta — section title is always primary.
                     )}
                 >
                     {hasSet && (

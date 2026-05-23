@@ -7,8 +7,9 @@ import { Heart } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import z from 'zod';
 
+import { Button } from '@weblab/ui/button';
+
 import { Price, PriceValue } from '@/components/shadcnblocks/price';
-import { Button } from '@/components/ui/button';
 import {
     Carousel,
     CarouselContent,
@@ -373,7 +374,7 @@ const ProductForm = ({ hinges, selected }: ProductFormProps) => {
                     />
                 )}
                 <div className="flex gap-3">
-                    <Button size="lg">Add to Cart</Button>
+                    <Button size="pill">Add to Cart</Button>
                     <Button size="icon-lg" variant="outline">
                         <Heart />
                     </Button>

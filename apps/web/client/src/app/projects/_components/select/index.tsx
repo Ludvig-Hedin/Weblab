@@ -684,7 +684,10 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
 
             if (failures.length > 0 && deletedIds.length > 0) {
                 toast.warning(
-                    t('deletedPartial', { deleted: deletedIds.length, failed: failures.length }),
+                    t('deletedPartial', {
+                        deleted: deletedIds.length,
+                        failed: failures.length,
+                    }),
                     {
                         description: t('failedListPrefix', {
                             names: `${failedNames}${overflowSuffix}`,
@@ -942,7 +945,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                         </motion.div>
 
                         {openFolder && (
-                            <div className="border-foreground/8 bg-foreground/3 mt-6 rounded-[28px] border p-5 backdrop-blur-xl">
+                            <div className="border-foreground/8 bg-foreground/3 mt-6 rounded-3xl border p-5 backdrop-blur-xl">
                                 <div className="mb-4 flex items-center justify-between">
                                     <div>
                                         <h4 className="text-foreground text-base font-medium">

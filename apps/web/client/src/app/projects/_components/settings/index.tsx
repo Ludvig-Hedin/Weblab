@@ -29,7 +29,12 @@ export function SettingsDropdown({ project, refetch }: { project: Project; refet
                     size="default"
                     variant="ghost"
                     className="hover:bg-background-weblab flex h-8 w-8 cursor-pointer items-center justify-center p-0 backdrop-blur-lg"
-                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }}
                 >
                     <Icons.DotsHorizontal />
                 </Button>
@@ -40,6 +45,7 @@ export function SettingsDropdown({ project, refetch }: { project: Project; refet
                 alignOffset={-4}
                 sideOffset={8}
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
             >
                 <DropdownMenuItem
                     onSelect={() => router.push(`/project/${project.id}`)}

@@ -142,7 +142,9 @@ export const PageSelector = observer(
                                 ? 'text-foreground-primary'
                                 : 'text-foreground-secondary hover:text-foreground-primary',
                         )}
-                        style={{ paddingLeft: depth > 0 ? `${12 + depth * 8}px` : undefined }}
+                        style={{
+                            paddingLeft: depth > 0 ? `${12 + depth * 8}px` : undefined,
+                        }}
                     >
                         <Icons.File className="h-3.5 w-3.5 shrink-0 opacity-60" />
                         <span className="min-w-0 flex-1 truncate">{page.name}</span>

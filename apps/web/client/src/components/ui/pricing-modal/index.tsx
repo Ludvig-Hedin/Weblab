@@ -28,12 +28,12 @@ export const SubscriptionModal = observer(() => {
                 ScheduledSubscriptionAction.PRICE_CHANGE &&
             subscription.scheduledChange.price
         ) {
-            message = `Your ${subscription.scheduledChange.price.monthlyMessageLimit} messages a month plan starts on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            message = `Your ${subscription.scheduledChange.price.monthlyMessageLimit} messages a month plan starts on ${new Date(subscription.scheduledChange.scheduledChangeAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
         } else if (
             subscription?.scheduledChange?.scheduledAction ===
             ScheduledSubscriptionAction.CANCELLATION
         ) {
-            message = `Your subscription will end on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            message = `Your subscription will end on ${new Date(subscription.scheduledChange.scheduledChangeAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
         }
 
         if (message) {

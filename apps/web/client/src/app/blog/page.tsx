@@ -112,7 +112,9 @@ export default function BlogPage() {
         <WebsiteLayout showFooter>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(blogBreadcrumbsJsonLd) }}
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify(blogBreadcrumbsJsonLd),
+                }}
             />
             <script
                 type="application/ld+json"

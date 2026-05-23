@@ -32,7 +32,13 @@ const suggestionAnnotation = Annotation.define<'tab-complete'>();
 
 const contextField = StateField.define<TabCompleteContext>({
     create() {
-        return { filePath: '', language: '', projectId: '', enabled: false, model: undefined };
+        return {
+            filePath: '',
+            language: '',
+            projectId: '',
+            enabled: false,
+            model: undefined,
+        };
     },
     update(value, tr) {
         let next = value;

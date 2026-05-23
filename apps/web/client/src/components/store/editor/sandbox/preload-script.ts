@@ -133,7 +133,9 @@ export async function injectPreloadScriptIntoLayout(
         );
     }
 
-    const result = await provider.listFiles({ args: { path: routerConfig.basePath } });
+    const result = await provider.listFiles({
+        args: { path: routerConfig.basePath },
+    });
     const [layoutFile] = result.files.filter(
         (file) =>
             file.type === 'file' &&
@@ -146,7 +148,9 @@ export async function injectPreloadScriptIntoLayout(
 
     const layoutPath = `${routerConfig.basePath}/${layoutFile.name}`;
 
-    const layoutResponse = await provider.readFile({ args: { path: layoutPath } });
+    const layoutResponse = await provider.readFile({
+        args: { path: layoutPath },
+    });
     if (typeof layoutResponse.file.content !== 'string') {
         throw new Error(`Layout file ${layoutPath} is not a text file`);
     }

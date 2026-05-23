@@ -22,7 +22,7 @@ const PreviewTile = ({ project }: { project?: ProjectListItem }) => {
     const displayUrl = getDisplayUrl(siteUrl);
 
     return (
-        <div className="border-foreground-primary/8 bg-background-primary relative overflow-hidden rounded-[18px] border shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+        <div className="border-foreground-primary/8 bg-background-primary relative overflow-hidden rounded-lg border shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.1),_transparent_40%),linear-gradient(155deg,_rgba(126,97,72,0.32),_rgba(20,16,14,0.96)_58%)]" />
             {imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element

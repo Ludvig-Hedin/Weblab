@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import { Icons } from '@weblab/ui/icons';
 
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 /**
@@ -14,7 +15,8 @@ import { Routes } from '@/utils/constants';
  * Personal workspace dashboard. Hides when there are no shared projects.
  */
 export function SharedWithMe() {
-    const { data, isLoading } = api.project.sharedWithMe.useQuery();
+    const data = useQuery(api.projects.sharedWithMe, {});
+    const isLoading = data === undefined;
 
     if (isLoading || !data || data.length === 0) {
         return null;
@@ -30,9 +32,9 @@ export function SharedWithMe() {
             </header>
             <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {data.map((project) => (
-                    <li key={project.id}>
+                    <li key={project._id}>
                         <Link
-                            href={`${Routes.PROJECT}/${project.id}`}
+                            href={`${Routes.PROJECT}/${project._id}`}
                             className="border-border hover:bg-background-secondary/60 flex items-center gap-3 rounded-md border p-3 transition-colors"
                         >
                             <Icons.File className="text-foreground-tertiary h-4 w-4 shrink-0" />
@@ -41,8 +43,7 @@ export function SharedWithMe() {
                                     {project.name}
                                 </span>
                                 <span className="text-foreground-tertiary truncate text-xs">
-                                    Updated{' '}
-                                    {new Date(project.metadata.updatedAt).toLocaleDateString()}
+                                    Updated {new Date(project.updatedAt).toLocaleDateString()}
                                 </span>
                             </div>
                         </Link>

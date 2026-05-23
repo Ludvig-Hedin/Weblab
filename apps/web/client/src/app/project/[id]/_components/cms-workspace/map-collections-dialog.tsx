@@ -1,6 +1,9 @@
 'use client';
 
+import type { FunctionReturnType } from 'convex/server';
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -16,8 +19,8 @@ import { ScrollArea } from '@weblab/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 interface Props {
     projectId: string;
@@ -44,20 +47,49 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
     const open = !!sourceId;
     const [rows, setRows] = useState<Record<string, RowState>>({});
 
-    const remoteQuery = api.cms.source.listRemoteCollections.useQuery(
-        { projectId, sourceId: sourceId ?? '' },
-        { enabled: !!sourceId },
+    // listRemoteCollections is a Convex action, not a query — fetch on open via
+    // useEffect since actions can't be subscribed to like queries.
+    const listRemoteCollections = useAction(api.cmsActions.sourceListRemoteCollections);
+    const collectionsData = useQuery(
+        api.cmsCollections.list,
+        sourceId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId },
-        { enabled: !!sourceId },
-    );
+    const mapCollectionsAction = useAction(api.cmsActions.sourceMapCollections);
+    const [isMapping, setIsMapping] = useState(false);
 
-    const utils = api.useUtils();
-    const mapMutation = api.cms.source.mapCollections.useMutation();
+    type RemoteCollection = FunctionReturnType<
+        typeof api.cmsActions.sourceListRemoteCollections
+    >[number];
+    const [remoteData, setRemoteData] = useState<RemoteCollection[] | null>(null);
+    const [isLoadingRemote, setIsLoadingRemote] = useState(false);
 
-    const remote = useMemo(() => remoteQuery.data ?? [], [remoteQuery.data]);
-    const existing = collectionsQuery.data ?? [];
+    useEffect(() => {
+        if (!open || !sourceId) {
+            setRemoteData(null);
+            return;
+        }
+        let cancelled = false;
+        setIsLoadingRemote(true);
+        listRemoteCollections({
+            projectId: projectId as Id<'projects'>,
+            sourceId: sourceId as Id<'cmsSources'>,
+        })
+            .then((data) => {
+                if (!cancelled) setRemoteData(data);
+            })
+            .catch((err: Error) => {
+                if (!cancelled) toast.error(err.message);
+            })
+            .finally(() => {
+                if (!cancelled) setIsLoadingRemote(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [open, sourceId, projectId, listRemoteCollections]);
+
+    const remote = useMemo(() => remoteData ?? [], [remoteData]);
+    const existing = collectionsData ?? [];
 
     // Default every row to "create new" on first load.
     useEffect(() => {
@@ -74,7 +106,8 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
 
     const handleConfirm = async () => {
         if (!sourceId) return;
-        const mappings: Parameters<typeof mapMutation.mutateAsync>[0]['mappings'] = [];
+        type Mapping = Parameters<typeof mapCollectionsAction>[0]['mappings'][number];
+        const mappings: Mapping[] = [];
         for (const r of remote) {
             const row = rows[r.id];
             if (!row || row.target === MODE_SKIP) continue;
@@ -90,7 +123,7 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
                 mappings.push({
                     mode: 'attach',
                     remoteRef: r.id,
-                    collectionId: row.target,
+                    collectionId: row.target as Id<'cmsCollections'>,
                 });
             }
         }
@@ -98,14 +131,20 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
             toast.error(t(transKeys.cms.sources.map.nothingToMap));
             return;
         }
+        setIsMapping(true);
         try {
-            await mapMutation.mutateAsync({ projectId, sourceId, mappings });
-            await utils.cms.collection.list.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            await mapCollectionsAction({
+                projectId: projectId as Id<'projects'>,
+                sourceId: sourceId as Id<'cmsSources'>,
+                mappings,
+            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success(t(transKeys.cms.sources.map.success));
             onClose();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.sources.map.failed));
+        } finally {
+            setIsMapping(false);
         }
     };
 
@@ -120,7 +159,7 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
                 </DialogHeader>
 
                 <ScrollArea className="max-h-[420px]">
-                    {remoteQuery.isLoading ? (
+                    {isLoadingRemote ? (
                         <p className="text-foreground-tertiary text-small p-4">
                             {t(transKeys.cms.sources.map.loading)}
                         </p>
@@ -166,7 +205,7 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
                                                 {t(transKeys.cms.sources.map.skip)}
                                             </SelectItem>
                                             {existing.map((c) => (
-                                                <SelectItem key={c.id} value={c.id}>
+                                                <SelectItem key={c._id} value={c._id}>
                                                     {c.name}
                                                 </SelectItem>
                                             ))}
@@ -182,7 +221,7 @@ export const MapCollectionsDialog = ({ projectId, sourceId, onClose }: Props) =>
                     <Button variant="ghost" onClick={onClose}>
                         {t(transKeys.cms.sources.map.cancel)}
                     </Button>
-                    <Button onClick={handleConfirm} disabled={mapMutation.isPending}>
+                    <Button onClick={handleConfirm} disabled={isMapping}>
                         {t(transKeys.cms.sources.map.confirm)}
                     </Button>
                 </DialogFooter>

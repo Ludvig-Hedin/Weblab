@@ -26,8 +26,8 @@ export function LinkAspectButton({ locked, onToggle, className }: LinkAspectButt
             className={cn(
                 'inline-flex h-[26px] w-[28px] cursor-pointer items-center justify-center rounded-[6px] transition-colors outline-none',
                 locked
-                    ? 'bg-background-active text-foreground-primary shadow-sm dark:bg-[#262626]'
-                    : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground-primary dark:hover:bg-[#2F2F2F]',
+                    ? 'bg-background-active text-foreground-primary shadow-sm'
+                    : 'text-foreground-tertiary hover:bg-background-secondary hover:text-foreground-primary',
                 'focus-visible:ring-foreground-brand/30 focus-visible:ring-[3px]',
                 className,
             )}

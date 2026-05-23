@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation, useQuery } from 'convex/react';
 
 import {
     EXTERNAL_HOSTING_PROVIDERS,
@@ -20,7 +22,7 @@ import { Input } from '@weblab/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface Props {
     open: boolean;
@@ -41,15 +43,16 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
     const [token, setToken] = useState('');
     const [accountLabel, setAccountLabel] = useState('');
 
-    const { data: connections, refetch } = api.hostingConnection.list.useQuery(undefined, {
-        enabled: open,
-    });
-    const { mutateAsync: validate, isPending: isValidating } =
-        api.hostingConnection.validateToken.useMutation();
-    const { mutateAsync: create, isPending: isCreating } =
-        api.hostingConnection.create.useMutation();
-    const { mutateAsync: remove, isPending: isRemoving } =
-        api.hostingConnection.delete.useMutation();
+    const connections = useQuery(
+        (open ? api.hostingConnections.list : 'skip') as typeof api.hostingConnections.list,
+        open ? {} : (undefined as unknown as Record<string, never>),
+    );
+    const validate = useAction(api.hostingConnectionActions.validateToken);
+    const create = useAction(api.hostingConnectionActions.createWithValidation);
+    const remove = useMutation(api.hostingConnections.remove);
+    const [isValidating, setIsValidating] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
 
     const reset = () => {
         setToken('');
@@ -61,8 +64,12 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
             toast.error('Paste an API token first.');
             return;
         }
+        setIsValidating(true);
         try {
-            const result = await validate({ provider, token: token.trim() });
+            const result = await validate({
+                provider: provider as 'render' | 'vercel' | 'netlify' | 'cloudflare' | 'railway',
+                token: token.trim(),
+            });
             if (result.ok) {
                 toast.success(
                     `Connected to ${result.accountLabel ?? HOSTING_PROVIDER_LABELS[provider]}`,
@@ -75,6 +82,8 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
             }
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Validation failed.');
+        } finally {
+            setIsValidating(false);
         }
     };
 
@@ -83,27 +92,31 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
             toast.error('Paste an API token first.');
             return;
         }
+        setIsCreating(true);
         try {
             await create({
-                provider,
+                provider: provider as 'render' | 'vercel' | 'netlify' | 'cloudflare' | 'railway',
                 token: token.trim(),
                 accountLabel: accountLabel.trim() || undefined,
             });
             toast.success(`${HOSTING_PROVIDER_LABELS[provider]} connected.`);
             reset();
-            await refetch();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to save connection.');
+        } finally {
+            setIsCreating(false);
         }
     };
 
     const handleDelete = async (id: string, label: string) => {
+        setIsRemoving(true);
         try {
-            await remove({ id });
+            await remove({ id: id as Id<'hostingProviderConnections'> });
             toast.success(`Disconnected ${label}.`);
-            await refetch();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to disconnect.');
+        } finally {
+            setIsRemoving(false);
         }
     };
 
@@ -128,7 +141,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
                             <p className="text-mini p-3">No providers connected yet.</p>
                         )}
                         {connections?.map((connection) => (
-                            <div key={connection.id} className="flex items-center gap-2 p-3">
+                            <div key={connection._id} className="flex items-center gap-2 p-3">
                                 <Icons.Globe className="h-4 w-4" />
                                 <span className="text-foreground-primary text-small">
                                     {HOSTING_PROVIDER_LABELS[connection.provider]}
@@ -143,7 +156,7 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
                                     disabled={isRemoving}
                                     onClick={() => {
                                         void handleDelete(
-                                            connection.id,
+                                            connection._id,
                                             HOSTING_PROVIDER_LABELS[connection.provider],
                                         );
                                     }}

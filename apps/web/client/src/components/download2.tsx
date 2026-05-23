@@ -1,6 +1,7 @@
 import { Download, Monitor, Smartphone, Tablet } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@weblab/ui/button';
+
 import { cn } from '@/lib/utils';
 
 interface Download2Props {
@@ -82,7 +83,7 @@ const Download2 = ({
                         <p className="mb-6 text-sm text-slate-500 dark:text-slate-400">
                             {platforms.desktop?.description}
                         </p>
-                        <Button size="lg" asChild>
+                        <Button size="pill" asChild>
                             <a href={platforms.desktop?.url}>
                                 <Download className="h-4 w-4" />
                                 {platforms.desktop?.buttonText}

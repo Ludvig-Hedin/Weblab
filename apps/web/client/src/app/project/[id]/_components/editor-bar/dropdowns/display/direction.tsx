@@ -7,8 +7,16 @@ import { useEditorEngine } from '@/components/store/editor';
 import { InputRadio } from '../../inputs/input-radio';
 
 const directionOptions: Record<string, CssValue> = {
-    column: { value: 'column', label: 'Vertical', icon: <Icons.ArrowDown className="h-4 w-4" /> },
-    row: { value: 'row', label: 'Horizontal', icon: <Icons.ArrowRight className="h-4 w-4" /> },
+    column: {
+        value: 'column',
+        label: 'Vertical',
+        icon: <Icons.ArrowDown className="h-4 w-4" />,
+    },
+    row: {
+        value: 'row',
+        label: 'Horizontal',
+        icon: <Icons.ArrowRight className="h-4 w-4" />,
+    },
 };
 
 export const DirectionInput = () => {

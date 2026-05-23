@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { DefaultSettings } from '@weblab/constants';
@@ -7,14 +9,15 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { createSecureUrl } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { MetadataForm } from './metadata-form';
 import { useMetadataForm } from './use-metadata-form';
 
 export const SiteTab = observer(() => {
     const editorEngine = useEditorEngine();
-    const { data: domains } = api.domain.getAll.useQuery({ projectId: editorEngine.projectId });
+    const projectId = editorEngine.projectId as Id<'projects'>;
+    const domains = useQuery(api.domains.getAll, { projectId });
     const baseUrl = domains?.published?.url ?? domains?.preview?.url;
 
     const homePage = useMemo(() => {

@@ -85,8 +85,16 @@ export const CmsDataPusher = observer(() => {
         return { bindings, items, itemsByCollection };
     }, [snapshotQuery.data]);
 
-    const pages = pagesQuery.data ?? [];
-    const validCollectionIds = useMemo(() => new Set(pages.map((p) => p.collectionId)), [pages]);
+    // `useQuery` returns a fresh `data` reference only when payload changes,
+    // but `?? []` would synthesize a new empty array each render. Memoizing
+    // off `pagesQuery.data` keeps the reference stable so downstream memos /
+    // effects don't thrash (the 2s push interval used to be torn down +
+    // recreated on every render — making the retry effectively a no-op).
+    const pages = useMemo(() => pagesQuery.data ?? [], [pagesQuery.data]);
+    const validCollectionIds = useMemo(
+        () => new Set(pages.map((p: any) => p.collectionId)),
+        [pages],
+    );
 
     /**
      * Build a per-frame payload by:
@@ -154,7 +162,7 @@ export const CmsDataPusher = observer(() => {
                     }
                     console.warn('[cms-workspace] setCmsData failed:', err);
                 });
-            } catch (err) {
+            } catch (err: any) {
                 const message = err instanceof Error ? err.message : String(err);
                 if (!/destroyed connection|connection is destroyed/i.test(message)) {
                     console.warn('[cms-workspace] setCmsData threw:', err);

@@ -51,10 +51,10 @@ export function OfflineProjectsList() {
     if (!cached || cached.length === 0) return null;
 
     return (
-        <div className="mx-auto w-full max-w-5xl rounded-lg border border-amber-500/20 bg-amber-500/5 px-6 py-5">
+        <div className="border-foreground-warning/20 bg-foreground-warning/5 mx-auto w-full max-w-5xl rounded-lg border px-6 py-5">
             <div className="flex items-center gap-2">
-                <Icons.InfoCircled className="h-4 w-4 text-amber-200" />
-                <h2 className="text-base font-medium tracking-tight text-amber-200">
+                <Icons.InfoCircled className="text-foreground-warning h-4 w-4" />
+                <h2 className="text-foreground-warning text-base font-medium tracking-tight">
                     {t('heading', { count: cached.length })}
                 </h2>
             </div>

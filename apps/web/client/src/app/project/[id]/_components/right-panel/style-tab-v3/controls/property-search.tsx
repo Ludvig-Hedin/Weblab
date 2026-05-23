@@ -41,7 +41,11 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     // Layout
     { property: 'display', label: 'Display', sectionId: 'layout' },
     { property: 'flex-direction', label: 'Flex direction', sectionId: 'layout' },
-    { property: 'justify-content', label: 'Justify content', sectionId: 'layout' },
+    {
+        property: 'justify-content',
+        label: 'Justify content',
+        sectionId: 'layout',
+    },
     { property: 'align-items', label: 'Align items', sectionId: 'layout' },
     { property: 'flex-wrap', label: 'Flex wrap', sectionId: 'layout' },
     { property: 'gap', label: 'Gap', sectionId: 'layout' },
@@ -86,25 +90,53 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     { property: 'letter-spacing', label: 'Letter spacing', sectionId: 'text' },
     { property: 'text-align', label: 'Text align', sectionId: 'text' },
     { property: 'text-transform', label: 'Text transform', sectionId: 'text' },
-    { property: 'text-decoration-line', label: 'Text decoration', sectionId: 'text' },
+    {
+        property: 'text-decoration-line',
+        label: 'Text decoration',
+        sectionId: 'text',
+    },
     { property: 'text-shadow', label: 'Text shadow', sectionId: 'text' },
     { property: 'color', label: 'Text color', sectionId: 'text' },
     // Styles
     { property: 'opacity', label: 'Opacity', sectionId: 'styles' },
     { property: 'visibility', label: 'Visibility', sectionId: 'styles' },
     // Overlays — background & border
-    { property: 'background-color', label: 'Background color', sectionId: 'overlays' },
-    { property: 'background-image', label: 'Background image', sectionId: 'overlays' },
-    { property: 'background-size', label: 'Background size', sectionId: 'overlays' },
-    { property: 'background-position', label: 'Background position', sectionId: 'overlays' },
-    { property: 'background-repeat', label: 'Background repeat', sectionId: 'overlays' },
+    {
+        property: 'background-color',
+        label: 'Background color',
+        sectionId: 'overlays',
+    },
+    {
+        property: 'background-image',
+        label: 'Background image',
+        sectionId: 'overlays',
+    },
+    {
+        property: 'background-size',
+        label: 'Background size',
+        sectionId: 'overlays',
+    },
+    {
+        property: 'background-position',
+        label: 'Background position',
+        sectionId: 'overlays',
+    },
+    {
+        property: 'background-repeat',
+        label: 'Background repeat',
+        sectionId: 'overlays',
+    },
     { property: 'border-width', label: 'Border width', sectionId: 'overlays' },
     { property: 'border-color', label: 'Border color', sectionId: 'overlays' },
     { property: 'border-style', label: 'Border style', sectionId: 'overlays' },
     // Effects
     { property: 'box-shadow', label: 'Box shadow', sectionId: 'effects' },
     { property: 'filter', label: 'Filter', sectionId: 'effects' },
-    { property: 'backdrop-filter', label: 'Backdrop filter', sectionId: 'effects' },
+    {
+        property: 'backdrop-filter',
+        label: 'Backdrop filter',
+        sectionId: 'effects',
+    },
     { property: 'mix-blend-mode', label: 'Blend mode', sectionId: 'effects' },
     { property: 'outline-width', label: 'Outline width', sectionId: 'effects' },
     { property: 'outline-color', label: 'Outline color', sectionId: 'effects' },
@@ -112,17 +144,45 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     { property: 'outline-offset', label: 'Outline offset', sectionId: 'effects' },
     // Transforms
     { property: 'transform', label: 'Transform', sectionId: 'transforms' },
-    { property: 'transform-origin', label: 'Transform origin', sectionId: 'transforms' },
-    { property: 'transform-style', label: 'Transform style', sectionId: 'transforms' },
+    {
+        property: 'transform-origin',
+        label: 'Transform origin',
+        sectionId: 'transforms',
+    },
+    {
+        property: 'transform-style',
+        label: 'Transform style',
+        sectionId: 'transforms',
+    },
     { property: 'rotate', label: 'Rotate', sectionId: 'transforms' },
     { property: 'perspective', label: 'Perspective', sectionId: 'transforms' },
-    { property: 'perspective-origin', label: 'Perspective origin', sectionId: 'transforms' },
-    { property: 'backface-visibility', label: 'Backface visibility', sectionId: 'transforms' },
+    {
+        property: 'perspective-origin',
+        label: 'Perspective origin',
+        sectionId: 'transforms',
+    },
+    {
+        property: 'backface-visibility',
+        label: 'Backface visibility',
+        sectionId: 'transforms',
+    },
     // Transitions
     { property: 'transition', label: 'Transition', sectionId: 'transitions' },
-    { property: 'transition-property', label: 'Transition property', sectionId: 'transitions' },
-    { property: 'transition-duration', label: 'Transition duration', sectionId: 'transitions' },
-    { property: 'transition-delay', label: 'Transition delay', sectionId: 'transitions' },
+    {
+        property: 'transition-property',
+        label: 'Transition property',
+        sectionId: 'transitions',
+    },
+    {
+        property: 'transition-duration',
+        label: 'Transition duration',
+        sectionId: 'transitions',
+    },
+    {
+        property: 'transition-delay',
+        label: 'Transition delay',
+        sectionId: 'transitions',
+    },
     {
         property: 'transition-timing-function',
         label: 'Transition timing',
@@ -345,7 +405,7 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                 <ul
                     id="property-search-results"
                     role="listbox"
-                    className="bg-popover border-foreground/8 absolute top-[34px] right-0 left-0 z-50 max-h-[256px] overflow-y-auto rounded-[8px] border p-1 shadow-md"
+                    className="bg-popover border-foreground/8 absolute top-[34px] right-0 left-0 z-50 max-h-[256px] overflow-y-auto rounded-sm border p-1 shadow-md"
                 >
                     {results.length === 0 && (
                         // Non-interactive empty state — `presentation` role, no

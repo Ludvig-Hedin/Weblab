@@ -1,11 +1,13 @@
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { ProductType } from '@weblab/stripe';
 import { Icons } from '@weblab/ui/icons';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 import { UpgradePrompt } from '../upgrade-prompt';
 import { DomainVerificationProvider } from './use-domain-verification';
 import { Verification } from './verification';
@@ -15,11 +17,11 @@ export const CustomDomain = observer(() => {
     const editorEngine = useEditorEngine();
     const stateManager = useStateManager();
 
-    const { data: subscription } = api.subscription.get.useQuery();
+    const subscription = useQuery(api.subscriptions.get);
     const product = subscription?.product;
-    const { data: customDomain } = api.domain.custom.get.useQuery(
-        { projectId: editorEngine.projectId },
-        { enabled: !!editorEngine.projectId },
+    const customDomain = useQuery(
+        api.domains.customGet,
+        editorEngine.projectId ? { projectId: editorEngine.projectId as Id<'projects'> } : 'skip',
     );
 
     const renderContent = () => {

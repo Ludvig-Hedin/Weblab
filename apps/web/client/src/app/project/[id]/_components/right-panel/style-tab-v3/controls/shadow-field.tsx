@@ -29,7 +29,13 @@ interface ShadowParts {
     color: string;
 }
 
-const ZERO_SHADOW: ShadowParts = { x: 0, y: 0, blur: 0, spread: 0, color: '#00000040' };
+const ZERO_SHADOW: ShadowParts = {
+    x: 0,
+    y: 0,
+    blur: 0,
+    spread: 0,
+    color: '#00000040',
+};
 
 /**
  * Parse a single `box-shadow` declaration into editable parts. Defensive: any
@@ -80,7 +86,7 @@ function Stepper({ onStep }: { onStep: (delta: number) => void }) {
     return (
         <div
             className={cn(
-                'border-transparent bg-background-secondary dark:bg-[#101010] flex h-[30px] shrink-0 items-center overflow-hidden rounded-[10px] border',
+                'bg-background-secondary flex h-[30px] shrink-0 items-center overflow-hidden rounded-[10px] border border-transparent dark:bg-[#101010]',
             )}
         >
             <button

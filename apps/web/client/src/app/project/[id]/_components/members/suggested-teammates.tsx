@@ -1,23 +1,22 @@
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
+
 import { ProjectMemberRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Separator } from '@weblab/ui/separator';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface SuggestedTeammateProps {
     projectId: string;
 }
 
 export const SuggestedTeammates = ({ projectId }: SuggestedTeammateProps) => {
-    const apiUtils = api.useUtils();
-    const { data: suggestedUsers } = api.invitation.suggested.useQuery({ projectId });
-    const createInvitationMutation = api.invitation.create.useMutation({
-        onSuccess: () => {
-            apiUtils.invitation.suggested.invalidate();
-            apiUtils.invitation.list.invalidate();
-        },
+    const suggestedUsers = useQuery(api.projectInvitations.suggested, {
+        projectId: projectId as Id<'projects'>,
     });
+    const createInvitation = useAction(api.projectInvitationActions.create);
 
     if (suggestedUsers?.length === 0) {
         return <div className="h-2"></div>;
@@ -33,24 +32,26 @@ export const SuggestedTeammates = ({ projectId }: SuggestedTeammateProps) => {
                 </div>
             </div>
             <div className="flex gap-0.5">
-                {suggestedUsers?.map((email) => (
-                    <Button
-                        key={email}
-                        variant="secondary"
-                        size="sm"
-                        className="rounded-xl font-normal"
-                        onClick={() => {
-                            createInvitationMutation.mutate({
-                                projectId,
-                                inviteeEmail: email,
-                                memberRole: ProjectMemberRole.EDITOR,
-                            });
-                        }}
-                    >
-                        {email}
-                        <Icons.PlusCircled className="ml-1 size-4" />
-                    </Button>
-                ))}
+                {suggestedUsers
+                    ?.filter((email): email is string => !!email)
+                    .map((email) => (
+                        <Button
+                            key={email}
+                            variant="secondary"
+                            size="sm"
+                            className="rounded-xl font-normal"
+                            onClick={() => {
+                                void createInvitation({
+                                    projectId: projectId as Id<'projects'>,
+                                    inviteeEmail: email,
+                                    memberRole: ProjectMemberRole.EDITOR,
+                                });
+                            }}
+                        >
+                            {email}
+                            <Icons.PlusCircled className="ml-1 size-4" />
+                        </Button>
+                    ))}
             </div>
         </div>
     );

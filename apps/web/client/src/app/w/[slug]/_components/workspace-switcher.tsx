@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import { WorkspaceKind } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -17,14 +19,14 @@ import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
-import { api } from '@/trpc/react';
 import { useActiveWorkspace } from './workspace-context';
 
 export function WorkspaceSwitcher() {
     const active = useActiveWorkspace();
     const router = useRouter();
     const [open, setOpen] = useState(false);
-    const { data: workspaces, isLoading } = api.workspace.list.useQuery();
+    const workspaces = useQuery(api.workspaces.list, {});
+    const isLoading = workspaces === undefined;
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -61,7 +63,7 @@ export function WorkspaceSwitcher() {
                 ) : (
                     workspaces?.map((ws) => (
                         <DropdownMenuItem
-                            key={ws.id}
+                            key={ws._id}
                             onSelect={() => router.push(`/w/${ws.slug}/projects`)}
                             className="gap-2"
                         >
@@ -73,7 +75,7 @@ export function WorkspaceSwitcher() {
                                     </span>
                                 )}
                             </div>
-                            {ws.id === active.id && (
+                            {ws._id === active.id && (
                                 <Icons.Check className="ml-auto h-4 w-4 shrink-0" />
                             )}
                         </DropdownMenuItem>

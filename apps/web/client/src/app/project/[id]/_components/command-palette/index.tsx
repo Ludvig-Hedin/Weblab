@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -21,7 +23,6 @@ import { Icons } from '@weblab/ui/icons';
 import { Hotkey } from '@/components/hotkey';
 import { useEditorEngine } from '@/components/store/editor';
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { ELEMENT_PALETTE_ITEMS } from '../element-palette';
 
@@ -40,10 +41,7 @@ export const CommandPalette = observer(() => {
         return () => window.removeEventListener('open-command-palette', handler);
     }, []);
 
-    const { data: switchableProjects } = api.project.list.useQuery(
-        { limit: 25 },
-        { enabled: open },
-    );
+    const switchableProjects = useQuery(api.projects.list, open ? { limit: 25 } : 'skip');
     const activeProjectId = editorEngine.projectId;
 
     const close = () => setOpen(false);
@@ -154,14 +152,14 @@ export const CommandPalette = observer(() => {
                 {switchableProjects && switchableProjects.length > 1 && (
                     <CommandGroup heading={t('headingSwitch')}>
                         {switchableProjects
-                            .filter((p) => p.id !== activeProjectId)
+                            .filter((p) => p._id !== activeProjectId)
                             .slice(0, 12)
                             .map((p) => (
                                 <CommandItem
-                                    key={p.id}
-                                    value={`Switch to ${p.name} project ${p.id}`}
+                                    key={p._id}
+                                    value={`Switch to ${p.name} project ${p._id}`}
                                     onSelect={() =>
-                                        run(() => router.push(`${Routes.PROJECT}/${p.id}`))
+                                        run(() => router.push(`${Routes.PROJECT}/${p._id}`))
                                     }
                                 >
                                     <Icons.Cube />

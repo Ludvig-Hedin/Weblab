@@ -48,7 +48,10 @@ function fileLineCounts(diff: FileDiff): { added: number; removed: number } {
     if (diff.skipped) return { added: 0, removed: 0 };
     if (diff.status === 'added') return { added: countLines(diff.modified), removed: 0 };
     if (diff.status === 'deleted') return { added: 0, removed: countLines(diff.original) };
-    return { added: countLines(diff.modified), removed: countLines(diff.original) };
+    return {
+        added: countLines(diff.modified),
+        removed: countLines(diff.original),
+    };
 }
 
 export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {

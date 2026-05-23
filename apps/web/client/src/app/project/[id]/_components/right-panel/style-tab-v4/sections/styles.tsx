@@ -2,49 +2,58 @@
 
 import { observer } from 'mobx-react-lite';
 
-import { IconToggleField, PropertyControl, SliderField } from '../controls';
+import { GroupShell, IconSegment, SliderField } from '../controls';
+import { useStyleSetter } from '../hooks/use-style-setter';
+import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
 const VISIBLE_OPTIONS = [
     {
         value: 'visible',
-        label: 'Yes',
+        label: 'Visible',
         icon: <span className="text-mini">Yes</span>,
     },
-    { value: 'hidden', label: 'No', icon: <span className="text-mini">No</span> },
-];
+    {
+        value: 'hidden',
+        label: 'Hidden',
+        icon: <span className="text-mini">No</span>,
+    },
+] as const;
 
 /**
- * Styles section — the Figma's "Styles" group covers two opacity-class
- * properties only (opacity slider + visibility toggle). Everything else that
- * v2 grouped under "Effects" moves to a dedicated Effects section below.
+ * Styles section — opacity slider + visibility yes/no toggle.
+ * Both ported to v4 grammar: GroupShell wrapping each control,
+ * section content in `flex flex-col gap-3 px-3 pb-3`.
  */
 export const StylesSection = observer(function StylesSection() {
+    const opacity = useStyleValue('opacity');
+    const visibility = useStyleValue('visibility');
+    const opacitySetter = useStyleSetter('opacity');
+    const visibilitySetter = useStyleSetter('visibility');
+
     return (
         <Section id="styles" title="Styles">
-            <PropertyControl property="opacity" label="Opacity">
-                {({ value, commit }) => (
+            <div className="flex flex-col gap-3 px-3 pb-3">
+                <GroupShell label="Opacity" onReset={() => opacitySetter.set('')}>
                     <SliderField
-                        value={value}
-                        onCommit={commit}
+                        value={opacity.value}
+                        onCommit={opacitySetter.set}
                         min={0}
                         max={100}
                         suffix="%"
                         asPercent
                     />
-                )}
-            </PropertyControl>
-            <PropertyControl property="visibility" label="Visible">
-                {({ value, isSet, commit }) => (
-                    <IconToggleField
-                        value={value}
-                        isSet={isSet}
+                </GroupShell>
+
+                <GroupShell label="Visible" onReset={() => visibilitySetter.set('')}>
+                    <IconSegment
+                        value={visibility.value || 'visible'}
                         options={VISIBLE_OPTIONS}
-                        onCommit={commit}
+                        onCommit={visibilitySetter.set}
                         ariaLabel="Visibility"
                     />
-                )}
-            </PropertyControl>
+                </GroupShell>
+            </div>
         </Section>
     );
 });

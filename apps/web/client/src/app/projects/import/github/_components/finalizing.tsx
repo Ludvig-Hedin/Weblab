@@ -44,7 +44,7 @@ export const FinalizingGithubProject = () => {
                     {repositoryImport.error ? (
                         <div className="flex flex-col gap-3 rounded-md border border-red-800 bg-red-900/40 p-4 text-sm">
                             <div className="flex items-start gap-2">
-                                <Icons.ExclamationTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+                                <Icons.ExclamationTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
                                 <div className="flex flex-col gap-1">
                                     {selectedRepo && (
                                         <p className="font-medium text-red-200">

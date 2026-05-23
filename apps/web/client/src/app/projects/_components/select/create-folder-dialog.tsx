@@ -67,7 +67,7 @@ export const CreateFolderDialog = ({
                         }}
                     />
                     {alreadyExists && (
-                        <p className="text-xs text-red-400">
+                        <p className="text-destructive text-xs">
                             A folder with this name already exists.
                         </p>
                     )}

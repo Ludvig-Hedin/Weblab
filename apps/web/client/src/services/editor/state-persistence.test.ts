@@ -32,7 +32,9 @@ function createMockStorage(): MockStorage {
 // Cast globalThis through `unknown` because the ambient `Window` type from
 // lib.dom.d.ts is wider than our shim — direct casts collide with the global
 // `localStorage: Storage` declaration.
-const globalRef = globalThis as unknown as { window?: { localStorage: MockStorage } };
+const globalRef = globalThis as unknown as {
+    window?: { localStorage: MockStorage };
+};
 
 let mockStorage: MockStorage;
 let originalWindow: { localStorage: MockStorage } | undefined;
@@ -120,7 +122,9 @@ describe('state-persistence', () => {
     describe('patchEditorState', () => {
         it('writes patch when nothing stored', () => {
             patchEditorState(projectId, { activeBreakpointId: 'tablet' });
-            expect(loadEditorState(projectId)).toEqual({ activeBreakpointId: 'tablet' });
+            expect(loadEditorState(projectId)).toEqual({
+                activeBreakpointId: 'tablet',
+            });
         });
 
         it('merges patch over existing state', () => {

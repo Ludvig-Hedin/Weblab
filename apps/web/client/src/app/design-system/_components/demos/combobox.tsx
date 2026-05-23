@@ -36,9 +36,17 @@ const FILES = [
 ];
 
 const SLASH_COMMANDS = [
-    { name: '/explain', description: 'Explain the selected code', shortcut: '⌘E' },
+    {
+        name: '/explain',
+        description: 'Explain the selected code',
+        shortcut: '⌘E',
+    },
     { name: '/fix', description: 'Fix the bug in this file', shortcut: '⌘F' },
-    { name: '/refactor', description: 'Refactor the selected block', shortcut: '⌘R' },
+    {
+        name: '/refactor',
+        description: 'Refactor the selected block',
+        shortcut: '⌘R',
+    },
     { name: '/test', description: 'Write a unit test', shortcut: '⌘T' },
     { name: '/docs', description: 'Generate inline JSDoc', shortcut: '⌘D' },
 ];

@@ -36,14 +36,14 @@ function Slider({
             <SliderPrimitive.Track
                 data-slot="slider-track"
                 className={cn(
-                    'bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5',
+                    'bg-background-tertiary relative grow overflow-hidden rounded-full shadow-inner data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1',
                 )}
                 data-oid="365a1918a4"
             >
                 <SliderPrimitive.Range
                     data-slot="slider-range"
                     className={cn(
-                        'bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full',
+                        'bg-foreground-brand absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full',
                     )}
                     data-oid="ba9aa7d525"
                 />
@@ -52,7 +52,7 @@ function Slider({
                 <SliderPrimitive.Thumb
                     data-slot="slider-thumb"
                     key={index}
-                    className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:outline-hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                    className="ring-foreground-brand/30 block size-3.5 shrink-0 rounded-full border-0 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.6),0_0_0_0.5px_rgba(0,0,0,0.4)] transition-all hover:scale-110 hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                     data-oid="866459c667"
                 />
             ))}

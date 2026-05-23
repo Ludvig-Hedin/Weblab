@@ -570,7 +570,10 @@ export class TokensManager {
      * — names that already exist are skipped. The default Tailwind palette is
      * intentionally left alone (framework-provided, already usable as classes).
      */
-    async migrateTailwindPalette(): Promise<{ migrated: number; skipped: number }> {
+    async migrateTailwindPalette(): Promise<{
+        migrated: number;
+        skipped: number;
+    }> {
         const theme = this.editorEngine.theme;
         await theme.scanConfig();
         const groups = theme.colorGroups;

@@ -80,7 +80,10 @@ export async function duplicateToken(tokens: TokensManager, row: TokenRowData): 
     const newName = composeTokenName(prefix, group, `${leaf}-copy`);
     if (isTextStyle) {
         const style = row.token as TextStyle;
-        await tokens.addTextStyle({ name: newName, applyClasses: style.applyClasses });
+        await tokens.addTextStyle({
+            name: newName,
+            applyClasses: style.applyClasses,
+        });
         return;
     }
     if (row.kind === 'color-alias') {
@@ -93,7 +96,11 @@ export async function duplicateToken(tokens: TokensManager, row: TokenRowData): 
         return;
     }
     const variable = row.token as VariableToken;
-    await tokens.addVariable({ name: newName, light: variable.light, dark: variable.dark });
+    await tokens.addVariable({
+        name: newName,
+        light: variable.light,
+        dark: variable.dark,
+    });
 }
 
 /** Move a token into `targetGroup` (or out of any group when `null`). */

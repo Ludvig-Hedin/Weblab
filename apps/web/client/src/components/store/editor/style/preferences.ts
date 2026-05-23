@@ -90,7 +90,10 @@ export class StylePreferencesStore {
             this.writeTargetByProperty = next;
             return;
         }
-        this.writeTargetByProperty = { ...this.writeTargetByProperty, [property]: target };
+        this.writeTargetByProperty = {
+            ...this.writeTargetByProperty,
+            [property]: target,
+        };
     }
 
     /** True if the user has forced inline writes for this property on this element. */

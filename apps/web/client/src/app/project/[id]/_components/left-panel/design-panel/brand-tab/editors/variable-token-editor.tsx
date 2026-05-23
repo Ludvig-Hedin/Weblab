@@ -152,7 +152,10 @@ export const VariableTokenEditor = observer(function VariableTokenEditor({
                 refDark: nextDark ? parseColorRef(nextDark) : null,
             });
         } else {
-            await tokens.updateVariable(row.name, { light: nextLight, dark: nextDark });
+            await tokens.updateVariable(row.name, {
+                light: nextLight,
+                dark: nextDark,
+            });
         }
     };
 

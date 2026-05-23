@@ -9,7 +9,9 @@ import { useEffect } from 'react';
 export function DesktopChrome() {
     useEffect(() => {
         const bridge = (
-            window as unknown as { weblabDesktop?: { target?: string; platform?: string } }
+            window as unknown as {
+                weblabDesktop?: { target?: string; platform?: string };
+            }
         ).weblabDesktop;
         if (bridge?.target !== 'desktop') return;
         const root = document.documentElement;

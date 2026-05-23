@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { toast } from 'sonner';
 
@@ -18,7 +20,7 @@ import {
     walkFiles,
 } from '@/services/local-fs/directory-handle';
 import { api as apiClient } from '@/trpc/client';
-import { api } from '@/trpc/react';
+import { api as trpcApi } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
 export interface ImportProgress {
@@ -41,11 +43,12 @@ const INITIAL_PROGRESS: ImportProgress = { filesUploaded: 0, phase: 'idle' };
  * provider.
  */
 export function useImportLocalProject() {
-    const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
-    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
-    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
+    const user = useQuery(api.users.me);
+    // TODO(convex): sandbox.* and project.create not yet ported — keep tRPC.
+    const { mutateAsync: forkSandbox } = trpcApi.sandbox.fork.useMutation();
+    const { mutateAsync: createProject } = trpcApi.project.create.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = trpcApi.sandbox.deleteOrphan.useMutation();
+    const { mutateAsync: orphanBulkUpload } = trpcApi.sandbox.orphanBulkUpload.useMutation();
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [progress, setProgress] = useState<ImportProgress>(INITIAL_PROGRESS);
@@ -75,7 +78,7 @@ export function useImportLocalProject() {
             return;
         }
 
-        if (!user?.id) {
+        if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
             // Mark a pending import intent so the hook can re-trigger the picker
             // automatically once the user returns from the auth flow.
@@ -111,8 +114,8 @@ export function useImportLocalProject() {
             const { sandboxId, previewUrl, sandboxRuntime } = await forkSandbox({
                 sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
                 config: {
-                    title: `${folderName} - ${user.id}`,
-                    tags: ['local-import', user.id],
+                    title: `${folderName} - ${user._id}`,
+                    tags: ['local-import', user._id],
                 },
             });
             forkedSandboxId = sandboxId;
@@ -140,7 +143,11 @@ export function useImportLocalProject() {
                 filesToUpload.push(next.value);
             }
 
-            setProgress({ filesUploaded: 0, filesTotal: filesToUpload.length, phase: 'uploading' });
+            setProgress({
+                filesUploaded: 0,
+                filesTotal: filesToUpload.length,
+                phase: 'uploading',
+            });
 
             if (sandboxRuntime.provider === 'vercel_sandbox') {
                 // Vercel Sandbox SDK is server-only; upload via tRPC so the
@@ -162,7 +169,7 @@ export function useImportLocalProject() {
                     providerOptions: {
                         codesandbox: {
                             sandboxId,
-                            userId: user.id,
+                            userId: user._id,
                             initClient: true,
                             getSession: async (id) =>
                                 apiClient.sandbox.startOrphan.mutate({
@@ -245,19 +252,23 @@ export function useImportLocalProject() {
             if (newProject) {
                 router.push(`${Routes.PROJECT}/${newProject.id}`);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error importing local project:', error);
             const message = error instanceof Error ? error.message : String(error);
             toast.error('Failed to import folder', { description: message });
             setProgress(INITIAL_PROGRESS);
             if (forkedSandboxId) {
-                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch((cleanupErr) => {
-                    console.warn('[useImportLocalProject] failed to clean up orphan sandbox', {
-                        sandboxId: forkedSandboxId,
-                        error:
-                            cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr),
-                    });
-                });
+                await deleteOrphanSandbox({ sandboxId: forkedSandboxId }).catch(
+                    (cleanupErr: any) => {
+                        console.warn('[useImportLocalProject] failed to clean up orphan sandbox', {
+                            sandboxId: forkedSandboxId,
+                            error:
+                                cleanupErr instanceof Error
+                                    ? cleanupErr.message
+                                    : String(cleanupErr),
+                        });
+                    },
+                );
             }
         } finally {
             // Disconnect the temporary upload client; the editor will spin up
@@ -265,7 +276,7 @@ export function useImportLocalProject() {
             if (provider) {
                 try {
                     await provider.destroy();
-                } catch (cleanupError) {
+                } catch (cleanupError: unknown) {
                     console.warn('Failed to destroy upload provider:', cleanupError);
                 }
             }
@@ -273,7 +284,7 @@ export function useImportLocalProject() {
     };
 
     useEffect(() => {
-        if (!user?.id) {
+        if (!user?._id) {
             setHasPendingLocalImport(false);
             return;
         }
@@ -289,7 +300,7 @@ export function useImportLocalProject() {
         return () => {
             cancelled = true;
         };
-    }, [user?.id]);
+    }, [user?._id]);
 
     const clearPendingLocalImport = async () => {
         setHasPendingLocalImport(false);

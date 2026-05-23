@@ -57,6 +57,13 @@ function parse(input: string): ParsedValue {
     };
 }
 
+/** Trim trailing zeros from a numeric value for display. */
+function trim(num: number): string {
+    if (!Number.isFinite(num)) return '0';
+    if (Number.isInteger(num)) return String(num);
+    return Number.parseFloat(num.toFixed(4)).toString();
+}
+
 function format({ num, unit, keyword }: ParsedValue, defaultUnit: string): string {
     if (keyword !== null) return keyword;
     if (num === null) return '';
@@ -137,8 +144,18 @@ export function LabeledNumberInput({
     );
 
     const parsed = parse(draft);
-    const currentUnit = parsed.keyword !== null ? '' : parsed.unit || defaultUnit;
-    const pillLabel = parsed.keyword ?? (currentUnit || '');
+    const isKeyword = parsed.keyword !== null;
+    // Show the unit only when there's a numeric value. For pure keyword
+    // values (e.g. `none`, `auto`) the unit slot is empty so the row
+    // doesn't render "none none".
+    const unitLabel = isKeyword ? '' : parsed.unit || defaultUnit || '';
+    // Strip the unit from the displayed input when value is numeric — the
+    // numeric portion lives in the input, the unit lives in the suffix.
+    const displayValue = isKeyword
+        ? parsed.keyword!
+        : parsed.num === null
+          ? draft
+          : trim(parsed.num);
 
     return (
         <div className={cn(FIELD_BASE_CLASSES, 'flex min-w-0 items-center gap-2', className)}>
@@ -146,9 +163,9 @@ export function LabeledNumberInput({
             <input
                 ref={inputRef}
                 type="text"
-                inputMode="decimal"
+                inputMode={isKeyword ? 'text' : 'decimal'}
                 spellCheck={false}
-                value={draft}
+                value={displayValue}
                 placeholder={placeholder}
                 aria-label={ariaLabel ?? label}
                 onChange={(e) => setDraft(e.target.value)}
@@ -157,12 +174,12 @@ export function LabeledNumberInput({
                 className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent text-left tabular-nums outline-none"
                 style={{ fontVariantNumeric: 'tabular-nums' }}
             />
-            {pillLabel && (
+            {unitLabel && (
                 <span
                     className="text-muted-foreground text-[11px] tabular-nums select-none"
                     style={{ fontVariantNumeric: 'tabular-nums' }}
                 >
-                    {pillLabel}
+                    {unitLabel}
                 </span>
             )}
         </div>

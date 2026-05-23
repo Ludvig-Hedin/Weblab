@@ -54,13 +54,13 @@ export function ChatDemo() {
                         <p className="text-foreground-tertiary text-mini font-medium">
                             Reasoning effort
                         </p>
-                        <div className="bg-background-secondary/40 grid grid-cols-3 gap-0.5 rounded-md p-0.5">
+                        <div className="bg-background-secondary/40 inline-flex w-fit gap-0.5 rounded-sm p-0.5">
                             {['Fast', 'Balanced', 'Deep'].map((label, i) => (
                                 <button
                                     key={label}
                                     type="button"
                                     className={cn(
-                                        'text-mini rounded-[6px] px-2 py-1 font-medium transition-colors',
+                                        'text-mini h-6 rounded-xs px-2 font-medium transition-colors',
                                         i === 0
                                             ? 'bg-background-primary text-foreground-primary shadow-sm'
                                             : 'text-foreground-tertiary hover:text-foreground-secondary',

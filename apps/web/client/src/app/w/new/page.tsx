@@ -2,30 +2,37 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { toast } from 'sonner';
 
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 
-import { api } from '@/trpc/react';
-
 export default function NewWorkspacePage() {
     const router = useRouter();
-    const utils = api.useUtils();
     const [name, setName] = useState('');
+    const [pending, setPending] = useState(false);
 
-    const createTeam = api.workspace.createTeam.useMutation({
-        onSuccess: async (workspace) => {
-            toast.success(`Workspace "${workspace.name}" created`);
-            await utils.workspace.list.invalidate();
-            router.push(`/w/${workspace.slug}/projects`);
-        },
-        onError: (err) => toast.error(err.message),
-    });
+    const createTeam = useMutation(api.workspaces.createTeam);
 
     const trimmed = name.trim();
-    const disabled = trimmed.length === 0 || createTeam.isPending;
+    const disabled = trimmed.length === 0 || pending;
+
+    const handleCreate = async () => {
+        if (!trimmed) return;
+        setPending(true);
+        try {
+            const workspace = await createTeam({ name: trimmed });
+            toast.success(`Workspace "${workspace.name}" created`);
+            router.push(`/w/${workspace.slug}/projects`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to create workspace');
+        } finally {
+            setPending(false);
+        }
+    };
 
     return (
         <div className="flex min-h-screen w-screen items-center justify-center p-6">
@@ -46,17 +53,14 @@ export default function NewWorkspacePage() {
                         placeholder="Acme Studio"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !disabled) {
-                                createTeam.mutate({ name: trimmed });
+                                void handleCreate();
                             }
                         }}
                     />
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        disabled={disabled}
-                        onClick={() => createTeam.mutate({ name: trimmed })}
-                    >
-                        {createTeam.isPending ? 'Creating…' : 'Create workspace'}
+                    <Button disabled={disabled} onClick={() => void handleCreate()}>
+                        {pending ? 'Creating…' : 'Create workspace'}
                     </Button>
                     <Button variant="ghost" onClick={() => router.back()}>
                         Cancel

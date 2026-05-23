@@ -32,7 +32,10 @@ export class OverlayManager {
         this.state.removeHoverRect();
 
         // Refresh click rects
-        const newClickRects: { rect: RectDimensions; styles: DomElementStyles | null }[] = [];
+        const newClickRects: {
+            rect: RectDimensions;
+            styles: DomElementStyles | null;
+        }[] = [];
         for (const selectedElement of this.editorEngine.elements.selected) {
             const frameData = this.editorEngine.frames.get(selectedElement.frameId);
             if (!frameData) {

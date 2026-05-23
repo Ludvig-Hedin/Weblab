@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import type { User } from '@weblab/models';
@@ -12,8 +14,8 @@ import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 import { getInitials } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 interface MemberRowProps {
     user: User;
@@ -31,22 +33,29 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
     const displayName = user.firstName || user.displayName || user.email || '';
     const initials = getInitials(displayName);
 
-    const apiUtils = api.useUtils();
     const [confirming, setConfirming] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
 
-    const removeMember = api.member.remove.useMutation({
-        onSuccess: () => {
+    const removeMember = useMutation(api.projectMembers.remove);
+
+    const handleRemove = async () => {
+        setIsRemoving(true);
+        try {
+            await removeMember({
+                userId: user.id as Id<'users'>,
+                projectId: projectId as Id<'projects'>,
+            });
             setConfirming(false);
-            apiUtils.member.list.invalidate();
             toast.success(`${displayName} removed from project`);
-        },
-        onError: (error) => {
+        } catch (error) {
             setConfirming(false);
             toast.error('Failed to remove member', {
                 description: error instanceof Error ? error.message : String(error),
             });
-        },
-    });
+        } finally {
+            setIsRemoving(false);
+        }
+    };
 
     // Owners can't be removed; neither can the current user's own row
     const canRemove = role !== ProjectRole.OWNER && !isSelf;
@@ -90,10 +99,10 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 w-6"
-                            onClick={() => removeMember.mutate({ userId: user.id, projectId })}
-                            disabled={removeMember.isPending}
+                            onClick={() => void handleRemove()}
+                            disabled={isRemoving}
                         >
-                            {removeMember.isPending ? (
+                            {isRemoving ? (
                                 <Icons.LoadingSpinner className="h-3.5 w-3.5 animate-spin" />
                             ) : (
                                 <Icons.Check className="h-3.5 w-3.5" />
@@ -104,7 +113,7 @@ export const MemberRow = observer(({ user, role, projectId }: MemberRowProps) =>
                             size="icon"
                             className="text-muted-foreground h-6 w-6"
                             onClick={() => setConfirming(false)}
-                            disabled={removeMember.isPending}
+                            disabled={isRemoving}
                         >
                             <Icons.CrossS className="h-3.5 w-3.5" />
                         </Button>

@@ -186,8 +186,14 @@ function handleUpdateStyleAction(
 
         if (existingTarget) {
             existingTarget.change = {
-                updated: { ...existingTarget.change.updated, ...newTarget.change.updated },
-                original: { ...existingTarget.change.original, ...newTarget.change.original },
+                updated: {
+                    ...existingTarget.change.updated,
+                    ...newTarget.change.updated,
+                },
+                original: {
+                    ...existingTarget.change.original,
+                    ...newTarget.change.original,
+                },
             };
         } else {
             mergedTargets.push(newTarget);

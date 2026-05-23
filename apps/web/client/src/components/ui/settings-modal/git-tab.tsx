@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
@@ -8,8 +10,6 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
-
-import { api } from '@/trpc/react';
 
 type PendingGit = {
     autoCommit?: boolean;
@@ -19,9 +19,10 @@ type PendingGit = {
 };
 
 export const GitTab = observer(() => {
-    const apiUtils = api.useUtils();
-    const { data: userSettings } = api.user.settings.get.useQuery();
+    const userSettings = useQuery(api.users.getSettings);
+    const updateSettingsMutation = useMutation(api.users.updateSettings);
     const [savedFlash, setSavedFlash] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isMountedRef = useRef(true);
     useEffect(
@@ -31,46 +32,40 @@ export const GitTab = observer(() => {
         },
         [],
     );
-    const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
-        onSuccess: () => {
-            void apiUtils.user.settings.get.invalidate();
-            if (isMountedRef.current) {
-                setSavedFlash(true);
-                if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
-                savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
-            }
-        },
-    });
 
     const pending = useRef<PendingGit>({});
-    // Snapshot of the cache *before* the first optimistic patch in the current
-    // debounce window, so onError can roll back to true previous state — not
-    // to the already-mutated cache.
-    const preMutationSnapshot = useRef<
-        ReturnType<typeof apiUtils.user.settings.get.getData> | undefined
-    >(undefined);
 
     const debouncedSave = useMemo(
         () =>
-            debounce(() => {
+            debounce(async () => {
                 if (Object.keys(pending.current).length === 0) return;
                 const next = pending.current;
-                const rollbackTo = preMutationSnapshot.current;
                 pending.current = {};
-                preMutationSnapshot.current = undefined;
-                updateSettings(next, {
-                    onError: () => {
-                        if (rollbackTo) {
-                            apiUtils.user.settings.get.setData(undefined, rollbackTo);
-                        }
-                        toast.error('Failed to save git settings');
-                    },
-                });
+                setIsSaving(true);
+                try {
+                    await updateSettingsMutation(next);
+                    if (isMountedRef.current) {
+                        setSavedFlash(true);
+                        if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+                        savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+                    }
+                } catch {
+                    toast.error('Failed to save git settings');
+                } finally {
+                    if (isMountedRef.current) setIsSaving(false);
+                }
             }, 400),
-        [updateSettings, apiUtils],
+        [updateSettingsMutation],
     );
 
-    useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
+    useEffect(
+        () => () => {
+            // `flush` may return a Promise — discard it; the cleanup type
+            // requires void / Destructor, not a thenable.
+            void debouncedSave.flush();
+        },
+        [debouncedSave],
+    );
 
     const patch = (rawChanges: PendingGit) => {
         const changes: PendingGit = { ...rawChanges };
@@ -85,18 +80,9 @@ export const GitTab = observer(() => {
         }
         if (Object.keys(changes).length === 0) return;
 
-        if (!preMutationSnapshot.current) {
-            preMutationSnapshot.current = apiUtils.user.settings.get.getData();
-        }
-        apiUtils.user.settings.get.setData(undefined, (current) => {
-            if (!current) return current;
-            return { ...current, git: { ...current.git, ...changes } };
-        });
         pending.current = { ...pending.current, ...changes };
-        debouncedSave();
+        void debouncedSave();
     };
-
-    const git = userSettings?.git;
 
     const SaveStatus = () => (
         <span className="text-mini">
@@ -134,7 +120,7 @@ export const GitTab = observer(() => {
                             </p>
                         </div>
                         <Switch
-                            checked={git?.autoCommit ?? false}
+                            checked={userSettings?.autoCommit ?? false}
                             onCheckedChange={(v) => patch({ autoCommit: v })}
                         />
                     </div>
@@ -146,8 +132,8 @@ export const GitTab = observer(() => {
                             </p>
                         </div>
                         <Switch
-                            checked={git?.autoPush ?? false}
-                            disabled={!git?.autoCommit}
+                            checked={userSettings?.autoPush ?? false}
+                            disabled={!userSettings?.autoCommit}
                             onCheckedChange={(v) => patch({ autoPush: v })}
                         />
                     </div>
@@ -176,7 +162,7 @@ export const GitTab = observer(() => {
                     <div className="space-y-1.5">
                         <Label className="text-mini">Default branch pattern</Label>
                         <Input
-                            value={git?.defaultBranchPattern || 'feature/{timestamp}'}
+                            value={userSettings?.defaultBranchPattern || 'feature/{timestamp}'}
                             onChange={(e) => patch({ defaultBranchPattern: e.target.value })}
                             className="text-small h-8 font-mono"
                             placeholder="feature/{timestamp}"
@@ -185,7 +171,7 @@ export const GitTab = observer(() => {
                     <div className="space-y-1.5">
                         <Label className="text-mini">Commit message format</Label>
                         <Input
-                            value={git?.commitMessageFormat || 'feat: {description}'}
+                            value={userSettings?.commitMessageFormat || 'feat: {description}'}
                             onChange={(e) => patch({ commitMessageFormat: e.target.value })}
                             className="text-small h-8 font-mono"
                             placeholder="feat: {description}"

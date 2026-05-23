@@ -139,7 +139,14 @@ export const openInlineEditFromSelection = (
         to = line.to;
     }
     const original = view.state.sliceDoc(from, to);
-    view.dispatch({ effects: openInlineEditEffect.of({ from, to, original, initialInstruction }) });
+    view.dispatch({
+        effects: openInlineEditEffect.of({
+            from,
+            to,
+            original,
+            initialInstruction,
+        }),
+    });
     return true;
 };
 

@@ -54,7 +54,10 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
 
     const [fileCount, setFileCount] = useState<number | null>(null);
     const [stagedFileCount, setStagedFileCount] = useState<number | null>(null);
-    const [diffStat, setDiffStat] = useState<{ added: number; removed: number } | null>(null);
+    const [diffStat, setDiffStat] = useState<{
+        added: number;
+        removed: number;
+    } | null>(null);
     const [gitInfoError, setGitInfoError] = useState<string | null>(null);
     const [includeUnstaged, setIncludeUnstaged] = useState(true);
     const [commitMessage, setCommitMessage] = useState('');
@@ -153,21 +156,27 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
             }
 
             if (!commitResult.success) {
-                toast.error('Commit failed', { description: commitResult.error ?? undefined });
+                toast.error('Commit failed', {
+                    description: commitResult.error ?? undefined,
+                });
                 return;
             }
 
             if (action === 'commit-push') {
                 const pushResult = await gitManager.push();
                 if (!pushResult.success) {
-                    toast.error('Push failed', { description: pushResult.error ?? undefined });
+                    toast.error('Push failed', {
+                        description: pushResult.error ?? undefined,
+                    });
                     return;
                 }
                 toast.success('Committed and pushed');
             } else if (action === 'commit-pr' && prBranchName && prRepoUrl) {
                 const pushResult = await gitManager.pushBranch(prBranchName, true);
                 if (!pushResult.success) {
-                    toast.error('Push failed', { description: pushResult.error ?? undefined });
+                    toast.error('Push failed', {
+                        description: pushResult.error ?? undefined,
+                    });
                     return;
                 }
 
@@ -387,7 +396,11 @@ export const GitActionsButton = observer(() => {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="border-input text-mini flex h-full items-center gap-1.5 rounded-none border-r px-2.5 hover:rounded-none"
+                    // Slightly more right padding (pr-3) keeps the "Commit"
+                    // label from sitting flush against the divider, giving
+                    // the caret on the other side visual breathing room
+                    // and reducing mis-clicks between the two halves.
+                    className="border-input text-mini flex h-full items-center gap-1.5 rounded-none border-r pr-3 pl-2.5 hover:rounded-none"
                     onClick={() => openModal('commit')}
                 >
                     <Icons.Cube className="h-3.5 w-3.5" />
@@ -398,7 +411,11 @@ export const GitActionsButton = observer(() => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-full w-7 rounded-none px-1.5 hover:rounded-none"
+                            // Widen the caret target to 32px (w-8) and bump
+                            // padding so the caret has ~6px from the divider
+                            // on the left, matching the label's breathing
+                            // room on the right.
+                            className="h-full w-8 rounded-none px-2 hover:rounded-none"
                         >
                             <Icons.ChevronDown className="h-3 w-3" />
                         </Button>

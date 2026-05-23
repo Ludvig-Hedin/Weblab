@@ -8,6 +8,7 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { colors } from '@weblab/ui/tokens';
+import { cn } from '@weblab/ui/utils';
 
 import type { SandboxLivenessState } from './use-sandbox-liveness';
 import type { IFrameView } from './view';
@@ -42,28 +43,165 @@ const RESTART_READY_CEILING_MS = 60_000;
 // it for sandboxes that have actually been reaped.
 const NOTFOUND_GRACE_MS = 90_000;
 
-const LOADING_MESSAGES = [
-    'Starting up your project...',
-    'This may take a minute or two...',
-    'Initializing development environment...',
-    'Tip: Use SHIFT+Click to add multiple elements on the canvas to your prompt',
-    'If you have a large project, it may take a while...',
-    'Tip: Click the "Branch" icon to create a new version of your project on the canvas',
-    'Preparing the visual editor...',
-    'Tip: Double-click text to edit it directly on the canvas',
-    'Hang in there... seems like a large project...',
-    'Thanks for your patience... standby...',
-    'Loading your components and assets...',
-    'Tip: Select multiple windows by clicking and dragging on the canvas',
-    'Getting everything ready for you...',
-    'Give it another minute...',
-    'Hmmmmm...',
-    'You may want to try refreshing your tab...',
-    'Still not loading? Try refreshing your browser...',
-    "If you're seeing this message, it's probably because your project is large...",
-    `${APP_NAME} is still working on it...`,
-    "If it's still not loading, contact support with the ? button in the bottom left corner",
+// Tips shown during very long cold-boots (>60s). Keeps the loader
+// useful instead of just repeating "still booting" forever. Cycles
+// every 12s after the soft hint mark passes.
+const LONG_WAIT_TIPS = [
+    `${APP_NAME} tip: SHIFT+Click adds multiple elements to your prompt.`,
+    `${APP_NAME} tip: Double-click text on the canvas to edit it in place.`,
+    `${APP_NAME} tip: Click the Branch icon to fork a new version of your project.`,
+    `${APP_NAME} tip: Drag-select a region to grab multiple elements at once.`,
 ];
+
+interface LoadingStage {
+    primary: string;
+    secondary: string;
+}
+
+type BootStepStatus = 'pending' | 'active' | 'done';
+
+interface BootStep {
+    id: 'starting' | 'installing' | 'booting';
+    label: string;
+    status: BootStepStatus;
+}
+
+/**
+ * Derive the 3-step boot progress list from existing observable
+ * signals (no SessionManager refactor). Steps are derived, not stored,
+ * so a re-render with new signals immediately ticks the right step.
+ *
+ * Step mapping:
+ *  - starting:    boot just kicked off / no liveness signal yet
+ *  - installing:  liveness URL not yet alive, taking > 5s (dev server
+ *                 still installing deps / binding port)
+ *  - booting:     URL is alive — dev server is up, penpal handshake
+ *                 + preload script in progress.
+ */
+function getBootSteps(input: {
+    bootElapsedMs: number;
+    livenessState: SandboxLivenessState;
+    preloadScriptReady: boolean;
+    isPenpalConnected: boolean;
+}): BootStep[] {
+    const { bootElapsedMs, livenessState, preloadScriptReady, isPenpalConnected } = input;
+
+    // Once penpal is connected and the preload script is in, we're effectively
+    // done — all three steps mark done (the loader unmounts on isFrameReady).
+    const everythingReady = isPenpalConnected && preloadScriptReady;
+
+    // "starting" is done as soon as we have any liveness probe result or the
+    // page has been waiting > ~3s — by then the request was definitely sent.
+    const startingDone =
+        everythingReady ||
+        livenessState === 'alive' ||
+        livenessState === 'gone' ||
+        livenessState === 'notFound' ||
+        bootElapsedMs >= 3_000;
+
+    // "installing" is done once the URL responds alive (dev server up) OR
+    // penpal connects (which implies URL alive even if liveness probe was
+    // never enabled).
+    const installingDone = everythingReady || livenessState === 'alive' || isPenpalConnected;
+
+    // "booting" is done once penpal connects AND preload script is ready.
+    const bootingDone = everythingReady;
+
+    const stepStatus = (done: boolean, prevDone: boolean): BootStepStatus => {
+        if (done) return 'done';
+        if (prevDone) return 'active';
+        return 'pending';
+    };
+
+    return [
+        {
+            id: 'starting',
+            label: 'Starting sandbox',
+            status: startingDone ? 'done' : 'active',
+        },
+        {
+            id: 'installing',
+            label: 'Installing dependencies',
+            status: stepStatus(installingDone, startingDone),
+        },
+        {
+            id: 'booting',
+            label: 'Booting dev server',
+            status: stepStatus(bootingDone, installingDone),
+        },
+    ];
+}
+
+/**
+ * Legacy single-line stage — kept for short-creation copy that doesn't
+ * use the 3-step list (AI-first creation has its own message). Maps real
+ * boot signals to a friendly primary/secondary pair.
+ */
+function getLoadingStage(input: {
+    bootElapsedMs: number;
+    livenessState: SandboxLivenessState;
+    preloadScriptReady: boolean;
+    isPenpalConnected: boolean;
+}): LoadingStage {
+    const { bootElapsedMs, livenessState, preloadScriptReady, isPenpalConnected } = input;
+    if (isPenpalConnected && !preloadScriptReady) {
+        return {
+            primary: 'Almost ready',
+            secondary: 'Loading the canvas tools…',
+        };
+    }
+    if (livenessState === 'alive') {
+        return {
+            primary: 'Compiling your preview',
+            secondary: 'First page is bundling. Usually a few seconds.',
+        };
+    }
+    if (bootElapsedMs < 5_000) {
+        return {
+            primary: 'Starting your preview',
+            secondary: 'Connecting to the sandbox.',
+        };
+    }
+    if (bootElapsedMs < 20_000) {
+        return {
+            primary: 'Booting sandbox',
+            secondary: 'Waking the VM and starting the dev server.',
+        };
+    }
+    return {
+        primary: 'Still booting',
+        secondary: 'Cold boot can take 20–60 seconds on first run.',
+    };
+}
+
+function BootProgressList({ steps }: { steps: BootStep[] }) {
+    return (
+        <ul className="flex flex-col gap-1.5 text-left" aria-label="Sandbox boot progress">
+            {steps.map((step) => (
+                <li
+                    key={step.id}
+                    className={cn(
+                        'flex items-center gap-2 text-xs transition-colors',
+                        step.status === 'done' && 'text-foreground-secondary',
+                        step.status === 'active' && 'text-foreground',
+                        step.status === 'pending' && 'text-foreground-tertiary',
+                    )}
+                >
+                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                        {step.status === 'done' ? (
+                            <Icons.Check className="h-3 w-3" />
+                        ) : step.status === 'active' ? (
+                            <Icons.LoadingSpinner className="h-3 w-3 animate-spin" />
+                        ) : (
+                            <span className="border-foreground-tertiary/40 h-2 w-2 rounded-full border" />
+                        )}
+                    </span>
+                    <span>{step.label}</span>
+                </li>
+            ))}
+        </ul>
+    );
+}
 
 function ErrorLine({ line, index }: { line: string; index: number }) {
     // File error reference: × ./file.tsx
@@ -151,8 +289,10 @@ export const FrameView = observer(
         const editorEngine = useEditorEngine();
         const iFrameRef = useRef<IFrameView>(null);
         const [isResizing, setIsResizing] = useState(false);
-        const [messageIndex, setMessageIndex] = useState(0);
-        const MESSAGE_INTERVAL = 12000;
+        // Tip cycler — only kicks in after the soft-hint mark
+        // (>30s) so short cold boots don't show pointless tips.
+        const [tipIndex, setTipIndex] = useState(0);
+        const TIP_INTERVAL_MS = 12000;
         const autoPreviewRestoreModeRef = useRef<EditorMode | null>(null);
 
         // Read the pending create request from the tRPC cache. When this is set
@@ -247,14 +387,12 @@ export const FrameView = observer(
 
         useEffect(() => {
             if (isFrameReady) {
-                setMessageIndex(0);
+                setTipIndex(0);
                 return;
             }
-
             const interval = setInterval(() => {
-                setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
-            }, MESSAGE_INTERVAL);
-
+                setTipIndex((prev) => (prev + 1) % LONG_WAIT_TIPS.length);
+            }, TIP_INTERVAL_MS);
             return () => clearInterval(interval);
         }, [isFrameReady]);
 
@@ -271,6 +409,12 @@ export const FrameView = observer(
             !isFrameReady &&
             bootElapsedMs >= BOOT_SOFT_HINT_MS &&
             bootElapsedMs < BOOT_RESTART_HINT_MS;
+        const loadingStage = getLoadingStage({
+            bootElapsedMs,
+            livenessState,
+            preloadScriptReady,
+            isPenpalConnected,
+        });
         // While the URL is still 404 (sandbox proxy hasn't seen the dev
         // server bind a port), the "Restart sandbox" panel is just noise:
         // restarting the dev server when nothing's listening yet doesn't
@@ -628,13 +772,60 @@ export const FrameView = observer(
                                                     </p>
                                                 </div>
                                             ) : (
-                                                <p className="animate-shimmer text-small bg-gradient-to-l from-white/20 via-white/90 to-white/20 bg-[length:200%_100%] bg-clip-text text-center text-transparent drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] filter">
-                                                    {LOADING_MESSAGES[messageIndex]}
-                                                </p>
+                                                (() => {
+                                                    const elapsedSeconds = Math.floor(
+                                                        bootElapsedMs / 1000,
+                                                    );
+                                                    const showElapsed = elapsedSeconds >= 5;
+                                                    const isLong = elapsedSeconds >= 15;
+                                                    const steps = getBootSteps({
+                                                        bootElapsedMs,
+                                                        livenessState,
+                                                        preloadScriptReady,
+                                                        isPenpalConnected,
+                                                    });
+                                                    return (
+                                                        <div className="flex flex-col items-center gap-3">
+                                                            <div className="flex flex-col items-center gap-1 text-center">
+                                                                <p
+                                                                    className={cn(
+                                                                        'text-base font-medium',
+                                                                        isLong
+                                                                            ? 'text-foreground-warning'
+                                                                            : 'text-foreground',
+                                                                    )}
+                                                                >
+                                                                    {loadingStage.primary}
+                                                                    {showElapsed
+                                                                        ? ` — ${elapsedSeconds}s`
+                                                                        : ''}
+                                                                </p>
+                                                            </div>
+                                                            <BootProgressList steps={steps} />
+                                                            {isLong && !showRestartPanel && (
+                                                                <p className="text-foreground-tertiary text-xs">
+                                                                    Taking longer than usual?{' '}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            void handleRestartSandbox()
+                                                                        }
+                                                                        disabled={isRestarting}
+                                                                        className="text-foreground hover:text-foreground underline underline-offset-2 disabled:opacity-60"
+                                                                    >
+                                                                        {isRestarting
+                                                                            ? 'Restarting…'
+                                                                            : 'Restart'}
+                                                                    </button>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()
                                             )}
-                                            {showSoftHint && (
-                                                <p className="text-foreground-tertiary max-w-sm text-center text-xs">
-                                                    This is taking a little longer than usual.
+                                            {showSoftHint && !isFirstCreation && (
+                                                <p className="text-foreground-tertiary max-w-sm text-center text-xs italic">
+                                                    {LONG_WAIT_TIPS[tipIndex]}
                                                 </p>
                                             )}
                                             {sandboxIsGone ? (

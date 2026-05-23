@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -17,6 +17,13 @@ export interface GroupShellProps {
     className?: string;
     /** Optional gap between label row and children. Defaults to 6px. */
     gap?: number;
+    /**
+     * Optional reset callback. When set, the label becomes a button that
+     * resets the underlying property/properties on ⌥-click (or ⌥-Enter
+     * keyboard). Sections wire this for groups that own a clearly-defined
+     * "clear" semantic (e.g. clear all padding sides, reset W to auto).
+     */
+    onReset?: () => void;
 }
 
 /**
@@ -29,14 +36,48 @@ export interface GroupShellProps {
  *
  * Matches the v4 grammar locked in DESIGN-BRIEF.md: labels above inputs,
  * sentence-case, no uppercase, foreground-secondary tone.
+ *
+ * Reset affordance:
+ *   - When `onReset` is provided, ⌥-click on the label calls the
+ *     callback. The label gets a `title` hint ("⌥-click to reset")
+ *     so designers can discover the gesture; visually it's the same
+ *     muted text — no separate button clutter.
  */
-export function GroupShell({ label, actions, children, className, gap = 6 }: GroupShellProps) {
+export function GroupShell({
+    label,
+    actions,
+    children,
+    className,
+    gap = 6,
+    onReset,
+}: GroupShellProps) {
     const showHead = label !== undefined || actions !== undefined;
+    const handleLabelClick = (event: MouseEvent<HTMLButtonElement>) => {
+        if (event.altKey && onReset) {
+            event.preventDefault();
+            event.stopPropagation();
+            onReset();
+        }
+    };
     return (
         <div className={cn('flex flex-col', className)} style={{ gap }}>
             {showHead && (
                 <div className="flex items-center justify-between">
-                    <span className={GROUP_LABEL_CLASSES}>{label}</span>
+                    {onReset ? (
+                        <button
+                            type="button"
+                            onClick={handleLabelClick}
+                            title="⌥-click to reset"
+                            className={cn(
+                                GROUP_LABEL_CLASSES,
+                                'hover:text-foreground-primary cursor-pointer text-left transition-colors',
+                            )}
+                        >
+                            {label}
+                        </button>
+                    ) : (
+                        <span className={GROUP_LABEL_CLASSES}>{label}</span>
+                    )}
                     {actions && <div className="flex items-center gap-1">{actions}</div>}
                 </div>
             )}

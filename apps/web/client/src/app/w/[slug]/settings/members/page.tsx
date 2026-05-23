@@ -1,15 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
-import { WorkspaceRole } from '@weblab/models';
+import { WorkspaceKind, WorkspaceRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 
-import { api } from '@/trpc/react';
+import type { Id } from '../../../../../../convex/_generated/dataModel';
 import { useActiveWorkspace } from '../../_components/workspace-context';
 
 const INVITABLE_ROLES: { value: WorkspaceRole; label: string }[] = [
@@ -20,54 +23,70 @@ const INVITABLE_ROLES: { value: WorkspaceRole; label: string }[] = [
 
 export default function MembersPage() {
     const workspace = useActiveWorkspace();
-    const utils = api.useUtils();
-    const { data: caps } = api.user.capabilities.useQuery({ workspaceId: workspace.id });
+    const workspaceId = workspace.id as Id<'workspaces'>;
+    const caps = useQuery(api.users.capabilities, { workspaceId });
     const canInvite = caps?.includes('workspace.invite') ?? false;
     const canManage = caps?.includes('workspace.manage_members') ?? false;
 
-    const { data: members, isLoading } = api.workspaceMember.list.useQuery({
-        workspaceId: workspace.id,
-    });
+    const members = useQuery(api.workspaces.listMembers, { workspaceId });
+    const isLoading = members === undefined;
 
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<WorkspaceRole>(WorkspaceRole.MEMBER);
+    const [invitePending, setInvitePending] = useState(false);
+    const [transferPending, setTransferPending] = useState(false);
 
-    const inviteMutation = api.workspaceInvitation.create.useMutation({
-        onSuccess: async () => {
+    const inviteCreate = useMutation(api.workspaces.inviteCreate);
+    const updateRole = useMutation(api.workspaces.updateMemberRole);
+    const removeMember = useMutation(api.workspaces.removeMember);
+    const transferOwnership = useMutation(api.workspaces.transferOwnership);
+
+    const handleInvite = async () => {
+        if (!email.trim()) return;
+        setInvitePending(true);
+        try {
+            await inviteCreate({ workspaceId, email: email.trim(), role });
             toast.success(`Invite sent to ${email}`);
             setEmail('');
-            await utils.workspaceInvitation.list.invalidate({ workspaceId: workspace.id });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to send invite');
+        } finally {
+            setInvitePending(false);
+        }
+    };
 
-    const updateRole = api.workspaceMember.updateRole.useMutation({
-        onSuccess: async () => {
+    const handleUpdateRole = async (userId: Id<'users'>, newRole: WorkspaceRole) => {
+        try {
+            await updateRole({ workspaceId, userId, role: newRole });
             toast.success('Role updated');
-            await utils.workspaceMember.list.invalidate({ workspaceId: workspace.id });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to update role');
+        }
+    };
 
-    const removeMember = api.workspaceMember.remove.useMutation({
-        onSuccess: async () => {
+    const handleRemove = async (userId: Id<'users'>) => {
+        try {
+            await removeMember({ workspaceId, userId });
             toast.success('Member removed');
-            await utils.workspaceMember.list.invalidate({ workspaceId: workspace.id });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to remove member');
+        }
+    };
 
-    const transferOwnership = api.workspaceMember.transferOwnership.useMutation({
-        onSuccess: async () => {
+    const handleTransfer = async (userId: Id<'users'>) => {
+        setTransferPending(true);
+        try {
+            await transferOwnership({ workspaceId, newOwnerUserId: userId });
             toast.success('Ownership transferred');
-            await utils.workspaceMember.list.invalidate({ workspaceId: workspace.id });
-            await utils.workspace.list.invalidate();
-            await utils.workspace.getBySlug.invalidate({ slug: workspace.slug });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to transfer ownership');
+        } finally {
+            setTransferPending(false);
+        }
+    };
 
     const viewerIsOwner = workspace.viewerRole === WorkspaceRole.OWNER;
+    const isPersonal = workspace.kind === WorkspaceKind.PERSONAL;
 
     return (
         <div className="flex max-w-2xl flex-col gap-8">
@@ -76,7 +95,24 @@ export default function MembersPage() {
                 <p className="text-foreground-tertiary mt-1 text-sm">People in {workspace.name}.</p>
             </header>
 
-            {canInvite && (
+            {isPersonal && (
+                <section className="bg-background-secondary/40 flex flex-col gap-2 rounded-md border p-4">
+                    <h2 className="text-foreground text-sm font-medium">
+                        Personal workspaces are solo
+                    </h2>
+                    <p className="text-foreground-tertiary text-xs">
+                        Personal workspaces can&apos;t be shared. Create a team workspace to invite
+                        collaborators.
+                    </p>
+                    <div>
+                        <Button asChild size="compact" variant="secondary">
+                            <Link href="/w/new">Create a team workspace</Link>
+                        </Button>
+                    </div>
+                </section>
+            )}
+
+            {!isPersonal && canInvite && (
                 <section className="bg-background-secondary/40 flex flex-col gap-3 rounded-md border p-4">
                     <header>
                         <h2 className="text-foreground text-sm font-medium">
@@ -117,16 +153,10 @@ export default function MembersPage() {
                         </div>
                         <Button
                             size="compact"
-                            disabled={!email.trim() || inviteMutation.isPending}
-                            onClick={() =>
-                                inviteMutation.mutate({
-                                    workspaceId: workspace.id,
-                                    email: email.trim(),
-                                    role,
-                                })
-                            }
+                            disabled={!email.trim() || invitePending}
+                            onClick={() => void handleInvite()}
                         >
-                            {inviteMutation.isPending ? 'Sending…' : 'Send invite'}
+                            {invitePending ? 'Sending…' : 'Send invite'}
                         </Button>
                     </div>
                 </section>
@@ -138,7 +168,7 @@ export default function MembersPage() {
                 ) : (
                     (members ?? []).map((m) => (
                         <div
-                            key={m.id}
+                            key={m._id}
                             className="border-border flex items-center gap-3 rounded-md border p-3"
                         >
                             <div className="flex flex-1 flex-col">
@@ -154,13 +184,14 @@ export default function MembersPage() {
                             {canManage && m.role !== WorkspaceRole.OWNER ? (
                                 <Select
                                     value={m.role}
-                                    onValueChange={(v) =>
-                                        updateRole.mutate({
-                                            workspaceId: workspace.id,
-                                            userId: m.user?.id ?? '',
-                                            role: v as WorkspaceRole,
-                                        })
-                                    }
+                                    onValueChange={(v) => {
+                                        if (m.user) {
+                                            void handleUpdateRole(
+                                                m.user.id as Id<'users'>,
+                                                v as WorkspaceRole,
+                                            );
+                                        }
+                                    }}
                                 >
                                     <SelectTrigger className="w-32">
                                         <SelectValue />
@@ -182,12 +213,9 @@ export default function MembersPage() {
                                 <TransferOwnerButton
                                     user={m.user}
                                     workspaceName={workspace.name}
-                                    pending={transferOwnership.isPending}
+                                    pending={transferPending}
                                     onConfirm={(userId) =>
-                                        transferOwnership.mutate({
-                                            workspaceId: workspace.id,
-                                            toUserId: userId,
-                                        })
+                                        void handleTransfer(userId as Id<'users'>)
                                     }
                                 />
                             )}
@@ -195,12 +223,7 @@ export default function MembersPage() {
                                 <RemoveMemberButton
                                     user={m.user}
                                     workspaceName={workspace.name}
-                                    onConfirm={(userId) =>
-                                        removeMember.mutate({
-                                            workspaceId: workspace.id,
-                                            userId,
-                                        })
-                                    }
+                                    onConfirm={(userId) => void handleRemove(userId as Id<'users'>)}
                                 />
                             )}
                         </div>
@@ -212,7 +235,7 @@ export default function MembersPage() {
 }
 
 interface MemberActionProps {
-    user: { id: string; displayName: string | null; email: string | null };
+    user: { id: string; displayName?: string | null; email?: string | null };
     workspaceName: string;
     onConfirm: (userId: string) => void;
 }

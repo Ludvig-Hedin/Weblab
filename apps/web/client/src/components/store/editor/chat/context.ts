@@ -194,7 +194,10 @@ export class ChatContext {
                         console.error('No code block found for node', c.path);
                         return c;
                     }
-                    return { ...c, content: metadata.code } satisfies HighlightMessageContext;
+                    return {
+                        ...c,
+                        content: metadata.code,
+                    } satisfies HighlightMessageContext;
                 }
                 return c;
             }),

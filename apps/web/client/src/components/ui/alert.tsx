@@ -5,13 +5,13 @@ import { cva } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-    'relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border border-slate-200 px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 dark:border-slate-800 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current',
+    'border-border-card text-small relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border px-4 py-3 has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current',
     {
         variants: {
             variant: {
-                default: 'bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-50',
+                default: 'bg-card text-card-foreground',
                 destructive:
-                    'bg-white text-red-500 *:data-[slot=alert-description]:text-red-500/90 dark:bg-slate-950 dark:text-red-900 dark:*:data-[slot=alert-description]:text-red-900/90 [&>svg]:text-current',
+                    'bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current',
             },
         },
         defaultVariants: {
@@ -50,7 +50,7 @@ function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) 
         <div
             data-slot="alert-description"
             className={cn(
-                'col-start-2 grid justify-items-start gap-1 text-sm text-slate-500 dark:text-slate-400 [&_p]:leading-relaxed',
+                'text-small text-foreground-secondary col-start-2 grid justify-items-start gap-1 [&_p]:leading-relaxed',
                 className,
             )}
             {...props}

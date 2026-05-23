@@ -232,9 +232,9 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         // Shared canonical geometry literals — see
         // apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v2/controls/constants.ts.
         // We can't import from there into a UI primitive, so we hand-inline the
-        // same values: h-[30px] rounded-[8px] dark:bg-[rgb(43,43,43)] etc.
+        // same values: h-[30px] rounded-sm dark:bg-[rgb(43,43,43)] etc.
         const FIELD_BOX =
-            'h-[30px] rounded-[8px] border border-input bg-foreground/5 dark:bg-[rgb(43,43,43)] text-mini text-foreground-primary placeholder:text-muted-foreground hover:bg-foreground/[0.08] dark:hover:bg-[rgb(50,50,50)] focus-within:border-ring focus-within:ring-ring/30 focus-within:ring-[3px] transition-colors';
+            'h-[30px] rounded-sm border border-input bg-foreground/5 dark:bg-[rgb(43,43,43)] text-mini text-foreground-primary placeholder:text-muted-foreground hover:bg-foreground/[0.08] dark:hover:bg-[rgb(50,50,50)] focus-within:border-ring focus-within:ring-ring/30 focus-within:ring-[3px] transition-colors';
 
         return (
             // Value input and unit picker render as two adjacent boxes. The

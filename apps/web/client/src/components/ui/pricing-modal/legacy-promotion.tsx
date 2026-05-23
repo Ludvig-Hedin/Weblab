@@ -1,5 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { api } from '~/trpc/react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -7,7 +10,7 @@ import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons/index';
 
 export const LegacyPromotion = () => {
-    const { data: legacySubscriptions } = api.subscription.getLegacySubscriptions.useQuery();
+    const legacySubscriptions = useQuery(api.subscriptions.getLegacySubscriptions, {});
     const code = legacySubscriptions?.stripePromotionCode;
     const [isCopied, setIsCopied] = useState(false);
 

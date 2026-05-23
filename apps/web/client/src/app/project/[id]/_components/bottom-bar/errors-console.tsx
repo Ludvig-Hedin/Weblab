@@ -35,8 +35,8 @@ const SEVERITY_TEXT: Record<Severity, string> = {
 };
 
 const SEVERITY_BORDER: Record<Severity, string> = {
-    error: 'border-red-500/30',
-    warning: 'border-yellow-500/30',
+    error: 'border-destructive/30',
+    warning: 'border-foreground-warning/30',
     log: 'border-border/60',
 };
 

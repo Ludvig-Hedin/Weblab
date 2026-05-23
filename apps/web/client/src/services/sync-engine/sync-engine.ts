@@ -8,6 +8,7 @@ import type { CodeFileSystem } from '@weblab/file-system';
 import { type Provider, type ProviderFileWatcher } from '@weblab/code-provider';
 import { WEBLAB_INTERACTIONS_CACHE_PATH } from '@weblab/constants';
 
+import { isSandboxGoneError } from '@/components/store/editor/sandbox/errors';
 import { normalizePath } from '@/components/store/editor/sandbox/helpers';
 
 /**
@@ -44,6 +45,15 @@ export class CodeProviderSync {
     private localWatcher: (() => void) | null = null;
     private isRunning = false;
     private isPaused = false;
+    /**
+     * Latched true the first time any provider call here throws a 410.
+     * Every subsequent provider-touching branch in the file watcher
+     * (statFile / readFile / listFiles / writeFile / deleteFiles /
+     * renameFile / createDirectory) checks this flag and bails silently
+     * instead of letting each event cascade into another console.error.
+     * Cleared in stop() so a fresh sandbox (post-restore) starts clean.
+     */
+    private sandboxGone = false;
     private readonly excludes: string[];
     private readonly excludePatterns: string[];
     private fileHashes = new Map<string, string>();
@@ -165,6 +175,10 @@ export class CodeProviderSync {
         }
 
         this.isRunning = true;
+        // Reset the latched 410 flag so a freshly-forked sandbox (post
+        // restore) gets a clean run instead of inheriting the previous
+        // session's "gone" state.
+        this.sandboxGone = false;
 
         try {
             await this.pullFromSandbox();
@@ -179,6 +193,7 @@ export class CodeProviderSync {
 
     stop(): void {
         this.isRunning = false;
+        this.sandboxGone = false;
 
         if (this.watcher) {
             void this.watcher.stop();
@@ -192,6 +207,22 @@ export class CodeProviderSync {
 
         // Clear file hashes
         this.fileHashes.clear();
+    }
+
+    /**
+     * Treat the next sandbox-touching call as a no-op once we've seen 410.
+     * Centralises the per-call branch so each watcher arm reads as a single
+     * `if (this.sandboxGone) return;` instead of repeating the comment.
+     */
+    private noteSandboxGone(error: unknown): boolean {
+        if (isSandboxGoneError(error)) {
+            if (!this.sandboxGone) {
+                console.debug('[Sync] Sandbox is gone (410). Suppressing further sync ops.');
+            }
+            this.sandboxGone = true;
+            return true;
+        }
+        return false;
     }
 
     private async pullFromSandbox(): Promise<void> {
@@ -235,14 +266,21 @@ export class CodeProviderSync {
             if (entry.type === 'directory') {
                 directoriesToCreate.push(entry.path);
             } else {
+                // 410 latched mid-loop — every remaining readFile would
+                // throw the same. Break out instead of debug-logging once
+                // per file in the project.
+                if (this.sandboxGone) break;
                 try {
-                    const result = await this.provider.readFile({ args: { path: entry.path } });
+                    const result = await this.provider.readFile({
+                        args: { path: entry.path },
+                    });
                     const { file } = result;
 
                     if ((file.type === 'text' || file.type === 'binary') && file.content) {
                         filesToWrite.push({ path: entry.path, content: file.content });
                     }
                 } catch (error) {
+                    if (this.noteSandboxGone(error)) break;
                     console.debug(`[Sync] Skipping ${entry.path}:`, error);
                 }
             }
@@ -278,6 +316,11 @@ export class CodeProviderSync {
     ): Promise<Array<{ path: string; type: 'file' | 'directory' }>> {
         const files: Array<{ path: string; type: 'file' | 'directory' }> = [];
 
+        // Top-of-method short-circuit: once a 410 has surfaced, every
+        // recursive listFiles call would throw the same error and tick
+        // the debug log per directory. The restore CTA owns recovery.
+        if (this.sandboxGone) return files;
+
         try {
             const result = await this.provider.listFiles({ args: { path: dir } });
             const entries = result.files;
@@ -303,6 +346,9 @@ export class CodeProviderSync {
                 }
             }
         } catch (error) {
+            if (this.noteSandboxGone(error)) {
+                return files;
+            }
             console.debug(
                 `[Sync] Error reading directory ${dir}:`,
                 error instanceof Error ? error.message : 'Unknown error',
@@ -315,6 +361,10 @@ export class CodeProviderSync {
     private async pushModifiedFilesToSandbox(): Promise<void> {
         console.log('[Sync] Pushing locally modified files back to sandbox...');
 
+        // 410 already latched: skip the whole push pass. Every writeFile
+        // would otherwise throw and log a warning per touched JSX/TSX file.
+        if (this.sandboxGone) return;
+
         try {
             // Get all local JSX/TSX files that might have been modified with OIDs
             const localFiles = await this.fs.listFiles('/');
@@ -323,6 +373,7 @@ export class CodeProviderSync {
             // TODO: Use available batch write API
             await Promise.all(
                 jsxFiles.map(async (filePath) => {
+                    if (this.sandboxGone) return;
                     try {
                         const content = await this.fs.readFile(filePath);
                         if (typeof content === 'string') {
@@ -339,11 +390,13 @@ export class CodeProviderSync {
                             console.log(`[Sync] Pushed ${filePath} to sandbox`);
                         }
                     } catch (error) {
+                        if (this.noteSandboxGone(error)) return;
                         console.warn(`[Sync] Failed to push ${filePath} to sandbox:`, error);
                     }
                 }),
             );
         } catch (error) {
+            if (this.noteSandboxGone(error)) return;
             console.error('[Sync] Error pushing files to sandbox:', error);
         }
     }
@@ -392,6 +445,15 @@ export class CodeProviderSync {
                     if (this.isPaused) {
                         return;
                     }
+                    // 410 latched: the watcher may still drain queued
+                    // events from the dead provider for a few seconds
+                    // before the SDK gives up. Every statFile / readFile
+                    // inside this handler would re-throw — short-circuit
+                    // so each event is a no-op instead of three more
+                    // console errors and a possible "Issues" tick.
+                    if (this.sandboxGone) {
+                        return;
+                    }
 
                     // Process based on event type
                     if (event.type === 'change' || event.type === 'add') {
@@ -437,6 +499,7 @@ export class CodeProviderSync {
                                                 this.fileHashes.set(newPath, hash);
                                             }
                                         } catch (error) {
+                                            if (this.noteSandboxGone(error)) return;
                                             console.error(
                                                 `[Sync] Error creating ${newPath}:`,
                                                 error,
@@ -444,6 +507,7 @@ export class CodeProviderSync {
                                         }
                                     }
                                 } catch (error) {
+                                    if (this.noteSandboxGone(error)) return;
                                     console.error(`[Sync] Error handling rename:`, error);
                                 }
                             }
@@ -540,6 +604,13 @@ export class CodeProviderSync {
                                                                         );
                                                                     }
                                                                 } catch (fileError) {
+                                                                    if (
+                                                                        this.noteSandboxGone(
+                                                                            fileError,
+                                                                        )
+                                                                    ) {
+                                                                        return;
+                                                                    }
                                                                     console.error(
                                                                         `[Sync] Error syncing file ${itemSandboxPath}:`,
                                                                         fileError,
@@ -549,6 +620,7 @@ export class CodeProviderSync {
                                                         }
                                                     }
                                                 } catch (listError) {
+                                                    if (this.noteSandboxGone(listError)) return;
                                                     console.error(
                                                         `[Sync] Error listing contents of ${sandboxPath}:`,
                                                         listError,
@@ -559,6 +631,7 @@ export class CodeProviderSync {
                                             // Start recursive sync
                                             await syncDirectoryContents(normalizedPath, localPath);
                                         } catch (dirError) {
+                                            if (this.noteSandboxGone(dirError)) return;
                                             console.error(
                                                 `[Sync] Error creating directory ${localPath}:`,
                                                 dirError,
@@ -594,6 +667,7 @@ export class CodeProviderSync {
                                         }
                                     }
                                 } catch (error) {
+                                    if (this.noteSandboxGone(error)) return;
                                     console.error(
                                         `[Sync] Error processing ${normalizedPath}:`,
                                         error,
@@ -646,6 +720,13 @@ export class CodeProviderSync {
             // Setup local file system watching for bidirectional sync
             await this.setupLocalWatching();
         } catch (error) {
+            // 410 during setupWatching: latch the flag and re-throw so
+            // SandboxManager.init's catch can flip session.sandboxGone.
+            // The Restore CTA owns recovery; don't log a noisy error
+            // for what is really just a reclaimed sandbox.
+            if (this.noteSandboxGone(error)) {
+                throw error;
+            }
             console.error(
                 '[Sync] Failed to setup file watching:',
                 error instanceof Error ? error.message : 'Unknown error',
@@ -659,6 +740,13 @@ export class CodeProviderSync {
         this.localWatcher = this.fs.watchDirectory('/', async (event) => {
             // Skip processing if paused
             if (this.isPaused) {
+                return;
+            }
+            // 410 latched: don't try to push local edits at the dead
+            // provider — every writeFile / deleteFiles / renameFile here
+            // would throw and pile up. Local edits stay in ZenFS and
+            // will be replayed once the sandbox is restored.
+            if (this.sandboxGone) {
                 return;
             }
 
@@ -720,6 +808,7 @@ export class CodeProviderSync {
                                 },
                             });
                         } catch (error) {
+                            if (this.noteSandboxGone(error)) break;
                             console.debug(
                                 `[Sync] Failed to delete ${sandboxPath} from sandbox:`,
                                 error instanceof Error ? error.message : 'Unknown error',
@@ -755,6 +844,7 @@ export class CodeProviderSync {
                                     this.fileHashes.set(path, oldHash);
                                 }
                             } catch (error) {
+                                if (this.noteSandboxGone(error)) break;
                                 console.error(`[Sync] Failed to rename in sandbox:`, error);
                                 throw error; // Re-throw to be caught by outer try-catch
                             }
@@ -765,6 +855,7 @@ export class CodeProviderSync {
                     }
                 }
             } catch (error) {
+                if (this.noteSandboxGone(error)) return;
                 console.error(
                     `[Sync] Error pushing local ${type} for ${path} to sandbox:`,
                     error instanceof Error ? error.message : 'Unknown error',

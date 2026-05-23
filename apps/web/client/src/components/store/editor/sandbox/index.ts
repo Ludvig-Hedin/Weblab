@@ -12,6 +12,7 @@ import { OfflineWriteWatcher } from '@/services/offline/write-queue-watcher';
 import { CodeProviderSync } from '@/services/sync-engine/sync-engine';
 import { GitManager } from '../git';
 import { detectRouterConfig } from '../pages/helper';
+import { isSandboxGoneError } from './errors';
 import {
     copyPreloadScriptToPublic,
     copyPreloadScriptToStaticHtml,
@@ -71,12 +72,23 @@ export class SandboxManager {
     }
 
     async init() {
-        // Start connection asynchronously (don't wait)
-        if (!this.session.provider) {
-            this.session.start(this.branch.sandbox.id).catch((err) => {
+        // Defensive: a branch with no real sandbox id (test fixtures, synthetic
+        // projects created directly via Convex mutation without forking a
+        // CodeSandbox / Vercel Sandbox) used to throw
+        // `TypeError: Cannot read properties of undefined (reading 'id')`
+        // here and crashed the entire editor mount. Skip the session start
+        // instead — the reaction below still wires up when (if) a provider
+        // becomes available later.
+        const sandboxId = this.branch?.sandbox?.id;
+        if (!this.session.provider && sandboxId) {
+            this.session.start(sandboxId).catch((err) => {
                 console.error('[SandboxManager] Initial connection failed:', err);
                 // Don't throw - let reaction handle retries/reconnects
             });
+        } else if (!sandboxId) {
+            console.warn(
+                '[SandboxManager] Branch has no sandbox.id — skipping session start. The editor will mount in a no-sandbox state; reconnect when a sandbox is provisioned.',
+            );
         }
 
         // React to provider becoming available (now or later)
@@ -104,9 +116,46 @@ export class SandboxManager {
                         this.stopOfflineWatcher();
                     } else {
                         this.stopOfflineWatcher();
-                        await this.initializeSyncEngine(provider);
+                        try {
+                            await this.initializeSyncEngine(provider);
+                        } catch (err) {
+                            // 410 here means the Vercel sandbox got
+                            // reclaimed between session start and the
+                            // first listFiles call. Mark the session as
+                            // gone so subsequent reaction passes skip
+                            // the cascade, and let the Restore CTA take
+                            // over instead of bubbling a noisy error.
+                            if (isSandboxGoneError(err)) {
+                                runInAction(() => {
+                                    this.session.sandboxGone = true;
+                                });
+                                console.warn(
+                                    '[SandboxManager] Sync engine init aborted — sandbox is gone (410). Waiting for restore.',
+                                );
+                                return;
+                            }
+                            throw err;
+                        }
                     }
-                    await this.gitManager.init();
+                    // Fire-and-forget: GitManager.init runs sandbox
+                    // shell commands (git config, init, listCommits)
+                    // that can take 500-2000ms on cold boot. Nothing
+                    // in the first-paint path depends on it — the git
+                    // panel lazy-reads from gitManager and version
+                    // history is opt-in. Awaiting here blocks the
+                    // editor's "ready" signal for no user benefit.
+                    void this.gitManager.init().catch((err) => {
+                        if (isSandboxGoneError(err)) {
+                            // Same 410 short-circuit as the sync engine
+                            // path. The restore flow will refork the
+                            // sandbox and trigger a fresh start.
+                            runInAction(() => {
+                                this.session.sandboxGone = true;
+                            });
+                            return;
+                        }
+                        console.error('[SandboxManager] gitManager.init failed:', err);
+                    });
                 } else if (this.sync) {
                     // If the provider is null, release the sync engine reference
                     this.sync.release();
@@ -177,7 +226,17 @@ export class SandboxManager {
             this.sync = null;
         }
 
-        this.sync = CodeProviderSync.getInstance(provider, this.fs, this.branch.sandbox.id, {
+        // Defensive: see `init()` above. If we ever reach this branch without
+        // a real sandbox id, fail loud here rather than crashing the editor
+        // mount — sync engine needs a sandbox to talk to.
+        const sandboxId = this.branch?.sandbox?.id;
+        if (!sandboxId) {
+            console.warn(
+                '[SandboxManager] initializeSyncEngine called without a sandbox id — skipping sync.',
+            );
+            return;
+        }
+        this.sync = CodeProviderSync.getInstance(provider, this.fs, sandboxId, {
             exclude: EXCLUDED_SYNC_PATHS,
         });
 
@@ -195,6 +254,17 @@ export class SandboxManager {
         const MISSING_ROUTER_CONFIG = '__missing_router_config__';
         try {
             if (this.preloadScriptState !== PreloadScriptState.NOT_INJECTED) {
+                return;
+            }
+            // Sandbox reclaimed: skip preload injection entirely. Each
+            // listFiles/readFile/writeFile inside copyPreloadScriptToPublic
+            // would throw 410, and our retry loop (up to 5x with 2s
+            // backoff) would multiply that into ~15 console errors before
+            // exhausting. Restore CTA owns recovery.
+            if (this.session.sandboxGone) {
+                runInAction(() => {
+                    this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
+                });
                 return;
             }
 
@@ -228,6 +298,21 @@ export class SandboxManager {
                 }
             });
         } catch (error) {
+            // 410 surfaced from one of the inner provider calls (listFiles
+            // / readFile / writeFile in copyPreloadScriptToPublic). Latch
+            // sandboxGone so the next reaction pass skips the cascade and
+            // don't schedule another retry — the Restore CTA will reset
+            // state and re-fire init when a fresh sandbox forks.
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.session.sandboxGone = true;
+                    this.preloadScriptState = PreloadScriptState.NOT_INJECTED;
+                });
+                console.debug(
+                    '[SandboxManager] Preload script injection aborted — sandbox is gone (410).',
+                );
+                return;
+            }
             const isTransient = error instanceof Error && error.message === MISSING_ROUTER_CONFIG;
             const willRetry = this.preloadRetryCount < MAX_PRELOAD_RETRY_ATTEMPTS;
             if (isTransient && willRetry) {
@@ -343,6 +428,12 @@ export class SandboxManager {
     async downloadFiles(
         projectName?: string,
     ): Promise<{ downloadUrl: string; fileName: string } | null> {
+        if (this.session.sandboxGone) {
+            // Calling downloadFiles on a dead sandbox would throw 410.
+            // Return null so the caller surfaces "download unavailable"
+            // instead of bubbling a generic error toast.
+            return null;
+        }
         if (!this.session.provider) {
             console.error('No sandbox provider found for download');
             return null;
@@ -360,6 +451,13 @@ export class SandboxManager {
                 fileName: `${projectName ?? 'weblab-project'}-${Date.now()}.zip`,
             };
         } catch (error) {
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.session.sandboxGone = true;
+                });
+                console.debug('[SandboxManager] downloadFiles aborted — sandbox is gone (410).');
+                return null;
+            }
             console.error('Error generating download URL:', error);
             return null;
         }

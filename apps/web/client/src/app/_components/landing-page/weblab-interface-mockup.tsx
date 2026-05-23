@@ -6,6 +6,7 @@ import { Icons } from '@weblab/ui/icons';
 import { NodeIcon } from '@weblab/ui/node-icon';
 import { cn } from '@weblab/ui/utils';
 
+import type { DesignMockupStep } from './design-mockup/design-mockup';
 import { DesignMockup, DesignMockupMobile } from './design-mockup/design-mockup';
 
 type TabId =
@@ -79,7 +80,11 @@ const TAB_DEFS: { id: TabId; label: string; icon: keyof typeof Icons }[] = [
     { id: 'branches', label: 'Branches', icon: 'Branch' },
 ];
 
-const RIGHT_TABS: { id: RightTabId; label: string; icon: keyof typeof Icons }[] = [
+const RIGHT_TABS: {
+    id: RightTabId;
+    label: string;
+    icon: keyof typeof Icons;
+}[] = [
     { id: 'style', label: 'Styles', icon: 'Layout' },
     { id: 'chat', label: 'Chat', icon: 'Sparkles' },
     { id: 'comments', label: 'Comments', icon: 'ChatBubble' },
@@ -87,14 +92,25 @@ const RIGHT_TABS: { id: RightTabId; label: string; icon: keyof typeof Icons }[] 
 
 const BRANCHES = [
     { id: 'main', name: 'main', active: true, ahead: 0, behind: 0 },
-    { id: 'pricing', name: 'feature/pricing', active: false, ahead: 2, behind: 0 },
+    {
+        id: 'pricing',
+        name: 'feature/pricing',
+        active: false,
+        ahead: 2,
+        behind: 0,
+    },
     { id: 'cms', name: 'feature/cms', active: false, ahead: 0, behind: 3 },
 ];
 
 type ChatStep =
     | { kind: 'user'; text: string }
     | { kind: 'reasoning'; text: string }
-    | { kind: 'tool'; tool: 'create_file' | 'edit_file'; file: string; detail: string }
+    | {
+          kind: 'tool';
+          tool: 'create_file' | 'edit_file';
+          file: string;
+          detail: string;
+      }
     | { kind: 'ai'; text: string };
 
 type CanvasEffect = 'pricing' | 'hero' | 'restyle';
@@ -153,17 +169,83 @@ interface MockLayer {
 }
 
 const INITIAL_LAYERS: MockLayer[] = [
-    { id: 'root', name: 'Home Page', tagName: 'DIV', level: 0, isInstance: false },
-    { id: 'nav', name: 'Top Navigation', tagName: 'COMPONENT', level: 1, isInstance: false },
-    { id: 'hero', name: 'Hero', tagName: 'COMPONENT', level: 1, isInstance: false },
-    { id: 'grid', name: 'Image Grid', tagName: 'DIV', level: 1, isInstance: false },
-    { id: 'card-1', name: 'Image Card 1', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'card-2', name: 'Image Card 2', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'card-3', name: 'Image Card 3', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'card-4', name: 'Image Card 4', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'card-5', name: 'Image Card 5', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'card-6', name: 'Image Card 6', tagName: 'COMPONENT', level: 2, isInstance: false },
-    { id: 'footer', name: 'Footer', tagName: 'COMPONENT', level: 1, isInstance: false },
+    {
+        id: 'root',
+        name: 'Home Page',
+        tagName: 'DIV',
+        level: 0,
+        isInstance: false,
+    },
+    {
+        id: 'nav',
+        name: 'Top Navigation',
+        tagName: 'COMPONENT',
+        level: 1,
+        isInstance: false,
+    },
+    {
+        id: 'hero',
+        name: 'Hero',
+        tagName: 'COMPONENT',
+        level: 1,
+        isInstance: false,
+    },
+    {
+        id: 'grid',
+        name: 'Image Grid',
+        tagName: 'DIV',
+        level: 1,
+        isInstance: false,
+    },
+    {
+        id: 'card-1',
+        name: 'Image Card 1',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'card-2',
+        name: 'Image Card 2',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'card-3',
+        name: 'Image Card 3',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'card-4',
+        name: 'Image Card 4',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'card-5',
+        name: 'Image Card 5',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'card-6',
+        name: 'Image Card 6',
+        tagName: 'COMPONENT',
+        level: 2,
+        isInstance: false,
+    },
+    {
+        id: 'footer',
+        name: 'Footer',
+        tagName: 'COMPONENT',
+        level: 1,
+        isInstance: false,
+    },
 ];
 
 const PAGES = [
@@ -176,7 +258,11 @@ const COMPONENT_CHIPS = ['Button', 'Card', 'Hero', 'Nav', 'Pricing', 'Footer'];
 
 const RESTYLE_COLORS = [
     { id: 'teal', className: 'border-teal-300', swatch: 'bg-teal-300' },
-    { id: 'brand', className: 'border-foreground-brand', swatch: 'bg-foreground-brand' },
+    {
+        id: 'brand',
+        className: 'border-foreground-brand',
+        swatch: 'bg-foreground-brand',
+    },
     { id: 'amber', className: 'border-amber-400', swatch: 'bg-amber-400' },
 ] as const;
 
@@ -488,7 +574,7 @@ function CodeModePanel() {
     const lines = CODE_FILES[activeFile] ?? [];
 
     return (
-        <div className="bg-background-canvas absolute inset-0 top-14 z-[5] flex">
+        <div className="bg-background-canvas absolute inset-0 top-12 z-[5] flex">
             {/* Explorer */}
             <div className="border-border-bar bg-background-bar/80 flex w-48 flex-col gap-0.5 border-r p-2 text-[11px]">
                 <div className="text-foreground-tertiary mb-1 px-1 text-[10px]">Explorer</div>
@@ -642,7 +728,11 @@ function CodeModePanel() {
 
 type PreviewBreakpoint = 'Desktop' | 'Tablet' | 'Mobile';
 
-const PREVIEW_BREAKPOINTS: { id: PreviewBreakpoint; width: number; height: number }[] = [
+const PREVIEW_BREAKPOINTS: {
+    id: PreviewBreakpoint;
+    width: number;
+    height: number;
+}[] = [
     { id: 'Desktop', width: 1440, height: 900 },
     { id: 'Tablet', width: 768, height: 1024 },
     { id: 'Mobile', width: 390, height: 844 },
@@ -826,11 +916,36 @@ const CMS_COLLECTIONS = [
 ];
 
 const CMS_ENTRIES = [
-    { id: 1, title: 'Volcano lair — sublevel 7', status: 'Published', updated: 'May 18' },
-    { id: 2, title: 'Underwater glass vault', status: 'Published', updated: 'May 16' },
-    { id: 3, title: 'Brutalist mountain bunker', status: 'Draft', updated: 'May 14' },
-    { id: 4, title: 'Floating cloud fortress', status: 'Published', updated: 'May 12' },
-    { id: 5, title: 'Forgotten library reading room', status: 'Scheduled', updated: 'May 22' },
+    {
+        id: 1,
+        title: 'Volcano lair — sublevel 7',
+        status: 'Published',
+        updated: 'May 18',
+    },
+    {
+        id: 2,
+        title: 'Underwater glass vault',
+        status: 'Published',
+        updated: 'May 16',
+    },
+    {
+        id: 3,
+        title: 'Brutalist mountain bunker',
+        status: 'Draft',
+        updated: 'May 14',
+    },
+    {
+        id: 4,
+        title: 'Floating cloud fortress',
+        status: 'Published',
+        updated: 'May 12',
+    },
+    {
+        id: 5,
+        title: 'Forgotten library reading room',
+        status: 'Scheduled',
+        updated: 'May 22',
+    },
 ];
 
 const CMS_FIELDS = [
@@ -846,7 +961,7 @@ function CmsModePanel({ onExit }: { onExit: () => void }) {
     const [activeTab, setActiveTab] = useState<CmsTab>('collections');
     const [activeCollection, setActiveCollection] = useState<string>('lairs');
     return (
-        <div className="bg-background absolute inset-0 top-14 z-30 flex flex-col">
+        <div className="bg-background absolute inset-0 top-12 z-30 flex flex-col">
             {/* Header */}
             <div className="border-border bg-background-chrome flex h-11 shrink-0 items-center justify-between border-b px-3">
                 <div className="bg-background-tab-strip/70 flex h-8 items-center gap-0 rounded-md p-0.5">
@@ -857,7 +972,11 @@ function CmsModePanel({ onExit }: { onExit: () => void }) {
                             icon: 'ListBullet' as const,
                         },
                         { id: 'fields' as const, label: 'Fields', icon: 'Tokens' as const },
-                        { id: 'sources' as const, label: 'Sources', icon: 'Layers' as const },
+                        {
+                            id: 'sources' as const,
+                            label: 'Sources',
+                            icon: 'Layers' as const,
+                        },
                     ].map((tab, idx, arr) => {
                         const Icon = Icons[tab.icon];
                         const isActive = activeTab === tab.id;
@@ -1064,14 +1183,22 @@ function CmsModePanel({ onExit }: { onExit: () => void }) {
                     </div>
                     <div className="grid max-w-2xl grid-cols-2 gap-2">
                         {[
-                            { name: 'Supabase', status: 'Connected', icon: 'Layers' as const },
+                            {
+                                name: 'Supabase',
+                                status: 'Connected',
+                                icon: 'Layers' as const,
+                            },
                             { name: 'Notion', status: 'Connected', icon: 'File' as const },
                             {
                                 name: 'Airtable',
                                 status: 'Not connected',
                                 icon: 'Component' as const,
                             },
-                            { name: 'Sanity', status: 'Not connected', icon: 'Cube' as const },
+                            {
+                                name: 'Sanity',
+                                status: 'Not connected',
+                                icon: 'Cube' as const,
+                            },
                         ].map((s) => {
                             const Icon = Icons[s.icon] as React.FC<{ className?: string }>;
                             const isConnected = s.status === 'Connected';
@@ -1121,25 +1248,30 @@ function CmsModePanel({ onExit }: { onExit: () => void }) {
 
 function NotesComponent() {
     const notes = [
-        'Implement evil pin creation (mwahaha)',
-        "Add 'light mode' (begrudgingly)",
-        'Build villain-to-villain messaging (evil DMs)',
-        'Create villain collaboration boards',
-        'Add villain lair location sharing (evil meetups)',
-        'Create devious recommendation page',
+        'Hero — bigger headline + tagline',
+        'Pricing tiers — 3 plans, Pro featured',
+        'Feature grid — Plot / Build / Deploy',
+        'Footer with newsletter signup',
+        'Customer logo strip below hero',
+        'FAQ section above footer',
     ];
 
     return (
-        <div className="border-border bg-background-chrome mt-10 h-fit w-96 min-w-64 rounded-lg border p-3 backdrop-blur-sm">
-            <div className="mb-1 flex items-center gap-2">
-                <h3 className="text-foreground-secondary font-mono text-xs">
-                    Villainterest - Product Notes
+        <div className="border-border bg-background-chrome mt-10 h-fit w-72 min-w-56 rounded-lg border p-3 backdrop-blur-sm">
+            <div className="mb-1.5 flex items-center gap-2">
+                <h3 className="text-foreground-secondary font-mono text-[11px]">
+                    Launch checklist
                 </h3>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
                 {notes.map((note, index) => (
                     <div key={index} className="flex items-start gap-2 text-[10px]">
-                        <div className="bg-foreground-tertiary mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full"></div>
+                        <div
+                            className={cn(
+                                'mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full',
+                                index < 3 ? 'bg-emerald-400/70' : 'bg-foreground-tertiary',
+                            )}
+                        />
                         <span
                             className={cn(
                                 'font-mono leading-relaxed',
@@ -1493,18 +1625,58 @@ export function WeblabInterfaceMockup() {
         };
     }, []);
 
-    const [chatModelLabel] = useState('Sonnet 4.6');
+    const [chatModelLabel, setChatModelLabel] = useState('Sonnet 4.6');
+    const CHAT_MODELS = ['Sonnet 4.6', 'Opus 4.7', 'GPT-5'];
+    const cycleModel = () =>
+        setChatModelLabel((m) => {
+            const i = CHAT_MODELS.indexOf(m);
+            return CHAT_MODELS[(i + 1) % CHAT_MODELS.length] ?? CHAT_MODELS[0]!;
+        });
     const [chatComposerMode, setChatComposerMode] = useState<'Build' | 'Ask' | 'Plan'>('Build');
+    const [imageAttached, setImageAttached] = useState(false);
+    const [voiceRecording, setVoiceRecording] = useState(false);
+    const [undoKey, setUndoKey] = useState(0);
+    const [redoKey, setRedoKey] = useState(0);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [diffOpen, setDiffOpen] = useState(false);
     const [chatComposerOpen, setChatComposerOpen] = useState(false);
     const [presence, setPresence] = useState([
-        { id: 'm', name: 'Mira', color: 'bg-amber-300', x: 68, y: 14 },
-        { id: 'k', name: 'Kai', color: 'bg-sky-300', x: 84, y: 72 },
+        {
+            id: 'm',
+            name: 'Mira',
+            bg: 'bg-pink-500',
+            text: 'text-pink-500',
+            x: 68,
+            y: 14,
+        },
+        {
+            id: 'k',
+            name: 'Kai',
+            bg: 'bg-purple-500',
+            text: 'text-purple-500',
+            x: 84,
+            y: 72,
+        },
+        {
+            id: 's',
+            name: 'Sam',
+            bg: 'bg-blue-500',
+            text: 'text-blue-500',
+            x: 35,
+            y: 52,
+        },
     ]);
+
+    // Drives the SaaS landing-page mockup — current chat round highlights
+    // the section being edited (pricing pulses, hero scales up, cards get
+    // an accent border) so the canvas actually reflects the prompt.
+    const [currentStep, setCurrentStep] = useState<DesignMockupStep>(null);
 
     // Chat sequence drives canvas demo: each round triggers a visible canvas change.
     const handleCanvasEffect = useCallback(
         (effect: CanvasEffect) => {
             setCanvasSelected('home');
+            setCurrentStep(effect);
             if (effect === 'pricing') {
                 setLayers((prev) => {
                     if (prev.some((l) => l.id === 'pricing')) return prev;
@@ -1598,8 +1770,15 @@ export function WeblabInterfaceMockup() {
                 { x: 70, y: 50 },
                 { x: 85, y: 85 },
             ],
+            [
+                { x: 35, y: 52 },
+                { x: 22, y: 38 },
+                { x: 50, y: 28 },
+                { x: 18, y: 70 },
+                { x: 40, y: 60 },
+            ],
         ];
-        const indices = [0, 0];
+        const indices = [0, 0, 0];
         const timers: ReturnType<typeof setInterval>[] = [];
         waypoints.forEach((pts, i) => {
             const t = setInterval(
@@ -1619,7 +1798,12 @@ export function WeblabInterfaceMockup() {
         const id = setTimeout(() => {
             setComments((prev) => [
                 ...prev,
-                { id: Date.now(), x: 48, y: 62, text: 'This button needs more padding' },
+                {
+                    id: Date.now(),
+                    x: 48,
+                    y: 62,
+                    text: 'This button needs more padding',
+                },
             ]);
         }, 8000);
         return () => clearTimeout(id);
@@ -1791,7 +1975,7 @@ export function WeblabInterfaceMockup() {
                             </span>
                         </div>
                     )}
-                    <DesignMockup />
+                    <DesignMockup step={currentStep} accent={selectedRestyle.className} />
                     {/* Comments anchored to the artboard so they pan/zoom with it. */}
                     {comments.map((c) => (
                         <div
@@ -1848,7 +2032,7 @@ export function WeblabInterfaceMockup() {
                     {presence.map((p) => (
                         <div
                             key={p.id}
-                            className="pointer-events-none absolute z-10 -translate-x-1 -translate-y-1"
+                            className="pointer-events-none absolute z-10 -translate-x-[2px] -translate-y-[2px]"
                             style={{
                                 left: `${p.x}%`,
                                 top: `${p.y}%`,
@@ -1857,7 +2041,10 @@ export function WeblabInterfaceMockup() {
                             }}
                         >
                             <svg
-                                className="text-foreground h-3 w-3 drop-shadow"
+                                className={cn(
+                                    'h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]',
+                                    p.text,
+                                )}
                                 viewBox="0 0 16 16"
                                 fill="currentColor"
                             >
@@ -1865,8 +2052,8 @@ export function WeblabInterfaceMockup() {
                             </svg>
                             <span
                                 className={cn(
-                                    'ring-background-chrome ml-2 inline-block rounded-sm px-1 py-px text-[9px] font-medium text-black ring-1',
-                                    p.color,
+                                    'ml-1.5 inline-block rounded-md px-1.5 py-px text-[9px] font-medium text-white ring-1 ring-white/10',
+                                    p.bg,
                                 )}
                             >
                                 {p.name}
@@ -1894,7 +2081,7 @@ export function WeblabInterfaceMockup() {
             </div>
 
             {/* Top Bar */}
-            <div className="border-border bg-background-chrome relative z-10 grid h-14 grid-cols-3 items-center border-b px-2.5 backdrop-blur-xl">
+            <div className="border-border bg-background-chrome relative z-10 grid h-12 grid-cols-3 items-center border-b px-3 backdrop-blur-xl">
                 {/* Left cluster: logo + project breadcrumb + branch + connection */}
                 <div className="flex min-w-0 items-center gap-1.5">
                     <Icons.WeblabLogo className="h-4.5 w-4.5 shrink-0" />
@@ -1914,35 +2101,65 @@ export function WeblabInterfaceMockup() {
                 {/* Right cluster: undo/redo, history, diff, git, CMS, preview, members, avatar, Publish */}
                 <div className="flex items-center justify-end gap-0.5">
                     <button
+                        onClick={() => {
+                            setUndoKey((k) => k + 1);
+                            triggerSaved();
+                        }}
                         className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
                         aria-label="Undo"
                     >
-                        <Icons.Reset className="h-3.5 w-3.5" />
+                        <Icons.Reset
+                            key={`u${undoKey}`}
+                            className="h-3.5 w-3.5 [animation:spin_0.4s_ease-out_1]"
+                        />
                     </button>
                     <button
+                        onClick={() => {
+                            setRedoKey((k) => k + 1);
+                            triggerSaved();
+                        }}
                         className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
                         aria-label="Redo"
                     >
-                        <Icons.Reset className="h-3.5 w-3.5 scale-x-[-1]" />
+                        <Icons.Reset
+                            key={`r${redoKey}`}
+                            className="h-3.5 w-3.5 scale-x-[-1] [animation:spin_0.4s_ease-out_1]"
+                        />
                     </button>
                     <div className="bg-border/60 mx-1 h-4 w-px" />
                     <button
-                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        onClick={() => setHistoryOpen((v) => !v)}
+                        className={cn(
+                            'hover:bg-background-secondary hover:text-foreground rounded-md p-1.5',
+                            historyOpen
+                                ? 'bg-background-secondary text-foreground'
+                                : 'text-foreground-secondary',
+                        )}
                         aria-label="Version history"
                     >
                         <Icons.CounterClockwiseClock className="h-3.5 w-3.5" />
                     </button>
                     <button
-                        className="hover:bg-background-secondary text-foreground-secondary hover:text-foreground rounded-md p-1.5"
+                        onClick={() => setDiffOpen((v) => !v)}
+                        className={cn(
+                            'hover:bg-background-secondary hover:text-foreground relative rounded-md p-1.5',
+                            diffOpen
+                                ? 'bg-background-secondary text-foreground'
+                                : 'text-foreground-secondary',
+                        )}
                         aria-label="Diff"
                     >
                         <Icons.Code className="h-3.5 w-3.5" />
+                        <span className="absolute -top-0.5 -right-0.5 flex h-3 min-w-3 items-center justify-center rounded-full bg-emerald-500 px-1 text-[8px] font-medium text-white">
+                            3
+                        </span>
                     </button>
                     <div className="bg-border/60 mx-1 h-4 w-px" />
-                    {/* Members avatar stack */}
+                    {/* Members avatar stack — matches presence cursor colors */}
                     <div className="mr-1 flex -space-x-1.5">
-                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-gradient-to-br from-amber-300 to-rose-400 ring-2" />
-                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-gradient-to-br from-sky-300 to-indigo-400 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-pink-500 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-purple-500 ring-2" />
+                        <div className="ring-background-chrome h-5 w-5 rounded-full bg-blue-500 ring-2" />
                     </div>
                     <div className="bg-background-tertiary text-foreground ml-0.5 flex h-6.5 w-6.5 items-center justify-center overflow-hidden rounded-full text-xs">
                         <img
@@ -1987,9 +2204,9 @@ export function WeblabInterfaceMockup() {
             </div>
 
             {/* Main Content */}
-            <div className="relative flex h-[calc(100%-3.5rem)]">
+            <div className="relative flex h-[calc(100%-3rem)]">
                 {/* Sidebar rail */}
-                <div className="bg-background-chrome border-border-bar flex h-full w-11 flex-col items-center justify-between border-r py-2 backdrop-blur-xl">
+                <div className="bg-background-chrome border-border-bar flex h-full w-12 flex-col items-center justify-between border-r py-2 backdrop-blur-xl">
                     <div className="flex flex-col items-center gap-0.5">
                         {TAB_DEFS.map((tab) => {
                             const Icon = Icons[tab.icon];
@@ -2001,7 +2218,7 @@ export function WeblabInterfaceMockup() {
                                     onClick={() => setActiveTab(tab.id)}
                                     aria-label={tab.label}
                                     className={cn(
-                                        'flex h-7.5 w-7.5 cursor-pointer items-center justify-center rounded-md transition-colors',
+                                        'flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-colors',
                                         active
                                             ? 'bg-background-bar-active text-foreground'
                                             : 'hover:bg-background-secondary/60 text-foreground-secondary',
@@ -2425,12 +2642,8 @@ export function WeblabInterfaceMockup() {
                     className={cn(
                         'relative flex flex-1 flex-col items-center justify-start',
                         activeTool === 'cursor' && !isSpacePanning && 'cursor-default',
-                        (activeTool === 'hand' || isSpacePanning) &&
-                            !isPanning &&
-                            'cursor-grab',
-                        (activeTool === 'hand' || isSpacePanning) &&
-                            isPanning &&
-                            'cursor-grabbing',
+                        (activeTool === 'hand' || isSpacePanning) && !isPanning && 'cursor-grab',
+                        (activeTool === 'hand' || isSpacePanning) && isPanning && 'cursor-grabbing',
                         activeTool === 'comment' && !isSpacePanning && 'cursor-crosshair',
                     )}
                     onMouseDown={handleMouseDown}
@@ -2464,7 +2677,7 @@ export function WeblabInterfaceMockup() {
                     <div className="absolute inset-0 flex flex-col">
                         {/* Tabs strip — Style / Chat / Comments. Icon-only when
                             inactive to fit the panel width; active tab shows label. */}
-                        <div className="border-border-bar z-20 flex h-11 items-center justify-between gap-1 border-b px-2">
+                        <div className="border-border-bar z-20 flex h-10 items-center justify-between gap-1 border-b px-2">
                             <div className="bg-background-tab-strip/70 flex h-8 min-w-0 items-center gap-0 rounded-md p-0.5">
                                 {RIGHT_TABS.map((t, i) => {
                                     const Icon = Icons[t.icon];
@@ -2613,11 +2826,26 @@ export function WeblabInterfaceMockup() {
                                             <button
                                                 type="button"
                                                 aria-label="Remove context"
+                                                onClick={(e) => e.stopPropagation()}
                                                 className="text-foreground-tertiary hover:text-foreground -mr-0.5 ml-0.5"
                                             >
                                                 <Icons.CrossL className="h-2 w-2" />
                                             </button>
                                         </span>
+                                        {imageAttached && (
+                                            <span className="flex items-center gap-1 rounded-sm border border-pink-500/30 bg-pink-500/10 px-1.5 py-0.5 text-[10px] text-pink-300">
+                                                <Icons.Image className="h-2.5 w-2.5" />
+                                                screenshot.png
+                                                <button
+                                                    type="button"
+                                                    aria-label="Remove image"
+                                                    onClick={() => setImageAttached(false)}
+                                                    className="-mr-0.5 ml-0.5 text-pink-300/70 hover:text-pink-200"
+                                                >
+                                                    <Icons.CrossL className="h-2 w-2" />
+                                                </button>
+                                            </span>
+                                        )}
                                         <button
                                             type="button"
                                             className="text-foreground-tertiary hover:text-foreground inline-flex h-5 items-center gap-0.5 rounded px-1 text-[10px]"
@@ -2642,7 +2870,7 @@ export function WeblabInterfaceMockup() {
                                     </div>
                                     {/* Bottom controls — mirrors real composer */}
                                     <div className="flex w-full items-center justify-between gap-1 px-1.5 pt-0.5 pb-1.5">
-                                        <div className="flex items-center gap-0.5">
+                                        <div className="flex min-w-0 items-center gap-0.5">
                                             <button
                                                 type="button"
                                                 aria-label="Mode menu"
@@ -2655,7 +2883,7 @@ export function WeblabInterfaceMockup() {
                                                               : 'Build',
                                                     )
                                                 }
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px]"
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px]"
                                             >
                                                 {chatComposerMode === 'Build' && (
                                                     <Icons.Build className="h-3 w-3" />
@@ -2672,41 +2900,55 @@ export function WeblabInterfaceMockup() {
                                             <button
                                                 type="button"
                                                 aria-label="Model"
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px]"
+                                                onClick={cycleModel}
+                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 min-w-0 items-center gap-1 rounded-md px-1.5 text-[11px]"
                                             >
-                                                <Icons.Sparkles className="h-3 w-3" />
-                                                <span>{chatModelLabel}</span>
-                                                <Icons.ChevronDown className="h-2.5 w-2.5" />
+                                                <span className="max-w-[64px] truncate">
+                                                    {chatModelLabel}
+                                                </span>
+                                                <Icons.ChevronDown className="h-2.5 w-2.5 shrink-0" />
                                             </button>
-                                        </div>
-                                        <div className="flex items-center gap-0.5">
                                             <button
                                                 type="button"
                                                 aria-label="Attach image"
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 w-6 items-center justify-center rounded-md"
+                                                onClick={() => setImageAttached((v) => !v)}
+                                                className={cn(
+                                                    'hover:bg-background-tertiary hover:text-foreground-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-md',
+                                                    imageAttached
+                                                        ? 'text-foreground-primary bg-background-tertiary/60'
+                                                        : 'text-foreground-tertiary',
+                                                )}
                                             >
                                                 <Icons.Image className="h-3.5 w-3.5" />
                                             </button>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-0.5">
                                             <button
                                                 type="button"
                                                 aria-label="Voice"
-                                                className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary flex h-6 w-6 items-center justify-center rounded-md"
+                                                onClick={() => setVoiceRecording((v) => !v)}
+                                                className={cn(
+                                                    'hover:bg-background-tertiary flex h-6 w-6 items-center justify-center rounded-md',
+                                                    voiceRecording
+                                                        ? 'bg-pink-500/15 text-pink-300'
+                                                        : 'text-foreground-tertiary hover:text-foreground-primary',
+                                                )}
                                             >
-                                                <Icons.Microphone className="h-3.5 w-3.5" />
+                                                {voiceRecording ? (
+                                                    <span className="h-2 w-2 animate-pulse rounded-full bg-pink-400" />
+                                                ) : (
+                                                    <Icons.Microphone className="h-3.5 w-3.5" />
+                                                )}
                                             </button>
                                             <button
                                                 type="button"
                                                 aria-label="Send"
-                                                className="bg-foreground text-background flex h-6 w-6 items-center justify-center rounded-full"
+                                                className="bg-foreground text-background hover:bg-foreground/90 flex h-6 w-6 items-center justify-center rounded-full"
                                             >
                                                 <Icons.ArrowRight className="h-3 w-3" />
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="text-foreground-tertiary mt-1.5 flex items-center justify-between px-1 text-[9px]">
-                                    <span>⌘↵ to run · @ for files · / for commands</span>
-                                    <span className="tabular-nums">8.2k / 200k</span>
                                 </div>
                             </div>
                         )}

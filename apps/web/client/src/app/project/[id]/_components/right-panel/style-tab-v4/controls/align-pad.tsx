@@ -50,7 +50,7 @@ export const AlignPad = React.memo(function AlignPad({
             role="grid"
             aria-label="Alignment"
             className={cn(
-                'bg-background-secondary grid w-full grid-cols-3 grid-rows-3 gap-1 rounded-[10px] p-[10px] dark:bg-[#262626]',
+                'bg-background-secondary grid w-full grid-cols-3 grid-rows-3 gap-1 rounded-[10px] p-[10px]',
                 className,
             )}
             style={{ height }}
@@ -67,7 +67,7 @@ export const AlignPad = React.memo(function AlignPad({
                             aria-label={`Justify ${colValue}, Align ${rowValue}`}
                             onClick={() => onCommit(colValue, rowValue)}
                             className={cn(
-                                'group relative flex cursor-pointer items-center justify-center rounded-[4px] transition-colors',
+                                'group relative flex cursor-pointer items-center justify-center rounded-xs transition-colors',
                                 'hover:bg-foreground/5',
                                 isActive && 'bg-foreground/10',
                             )}

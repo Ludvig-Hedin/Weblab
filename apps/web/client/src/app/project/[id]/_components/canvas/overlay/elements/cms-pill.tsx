@@ -1,13 +1,15 @@
 'use client';
 
 import { useMemo } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { CmsBindingKind, EditorMode } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 /**
  * Small pill rendered above the selected canvas element when it has a CMS
@@ -21,28 +23,26 @@ export const CmsPill = observer(() => {
     const oid = editorEngine.elements.selected[0]?.oid ?? null;
     const isPreview = editorEngine.state.editorMode === EditorMode.PREVIEW;
 
-    const bindingsQuery = api.cms.binding.listForProject.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId, staleTime: 5_000 },
+    const bindings = useQuery(
+        api.cmsBindings.listForProject,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
 
     const bindingForSelected = useMemo(() => {
         if (!oid) return null;
-        return bindingsQuery.data?.find((b) => b.oid === oid) ?? null;
-    }, [bindingsQuery.data, oid]);
+        return bindings?.find((b) => b.oid === oid) ?? null;
+    }, [bindings, oid]);
 
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && !!bindingForSelected, staleTime: 30_000 },
+    const collections = useQuery(
+        api.cmsCollections.list,
+        projectId && bindingForSelected ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
 
     if (isPreview || !selectedRect || !bindingForSelected) return null;
 
     const payload = bindingForSelected.binding;
     const collectionId = 'collectionId' in payload ? payload.collectionId : null;
-    const collection = collectionId
-        ? collectionsQuery.data?.find((c) => c.id === collectionId)
-        : null;
+    const collection = collectionId ? collections?.find((c) => c._id === collectionId) : null;
     const fieldKey =
         payload.kind === CmsBindingKind.ITEM_FIELD ||
         payload.kind === CmsBindingKind.FIRST_FIELD ||

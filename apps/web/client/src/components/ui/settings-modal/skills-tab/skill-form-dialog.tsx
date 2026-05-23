@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 
 import { Button } from '@weblab/ui/button';
 import {
@@ -18,7 +20,7 @@ import { toast } from '@weblab/ui/sonner';
 import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 import { ScopeBadge } from './scope-badge';
 
 const NAME_RE = /^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$/;
@@ -54,6 +56,7 @@ export function SkillFormDialog({
     const [description, setDescription] = useState(initial?.description ?? '');
     const [content, setContent] = useState(initial?.content ?? '');
     const [scope, setScope] = useState<SkillFormScope>(initial?.projectId ? 'project' : 'global');
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -64,23 +67,8 @@ export function SkillFormDialog({
         }
     }, [open, initial]);
 
-    const apiUtils = api.useUtils();
-    const create = api.skills.create.useMutation({
-        onSuccess: async () => {
-            await apiUtils.skills.list.invalidate();
-            toast.success(`Saved skill "${name}"`);
-            onOpenChange(false);
-        },
-        onError: (err) => toast.error(err.message),
-    });
-    const update = api.skills.update.useMutation({
-        onSuccess: async () => {
-            await apiUtils.skills.list.invalidate();
-            toast.success(`Updated skill "${name}"`);
-            onOpenChange(false);
-        },
-        onError: (err) => toast.error(err.message),
-    });
+    const createSkill = useMutation(api.skills.create);
+    const updateSkill = useMutation(api.skills.update);
 
     const nameError = useMemo(() => {
         if (!name) return null;
@@ -92,30 +80,37 @@ export function SkillFormDialog({
 
     const shadowsBuiltIn = !isEditing && builtInNames.has(name);
 
-    const canSubmit =
-        Boolean(name) &&
-        !nameError &&
-        Boolean(content.trim()) &&
-        !create.isPending &&
-        !update.isPending;
+    const canSubmit = Boolean(name) && !nameError && Boolean(content.trim()) && !isSaving;
 
-    const submit = () => {
+    const submit = async () => {
         if (!canSubmit) return;
-        if (isEditing && initial) {
-            update.mutate({
-                skillId: initial.id,
-                name,
-                description,
-                content,
-            });
-            return;
+        setIsSaving(true);
+        try {
+            if (isEditing && initial) {
+                await updateSkill({
+                    skillId: initial.id as Id<'skills'>,
+                    name,
+                    description,
+                    content,
+                });
+                toast.success(`Updated skill "${name}"`);
+            } else {
+                await createSkill({
+                    ...(scope === 'project' && projectId
+                        ? { projectId: projectId as Id<'projects'> }
+                        : {}),
+                    name,
+                    description,
+                    content,
+                });
+                toast.success(`Saved skill "${name}"`);
+            }
+            onOpenChange(false);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to save skill');
+        } finally {
+            setIsSaving(false);
         }
-        create.mutate({
-            projectId: scope === 'project' && projectId ? projectId : null,
-            name,
-            description,
-            content,
-        });
     };
 
     return (
@@ -214,12 +209,8 @@ export function SkillFormDialog({
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button onClick={submit} disabled={!canSubmit}>
-                        {create.isPending || update.isPending
-                            ? 'Saving…'
-                            : isEditing
-                              ? 'Save changes'
-                              : 'Create skill'}
+                    <Button onClick={() => void submit()} disabled={!canSubmit}>
+                        {isSaving ? 'Saving…' : isEditing ? 'Save changes' : 'Create skill'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

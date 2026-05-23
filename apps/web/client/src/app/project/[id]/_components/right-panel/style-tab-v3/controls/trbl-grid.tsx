@@ -188,7 +188,7 @@ export const TrblGrid = observer(function TrblGrid({
                     aria-label={`${labelPrefix} all sides`}
                 />
                 {/* 2-button mode switcher — all-sides vs per-side. */}
-                <div className="border-transparent bg-background-secondary dark:bg-[#101010] flex h-[30px] shrink-0 items-center gap-0.5 rounded-[10px] border p-0.5">
+                <div className="bg-background-secondary flex h-[30px] shrink-0 items-center gap-0.5 rounded-[10px] border border-transparent p-0.5 dark:bg-[#101010]">
                     <button
                         type="button"
                         onClick={() => setLinked(true)}

@@ -50,7 +50,10 @@ const splitShellBlocks = (text: string): Segment[] => {
         if (!SHELL_LANGS.has(lang)) continue;
 
         if (match.index > lastIndex) {
-            segments.push({ kind: 'text', content: text.slice(lastIndex, match.index) });
+            segments.push({
+                kind: 'text',
+                content: text.slice(lastIndex, match.index),
+            });
         }
         segments.push({ kind: 'shell', lang, code: (match[2] ?? '').trimEnd() });
         lastIndex = match.index + match[0].length;

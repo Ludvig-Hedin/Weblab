@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -14,10 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@weblab/ui/sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@weblab/ui/table';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { ItemEditor } from './item-editor';
 import { RoutingDialog } from './routing-dialog';
 
@@ -50,22 +52,25 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
         setSearch('');
     }, [collection.id]);
 
-    const utils = api.useUtils();
-    const deleteMutation = api.cms.item.delete.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const deleteMutation = useMutation(api.cmsItems.remove);
+    const [isDeleting, setIsDeleting] = useState(false);
 
-    const itemsQuery = api.cms.item.list.useQuery({
-        projectId,
-        collectionId: collection.id,
+    const itemsData = useQuery(api.cmsItems.list, {
+        projectId: projectId as Id<'projects'>,
+        collectionId: collection.id as Id<'cmsCollections'>,
     });
-    const fieldsQuery = api.cms.field.listByCollection.useQuery({
-        projectId,
-        collectionId: collection.id,
+    const fieldsData = useQuery(api.cmsFields.listByCollection, {
+        projectId: projectId as Id<'projects'>,
+        collectionId: collection.id as Id<'cmsCollections'>,
     });
-    const pagesQuery = api.cms.collectionPage.list.useQuery({ projectId });
-    const collectionPage = pagesQuery.data?.find((p) => p.collectionId === collection.id) ?? null;
+    const pagesData = useQuery(api.cmsCollectionPages.list, {
+        projectId: projectId as Id<'projects'>,
+    });
+    const collectionPage = pagesData?.find((p) => p.collectionId === collection.id) ?? null;
 
-    const items = itemsQuery.data ?? [];
-    const fields = fieldsQuery.data ?? [];
+    const items = itemsData ?? [];
+    const fields = fieldsData ?? [];
     // Pick the first text-shaped field as the "title" column. Falls back to
     // the slug, then the item id.
     const titleField =
@@ -88,16 +93,16 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
     }, [items, fields, search]);
 
     const allSelected =
-        filteredItems.length > 0 && filteredItems.every((it) => selectedIds.has(it.id));
+        filteredItems.length > 0 && filteredItems.every((it) => selectedIds.has(it._id));
     const someSelected = selectedIds.size > 0 && !allSelected;
     const toggleSelectAll = () => {
         if (allSelected) {
             const next = new Set(selectedIds);
-            for (const it of filteredItems) next.delete(it.id);
+            for (const it of filteredItems) next.delete(it._id);
             setSelectedIds(next);
         } else {
             const next = new Set(selectedIds);
-            for (const it of filteredItems) next.add(it.id);
+            for (const it of filteredItems) next.add(it._id);
             setSelectedIds(next);
         }
     };
@@ -116,11 +121,13 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
             destructive: true,
         });
         if (!ok) return;
+        setIsDeleting(true);
         try {
-            await deleteMutation.mutateAsync({ projectId, itemId: id });
-            await utils.cms.item.list.invalidate({ projectId, collectionId: collection.id });
-            await utils.cms.collection.list.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            await deleteMutation({
+                projectId: projectId as Id<'projects'>,
+                itemId: id as Id<'cmsItems'>,
+            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             setSelectedIds((prev) => {
                 const next = new Set(prev);
                 next.delete(id);
@@ -129,6 +136,8 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
             toast.success('Item deleted');
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to delete item');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -141,23 +150,26 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
             destructive: true,
         });
         if (!ok) return;
+        setIsDeleting(true);
         const failures: string[] = [];
         for (const id of Array.from(selectedIds)) {
             try {
-                await deleteMutation.mutateAsync({ projectId, itemId: id });
+                await deleteMutation({
+                    projectId: projectId as Id<'projects'>,
+                    itemId: id as Id<'cmsItems'>,
+                });
             } catch (err) {
                 failures.push(err instanceof Error ? err.message : 'Unknown error');
             }
         }
-        await utils.cms.item.list.invalidate({ projectId, collectionId: collection.id });
-        await utils.cms.collection.list.invalidate({ projectId });
-        await utils.cms.binding.snapshot.invalidate({ projectId });
+        // Convex live queries auto-revalidate — no manual invalidate needed.
         if (failures.length === 0) {
             toast.success(`${selectedIds.size} item(s) deleted`);
         } else {
             toast.error(`${failures.length} item(s) failed to delete`);
         }
         setSelectedIds(new Set());
+        setIsDeleting(false);
     };
 
     return (
@@ -190,9 +202,9 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                     const label =
                                         (typeof titleValue === 'string' && titleValue) ||
                                         item.slug ||
-                                        item.id.slice(0, 8);
+                                        item._id.slice(0, 8);
                                     return (
-                                        <SelectItem key={item.id} value={item.id}>
+                                        <SelectItem key={item._id} value={item._id}>
                                             {label}
                                         </SelectItem>
                                     );
@@ -226,7 +238,10 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 <ItemsEmpty
                     title={t(transKeys.cms.items.noFieldsTitle)}
                     body={t(transKeys.cms.items.noFieldsBody)}
-                    cta={{ label: t(transKeys.cms.items.addFields), onClick: onEditFields }}
+                    cta={{
+                        label: t(transKeys.cms.items.addFields),
+                        onClick: onEditFields,
+                    }}
                 />
             ) : items.length === 0 ? (
                 <ItemsEmpty
@@ -255,7 +270,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                 variant="ghost"
                                 className="text-red"
                                 onClick={() => void handleBulkDelete()}
-                                disabled={deleteMutation.isPending}
+                                disabled={isDeleting}
                             >
                                 <Icons.Trash className="mr-1 h-3.5 w-3.5" />
                                 Delete {selectedIds.size}
@@ -303,11 +318,11 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                         const titleValue = titleField
                                             ? item.values[titleField.key]
                                             : null;
-                                        const checked = selectedIds.has(item.id);
+                                        const checked = selectedIds.has(item._id);
                                         return (
                                             <TableRow
-                                                key={item.id}
-                                                onClick={() => setEditingId(item.id)}
+                                                key={item._id}
+                                                onClick={() => setEditingId(item._id)}
                                                 className="group cursor-pointer"
                                             >
                                                 <TableCell
@@ -317,7 +332,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                     <Checkbox
                                                         checked={checked}
                                                         onCheckedChange={() =>
-                                                            toggleSelectOne(item.id)
+                                                            toggleSelectOne(item._id)
                                                         }
                                                         aria-label="Select row"
                                                     />
@@ -346,8 +361,8 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                                                         size="icon"
                                                         variant="ghost"
                                                         className="text-red h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                                                        onClick={() => void handleDelete(item.id)}
-                                                        disabled={deleteMutation.isPending}
+                                                        onClick={() => void handleDelete(item._id)}
+                                                        disabled={isDeleting}
                                                         aria-label="Delete item"
                                                     >
                                                         <Icons.Trash className="h-3.5 w-3.5" />
@@ -367,7 +382,7 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
                 <ItemEditor
                     projectId={projectId}
                     collection={collection}
-                    fields={fields}
+                    fields={fields as never}
                     itemId={editingId}
                     onClose={() => {
                         setEditingId(null);

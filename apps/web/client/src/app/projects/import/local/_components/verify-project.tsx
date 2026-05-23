@@ -37,18 +37,18 @@ export const VerifyProject = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="flex w-full flex-row items-center gap-2 rounded-lg border border-purple-600 bg-purple-900 p-4"
+            className="border-foreground-skill/40 bg-foreground-skill/15 flex w-full flex-row items-center gap-2 rounded-lg border p-4"
         >
             <div className="flex w-full flex-row items-center justify-between gap-4">
-                <div className="rounded-lg bg-purple-500 p-3">
+                <div className="bg-foreground-skill/30 rounded-lg p-3">
                     <Icons.Directory className="h-5 w-5" />
                 </div>
                 <div className="flex w-full flex-col gap-1 break-all">
-                    <p className="text-regular text-purple-100">{projectData.name}</p>
-                    <p className="text-mini text-purple-200">{projectData.folderPath}</p>
+                    <p className="text-regular text-foreground-skill">{projectData.name}</p>
+                    <p className="text-mini text-foreground-skill/80">{projectData.folderPath}</p>
                 </div>
             </div>
-            <Icons.CheckCircled className="h-5 w-5 text-purple-200" />
+            <Icons.CheckCircled className="text-foreground-skill h-5 w-5" />
         </motion.div>
     );
 

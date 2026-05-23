@@ -1,17 +1,26 @@
 'use client';
 
 import { useEffect } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTheme } from 'next-themes';
 
 import { useStateManager } from '@/components/store/state';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 
+// Uses `getMappedSettings` (not `getSettings`) because this consumer expects
+// the nested {chat, ai, appearance, language, git, customShortcuts} shape —
+// the same shape `fromDbUserSettings` used to produce for the Drizzle pipeline.
+// `getMappedSettings` ports that mapper to Convex so this file (and any other
+// surface that reads .appearance.*) keeps working without a flat-shape rewrite.
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
     const hasAuthCookie = useHasAuthCookie();
-    const { data: userSettings } = api.user.settings.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const userSettings = useQuery(
+        (hasAuthCookie === true
+            ? api.users.getMappedSettings
+            : 'skip') as typeof api.users.getMappedSettings,
+        hasAuthCookie === true ? {} : (undefined as never),
+    );
     const { setTheme } = useTheme();
     const stateManager = useStateManager();
 

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
@@ -18,8 +20,8 @@ import {
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useAuthContext } from '@/app/auth/auth-context';
-import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { LazyImage } from './lazy-image';
 
@@ -50,9 +52,9 @@ export function TemplateModal({
     onUnmarkTemplate,
     user,
 }: TemplateModalProps) {
-    const { mutateAsync: forkTemplate } = api.project.fork.useMutation();
-    const { data: branches } = api.branch.getByProjectId.useQuery({
-        projectId: templateProject.id,
+    const forkTemplate = useAction(api.projectActions.fork);
+    const branches = useQuery(api.branches.getByProjectId, {
+        projectId: templateProject.id as Id<'projects'>,
         onlyDefault: true,
     });
     const { setIsAuthModalOpen } = useAuthContext();
@@ -74,13 +76,13 @@ export function TemplateModal({
         setIsCreatingProject(true);
         try {
             const newProject = await forkTemplate({
-                projectId: templateProject.id,
+                projectId: templateProject.id as Id<'projects'>,
             });
 
             if (newProject) {
                 toast.success(`Created new project from ${title} template!`);
                 onClose();
-                router.push(`${Routes.PROJECT}/${newProject.id}`);
+                router.push(`${Routes.PROJECT}/${newProject.projectId}`);
             }
         } catch (error) {
             console.error('Error creating project from template:', error);
@@ -102,7 +104,7 @@ export function TemplateModal({
     };
 
     const handlePreviewTemplate = () => {
-        if (!branches || branches.length === 0 || !branches[0]?.sandbox.id) {
+        if (!branches || branches.length === 0 || !branches[0]?.sandboxId) {
             toast.error('No branches found for this template');
             return;
         }

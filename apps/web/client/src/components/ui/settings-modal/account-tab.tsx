@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@weblab/ui/avatar';
@@ -11,20 +14,12 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { getInitials } from '@weblab/utility';
 
-import { api } from '@/trpc/react';
-import { createClient } from '@/utils/supabase/client';
 import { UserDeleteSection } from './user-delete-section';
 
 export const AccountTab = observer(() => {
-    const apiUtils = api.useUtils();
-    const { data: user } = api.user.get.useQuery();
-    const { mutate: updateProfile, isPending } = api.user.updateProfile.useMutation({
-        onSuccess: () => {
-            void apiUtils.user.get.invalidate();
-            toast.success('Profile updated');
-        },
-        onError: () => toast.error('Failed to update profile'),
-    });
+    const user = useQuery(api.users.me, {});
+    const updateProfileMutation = useMutation(api.users.updateProfile);
+    const [isPending, setIsPending] = useState(false);
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -39,22 +34,27 @@ export const AccountTab = observer(() => {
         }
     }, [user]);
 
+    const { user: clerkUser } = useUser();
     useEffect(() => {
-        const supabase = createClient();
-        supabase.auth.getUser().then(({ data }) => {
-            const p =
-                data.user?.app_metadata?.provider ??
-                data.user?.app_metadata?.providers?.[0] ??
-                null;
-            setProvider(p);
-        });
-    }, []);
+        // Clerk's external-account `provider` strings are prefixed with
+        // `oauth_` (e.g. `oauth_google`, `oauth_github`). Strip for display.
+        const raw = clerkUser?.externalAccounts?.[0]?.provider ?? null;
+        setProvider(raw ? raw.replace(/^oauth_/, '') : null);
+    }, [clerkUser]);
 
     const isGoogle = provider === 'google';
     const initials = getInitials(user?.displayName ?? user?.firstName ?? '');
 
-    const handleSave = () => {
-        updateProfile({ firstName, lastName, displayName });
+    const handleSave = async () => {
+        setIsPending(true);
+        try {
+            await updateProfileMutation({ firstName, lastName, displayName });
+            toast.success('Profile updated');
+        } catch {
+            toast.error('Failed to update profile');
+        } finally {
+            setIsPending(false);
+        }
     };
 
     return (
@@ -144,7 +144,7 @@ export const AccountTab = observer(() => {
                     </p>
                 </div>
 
-                <Button size="sm" onClick={handleSave} disabled={isPending}>
+                <Button size="sm" onClick={() => void handleSave()} disabled={isPending}>
                     {isPending ? 'Saving…' : 'Save changes'}
                 </Button>
             </section>

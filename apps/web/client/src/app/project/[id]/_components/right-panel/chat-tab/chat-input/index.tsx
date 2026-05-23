@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,6 +30,7 @@ import type {
     MentionItem,
     SlashCommand,
 } from '@/components/ai-prompt-composer/types';
+import type { Id } from '@convex/_generated/dataModel';
 import type { Editor } from '@tiptap/react';
 import { AiPromptComposer } from '@/components/ai-prompt-composer';
 import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle';
@@ -37,7 +40,6 @@ import { FOCUS_CHAT_INPUT_EVENT } from '@/components/store/editor/chat';
 import { useProjectCapabilitiesContext } from '@/hooks/use-project-capabilities-context';
 import { transKeys } from '@/i18n/keys';
 import { useAiAvailability } from '@/services/offline/ai-availability';
-import { api } from '@/trpc/react';
 import { validateImageLimit } from '../context-pills/helpers';
 import { InputContextPills } from '../context-pills/input-context-pills';
 import { Suggestions } from '../suggestions';
@@ -108,7 +110,10 @@ export const ChatInput = observer(
             () => currentConversation?.suggestions ?? [],
         );
         const lastSuggestionSignatureRef = useRef<string | null>(null);
-        const fileListCacheRef = useRef<{ items: MentionItem[]; timestamp: number } | null>(null);
+        const fileListCacheRef = useRef<{
+            items: MentionItem[];
+            timestamp: number;
+        } | null>(null);
         // Index into userMessageHistory for Up/Down-arrow prompt recall. -1 = not navigating.
         const historyIndexRef = useRef<number>(-1);
         const lastUsageMessage = useMemo(
@@ -130,19 +135,29 @@ export const ChatInput = observer(
             }
             return out;
         }, [messages]);
-        const { mutate: generateSuggestions, isPending: isGeneratingSuggestions } =
-            api.chat.suggestions.generate.useMutation({
-                onSuccess: (nextSuggestions) => {
-                    setSuggestions(nextSuggestions);
-                },
-                onError: () => {
-                    // Clear the dedupe signature so the next identical-state
-                    // tick is allowed to retry. Without this, a single
-                    // transient network blip permanently silences
-                    // suggestions for the rest of the conversation.
-                    lastSuggestionSignatureRef.current = null;
-                },
-            });
+        const generateSuggestionsAction = useAction(api.chatActions.generateSuggestions);
+        const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+        const generateSuggestions = async (input: {
+            conversationId: string;
+            messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+        }) => {
+            setIsGeneratingSuggestions(true);
+            try {
+                const nextSuggestions = await generateSuggestionsAction({
+                    conversationId: input.conversationId as Id<'conversations'>,
+                    messages: input.messages,
+                });
+                setSuggestions(nextSuggestions as ChatSuggestion[]);
+            } catch {
+                // Clear the dedupe signature so the next identical-state
+                // tick is allowed to retry. Without this, a single
+                // transient network blip permanently silences
+                // suggestions for the rest of the conversation.
+                lastSuggestionSignatureRef.current = null;
+            } finally {
+                setIsGeneratingSuggestions(false);
+            }
+        };
 
         const focusInput = () => {
             requestAnimationFrame(() => {
@@ -211,17 +226,12 @@ export const ChatInput = observer(
             }
 
             lastSuggestionSignatureRef.current = signature;
-            generateSuggestions({
+            void generateSuggestions({
                 conversationId: currentConversation.id,
                 messages: messageInputs,
             });
-        }, [
-            currentConversation,
-            generateSuggestions,
-            isGeneratingSuggestions,
-            isStreaming,
-            messages,
-        ]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [currentConversation, isGeneratingSuggestions, isStreaming, messages]);
 
         useEffect(() => {
             const handleGlobalKeyDown = (e: KeyboardEvent) => {

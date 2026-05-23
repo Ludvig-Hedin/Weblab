@@ -147,9 +147,9 @@ const ImagePicker = forwardRef<
 
 ImagePicker.displayName = 'ImagePicker';
 
-export const UploadButton: React.FC<{ onButtonClick: (e: React.MouseEvent) => void }> = ({
-    onButtonClick,
-}) => (
+export const UploadButton: React.FC<{
+    onButtonClick: (e: React.MouseEvent) => void;
+}> = ({ onButtonClick }) => (
     <Button
         variant="secondary"
         className="border-foreground-tertiary/20 flex items-center gap-2 rounded border px-4 py-0 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-90"

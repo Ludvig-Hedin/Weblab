@@ -130,7 +130,7 @@ export const ProjectRow = ({
                 <span
                     aria-label={t('freshCapturing')}
                     title={t('freshCapturing')}
-                    className="absolute top-1 left-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400/80"
+                    className="bg-foreground-success/80 absolute top-1 left-1 h-1.5 w-1.5 animate-pulse rounded-full"
                 />
             )}
         </div>
@@ -143,7 +143,7 @@ export const ProjectRow = ({
                 <img
                     src={faviconUrl}
                     alt=""
-                    className="h-4 w-4 shrink-0 rounded-[4px] object-cover"
+                    className="h-4 w-4 shrink-0 rounded-xs object-cover"
                     loading="lazy"
                     onError={() => setFaviconFailed(true)}
                 />
@@ -165,14 +165,14 @@ export const ProjectRow = ({
             className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium',
                 isPublished
-                    ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300'
+                    ? 'border-foreground-success/20 bg-foreground-success/10 text-foreground-success'
                     : 'border-foreground/10 bg-foreground/4 text-foreground-tertiary',
             )}
         >
             <span
                 className={cn(
                     'h-1 w-1 rounded-full',
-                    isPublished ? 'bg-emerald-400/80' : 'bg-foreground-tertiary/60',
+                    isPublished ? 'bg-foreground-success/80' : 'bg-foreground-tertiary/60',
                 )}
             />
             {isPublished ? t('statusPublished') : t('statusDraft')}

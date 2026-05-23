@@ -99,7 +99,7 @@ export const FreeCard = ({
         }
 
         if (isScheduledCancellation) {
-            return `Pro plan ends on ${subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            return `Pro plan ends on ${new Date(subscription.scheduledChange!.scheduledChangeAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
         }
 
         if (isFree) {
@@ -127,8 +127,7 @@ export const FreeCard = ({
                 <div className="mt-6">
                     <Button
                         variant="outline"
-                        size="sm"
-                        className="rounded-full"
+                        size="lg"
                         onClick={handleButtonClick}
                         disabled={
                             isCheckingOut ||

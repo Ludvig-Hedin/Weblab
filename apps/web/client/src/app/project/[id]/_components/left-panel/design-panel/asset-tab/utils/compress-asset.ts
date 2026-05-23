@@ -50,7 +50,9 @@ export async function compressAsset(
         throw new Error('This file type cannot be compressed');
     }
 
-    const sourceBlob = new Blob([originalBytes as BlobPart], { type: outputMime });
+    const sourceBlob = new Blob([originalBytes as BlobPart], {
+        type: outputMime,
+    });
     const url = URL.createObjectURL(sourceBlob);
     try {
         const img = await loadImage(url);

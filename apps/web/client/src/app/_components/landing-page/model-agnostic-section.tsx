@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Reveal } from '@/components/motion/reveal';
 import { SplitText } from '@/components/motion/split-text';
+import { FEATURE_BACKDROP_SRCS, FeatureBackdrop } from './feature-backdrop';
 import {
     ClaudeIcon,
     DeepSeekIcon,
@@ -34,7 +35,11 @@ interface ModelOption {
 }
 
 const MODELS: ModelOption[] = [
-    { name: 'GPT-5.5', descriptionKey: 'gpt', icon: <OpenAIIcon className="h-3.5 w-3.5" /> },
+    {
+        name: 'GPT-5.5',
+        descriptionKey: 'gpt',
+        icon: <OpenAIIcon className="h-3.5 w-3.5" />,
+    },
     {
         name: 'Claude Sonnet 4.6',
         descriptionKey: 'sonnet',
@@ -55,7 +60,11 @@ const MODELS: ModelOption[] = [
         descriptionKey: 'deepseek',
         icon: <DeepSeekIcon className="h-3.5 w-3.5" />,
     },
-    { name: 'Kimi K2.6', descriptionKey: 'kimi', icon: <KimiIcon className="h-3.5 w-3.5" /> },
+    {
+        name: 'Kimi K2.6',
+        descriptionKey: 'kimi',
+        icon: <KimiIcon className="h-3.5 w-3.5" />,
+    },
 ];
 
 const CYCLE_MS = 4000;
@@ -102,7 +111,7 @@ function ModelPicker() {
 
     return (
         <div
-            className="border-foreground-primary/10 bg-background-secondary/40 w-full max-w-sm rounded-2xl border p-1.5 backdrop-blur-sm"
+            className="border-foreground-primary/10 bg-background-secondary/80 w-full max-w-sm rounded-[14px] border p-1.5 backdrop-blur-sm"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
         >
@@ -129,7 +138,7 @@ function ModelPicker() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset"
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[7px] ring-1 ring-inset"
                                     aria-hidden
                                 />
                             )}
@@ -137,7 +146,7 @@ function ModelPicker() {
                                 type="button"
                                 onClick={() => setActiveIndex(idx)}
                                 aria-pressed={isActive}
-                                className="group/picker-row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--foreground-brand)]"
+                                className="group/picker-row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[7px] px-3 py-2.5 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--foreground-brand)]"
                             >
                                 <span className="text-foreground-secondary flex h-5 w-5 shrink-0 items-center justify-center transition-transform duration-200 group-hover/picker-row:scale-110">
                                     {m.icon}
@@ -209,16 +218,22 @@ export function ModelAgnosticSection() {
             {/* Mobile: stacked */}
             <div className="flex flex-col gap-12 md:hidden">
                 <Headline />
-                <div>
+                <FeatureBackdrop
+                    src={FEATURE_BACKDROP_SRCS.sky}
+                    className="aspect-square w-full p-6"
+                >
                     <ModelPicker />
-                </div>
+                </FeatureBackdrop>
             </div>
 
             {/* Desktop: split */}
             <div className="hidden md:grid md:grid-cols-2 md:items-center md:gap-16 lg:gap-24">
-                <div className="flex justify-start lg:pl-4">
+                <FeatureBackdrop
+                    src={FEATURE_BACKDROP_SRCS.sky}
+                    className="aspect-square w-full p-6 md:p-10"
+                >
                     <ModelPicker />
-                </div>
+                </FeatureBackdrop>
                 <Headline />
             </div>
         </section>

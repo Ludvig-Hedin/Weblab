@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-
-import { api } from '@/trpc/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useConvex } from 'convex/react';
 
 export interface GitHubAppInstallation {
     hasInstallation: boolean;
@@ -16,53 +16,65 @@ export interface GitHubAppInstallation {
 }
 
 /**
- * Polling deadline for installation detection (issue #10).
- * `refetchOnWindowFocus` alone misses Cmd-Tab returns that don't fire focus
- * events, so we additionally poll every INSTALL_POLL_INTERVAL_MS for up to
- * INSTALL_POLL_DEADLINE_MS after the user is sent to the install flow.
+ * Polling deadline for installation detection. checkGitHubAppInstallation is
+ * an action (not a reactive query) so we still need to poll after the user
+ * is sent to the install flow.
  */
 const INSTALL_POLL_INTERVAL_MS = 3000;
 const INSTALL_POLL_DEADLINE_MS = 60_000;
 
 export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
-    const generateInstallationUrl = api.github.generateInstallationUrl.useMutation();
+    const convex = useConvex();
+    const generateInstallationUrl = useAction(api.githubActions.generateInstallationUrlAction);
 
-    // Tracks until when polling should run. Set by redirectToInstallation,
-    // cleared once an installation is detected or the deadline passes.
     const pollDeadlineRef = useRef<number | null>(null);
-
-    const {
-        data: installationId,
-        refetch: checkInstallation,
-        isFetching: isChecking,
-        error: checkInstallationError,
-    } = api.github.checkGitHubAppInstallation.useQuery(undefined, {
-        refetchOnWindowFocus: true,
-        refetchInterval: (query) => {
-            const data = query.state.data;
-            if (data) return false;
-            const deadline = pollDeadlineRef.current;
-            if (deadline === null) return false;
-            if (Date.now() >= deadline) {
-                pollDeadlineRef.current = null;
-                return false;
-            }
-            return INSTALL_POLL_INTERVAL_MS;
-        },
-    });
-
+    const [installationId, setInstallationId] = useState<string | null>(null);
+    const [isChecking, setIsChecking] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    // True after user clicks "Connect GitHub" and until installation is confirmed.
     const [isConnecting, setIsConnecting] = useState(false);
     const hasInstallation = !!installationId;
 
-    useEffect(() => {
-        // PRECONDITION_FAILED just means no installation yet — not a user-facing error.
-        const code = (checkInstallationError as { data?: { code?: string } } | null)?.data?.code;
-        setError(code === 'PRECONDITION_FAILED' ? null : (checkInstallationError?.message ?? null));
-    }, [checkInstallationError]);
+    const checkInstallation = useCallback(async () => {
+        setIsChecking(true);
+        try {
+            const result = await convex.action(api.githubActions.checkGitHubAppInstallation, {});
+            setInstallationId(result ?? null);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            // PRECONDITION_FAILED just means no installation yet — not user-facing.
+            if (!message.includes('PRECONDITION_FAILED')) {
+                setError(message);
+            }
+            setInstallationId(null);
+        } finally {
+            setIsChecking(false);
+        }
+    }, [convex]);
 
-    // Stop polling and clear connecting state as soon as the install lands.
+    useEffect(() => {
+        void checkInstallation();
+    }, [checkInstallation]);
+
+    useEffect(() => {
+        const onFocus = () => void checkInstallation();
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [checkInstallation]);
+
+    useEffect(() => {
+        if (hasInstallation || pollDeadlineRef.current === null) return;
+        const id = window.setInterval(() => {
+            const deadline = pollDeadlineRef.current;
+            if (deadline === null || Date.now() >= deadline) {
+                pollDeadlineRef.current = null;
+                window.clearInterval(id);
+                return;
+            }
+            void checkInstallation();
+        }, INSTALL_POLL_INTERVAL_MS);
+        return () => window.clearInterval(id);
+    }, [hasInstallation, checkInstallation, isConnecting]);
+
     useEffect(() => {
         if (hasInstallation) {
             pollDeadlineRef.current = null;
@@ -76,14 +88,13 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
 
     const redirectToInstallation = async (redirectUrl?: string) => {
         try {
-            const result = await generateInstallationUrl.mutateAsync({
+            const result = await generateInstallationUrl({
                 redirectUrl,
             });
 
             if (result?.url) {
                 const newWindow = window.open(result.url, '_blank');
                 if (!newWindow) {
-                    // Popup was blocked — tell the user instead of silently failing.
                     setError(
                         'A popup was blocked. Please allow popups for this site and try again.',
                     );
@@ -92,8 +103,8 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
                 pollDeadlineRef.current = Date.now() + INSTALL_POLL_DEADLINE_MS;
                 setIsConnecting(true);
             }
-        } catch (error) {
-            console.error('Error generating GitHub App installation URL:', error);
+        } catch (err) {
+            console.error('Error generating GitHub App installation URL:', err);
         }
     };
 
@@ -104,7 +115,7 @@ export const useGitHubAppInstallation: () => GitHubAppInstallation = () => {
         isConnecting,
         error,
         redirectToInstallation,
-        refetch: checkInstallation,
+        refetch: () => void checkInstallation(),
         clearError,
     };
 };

@@ -1,10 +1,12 @@
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
-import { Button } from '@weblab/ui/button';
+import type { ChatMessage } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons/index';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { ChatTabContent } from './chat-tab-content';
 
 interface ChatTabProps {
@@ -14,31 +16,15 @@ interface ChatTabProps {
 
 export const ChatTab = ({ conversationId, projectId }: ChatTabProps) => {
     const t = useTranslations();
-    const {
-        data: initialMessages,
-        isLoading,
-        isError,
-        refetch,
-    } = api.chat.message.getAll.useQuery(
-        { conversationId: conversationId },
-        {
-            enabled: !!conversationId,
-            // Pick up assistant messages that finished streaming in another
-            // tab/window while this tab was backgrounded.
-            refetchOnWindowFocus: true,
-        },
+    const initialMessages = useQuery(
+        (conversationId
+            ? api.messages.listByConversation
+            : 'skip') as typeof api.messages.listByConversation,
+        conversationId
+            ? { conversationId: conversationId as Id<'conversations'> }
+            : (undefined as unknown as { conversationId: Id<'conversations'> }),
     );
-
-    if (isError) {
-        return (
-            <div className="text-foreground-secondary flex h-full w-full flex-1 flex-col items-center justify-center gap-2">
-                <p className="text-small">{t(transKeys.editor.panels.edit.tabs.chat.loadFailed)}</p>
-                <Button variant="outline" size="sm" onClick={() => void refetch()}>
-                    {t(transKeys.editor.panels.edit.tabs.chat.retry)}
-                </Button>
-            </div>
-        );
-    }
+    const isLoading = initialMessages === undefined;
 
     if (!initialMessages || isLoading) {
         return (
@@ -55,7 +41,7 @@ export const ChatTab = ({ conversationId, projectId }: ChatTabProps) => {
             key={conversationId}
             conversationId={conversationId}
             projectId={projectId}
-            initialMessages={initialMessages}
+            initialMessages={initialMessages as unknown as ChatMessage[]}
         />
     );
 };

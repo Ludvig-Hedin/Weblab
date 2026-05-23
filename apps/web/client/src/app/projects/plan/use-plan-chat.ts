@@ -57,5 +57,12 @@ export function usePlanChat() {
 
     const isStreaming = status === 'streaming' || status === 'submitted' || isExecutingToolCall;
 
-    return { messages, isStreaming, stop, conversationId, addToolResult, sendMessage };
+    return {
+        messages,
+        isStreaming,
+        stop,
+        conversationId,
+        addToolResult,
+        sendMessage,
+    };
 }

@@ -1,6 +1,7 @@
 import { /* FaDiscord, */ FaGithub /* , FaXTwitter */ } from 'react-icons/fa6';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@weblab/ui/button';
+
 import { cn } from '@/lib/utils';
 
 interface SocialLink {
@@ -41,7 +42,7 @@ const Community1 = ({
                     </h2>
                     <div className="flex items-center gap-4">
                         {socialLinks.map((link) => (
-                            <Button key={link.url} size="lg" variant="outline" asChild>
+                            <Button key={link.url} size="pill" variant="outline" asChild>
                                 <a
                                     href={link.url}
                                     target="_blank"

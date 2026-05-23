@@ -33,9 +33,9 @@ const StatsCard1 = ({
                     {isPositive ? (
                         <TrendingUp className="size-4 text-green-500" />
                     ) : (
-                        <TrendingDown className="size-4 text-red-500" />
+                        <TrendingDown className="text-destructive size-4" />
                     )}
-                    <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
+                    <span className={isPositive ? 'text-green-500' : 'text-destructive'}>
                         {isPositive ? '+' : ''}
                         {change}%
                     </span>

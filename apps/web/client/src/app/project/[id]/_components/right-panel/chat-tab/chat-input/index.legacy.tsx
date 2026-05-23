@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +28,7 @@ import { compressImageInBrowser, convertToBase64DataUrl } from '@weblab/utility'
 
 import type { SuggestionsRef } from '../suggestions';
 import type { SendMessage } from '@/app/project/[id]/_hooks/use-chat';
+import type { Id } from '@convex/_generated/dataModel';
 import { ChatModeToggle } from '@/components/ai-prompt-composer/chat-mode-toggle';
 import { ModelSelector } from '@/components/ai-prompt-composer/model-picker/model-selector';
 import { useEditorEngine } from '@/components/store/editor';
@@ -38,7 +41,6 @@ import {
     AI_CHAT_TEXTAREA_STYLE,
 } from '@/components/ui/ai-chat-input-styles';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { validateImageLimit } from '../context-pills/helpers';
 import { InputContextPills } from '../context-pills/input-context-pills';
 import { Suggestions } from '../suggestions';
@@ -106,12 +108,23 @@ export const ChatInput = observer(
             () => messages.findLast((msg) => msg.metadata?.usage),
             [messages],
         );
-        const { mutate: generateSuggestions, isPending: isGeneratingSuggestions } =
-            api.chat.suggestions.generate.useMutation({
-                onSuccess: (nextSuggestions) => {
-                    setSuggestions(nextSuggestions);
-                },
-            });
+        const generateSuggestionsAction = useAction(api.chatActions.generateSuggestions);
+        const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+        const generateSuggestions = async (input: {
+            conversationId: string;
+            messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+        }) => {
+            setIsGeneratingSuggestions(true);
+            try {
+                const nextSuggestions = await generateSuggestionsAction({
+                    conversationId: input.conversationId as Id<'conversations'>,
+                    messages: input.messages,
+                });
+                setSuggestions(nextSuggestions as ChatSuggestion[]);
+            } finally {
+                setIsGeneratingSuggestions(false);
+            }
+        };
 
         const focusInput = () => {
             requestAnimationFrame(() => {
@@ -180,17 +193,12 @@ export const ChatInput = observer(
             }
 
             lastSuggestionSignatureRef.current = signature;
-            generateSuggestions({
+            void generateSuggestions({
                 conversationId: currentConversation.id,
                 messages: messageInputs,
             });
-        }, [
-            currentConversation,
-            generateSuggestions,
-            isGeneratingSuggestions,
-            isStreaming,
-            messages,
-        ]);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [currentConversation, isGeneratingSuggestions, isStreaming, messages]);
 
         useEffect(() => {
             const handleGlobalKeyDown = (e: KeyboardEvent) => {

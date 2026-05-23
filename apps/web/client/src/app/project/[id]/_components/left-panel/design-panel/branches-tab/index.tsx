@@ -262,7 +262,7 @@ export const BranchesTab = observer(() => {
                             >
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                     {isActive ? (
-                                        <Icons.CheckCircled className="h-4 w-4 flex-shrink-0 text-purple-400" />
+                                        <Icons.CheckCircled className="text-foreground-skill h-4 w-4 flex-shrink-0" />
                                     ) : (
                                         <Icons.Branch className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                                     )}

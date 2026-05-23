@@ -222,7 +222,11 @@ export const COMPONENT_TEMPLATES: ComponentTemplate[] = [
                         },
                         {
                             tagName: 'div',
-                            styles: { display: 'flex', flexDirection: 'column', gap: '0.125rem' },
+                            styles: {
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.125rem',
+                            },
                             textContent: null,
                             children: [
                                 {

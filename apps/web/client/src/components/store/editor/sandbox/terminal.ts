@@ -7,6 +7,7 @@ import type { Provider, ProviderTask, ProviderTerminal } from '@weblab/code-prov
 import type { ErrorManager } from '../error';
 import type { FitAddon } from '@xterm/addon-fit';
 import type { Terminal } from '@xterm/xterm';
+import { isSandboxGoneError } from './errors';
 
 // Dynamic imports to avoid SSR issues
 let FitAddonClass: typeof FitAddon | null = null;
@@ -119,6 +120,13 @@ export class CLISessionImpl implements CLISession {
                 terminal.resize(this.xterm.cols, this.xterm.rows);
             }
         } catch (error) {
+            // Sandbox reclaimed: createTerminal would throw 410 here, same
+            // as initTask. Stay quiet so the issue badge doesn't tick.
+            if (isSandboxGoneError(error)) {
+                console.debug('[CLISession] initTerminal aborted — sandbox is gone (410).');
+                this.terminal = null;
+                return;
+            }
             console.error('Failed to initialize terminal:', error);
             this.terminal = null;
         }
@@ -183,6 +191,12 @@ export class CLISessionImpl implements CLISession {
                 this.errorManager.processMessage(data);
             });
         } catch (error) {
+            // Sandbox reclaimed (410): every subsequent call would also
+            // throw 410. Stay quiet — the Restore CTA owns recovery.
+            if (isSandboxGoneError(error)) {
+                console.debug('[CLISession] initTask aborted — sandbox is gone (410).');
+                return;
+            }
             console.error('Failed to initialize task:', error);
             // Last-ditch fallback: a Provider/SDK-level failure here normally
             // means we couldn't even register a dev task. Try the same direct
@@ -190,6 +204,12 @@ export class CLISessionImpl implements CLISession {
             try {
                 await this.runFallbackDevServer();
             } catch (fallbackError) {
+                if (isSandboxGoneError(fallbackError)) {
+                    console.debug(
+                        '[CLISession] Fallback dev-server skipped — sandbox is gone (410).',
+                    );
+                    return;
+                }
                 console.error(
                     '[CLISession] Fallback dev-server runner also failed:',
                     fallbackError,
@@ -230,6 +250,12 @@ export class CLISessionImpl implements CLISession {
             pkgError =
                 'Could not read package.json — sandbox may be empty or in a broken state. ' +
                 'Recreate the project from the templates page.';
+            // Re-throw 410 so the outer catch can short-circuit silently
+            // instead of logging a noisy "package.json parse failed" line
+            // for what is really just a reclaimed sandbox.
+            if (isSandboxGoneError(err)) {
+                throw err;
+            }
             console.error('[CLISession] Fallback dev runner: package.json parse failed:', err);
         }
 
@@ -263,6 +289,13 @@ export class CLISessionImpl implements CLISession {
                 this.errorManager.processMessage(data);
             });
         } catch (error) {
+            // Surface 410 to the outer caller as a sandbox-gone signal so
+            // initTask's catch can swallow it without pushing an "Issues"
+            // entry. Without this short-circuit the noisy error log would
+            // tick the badge once per fallback attempt.
+            if (isSandboxGoneError(error)) {
+                throw error;
+            }
             console.error('[CLISession] Failed to run fallback dev command:', fullCommand, error);
             throw error;
         }
@@ -369,6 +402,13 @@ export class CLISessionImpl implements CLISession {
             });
             return task ?? null;
         } catch (error) {
+            // Re-throw 410 so initTask's outer catch can swallow it
+            // silently. Otherwise we'd log a noisy warning AND fall
+            // through to runFallbackDevServer (which would also throw
+            // 410), doubling the cascade.
+            if (isSandboxGoneError(error)) {
+                throw error;
+            }
             // The CodeSandbox SDK throws "Task dev not found" when the
             // template's `.codesandbox/tasks.json` doesn't register a `dev`
             // task. Returning null here lets the caller fall back to running

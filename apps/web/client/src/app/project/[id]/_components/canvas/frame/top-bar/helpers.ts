@@ -90,7 +90,9 @@ export function createMouseMoveHandler(
                 editorEngine.snap.hideSnapLines();
             }
 
-            editorEngine.frames.updateAndSaveToStorage(frameData.id, { position: newPosition });
+            editorEngine.frames.updateAndSaveToStorage(frameData.id, {
+                position: newPosition,
+            });
         }
     };
 

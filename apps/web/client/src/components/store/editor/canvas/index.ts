@@ -6,6 +6,9 @@ import { DefaultSettings } from '@weblab/constants';
 import { DefaultDesktopFrame } from '@weblab/db';
 
 import type { EditorEngine } from '../engine';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.userCanvas.update` → `api.users.upsertCanvasView` once a
+// Convex HTTP client with Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 
 export class CanvasManager {

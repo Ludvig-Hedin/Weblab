@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -16,7 +18,6 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 export const ChatPanelDropdown = observer(
     ({
@@ -29,20 +30,13 @@ export const ChatPanelDropdown = observer(
         setIsChatHistoryOpen: (isOpen: boolean) => void;
     }) => {
         const t = useTranslations();
-        const apiUtils = api.useUtils();
-        const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-            onSuccess: () => {
-                void apiUtils.user.settings.get.invalidate();
-            },
-        });
-        const { data: userSettings } = api.user.settings.get.useQuery();
+        const updateSettings = useMutation(api.users.updateSettings);
+        const userSettings = useQuery(api.users.getSettings, {});
 
         const debouncedUpdateSettings = useMemo(
             () =>
                 debounce((settings: Partial<ChatSettings>) => {
-                    updateSettings({
-                        ...settings,
-                    });
+                    void updateSettings(settings);
                 }, 300),
             [updateSettings],
         );
@@ -56,25 +50,14 @@ export const ChatPanelDropdown = observer(
         const updateChatSettings = useCallback(
             (e: React.MouseEvent, settings: Partial<ChatSettings>) => {
                 e.preventDefault();
-
-                apiUtils.user.settings.get.setData(undefined, (oldData) => {
-                    if (!oldData) return oldData;
-                    return {
-                        ...oldData,
-                        chat: {
-                            ...oldData.chat,
-                            ...settings,
-                        },
-                    };
-                });
-
                 debouncedUpdateSettings(settings);
             },
-            [apiUtils.user.settings.get, debouncedUpdateSettings],
+            [debouncedUpdateSettings],
         );
 
-        const showSuggestions = userSettings?.chat.showSuggestions ?? false;
-        const showMiniChat = userSettings?.chat.showMiniChat ?? false;
+        // TODO(convex-migration): users.getSettings returns the flat DB row; wire fromDbUserSettings or expose a getMappedSettings query
+        const showSuggestions = userSettings?.showSuggestions ?? false;
+        const showMiniChat = userSettings?.showMiniChat ?? false;
 
         return (
             <DropdownMenu modal={false}>

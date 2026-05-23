@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import stripAnsi from 'strip-ansi';
 
@@ -11,8 +13,8 @@ import { Icons } from '@weblab/ui/icons';
 import { toast } from '@weblab/ui/sonner';
 import { timeAgo } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { parseDeploymentError } from '@/utils/deploy-errors';
 
 interface Props {
@@ -54,25 +56,34 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
     const editorEngine = useEditorEngine();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const { data, isLoading, refetch } = api.publish.deployment.list.useQuery(
-        { projectId: editorEngine.projectId, limit: 25 },
-        { enabled: open },
+    const data = useQuery(
+        (open ? api.deployments.list : 'skip') as typeof api.deployments.list,
+        open
+            ? { projectId: editorEngine.projectId as Id<'projects'>, limit: 25 }
+            : (undefined as unknown as { projectId: Id<'projects'>; limit?: number }),
     );
+    const isLoading = open && data === undefined;
 
-    const { mutateAsync: redeploy, isPending: isRedeploying } =
-        api.publish.deployment.redeploy.useMutation();
-    const { mutateAsync: runDeployment } = api.publish.deployment.run.useMutation();
+    const redeploy = useAction(api.publishActions.redeploy);
+    const runDeployment = useAction(api.publishActions.run);
+    const [isRedeploying, setIsRedeploying] = useState(false);
 
     const handleRedeploy = async (deploymentId: string) => {
+        setIsRedeploying(true);
         try {
-            const created = await redeploy({ deploymentId });
-            await runDeployment({ deploymentId: created.id });
+            const created = await redeploy({
+                deploymentId: deploymentId as Id<'deployments'>,
+            });
+            await runDeployment({
+                deploymentId: (created as { _id: Id<'deployments'> })._id,
+            });
             toast.success('Redeploy started');
-            await refetch();
             onOpenChange(false);
         } catch (err) {
             console.error(err);
             toast.error(err instanceof Error ? err.message : 'Failed to redeploy');
+        } finally {
+            setIsRedeploying(false);
         }
     };
 
@@ -93,15 +104,16 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
                         <p className="text-mini p-4">No deployments yet.</p>
                     )}
                     {data?.map((deployment) => {
-                        const status = STATUS_PILL[deployment.status];
-                        const isExpanded = expandedId === deployment.id;
+                        const status = STATUS_PILL[deployment.status as DeploymentStatus];
+                        const isExpanded = expandedId === deployment._id;
                         const parsedError = deployment.error
                             ? parseDeploymentError(deployment.error)
                             : null;
                         const canRedeploy =
-                            isTerminal(deployment.status) && Boolean(deployment.sandboxId);
+                            isTerminal(deployment.status as DeploymentStatus) &&
+                            Boolean(deployment.sandboxId);
                         return (
-                            <div key={deployment.id} className="flex flex-col gap-2 p-3">
+                            <div key={deployment._id} className="flex flex-col gap-2 p-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span
                                         className={`text-micro rounded-full border px-2 py-0.5 font-medium ${status.className}`}
@@ -116,7 +128,7 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
                                         {HOSTING_PROVIDER_LABELS[deployment.provider]}
                                     </span>
                                     <span className="text-mini ml-auto">
-                                        {timeAgo(deployment.createdAt)} ago
+                                        {timeAgo(new Date(deployment._creationTime))} ago
                                     </span>
                                 </div>
                                 {parsedError && (
@@ -133,7 +145,7 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() =>
-                                                setExpandedId(isExpanded ? null : deployment.id)
+                                                setExpandedId(isExpanded ? null : deployment._id)
                                             }
                                         >
                                             {isExpanded ? 'Hide log' : 'Show log'}
@@ -145,7 +157,7 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
                                             size="sm"
                                             disabled={isRedeploying}
                                             onClick={() => {
-                                                void handleRedeploy(deployment.id);
+                                                void handleRedeploy(deployment._id);
                                             }}
                                         >
                                             <Icons.Reload className="mr-1 h-3 w-3" />

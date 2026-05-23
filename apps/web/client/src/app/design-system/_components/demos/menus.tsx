@@ -61,7 +61,11 @@ const SAMPLE_PROJECTS = [
 export function MenusDemo() {
     const [sort, setSort] = useState('alpha');
     const [order, setOrder] = useState('newest');
-    const [visible, setVisible] = useState({ grid: true, ruler: false, guides: true });
+    const [visible, setVisible] = useState({
+        grid: true,
+        ruler: false,
+        guides: true,
+    });
     const [filter, setFilter] = useState('');
     const filtered = useMemo(
         () =>

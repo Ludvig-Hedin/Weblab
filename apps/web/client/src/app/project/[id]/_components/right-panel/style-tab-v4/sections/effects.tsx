@@ -6,14 +6,15 @@ import { observer } from 'mobx-react-lite';
 import {
     ColorField,
     CustomExpander,
+    GroupShell,
+    LabeledSelectInput,
     NumberField,
-    PropertyControl,
     PropertyLabel,
-    SelectField,
     ShadowField,
     StyleChipPicker,
     TextField,
 } from '../controls';
+import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -34,7 +35,7 @@ const BLEND_MODE_OPTIONS = [
     { value: 'saturation', label: 'Saturation' },
     { value: 'color', label: 'Color' },
     { value: 'luminosity', label: 'Luminosity' },
-];
+] as const;
 
 const OUTLINE_STYLE_OPTIONS = [
     { value: 'none', label: 'None' },
@@ -42,14 +43,13 @@ const OUTLINE_STYLE_OPTIONS = [
     { value: 'dashed', label: 'Dashed' },
     { value: 'dotted', label: 'Dotted' },
     { value: 'double', label: 'Double' },
-];
+] as const;
 
 /**
- * Effects — empty by default with the Figma's "Add Effect" chip CTA. Once
- * the user opens Custom, every raw property from v2's Effects section
- * (blend, outline, shadow, filter, backdrop-filter) is editable. The chip
- * picker side currently shows no saved styles (no effect-style registry
- * exists yet — see plan note); the Custom expander carries full parity.
+ * Effects section — StyleChipPicker CTA at the top (effect-style registry not
+ * yet built), then a CustomExpander carrying all the raw effect properties.
+ * Ported to v4 grammar: each row inside the expander is a GroupShell wrapping
+ * the appropriate v4 primitive; content in `flex flex-col gap-3 px-3 pb-3`.
  */
 export const EffectsSection = observer(function EffectsSection() {
     const blendMode = useStyleValue('mix-blend-mode');
@@ -61,7 +61,16 @@ export const EffectsSection = observer(function EffectsSection() {
     const filter = useStyleValue('filter');
     const backdropFilter = useStyleValue('backdrop-filter');
 
-    const advancedProps = [
+    const blendModeSetter = useStyleSetter('mix-blend-mode');
+    const outlineStyleSetter = useStyleSetter('outline-style');
+    const outlineWidthSetter = useStyleSetter('outline-width');
+    const outlineColorSetter = useStyleSetter('outline-color');
+    const outlineOffsetSetter = useStyleSetter('outline-offset');
+    const boxShadowSetter = useStyleSetter('box-shadow');
+    const filterSetter = useStyleSetter('filter');
+    const backdropFilterSetter = useStyleSetter('backdrop-filter');
+
+    const advancedSetCount = [
         blendMode,
         outlineStyle,
         outlineWidth,
@@ -70,74 +79,90 @@ export const EffectsSection = observer(function EffectsSection() {
         boxShadow,
         filter,
         backdropFilter,
-    ];
-    const advancedSetCount = advancedProps.filter((v) => v.isSet).length;
+    ].filter((v) => v.isSet).length;
+
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
 
     return (
         <Section id="effects" title="Effects">
-            <div className="group/control flex items-center gap-3 px-3 py-1">
-                <PropertyLabel label="Style" isSet={false} title="Apply effect style" />
-                {/* Effect-style registry isn't built yet — the chip shows an
-                    honest "coming soon" while the Custom expander below carries
-                    full box-shadow / filter / outline parity. */}
-                <StyleChipPicker
-                    value=""
-                    options={[]}
-                    kind="Effect"
-                    onApply={() => undefined}
-                    onDetach={() => undefined}
-                    onToggleCustom={() => setCustomOpen((v) => !v)}
-                    customOpen={customOpen}
-                    comingSoon
-                />
-            </div>
-            <CustomExpander
-                open={customOpen}
-                onOpenChange={setCustomOpen}
-                summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
-            >
-                <PropertyControl property="box-shadow" label="Shadow">
-                    {({ value, commit }) => <ShadowField value={value} onCommit={commit} />}
-                </PropertyControl>
-                <PropertyControl property="filter" label="Filter">
-                    {({ value, commit }) => (
+            <div className="flex flex-col gap-3 px-3 pb-3">
+                {/* Style chip — effect-style registry not built yet */}
+                <div className="group/control flex items-center gap-3">
+                    <PropertyLabel label="Style" isSet={false} title="Apply effect style" />
+                    <StyleChipPicker
+                        value=""
+                        options={[]}
+                        kind="Effect"
+                        onApply={() => undefined}
+                        onDetach={() => undefined}
+                        onToggleCustom={() => setCustomOpen((v) => !v)}
+                        customOpen={customOpen}
+                        comingSoon
+                    />
+                </div>
+
+                <CustomExpander
+                    open={customOpen}
+                    onOpenChange={setCustomOpen}
+                    summary={advancedSetCount > 0 ? `${advancedSetCount} set` : undefined}
+                >
+                    <GroupShell label="Shadow" onReset={() => boxShadowSetter.set('')}>
+                        <ShadowField value={boxShadow.value} onCommit={boxShadowSetter.set} />
+                    </GroupShell>
+
+                    <GroupShell label="Filter" onReset={() => filterSetter.set('')}>
                         <TextField
-                            value={value}
-                            onCommit={commit}
+                            value={filter.value}
+                            onCommit={filterSetter.set}
                             placeholder="blur(4px) brightness(0.9)"
                         />
-                    )}
-                </PropertyControl>
-                <PropertyControl property="backdrop-filter" label="Backdrop">
-                    {({ value, commit }) => (
-                        <TextField value={value} onCommit={commit} placeholder="blur(8px)" />
-                    )}
-                </PropertyControl>
-                <PropertyControl property="mix-blend-mode" label="Blend">
-                    {({ value, commit }) => (
-                        <SelectField value={value} options={BLEND_MODE_OPTIONS} onCommit={commit} />
-                    )}
-                </PropertyControl>
-                <PropertyControl property="outline-style" label="Outline">
-                    {({ value, commit }) => (
-                        <SelectField
-                            value={value}
-                            options={OUTLINE_STYLE_OPTIONS}
-                            onCommit={commit}
+                    </GroupShell>
+
+                    <GroupShell
+                        label="Backdrop filter"
+                        onReset={() => backdropFilterSetter.set('')}
+                    >
+                        <TextField
+                            value={backdropFilter.value}
+                            onCommit={backdropFilterSetter.set}
+                            placeholder="blur(8px)"
                         />
-                    )}
-                </PropertyControl>
-                <PropertyControl property="outline-width" label="Out. W">
-                    {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
-                </PropertyControl>
-                <PropertyControl property="outline-color" label="Out. C">
-                    {({ value, commit }) => <ColorField value={value} onCommit={commit} />}
-                </PropertyControl>
-                <PropertyControl property="outline-offset" label="Out. ↔">
-                    {({ value, commit }) => <NumberField value={value} onCommit={commit} />}
-                </PropertyControl>
-            </CustomExpander>
+                    </GroupShell>
+
+                    <GroupShell label="Blend mode" onReset={() => blendModeSetter.set('')}>
+                        <LabeledSelectInput
+                            label="Mode"
+                            value={blendMode.value}
+                            options={BLEND_MODE_OPTIONS}
+                            onCommit={blendModeSetter.set}
+                        />
+                    </GroupShell>
+
+                    <GroupShell label="Outline style" onReset={() => outlineStyleSetter.set('')}>
+                        <LabeledSelectInput
+                            label="Style"
+                            value={outlineStyle.value}
+                            options={OUTLINE_STYLE_OPTIONS}
+                            onCommit={outlineStyleSetter.set}
+                        />
+                    </GroupShell>
+
+                    <GroupShell label="Outline width" onReset={() => outlineWidthSetter.set('')}>
+                        <NumberField value={outlineWidth.value} onCommit={outlineWidthSetter.set} />
+                    </GroupShell>
+
+                    <GroupShell label="Outline color" onReset={() => outlineColorSetter.set('')}>
+                        <ColorField value={outlineColor.value} onCommit={outlineColorSetter.set} />
+                    </GroupShell>
+
+                    <GroupShell label="Outline offset" onReset={() => outlineOffsetSetter.set('')}>
+                        <NumberField
+                            value={outlineOffset.value}
+                            onCommit={outlineOffsetSetter.set}
+                        />
+                    </GroupShell>
+                </CustomExpander>
+            </div>
         </Section>
     );
 });

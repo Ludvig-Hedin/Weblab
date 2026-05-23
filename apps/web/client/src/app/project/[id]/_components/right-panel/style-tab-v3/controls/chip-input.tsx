@@ -97,7 +97,7 @@ export function ChipInput({
             // container only when a chip or the trailing input receives
             // keyboard focus — never on mouse-click.
             className={cn(
-                'bg-background-secondary hover:bg-background-tertiary dark:hover:bg-[#181818] has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-1 transition-colors dark:bg-[#101010]',
+                'bg-background-secondary hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-1 transition-colors dark:bg-[#101010] dark:hover:bg-[#181818]',
                 className,
             )}
             onMouseDown={(event) => {
@@ -134,7 +134,7 @@ export function ChipInput({
                     }}
                     onClick={() => focusChip(index)}
                     aria-label={`${chip}. Press Backspace to remove.`}
-                    className="bg-foreground-brand/15 text-foreground-brand hover:bg-foreground-brand/25 focus-visible:ring-foreground-brand/30 text-mini inline-flex h-5 items-center gap-1 rounded-[4px] px-1.5 transition-colors outline-none focus-visible:ring-[3px]"
+                    className="bg-foreground-brand/15 text-foreground-brand hover:bg-foreground-brand/25 focus-visible:ring-foreground-brand/30 text-mini inline-flex h-5 items-center gap-1 rounded-xs px-1.5 transition-colors outline-none focus-visible:ring-[3px]"
                 >
                     <span className="max-w-[120px] truncate">{chip}</span>
                     {!readOnly && (

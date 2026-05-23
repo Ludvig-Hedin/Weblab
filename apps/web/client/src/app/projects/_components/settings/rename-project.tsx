@@ -59,7 +59,9 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                 }),
             );
             window.dispatchEvent(
-                new CustomEvent('weblab_project_modified', { detail: { id: project.id } }),
+                new CustomEvent('weblab_project_modified', {
+                    detail: { id: project.id },
+                }),
             );
             setShowRenameDialog(false);
             refetch();
@@ -110,7 +112,7 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
                             />
                             <p
                                 className={cn(
-                                    'text-xs text-red-500 transition-opacity',
+                                    'text-destructive text-xs transition-opacity',
                                     isProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                                 )}
                             >

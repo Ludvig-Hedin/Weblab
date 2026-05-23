@@ -20,6 +20,10 @@ export function SettingsNav({ slug, canUpdate, canManageMembers, canInvite }: Se
         { label: 'General', href: `${base}/general`, visible: true },
         { label: 'Members', href: `${base}/members`, visible: canManageMembers },
         { label: 'Invitations', href: `${base}/invitations`, visible: canInvite },
+        // TODO: move to a workspace-scoped /w/[slug]/settings/billing route once
+        // workspace-level subscriptions land. For now this points at the global
+        // pricing page so users can reach billing from settings.
+        { label: 'Billing', href: '/pricing', visible: true },
     ];
 
     return (

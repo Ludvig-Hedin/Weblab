@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import stripAnsi from 'strip-ansi';
 
 import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
@@ -11,7 +11,7 @@ import {
     sanitizeCommitMessage,
     withSyncPaused,
 } from '@/utils/git';
-import { isShellStartupError } from '../sandbox/errors';
+import { isSandboxGoneError, isShellStartupError } from '../sandbox/errors';
 
 const MAX_DIFF_FILE_BYTES = 500_000;
 
@@ -214,6 +214,13 @@ export class GitManager {
             // Initialize git repository
             const initResult = await this.runCommand('git init');
             if (!initResult.success) {
+                // Quietly drop the noisy 410 — the Restore CTA owns
+                // recovery once the sandbox has been reclaimed; logging
+                // here just duplicates the same warning across every
+                // git command in the project-open cascade.
+                if (isSandboxGoneError(initResult.error)) {
+                    return false;
+                }
                 console.error('Failed to initialize git repository:', initResult.error);
                 return false;
             }
@@ -546,10 +553,15 @@ export class GitManager {
         );
 
         if (result.success && this.commits) {
-            // Update the commit in local cache instead of re-fetching all commits
-            const commitIndex = this.commits.findIndex((commit) => commit.oid === commitOid);
+            // Update the commit in local cache instead of re-fetching all commits.
+            // Wrap the observable mutation in runInAction so MobX strict mode
+            // doesn't warn and downstream reactions fire reliably.
+            const commits = this.commits;
+            const commitIndex = commits.findIndex((commit) => commit.oid === commitOid);
             if (commitIndex !== -1) {
-                this.commits[commitIndex]!.displayName = sanitizedDisplayName;
+                runInAction(() => {
+                    commits[commitIndex]!.displayName = sanitizedDisplayName;
+                });
             }
         }
 

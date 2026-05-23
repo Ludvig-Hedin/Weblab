@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
@@ -11,7 +13,6 @@ import { cn } from '@weblab/ui/utils';
 import { SHORTCUT_SECTIONS } from '@/app/project/[id]/_components/keyboard-shortcuts-modal';
 import { DEFAULT_HOTKEYS, makeReadableCommand } from '@/components/hotkey';
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 
 function KbdChip({ command }: { command: string }) {
     return (
@@ -34,11 +35,7 @@ const ShortcutRow = observer(
         onCancelCapture: () => void;
     }) => {
         const stateManager = useStateManager();
-        const apiUtils = api.useUtils();
-        const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-            onSuccess: () => void apiUtils.user.settings.get.invalidate(),
-            onError: () => toast.error('Failed to save shortcut'),
-        });
+        const updateSettings = useMutation(api.users.updateSettings);
 
         const defaultHotkey = DEFAULT_HOTKEYS[hotkeyKey];
         // NOTE: do NOT early-return here — the hooks below must run on every
@@ -48,38 +45,38 @@ const ShortcutRow = observer(
         const isCustomized = defaultHotkey ? stateManager.hotkeys.isCustomized(hotkeyKey) : false;
 
         const saveBinding = useCallback(
-            (key: string, value: string) => {
+            async (key: string, value: string) => {
                 const previous = stateManager.hotkeys.customBindings[key];
                 stateManager.hotkeys.setBinding(key, value);
-                updateSettings(
-                    { customShortcuts: { ...stateManager.hotkeys.customBindings } },
-                    {
-                        onError: () => {
-                            if (previous !== undefined) {
-                                stateManager.hotkeys.setBinding(key, previous);
-                            } else {
-                                stateManager.hotkeys.resetBinding(key);
-                            }
-                        },
-                    },
-                );
+                try {
+                    await updateSettings({
+                        customShortcuts: { ...stateManager.hotkeys.customBindings },
+                    });
+                } catch {
+                    toast.error('Failed to save shortcut');
+                    if (previous !== undefined) {
+                        stateManager.hotkeys.setBinding(key, previous);
+                    } else {
+                        stateManager.hotkeys.resetBinding(key);
+                    }
+                }
             },
             [stateManager.hotkeys, updateSettings],
         );
 
-        const resetBinding = useCallback(() => {
+        const resetBinding = useCallback(async () => {
             const previous = stateManager.hotkeys.customBindings[hotkeyKey];
             stateManager.hotkeys.resetBinding(hotkeyKey);
-            updateSettings(
-                { customShortcuts: { ...stateManager.hotkeys.customBindings } },
-                {
-                    onError: () => {
-                        if (previous !== undefined) {
-                            stateManager.hotkeys.setBinding(hotkeyKey, previous);
-                        }
-                    },
-                },
-            );
+            try {
+                await updateSettings({
+                    customShortcuts: { ...stateManager.hotkeys.customBindings },
+                });
+            } catch {
+                toast.error('Failed to save shortcut');
+                if (previous !== undefined) {
+                    stateManager.hotkeys.setBinding(hotkeyKey, previous);
+                }
+            }
         }, [hotkeyKey, stateManager.hotkeys, updateSettings]);
 
         useEffect(() => {
@@ -116,7 +113,7 @@ const ShortcutRow = observer(
                         onCancelCapture();
                         return;
                     }
-                    saveBinding(hotkeyKey, parts.join('+'));
+                    void saveBinding(hotkeyKey, parts.join('+'));
                     onCancelCapture();
                 }
             };
@@ -163,7 +160,7 @@ const ShortcutRow = observer(
                             size="icon"
                             className="text-foreground-tertiary hover:text-destructive h-6 w-6"
                             title="Reset to default"
-                            onClick={resetBinding}
+                            onClick={() => void resetBinding()}
                         >
                             <Icons.Reset className="h-3 w-3" />
                         </Button>
@@ -176,45 +173,37 @@ const ShortcutRow = observer(
 
 export const ShortcutsTab = observer(() => {
     const stateManager = useStateManager();
-    const apiUtils = api.useUtils();
-    const { mutate: updateSettings } = api.user.settings.upsert.useMutation({
-        onSuccess: () => void apiUtils.user.settings.get.invalidate(),
-        onError: () => toast.error('Failed to reset shortcuts'),
-    });
+    const updateSettings = useMutation(api.users.updateSettings);
 
     const [capturingKey, setCapturingKey] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const handleResetAll = () => {
+    const handleResetAll = async () => {
         // Snapshot before mutating so we can roll the local state back if the
         // server upsert fails — otherwise the UI shows defaults while the
         // server still holds the user's custom bindings.
         const previousBindings = { ...stateManager.hotkeys.customBindings };
         if (Object.keys(previousBindings).length === 0) return;
         stateManager.hotkeys.resetAll();
-        updateSettings(
-            { customShortcuts: {} },
-            {
-                onSuccess: () => {
-                    toast.success('All shortcuts reset to defaults', {
-                        action: {
-                            label: 'Undo',
-                            onClick: () => {
-                                Object.entries(previousBindings).forEach(([key, value]) => {
-                                    stateManager.hotkeys.setBinding(key, value);
-                                });
-                                updateSettings({ customShortcuts: previousBindings });
-                            },
-                        },
-                    });
+        try {
+            await updateSettings({ customShortcuts: {} });
+            toast.success('All shortcuts reset to defaults', {
+                action: {
+                    label: 'Undo',
+                    onClick: () => {
+                        Object.entries(previousBindings).forEach(([key, value]) => {
+                            stateManager.hotkeys.setBinding(key, value);
+                        });
+                        void updateSettings({ customShortcuts: previousBindings });
+                    },
                 },
-                onError: () => {
-                    Object.entries(previousBindings).forEach(([key, value]) => {
-                        stateManager.hotkeys.setBinding(key, value);
-                    });
-                },
-            },
-        );
+            });
+        } catch {
+            toast.error('Failed to reset shortcuts');
+            Object.entries(previousBindings).forEach(([key, value]) => {
+                stateManager.hotkeys.setBinding(key, value);
+            });
+        }
     };
 
     const hasCustom = Object.keys(stateManager.hotkeys.customBindings).length > 0;
@@ -229,7 +218,7 @@ export const ShortcutsTab = observer(() => {
                     </p>
                 </div>
                 {hasCustom && (
-                    <Button variant="outline" size="sm" onClick={handleResetAll}>
+                    <Button variant="outline" size="sm" onClick={() => void handleResetAll()}>
                         Reset all to defaults
                     </Button>
                 )}

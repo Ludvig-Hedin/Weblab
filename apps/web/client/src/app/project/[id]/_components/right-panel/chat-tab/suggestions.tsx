@@ -1,4 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 
@@ -6,7 +8,6 @@ import type { ChatSuggestion } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 export interface SuggestionsRef {
     handleTabNavigation: (reverse: boolean) => boolean;
@@ -26,14 +27,15 @@ export const Suggestions = observer(
         }
     >(({ suggestions, isStreaming, disabled, inputValue, setInput, onSuggestionFocus }, ref) => {
         const editorEngine = useEditorEngine();
-        const { data: settings } = api.user.settings.get.useQuery();
+        const settings = useQuery(api.users.getSettings, {});
         const [focusedIndex, setFocusedIndex] = useState<number>(-1);
         const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
+        // TODO(convex-migration): users.getSettings returns the flat DB row; switch to nested-shape via fromDbUserSettings mapper when available
         const shouldHideSuggestions =
             suggestions.length === 0 ||
             isStreaming ||
-            !settings?.chat?.showSuggestions ||
+            !settings?.showSuggestions ||
             disabled ||
             inputValue.trim().length > 0 ||
             editorEngine.branches.getAllErrors().length > 0;

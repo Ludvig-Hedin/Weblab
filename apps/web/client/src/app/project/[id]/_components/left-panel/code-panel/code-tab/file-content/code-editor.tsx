@@ -1,7 +1,9 @@
 import type { RefObject } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, keymap } from '@codemirror/view';
+import { api } from '@convex/_generated/api';
 import CodeMirror from '@uiw/react-codemirror';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';
 
@@ -22,7 +24,6 @@ import type { BinaryEditorFile, EditorFile } from '../shared/types';
 import type { InlineEditSession } from './inline-edit';
 import type { ViewUpdate } from '@codemirror/view';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import {
     getBasicSetup,
     getExtensions,
@@ -74,8 +75,9 @@ export const CodeEditor = observer(
         const { tabAutocomplete: tabAutocompleteEnabled } = useAiFeatureFlags();
         // Read the user's preferred chat model so tab-complete uses it
         // instead of falling back to the route's server-side default.
-        const { data: userSettings } = api.user.settings.get.useQuery();
-        const tabCompleteModel = userSettings?.chat.defaultModel;
+        const userSettings = useQuery(api.users.getSettings, {});
+        // TODO(convex-migration): users.getSettings returns the flat DB row; switch to nested-shape via fromDbUserSettings mapper when available
+        const tabCompleteModel = userSettings?.defaultModel;
         const [currentSelection, setCurrentSelection] = useState<{
             from: number;
             to: number;

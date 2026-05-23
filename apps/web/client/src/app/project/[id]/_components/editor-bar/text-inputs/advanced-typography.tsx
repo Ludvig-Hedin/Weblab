@@ -39,7 +39,10 @@ export const AdvancedTypography = () => {
     const decorationOptions = [
         { value: 'underline', icon: <Icons.TextUnderline className="h-4 w-4" /> },
         { value: 'overline', icon: <Icons.TextOverline className="h-4 w-4" /> },
-        { value: 'line-through', icon: <Icons.TextStrikeThrough className="h-4 w-4" /> },
+        {
+            value: 'line-through',
+            icon: <Icons.TextStrikeThrough className="h-4 w-4" />,
+        },
         { value: 'none', icon: <Icons.CrossL className="h-4 w-4" /> },
     ];
 

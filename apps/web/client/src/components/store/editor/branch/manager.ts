@@ -6,6 +6,11 @@ import { CodeFileSystem } from '@weblab/file-system';
 import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.branch.fork` → `api.branchActions.fork`,
+// `api.branch.createBlank` → `api.branchActions.createBlank`,
+// `api.branch.update` → `api.branches.update` once a Convex HTTP client with
+// Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 import { ErrorManager } from '../error';
 import { HistoryManager } from '../history';

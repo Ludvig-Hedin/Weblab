@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { AlignLeft } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
@@ -15,9 +17,9 @@ import { Label } from '@weblab/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { Section } from './section';
 
 /**
@@ -62,34 +64,51 @@ export const ContentSection = observer(function ContentSection() {
 
     const isList = !!actionElement?.attributes && 'data-weblab-list' in actionElement.attributes;
 
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && isList },
+    const enableCmsQueries = !!projectId && isList;
+    const collections = useQuery(
+        (enableCmsQueries ? api.cmsCollections.list : 'skip') as typeof api.cmsCollections.list,
+        enableCmsQueries
+            ? { projectId: projectId as Id<'projects'> }
+            : (undefined as unknown as { projectId: Id<'projects'> }),
     );
-    const bindingsQuery = api.cms.binding.listForProject.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId && isList },
+    const bindings = useQuery(
+        (enableCmsQueries
+            ? api.cmsBindings.listForProject
+            : 'skip') as typeof api.cmsBindings.listForProject,
+        enableCmsQueries
+            ? { projectId: projectId as Id<'projects'> }
+            : (undefined as unknown as { projectId: Id<'projects'> }),
     );
 
     const oid = selected?.oid ?? null;
-    const existing = oid ? (bindingsQuery.data?.find((b) => b.oid === oid) ?? null) : null;
+    const existing = oid ? (bindings?.find((b) => b.oid === oid) ?? null) : null;
     const repeatBinding =
         existing && existing.binding.kind === CmsBindingKind.REPEAT ? existing.binding : null;
 
     const collectionId = repeatBinding?.collectionId ?? '';
-    const fieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId: projectId ?? '', collectionId },
-        { enabled: !!projectId && !!collectionId && isList },
+    const enableFieldsQuery = !!projectId && !!collectionId && isList;
+    const fields = useQuery(
+        (enableFieldsQuery
+            ? api.cmsFields.listByCollection
+            : 'skip') as typeof api.cmsFields.listByCollection,
+        enableFieldsQuery
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: collectionId as Id<'cmsCollections'>,
+              }
+            : (undefined as unknown as {
+                  projectId: Id<'projects'>;
+                  collectionId: Id<'cmsCollections'>;
+              }),
     );
 
-    const utils = api.useUtils();
-    const upsertMutation = api.cms.binding.upsert.useMutation();
-    const isSaving = upsertMutation.isPending;
+    const upsertBinding = useMutation(api.cmsBindings.upsert);
+    const [isSaving, setIsSaving] = useState(false);
 
     if (!selected || !oid || !isList || !projectId) return null;
 
-    const collections = collectionsQuery.data ?? [];
-    const fields = fieldsQuery.data ?? [];
+    const collectionList = collections ?? [];
+    const fieldList = fields ?? [];
 
     const setCount = repeatBinding ? 1 : 0;
 
@@ -100,7 +119,7 @@ export const ContentSection = observer(function ContentSection() {
         filters?: CmsFilterClause[] | null;
         filterMode?: 'and' | 'or' | null;
     }) => {
-        const next: Parameters<typeof upsertMutation.mutateAsync>[0]['binding'] = {
+        const next = {
             kind: CmsBindingKind.REPEAT,
             collectionId: patch.collectionId ?? repeatBinding?.collectionId ?? '',
             sort:
@@ -122,12 +141,17 @@ export const ContentSection = observer(function ContentSection() {
             toast.error(t(transKeys.cms.bind.repeat.pickCollection));
             return;
         }
+        setIsSaving(true);
         try {
-            await upsertMutation.mutateAsync({ projectId, oid, binding: next });
-            await utils.cms.binding.listForProject.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            await upsertBinding({
+                projectId: projectId as Id<'projects'>,
+                oid,
+                binding: next as never,
+            });
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.bind.failed));
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -168,15 +192,15 @@ export const ContentSection = observer(function ContentSection() {
                         <SelectTrigger id="list-content-collection" className="text-mini h-7">
                             <SelectValue
                                 placeholder={
-                                    collections.length === 0
+                                    collectionList.length === 0
                                         ? t(transKeys.cms.bind.collectionEmpty)
                                         : t(transKeys.cms.bind.collectionPick)
                                 }
                             />
                         </SelectTrigger>
                         <SelectContent>
-                            {collections.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
+                            {collectionList.map((c) => (
+                                <SelectItem key={c._id} value={c._id}>
                                     {c.name}
                                 </SelectItem>
                             ))}
@@ -203,7 +227,7 @@ export const ContentSection = observer(function ContentSection() {
                                     : null,
                             })
                         }
-                        disabled={!collectionId || fields.length === 0 || isSaving}
+                        disabled={!collectionId || fieldList.length === 0 || isSaving}
                     >
                         <SelectTrigger id="list-content-sort" className="text-mini h-7">
                             <SelectValue placeholder={t(transKeys.cms.bind.repeat.sortNone)} />
@@ -212,8 +236,8 @@ export const ContentSection = observer(function ContentSection() {
                             <SelectItem value="">
                                 {t(transKeys.cms.bind.repeat.sortNone)}
                             </SelectItem>
-                            {fields.map((f) => (
-                                <SelectItem key={f.id} value={f.key}>
+                            {fieldList.map((f) => (
+                                <SelectItem key={f._id} value={f.key}>
                                     {f.name}
                                 </SelectItem>
                             ))}
@@ -276,7 +300,7 @@ export const ContentSection = observer(function ContentSection() {
                 <FilterEditor
                     filters={repeatBinding?.filters ?? []}
                     filterMode={repeatBinding?.filterMode ?? 'and'}
-                    fields={fields}
+                    fields={fieldList as never}
                     onChange={(next, mode) =>
                         void update({
                             filters: next.length === 0 ? null : next,
@@ -339,7 +363,10 @@ function FilterEditor({
     // Stable IDs so React doesn't reuse stale input state when a filter is removed.
     const [filterIds, setFilterIds] = useState<string[]>(() => filters.map((_, i) => `fid-${i}`));
     const idCounterRef = useRef(filters.length);
-    const lastEmittedRef = useRef<{ filters: CmsFilterClause[]; mode: 'and' | 'or' }>({
+    const lastEmittedRef = useRef<{
+        filters: CmsFilterClause[];
+        mode: 'and' | 'or';
+    }>({
         filters,
         mode: filterMode,
     });

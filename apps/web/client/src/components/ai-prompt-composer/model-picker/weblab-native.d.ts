@@ -16,7 +16,11 @@ export type WeblabNativeBridge = {
             Partial<
                 Record<
                     ProviderKind,
-                    { installed: boolean; authStatus: 'ready' | 'sign-in'; version?: string }
+                    {
+                        installed: boolean;
+                        authStatus: 'ready' | 'sign-in';
+                        version?: string;
+                    }
                 >
             >
         >;

@@ -9,7 +9,8 @@ import { Icons } from '@weblab/ui/icons/index';
 import { toast } from '@weblab/ui/sonner';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { CustomExpander, PropertyControl, SelectField, TextField } from '../controls';
+import { CustomExpander, GroupShell, LabeledSelectInput, TextField } from '../controls';
+import { useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -19,13 +20,9 @@ interface CustomPropertyRow {
 }
 
 /**
- * Advanced — properties not shown in the Figma but kept for full v2 parity:
- *   - Float / Clear (rare but still addressable).
- *   - Custom CSS variables (--name: value rows).
- *
- * Margin moved into the Layout section and Transitions to their own section;
- * what remains lives behind a CustomExpander each so the section reads as one
- * "everything else" disclosure rather than separate accordions.
+ * Advanced section — Float / Clear + Custom CSS variables.
+ * Ported to v4 grammar: each row inside the expanders wrapped in GroupShell.
+ * CustomExpanders are preserved so the section reads as two disclosure groups.
  */
 export const AdvancedSection = observer(function AdvancedSection() {
     const editorEngine = useEditorEngine();
@@ -33,6 +30,9 @@ export const AdvancedSection = observer(function AdvancedSection() {
 
     const float = useStyleValue('float');
     const clear = useStyleValue('clear');
+
+    const floatSetter = useStyleSetter('float');
+    const clearSetter = useStyleSetter('clear');
 
     const customRows: CustomPropertyRow[] = useMemo(() => {
         const defined = selectedStyle?.styles.defined ?? {};
@@ -49,100 +49,104 @@ export const AdvancedSection = observer(function AdvancedSection() {
 
     return (
         <Section id="advanced" title="Advanced">
-            <CustomExpander open={layoutOpen} onOpenChange={setLayoutOpen} label="Layout extras">
-                <PropertyControl property="float" label="Float">
-                    {({ value, commit }) => (
-                        <SelectField
-                            value={value}
+            <div className="flex flex-col gap-3 px-3 pb-3">
+                <CustomExpander
+                    open={layoutOpen}
+                    onOpenChange={setLayoutOpen}
+                    label="Layout extras"
+                >
+                    <GroupShell label="Float" onReset={() => floatSetter.set('')}>
+                        <LabeledSelectInput
+                            label="Float"
+                            value={float.value}
                             options={[
                                 { value: 'none', label: 'None' },
                                 { value: 'left', label: 'Left' },
                                 { value: 'right', label: 'Right' },
                             ]}
-                            onCommit={commit}
+                            onCommit={floatSetter.set}
                         />
-                    )}
-                </PropertyControl>
-                <PropertyControl property="clear" label="Clear">
-                    {({ value, commit }) => (
-                        <SelectField
-                            value={value}
+                    </GroupShell>
+
+                    <GroupShell label="Clear" onReset={() => clearSetter.set('')}>
+                        <LabeledSelectInput
+                            label="Clear"
+                            value={clear.value}
                             options={[
                                 { value: 'none', label: 'None' },
                                 { value: 'left', label: 'Left' },
                                 { value: 'right', label: 'Right' },
                                 { value: 'both', label: 'Both' },
                             ]}
-                            onCommit={commit}
+                            onCommit={clearSetter.set}
+                        />
+                    </GroupShell>
+                </CustomExpander>
+
+                <CustomExpander
+                    open={variablesOpen}
+                    onOpenChange={setVariablesOpen}
+                    label="Custom properties"
+                    summary={customRows.length > 0 ? `${customRows.length} set` : undefined}
+                >
+                    {customRows.length === 0 && !draftRow && (
+                        <p className="text-foreground-tertiary text-mini px-3 py-1">
+                            No custom properties.
+                        </p>
+                    )}
+                    {customRows.map((row) => (
+                        <CustomVarRow
+                            key={row.name}
+                            row={row}
+                            onCommit={(name, value) => {
+                                if (name !== row.name) {
+                                    editorEngine.style.update(`--${row.name}`, '');
+                                }
+                                editorEngine.style.update(`--${name}`, value);
+                            }}
+                            onRemove={() => {
+                                const removedName = row.name;
+                                const removedValue = row.value;
+                                editorEngine.style.update(`--${removedName}`, '');
+                                toast(`Removed --${removedName}`, {
+                                    action: {
+                                        label: 'Undo',
+                                        onClick: () =>
+                                            editorEngine.style.update(
+                                                `--${removedName}`,
+                                                removedValue,
+                                            ),
+                                    },
+                                });
+                            }}
+                        />
+                    ))}
+                    {draftRow && (
+                        <CustomVarRow
+                            row={{ name: '', value: '' }}
+                            // eslint-disable-next-line jsx-a11y/no-autofocus
+                            autoFocus
+                            onCommit={(name, value) => {
+                                if (!name) return;
+                                editorEngine.style.update(`--${name}`, value);
+                                setDraftRow(false);
+                            }}
+                            onRemove={() => setDraftRow(false)}
                         />
                     )}
-                </PropertyControl>
-            </CustomExpander>
-            <CustomExpander
-                open={variablesOpen}
-                onOpenChange={setVariablesOpen}
-                label="Custom properties"
-                summary={customRows.length > 0 ? `${customRows.length} set` : undefined}
-            >
-                {customRows.length === 0 && !draftRow && (
-                    <p className="text-foreground-tertiary text-mini px-3 py-1">
-                        No custom properties.
-                    </p>
-                )}
-                {customRows.map((row) => (
-                    <CustomVarRow
-                        key={row.name}
-                        row={row}
-                        onCommit={(name, value) => {
-                            if (name !== row.name) {
-                                editorEngine.style.update(`--${row.name}`, '');
-                            }
-                            editorEngine.style.update(`--${name}`, value);
-                        }}
-                        onRemove={() => {
-                            // Capture name+value BEFORE removal so the Undo
-                            // action can re-write the exact pair.
-                            const removedName = row.name;
-                            const removedValue = row.value;
-                            editorEngine.style.update(`--${removedName}`, '');
-                            toast(`Removed --${removedName}`, {
-                                action: {
-                                    label: 'Undo',
-                                    onClick: () =>
-                                        editorEngine.style.update(`--${removedName}`, removedValue),
-                                },
-                            });
-                        }}
-                    />
-                ))}
-                {draftRow && (
-                    <CustomVarRow
-                        row={{ name: '', value: '' }}
-                        // Newly inserted draft — caret should land in the name
-                        // field so the user types immediately after pressing
-                        // "Add variable".
-                        // eslint-disable-next-line jsx-a11y/no-autofocus
-                        autoFocus
-                        onCommit={(name, value) => {
-                            if (!name) return;
-                            editorEngine.style.update(`--${name}`, value);
-                            setDraftRow(false);
-                        }}
-                        onRemove={() => setDraftRow(false)}
-                    />
-                )}
-                <div className="px-3 pt-1">
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-mini text-foreground-secondary hover:text-foreground-primary h-6 cursor-pointer px-2"
-                        onClick={() => setDraftRow(true)}
-                    >
-                        <Variable className="mr-1 size-3" />
-                        Add variable
-                    </Button>
-                </div>
-            </CustomExpander>
+                    <div className="px-3 pt-1">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-mini text-foreground-secondary hover:text-foreground-primary h-6 cursor-pointer px-2"
+                            onClick={() => setDraftRow(true)}
+                        >
+                            <Variable className="mr-1 size-3" />
+                            Add variable
+                        </Button>
+                    </div>
+                </CustomExpander>
+            </div>
         </Section>
     );
 });
@@ -156,20 +160,16 @@ interface CustomVarRowProps {
 
 function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps) {
     const [name, setName] = useState(row.name);
-    // Escape blurs the input; without this the trailing onBlur would still see
-    // the stale draft in its closure and commit it. Mirrors TextField.
     const skipBlurCommitRef = useRef(false);
+
     return (
         <div className="group/control flex items-center gap-1.5 px-3 py-1">
             <span className="text-foreground-secondary text-mini shrink-0">--</span>
-            {/* Name input mirrors FIELD_BASE_CLASSES geometry (h-[26px],
-                rounded-[10px], foreground/5 surface) so it sits in the same
-                field family as the TextField beside it — no darker inset. */}
+            {/* Name input matches FIELD_BASE_CLASSES geometry (h-[26px],
+                rounded-[10px], foreground/5 surface) */}
             <input
                 type="text"
                 value={name}
-                // First-row name input gets focus so the user can immediately
-                // start typing the variable name after clicking "Add variable".
                 // eslint-disable-next-line jsx-a11y/no-autofocus
                 autoFocus={autoFocus}
                 onChange={(e) => setName(e.target.value)}
@@ -180,8 +180,6 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
                     }
                     if (name && name !== row.name) onCommit(name, row.value);
                 }}
-                // Mirror TextField's keyboard behaviour: Enter commits + blurs,
-                // Escape reverts the draft + blurs.
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();

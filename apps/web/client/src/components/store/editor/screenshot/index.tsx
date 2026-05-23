@@ -3,6 +3,9 @@ import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
 import type { EditorEngine } from '../engine';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.project.captureScreenshot` → `api.projectActions.captureScreenshot`
+// once a Convex HTTP client with Clerk auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 
 export class ScreenshotManager {

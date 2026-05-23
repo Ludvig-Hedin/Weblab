@@ -120,7 +120,10 @@ export function SplitText({
                         }}
                     >
                         <motion.span
-                            style={{ display: 'inline-block', willChange: 'transform, opacity' }}
+                            style={{
+                                display: 'inline-block',
+                                willChange: 'transform, opacity',
+                            }}
                             variants={tokenVariants}
                         >
                             {token}

@@ -55,16 +55,16 @@ export const ConnectionChip = observer(() => {
     let labelClass: string;
     if (offline) {
         label = pending > 0 ? t('offlinePending', { count: pending }) : t('offline');
-        dotClass = 'bg-red-400';
-        labelClass = 'text-red-300';
+        dotClass = 'bg-destructive';
+        labelClass = 'text-destructive';
     } else if (syncing) {
         label = t('syncing', { count: pending });
-        dotClass = 'bg-amber-400';
-        labelClass = 'text-amber-200';
+        dotClass = 'bg-foreground-warning';
+        labelClass = 'text-foreground-warning';
     } else if (dead > 0) {
         label = t('syncErrors', { count: dead });
-        dotClass = 'bg-amber-400';
-        labelClass = 'text-amber-200';
+        dotClass = 'bg-foreground-warning';
+        labelClass = 'text-foreground-warning';
     } else {
         return null;
     }

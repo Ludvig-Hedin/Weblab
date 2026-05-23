@@ -683,7 +683,10 @@ export class ThemeManager {
         const configPath = list.find((file) => file.path.includes('tailwind.config')) ?? null;
         const cssPath = list.find((file) => file.path.includes('globals.css')) ?? null;
 
-        return { configPath: configPath?.path ?? null, cssPath: cssPath?.path ?? null };
+        return {
+            configPath: configPath?.path ?? null,
+            cssPath: cssPath?.path ?? null,
+        };
     }
 
     async scanTailwindConfig() {

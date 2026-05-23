@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
@@ -19,7 +21,7 @@ import { toast } from '@weblab/ui/sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
 import { Textarea } from '@weblab/ui/textarea';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface ParsedSkill {
     name: string;
@@ -44,6 +46,8 @@ export function SkillImportDialog({
     const [rawContent, setRawContent] = useState('');
     const [scope, setScope] = useState<'global' | 'project'>('global');
     const [parsed, setParsed] = useState<ParsedSkill | null>(null);
+    const [isPreviewing, setIsPreviewing] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     useEffect(() => {
         if (open) {
@@ -55,14 +59,14 @@ export function SkillImportDialog({
         }
     }, [open]);
 
-    const apiUtils = api.useUtils();
-    const previewImport = api.skills.previewImport.useMutation();
-    const commitImport = api.skills.commitImport.useMutation();
+    const previewImport = useAction(api.skillActions.previewImport);
+    const commitImport = useMutation(api.skills.commitImport);
 
     const fetchPreview = async () => {
+        setIsPreviewing(true);
         try {
             setParsed(null);
-            const res = await previewImport.mutateAsync(mode === 'url' ? { url } : { rawContent });
+            const res = await previewImport(mode === 'url' ? { url } : { rawContent });
             setParsed({
                 name: res.name,
                 description: res.description,
@@ -72,23 +76,29 @@ export function SkillImportDialog({
             });
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('toastReadFailed'));
+        } finally {
+            setIsPreviewing(false);
         }
     };
 
     const commit = async () => {
         if (!parsed) return;
+        setIsImporting(true);
         try {
-            const res = await commitImport.mutateAsync({
-                projectId: scope === 'project' && projectId ? projectId : null,
+            const res = await commitImport({
+                ...(scope === 'project' && projectId
+                    ? { projectId: projectId as Id<'projects'> }
+                    : {}),
                 name: parsed.name,
                 description: parsed.description,
                 content: parsed.content,
             });
             toast.success(t('toastImported', { name: res.skill.name }));
-            await apiUtils.skills.list.invalidate();
             onOpenChange(false);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('toastImportFailed'));
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -143,9 +153,9 @@ export function SkillImportDialog({
                         onClick={() => {
                             void fetchPreview();
                         }}
-                        disabled={!canFetch || previewImport.isPending}
+                        disabled={!canFetch || isPreviewing}
                     >
-                        {previewImport.isPending ? t('previewing') : t('preview')}
+                        {isPreviewing ? t('previewing') : t('preview')}
                     </Button>
 
                     {parsed ? (
@@ -208,9 +218,9 @@ export function SkillImportDialog({
                         onClick={() => {
                             void commit();
                         }}
-                        disabled={!parsed || commitImport.isPending}
+                        disabled={!parsed || isImporting}
                     >
-                        {commitImport.isPending ? t('importing') : t('import')}
+                        {isImporting ? t('importing') : t('import')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

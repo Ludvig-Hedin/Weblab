@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { motion } from 'motion/react';
 
 import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
 import { useGetBackground } from '@/hooks/use-get-background';
-import { api } from '@/trpc/react';
 import { ProjectChooserCards } from '../_components/project-chooser-cards';
 import { PROJECT_SUGGESTIONS } from '../_components/select';
 import { ExternalTemplates } from '../_components/templates/external-templates';
@@ -14,7 +15,7 @@ import { EXTERNAL_TEMPLATES } from '../_components/templates/template-data';
 import { TopBar } from '../_components/top-bar';
 
 const Page = () => {
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
     const [isCreatingFromPrompt, setIsCreatingFromPrompt] = useState(false);
     const [shouldResumeCreate, setShouldResumeCreate] = useState(false);
     const backgroundUrl = useGetBackground('create');
@@ -74,7 +75,8 @@ const Page = () => {
                                 cardKey={0}
                                 isCreatingProject={isCreatingFromPrompt}
                                 setIsCreatingProject={setIsCreatingFromPrompt}
-                                user={user ?? null}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                user={(user as any) ?? null}
                                 autoSubmitRestoredDraft={shouldResumeCreate}
                                 suggestions={PROJECT_SUGGESTIONS}
                             />

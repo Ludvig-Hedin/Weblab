@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -13,10 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@weblab/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { env } from '@/env';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { DropdownManagerProvider } from '../editor-bar/hooks/use-dropdown-manager';
 import { ChatTab } from './chat-tab';
 import { ChatControls } from './chat-tab/controls';
@@ -60,8 +62,8 @@ const FIRST_CREATION_PANEL_WIDTH = 460;
 export const RightPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
-    const { data: creationRequest } = api.project.createRequest.getPendingRequest.useQuery({
-        projectId: editorEngine.projectId,
+    const creationRequest = useQuery(api.projectCreateRequests.getPendingRequest, {
+        projectId: editorEngine.projectId as Id<'projects'>,
     });
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);

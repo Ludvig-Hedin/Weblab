@@ -49,7 +49,7 @@ function CellContent({ cell, highlight }: { cell: Cell; highlight?: boolean }) {
     if (value === true) {
         inner = (
             <span className="inline-flex items-center justify-center">
-                <Check className="h-4 w-4 text-emerald-500" strokeWidth={2.5} />
+                <Check className="text-foreground-success h-4 w-4" strokeWidth={2.5} />
             </span>
         );
     } else if (value === false) {
@@ -142,7 +142,14 @@ const rows: Row[] = [
     },
 
     // ── AI ───────────────────────────────────────────────────────────
-    { feature: 'AI', isCategory: true, weblab: '', webflow: '', framer: '', lovable: '' },
+    {
+        feature: 'AI',
+        isCategory: true,
+        weblab: '',
+        webflow: '',
+        framer: '',
+        lovable: '',
+    },
 
     {
         feature: 'AI constrained to your design system',
@@ -258,9 +265,19 @@ const rows: Row[] = [
 
 const COLS = [
     { key: 'weblab', label: APP_NAME, highlight: true, href: '/projects' },
-    { key: 'webflow', label: 'Webflow', highlight: false, href: '/compare/webflow' },
+    {
+        key: 'webflow',
+        label: 'Webflow',
+        highlight: false,
+        href: '/compare/webflow',
+    },
     { key: 'framer', label: 'Framer', highlight: false, href: '/compare/framer' },
-    { key: 'lovable', label: 'Lovable', highlight: false, href: '/compare/lovable' },
+    {
+        key: 'lovable',
+        label: 'Lovable',
+        highlight: false,
+        href: '/compare/lovable',
+    },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────

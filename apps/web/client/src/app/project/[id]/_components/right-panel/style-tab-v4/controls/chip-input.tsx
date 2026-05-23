@@ -115,7 +115,7 @@ export function ChipInput({
         <div
             role="presentation"
             className={cn(
-                'bg-background-secondary hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-[4px] transition-colors dark:bg-[#262626] dark:hover:bg-[#2F2F2F]',
+                'bg-background-secondary hover:bg-background-tertiary has-[:focus-visible]:border-foreground-brand flex min-h-[28px] min-w-0 flex-1 flex-wrap items-center gap-1 rounded-[10px] border border-transparent p-[4px] transition-colors',
                 className,
             )}
             onMouseDown={(event) => {

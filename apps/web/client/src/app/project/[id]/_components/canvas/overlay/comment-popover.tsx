@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
 
@@ -9,7 +10,6 @@ import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { createClient } from '@/utils/supabase/client';
 
 function formatRelativeTime(date: Date | string): string {
     const d = new Date(date);
@@ -67,25 +67,12 @@ export const CommentPopover = observer(() => {
     const popoverRef = useRef<HTMLDivElement>(null);
     const newCommentInputRef = useRef<HTMLTextAreaElement>(null);
 
-    // Fetch current user once per component lifetime. The component only unmounts
-    // when both pendingPlacement and activeCommentId are null, so this runs at
-    // most once per "comment session" rather than once per pin click.
+    // Read current user from Clerk. Single hook subscription — no async
+    // round-trip per pin click.
+    const { user: clerkUser } = useUser();
     useEffect(() => {
-        let cancelled = false;
-        createClient()
-            .auth.getUser()
-            .then(({ data }) => {
-                if (!cancelled) setCurrentUserId(data.user?.id ?? null);
-            })
-            .catch((error) => {
-                if (!cancelled) {
-                    console.error('Failed to fetch current user:', error);
-                }
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+        setCurrentUserId(clerkUser?.id ?? null);
+    }, [clerkUser?.id]);
 
     useEffect(() => {
         if (pendingPlacement && newCommentInputRef.current) {
@@ -152,7 +139,7 @@ export const CommentPopover = observer(() => {
                 content: newCommentText.trim(),
             });
             setNewCommentText('');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create comment:', error);
             toast.error('Failed to post comment');
         } finally {
@@ -166,7 +153,7 @@ export const CommentPopover = observer(() => {
         try {
             await editorEngine.comment.createReply(activeCommentId, replyText.trim());
             setReplyText('');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create reply:', error);
             toast.error('Failed to post reply');
         } finally {
@@ -181,7 +168,7 @@ export const CommentPopover = observer(() => {
             await editorEngine.comment.updateComment(editingCommentId, editingText.trim());
             setEditingCommentId(null);
             setEditingText('');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to update comment:', error);
             toast.error('Failed to update comment');
         } finally {
@@ -332,7 +319,7 @@ export const CommentPopover = observer(() => {
                                                                     activeComment.id,
                                                                 );
                                                                 setConfirmDeleteId(null);
-                                                            } catch (error) {
+                                                            } catch (error: any) {
                                                                 console.error(
                                                                     'Failed to delete comment:',
                                                                     error,
@@ -398,7 +385,7 @@ export const CommentPopover = observer(() => {
                                                                                 await editorEngine.comment.deleteReply(
                                                                                     reply.id,
                                                                                 );
-                                                                            } catch (error) {
+                                                                            } catch (error: any) {
                                                                                 console.error(
                                                                                     'Failed to delete reply',
                                                                                     error,

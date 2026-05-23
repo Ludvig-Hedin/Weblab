@@ -13,6 +13,8 @@ import { cn } from '@weblab/ui/utils';
 import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
+import { env } from '@/env';
+import { api } from '@/trpc/react';
 import { EditAppButton } from '../edit-app';
 import { SettingsDropdown } from '../settings';
 import {
@@ -86,15 +88,29 @@ export function ProjectCard({
         }
     };
 
+    const utils = api.useUtils();
+
     // Warm the editor route on first hover so the click → render gap is
     // dominated by data, not by JS chunk download. Next's <Link> already
     // prefetches on viewport entry but only the page boundary — calling
     // router.prefetch explicitly ensures the loader chunk is hot.
+    //
+    // When NEXT_PUBLIC_AGGRESSIVE_PREFETCH=true, also pre-populate the
+    // tRPC bootstrap cache so the editor's first render has data ready
+    // and skips the round-trip to the server. Costs an extra tRPC call
+    // per hover, off by default. Toggle for demos.
     const handleHoverPrefetch = useCallback(() => {
         if (hasPrefetched || selectionMode) return;
         router.prefetch(projectHref);
+        if (env.NEXT_PUBLIC_AGGRESSIVE_PREFETCH) {
+            // Best-effort warm-up. Hard failures surface again on the
+            // actual navigation, so swallow here.
+            void utils.project.getEditorBootstrap.prefetch({ projectId: project.id }).catch(() => {
+                /* silent */
+            });
+        }
         setHasPrefetched(true);
-    }, [hasPrefetched, projectHref, router, selectionMode]);
+    }, [hasPrefetched, projectHref, router, selectionMode, utils, project.id]);
 
     const handleOpenClick = useCallback(() => {
         // Skip overlay while in selection mode — click toggles the checkbox
@@ -116,17 +132,7 @@ export function ProjectCard({
                 className={cn(
                     'rounded-xl p-1.5 transition-colors duration-200',
                     selected ? 'bg-foreground/8' : 'bg-transparent',
-                    !selectionMode && 'cursor-pointer',
                 )}
-                onClick={
-                    !selectionMode
-                        ? (e) => {
-                              if ((e.target as HTMLElement).closest('a')) return;
-                              handleOpenClick();
-                              router.push(projectHref);
-                          }
-                        : undefined
-                }
             >
                 <div className="relative">
                     {selectionMode ? (
@@ -197,7 +203,14 @@ export function ProjectCard({
 
                     {!selectionMode && (
                         <>
-                            <div className="absolute top-3 right-3 z-30 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100">
+                            <div
+                                className="absolute top-3 right-3 z-30 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100"
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                role="presentation"
+                            >
                                 <SettingsDropdown
                                     project={project as Project}
                                     refetch={() => {
@@ -244,7 +257,7 @@ export function ProjectCard({
                                     <img
                                         src={faviconUrl}
                                         alt=""
-                                        className="h-4 w-4 shrink-0 rounded-[4px] object-cover"
+                                        className="h-4 w-4 shrink-0 rounded-xs object-cover"
                                         loading="lazy"
                                         onError={() => setFaviconFailed(true)}
                                     />
@@ -274,7 +287,7 @@ export function ProjectCard({
                                     <img
                                         src={faviconUrl}
                                         alt=""
-                                        className="h-4 w-4 shrink-0 rounded-[4px] object-cover"
+                                        className="h-4 w-4 shrink-0 rounded-xs object-cover"
                                         loading="lazy"
                                         onError={() => setFaviconFailed(true)}
                                     />

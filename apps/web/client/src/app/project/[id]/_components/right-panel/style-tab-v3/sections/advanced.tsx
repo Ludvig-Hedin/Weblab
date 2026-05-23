@@ -165,7 +165,7 @@ function CustomVarRow({ row, onCommit, onRemove, autoFocus }: CustomVarRowProps)
         <div className="group/control flex items-center gap-1.5 px-3 py-1">
             <span className="text-foreground-secondary text-mini shrink-0">--</span>
             {/* Name input mirrors FIELD_BASE_CLASSES geometry (h-[30px],
-                rounded-[8px], foreground/5 surface) so it sits in the same
+                rounded-sm, foreground/5 surface) so it sits in the same
                 field family as the TextField beside it — no darker inset. */}
             <input
                 type="text"

@@ -62,8 +62,16 @@ const FLEX_DIRECTION_ICONS = [
 ] as const;
 
 const JUSTIFY_ROW_ICONS = [
-    { value: 'flex-start', label: 'Start', icon: <Icon icon={AlignStartVertical} /> },
-    { value: 'center', label: 'Center', icon: <Icon icon={AlignCenterVertical} /> },
+    {
+        value: 'flex-start',
+        label: 'Start',
+        icon: <Icon icon={AlignStartVertical} />,
+    },
+    {
+        value: 'center',
+        label: 'Center',
+        icon: <Icon icon={AlignCenterVertical} />,
+    },
     { value: 'flex-end', label: 'End', icon: <Icon icon={AlignEndVertical} /> },
     {
         value: 'space-between',
@@ -80,7 +88,11 @@ const JUSTIFY_ROW_ICONS = [
 
 const JUSTIFY_COL_ICONS = [
     { value: 'flex-start', label: 'Start', icon: <Icon icon={ArrowUpToLine} /> },
-    { value: 'center', label: 'Center', icon: <Icon icon={AlignCenterHorizontal} /> },
+    {
+        value: 'center',
+        label: 'Center',
+        icon: <Icon icon={AlignCenterHorizontal} />,
+    },
     { value: 'flex-end', label: 'End', icon: <Icon icon={ArrowDownToLine} /> },
     {
         value: 'space-between',
@@ -96,16 +108,36 @@ const JUSTIFY_COL_ICONS = [
 ] as const;
 
 const ALIGN_ROW_ICONS = [
-    { value: 'flex-start', label: 'Start', icon: <Icon icon={AlignStartHorizontal} /> },
-    { value: 'center', label: 'Center', icon: <Icon icon={AlignCenterHorizontal} /> },
+    {
+        value: 'flex-start',
+        label: 'Start',
+        icon: <Icon icon={AlignStartHorizontal} />,
+    },
+    {
+        value: 'center',
+        label: 'Center',
+        icon: <Icon icon={AlignCenterHorizontal} />,
+    },
     { value: 'flex-end', label: 'End', icon: <Icon icon={AlignEndHorizontal} /> },
-    { value: 'stretch', label: 'Stretch', icon: <Icon icon={StretchHorizontal} /> },
+    {
+        value: 'stretch',
+        label: 'Stretch',
+        icon: <Icon icon={StretchHorizontal} />,
+    },
     { value: 'baseline', label: 'Baseline', icon: <Icon icon={Baseline} /> },
 ] as const;
 
 const ALIGN_COL_ICONS = [
-    { value: 'flex-start', label: 'Start', icon: <Icon icon={ArrowRightToLine} /> },
-    { value: 'center', label: 'Center', icon: <Icon icon={AlignCenterVertical} /> },
+    {
+        value: 'flex-start',
+        label: 'Start',
+        icon: <Icon icon={ArrowRightToLine} />,
+    },
+    {
+        value: 'center',
+        label: 'Center',
+        icon: <Icon icon={AlignCenterVertical} />,
+    },
     {
         value: 'flex-end',
         label: 'End',

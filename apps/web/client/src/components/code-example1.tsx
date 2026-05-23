@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
+import { Button } from '@weblab/ui/button';
+
 import type { BundledLanguage } from '@/components/kibo-ui/code-block';
 import {
     CodeBlock,
@@ -14,7 +16,6 @@ import {
     CodeBlockHeader,
     CodeBlockItem,
 } from '@/components/kibo-ui/code-block';
-import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -183,7 +184,7 @@ const CodeExample1 = ({
                         <p className="text-slate-500 md:text-lg dark:text-slate-400">
                             {description}
                         </p>
-                        <Button asChild size="lg" className="w-fit">
+                        <Button asChild size="pill" className="w-fit">
                             <a href={buttonUrl}>
                                 {buttonText}
                                 <ArrowUpRight className="h-4 w-4" />

@@ -52,7 +52,10 @@ export const ModeToggle = observer(() => {
     // intrinsic-sized items, so the underline rendered shorter than the tab.
     const groupRef = useRef<HTMLDivElement>(null);
     const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-    const [indicator, setIndicator] = useState<{ x: number; width: number } | null>(null);
+    const [indicator, setIndicator] = useState<{
+        x: number;
+        width: number;
+    } | null>(null);
 
     useLayoutEffect(() => {
         const group = groupRef.current;
@@ -73,7 +76,10 @@ export const ModeToggle = observer(() => {
             if (!item) return;
             const groupRect = group.getBoundingClientRect();
             const itemRect = item.getBoundingClientRect();
-            setIndicator({ x: itemRect.left - groupRect.left, width: itemRect.width });
+            setIndicator({
+                x: itemRect.left - groupRect.left,
+                width: itemRect.width,
+            });
         });
         ro.observe(group);
         return () => ro.disconnect();

@@ -84,7 +84,10 @@ const ToolCallDisplayComponent = ({
 
     if (toolName === TerminalCommandTool.toolName) {
         const args = toolPart.input as z.infer<typeof TerminalCommandTool.parameters> | null;
-        const result = toolPart.output as { output?: string; error?: string } | null;
+        const result = toolPart.output as {
+            output?: string;
+            error?: string;
+        } | null;
         if (!args?.command) {
             return <ToolCallSimple toolPart={toolPart} key={toolPart.toolCallId} />;
         }
@@ -246,7 +249,10 @@ const ToolCallDisplayComponent = ({
     // }
 
     if (toolName === TypecheckTool.toolName) {
-        const result = toolPart.output as { success: boolean; error?: string } | null;
+        const result = toolPart.output as {
+            success: boolean;
+            error?: string;
+        } | null;
         const error = stripAnsi(result?.error ?? '');
         return (
             <BashCodeDisplay

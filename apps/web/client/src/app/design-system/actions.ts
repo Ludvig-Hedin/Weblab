@@ -69,7 +69,10 @@ export async function writeOverridesToSource(payload: ApplyPayload): Promise<App
     try {
         current = await fs.readFile(targetPath, 'utf8');
     } catch (err) {
-        return { ok: false, error: `Could not read ${targetPath}: ${(err as Error).message}` };
+        return {
+            ok: false,
+            error: `Could not read ${targetPath}: ${(err as Error).message}`,
+        };
     }
 
     const startIdx = current.indexOf(OVERRIDE_START);

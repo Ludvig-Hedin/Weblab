@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { DefaultSettings } from '@weblab/constants';
-import { toDbProjectSettings } from '@weblab/db';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
@@ -11,6 +12,7 @@ import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 
 import type { CachedProjectRecord } from '@/services/offline/project-cache';
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import {
     cacheProject,
@@ -19,7 +21,6 @@ import {
     precacheNavigationUrls,
     requestPersistentStorage,
 } from '@/services/offline/project-cache';
-import { api } from '@/trpc/react';
 
 function formatRelative(ms: number): string {
     const diff = Date.now() - ms;
@@ -34,24 +35,18 @@ function formatRelative(ms: number): string {
 
 export const ProjectTab = observer(() => {
     const editorEngine = useEditorEngine();
-    const utils = api.useUtils();
-    const { data: project } = api.project.get.useQuery({ projectId: editorEngine.projectId });
-    const { mutateAsync: updateProject } = api.project.update.useMutation();
-    const { data: projectSettings } = api.settings.get.useQuery({
-        projectId: editorEngine.projectId,
-    });
-    const { mutateAsync: updateProjectSettings } = api.settings.upsert.useMutation();
-    const { data: branches } = api.branch.getByProjectId.useQuery({
-        projectId: editorEngine.projectId,
-    });
-    const { data: isPinnedOffline, refetch: refetchPinned } = api.project.offline.isPinned.useQuery(
-        { projectId: editorEngine.projectId },
-    );
-    const { mutateAsync: pinOffline, isPending: pinningOffline } =
-        api.project.offline.pin.useMutation();
-    const { mutateAsync: unpinOffline, isPending: unpinningOffline } =
-        api.project.offline.unpin.useMutation();
-    const offlineBusy = pinningOffline || unpinningOffline;
+    const projectId = editorEngine.projectId as Id<'projects'>;
+
+    const project = useQuery(api.projects.get, { projectId });
+    const updateProject = useMutation(api.projects.update);
+    const projectSettings = useQuery(api.projectSettings.get, { projectId });
+    const updateProjectSettings = useMutation(api.projectSettings.upsert);
+    const branches = useQuery(api.branches.getByProjectId, { projectId });
+    const isPinnedOffline = useQuery(api.projectOffline.isPinned, { projectId });
+    const pinOffline = useMutation(api.projectOffline.pin);
+    const unpinOffline = useMutation(api.projectOffline.unpin);
+
+    const [offlineBusy, setOfflineBusy] = useState(false);
     const [cachedRecord, setCachedRecord] = useState<CachedProjectRecord | null>(null);
     useEffect(() => {
         let cancelled = false;
@@ -68,12 +63,17 @@ export const ProjectTab = observer(() => {
     }, [editorEngine.projectId, isPinnedOffline]);
 
     const handleToggleOffline = async (next: boolean) => {
+        setOfflineBusy(true);
         try {
             if (next) {
-                await pinOffline({ projectId: editorEngine.projectId });
+                await pinOffline({ projectId });
                 if (project) {
                     // Refresh the IndexedDB cache so the editor can boot offline immediately.
-                    await cacheProject(project, branches ?? []);
+                    // TODO(convex): adapter for project/branches cache shape may need updating.
+                    await cacheProject(
+                        project as unknown as Parameters<typeof cacheProject>[0],
+                        (branches ?? []) as unknown as Parameters<typeof cacheProject>[1],
+                    );
                 }
                 await requestPersistentStorage();
                 // Seed the service worker's navigation cache with this
@@ -82,20 +82,21 @@ export const ProjectTab = observer(() => {
                 await precacheNavigationUrls([`/project/${editorEngine.projectId}`, '/projects']);
                 toast.success('Project marked as available offline.');
             } else {
-                await unpinOffline({ projectId: editorEngine.projectId });
+                await unpinOffline({ projectId });
                 await evictCachedProject(editorEngine.projectId);
                 toast.success('Project removed from offline access.');
             }
-            await refetchPinned();
         } catch (error) {
             console.error('Failed to toggle offline pin:', error);
             toast.error('Could not update offline availability.');
+        } finally {
+            setOfflineBusy(false);
         }
     };
 
-    const installCommand = projectSettings?.commands?.install ?? DefaultSettings.COMMANDS.install;
-    const runCommand = projectSettings?.commands?.run ?? DefaultSettings.COMMANDS.run;
-    const buildCommand = projectSettings?.commands?.build ?? DefaultSettings.COMMANDS.build;
+    const installCommand = projectSettings?.installCommand ?? DefaultSettings.COMMANDS.install;
+    const runCommand = projectSettings?.runCommand ?? DefaultSettings.COMMANDS.run;
+    const buildCommand = projectSettings?.buildCommand ?? DefaultSettings.COMMANDS.build;
     const name = project?.name ?? '';
 
     // Form state
@@ -133,14 +134,9 @@ export const ProjectTab = observer(() => {
             // Update project name if changed
             if (formData.name !== name) {
                 await updateProject({
-                    id: editorEngine.projectId,
+                    projectId,
                     name: formData.name,
                 });
-                // Invalidate queries to refresh UI
-                await Promise.all([
-                    utils.project.list.invalidate(),
-                    utils.project.get.invalidate({ projectId: editorEngine.projectId }),
-                ]);
             }
 
             // Update commands if any changed
@@ -150,14 +146,10 @@ export const ProjectTab = observer(() => {
                 formData.build !== buildCommand
             ) {
                 await updateProjectSettings({
-                    projectId: editorEngine.projectId,
-                    settings: toDbProjectSettings(editorEngine.projectId, {
-                        commands: {
-                            install: formData.install,
-                            run: formData.run,
-                            build: formData.build,
-                        },
-                    }),
+                    projectId,
+                    installCommand: formData.install,
+                    runCommand: formData.run,
+                    buildCommand: formData.build,
                 });
             }
 

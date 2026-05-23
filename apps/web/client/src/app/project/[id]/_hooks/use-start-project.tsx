@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { v4 as uuidv4 } from 'uuid';
 
 import type {
@@ -21,12 +23,12 @@ import {
 } from '@weblab/models';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { ensureBreakpointSiblings } from '@/components/store/editor/frames';
 import { useOnlineStatus } from '@/services/offline/online-status';
 import { cacheProjectExtras, getCachedProject } from '@/services/offline/project-cache';
 import { replayQueue } from '@/services/offline/replay-controller';
-import { api } from '@/trpc/react';
 import { useTabActive } from '../_hooks/use-tab-active';
 
 interface ProjectReadyState {
@@ -52,69 +54,60 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const [dataError, setDataError] = useState<string | null>(null);
     const processedRequestIdRef = useRef<string | null>(null);
     const { tabState } = useTabActive();
-    const apiUtils = api.useUtils();
-    const { data: user, error: userError } = api.user.get.useQuery(undefined, {
-        enabled: online,
-    });
+    const convex = useConvex();
+    const user = useQuery(
+        (online ? api.users.me : 'skip') as typeof api.users.me,
+        online ? {} : (undefined as unknown as Record<string, never>),
+    );
+    const userError: { message?: string } | null = null;
     // CR-050: poll the canvas + frames row so collaborator mutations show up
     // without a full reload. The userCanvas row is per-user (scale/position),
     // so re-applying it on every poll would clobber the local pan/zoom — we
     // gate that with `initialCanvasAppliedRef` below. Frames are shared and
     // re-apply safely thanks to the new idempotent `applyFrames`.
-    const { data: bootstrap, error: bootstrapError } = api.project.getEditorBootstrap.useQuery(
-        { projectId: editorEngine.projectId },
-        {
-            enabled: online && !initialBootstrap,
-            staleTime: 5_000,
-            refetchOnWindowFocus: false,
-        },
+    const bootstrap = useQuery(
+        (online && !initialBootstrap
+            ? api.projects.getEditorBootstrap
+            : 'skip') as typeof api.projects.getEditorBootstrap,
+        online && !initialBootstrap
+            ? { projectId: editorEngine.projectId as Id<'projects'> }
+            : (undefined as unknown as { projectId: Id<'projects'> }),
     );
+    const bootstrapError: { message?: string } | null = null;
     const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
 
-    const { data: canvasWithFrames, error: canvasError } = api.userCanvas.getWithFrames.useQuery(
-        { projectId: editorEngine.projectId },
-        {
-            enabled: online && Boolean(effectiveBootstrap),
-            refetchInterval: online ? 30_000 : false,
-            refetchOnWindowFocus: online,
-            initialData: effectiveBootstrap?.canvas ?? undefined,
-            staleTime: 5_000,
-            // Keep stale data on the screen during the refetch — avoids a flash
-            // of the loading state when polling.
-            refetchIntervalInBackground: false,
-        },
-    );
+    // TODO(convex-migration): `userCanvas.getWithFrames` had no direct Convex
+    // equivalent at migration time. Bootstrap canvas/frames are still loaded via
+    // `getEditorBootstrap`; collaborator polling needs a dedicated Convex query.
+    const canvasWithFrames = effectiveBootstrap?.canvas ?? null;
+    const canvasError: { message?: string } | null = null;
     const initialCanvasAppliedRef = useRef(false);
     const breakpointMigrationRanRef = useRef(false);
-    const { data: conversations, error: conversationsError } =
-        api.chat.conversation.getAll.useQuery(
-            { projectId: editorEngine.projectId },
-            {
-                enabled: online && Boolean(effectiveBootstrap),
-                initialData: effectiveBootstrap?.conversations,
-                staleTime: 5_000,
-                refetchOnMount: false,
-            },
-        );
-    const { data: creationRequest, error: creationRequestError } =
-        api.project.createRequest.getPendingRequest.useQuery(
-            { projectId: editorEngine.projectId },
-            {
-                enabled: online && Boolean(effectiveBootstrap),
-                initialData: effectiveBootstrap?.creationRequest ?? undefined,
-                staleTime: 5_000,
-                refetchOnMount: false,
-            },
-        );
-    const { mutateAsync: updateCreateRequest } = api.project.createRequest.updateStatus.useMutation(
-        {
-            onSettled: async () => {
-                await apiUtils.project.createRequest.getPendingRequest.invalidate({
-                    projectId: editorEngine.projectId,
-                });
-            },
-        },
-    );
+    const conversations =
+        useQuery(
+            (online && Boolean(effectiveBootstrap)
+                ? api.conversations.list
+                : 'skip') as typeof api.conversations.list,
+            online && Boolean(effectiveBootstrap)
+                ? { projectId: editorEngine.projectId as Id<'projects'> }
+                : (undefined as unknown as { projectId: Id<'projects'> }),
+        ) ??
+        effectiveBootstrap?.conversations ??
+        undefined;
+    const conversationsError: { message?: string } | null = null;
+    const creationRequest =
+        useQuery(
+            (online && Boolean(effectiveBootstrap)
+                ? api.projectCreateRequests.getPendingRequest
+                : 'skip') as typeof api.projectCreateRequests.getPendingRequest,
+            online && Boolean(effectiveBootstrap)
+                ? { projectId: editorEngine.projectId as Id<'projects'> }
+                : (undefined as unknown as { projectId: Id<'projects'> }),
+        ) ??
+        effectiveBootstrap?.creationRequest ??
+        undefined;
+    const creationRequestError: { message?: string } | null = null;
+    const updateCreateRequest = useMutation(api.projectCreateRequests.updateStatus);
     const [projectReadyState, setProjectReadyState] = useState<ProjectReadyState>({
         canvas: false,
         conversations: false,
@@ -183,15 +176,17 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         if (!online) return;
         if (!canvasWithFrames) return;
         void cacheProjectExtras(editorEngine.projectId, {
-            userCanvas: canvasWithFrames.userCanvas,
-            frames: canvasWithFrames.frames,
+            userCanvas: canvasWithFrames.userCanvas as Canvas,
+            frames: canvasWithFrames.frames as Frame[],
         });
     }, [online, canvasWithFrames, editorEngine.projectId]);
 
     useEffect(() => {
         if (!online) return;
         if (!conversations) return;
-        void cacheProjectExtras(editorEngine.projectId, { conversations });
+        void cacheProjectExtras(editorEngine.projectId, {
+            conversations: conversations as ChatConversation[],
+        });
     }, [online, conversations, editorEngine.projectId]);
 
     // Offline → online transition: swap the offline shim for the real cloud
@@ -216,7 +211,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                 // gate `pullFromSandbox` would race the replay and overwrite
                 // local edits that haven't been pushed yet.
                 sandbox.suppressSyncInitForReplay();
-                await sandbox.session.swapToOnline(branchSandboxId, user?.id);
+                await sandbox.session.swapToOnline(branchSandboxId, user?._id);
                 if (cancelled) return;
                 if (!sandbox.session.provider) {
                     await resumeSync();
@@ -247,16 +242,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
                         `${result.deadLettered} change${result.deadLettered === 1 ? '' : 's'} could not be synced. Open the offline panel to review.`,
                     );
                 }
-                // Re-enable the polled queries now that we're online.
-                await Promise.all([
-                    apiUtils.userCanvas.getWithFrames.invalidate({
-                        projectId: editorEngine.projectId,
-                    }),
-                    apiUtils.chat.conversation.getAll.invalidate({
-                        projectId: editorEngine.projectId,
-                    }),
-                    apiUtils.user.get.invalidate(),
-                ]);
+                // Convex queries are live — no manual invalidation needed.
             } catch (err) {
                 console.error('[offline] reconnect/replay failed', err);
                 if (!cancelled) {
@@ -283,16 +269,15 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         sandbox.session.isOffline,
         branchSandboxId,
         editorEngine.projectId,
-        user?.id,
-        apiUtils,
+        user?._id,
         sandbox.session,
     ]);
 
     useEffect(() => {
-        if (tabState === 'reactivated' && branchSandboxId && user?.id) {
-            void sandbox.session.reconnect(branchSandboxId, user.id);
+        if (tabState === 'reactivated' && branchSandboxId && user?._id) {
+            void sandbox.session.reconnect(branchSandboxId, user._id);
         }
-    }, [tabState, sandbox.session, branchSandboxId, user?.id]);
+    }, [tabState, sandbox.session, branchSandboxId, user?._id]);
 
     useEffect(() => {
         if (!canvasWithFrames) return;
@@ -300,14 +285,14 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         // on every poll would clobber the user's local pan/zoom that hasn't yet
         // been saved (canvas store debounces saves by 5s).
         if (!initialCanvasAppliedRef.current) {
-            editorEngine.canvas.applyCanvas(canvasWithFrames.userCanvas);
+            editorEngine.canvas.applyCanvas(canvasWithFrames.userCanvas as Canvas);
             initialCanvasAppliedRef.current = true;
         }
 
         // Re-apply frames on every refetch. `applyFrames` is now idempotent —
         // preserves attached views and selection; prunes server-deleted frames
         // that don't have a live view binding.
-        editorEngine.frames.applyFrames(canvasWithFrames.frames);
+        editorEngine.frames.applyFrames(canvasWithFrames.frames as Frame[]);
         updateProjectReadyState({ canvas: true });
 
         // First-load only: migrate legacy single-frame projects into full
@@ -317,8 +302,10 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             breakpointMigrationRanRef.current = true;
             void (async () => {
                 try {
-                    const expanded = await ensureBreakpointSiblings(canvasWithFrames.frames);
-                    if (expanded.length !== canvasWithFrames.frames.length) {
+                    const expanded = await ensureBreakpointSiblings(
+                        canvasWithFrames.frames as Frame[],
+                    );
+                    if (expanded.length !== (canvasWithFrames.frames as Frame[]).length) {
                         editorEngine.frames.applyFrames(expanded);
                     }
                 } catch (error) {
@@ -332,7 +319,9 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     useEffect(() => {
         const applyConversations = async () => {
             if (conversations) {
-                await editorEngine.chat.conversation.applyConversations(conversations);
+                await editorEngine.chat.conversation.applyConversations(
+                    conversations as ChatConversation[],
+                );
                 updateProjectReadyState({ conversations: true });
             }
         };
@@ -341,14 +330,19 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
 
     useEffect(() => {
         const isProjectReady = Object.values(projectReadyState).every((value) => value);
+        const requestId =
+            (creationRequest as { _id?: string; id?: string } | null | undefined)?._id ??
+            (creationRequest as { id?: string } | null | undefined)?.id ??
+            null;
         if (
             creationRequest &&
-            processedRequestIdRef.current !== creationRequest.id &&
+            requestId &&
+            processedRequestIdRef.current !== requestId &&
             isProjectReady &&
             editorEngine.chat._sendMessageAction
         ) {
-            processedRequestIdRef.current = creationRequest.id;
-            void resumeCreate(creationRequest);
+            processedRequestIdRef.current = requestId;
+            void resumeCreate(creationRequest as ProjectCreateRequest);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [creationRequest, projectReadyState, editorEngine.chat._sendMessageAction]);
@@ -467,7 +461,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
 
             try {
                 await updateCreateRequest({
-                    projectId: editorEngine.projectId,
+                    projectId: editorEngine.projectId as Id<'projects'>,
                     status: ProjectCreateRequestStatus.COMPLETED,
                 });
             } catch (error) {
@@ -495,11 +489,11 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             return;
         }
         setDataError(
-            userError?.message ??
-                canvasError?.message ??
-                conversationsError?.message ??
-                creationRequestError?.message ??
-                bootstrapError?.message ??
+            (userError as { message?: string } | null)?.message ??
+                (canvasError as { message?: string } | null)?.message ??
+                (conversationsError as { message?: string } | null)?.message ??
+                (creationRequestError as { message?: string } | null)?.message ??
+                (bootstrapError as { message?: string } | null)?.message ??
                 null,
         );
     }, [online, userError, canvasError, conversationsError, creationRequestError, bootstrapError]);

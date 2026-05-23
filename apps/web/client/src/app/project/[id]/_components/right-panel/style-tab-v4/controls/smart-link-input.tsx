@@ -261,7 +261,7 @@ export function SmartLinkInput({
                     align="start"
                     side="bottom"
                     sideOffset={4}
-                    className="w-[var(--radix-popover-trigger-width)] rounded-[12px] p-1"
+                    className="w-[var(--radix-popover-trigger-width)] rounded-md p-1"
                     onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                     {flatList.length === 0 ? (

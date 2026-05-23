@@ -72,7 +72,7 @@ const ModelSelectorLegacy = ({
                     variant="ghost"
                     size="sm"
                     aria-label={`Model: ${currentLabel}`}
-                    className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary text-mini h-7 gap-1 rounded-md px-1.5 font-normal"
+                    className="text-foreground-tertiary hover:bg-background-tertiary hover:text-foreground-primary h-7 gap-1 rounded-md px-1.5 text-xs font-normal"
                 >
                     <span title={currentLabel} className="max-w-[160px] truncate">
                         {currentLabel}

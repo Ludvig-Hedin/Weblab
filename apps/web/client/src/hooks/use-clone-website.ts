@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +14,7 @@ import { getFrameworkAdapter } from '@weblab/framework';
 import { CloneOutputFramework, CreateRequestContextType } from '@weblab/models';
 
 import { useAuthContext } from '@/app/auth/auth-context';
-import { api } from '@/trpc/react';
+import { api as trpcApi } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
 export type CloneWebsitePhase =
@@ -51,18 +53,20 @@ function buildCloneProjectName(source: string): string {
 }
 
 export function useCloneWebsite() {
-    const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: createProject } = api.project.create.useMutation();
-    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
-    const { mutateAsync: scrapeUrl } = api.utils.scrapeUrl.useMutation();
+    const user = useQuery(api.users.me);
+    // TODO(convex): sandbox.fork, sandbox.deleteOrphan, project.create not yet ported.
+    // Keep tRPC for those until they exist as Convex actions/mutations.
+    const { mutateAsync: forkSandbox } = trpcApi.sandbox.fork.useMutation();
+    const { mutateAsync: createProject } = trpcApi.project.create.useMutation();
+    const { mutateAsync: deleteOrphanSandbox } = trpcApi.sandbox.deleteOrphan.useMutation();
+    const scrapeUrl = useAction(api.utils.scrapeUrl);
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [phase, setPhase] = useState<CloneWebsitePhase>('idle');
     const isCloning = phase !== 'idle';
 
     const requireAuth = async () => {
-        if (user?.id) return true;
+        if (user?._id) return true;
         await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
         setIsAuthModalOpen(true);
         return false;
@@ -122,7 +126,7 @@ export function useCloneWebsite() {
 
     const cleanupOrphan = async (sandboxId: string | null) => {
         if (!sandboxId) return;
-        await deleteOrphanSandbox({ sandboxId }).catch((err) => {
+        await deleteOrphanSandbox({ sandboxId }).catch((err: any) => {
             console.warn('[useCloneWebsite] failed to clean up orphan sandbox', {
                 sandboxId,
                 error: err instanceof Error ? err.message : String(err),
@@ -213,7 +217,7 @@ export function useCloneWebsite() {
                 return newProject;
             }
             setPhase('idle');
-        } catch (error) {
+        } catch (error: unknown) {
             await cleanupOrphan(forkedSandboxId);
             console.error('Error cloning website from URL:', error);
             const description = error instanceof Error ? error.message : String(error);
@@ -277,7 +281,7 @@ export function useCloneWebsite() {
                 return newProject;
             }
             setPhase('idle');
-        } catch (error) {
+        } catch (error: unknown) {
             await cleanupOrphan(forkedSandboxId);
             console.error('Error cloning website from screenshot:', error);
             const description = error instanceof Error ? error.message : String(error);

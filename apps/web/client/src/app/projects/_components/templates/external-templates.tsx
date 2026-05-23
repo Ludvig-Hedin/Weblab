@@ -2,18 +2,20 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { motion } from 'motion/react';
 
-import type { User } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import type { ExternalTemplate } from './template-data';
 import { useAuthContext } from '@/app/auth/auth-context';
-import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 import { ProjectPreviewSurface } from '../select/project-preview-surface';
+
+type TemplateUser = { _id: string } | null;
 
 interface ExternalTemplatesProps {
     templates: ExternalTemplate[];
@@ -27,7 +29,7 @@ export function ExternalTemplates({
     description = 'Start from a proven template — preview live, or open the details for source and related options.',
 }: ExternalTemplatesProps) {
     // Fetched once here so each card doesn't instantiate its own hook subscription.
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me, {});
 
     if (templates.length === 0) {
         return null;
@@ -58,7 +60,7 @@ export function ExternalTemplates({
 interface ExternalTemplateCardProps {
     template: ExternalTemplate;
     index: number;
-    user: User | null;
+    user: TemplateUser;
 }
 
 function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardProps) {
@@ -69,7 +71,7 @@ function ExternalTemplateCard({ template, index, user }: ExternalTemplateCardPro
     const creatingHref = `${Routes.PROJECT_CREATING}?templateId=${template.id}`;
 
     const handleUseTemplate = async () => {
-        if (!user?.id) {
+        if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, creatingHref);
             setIsAuthModalOpen(true);
             return;

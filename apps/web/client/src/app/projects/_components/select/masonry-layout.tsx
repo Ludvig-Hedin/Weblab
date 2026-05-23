@@ -41,12 +41,14 @@ export function MasonryLayout<T extends Project>({
     };
 
     const columns = useMemo(() => {
-        const cols: Array<{ items: Array<{ item: T; aspectRatio: string }>; totalHeight: number }> =
-            [
-                { items: [], totalHeight: 0 },
-                { items: [], totalHeight: 0 },
-                { items: [], totalHeight: 0 },
-            ];
+        const cols: Array<{
+            items: Array<{ item: T; aspectRatio: string }>;
+            totalHeight: number;
+        }> = [
+            { items: [], totalHeight: 0 },
+            { items: [], totalHeight: 0 },
+            { items: [], totalHeight: 0 },
+        ];
 
         items.forEach((item) => {
             const aspectRatio = getAspectRatio(item);

@@ -113,8 +113,11 @@ export class SnapManager {
         dragBounds: SnapBounds,
         otherFrame: SnapFrame,
     ): Array<{ position: RectPosition; lines: SnapLine[]; distance: number }> {
-        const candidates: Array<{ position: RectPosition; lines: SnapLine[]; distance: number }> =
-            [];
+        const candidates: Array<{
+            position: RectPosition;
+            lines: SnapLine[];
+            distance: number;
+        }> = [];
 
         const edgeAlignments = [
             {

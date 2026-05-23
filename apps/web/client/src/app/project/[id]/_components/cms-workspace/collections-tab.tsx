@@ -1,5 +1,7 @@
 'use client';
 
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -10,10 +12,10 @@ import { ScrollArea } from '@weblab/ui/scroll-area';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { ItemsTable } from './items-table';
 
 export const CollectionsTab = observer(() => {
@@ -21,14 +23,15 @@ export const CollectionsTab = observer(() => {
     const projectId = editorEngine.projectId;
     const t = useTranslations();
 
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId },
+    const collectionsData = useQuery(
+        api.cmsCollections.list,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
+    const isLoadingCollections = !!projectId && collectionsData === undefined;
 
-    const collections = collectionsQuery.data ?? [];
+    const collections = collectionsData ?? [];
     const selectedId = editorEngine.state.cmsSelectedCollectionId;
-    const selected = collections.find((c) => c.id === selectedId) ?? null;
+    const selected = collections.find((c) => c._id === selectedId) ?? null;
 
     if (!projectId) return null;
 
@@ -50,7 +53,7 @@ export const CollectionsTab = observer(() => {
                     </Button>
                 </div>
 
-                {collectionsQuery.isLoading ? (
+                {isLoadingCollections ? (
                     <div className="text-foreground-tertiary text-small p-3">
                         {t(transKeys.cms.collections.loading)}
                     </div>
@@ -63,9 +66,13 @@ export const CollectionsTab = observer(() => {
                         <ul className="px-1 py-1">
                             {collections.map((c) => (
                                 <CollectionRow
-                                    key={c.id}
-                                    collection={c}
-                                    selected={selectedId === c.id}
+                                    key={c._id}
+                                    collection={{
+                                        id: c._id,
+                                        name: c.name,
+                                        itemCount: c.itemCount,
+                                    }}
+                                    selected={selectedId === c._id}
                                     projectId={projectId}
                                 />
                             ))}
@@ -78,7 +85,7 @@ export const CollectionsTab = observer(() => {
                 {selected ? (
                     <ItemsTable
                         projectId={projectId}
-                        collection={selected}
+                        collection={selected as never}
                         onEditFields={() => editorEngine.state.setCmsTab(CmsTabValue.FIELDS)}
                     />
                 ) : (
@@ -122,8 +129,8 @@ interface CollectionRowProps {
 
 const CollectionRow = observer(({ projectId, selected, collection }: CollectionRowProps) => {
     const editorEngine = useEditorEngine();
-    const utils = api.useUtils();
-    const deleteMutation = api.cms.collection.delete.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const deleteMutation = useMutation(api.cmsCollections.remove);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
     const handleDelete = async (e: React.MouseEvent) => {
@@ -140,9 +147,10 @@ const CollectionRow = observer(({ projectId, selected, collection }: CollectionR
         });
         if (!ok) return;
         try {
-            await deleteMutation.mutateAsync({ projectId, collectionId: collection.id });
-            await utils.cms.collection.list.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            await deleteMutation({
+                projectId: projectId as Id<'projects'>,
+                collectionId: collection.id as Id<'cmsCollections'>,
+            });
             if (selected) editorEngine.state.setCmsSelectedCollectionId(null);
             toast.success('Collection deleted');
         } catch (err) {

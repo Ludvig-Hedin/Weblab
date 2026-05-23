@@ -9,7 +9,11 @@ import { FrameView } from './frame';
 export const Frames = observer(
     ({ framesInDragSelection }: { framesInDragSelection: Set<string> }) => {
         const editorEngine = useEditorEngine();
-        const frames = editorEngine.frames.getAll();
+        // `getAll()` can return undefined briefly while FramesManager is still
+        // initialising (no bootstrap canvas → frames array empty → MobX
+        // observable not yet seeded). Guard so the canvas mounts as an empty
+        // grid instead of throwing `Cannot read properties of undefined`.
+        const frames = editorEngine.frames.getAll() ?? [];
 
         return (
             <div className="grid grid-flow-col gap-72">

@@ -68,7 +68,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                     </Button>
 
                     <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-                        <div className="border-foreground/8 bg-background/80 flex flex-col justify-between rounded-[32px] border p-7 backdrop-blur-xl">
+                        <div className="border-foreground/8 bg-background/80 flex flex-col justify-between rounded-3xl border p-7 backdrop-blur-xl">
                             <div className="flex flex-col gap-5">
                                 <div
                                     className={`rounded-[26px] bg-gradient-to-br ${template.gradientClassName} p-6`}
@@ -121,7 +121,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                             />
                         </div>
 
-                        <div className="border-foreground/8 bg-background/80 overflow-hidden rounded-[32px] border backdrop-blur-xl">
+                        <div className="border-foreground/8 bg-background/80 overflow-hidden rounded-3xl border backdrop-blur-xl">
                             <div className="border-foreground/8 flex items-center justify-between border-b px-5 py-3">
                                 <div>
                                     <p className="text-foreground text-sm font-medium">
@@ -168,7 +168,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                     </section>
 
                     <section className="grid gap-4 md:grid-cols-[0.9fr_1.1fr]">
-                        <div className="border-foreground/8 bg-background/70 rounded-[28px] border p-6 backdrop-blur-xl">
+                        <div className="border-foreground/8 bg-background/70 rounded-3xl border p-6 backdrop-blur-xl">
                             <h2 className="text-foreground text-xl font-medium">
                                 What this includes
                             </h2>
@@ -185,7 +185,7 @@ export default async function TemplatePage({ params }: TemplatePageProps) {
                             </ul>
                         </div>
 
-                        <div className="border-foreground/8 bg-background/70 rounded-[28px] border p-6 backdrop-blur-xl">
+                        <div className="border-foreground/8 bg-background/70 rounded-3xl border p-6 backdrop-blur-xl">
                             <h2 className="text-foreground text-xl font-medium">Source</h2>
                             <div className="mt-4 flex flex-col gap-3 text-sm">
                                 <a

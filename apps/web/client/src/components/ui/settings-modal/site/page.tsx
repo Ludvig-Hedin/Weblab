@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 
 import type { PageEditorIcon, PageMetadata } from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
@@ -12,13 +14,13 @@ import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 import { createSecureUrl } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import {
     getNestedPagePath,
     getParentPagePath,
     normalizePagePath,
 } from '@/components/store/editor/pages/helper';
-import { api } from '@/trpc/react';
 import { MetadataForm } from './metadata-form';
 import { useMetadataForm } from './use-metadata-form';
 
@@ -61,19 +63,20 @@ export const PageTab = ({
     onPathChange?: (path: string) => void;
 }) => {
     const editorEngine = useEditorEngine();
-    const projectId = editorEngine.projectId;
-    const { data: domains } = api.domain.getAll.useQuery({ projectId });
+    const projectId = editorEngine.projectId as Id<'projects'>;
+    const domains = useQuery(api.domains.getAll, { projectId });
     const baseUrl = domains?.published?.url ?? domains?.preview?.url;
     const page = editorEngine.pages.getPageByPath(path);
     const isRoot = page?.isRoot ?? path === '/';
 
-    const accessQuery = api.pageAccess.get.useQuery(
-        { projectId, pagePath: path },
-        { enabled: Boolean(projectId && path) },
+    const accessData = useQuery(
+        api.pageAccess.get,
+        projectId && path ? { projectId, pagePath: path } : 'skip',
     );
-    const upsertAccess = api.pageAccess.upsert.useMutation();
-    const fetchedAccessType: 'public' | 'password' = accessQuery.data?.accessType ?? 'public';
-    const fetchedHasPassword = accessQuery.data?.hasPassword ?? false;
+    const upsertAccess = useMutation(api.pageAccess.upsert);
+    const fetchedAccessType: 'public' | 'password' = accessData?.accessType ?? 'public';
+    const fetchedHasPassword = accessData?.hasPassword ?? false;
+    const isAccessLoading = accessData === undefined;
 
     const {
         title,
@@ -417,14 +420,13 @@ export const PageTab = ({
             // Access control is recorded server-side; the generated middleware
             // ships with the next publish, not immediately.
             if (accessDirty) {
-                await upsertAccess.mutateAsync({
+                await upsertAccess({
                     projectId,
                     pagePath: savedPath,
                     accessType,
                     password: password.length > 0 ? password : undefined,
                 });
                 setPassword('');
-                await accessQuery.refetch();
             }
 
             toast.success('Page settings updated successfully.');
@@ -636,9 +638,7 @@ export const PageTab = ({
                                     ? 'bg-background text-foreground-primary shadow-sm'
                                     : 'text-foreground-secondary hover:text-foreground-primary',
                             )}
-                            disabled={
-                                editorEngine.pages.isScanning || accessQuery.isLoading || isSaving
-                            }
+                            disabled={editorEngine.pages.isScanning || isAccessLoading || isSaving}
                         >
                             {option.label}
                         </button>
@@ -668,9 +668,7 @@ export const PageTab = ({
                             spellCheck={false}
                             maxLength={256}
                             onChange={(event) => setPassword(event.target.value)}
-                            disabled={
-                                editorEngine.pages.isScanning || accessQuery.isLoading || isSaving
-                            }
+                            disabled={editorEngine.pages.isScanning || isAccessLoading || isSaving}
                         />
                     </div>
                     <p className="text-mini text-foreground-tertiary">

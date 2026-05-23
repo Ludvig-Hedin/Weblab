@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 
 import type { ProjectListItem } from './project-card-utils';
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 const STALE_MS = 24 * 60 * 60 * 1000; // 24h — cards older than this re-capture
 const CONCURRENCY = 3;
@@ -38,12 +40,9 @@ const isStale = (project: ProjectListItem): boolean => {
  * still warm is cheap.
  */
 export function useScreenshotBackfill(projects: ProjectListItem[]) {
-    const utils = api.useUtils();
-    const captureMutation = api.project.captureScreenshot.useMutation();
+    const captureMutation = useAction(api.projectActions.captureScreenshot);
     const captureRef = useRef(captureMutation);
     captureRef.current = captureMutation;
-    const utilsRef = useRef(utils);
-    utilsRef.current = utils;
 
     const [state, setState] = useState<BackfillState>({
         inFlight: new Set(),
@@ -85,10 +84,8 @@ export function useScreenshotBackfill(projects: ProjectListItem[]) {
                 return { ...prev, inFlight: next };
             });
             try {
-                await captureRef.current.mutateAsync({ projectId: project.id });
-                if (!cancelled) {
-                    await utilsRef.current.project.list.invalidate();
-                }
+                await captureRef.current({ projectId: project.id as Id<'projects'> });
+                // Convex live-query results auto-update; no invalidation needed.
             } catch (error) {
                 console.warn('Preview backfill failed for', project.id, error);
             } finally {

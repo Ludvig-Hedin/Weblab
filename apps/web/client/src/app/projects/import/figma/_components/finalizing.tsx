@@ -40,7 +40,7 @@ export const FigmaFinalizing = () => {
                     className="w-full"
                 >
                     {finalizeError ? (
-                        <p className="text-sm text-red-400">{finalizeError}</p>
+                        <p className="text-destructive text-sm">{finalizeError}</p>
                     ) : (
                         <ProgressWithInterval isLoading={isFinalizing} />
                     )}

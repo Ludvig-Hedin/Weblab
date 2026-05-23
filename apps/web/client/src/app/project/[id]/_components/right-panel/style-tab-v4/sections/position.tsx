@@ -125,7 +125,17 @@ export const PositionSection = observer(function PositionSection() {
                 ) : (
                     <>
                         {/* Pin-pad offsets */}
-                        <GroupShell label="Offsets">
+                        <GroupShell
+                            label="Offsets"
+                            onReset={() =>
+                                setMultiple([
+                                    { property: 'top', value: '' },
+                                    { property: 'right', value: '' },
+                                    { property: 'bottom', value: '' },
+                                    { property: 'left', value: '' },
+                                ])
+                            }
+                        >
                             <PinPad
                                 sides={{
                                     top: top.value,

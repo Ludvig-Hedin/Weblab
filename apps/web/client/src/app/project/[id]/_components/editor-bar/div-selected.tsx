@@ -68,7 +68,10 @@ const MUST_EXTEND_GROUPS = [
 ];
 
 export const DivSelected = memo(({ availableWidth = 0 }: { availableWidth?: number }) => {
-    const { visibleCount } = useMeasureGroup({ availableWidth, count: DIV_SELECTED_GROUPS.length });
+    const { visibleCount } = useMeasureGroup({
+        availableWidth,
+        count: DIV_SELECTED_GROUPS.length,
+    });
     const { isOpen, onOpenChange } = useDropdownControl({
         id: 'div-selected-overflow-dropdown',
         isOverflow: true,

@@ -135,7 +135,12 @@ function PromptOnCanvasAsset() {
 const BUTTON_VARIANTS = [
     { label: 'Continue', radius: 'rounded-lg', token: 'rounded-lg', px: 4 },
     { label: 'Get started', radius: 'rounded-xl', token: 'rounded-xl', px: 5 },
-    { label: 'Start trial', radius: 'rounded-full', token: 'rounded-full', px: 5 },
+    {
+        label: 'Start trial',
+        radius: 'rounded-full',
+        token: 'rounded-full',
+        px: 5,
+    },
 ] as const;
 
 const VARIANT_CYCLE_MS = 4200;
@@ -182,7 +187,9 @@ function DesignToCodeAsset() {
                 >
                     <motion.div
                         className={`bg-foreground-primary text-background text-small relative inline-flex items-center justify-center px-4 py-2 font-light tracking-tight ${v.radius}`}
-                        style={{ transition: 'border-radius 360ms cubic-bezier(0.22, 1, 0.36, 1)' }}
+                        style={{
+                            transition: 'border-radius 360ms cubic-bezier(0.22, 1, 0.36, 1)',
+                        }}
                     >
                         <AnimatePresence mode="popLayout" initial={false}>
                             <motion.span
@@ -288,7 +295,7 @@ export function ResponsiveMockupSection() {
                         <h2 className="heading-style-h4 text-foreground-primary mb-3 text-balance">
                             {t('panel1.title')}
                         </h2>
-                        <p className="text-foreground-secondary text-base leading-relaxed font-light tracking-tight text-balance">
+                        <p className="text-foreground-secondary text-base leading-[1.4] font-light tracking-tight text-balance">
                             {t('panel1.body')}
                         </p>
                     </Reveal>
@@ -305,7 +312,7 @@ export function ResponsiveMockupSection() {
                         <h2 className="heading-style-h4 text-foreground-primary mb-3 text-balance">
                             {t('panel2.title')}
                         </h2>
-                        <p className="text-foreground-secondary text-base leading-relaxed font-light tracking-tight text-balance">
+                        <p className="text-foreground-secondary text-base leading-[1.4] font-light tracking-tight text-balance">
                             {t('panel2.body')}
                         </p>
                     </Reveal>

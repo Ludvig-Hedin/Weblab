@@ -219,6 +219,17 @@ export const BorderSection = observer(function BorderSection() {
                 {/* ── Stroke group ──────────────────────────────────────── */}
                 <GroupShell
                     label="Stroke"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'border-color', value: '' },
+                            { property: 'border-style', value: '' },
+                            { property: 'border-width', value: '' },
+                            { property: 'border-top-width', value: '' },
+                            { property: 'border-right-width', value: '' },
+                            { property: 'border-bottom-width', value: '' },
+                            { property: 'border-left-width', value: '' },
+                        ])
+                    }
                     actions={
                         <PerSidePopover
                             triggerIcon={<IconPerSide />}
@@ -270,6 +281,15 @@ export const BorderSection = observer(function BorderSection() {
                 {/* ── Radius group ──────────────────────────────────────── */}
                 <GroupShell
                     label="Radius"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'border-radius', value: '' },
+                            { property: 'border-top-left-radius', value: '' },
+                            { property: 'border-top-right-radius', value: '' },
+                            { property: 'border-bottom-left-radius', value: '' },
+                            { property: 'border-bottom-right-radius', value: '' },
+                        ])
+                    }
                     actions={
                         <PerCornerPopover
                             triggerIcon={<IconPerCorner />}

@@ -168,7 +168,7 @@ export function ProjectCardPresentation({
                                 >
                                     {isTemplate ? (
                                         <>
-                                            <Icons.CrossL className="h-4 w-4 text-purple-600" />
+                                            <Icons.CrossL className="text-foreground-skill h-4 w-4" />
                                             Unmark as template
                                         </>
                                     ) : (

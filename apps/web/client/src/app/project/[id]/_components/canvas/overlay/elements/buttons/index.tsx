@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { EditorMode } from '@weblab/models';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { OverlayChatInput } from './chat';
 import { OverlayOpenCode } from './code';
 import { DEFAULT_INPUT_STATE } from './helpers';
 
 export const OverlayButtons = observer(() => {
     const editorEngine = useEditorEngine();
-    const { data: settings } = api.user.settings.get.useQuery();
+    const settings = useQuery(api.users.getSettings, {});
     const [inputState, setInputState] = useState(DEFAULT_INPUT_STATE);
     const prevChatPositionRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -20,10 +21,7 @@ export const OverlayButtons = observer(() => {
 
     const isPreviewMode = editorEngine.state.editorMode === EditorMode.PREVIEW;
     const shouldHideButton =
-        !selectedRect ||
-        isPreviewMode ||
-        editorEngine.chat.isStreaming ||
-        !settings?.chat?.showMiniChat;
+        !selectedRect || isPreviewMode || editorEngine.chat.isStreaming || !settings?.showMiniChat;
 
     useEffect(() => {
         setInputState(DEFAULT_INPUT_STATE);

@@ -152,6 +152,18 @@ export const EditorEngineProvider = ({
         return null;
     }
 
+    // Hold children until the first `initBranches` + `init` pair resolves.
+    // Without this gate, observer components downstream read
+    // `editorEngine.activeSandbox` on the first render — which calls
+    // `branches.activeBranchData`, throws "No branch selected", and tears the
+    // whole tree down through the root error boundary before `initBranches`
+    // has had a chance to write `currentBranchId`. A null-render here is the
+    // smallest change that lets the async init finish cleanly; a loader at
+    // this layer would compete with `useStartProject`'s richer step UI inside
+    // `<Main>`, which we want to keep as the single source of progress copy.
+    if (!isReady) {
+        return null;
+    }
     return (
         <EditorEngineContext.Provider value={editorEngine}>{children}</EditorEngineContext.Provider>
     );

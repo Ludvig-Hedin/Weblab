@@ -633,7 +633,11 @@ function DeployVisual() {
                         key={l.text}
                         initial={{ opacity: 0, x: -4 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + i * 0.4, duration: 0.4, ease: 'easeOut' }}
+                        transition={{
+                            delay: 0.4 + i * 0.4,
+                            duration: 0.4,
+                            ease: 'easeOut',
+                        }}
                         style={{ color: toneColor[l.tone] }}
                     >
                         {l.text}

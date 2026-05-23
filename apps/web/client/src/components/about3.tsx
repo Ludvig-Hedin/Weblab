@@ -1,5 +1,6 @@
+import { Button } from '@weblab/ui/button';
+
 import { Marquee, MarqueeContent, MarqueeFade, MarqueeItem } from '@/components/kibo-ui/marquee';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface About3Props {

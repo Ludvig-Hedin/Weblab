@@ -80,7 +80,10 @@ function sectionForVariableGroup(group: VariableToken['group']): TokenSectionId 
  * the first `/`, then treat its first word as the group when there are 2+
  * words — one level of nesting, which covers the Figma/Framer common case.
  */
-export function splitGroupLeaf(displayName: string): { group: string | null; label: string } {
+export function splitGroupLeaf(displayName: string): {
+    group: string | null;
+    label: string;
+} {
     const afterSlash = displayName.includes('/')
         ? displayName.slice(displayName.indexOf('/') + 1)
         : displayName;

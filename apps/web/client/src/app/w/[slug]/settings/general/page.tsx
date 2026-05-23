@@ -16,7 +16,9 @@ export default function WorkspaceGeneralPage() {
     const workspace = useActiveWorkspace();
     const router = useRouter();
     const utils = api.useUtils();
-    const { data: caps } = api.user.capabilities.useQuery({ workspaceId: workspace.id });
+    const { data: caps } = api.user.capabilities.useQuery({
+        workspaceId: workspace.id,
+    });
     const canUpdate = caps?.includes('workspace.update') ?? false;
     const canDelete = caps?.includes('workspace.delete') ?? false;
 
@@ -30,7 +32,7 @@ export default function WorkspaceGeneralPage() {
             await utils.workspace.getBySlug.invalidate({ slug: workspace.slug });
             router.refresh();
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err: any) => toast.error(err.message),
     });
 
     const deleteMutation = api.workspace.delete.useMutation({
@@ -38,7 +40,7 @@ export default function WorkspaceGeneralPage() {
             toast.success('Workspace deleted');
             router.push('/projects');
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err: any) => toast.error(err.message),
     });
 
     const leaveMutation = api.workspace.leave.useMutation({
@@ -47,7 +49,7 @@ export default function WorkspaceGeneralPage() {
             await utils.workspace.list.invalidate();
             router.push('/projects');
         },
-        onError: (err) => toast.error(err.message),
+        onError: (err: any) => toast.error(err.message),
     });
 
     const isPersonal = workspace.kind === WorkspaceKind.PERSONAL;
@@ -74,7 +76,10 @@ export default function WorkspaceGeneralPage() {
                         variant="default"
                         size="compact"
                         disabled={
-                            !canUpdate || name.trim() === workspace.name || updateMutation.isPending
+                            !canUpdate ||
+                            name.trim().length === 0 ||
+                            name.trim() === workspace.name ||
+                            updateMutation.isPending
                         }
                         onClick={() =>
                             updateMutation.mutate({

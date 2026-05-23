@@ -95,7 +95,7 @@ export function MicButton({
                         'relative shrink-0 rounded-full transition-colors duration-200',
                         'h-7 w-7',
                         isRecording &&
-                            'bg-red-500/15 text-red-500 hover:bg-red-500/25 hover:text-red-500',
+                            'bg-destructive/15 text-destructive hover:bg-destructive/25 hover:text-destructive',
                         isTranscribing && 'text-foreground-secondary',
                         !isBusy && 'text-foreground-tertiary hover:text-foreground-primary',
                         className,
@@ -105,7 +105,7 @@ export function MicButton({
                     {isRecording && (
                         <motion.span
                             aria-hidden
-                            className="pointer-events-none absolute inset-0 rounded-full bg-red-500/30"
+                            className="bg-destructive/30 pointer-events-none absolute inset-0 rounded-full"
                             initial={{ opacity: 0.6, scale: 1 }}
                             animate={{ opacity: 0, scale: 1.6 }}
                             transition={{
@@ -138,7 +138,7 @@ export function MicButton({
                                 transition={{ duration: 0.15 }}
                                 className="relative flex items-center justify-center"
                             >
-                                <span className="block h-2.5 w-2.5 rounded-[2px] bg-red-500" />
+                                <span className="bg-destructive block h-2.5 w-2.5 rounded-[2px]" />
                             </motion.span>
                         ) : (
                             <motion.span
@@ -159,7 +159,7 @@ export function MicButton({
                 <TooltipContent side="top" sideOffset={6}>
                     {isRecording ? (
                         <span className="flex items-center gap-1.5 tabular-nums">
-                            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                            <span className="bg-destructive inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
                             Recording {formatElapsed(elapsedMs)} · click to transcribe
                         </span>
                     ) : (

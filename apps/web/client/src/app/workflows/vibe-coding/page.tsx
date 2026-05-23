@@ -409,7 +409,7 @@ export default function VibeCodingWorkflowPage() {
                                             key={item}
                                             className="text-foreground-primary flex items-start gap-3"
                                         >
-                                            <Icons.CheckCircled className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
+                                            <Icons.CheckCircled className="text-foreground-brand mt-0.5 h-5 w-5 flex-shrink-0" />
                                             <span>{item}</span>
                                         </li>
                                     ))}

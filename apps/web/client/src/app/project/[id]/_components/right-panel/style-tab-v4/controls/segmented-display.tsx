@@ -66,7 +66,7 @@ export function SegmentedDisplay({
                     onValueChange={(next) => onCommit(next ?? '')}
                     aria-label={ariaLabel}
                     className={cn(
-                        'bg-background-secondary flex h-[26px] w-full divide-x divide-[var(--border)] overflow-hidden rounded-[10px] border border-transparent dark:bg-[#262626]',
+                        'bg-background-secondary flex h-[26px] w-full divide-x divide-[var(--border)] overflow-hidden rounded-[10px] border border-transparent',
                         className,
                     )}
                 >

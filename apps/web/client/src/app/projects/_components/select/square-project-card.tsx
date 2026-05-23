@@ -50,6 +50,28 @@ export function SquareProjectCard({
         [project.metadata?.updatedAt],
     );
 
+    // Deterministic brand-tinted gradient for projects without a thumbnail.
+    // Older projects never captured a screenshot so they fell back to a
+    // flat grey block — using a hash of the project id gives every card a
+    // stable, recognizable identity instead.
+    const fallback = useMemo(() => {
+        const palette = [
+            { from: '#1f2a37', via: '#0f172a', to: '#020617', text: '#e2e8f0' }, // slate
+            { from: '#1e293b', via: '#0c4a6e', to: '#082f49', text: '#bae6fd' }, // sky
+            { from: '#1e1b4b', via: '#312e81', to: '#1e1b4b', text: '#c7d2fe' }, // indigo
+            { from: '#134e4a', via: '#042f2e', to: '#022c22', text: '#99f6e4' }, // teal
+            { from: '#3f1d1d', via: '#7c2d12', to: '#431407', text: '#fed7aa' }, // orange
+            { from: '#1f2937', via: '#374151', to: '#111827', text: '#d1d5db' }, // gray
+        ];
+        let hash = 0;
+        for (let i = 0; i < project.id.length; i++) {
+            hash = (hash * 31 + project.id.charCodeAt(i)) | 0;
+        }
+        const swatch = palette[Math.abs(hash) % palette.length]!;
+        const initial = (project.name?.trim()?.[0] ?? '?').toUpperCase();
+        return { swatch, initial };
+    }, [project.id, project.name]);
+
     return (
         <ProjectCardContextMenu project={project} refetch={refetch}>
             <Link
@@ -68,9 +90,29 @@ export function SquareProjectCard({
                         />
                     ) : (
                         <>
-                            <div className="from-foreground/30 via-foreground/15 to-foreground/10 absolute inset-0 h-full w-full bg-gradient-to-t" />
                             <div
-                                className="border-foreground-tertiary/70 absolute inset-0 rounded-lg border-[0.5px]"
+                                className="absolute inset-0 h-full w-full"
+                                style={{
+                                    backgroundImage: `linear-gradient(160deg, ${fallback.swatch.from} 0%, ${fallback.swatch.via} 55%, ${fallback.swatch.to} 100%)`,
+                                }}
+                            />
+                            <div
+                                className="absolute inset-0 flex items-center justify-center"
+                                aria-hidden
+                            >
+                                <span
+                                    className="font-semibold opacity-70 select-none"
+                                    style={{
+                                        color: fallback.swatch.text,
+                                        fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+                                        letterSpacing: '-0.04em',
+                                    }}
+                                >
+                                    {fallback.initial}
+                                </span>
+                            </div>
+                            <div
+                                className="border-foreground-tertiary/40 absolute inset-0 rounded-lg border-[0.5px]"
                                 style={{
                                     maskImage:
                                         'linear-gradient(to bottom, black 60%, transparent 100%)',

@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 
 import type { Capability } from '@weblab/auth';
 
-import { api } from '@/trpc/react';
 import { useProjectCapabilities } from './use-project-capabilities';
 
 interface ProjectCapabilitiesContextValue {
@@ -29,9 +28,9 @@ const ProjectCapabilitiesContext = createContext<ProjectCapabilitiesContextValue
  * Mount once at the editor entry. Fetches capabilities for the active project
  * a single time and exposes them via context. Also watches the global
  * react-query mutation cache for FORBIDDEN errors — if any mutation fails
- * with FORBIDDEN, we treat it as "access lost mid-session" and:
- *   1. invalidate the cap query so the UI re-evaluates with the new state
- *   2. surface a single toast pointing the user at a refresh
+ * with FORBIDDEN, we treat it as "access lost mid-session" and surfaces a
+ * single toast pointing the user at a refresh. Convex caps auto-update via
+ * its subscription system.
  *
  * Throttled to once-per-session so a chain of permission-denied mutations
  * doesn't spam the user.
@@ -65,7 +64,6 @@ function isForbiddenError(error: unknown): boolean {
 
 function useAccessLostHandler(projectId: string | null | undefined) {
     const queryClient = useQueryClient();
-    const utils = api.useUtils();
     const surfacedRef = useRef(false);
     const [, force] = useState(0);
 
@@ -86,11 +84,8 @@ function useAccessLostHandler(projectId: string | null | undefined) {
             if (!isForbiddenError(err)) return;
             if (surfacedRef.current) return;
             surfacedRef.current = true;
-            // Refresh caps so UI affordances re-render with the new (denied)
-            // state. Invalidate ALL capabilities queries (no input filter) —
-            // they may have been issued with `{ projectId, workspaceId }`
-            // shapes that won't match a `{ projectId }`-only filter.
-            void utils.user.capabilities.invalidate();
+            // Convex caps queries auto-update via subscription — no manual
+            // invalidation needed. Just surface the access-lost toast.
             toast.error('You no longer have access to this project', {
                 description: 'Refresh the page to continue.',
                 action: {
@@ -103,7 +98,7 @@ function useAccessLostHandler(projectId: string | null | undefined) {
         return () => {
             unsubscribe();
         };
-    }, [projectId, queryClient, utils]);
+    }, [projectId, queryClient]);
 }
 
 /**

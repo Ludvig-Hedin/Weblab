@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 
 import { useOptionalEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { Routes } from '@/utils/constants';
 
@@ -61,9 +62,10 @@ export const ProjectLoadError = observer(
         const editorEngine = useOptionalEditorEngine();
         // Only fetch the user when we actually have an engine — otherwise
         // there's no sandbox session to reconnect and the query is wasted.
-        const { data: user } = api.user.get.useQuery(undefined, {
-            enabled: !!editorEngine,
-        });
+        const user = useQuery(
+            (editorEngine ? api.users.me : 'skip') as typeof api.users.me,
+            editorEngine ? {} : undefined,
+        );
         const [isRetrying, setIsRetrying] = useState(false);
 
         const handleRetry = async () => {
@@ -83,7 +85,7 @@ export const ProjectLoadError = observer(
                 // clears reactively and `Main` swaps back to the editor UI.
                 await editorEngine.activeSandbox.session.reconnect(
                     editorEngine.branches.activeBranch?.sandbox?.id ?? editorEngine.projectId,
-                    user?.id,
+                    user?._id,
                 );
             } catch (error) {
                 console.error('ProjectLoadError retry failed', error);

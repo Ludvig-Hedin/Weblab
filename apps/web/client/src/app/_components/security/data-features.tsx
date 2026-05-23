@@ -10,14 +10,26 @@ export function SecurityDataFeatures() {
     const t = tFn as unknown as (key: string) => string;
 
     const features: ComplianceFeature[] = [
-        { title: t('items.tls.title'), description: t('items.tls.body'), badgeAlt: 'TLS' },
-        { title: t('items.oauth.title'), description: t('items.oauth.body'), badgeAlt: 'OAuth' },
+        {
+            title: t('items.tls.title'),
+            description: t('items.tls.body'),
+            badgeAlt: 'TLS',
+        },
+        {
+            title: t('items.oauth.title'),
+            description: t('items.oauth.body'),
+            badgeAlt: 'OAuth',
+        },
         {
             title: t('items.aiTraining.title'),
             description: t('items.aiTraining.body'),
             badgeAlt: 'AI',
         },
-        { title: t('items.oss.title'), description: t('items.oss.body'), badgeAlt: 'OSS' },
+        {
+            title: t('items.oss.title'),
+            description: t('items.oss.body'),
+            badgeAlt: 'OSS',
+        },
     ];
 
     return (

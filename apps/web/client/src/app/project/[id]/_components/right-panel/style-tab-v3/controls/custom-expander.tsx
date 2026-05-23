@@ -38,7 +38,7 @@ export function CustomExpander({
         <Collapsible open={open} onOpenChange={onOpenChange} className={cn('w-full', className)}>
             <CollapsibleTrigger
                 className={cn(
-                    'group/expander text-mini text-foreground-secondary hover:text-foreground-primary mx-3 mt-0.5 flex w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-[4px] py-1 transition-colors outline-none',
+                    'group/expander text-mini text-foreground-secondary hover:text-foreground-primary mx-3 mt-0.5 flex w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-xs py-1 transition-colors outline-none',
                 )}
             >
                 <Settings2 className="text-foreground-tertiary size-3 shrink-0" />

@@ -56,13 +56,21 @@ const TEXT_TRANSFORM_ICONS = [
     { value: 'none', label: 'None', icon: <Icon icon={Minus} /> },
     { value: 'uppercase', label: 'Uppercase', icon: <Icon icon={CaseUpper} /> },
     { value: 'lowercase', label: 'Lowercase', icon: <Icon icon={CaseLower} /> },
-    { value: 'capitalize', label: 'Capitalize', icon: <Icon icon={CaseSensitive} /> },
+    {
+        value: 'capitalize',
+        label: 'Capitalize',
+        icon: <Icon icon={CaseSensitive} />,
+    },
 ] as const;
 
 const TEXT_DECORATION_ICONS = [
     { value: 'none', label: 'None', icon: <Icon icon={Minus} /> },
     { value: 'underline', label: 'Underline', icon: <Icon icon={Underline} /> },
-    { value: 'line-through', label: 'Strikethrough', icon: <Icon icon={Strikethrough} /> },
+    {
+        value: 'line-through',
+        label: 'Strikethrough',
+        icon: <Icon icon={Strikethrough} />,
+    },
 ] as const;
 
 const FONT_STYLE_ICONS = [
@@ -71,7 +79,11 @@ const FONT_STYLE_ICONS = [
 ] as const;
 
 const DIRECTION_ICONS = [
-    { value: 'ltr', label: 'Left to right', icon: <Icon icon={ArrowLeftRight} /> },
+    {
+        value: 'ltr',
+        label: 'Left to right',
+        icon: <Icon icon={ArrowLeftRight} />,
+    },
     {
         value: 'rtl',
         label: 'Right to left',

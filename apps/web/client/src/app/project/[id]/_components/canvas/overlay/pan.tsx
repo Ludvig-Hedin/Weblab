@@ -6,7 +6,10 @@ import { cn } from '@weblab/ui/utils';
 import { useEditorEngine } from '@/components/store/editor';
 
 interface PanOverlayProps {
-    clampPosition: (position: { x: number; y: number }) => { x: number; y: number };
+    clampPosition: (position: { x: number; y: number }) => {
+        x: number;
+        y: number;
+    };
 }
 
 export const PanOverlay = observer(({ clampPosition }: PanOverlayProps) => {

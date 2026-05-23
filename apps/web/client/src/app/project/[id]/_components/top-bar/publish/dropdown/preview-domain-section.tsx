@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { DeploymentStatus, DeploymentType } from '@weblab/models';
@@ -7,9 +9,9 @@ import { Icons } from '@weblab/ui/icons/index';
 import { toast } from '@weblab/ui/sonner';
 import { timeAgo } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useHostingType } from '@/components/store/hosting';
-import { api } from '@/trpc/react';
 import { parseDeploymentError } from '@/utils/deploy-errors';
 import { useSelectedProvider } from './selected-provider';
 import { UrlSection } from './url';
@@ -18,23 +20,31 @@ export const PreviewDomainSection = observer(() => {
     const editorEngine = useEditorEngine();
     const { selectedProvider } = useSelectedProvider();
     const [isLoading, setIsLoading] = useState(false);
-    const { data: project } = api.project.get.useQuery({ projectId: editorEngine.projectId });
-    const { data: previewDomain, refetch: refetchPreviewDomain } = api.domain.preview.get.useQuery({
-        projectId: editorEngine.projectId,
+    const project = useQuery(api.projects.get, {
+        projectId: editorEngine.projectId as Id<'projects'>,
     });
-    const { mutateAsync: createPreviewDomain, isPending: isCreatingDomain } =
-        api.domain.preview.create.useMutation();
+    const previewDomain = useQuery(api.domains.previewGet, {
+        projectId: editorEngine.projectId as Id<'projects'>,
+    });
+    const createPreviewDomain = useAction(api.domainActions.previewCreate);
+    const [isCreatingDomain, setIsCreatingDomain] = useState(false);
     const { deployment, publish: runPublish, isDeploying } = useHostingType(DeploymentType.PREVIEW);
 
     const createBaseDomain = async (): Promise<void> => {
-        const previewDomain = await createPreviewDomain({ projectId: editorEngine.projectId });
-        if (!previewDomain) {
-            console.error('Failed to create preview domain');
-            toast.error('Failed to create preview domain');
-            return;
+        setIsCreatingDomain(true);
+        try {
+            const created = await createPreviewDomain({
+                projectId: editorEngine.projectId as Id<'projects'>,
+            });
+            if (!created) {
+                console.error('Failed to create preview domain');
+                toast.error('Failed to create preview domain');
+                return;
+            }
+            await publish();
+        } finally {
+            setIsCreatingDomain(false);
         }
-        await refetchPreviewDomain();
-        await publish();
     };
 
     const publish = async (): Promise<void> => {
@@ -84,7 +94,15 @@ export const PreviewDomainSection = observer(() => {
                         <div className="ml-auto flex items-center gap-2">
                             <p className="text-foreground-positive">Live</p>
                             <p>•</p>
-                            <p>Updated {timeAgo(deployment.updatedAt)} ago</p>
+                            <p>
+                                Updated{' '}
+                                {timeAgo(
+                                    deployment.updatedAt
+                                        ? new Date(deployment.updatedAt)
+                                        : new Date(),
+                                )}{' '}
+                                ago
+                            </p>
                         </div>
                     )}
                     {deployment?.status === DeploymentStatus.FAILED && (

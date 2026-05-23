@@ -3,7 +3,11 @@ import React, { useState } from 'react';
 import { Icons } from '@weblab/ui/icons';
 
 const chatMessages = [
-    { sender: 'user', type: 'text', text: 'Design me an inventory tracker website for my Cafe' },
+    {
+        sender: 'user',
+        type: 'text',
+        text: 'Design me an inventory tracker website for my Cafe',
+    },
     {
         sender: 'ai',
         type: 'text',

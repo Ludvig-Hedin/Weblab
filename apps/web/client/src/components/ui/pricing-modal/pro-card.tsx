@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Coins } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -61,12 +62,13 @@ export const ProCard = ({
     const isPendingTierSelected =
         selectedTier !== subscription?.price.key &&
         selectedTier === subscription?.scheduledChange?.price?.key;
-    const scheduledPlanStartDate =
-        subscription?.scheduledChange?.scheduledChangeAt.toLocaleDateString(locale, {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-        }) ?? '';
+    const scheduledPlanStartDate = subscription?.scheduledChange
+        ? new Date(subscription.scheduledChange.scheduledChangeAt).toLocaleDateString(locale, {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+          })
+        : '';
 
     if (!PRO_PRODUCT_CONFIG.prices.length) {
         throw new Error('No pro tiers found');
@@ -169,7 +171,7 @@ export const ProCard = ({
 
     useEffect(() => {
         if (subscription?.price.key) {
-            setSelectedTier(subscription.price.key);
+            setSelectedTier(subscription.price.key as PriceKey);
         }
     }, [subscription?.price.key]);
 
@@ -210,10 +212,51 @@ export const ProCard = ({
         }
     };
 
+    const formatTierLabel = (tier: typeof selectedTierData) => {
+        if (!tier) return '';
+        if (tier.key === PriceKey.PRO_MONTHLY_TIER_11) return '∞';
+        return tier.monthlyMessageLimit.toLocaleString();
+    };
+
     const creditsSelector = (
         <Select value={selectedTier} onValueChange={(value) => setSelectedTier(value as PriceKey)}>
             <SelectTrigger className="h-9 w-auto min-w-[196px] rounded-full text-sm">
                 <SelectValue placeholder={t(transKeys.pricing.credits.selectPlaceholder)} />
+            </SelectTrigger>
+            <SelectContent className="z-99">
+                <SelectGroup>
+                    {PRO_PRODUCT_CONFIG.prices.map((value) => (
+                        <SelectItem key={value.key} value={value.key}>
+                            <div className="flex items-center gap-2">
+                                {value.description}
+                                {value.key === subscription?.price.key && (
+                                    <Badge variant="secondary">
+                                        {t(transKeys.pricing.credits.currentPlan)}
+                                    </Badge>
+                                )}
+                                {value.key === subscription?.scheduledChange?.price?.key && (
+                                    <Badge variant="secondary">
+                                        {t(transKeys.pricing.credits.pending)}
+                                    </Badge>
+                                )}
+                            </div>
+                        </SelectItem>
+                    ))}
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+    );
+
+    const compactCreditsSelector = (
+        <Select value={selectedTier} onValueChange={(value) => setSelectedTier(value as PriceKey)}>
+            <SelectTrigger
+                size="lg"
+                className="w-auto min-w-[96px] gap-2 rounded-full px-4 text-base font-medium"
+            >
+                <span className="flex items-center gap-1.5">
+                    <Coins className="h-4 w-4" aria-hidden="true" />
+                    <span>{formatTierLabel(selectedTierData)}</span>
+                </span>
             </SelectTrigger>
             <SelectContent className="z-99">
                 <SelectGroup>
@@ -252,14 +295,13 @@ export const ProCard = ({
                 </div>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                     <Button
-                        size="sm"
-                        className="rounded-full"
+                        size="lg"
                         onClick={handleButtonClick}
                         disabled={isCheckingOut || (!isUnauthenticated && !isNewTierSelected)}
                     >
                         {buttonContent()}
                     </Button>
-                    {creditsSelector}
+                    {compactCreditsSelector}
                 </div>
                 {isPendingTierSelected && isPro && (
                     <div className="text-small text-foreground-warning mt-2 text-balance">

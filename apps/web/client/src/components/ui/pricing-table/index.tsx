@@ -1,20 +1,20 @@
 'use client';
 
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
+
 import { useAuthContext } from '@/app/auth/auth-context';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 import { EnterpriseCard } from '../pricing-modal/enterprise-card';
 import { FreeCard } from '../pricing-modal/free-card';
 import { ProCard } from '../pricing-modal/pro-card';
 
 export const PricingTable = () => {
     // The pricing page is reachable by anonymous visitors. Gate the
-    // protected `user.get` query on the cookie heuristic so we don't fire
+    // protected `users.me` query on the cookie heuristic so we don't fire
     // a guaranteed-401 request on every public render.
     const hasAuthCookie = useHasAuthCookie();
-    const { data: user } = api.user.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const { setIsAuthModalOpen } = useAuthContext();
 
     return (

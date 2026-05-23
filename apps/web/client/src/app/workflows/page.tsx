@@ -111,7 +111,10 @@ export default function WorkflowsPage() {
                             initial={{ opacity: 0, filter: 'blur(4px)' }}
                             animate={{ opacity: 1, filter: 'blur(0px)' }}
                             transition={{ duration: 0.6, ease: 'easeOut' }}
-                            style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
+                            style={{
+                                willChange: 'opacity, filter',
+                                transform: 'translateZ(0)',
+                            }}
                         >
                             Workflows
                         </motion.p>
@@ -120,7 +123,10 @@ export default function WorkflowsPage() {
                             initial={{ opacity: 0, filter: 'blur(4px)' }}
                             animate={{ opacity: 1, filter: 'blur(0px)' }}
                             transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
-                            style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
+                            style={{
+                                willChange: 'opacity, filter',
+                                transform: 'translateZ(0)',
+                            }}
                         >
                             {APP_NAME} fits into your stack
                         </motion.h1>
@@ -129,7 +135,10 @@ export default function WorkflowsPage() {
                             initial={{ opacity: 0, filter: 'blur(4px)' }}
                             animate={{ opacity: 1, filter: 'blur(0px)' }}
                             transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
-                            style={{ willChange: 'opacity, filter', transform: 'translateZ(0)' }}
+                            style={{
+                                willChange: 'opacity, filter',
+                                transform: 'translateZ(0)',
+                            }}
                         >
                             Connect {APP_NAME} to the tools you already use. Design visually, ship
                             real code.

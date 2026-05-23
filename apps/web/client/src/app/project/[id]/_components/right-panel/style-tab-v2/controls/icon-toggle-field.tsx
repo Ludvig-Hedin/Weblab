@@ -46,7 +46,7 @@ export function IconToggleField({
                     // Same row geometry as the other fields — see FIELD_BASE_CLASSES —
                     // but rendered as a segmented group: subtle dividers between items.
                     // No internal padding here; each item handles its own.
-                    'border-input bg-foreground/5 h-[30px] w-full divide-x divide-[var(--input)] rounded-[8px] border dark:bg-[rgb(43,43,43)]',
+                    'border-input bg-foreground/5 h-[30px] w-full divide-x divide-[var(--input)] rounded-sm border dark:bg-[rgb(43,43,43)]',
                     className,
                 )}
             >

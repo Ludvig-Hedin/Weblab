@@ -98,7 +98,10 @@ export function MobileEmailCapture() {
         if (e.key === 'Enter') {
             e.preventDefault();
             if (isValidEmail(formData.email) && formData.name.trim()) {
-                handleSubmit(e);
+                // void: handleSubmit is async; without this the returned
+                // promise is dropped and any rejection silently disappears
+                // from the Enter-to-submit path.
+                void handleSubmit(e);
             }
         }
     };
@@ -452,7 +455,7 @@ export function MobileEmailCapture() {
 
                                 {error && (
                                     <motion.div
-                                        className="text-center text-sm text-red-500"
+                                        className="text-destructive text-center text-sm"
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         transition={{ duration: 0.2 }}

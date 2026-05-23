@@ -1,21 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-
-import { api } from '@/trpc/react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 
 export const useRepositoryValidation = () => {
     const [isValidating, setIsValidating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const validateRepo = api.github.validate.useMutation();
+    const validateRepo = useAction(api.githubActions.validate);
 
     const validateRepository = async (owner: string, repo: string) => {
         setIsValidating(true);
         setError(null);
 
         try {
-            const result = await validateRepo.mutateAsync({ owner, repo });
+            const result = await validateRepo({ owner, repo });
             return result;
         } catch (error) {
             const errorMessage =

@@ -45,7 +45,7 @@ export function FlowSegment({
                 onValueChange={(next) => onCommit(next ?? '')}
                 aria-label={ariaLabel}
                 className={cn(
-                    'bg-background-secondary grid w-full grid-cols-4 gap-0 rounded-[10px] p-[2px] dark:bg-[#262626]',
+                    'bg-background-secondary grid w-full grid-cols-4 gap-0 rounded-[10px] p-[2px]',
                     className,
                 )}
                 style={{ height, gridAutoRows: '1fr' }}

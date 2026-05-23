@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -16,10 +18,10 @@ import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 const FIELD_TYPE_LABEL_KEYS = {
     [CmsFieldType.TEXT]: transKeys.cms.fields.types.text,
@@ -63,18 +65,23 @@ export const FieldsTab = observer(() => {
     const [editing, setEditing] = useState<EditingState>(null);
     const draftAnchorRef = useRef<HTMLLIElement | null>(null);
 
-    const utils = api.useUtils();
-    const reorderMutation = api.cms.field.reorder.useMutation();
-    const deleteMutation = api.cms.field.delete.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const reorderMutation = useMutation(api.cmsFields.reorder);
+    const deleteMutation = useMutation(api.cmsFields.remove);
     const { confirm, dialog: confirmDialog } = useConfirm();
 
-    const collectionsQuery = api.cms.collection.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId },
+    const collectionsData = useQuery(
+        api.cmsCollections.list,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
-    const fieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId: projectId ?? '', collectionId: collectionId ?? '' },
-        { enabled: !!projectId && !!collectionId },
+    const fieldsData = useQuery(
+        api.cmsFields.listByCollection,
+        projectId && collectionId
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: collectionId as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
 
     // Close any open editor when the user switches collections.
@@ -85,7 +92,10 @@ export const FieldsTab = observer(() => {
     // Scroll the draft row into view when it appears.
     useEffect(() => {
         if (editing?.kind === 'create') {
-            draftAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            draftAnchorRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+            });
         }
     }, [editing]);
 
@@ -94,23 +104,20 @@ export const FieldsTab = observer(() => {
         // Use the displayed list (cached query data), not a fresh fetch —
         // a server-side concurrent reorder would cause the splice to operate
         // on a different order than what the user just clicked.
-        const current = fieldsQuery.data ?? [];
-        const idx = current.findIndex((f) => f.id === fieldId);
+        const current = fieldsData ?? [];
+        const idx = current.findIndex((f) => f._id === fieldId);
         const nextIdx = idx + direction;
         if (idx === -1 || nextIdx < 0 || nextIdx >= current.length) return;
-        const ordered = current.map((f) => f.id);
+        const ordered = current.map((f) => f._id);
         ordered.splice(idx, 1);
-        ordered.splice(nextIdx, 0, fieldId);
+        ordered.splice(nextIdx, 0, fieldId as Id<'cmsFields'>);
         try {
-            await reorderMutation.mutateAsync({
-                projectId: projectId ?? '',
-                collectionId,
+            await reorderMutation({
+                projectId: projectId as Id<'projects'>,
+                collectionId: collectionId as Id<'cmsCollections'>,
                 orderedFieldIds: ordered,
             });
-            await utils.cms.field.listByCollection.invalidate({
-                projectId: projectId ?? '',
-                collectionId,
-            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to reorder fields');
         }
@@ -127,9 +134,11 @@ export const FieldsTab = observer(() => {
         });
         if (!ok) return;
         try {
-            await deleteMutation.mutateAsync({ projectId, fieldId });
-            await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
-            await utils.cms.collection.list.invalidate({ projectId });
+            await deleteMutation({
+                projectId: projectId as Id<'projects'>,
+                fieldId: fieldId as Id<'cmsFields'>,
+            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             if (editing?.kind === 'edit' && editing.id === fieldId) setEditing(null);
             toast.success('Field removed');
         } catch (err) {
@@ -146,8 +155,8 @@ export const FieldsTab = observer(() => {
         );
     }
 
-    const collection = collectionsQuery.data?.find((c) => c.id === collectionId);
-    const fields = fieldsQuery.data ?? [];
+    const collection = collectionsData?.find((c) => c._id === collectionId);
+    const fields = fieldsData ?? [];
     const startCreate = () => setEditing({ kind: 'create' });
     const isCreating = editing?.kind === 'create';
 
@@ -197,23 +206,29 @@ export const FieldsTab = observer(() => {
                     <ul>
                         {fields.map((f, idx) => (
                             <FieldRow
-                                key={f.id}
-                                field={f}
+                                key={f._id}
+                                field={
+                                    {
+                                        ...f,
+                                        id: f._id,
+                                        helpText: f.helpText ?? null,
+                                    } as never
+                                }
                                 index={idx}
                                 total={fields.length}
-                                expanded={editing?.kind === 'edit' && editing.id === f.id}
+                                expanded={editing?.kind === 'edit' && editing.id === f._id}
                                 onToggle={() =>
                                     setEditing((prev) =>
-                                        prev?.kind === 'edit' && prev.id === f.id
+                                        prev?.kind === 'edit' && prev.id === f._id
                                             ? null
-                                            : { kind: 'edit', id: f.id },
+                                            : { kind: 'edit', id: f._id },
                                     )
                                 }
                                 onClose={() => setEditing(null)}
                                 onMove={(id, dir) => void moveField(id, dir)}
                                 onRemove={(id, name) => void removeField(id, name)}
-                                reorderPending={reorderMutation.isPending}
-                                deletePending={deleteMutation.isPending}
+                                reorderPending={false}
+                                deletePending={false}
                                 projectId={projectId}
                                 collectionId={collectionId}
                                 t={t}
@@ -408,17 +423,17 @@ function InlineFieldEditor({
     const [required, setRequired] = useState(field?.required ?? false);
     const [helpText, setHelpText] = useState(field?.helpText ?? '');
 
-    const utils = api.useUtils();
-    const createMutation = api.cms.field.create.useMutation();
-    const updateMutation = api.cms.field.update.useMutation();
-
-    const isPending = createMutation.isPending || updateMutation.isPending;
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const createMutation = useMutation(api.cmsFields.create);
+    const updateMutation = useMutation(api.cmsFields.update);
+    const [isPending, setIsPending] = useState(false);
 
     const handleSave = async () => {
         if (!name.trim()) {
             toast.error(t(transKeys.cms.fields.addDialog.nameRequired));
             return;
         }
+        setIsPending(true);
         try {
             if (mode === 'create') {
                 const rawKey = key.trim();
@@ -438,9 +453,9 @@ function InlineFieldEditor({
                     toast.error('Field name must contain at least one a–z or 0–9 character');
                     return;
                 }
-                await createMutation.mutateAsync({
-                    projectId,
-                    collectionId,
+                await createMutation({
+                    projectId: projectId as Id<'projects'>,
+                    collectionId: collectionId as Id<'cmsCollections'>,
                     name: name.trim(),
                     key: finalKey,
                     type,
@@ -448,8 +463,7 @@ function InlineFieldEditor({
                     helpText: helpText.trim() || undefined,
                     config: {},
                 });
-                await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
-                await utils.cms.collection.get.invalidate({ projectId, collectionId });
+                // Convex live queries auto-revalidate — no manual invalidate needed.
                 toast.success(t(transKeys.cms.fields.addDialog.success));
             } else {
                 if (!field) {
@@ -458,15 +472,14 @@ function InlineFieldEditor({
                     toast.error('Missing field data');
                     return;
                 }
-                await updateMutation.mutateAsync({
-                    projectId,
-                    fieldId: field.id,
+                await updateMutation({
+                    projectId: projectId as Id<'projects'>,
+                    fieldId: field.id as Id<'cmsFields'>,
                     name: name.trim(),
                     required,
                     helpText: helpText.trim() || undefined,
                 });
-                await utils.cms.field.listByCollection.invalidate({ projectId, collectionId });
-                await utils.cms.collection.get.invalidate({ projectId, collectionId });
+                // Convex live queries auto-revalidate — no manual invalidate needed.
                 toast.success('Field updated');
             }
             onClose();
@@ -474,6 +487,8 @@ function InlineFieldEditor({
             toast.error(
                 err instanceof Error ? err.message : t(transKeys.cms.fields.addDialog.failed),
             );
+        } finally {
+            setIsPending(false);
         }
     };
 

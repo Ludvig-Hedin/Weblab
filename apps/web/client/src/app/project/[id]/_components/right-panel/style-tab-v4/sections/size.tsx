@@ -200,7 +200,15 @@ export const SizeSection = observer(function SizeSection() {
         <Section id="size" title="Size">
             <div className="flex flex-col gap-3 px-3 pb-3">
                 {/* ── Dimensions ─────────────────────────────────────── */}
-                <GroupShell label="Dimensions">
+                <GroupShell
+                    label="Dimensions"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'width', value: '' },
+                            { property: 'height', value: '' },
+                        ])
+                    }
+                >
                     <div
                         className="grid items-center gap-1.5"
                         style={{ gridTemplateColumns: '1fr 28px 1fr' }}
@@ -228,7 +236,17 @@ export const SizeSection = observer(function SizeSection() {
                 </GroupShell>
 
                 {/* ── Constraints ────────────────────────────────────── */}
-                <GroupShell label="Constraints">
+                <GroupShell
+                    label="Constraints"
+                    onReset={() =>
+                        setMultiple([
+                            { property: 'min-width', value: '' },
+                            { property: 'min-height', value: '' },
+                            { property: 'max-width', value: '' },
+                            { property: 'max-height', value: '' },
+                        ])
+                    }
+                >
                     <div className="grid grid-cols-2 gap-1.5">
                         <LabeledNumberInput
                             label="Min W"

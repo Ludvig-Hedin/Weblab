@@ -40,7 +40,11 @@ const ResultList = ({ results, activeIndex, onSelect }: ResultListProps) => {
         activeRef.current?.scrollIntoView({ block: 'nearest' });
     }, [activeIndex]);
 
-    const groups: { frameId: string; frameName: string; items: SearchResult[] }[] = [];
+    const groups: {
+        frameId: string;
+        frameName: string;
+        items: SearchResult[];
+    }[] = [];
     for (const r of results) {
         const last = groups[groups.length - 1];
         if (last && last.frameId === r.frameId) {

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
@@ -9,8 +11,6 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 
-import { api } from '@/trpc/react';
-
 type PendingChanges = {
     shouldWarnDelete?: boolean;
     enableBunReplace?: boolean;
@@ -18,9 +18,10 @@ type PendingChanges = {
 };
 
 export const EditorTab = observer(() => {
-    const apiUtils = api.useUtils();
-    const { data: userSettings } = api.user.settings.get.useQuery();
+    const userSettings = useQuery(api.users.getSettings);
+    const updateSettingsMutation = useMutation(api.users.updateSettings);
     const [savedFlash, setSavedFlash] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isMountedRef = useRef(true);
     useEffect(
@@ -30,50 +31,38 @@ export const EditorTab = observer(() => {
         },
         [],
     );
-    const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
-        onSuccess: () => {
-            void apiUtils.user.settings.get.invalidate();
-            if (isMountedRef.current) {
-                setSavedFlash(true);
-                if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
-                savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
-            }
-        },
-        onError: () => {
-            void apiUtils.user.settings.get.invalidate();
-            toast.error('Failed to save editor settings');
-        },
-    });
 
     const pendingChanges = useRef<PendingChanges>({});
 
     const debouncedSave = useMemo(
         () =>
-            debounce(() => {
+            debounce(async () => {
                 if (Object.keys(pendingChanges.current).length === 0) return;
                 const next = pendingChanges.current;
                 pendingChanges.current = {};
-                updateSettings(next);
+                setIsSaving(true);
+                try {
+                    await updateSettingsMutation(next);
+                    if (isMountedRef.current) {
+                        setSavedFlash(true);
+                        if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+                        savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+                    }
+                } catch {
+                    toast.error('Failed to save editor settings');
+                } finally {
+                    if (isMountedRef.current) setIsSaving(false);
+                }
             }, 400),
-        [updateSettings],
+        [updateSettingsMutation],
     );
 
     useEffect(() => () => debouncedSave.cancel(), [debouncedSave]);
 
     const patch = (changes: PendingChanges) => {
-        // Optimistic UI
-        apiUtils.user.settings.get.setData(undefined, (current) => {
-            if (!current) return current;
-            return {
-                ...current,
-                editor: { ...current.editor, ...changes },
-            };
-        });
         pendingChanges.current = { ...pendingChanges.current, ...changes };
-        debouncedSave();
+        void debouncedSave();
     };
-
-    const editor = userSettings?.editor;
 
     const SaveStatus = () => (
         <span className="text-mini">
@@ -113,7 +102,7 @@ export const EditorTab = observer(() => {
                         </div>
                         <Switch
                             aria-label="Warn before deleting elements"
-                            checked={editor?.shouldWarnDelete ?? true}
+                            checked={userSettings?.shouldWarnDelete ?? true}
                             onCheckedChange={(v) => patch({ shouldWarnDelete: v })}
                         />
                     </div>
@@ -127,7 +116,7 @@ export const EditorTab = observer(() => {
                         </div>
                         <Switch
                             aria-label="Enable Bun replace"
-                            checked={editor?.enableBunReplace ?? true}
+                            checked={userSettings?.enableBunReplace ?? true}
                             onCheckedChange={(v) => patch({ enableBunReplace: v })}
                         />
                     </div>
@@ -147,7 +136,7 @@ export const EditorTab = observer(() => {
                 <div className="space-y-1.5">
                     <Label className="text-mini">Build flags</Label>
                     <Input
-                        value={editor?.buildFlags ?? '--no-lint'}
+                        value={userSettings?.buildFlags ?? '--no-lint'}
                         onChange={(e) => patch({ buildFlags: e.target.value })}
                         className="text-small h-8 font-mono"
                         placeholder="--no-lint"

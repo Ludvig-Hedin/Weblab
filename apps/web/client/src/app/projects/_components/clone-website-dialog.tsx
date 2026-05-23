@@ -189,7 +189,11 @@ export function CloneWebsiteDialog({ open, onOpenChange }: CloneWebsiteDialogPro
     const submitScreenshot = async () => {
         if (!screenshot) return;
         try {
-            await cloneFromScreenshot({ screenshot, notes: screenshotNotes, framework });
+            await cloneFromScreenshot({
+                screenshot,
+                notes: screenshotNotes,
+                framework,
+            });
         } catch {
             // see above
         }

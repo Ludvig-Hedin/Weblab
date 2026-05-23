@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@weblab/ui/badge';
@@ -10,62 +12,90 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { toast } from '@weblab/ui/sonner';
 
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
-const hasPreconditionFailedCode = (error: unknown) => {
-    if (!error || typeof error !== 'object' || !('data' in error)) {
-        return false;
-    }
-    const data = error.data;
-    return (
-        !!data && typeof data === 'object' && 'code' in data && data.code === 'PRECONDITION_FAILED'
-    );
+type GitHubRepo = {
+    id: number;
+    full_name: string;
+    private: boolean;
+};
+
+type GitHubOrg = {
+    login: string;
 };
 
 export const GitHubTab = () => {
     const t = useTranslations();
     const router = useRouter();
-    const apiUtils = api.useUtils();
     const [repoSearch, setRepoSearch] = useState('');
     const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
 
-    const {
-        data: installationId,
-        isLoading,
-        error,
-    } = api.github.checkGitHubAppInstallation.useQuery(undefined, {
-        retry: false,
-    });
+    const checkInstallation = useAction(api.githubActions.checkGitHubAppInstallation);
+    const getOrgs = useAction(api.githubActions.getOrganizations);
+    const getReposWithApp = useAction(api.githubActions.getRepositoriesWithApp);
+    const generateUrl = useAction(api.githubActions.generateInstallationUrlAction);
 
-    const { data: orgs } = api.github.getOrganizations.useQuery(undefined, {
-        enabled: !!installationId,
-        retry: false,
-    });
+    const [installationId, setInstallationId] = useState<string | null | undefined>(undefined);
+    const [installationError, setInstallationError] = useState<unknown>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [orgs, setOrgs] = useState<GitHubOrg[] | null>(null);
+    const [repos, setRepos] = useState<GitHubRepo[] | null>(null);
+    const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-    const { data: repos, isLoading: isLoadingRepos } = api.github.getRepositoriesWithApp.useQuery(
-        undefined,
-        { enabled: !!installationId, retry: false },
-    );
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            setIsLoading(true);
+            try {
+                const id = await checkInstallation({});
+                if (cancelled) return;
+                setInstallationId(id);
+                setInstallationError(null);
+            } catch (err) {
+                if (!cancelled) {
+                    setInstallationError(err);
+                    setInstallationId(null);
+                }
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [checkInstallation]);
 
-    const { mutateAsync: generateUrl, isPending: isGenerating } =
-        api.github.generateInstallationUrl.useMutation();
+    useEffect(() => {
+        if (!installationId) return;
+        let cancelled = false;
+        (async () => {
+            setIsLoadingRepos(true);
+            try {
+                const [fetchedOrgs, fetchedRepos] = await Promise.all([
+                    getOrgs({}) as Promise<GitHubOrg[]>,
+                    getReposWithApp({}) as Promise<GitHubRepo[]>,
+                ]);
+                if (cancelled) return;
+                setOrgs(fetchedOrgs ?? []);
+                setRepos(fetchedRepos ?? []);
+            } catch {
+                if (!cancelled) {
+                    setOrgs([]);
+                    setRepos([]);
+                }
+            } finally {
+                if (!cancelled) setIsLoadingRepos(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [installationId, getOrgs, getReposWithApp]);
 
-    const { mutate: disconnect, isPending: isDisconnecting } =
-        api.user.disconnectGitHub.useMutation({
-            onSuccess: () => {
-                void apiUtils.github.checkGitHubAppInstallation.invalidate();
-                void apiUtils.github.getOrganizations.invalidate();
-                void apiUtils.github.getRepositoriesWithApp.invalidate();
-                setConfirmingDisconnect(false);
-                toast.success('GitHub disconnected');
-            },
-            onError: () => toast.error('Failed to disconnect GitHub'),
-        });
-
-    const isPreconditionFailed = hasPreconditionFailedCode(error);
-    const isConnected = !!installationId && !isPreconditionFailed;
-    const hasQueryError = !!error && !isPreconditionFailed;
+    const isConnected = !!installationId;
+    const hasQueryError = !!installationError;
 
     const filteredRepos = (repos ?? []).filter((repo) =>
         repo.full_name.toLowerCase().includes(repoSearch.toLowerCase()),
@@ -78,12 +108,41 @@ export const GitHubTab = () => {
             return;
         }
 
+        setIsGenerating(true);
         try {
-            const { url } = await generateUrl({});
-            newWindow.location.href = url;
+            const result = (await generateUrl({})) as { url: string };
+            newWindow.location.href = result.url;
         } catch {
             newWindow.close();
             toast.error('Failed to generate GitHub installation URL');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleDisconnect = async () => {
+        setIsDisconnecting(true);
+        try {
+            // TODO(convex): users.disconnectGitHub mutation not yet implemented.
+            // Original tRPC: api.user.disconnectGitHub.useMutation()
+            toast.error('Disconnect is temporarily unavailable.');
+        } finally {
+            setIsDisconnecting(false);
+            setConfirmingDisconnect(false);
+        }
+    };
+
+    const retryInstallationCheck = async () => {
+        setIsLoading(true);
+        try {
+            const id = await checkInstallation({});
+            setInstallationId(id);
+            setInstallationError(null);
+        } catch (err) {
+            setInstallationError(err);
+            setInstallationId(null);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -114,9 +173,7 @@ export const GitHubTab = () => {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                                void apiUtils.github.checkGitHubAppInstallation.invalidate()
-                            }
+                            onClick={() => void retryInstallationCheck()}
                         >
                             Retry
                         </Button>
@@ -155,7 +212,7 @@ export const GitHubTab = () => {
                                         variant="destructive"
                                         size="sm"
                                         disabled={isDisconnecting}
-                                        onClick={() => disconnect()}
+                                        onClick={() => void handleDisconnect()}
                                     >
                                         {isDisconnecting ? 'Disconnecting…' : 'Confirm disconnect'}
                                     </Button>

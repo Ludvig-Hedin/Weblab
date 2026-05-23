@@ -3,7 +3,9 @@
 import type { FinishReason } from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat as useAiChat } from '@ai-sdk/react';
+import { api } from '@convex/_generated/api';
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
+import { useConvex } from 'convex/react';
 import { usePostHog } from 'posthog-js/react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,9 +20,9 @@ import type {
 import { ChatType } from '@weblab/models';
 import { jsonClone } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { handleToolCall } from '@/components/tools';
-import { api } from '@/trpc/client';
 import { WeblabCliTransport } from './cli-transport';
 import { OllamaWebTransport } from './ollama-web-transport';
 import {
@@ -64,6 +66,7 @@ export function useChat({
 }: UseChatProps) {
     const editorEngine = useEditorEngine();
     const posthog = usePostHog();
+    const convex = useConvex();
 
     const [finishReason, setFinishReason] = useState<FinishReason | null>(null);
     const [isExecutingToolCall, setIsExecutingToolCall] = useState(false);
@@ -580,9 +583,17 @@ export function useChat({
                 const checkpointsWithBranchId = [...oldCheckpoints, ...checkpoints].filter(
                     (cp): cp is GitMessageCheckpoint & { branchId: string } => !!cp.branchId,
                 );
-                void api.chat.message.updateCheckpoints.mutate({
-                    messageId: lastUserMessage.id,
-                    checkpoints: checkpointsWithBranchId,
+                void convex.mutation(api.messages.updateCheckpoints, {
+                    messageId: lastUserMessage.id as Id<'messages'>,
+                    checkpoints: checkpointsWithBranchId.map((cp) => ({
+                        type: cp.type,
+                        oid: cp.oid,
+                        branchId: cp.branchId,
+                        createdAt:
+                            cp.createdAt instanceof Date
+                                ? cp.createdAt.getTime()
+                                : Number(cp.createdAt),
+                    })),
                 });
 
                 setMessages(

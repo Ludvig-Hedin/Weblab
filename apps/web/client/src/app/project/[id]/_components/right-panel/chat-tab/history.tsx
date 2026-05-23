@@ -97,9 +97,10 @@ export const ChatHistory = observer(({ isOpen, onOpenChange }: ChatHistoryProps)
     for (const conversation of sortedConversations) {
         buckets[groupForDate(conversation.createdAt, today)].push(conversation);
     }
-    const groupedConversations = GROUP_ORDER.map((key) => ({ key, items: buckets[key] })).filter(
-        (group) => group.items.length > 0,
-    );
+    const groupedConversations = GROUP_ORDER.map((key) => ({
+        key,
+        items: buckets[key],
+    })).filter((group) => group.items.length > 0);
 
     return (
         <Popover open={isOpen} onOpenChange={handlePopoverOpenChange}>

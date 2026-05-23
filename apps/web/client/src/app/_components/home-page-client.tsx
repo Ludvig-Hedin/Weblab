@@ -23,12 +23,8 @@ const WhatCanWeblabDoSectionV2 = dynamic(
         ),
     { loading: () => null },
 );
-const ModelAgnosticSection = dynamic(
-    () => import('./landing-page/model-agnostic-section').then((m) => m.ModelAgnosticSection),
-    { loading: () => null },
-);
-const TerminalSection = dynamic(
-    () => import('./landing-page/terminal-section').then((m) => m.TerminalSection),
+const FeatureTrioSection = dynamic(
+    () => import('./landing-page/feature-trio-section').then((m) => m.FeatureTrioSection),
     { loading: () => null },
 );
 const FAQSection = dynamic(() => import('./landing-page/faq-section').then((m) => m.FAQSection), {
@@ -69,8 +65,7 @@ export function HomePageClient() {
                     {/* <DigitalSolutionsSection /> */}
                     {/*  <UseCasesSection /> */}
                     <WhatCanWeblabDoSectionV2 />
-                    <ModelAgnosticSection />
-                    <TerminalSection />
+                    <FeatureTrioSection />
                     {/* <ScrollingVelocitySection /> */}
                     <FAQSection />
                     <ChangelogGrid limit={4} />

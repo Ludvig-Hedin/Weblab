@@ -33,7 +33,7 @@ export function ComponentsBlock() {
                                 >
                                     {item.label === 'Calendar' && (
                                         <div
-                                            className="h-fit w-16 rounded-[4px] bg-black p-1.5 select-none"
+                                            className="h-fit w-16 rounded-xs bg-black p-1.5 select-none"
                                             style={{ fontSize: '3px' }}
                                         >
                                             <div className="mx-0.5 mb-1 flex items-center justify-between">
@@ -88,7 +88,7 @@ export function ComponentsBlock() {
                                                         return (
                                                             <div
                                                                 key={i}
-                                                                className={`rounded-[4px] py-[0.5px] text-[3px] ${
+                                                                className={`rounded-xs py-[0.5px] text-[3px] ${
                                                                     isToday
                                                                         ? 'bg-white font-bold text-black'
                                                                         : 'text-zinc-300'
@@ -104,7 +104,7 @@ export function ComponentsBlock() {
                                     )}
                                     {item.label === 'Card' && (
                                         <div
-                                            className="flex h-18 w-18 flex-col gap-[1.5px] rounded-[4px] bg-black p-1.5 select-none"
+                                            className="flex h-18 w-18 flex-col gap-[1.5px] rounded-xs bg-black p-1.5 select-none"
                                             style={{ fontSize: '3.5px' }}
                                         >
                                             <div className="mb-0.5 flex items-center justify-between">
@@ -149,7 +149,7 @@ export function ComponentsBlock() {
                                         </div>
                                     )}
                                     {item.label === 'Chart' && (
-                                        <div className="relative flex h-16 w-18 flex-col overflow-hidden rounded-[4px] bg-black p-0.5 select-none">
+                                        <div className="relative flex h-16 w-18 flex-col overflow-hidden rounded-xs bg-black p-0.5 select-none">
                                             <div className="px-1 pt-1 pb-0.5">
                                                 <div className="mb-1 text-[4.5px] leading-none font-semibold text-white">
                                                     Bar Chart
@@ -192,7 +192,7 @@ export function ComponentsBlock() {
                                         </div>
                                     )}
                                     {item.label === 'Table' && (
-                                        <div className="h-16 w-16 rounded-[4px] bg-black p-0.5 select-none">
+                                        <div className="h-16 w-16 rounded-xs bg-black p-0.5 select-none">
                                             <div className="grid grid-cols-3 gap-[1px] text-[3px] text-zinc-300">
                                                 <div className="bg-background-weblab rounded-[1px] p-1">
                                                     Name
@@ -225,7 +225,7 @@ export function ComponentsBlock() {
                                         </div>
                                     )}
                                     {item.label === 'Weather' && (
-                                        <div className="relative flex h-16 w-16 flex-col items-center overflow-hidden rounded-[4px] bg-black p-1 select-none">
+                                        <div className="relative flex h-16 w-16 flex-col items-center overflow-hidden rounded-xs bg-black p-1 select-none">
                                             <div className="mt-2 flex w-full items-center justify-center">
                                                 <svg
                                                     width="16"

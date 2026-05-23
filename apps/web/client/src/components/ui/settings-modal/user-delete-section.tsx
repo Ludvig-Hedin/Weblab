@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { APP_NAME } from '@weblab/constants';
@@ -18,7 +20,6 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 
-import { api } from '@/trpc/react';
 import { isClerkMode, useSafeClerk } from '@/utils/auth/safe-clerk';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
@@ -26,12 +27,11 @@ import { signOutEverywhere } from '@/utils/auth/sign-out';
 export const UserDeleteSection = observer(() => {
     const router = useRouter();
     const { signOut: clerkSignOut } = useSafeClerk();
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(api.users.me);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteEmail, setDeleteEmail] = useState('');
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [showFinalDeleteConfirm, setShowFinalDeleteConfirm] = useState(false);
-    const { mutateAsync: deleteUser } = api.user.delete.useMutation();
 
     const handleDeleteAccount = () => {
         setShowDeleteModal(true);
@@ -44,8 +44,11 @@ export const UserDeleteSection = observer(() => {
 
     const handleFinalDeleteAccount = async () => {
         try {
-            await deleteUser();
-            await handleDeleteSuccess();
+            // TODO(convex): users.delete mutation not yet implemented in Convex.
+            // Original tRPC: api.user.delete.useMutation()
+            toast.error('Account deletion is temporarily unavailable. Please contact support.');
+            return;
+            // await handleDeleteSuccess();
         } catch (error) {
             toast.error('Failed to delete account');
             console.error('Failed to delete account', error);
@@ -206,7 +209,7 @@ export const UserDeleteSection = observer(() => {
                         </Button>
                         <Button
                             variant="destructive"
-                            onClick={handleFinalDeleteAccount}
+                            onClick={() => void handleFinalDeleteAccount()}
                             className="order-1 sm:order-2"
                         >
                             Yes, Delete My Account

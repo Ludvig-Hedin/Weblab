@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -16,12 +16,37 @@ interface ColorSwatchProps {
     usage?: string;
 }
 
+/**
+ * Read the live computed value of a CSS custom property from :root.
+ * Auto-tracks theme changes (light/dark) and globals.css edits without
+ * needing a stale static fallback in data.ts.
+ */
+function useLiveTokenValue(cssVar: string): string {
+    const [live, setLive] = useState('');
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const read = () =>
+            getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+        setLive(read());
+        // Re-read when html class toggles (dark mode switch) or attributes change.
+        const observer = new MutationObserver(() => setLive(read()));
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme', 'data-accent'],
+        });
+        return () => observer.disconnect();
+    }, [cssVar]);
+    return live;
+}
+
 export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSwatchProps) {
     const { overrides, setToken, resetToken } = useOverrides();
-    const current = overrides[cssVar] ?? value;
+    const live = useLiveTokenValue(cssVar);
+    // Override wins, then live computed value, then static fallback (legacy).
+    const current = overrides[cssVar] ?? live ?? value;
     const isEdited = overrides[cssVar] !== undefined;
     const inputRef = useRef<HTMLInputElement>(null);
-    const hex = tokenToHex(current);
+    const hex = tokenToHex(current.length > 0 ? current : value);
 
     return (
         <div
@@ -77,7 +102,7 @@ export function ColorSwatch({ name, cssVar, value, description, usage }: ColorSw
                     </button>
                 )}
             </div>
-            {(description || usage) && (
+            {(description ?? usage) && (
                 <div className="border-border space-y-1.5 border-t pt-2.5">
                     {description && (
                         <p className="text-foreground-secondary text-[11px] leading-snug">

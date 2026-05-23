@@ -19,15 +19,28 @@ const INSTALL_HINTS: Record<string, ReadonlyArray<{ os: string; command: string 
         { os: 'Windows', command: 'winget install OpenAI.Codex' },
     ],
     'claude-code': [
-        { os: 'macOS / Linux', command: 'npm install -g @anthropic-ai/claude-code' },
+        {
+            os: 'macOS / Linux',
+            command: 'npm install -g @anthropic-ai/claude-code',
+        },
         { os: 'Windows', command: 'npm install -g @anthropic-ai/claude-code' },
     ],
     gemini: [
         { os: 'macOS / Linux', command: 'npm install -g @google/gemini-cli' },
         { os: 'Windows', command: 'npm install -g @google/gemini-cli' },
     ],
-    opencode: [{ os: 'macOS / Linux', command: 'curl -fsSL https://opencode.ai/install | bash' }],
-    cursor: [{ os: 'macOS / Linux / Windows', command: 'See https://docs.cursor.com/cli' }],
+    opencode: [
+        {
+            os: 'macOS / Linux',
+            command: 'curl -fsSL https://opencode.ai/install | bash',
+        },
+    ],
+    cursor: [
+        {
+            os: 'macOS / Linux / Windows',
+            command: 'See https://docs.cursor.com/cli',
+        },
+    ],
     ollama: [
         { os: 'macOS', command: 'brew install ollama' },
         { os: 'Linux', command: 'curl -fsSL https://ollama.com/install.sh | sh' },

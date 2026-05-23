@@ -2191,6 +2191,23 @@
             "heading": "Riktig kod. Riktig terminal. Riktig kontroll.",
             "body": "Weblab skickar produktionsklar kod du kan installera, bygga, testa och deploya från din egen terminal – ingen inlåsning, ingen black box."
         },
+        "featureTrio": {
+            "eyebrow": "Öppen i design",
+            "heading": "Välj modell, äg din stack, designa med dina riktiga komponenter.",
+            "models": {
+                "title": "Modellagnostisk",
+                "body": "Växla mellan ledande modeller efter behov. Välj den som passar uppgiften."
+            },
+            "terminal": {
+                "title": "Riktig kod, riktig terminal",
+                "body": "Installera, bygg, testa och deploya från din egen terminal. Ingen inlåsning, ingen black box."
+            },
+            "components": {
+                "eyebrow": "Ditt designsystem",
+                "title": "Dina riktiga komponenter",
+                "body": "Designa med knappar, kort och layouter dina utvecklare redan byggt."
+            }
+        },
         "whatCanWeblabDoV2": {
             "headingAi": "AI",
             "headingCode": "Kod",
@@ -2218,6 +2235,11 @@
                     "subtitle": "Canvas",
                     "title": "Manipulera element direkt",
                     "paragraph": "Dra, ändra storlek och arrangera element direkt på canvasen. Se ändringar dyka upp i riktig kod direkt."
+                },
+                "code": {
+                    "subtitle": "Kod",
+                    "title": "Riktig kod, bredvid din canvas",
+                    "paragraph": "Redigera komponenter i en riktig editor med syntaxfärger och fler filtabbar. Varje visuell ändring skrivs tillbaka in i filen du skickar."
                 },
                 "components": {
                     "subtitle": "Komponenter",

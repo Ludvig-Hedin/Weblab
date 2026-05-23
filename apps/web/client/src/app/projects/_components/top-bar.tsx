@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
@@ -22,7 +24,6 @@ import { cn } from '@weblab/ui/utils';
 import { useActiveWorkspaceMaybe } from '@/app/w/[slug]/_components/workspace-context';
 import { WorkspaceSwitcher } from '@/app/w/[slug]/_components/workspace-switcher';
 import { CurrentUserAvatar } from '@/components/ui/avatar-dropdown';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 // ─── Projects dropdown ───────────────────────────────────────────────────────
@@ -37,9 +38,10 @@ function ProjectsDropdown() {
     // several work streams without exploding the popover height. Anything
     // beyond is reached via "View all projects" or the global search.
     const PROJECTS_DROPDOWN_LIMIT = 12;
-    const { data: projects, isLoading } = api.project.list.useQuery({
+    const projects = useQuery(api.projects.list, {
         limit: PROJECTS_DROPDOWN_LIMIT,
     });
+    const isLoading = projects === undefined;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -71,9 +73,9 @@ function ProjectsDropdown() {
                         ) : (projects?.length ?? 0) > 0 ? (
                             <CommandGroup>
                                 {(projects ?? []).map((project) => (
-                                    <CommandItem key={project.id} value={project.name} asChild>
+                                    <CommandItem key={project._id} value={project.name} asChild>
                                         <Link
-                                            href={`${Routes.PROJECT}/${project.id}`}
+                                            href={`${Routes.PROJECT}/${project._id}`}
                                             onClick={() => setOpen(false)}
                                         >
                                             <span className="text-foreground truncate text-sm font-medium">

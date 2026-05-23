@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation, useQuery } from 'convex/react';
 
 import type { CmsSourceType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -16,7 +18,7 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface Props {
     projectId: string;
@@ -32,14 +34,22 @@ interface Props {
  */
 export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
     const open = !!sourceId;
-    const sourceQuery = api.cms.source.get.useQuery(
-        { projectId, sourceId: sourceId ?? '' },
-        { enabled: !!sourceId },
+    const source = useQuery(
+        api.cmsSources.get,
+        sourceId
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  sourceId: sourceId as Id<'cmsSources'>,
+              }
+            : 'skip',
     );
-    const utils = api.useUtils();
-    const updateMutation = api.cms.source.update.useMutation();
-    const testExistingMutation = api.cms.source.testExisting.useMutation();
-    const testNewMutation = api.cms.source.testConnection.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    // Action wraps mutation + encrypts credentials server-side.
+    const updateMutation = useAction(api.cmsActions.sourceUpdate);
+    const testExistingAction = useAction(api.cmsActions.sourceTestExisting);
+    const testNewAction = useAction(api.cmsActions.sourceTestConnection);
+    const [isTesting, setIsTesting] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const [name, setName] = useState('');
     const [rotate, setRotate] = useState(false);
@@ -49,32 +59,33 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
     >(null);
 
     useEffect(() => {
-        if (!open || !sourceQuery.data) return;
-        setName(sourceQuery.data.name);
+        if (!open || !source) return;
+        setName(source.name);
         setRotate(false);
         setCreds({});
         setTestStatus(null);
-    }, [open, sourceQuery.data]);
+    }, [open, source]);
 
     const handleTest = async () => {
         if (!sourceId) return;
         setTestStatus(null);
+        setIsTesting(true);
         try {
             // Rotating creds → test the new ones before persisting. Otherwise
             // re-test the stored creds.
             const result =
                 rotate && Object.keys(creds).length > 0
-                    ? await testNewMutation.mutateAsync({
-                          projectId,
-                          type: sourceQuery.data!.type as Exclude<
-                              CmsSourceType,
-                              CmsSourceType.WEBLAB
-                          >,
+                    ? await testNewAction({
+                          projectId: projectId as Id<'projects'>,
+                          type: source!.type as Exclude<CmsSourceType, CmsSourceType.WEBLAB>,
                           credentials: Object.fromEntries(
                               Object.entries(creds).filter(([, v]) => v && v.trim() !== ''),
                           ),
                       })
-                    : await testExistingMutation.mutateAsync({ projectId, sourceId });
+                    : await testExistingAction({
+                          projectId: projectId as Id<'projects'>,
+                          sourceId: sourceId as Id<'cmsSources'>,
+                      });
             setTestStatus(result);
             if (!result.ok) toast.error(result.reason);
             else toast.success('Connection works');
@@ -82,6 +93,8 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
             const reason = err instanceof Error ? err.message : 'Connection test failed';
             setTestStatus({ ok: false, reason });
             toast.error(reason);
+        } finally {
+            setIsTesting(false);
         }
     };
 
@@ -94,18 +107,22 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
             rotate && Object.keys(creds).length > 0
                 ? Object.fromEntries(Object.entries(creds).filter(([, v]) => v && v.trim() !== ''))
                 : undefined;
+        setIsUpdating(true);
         try {
-            await updateMutation.mutateAsync({
-                projectId,
-                sourceId,
+            // Action encrypts `credentials` server-side via lib/cmsCredentials.
+            await updateMutation({
+                projectId: projectId as Id<'projects'>,
+                sourceId: sourceId as Id<'cmsSources'>,
                 name: name.trim(),
-                credentials: credsToSend,
+                credentials: credsToSend as never | undefined,
             });
-            await utils.cms.source.list.invalidate({ projectId });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success('Source updated');
             onClose();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to update source');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -192,14 +209,11 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
                         <Button
                             variant="secondary"
                             onClick={() => void handleTest()}
-                            disabled={testExistingMutation.isPending || testNewMutation.isPending}
+                            disabled={isTesting}
                         >
                             Test connection
                         </Button>
-                        <Button
-                            onClick={() => void handleSave()}
-                            disabled={updateMutation.isPending}
-                        >
+                        <Button onClick={() => void handleSave()} disabled={isUpdating}>
                             Save
                         </Button>
                     </div>

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@weblab/ui/utils';
 
-import { api } from '@/trpc/react';
 import { getFaviconUrl } from './project-card-utils';
 
 interface ProjectPreviewSurfaceProps {
@@ -91,24 +90,12 @@ export const ProjectPreviewSurface = ({
     const iframeUrl: string | null =
         siteUrl && !isNonEmbeddable(siteUrl) ? siteUrl : (sandboxPreviewUrl ?? null);
 
-    // Server-side liveness probe. Iframe load handlers fire on 410 Gone
-    // responses (and render the CodeSandbox "this sandbox is gone" page
-    // inside the card), so the previous timeout-only fallback still ended
-    // up showing dead-sandbox HTML. Ask the server whether the URL is
-    // actually alive; if it's 410/404/network-error we skip the iframe
-    // entirely and fall back to the favicon / skeleton.
-    const probeUrl = !shouldRenderImage && iframeUrl ? iframeUrl : '';
-    const livenessQuery = api.sandbox.checkAlive.useQuery(
-        { previewUrl: probeUrl },
-        {
-            enabled: Boolean(probeUrl),
-            // Cache so a workspace with many cards doesn't fire dozens
-            // of HEADs every render. Five minutes is short enough that
-            // a restarted sandbox shows up reasonably soon.
-            staleTime: 5 * 60_000,
-            refetchOnWindowFocus: false,
-        },
-    );
+    // TODO(convex-migration): port api.sandbox.checkAlive — no Convex equivalent yet.
+    // Liveness probe is disabled; sandbox URLs will iframe-render directly until ported.
+    const livenessQuery = {
+        data: undefined as { state: string } | undefined,
+        isLoading: false,
+    };
     const sandboxLooksDead =
         livenessQuery.data?.state === 'gone' ||
         livenessQuery.data?.state === 'notFound' ||

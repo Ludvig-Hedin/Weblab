@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { EMBEDDED_SKILLS } from '@weblab/ai/client';
@@ -20,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@weblab/ui/sonner';
 
 import type { SkillRowItem } from './skill-row';
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 import { ScopeBadge } from './scope-badge';
 import { SkillFormDialog } from './skill-form-dialog';
 import { SkillImportDialog } from './skill-import-dialog';
@@ -38,6 +40,16 @@ interface DbSkill {
     enabled: boolean;
 }
 
+interface ConvexSkill {
+    _id: string;
+    userId: string;
+    projectId?: string;
+    name: string;
+    description?: string;
+    content?: string;
+    enabled?: boolean;
+}
+
 const EXPLORE_URL = 'https://agentskills.io';
 
 export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
@@ -49,25 +61,30 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
     const [editing, setEditing] = useState<DbSkill | undefined>();
     const [confirmDelete, setConfirmDelete] = useState<SkillRowItem | null>(null);
 
-    const { data: dbSkills = [], isLoading } = api.skills.list.useQuery({
-        ...(projectId ? { projectId } : {}),
+    const skillsRaw = useQuery(api.skills.list, {
+        ...(projectId ? { projectId: projectId as Id<'projects'> } : {}),
         scope: 'all',
     });
+    const isLoading = skillsRaw === undefined;
+    const dbSkills: DbSkill[] = useMemo(() => {
+        return ((skillsRaw ?? []) as ConvexSkill[]).map((s) => ({
+            id: s._id,
+            userId: s.userId,
+            projectId: s.projectId ?? null,
+            name: s.name,
+            description: s.description ?? '',
+            content: s.content ?? '',
+            enabled: s.enabled ?? true,
+        }));
+    }, [skillsRaw]);
 
-    const apiUtils = api.useUtils();
-    const deleteMutation = api.skills.delete.useMutation({
-        onSuccess: async () => {
-            await apiUtils.skills.list.invalidate();
-            toast.success('Skill deleted');
-        },
-        onError: (err) => toast.error(err.message),
-    });
+    const removeSkillMutation = useMutation(api.skills.remove);
 
     const builtInNames = useMemo(() => new Set(EMBEDDED_SKILLS.map((s) => s.name)), []);
 
     const dbByName = useMemo(() => {
         const map = new Map<string, DbSkill>();
-        for (const s of dbSkills as DbSkill[]) {
+        for (const s of dbSkills) {
             map.set(s.name, s);
         }
         return map;
@@ -87,7 +104,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                 });
             }
         }
-        for (const s of dbSkills as DbSkill[]) {
+        for (const s of dbSkills) {
             const isProject = s.projectId !== null;
             const rowScope: SkillRowItem['scope'] = isProject ? 'project' : 'global';
             if (scope === 'global' && rowScope !== 'global') continue;
@@ -104,7 +121,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
 
     const handleEdit = (row: SkillRowItem) => {
         if (!row.id) return;
-        const skill = (dbSkills as DbSkill[]).find((s) => s.id === row.id);
+        const skill = dbSkills.find((s) => s.id === row.id);
         if (skill) {
             setEditing(skill);
             setFormOpen(true);
@@ -116,13 +133,19 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
         setConfirmDelete(row);
     };
 
-    const confirmDeleteAction = () => {
+    const confirmDeleteAction = async () => {
         if (!confirmDelete?.id) {
             setConfirmDelete(null);
             return;
         }
-        deleteMutation.mutate({ skillId: confirmDelete.id });
+        const skillId = confirmDelete.id as Id<'skills'>;
         setConfirmDelete(null);
+        try {
+            await removeSkillMutation({ skillId });
+            toast.success('Skill deleted');
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to delete skill');
+        }
     };
 
     return (
@@ -258,7 +281,7 @@ export const SkillsTab = observer(({ projectId }: { projectId?: string }) => {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={confirmDeleteAction}
+                            onClick={() => void confirmDeleteAction()}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             Delete

@@ -41,7 +41,10 @@ export function validateImageLimit(
     const totalCount = currentImages.length + additionalCount;
     const maxImages = DefaultSettings.CHAT_SETTINGS.maxImages;
     if (totalCount > maxImages) {
-        return { success: false, errorMessage: `You can only add up to ${maxImages} images.` };
+        return {
+            success: false,
+            errorMessage: `You can only add up to ${maxImages} images.`,
+        };
     }
     return { success: true, errorMessage: undefined };
 }

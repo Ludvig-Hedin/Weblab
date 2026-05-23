@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import type { ChatMessage, ChatModel, LocalModelOption } from '@weblab/models';
 import { CHAT_MODEL_OPTIONS, ChatType, OLLAMA_DEFAULT_BASE_URL } from '@weblab/models';
@@ -11,7 +13,6 @@ import {
 } from '@/components/ai-prompt-composer/create-draft';
 import { useReasoningEffort } from '@/components/ai-prompt-composer/model-picker/use-reasoning-effort';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 import { useChat } from '../../../../_hooks/use-chat';
 import { ChatInput } from '../chat-input';
 import { ChatMessages } from '../chat-messages';
@@ -36,7 +37,7 @@ export const ChatTabContent = ({
     projectId,
     initialMessages,
 }: ChatTabContentProps) => {
-    const { data: userSettings } = api.user.settings.get.useQuery();
+    const userSettings = useQuery(api.users.getSettings, {});
 
     const [model, setModel] = useState<ChatModel>(CHAT_MODEL_OPTIONS[0].model);
     const [localModels, setLocalModels] = useState<LocalModelOption[]>([]);
@@ -45,12 +46,13 @@ export const ChatTabContent = ({
     // Track whether the user has explicitly changed the model this session
     const userChangedModel = useRef(false);
 
+    // TODO(convex-migration): users.getSettings returns the flat DB row; switch to nested-shape via fromDbUserSettings mapper when available
     // Apply saved default model once settings load (if user hasn't changed it yet)
     useEffect(() => {
-        if (!userChangedModel.current && userSettings?.chat.defaultModel) {
-            setModel(userSettings.chat.defaultModel as ChatModel);
+        if (!userChangedModel.current && userSettings?.defaultModel) {
+            setModel(userSettings.defaultModel as ChatModel);
         }
-    }, [userSettings?.chat.defaultModel]);
+    }, [userSettings?.defaultModel]);
 
     // One-shot handoff from the create-project surface: if the user picked a
     // model on the hero or /projects/new before opening this editor, consume
@@ -83,7 +85,7 @@ export const ChatTabContent = ({
     //      `OLLAMA_ORIGINS=*` exported. Errors are swallowed silently —
     //      empty list is a valid "Ollama not running" answer.
     useEffect(() => {
-        const baseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
+        const baseUrl = userSettings?.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
         const params = new URLSearchParams({ baseUrl });
         const controller = new AbortController();
         // Either probe should resolve quickly. If Ollama is hung (firewall,
@@ -128,7 +130,10 @@ export const ChatTabContent = ({
         fetch(`/api/models/local?${params.toString()}`, { signal: probeSignal })
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return (await r.json()) as { available: boolean; models: LocalModelOption[] };
+                return (await r.json()) as {
+                    available: boolean;
+                    models: LocalModelOption[];
+                };
             })
             .then(async (data) => {
                 if (data.models && data.models.length > 0) {
@@ -147,9 +152,9 @@ export const ChatTabContent = ({
             if (fallbackTimeoutId !== null) clearTimeout(fallbackTimeoutId);
             controller.abort();
         };
-    }, [userSettings?.chat.ollamaBaseUrl]);
+    }, [userSettings?.ollamaBaseUrl]);
 
-    const ollamaBaseUrl = userSettings?.chat.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
+    const ollamaBaseUrl = userSettings?.ollamaBaseUrl ?? OLLAMA_DEFAULT_BASE_URL;
     const [reasoningEffort, setReasoningEffort] = useReasoningEffort();
 
     const {

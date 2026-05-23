@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 
 import type { ProviderKind, ProviderStatus } from '@weblab/ai/client';
 import type { LocalModelOption } from '@weblab/models';
@@ -11,7 +13,6 @@ import {
 } from '@weblab/ai/client';
 
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 
 type StatusMap = Record<ProviderKind, ProviderStatus>;
 
@@ -55,22 +56,17 @@ export function useProviderStatuses({
         Record<ProviderKind, ProviderStatus>
     > | null>(null);
     const [hasNativeBridge, setHasNativeBridge] = useState<boolean | null>(null);
-    // Bumped to force the desktop probe useEffect to re-run; tRPC handles its
-    // own refetch via the returned `refetch` function.
+    // Bumped to force the desktop probe useEffect to re-run.
     const [probeNonce, setProbeNonce] = useState(0);
     const hasAuthCookie = useHasAuthCookie();
-    const { data: webConnections, refetch: refetchWebConnections } =
-        api.provider.connectionsList.useQuery(undefined, {
-            // Only fire on hosted web for signed-in users — desktop uses the
-            // IPC bridge instead, and anonymous visitors have no providers to
-            // list. This composer is reachable from the public landing page,
-            // so skipping the call avoids a 401 round-trip there.
-            enabled:
-                typeof window !== 'undefined' &&
-                !window.weblabNative?.cli &&
-                hasAuthCookie === true,
-            staleTime: 30_000,
-        });
+    // Only fire on hosted web for signed-in users — desktop uses the IPC
+    // bridge instead, and anonymous visitors have no providers to list.
+    const isHostedWebSignedIn =
+        typeof window !== 'undefined' && !window.weblabNative?.cli && hasAuthCookie === true;
+    const webConnections = useQuery(
+        api.users.listProviderConnections,
+        isHostedWebSignedIn ? {} : 'skip',
+    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -107,8 +103,9 @@ export function useProviderStatuses({
 
     const refresh = useCallback(() => {
         setProbeNonce((n) => n + 1);
-        void refetchWebConnections();
-    }, [refetchWebConnections]);
+        // Convex live queries auto-refresh; bumping probeNonce is enough to
+        // re-run the desktop probe.
+    }, []);
 
     const statuses = useMemo<StatusMap>(() => {
         const map = buildInitial();
@@ -119,7 +116,10 @@ export function useProviderStatuses({
         } else if (localModels.length > 0) {
             map.ollama = {
                 kind: 'ready',
-                discoveredModels: localModels.map((m) => ({ id: m.model, label: m.label })),
+                discoveredModels: localModels.map((m) => ({
+                    id: m.model,
+                    label: m.label,
+                })),
             };
         } else {
             map.ollama = { kind: 'install' };
@@ -148,7 +148,10 @@ export function useProviderStatuses({
                 (c) => c.provider === manifest.webOAuth?.provider,
             );
             if (connection) {
-                map[kind] = { kind: 'ready', accountEmail: connection.accountEmail ?? undefined };
+                map[kind] = {
+                    kind: 'ready',
+                    accountEmail: connection.accountEmail ?? undefined,
+                };
             } else {
                 map[kind] = { kind: 'sign-in' };
             }

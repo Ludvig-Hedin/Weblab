@@ -47,7 +47,10 @@ export function makeInteraction(opts: {
             kind: opts.triggerKind,
             sourceIxId: opts.sourceIxId,
         },
-        target: { kind: opts.triggerKind === 'page-load' ? 'class' : 'self', value: null },
+        target: {
+            kind: opts.triggerKind === 'page-load' ? 'class' : 'self',
+            value: null,
+        },
         animations: defaultAnimationsFor(opts.triggerKind),
         createdAt: now,
         updatedAt: now,

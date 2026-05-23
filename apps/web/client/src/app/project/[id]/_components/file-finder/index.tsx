@@ -48,7 +48,10 @@ export const FileFinder = observer(() => {
     // Cache the listing for a few seconds so re-opening the finder during
     // a session doesn't refetch every keystroke. Mirrors the chat-input
     // pre-warm pattern — same TTL.
-    const cacheRef = useRef<{ items: FileFinderItem[]; timestamp: number } | null>(null);
+    const cacheRef = useRef<{
+        items: FileFinderItem[];
+        timestamp: number;
+    } | null>(null);
 
     useEffect(() => {
         const handler = () => setOpen((prev) => !prev);

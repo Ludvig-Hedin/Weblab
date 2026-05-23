@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useConvex } from 'convex/react';
 
 import type { GitHubOrganization, GitHubRepository } from '@weblab/github';
 
-import { api as clientApi } from '@/trpc/client';
-
 export const useGitHubData = () => {
+    const convex = useConvex();
     const [organizations, setOrganizations] = useState<GitHubOrganization[]>([]);
     const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
     const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false);
@@ -19,7 +20,7 @@ export const useGitHubData = () => {
         setOrganizationsError(null);
 
         try {
-            const organizationsData = await clientApi.github.getOrganizations.query();
+            const organizationsData = await convex.action(api.githubActions.getOrganizations, {});
             setOrganizations(organizationsData as GitHubOrganization[]);
         } catch (error) {
             const errorMessage =
@@ -36,7 +37,10 @@ export const useGitHubData = () => {
         setRepositoriesError(null);
 
         try {
-            const repositoriesData = await clientApi.github.getRepositoriesWithApp.query();
+            const repositoriesData = await convex.action(
+                api.githubActions.getRepositoriesWithApp,
+                {},
+            );
             setRepositories(repositoriesData as GitHubRepository[]);
         } catch (error) {
             const errorMessage =

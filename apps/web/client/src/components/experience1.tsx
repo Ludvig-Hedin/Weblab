@@ -1,7 +1,8 @@
 import React from 'react';
 import { Download } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@weblab/ui/button';
+
 import { cn } from '@/lib/utils';
 
 interface ExperienceItem {
@@ -67,7 +68,7 @@ const Experience1 = ({
                     <h1 className="text-5xl font-semibold tracking-tighter lg:text-6xl">
                         {heading}
                     </h1>
-                    <Button asChild variant="ghost" size="lg" className="font-semibold">
+                    <Button asChild variant="ghost" size="pill" className="font-semibold">
                         <a href={buttonUrl}>
                             {buttonText} <Download className="size-4" />
                         </a>

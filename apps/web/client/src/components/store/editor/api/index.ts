@@ -3,6 +3,11 @@ import { makeAutoObservable } from 'mobx';
 import type { ChatMessage } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
+// TODO(convex-migration): non-React class-based store using tRPC vanilla
+// client. `api.utils.webSearch`, `api.utils.applyDiff`, `api.utils.scrapeUrl`
+// → `api.utils.*` (actions) and `api.chat.message.getAll` →
+// `api.messages.listByConversation` once a Convex HTTP client with Clerk
+// auth is wired for non-React contexts.
 import { api } from '@/trpc/client';
 
 export class ApiManager {

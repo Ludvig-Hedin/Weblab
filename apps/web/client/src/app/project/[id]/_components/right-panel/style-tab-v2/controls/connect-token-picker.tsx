@@ -292,7 +292,11 @@ function TextStyleRow({
             <span
                 aria-hidden
                 className="text-foreground-primary inline-block min-w-[18px] text-center"
-                style={{ fontSize: previewSize, fontWeight: previewWeight, lineHeight: 1 }}
+                style={{
+                    fontSize: previewSize,
+                    fontWeight: previewWeight,
+                    lineHeight: 1,
+                }}
             >
                 Aa
             </span>

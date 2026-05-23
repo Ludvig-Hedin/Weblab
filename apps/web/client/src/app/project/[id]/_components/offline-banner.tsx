@@ -68,16 +68,18 @@ export const OfflineBanner = observer(() => {
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         {!online ? (
                             <>
-                                <span className="font-medium leading-tight">You're offline.</span>
-                                <span className="opacity-65 leading-snug">
+                                <span className="leading-tight font-medium">You're offline.</span>
+                                <span className="leading-snug opacity-65">
                                     Edits save locally and sync on reconnect.
                                     {pending > 0 ? ` ${pending} pending.` : ''}
                                 </span>
                             </>
                         ) : (
                             <>
-                                <span className="font-medium leading-tight">Syncing offline changes</span>
-                                <span className="opacity-65 leading-snug">
+                                <span className="leading-tight font-medium">
+                                    Syncing offline changes
+                                </span>
+                                <span className="leading-snug opacity-65">
                                     {pending} change{pending === 1 ? '' : 's'} remaining.
                                     {dead > 0 ? ` ${dead} failed.` : ''}
                                 </span>

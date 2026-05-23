@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction, useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { toast } from 'sonner';
 
 import type { FrameworkId } from '@weblab/framework';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useAuthContext } from '@/app/auth/auth-context';
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
-import { api } from '@/trpc/react';
 import { LocalForageKeys, Routes } from '@/utils/constants';
 
 function readActiveWorkspaceId(): string | undefined {
@@ -24,9 +26,26 @@ function readActiveWorkspaceId(): string | undefined {
 
 export type BlankCreatePhase = 'idle' | 'forking-sandbox' | 'creating-project' | 'opening-editor';
 
+const SUPPORTED_FRAMEWORKS = new Set<string>([
+    'nextjs',
+    'vite-react',
+    'remix',
+    'astro',
+    'tanstack-start',
+    'static-html',
+]);
+
+type ConvexFramework =
+    | 'nextjs'
+    | 'vite-react'
+    | 'remix'
+    | 'astro'
+    | 'tanstack-start'
+    | 'static-html';
+
 export function useCreateBlankProject() {
-    const { data: user } = api.user.get.useQuery();
-    const { mutateAsync: createBlankProject } = api.project.createBlank.useMutation();
+    const user = useQuery(api.users.me);
+    const createBlankProject = useAction(api.projectActions.createBlank);
     const { setIsAuthModalOpen } = useAuthContext();
     const router = useRouter();
     const [phase, setPhase] = useState<BlankCreatePhase>('idle');
@@ -42,7 +61,7 @@ export function useCreateBlankProject() {
             return;
         }
 
-        if (!user?.id) {
+        if (!user?._id) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
             setIsAuthModalOpen(true);
             return;
@@ -51,14 +70,18 @@ export function useCreateBlankProject() {
         setPhase('forking-sandbox');
         try {
             setPhase('creating-project');
-            const newProject = await createBlankProject({
-                framework,
-                workspaceId: readActiveWorkspaceId(),
+            const workspaceId = readActiveWorkspaceId();
+            const convexFramework: ConvexFramework = SUPPORTED_FRAMEWORKS.has(framework)
+                ? (framework as ConvexFramework)
+                : 'nextjs';
+            const result = await createBlankProject({
+                framework: convexFramework,
+                ...(workspaceId ? { workspaceId: workspaceId as Id<'workspaces'> } : {}),
             });
 
-            if (newProject) {
+            if (result?.projectId) {
                 setPhase('opening-editor');
-                router.push(`${Routes.PROJECT}/${newProject.id}`);
+                router.push(`${Routes.PROJECT}/${result.projectId}`);
                 // Leave the phase at 'opening-editor' so the overlay stays
                 // up until the new route mounts. Resetting here would flash
                 // the hero back in for the duration of the navigation.

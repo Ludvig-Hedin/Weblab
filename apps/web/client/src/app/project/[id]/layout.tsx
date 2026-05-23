@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchQuery } from 'convex/nextjs';
 
 import { SUPPORT_EMAIL } from '@weblab/constants';
 import { Icons } from '@weblab/ui/icons/index';
 
-import { api } from '@/trpc/server';
+import type { Id } from '@convex/_generated/dataModel';
 import { getCurrentUser, getSignInUrl } from '@/utils/auth/current-user';
 import { Routes } from '@/utils/constants';
 
@@ -13,15 +16,22 @@ export default async function Layout({
     children,
 }: Readonly<{ params: Promise<{ id: string }>; children: React.ReactNode }>) {
     const projectId = (await params).id;
-    // Sequential by design: `api.project.hasAccess` is a `protectedProcedure`
-    // that throws UNAUTHORIZED when there's no session. Running it in
-    // parallel with `getCurrentUser()` would surface a 500 instead of the
-    // redirect-to-sign-in we want for anonymous deep-link traffic.
     const user = await getCurrentUser();
     if (!user) {
         redirect(getSignInUrl(`/project/${projectId}`));
     }
-    const hasAccess = await api.project.hasAccess({ projectId });
+    // Convex equivalent of the removed tRPC `project.hasAccess` query.
+    // The Convex handler resolves the caller via the Clerk JWT, so we forward
+    // the `convex` template token here. `hasAccess` returns `false` for
+    // strings that don't parse as a Convex Doc ID (e.g. legacy UUIDs from
+    // pre-migration links) — surface NoAccess in that case.
+    const { getToken } = await auth();
+    const token = await getToken({ template: 'convex' });
+    const hasAccess = await fetchQuery(
+        api.projects.hasAccess,
+        { projectId: projectId as Id<'projects'> },
+        { token: token ?? undefined },
+    ).catch(() => false);
     if (!hasAccess) {
         return <NoAccess />;
     }

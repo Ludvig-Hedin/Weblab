@@ -59,7 +59,7 @@ function FAQItem({
                 }}
             >
                 <div ref={contentRef}>
-                    <p className="text-foreground-secondary text-regular leading-relaxed">
+                    <p className="text-foreground-secondary text-regular leading-[1.4]">
                         {faq.answer}
                     </p>
                 </div>

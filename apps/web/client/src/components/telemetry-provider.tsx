@@ -4,11 +4,12 @@ import type Gleap from 'gleap';
 import type PostHog from 'posthog-js';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 
 import { env } from '@/env';
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 
 // TelemetryProvider
 // Unified initialization and identity management for analytics/feedback tools.
@@ -38,9 +39,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
     // Skip the network call on anonymous public surfaces. Once the user
     // signs in (cookie appears on next focus tick), the query enables and
     // identifies them in PostHog/Gleap.
-    const { data: user } = api.user.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const pathname = usePathname();
     // Bumps after the consent-gated dynamic imports resolve. The identify and
     // path-change effects depend on this so they re-fire once the SDKs land —
@@ -118,7 +117,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
                     user.displayName || [user.firstName, user.lastName].filter(Boolean).join(' ');
                 posthogClient.identify(
-                    user.id,
+                    user._id,
                     {
                         // Reserved PostHog person properties
                         $email: user.email,
@@ -153,7 +152,7 @@ export function TelemetryProvider({ children }: { children: React.ReactNode }) {
                 const name =
                     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
                     user.displayName || [user.firstName, user.lastName].filter(Boolean).join(' ');
-                Gleap.identify(user.id, {
+                Gleap.identify(user._id, {
                     name,
                     email: user.email,
                     // Attach non-sensitive profile context

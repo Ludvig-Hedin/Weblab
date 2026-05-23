@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 
 import { ProjectMemberRole } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
@@ -8,38 +10,30 @@ import { Input } from '@weblab/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 
 export const InviteMemberInput = ({ projectId }: { projectId: string }) => {
-    const apiUtils = api.useUtils();
     const [email, setEmail] = useState('');
     // Default to EDITOR — granting MANAGER (admin-equivalent) on every invite is too aggressive.
     const [selectedRole, setSelectedRole] = useState<ProjectMemberRole>(ProjectMemberRole.EDITOR);
     const [isLoading, setIsLoading] = useState(false);
 
-    const createInvitation = api.invitation.create.useMutation({
-        onSuccess: () => {
-            setEmail('');
-            toast.success('Invitation sent');
-            apiUtils.invitation.list.invalidate();
-            apiUtils.invitation.suggested.invalidate();
-            apiUtils.project.listAccess.invalidate({ projectId });
-        },
-        onError: (error) => {
-            toast.error('Failed to invite member', {
-                description: error instanceof Error ? error.message : String(error),
-            });
-        },
-    });
+    const createInvitation = useAction(api.projectInvitationActions.create);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         try {
             setIsLoading(true);
-            await createInvitation.mutateAsync({
+            await createInvitation({
                 inviteeEmail: email,
                 memberRole: selectedRole,
-                projectId,
+                projectId: projectId as Id<'projects'>,
+            });
+            setEmail('');
+            toast.success('Invitation sent');
+        } catch (error) {
+            toast.error('Failed to invite member', {
+                description: error instanceof Error ? error.message : String(error),
             });
         } finally {
             setIsLoading(false);

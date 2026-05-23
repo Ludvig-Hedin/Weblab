@@ -104,7 +104,7 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
                         />
                         <p
                             className={cn(
-                                'text-xs text-red-500 transition-opacity',
+                                'text-destructive text-xs transition-opacity',
                                 isCloneProjectNameEmpty ? 'opacity-100' : 'opacity-0',
                             )}
                         >

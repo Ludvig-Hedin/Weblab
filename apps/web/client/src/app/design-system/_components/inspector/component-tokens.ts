@@ -113,7 +113,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Background (destructive)',
                 defaultValue: '0 72% 51%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
         variants: { variant: ['default', 'secondary', 'destructive', 'outline'] },
@@ -124,14 +129,24 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/input.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
                 label: 'Background',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
             {
                 cssVar: '--muted-foreground',
                 kind: 'color',
@@ -148,14 +163,24 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/textarea.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
                 label: 'Background',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
             ringVar,
             radiusVar,
         ],
@@ -166,14 +191,24 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'layout',
         sourcePath: 'packages/ui/src/components/card.tsx',
         tokens: [
-            { cssVar: '--card', kind: 'color', label: 'Background', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--card',
+                kind: 'color',
+                label: 'Background',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--card-foreground',
                 kind: 'color',
                 label: 'Text',
                 defaultValue: '60 9.1% 97.8%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -195,7 +230,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Check icon',
                 defaultValue: '24 9.8% 10%',
             },
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             ringVar,
         ],
     },
@@ -211,7 +251,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Selected dot',
                 defaultValue: '60 9.1% 97.8%',
             },
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             ringVar,
         ],
     },
@@ -227,7 +272,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'On track',
                 defaultValue: '60 9.1% 97.8%',
             },
-            { cssVar: '--input', kind: 'color', label: 'Off track', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Off track',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -261,7 +311,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Thumb',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Thumb border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Thumb border',
+                defaultValue: '0 0% 12%',
+            },
             ringVar,
         ],
     },
@@ -271,7 +326,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'controls',
         sourcePath: 'packages/ui/src/components/toggle.tsx',
         tokens: [
-            { cssVar: '--accent', kind: 'color', label: 'Hover bg', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--accent',
+                kind: 'color',
+                label: 'Hover bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--accent-foreground',
                 kind: 'color',
@@ -294,7 +354,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'selection',
         sourcePath: 'packages/ui/src/components/select.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Menu bg', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Menu bg',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
@@ -329,8 +394,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             {
                 cssVar: '--muted-foreground',
                 kind: 'color',
@@ -352,7 +427,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
             {
                 cssVar: '--destructive',
                 kind: 'color',
@@ -374,8 +454,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
         ],
     },
     drawer: {
@@ -390,7 +480,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
             {
                 cssVar: '--muted',
                 kind: 'color',
@@ -406,14 +501,24 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'overlays',
         sourcePath: 'packages/ui/src/components/popover.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Surface', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Surface',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
                 label: 'Text',
                 defaultValue: '60 9.1% 97.8%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -423,7 +528,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'overlays',
         sourcePath: 'packages/ui/src/components/hover-card.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Surface', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Surface',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
@@ -439,7 +549,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'overlays',
         sourcePath: 'packages/ui/src/components/tooltip.tsx',
         tokens: [
-            { cssVar: '--primary', kind: 'color', label: 'Surface', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--primary',
+                kind: 'color',
+                label: 'Surface',
+                defaultValue: '60 9.1% 97.8%',
+            },
             {
                 cssVar: '--primary-foreground',
                 kind: 'color',
@@ -455,7 +570,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'menus',
         sourcePath: 'packages/ui/src/components/dropdown-menu.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Menu bg', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Menu bg',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
@@ -483,7 +603,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'menus',
         sourcePath: 'packages/ui/src/components/context-menu.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Menu bg', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Menu bg',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
@@ -511,7 +636,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Bar bg',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--popover', kind: 'color', label: 'Menu bg', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Menu bg',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--accent',
                 kind: 'color',
@@ -533,7 +663,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Bar bg',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--accent', kind: 'color', label: 'Hover bg', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--accent',
+                kind: 'color',
+                label: 'Hover bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--accent-foreground',
                 kind: 'color',
@@ -549,7 +684,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'selection',
         sourcePath: 'packages/ui/src/components/command.tsx',
         tokens: [
-            { cssVar: '--popover', kind: 'color', label: 'Surface', defaultValue: '20 14.3% 4.1%' },
+            {
+                cssVar: '--popover',
+                kind: 'color',
+                label: 'Surface',
+                defaultValue: '20 14.3% 4.1%',
+            },
             {
                 cssVar: '--popover-foreground',
                 kind: 'color',
@@ -577,7 +717,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'tabs',
         sourcePath: 'packages/ui/src/components/tabs.tsx',
         tokens: [
-            { cssVar: '--muted', kind: 'color', label: 'List bg', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--muted',
+                kind: 'color',
+                label: 'List bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -605,8 +750,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'accordions',
         sourcePath: 'packages/ui/src/components/accordion.tsx',
         tokens: [
-            { cssVar: '--border', kind: 'color', label: 'Item border', defaultValue: '0 0% 12%' },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Item border',
+                defaultValue: '0 0% 12%',
+            },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
         ],
     },
     alert: {
@@ -621,8 +776,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             {
                 cssVar: '--destructive',
                 kind: 'color',
@@ -638,8 +803,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'progress',
         sourcePath: 'packages/ui/src/components/progress.tsx',
         tokens: [
-            { cssVar: '--primary', kind: 'color', label: 'Bar', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--secondary', kind: 'color', label: 'Track', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--primary',
+                kind: 'color',
+                label: 'Bar',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--secondary',
+                kind: 'color',
+                label: 'Track',
+                defaultValue: '12 6.5% 15.1%',
+            },
             radiusVar,
         ],
     },
@@ -683,7 +858,14 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         label: 'Separator',
         tag: 'layout',
         sourcePath: 'packages/ui/src/components/separator.tsx',
-        tokens: [{ cssVar: '--border', kind: 'color', label: 'Color', defaultValue: '0 0% 12%' }],
+        tokens: [
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Color',
+                defaultValue: '0 0% 12%',
+            },
+        ],
     },
     table: {
         id: 'table',
@@ -691,8 +873,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'data',
         sourcePath: 'packages/ui/src/components/table.tsx',
         tokens: [
-            { cssVar: '--border', kind: 'color', label: 'Row border', defaultValue: '0 0% 12%' },
-            { cssVar: '--muted', kind: 'color', label: 'Hover bg', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Row border',
+                defaultValue: '0 0% 12%',
+            },
+            {
+                cssVar: '--muted',
+                kind: 'color',
+                label: 'Hover bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--muted-foreground',
                 kind: 'color',
@@ -707,8 +899,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'data',
         sourcePath: 'packages/ui/src/components/pagination.tsx',
         tokens: [
-            { cssVar: '--accent', kind: 'color', label: 'Hover bg', defaultValue: '12 6.5% 15.1%' },
-            { cssVar: '--border', kind: 'color', label: 'Active border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--accent',
+                kind: 'color',
+                label: 'Hover bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Active border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -750,7 +952,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Selected day text',
                 defaultValue: '24 9.8% 10%',
             },
-            { cssVar: '--accent', kind: 'color', label: 'Today bg', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--accent',
+                kind: 'color',
+                label: 'Today bg',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--muted-foreground',
                 kind: 'color',
@@ -765,7 +972,14 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         label: 'Scroll Area',
         tag: 'layout',
         sourcePath: 'packages/ui/src/components/scroll-area.tsx',
-        tokens: [{ cssVar: '--border', kind: 'color', label: 'Thumb', defaultValue: '0 0% 12%' }],
+        tokens: [
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Thumb',
+                defaultValue: '0 0% 12%',
+            },
+        ],
     },
     'aspect-ratio': {
         id: 'aspect-ratio',
@@ -780,7 +994,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'layout',
         sourcePath: 'packages/ui/src/components/collapsible.tsx',
         tokens: [
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -789,7 +1008,14 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         label: 'Resizable',
         tag: 'layout',
         sourcePath: 'packages/ui/src/components/resizable.tsx',
-        tokens: [{ cssVar: '--border', kind: 'color', label: 'Handle', defaultValue: '0 0% 12%' }],
+        tokens: [
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Handle',
+                defaultValue: '0 0% 12%',
+            },
+        ],
     },
     sidebar: {
         id: 'sidebar',
@@ -803,7 +1029,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             {
                 cssVar: '--accent',
                 kind: 'color',
@@ -840,7 +1071,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/input-otp.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -857,7 +1093,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/number-input.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -874,7 +1115,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/draftable-input.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -896,7 +1142,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'inputs',
         sourcePath: 'packages/ui/src/components/input-group.tsx',
         tokens: [
-            { cssVar: '--input', kind: 'color', label: 'Border', defaultValue: '12 6.5% 15.1%' },
+            {
+                cssVar: '--input',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '12 6.5% 15.1%',
+            },
             {
                 cssVar: '--background',
                 kind: 'color',
@@ -918,7 +1169,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Axis text',
                 defaultValue: '60 9.1% 97.8%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Grid', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Grid',
+                defaultValue: '0 0% 12%',
+            },
             {
                 cssVar: '--primary',
                 kind: 'color',
@@ -945,8 +1201,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -956,8 +1222,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
         tag: 'motion',
         sourcePath: 'packages/ui/src/components/motion-card.tsx',
         tokens: [
-            { cssVar: '--card', kind: 'color', label: 'Background', defaultValue: '20 14.3% 4.1%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--card',
+                kind: 'color',
+                label: 'Background',
+                defaultValue: '20 14.3% 4.1%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -988,8 +1264,18 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Background',
                 defaultValue: '12 6.5% 15.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
         ],
     },
     hotkey: {
@@ -1004,7 +1290,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Background',
                 defaultValue: '12 6.5% 15.1%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
         ],
     },
     'color-picker': {
@@ -1019,7 +1310,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Surface',
                 defaultValue: '20 14.3% 4.1%',
             },
-            { cssVar: '--border', kind: 'color', label: 'Border', defaultValue: '0 0% 12%' },
+            {
+                cssVar: '--border',
+                kind: 'color',
+                label: 'Border',
+                defaultValue: '0 0% 12%',
+            },
             radiusVar,
         ],
     },
@@ -1035,7 +1331,12 @@ export const COMPONENT_TOKENS: Record<string, ComponentSpec> = {
                 label: 'Bubble bg',
                 defaultValue: '0 0% 12%',
             },
-            { cssVar: '--foreground', kind: 'color', label: 'Text', defaultValue: '60 9.1% 97.8%' },
+            {
+                cssVar: '--foreground',
+                kind: 'color',
+                label: 'Text',
+                defaultValue: '60 9.1% 97.8%',
+            },
             {
                 cssVar: '--foreground-brand',
                 kind: 'color',

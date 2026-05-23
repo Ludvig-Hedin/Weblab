@@ -216,7 +216,7 @@ export function Footer() {
                         />
                         <a
                             href={Routes.SITEMAP}
-                            className={linkClass}
+                            className="text-foreground-tertiary/70 hover:text-foreground-secondary transition-colors duration-150"
                             title={t('legal.sitemap.title')}
                         >
                             {t('legal.sitemap.label')}

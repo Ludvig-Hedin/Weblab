@@ -2285,6 +2285,23 @@
             "heading": "Real code. Real terminal. Real control.",
             "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
         },
+        "featureTrio": {
+            "eyebrow": "Open by design",
+            "heading": "Pick your model, own your stack, design with your real components.",
+            "models": {
+                "title": "Model agnostic",
+                "body": "Switch between leading models as you need. Pick the one that fits the task."
+            },
+            "terminal": {
+                "title": "Real code, real terminal",
+                "body": "Install, build, test, and deploy from your own terminal. No lock-in, no black box."
+            },
+            "components": {
+                "eyebrow": "Your design system",
+                "title": "Your real components",
+                "body": "Design with the buttons, cards, and layouts your engineers already built."
+            }
+        },
         "whatCanWeblabDoV2": {
             "headingAi": "AI",
             "headingCode": "Code",
@@ -2312,6 +2329,11 @@
                     "subtitle": "Canvas",
                     "title": "Manipulate elements directly",
                     "paragraph": "Drag, resize, and arrange elements directly on the canvas. See changes appear in real code instantly."
+                },
+                "code": {
+                    "subtitle": "Code",
+                    "title": "Real code, live next to your canvas",
+                    "paragraph": "Edit components in a proper editor with syntax highlighting and multi-file tabs. Every visual change writes back into the file you'd ship."
                 },
                 "components": {
                     "subtitle": "Components",

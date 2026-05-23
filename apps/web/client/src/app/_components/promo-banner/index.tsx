@@ -21,6 +21,9 @@ import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
  */
 const PROMO_BANNER_HEIGHT_VAR = '--promo-banner-height';
 const PROMO_BANNER_HEIGHT_PX = 36;
+// Dismissal expires after 30 days so a banner the user dismissed months ago
+// gets a fresh chance to convert if it's still running.
+const PROMO_BANNER_DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface PromoBannerProps {
     locale?: string;
@@ -45,7 +48,20 @@ export function PromoBanner({ locale, bannerOverride, forceShow }: PromoBannerPr
             const stored = window.localStorage.getItem(
                 PROMO_BANNER_DISMISSED_STORAGE_PREFIX + banner.id,
             );
-            if (stored === '1') setDismissed(true);
+            if (!stored) return;
+            // Backward compat: the original implementation wrote `'1'` as a
+            // permanent flag. Treat that as a fresh dismissal anchored to now
+            // so existing dismissals expire 30 days from this visit instead
+            // of hiding the banner forever.
+            const dismissedAt = stored === '1' ? Date.now() : Number(stored);
+            if (!Number.isFinite(dismissedAt) || dismissedAt <= 0) return;
+            const expiresAt = dismissedAt + PROMO_BANNER_DISMISS_TTL_MS;
+            if (Date.now() < expiresAt) {
+                setDismissed(true);
+            } else {
+                // TTL elapsed — clear the entry so we don't keep parsing it.
+                window.localStorage.removeItem(PROMO_BANNER_DISMISSED_STORAGE_PREFIX + banner.id);
+            }
         } catch {
             // localStorage can throw in privacy modes — fall through to showing the banner.
         }
@@ -85,9 +101,12 @@ export function PromoBanner({ locale, bannerOverride, forceShow }: PromoBannerPr
                         banner.dismissible
                             ? () => {
                                   try {
+                                      // Store the dismissal timestamp so the
+                                      // mount-time TTL check can re-show the
+                                      // banner after PROMO_BANNER_DISMISS_TTL_MS.
                                       window.localStorage.setItem(
                                           PROMO_BANNER_DISMISSED_STORAGE_PREFIX + banner.id,
-                                          '1',
+                                          String(Date.now()),
                                       );
                                   } catch {
                                       // Best-effort persistence — still hide for this tab.
@@ -164,9 +183,15 @@ function PromoBannerView({ banner, onDismiss }: PromoBannerViewProps) {
             style={{ height: PROMO_BANNER_HEIGHT_PX }}
             role="region"
             aria-label="Promotional announcement"
-            initial={{ y: prefersReducedMotion ? 0 : -PROMO_BANNER_HEIGHT_PX, opacity: 0 }}
+            initial={{
+                y: prefersReducedMotion ? 0 : -PROMO_BANNER_HEIGHT_PX,
+                opacity: 0,
+            }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: prefersReducedMotion ? 0 : -PROMO_BANNER_HEIGHT_PX, opacity: 0 }}
+            exit={{
+                y: prefersReducedMotion ? 0 : -PROMO_BANNER_HEIGHT_PX,
+                opacity: 0,
+            }}
             transition={barTransition}
         >
             <button

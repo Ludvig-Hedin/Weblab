@@ -35,7 +35,7 @@ export function TailwindColorEditorMockup() {
         <div className="bg-background-weblab/80 relative h-100 w-full overflow-hidden rounded-lg">
             {/* Morphing shader preview bound to picker color, positioned to the right of the dropdown */}
             <div
-                className="border-foreground-primary/10 absolute top-24 left-[200px] z-10 h-[420px] w-[640px] overflow-hidden rounded-[28px] border shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"
+                className="border-foreground-primary/10 absolute top-24 left-[200px] z-10 h-[420px] w-[640px] overflow-hidden rounded-3xl border shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"
                 style={{
                     WebkitMaskImage:
                         'radial-gradient(140% 140% at 50% 50%, black 86%, transparent 100%)',
@@ -50,9 +50,21 @@ export function TailwindColorEditorMockup() {
                         h: (color.h + 0.5) % 1,
                         a: 1,
                     }).toHex();
-                    const triadic = new Color({ ...color, h: (color.h + 0.33) % 1, a: 1 }).toHex();
-                    const split1 = new Color({ ...color, h: (color.h + 0.42) % 1, a: 1 }).toHex();
-                    const split2 = new Color({ ...color, h: (color.h + 0.58) % 1, a: 1 }).toHex();
+                    const triadic = new Color({
+                        ...color,
+                        h: (color.h + 0.33) % 1,
+                        a: 1,
+                    }).toHex();
+                    const split1 = new Color({
+                        ...color,
+                        h: (color.h + 0.42) % 1,
+                        a: 1,
+                    }).toHex();
+                    const split2 = new Color({
+                        ...color,
+                        h: (color.h + 0.58) % 1,
+                        a: 1,
+                    }).toHex();
                     const primaryLight = new Color({
                         ...color,
                         v: Math.min(1, color.v * 1.12),

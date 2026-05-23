@@ -8,6 +8,13 @@ import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
+// TODO(convex-migration): non-React class-based store using the tRPC vanilla
+// client. Several call sites (`api.sandbox.fork`, `api.sandbox.createFromGitHub`,
+// `api.sandbox.deleteOrphan`, `api.github.validate`) have no Convex equivalent
+// yet. `api.project.generateName` → `api.projectActions.generateName`,
+// `api.project.create` → `api.projects.create` once a ConvexHttpClient with
+// Clerk auth is wired up for non-React contexts. Keeping tRPC client until
+// both sandbox endpoints and a non-React Convex client wrapper exist.
 import { api } from '@/trpc/client';
 import { parseRepoUrl } from './parse-repo-url';
 
@@ -85,7 +92,7 @@ export class CreateManager {
                 prompt: prompt,
             });
             return generatedName;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error generating project name:', error);
             return 'New Project';
         }
@@ -181,7 +188,7 @@ export class CreateManager {
                 this.phase = 'opening-editor';
             });
             return newProject;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(error);
             runInAction(() => {
                 this.error = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -190,7 +197,7 @@ export class CreateManager {
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr) => {
+                    .catch((cleanupErr: any) => {
                         console.warn('[createManager] failed to clean up orphan sandbox', {
                             sandboxId: forkedSandboxId,
                             error:
@@ -257,7 +264,7 @@ export class CreateManager {
             });
             forkedSandboxId = null;
             return newProject;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(error);
             runInAction(() => {
                 this.error = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -265,7 +272,7 @@ export class CreateManager {
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr) => {
+                    .catch((cleanupErr: any) => {
                         console.warn('[createManager] failed to clean up orphan sandbox', {
                             sandboxId: forkedSandboxId,
                             error:
@@ -392,7 +399,7 @@ export class CreateManager {
             });
             forkedSandboxId = null;
             return newProject;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error(error);
             runInAction(() => {
                 this.error = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -400,7 +407,7 @@ export class CreateManager {
             if (forkedSandboxId) {
                 await api.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr) => {
+                    .catch((cleanupErr: any) => {
                         console.warn('[createManager] failed to clean up orphan sandbox', {
                             sandboxId: forkedSandboxId,
                             error:

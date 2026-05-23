@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTranslations } from 'next-intl';
 
@@ -19,9 +21,9 @@ import { Label } from '@weblab/ui/label';
 import { toast } from '@weblab/ui/sonner';
 import { Textarea } from '@weblab/ui/textarea';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 export const CreateCollectionDialog = observer(() => {
     const editorEngine = useEditorEngine();
@@ -33,8 +35,9 @@ export const CreateCollectionDialog = observer(() => {
     const [slug, setSlug] = useState('');
     const [description, setDescription] = useState('');
 
-    const utils = api.useUtils();
-    const createMutation = api.cms.collection.create.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const createMutation = useMutation(api.cmsCollections.create);
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         if (!open) {
@@ -58,24 +61,26 @@ export const CreateCollectionDialog = observer(() => {
             toast.error(t(transKeys.cms.collections.create.nameRequired));
             return;
         }
+        setIsCreating(true);
         try {
-            const created = await createMutation.mutateAsync({
-                projectId,
+            const created = await createMutation({
+                projectId: projectId as Id<'projects'>,
                 name: name.trim(),
                 slug: finalSlug,
                 description: description.trim() || undefined,
             });
-            await utils.cms.collection.list.invalidate({ projectId });
-            await utils.cms.source.list.invalidate({ projectId });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success(t(transKeys.cms.collections.create.success));
             editorEngine.state.setCmsCreateCollectionOpen(false);
-            editorEngine.state.setCmsSelectedCollectionId(created.id);
+            editorEngine.state.setCmsSelectedCollectionId(created._id);
             // Land them in Fields so they can define the schema next.
             editorEngine.state.setCmsTab(CmsTabValue.FIELDS);
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : t(transKeys.cms.collections.create.failed),
             );
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -137,7 +142,7 @@ export const CreateCollectionDialog = observer(() => {
                     >
                         {t(transKeys.cms.collections.create.cancel)}
                     </Button>
-                    <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                    <Button onClick={handleCreate} disabled={isCreating}>
                         {t(transKeys.cms.collections.create.create)}
                     </Button>
                 </DialogFooter>

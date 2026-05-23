@@ -9,7 +9,7 @@ import type { ErrorManager } from '../error';
 import type { CLISession, TerminalSession } from './terminal';
 import { isOnline } from '@/services/offline/online-status';
 import { api } from '@/trpc/client';
-import { isShellStartupError } from './errors';
+import { isSandboxGoneError, isShellStartupError } from './errors';
 import { OfflineProvider } from './offline-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
 import { VercelBrowserProvider } from './vercel-browser-provider';
@@ -19,6 +19,19 @@ export class SessionManager {
     isConnecting = false;
     connectionError: string | null = null;
     isOffline = false;
+    /**
+     * True once we've detected that the backing Vercel sandbox has been
+     * reclaimed (HTTP 410 from the provider SDK). When set, `start()`
+     * short-circuits and never assigns `provider`, so the
+     * `SandboxManager.init()` reaction doesn't fan out the project-open
+     * cascade (sync engine, git init, dev-task open) — each of which
+     * would otherwise fire its own 410 and pile up in the error badge.
+     * The existing `useSandboxLiveness` hook on the frame still detects
+     * the 410 via the server-side `sandbox.checkAlive` probe and auto-
+     * fires `sandbox.restore`, which forks a fresh sandbox from the
+     * snapshot and resets this flag on the next `start()`.
+     */
+    sandboxGone = false;
     terminalSessions = new Map<string, CLISession>();
     activeTerminalSessionId = 'cli';
     // Tracks the sandbox ID returned by the last successful sandbox.start call.
@@ -44,13 +57,31 @@ export class SessionManager {
         runInAction(() => {
             this.isConnecting = true;
             this.connectionError = null;
+            this.sandboxGone = false;
         });
 
         // Offline path: skip the CodeSandbox VM boot entirely. ZenFS is the
         // source of truth for files until reconnect; queued writes drain via
         // the replay controller once we're online and a real provider is
         // attached.
-        if (this.branch.runtime.type !== 'local' && !isOnline()) {
+        //
+        // Also short-circuit to the offline provider when the branch's
+        // sandbox metadata is obviously synthetic — `sandboxId` empty / a
+        // QA test marker, or the cloud `previewUrl` points at the placeholder
+        // host `example.com`. Without this gate, QA/test projects created
+        // directly via `api.projects.create` (no `createBlank` action, no
+        // real CSB/Vercel sandbox) loop forever in `attemptConnection` until
+        // the retry budget exhausts and the editor surfaces a hard error.
+        // Mounting the OfflineProvider lets the canvas / layers / chat
+        // surfaces render against ZenFS so the editor shell is testable
+        // without provisioning a real sandbox.
+        const previewUrlValue =
+            (this.branch.runtime as { cloud?: { previewUrl?: string } })?.cloud?.previewUrl ?? '';
+        const isSyntheticSandbox =
+            !sandboxId ||
+            sandboxId.startsWith('test-sandbox-') ||
+            previewUrlValue.includes('example.com');
+        if (this.branch.runtime.type !== 'local' && (!isOnline() || isSyntheticSandbox)) {
             const offline = new OfflineProvider();
             runInAction(() => {
                 this.provider = offline;
@@ -118,6 +149,27 @@ export class SessionManager {
                 return;
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
+
+                // Sandbox has been reclaimed by Vercel (410 Gone). No
+                // amount of retrying will bring it back — the snapshot
+                // restore flow (driven by `useSandboxLiveness` →
+                // `sandbox.restore`) is the only way out. Mark the
+                // session and short-circuit so we don't waste the next
+                // two retries (6s of additional spinner) and don't fan
+                // out the provider-reaction cascade in SandboxManager.
+                if (isSandboxGoneError(lastError)) {
+                    console.warn(
+                        '[SessionManager] Sandbox is gone (410). Waiting for restore flow to fork a fresh sandbox.',
+                    );
+                    runInAction(() => {
+                        this.provider = null;
+                        this.isConnecting = false;
+                        this.sandboxGone = true;
+                        this.connectionError = lastError?.message ?? null;
+                    });
+                    return;
+                }
+
                 console.error(
                     `Failed to start sandbox session (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
                     error,
@@ -142,28 +194,65 @@ export class SessionManager {
     }
 
     async restartDevServer(): Promise<boolean> {
+        if (this.sandboxGone) {
+            // Sandbox is reclaimed — calling getTask would throw another
+            // 410 and pile onto the issue badge. The restore CTA owns
+            // recovery; bail silently.
+            return false;
+        }
         if (!this.provider) {
             console.error('No provider found in restartDevServer');
             return false;
         }
-        const { task } = await this.provider.getTask({
-            args: {
-                id: 'dev',
-            },
-        });
-        if (task) {
-            await task.restart();
-            return true;
+        try {
+            const { task } = await this.provider.getTask({
+                args: {
+                    id: 'dev',
+                },
+            });
+            if (task) {
+                await task.restart();
+                return true;
+            }
+            return false;
+        } catch (error) {
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.sandboxGone = true;
+                });
+                console.debug(
+                    'restartDevServer: sandbox is gone (410), suppressed:',
+                    error instanceof Error ? error.message : String(error),
+                );
+                return false;
+            }
+            throw error;
         }
-        return false;
     }
 
     async readDevServerLogs(): Promise<string> {
-        const result = await this.provider?.getTask({ args: { id: 'dev' } });
-        if (result?.task) {
-            return await result.task.open();
+        if (this.sandboxGone || !this.provider) {
+            return 'Dev server not found';
         }
-        return 'Dev server not found';
+        try {
+            const result = await this.provider.getTask({ args: { id: 'dev' } });
+            if (result?.task) {
+                return await result.task.open();
+            }
+            return 'Dev server not found';
+        } catch (error) {
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.sandboxGone = true;
+                });
+                console.debug(
+                    'readDevServerLogs: sandbox is gone (410), suppressed:',
+                    error instanceof Error ? error.message : String(error),
+                );
+                return 'Dev server not found';
+            }
+            throw error;
+        }
     }
 
     getTerminalSession(id: string) {
@@ -304,11 +393,21 @@ export class SessionManager {
     }
 
     async ping() {
+        // Sandbox reclaimed: a ping would just produce another 410. Treat as
+        // disconnected and let the restore flow re-establish.
+        if (this.sandboxGone) return false;
         if (!this.provider) return false;
         try {
             await this.provider.runCommand({ args: { command: 'echo "ping"' } });
             return true;
         } catch (error) {
+            if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.sandboxGone = true;
+                });
+                console.debug('ping: sandbox is gone (410), suppressed');
+                return false;
+            }
             console.error('Failed to connect to sandbox', error);
             return false;
         }
@@ -323,6 +422,19 @@ export class SessionManager {
         success: boolean;
         error: string | null;
     }> {
+        // Top-of-method guard: once we know the sandbox is reclaimed,
+        // every subsequent runCommand would throw an identical 410.
+        // Return a synthetic safe-fallback so callers (git probe, dev
+        // script lookup, etc.) drop into their existing failure paths
+        // without each one hitting the network and re-triggering the
+        // cascade. The restore CTA owns recovery.
+        if (this.sandboxGone) {
+            return {
+                output: '',
+                success: false,
+                error: 'sandbox-gone',
+            };
+        }
         try {
             if (!this.provider) {
                 throw new Error('No provider found in runCommand');
@@ -332,7 +444,9 @@ export class SessionManager {
             const finalCommand = ignoreError ? `${command} 2>/dev/null || true` : command;
 
             streamCallback?.(finalCommand + '\n');
-            const { output } = await this.provider.runCommand({ args: { command: finalCommand } });
+            const { output } = await this.provider.runCommand({
+                args: { command: finalCommand },
+            });
             streamCallback?.(output);
             return {
                 output,
@@ -347,8 +461,21 @@ export class SessionManager {
             // misled users into thinking the sandbox was broken every
             // time they opened a fresh project. Real failures keep the
             // error log so genuine issues stay visible.
+            //
+            // 410 Gone errors get the same treatment: when the Vercel
+            // sandbox has been reclaimed, every downstream call from
+            // the project-open cascade (git init, dev task, sync engine
+            // listFiles) throws the same 410. The restore-from-snapshot
+            // CTA is the user-facing surface for this state; spamming
+            // the console with 9+ identical "Status code 410" errors
+            // just makes the editor look broken.
             if (isShellStartupError(message)) {
                 console.debug('runCommand transient shell-startup error:', message);
+            } else if (isSandboxGoneError(error)) {
+                runInAction(() => {
+                    this.sandboxGone = true;
+                });
+                console.debug('runCommand: sandbox is gone (410), suppressed:', message);
             } else {
                 console.error('Error running command:', error);
             }
@@ -378,6 +505,7 @@ export class SessionManager {
             this.isConnecting = false;
             this.connectionError = null;
             this.activeSandboxId = null;
+            this.sandboxGone = false;
         });
         this.terminalSessions.clear();
     }

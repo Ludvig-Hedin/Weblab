@@ -1,26 +1,25 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons/index';
 
 import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { useAuthContext } from '../../auth/auth-context';
 
 export function CloneWebsite() {
     const router = useRouter();
     const hasAuthCookie = useHasAuthCookie();
-    const { data: user } = api.user.get.useQuery(undefined, {
-        enabled: hasAuthCookie === true,
-    });
+    const user = useQuery(api.users.me, hasAuthCookie === true ? {} : 'skip');
     const { setIsAuthModalOpen } = useAuthContext();
     const t = useTranslations('landing.hero');
 
     const handleClick = () => {
-        if (!user?.id) {
+        if (!user?._id) {
             setIsAuthModalOpen(true);
             return;
         }

@@ -95,18 +95,21 @@
         }
     }
 
-    /* Font size tokens */
+    /* Font size tokens — headings use medium weight + tight tracking (Codex-aligned) */
     --font-size-title1: 2.25rem;
     --font-leading-title1: auto;
-    --font-weight-title1: var(--font-weight-normal);
+    --font-weight-title1: var(--font-weight-medium);
+    --font-tracking-title1: -0.02em;
 
     --font-size-title2: 1.5rem;
     --font-leading-title2: normal;
-    --font-weight-title2: var(--font-weight-normal);
+    --font-weight-title2: var(--font-weight-medium);
+    --font-tracking-title2: -0.015em;
 
     --font-size-title3: 1.25rem;
     --font-leading-title3: normal;
-    --font-weight-title3: var(--font-weight-normal);
+    --font-weight-title3: var(--font-weight-medium);
+    --font-tracking-title3: -0.01em;
 
     --font-size-large-plus: 1rem;
     --font-leading-large-plus: 1.4rem;
@@ -246,87 +249,153 @@
     --np-secondary-icon-background: #AE4AFF; /* purple-500*/
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
-    --background: #ffffff; /* #ffffff */
-    --background-weblab: #e6e6e6; /* #e6e6e6 */
-    --background-brand: #52b4ff; /* #52b4ff blue[300] */
-    --background-brand-secondary: #8fceff; /* #8fceff blue[200] */
-    --background-primary: #ffffff; /* #ffffff */
-    --background-secondary: #f2f2f2; /* #f2f2f2 */
-    --background-positive: #e0f3ff; /* #e0f3ff blue[100] */
-    --background-success: #e0f3ff; /* #e0f3ff — semantic alias for "added/ok" */
-    --background-success-secondary: #8fceff; /* #8fceff blue[200] */
-    --background-warning: #e0f2ff; /* #e0f2ff — semantic alias for "modified/attention" */
-    --background-warning-secondary: #8fceff; /* #8fceff blue[200] */
-    --background-tertiary: #e6e6e6; /* #e6e6e6 */
-    --background-toolbar-base: #ffffff; /* #ffffff */
-    --background-hover: #f2f2f2; /* #f2f2f2 */
-    --background-active: #e6e6e6; /* #e6e6e6 */
-    --background-disabled: #f2f2f2; /* #f2f2f2 */
+    /* ──────────────────────────────────────────────────────────────────────────
+     * LIGHT THEME — Codex-aligned (2026-05-23)
+     *
+     * Source of truth: codex-light-mode-spec.html (pixel-sampled from Codex
+     * desktop on macOS, light theme). Mirrors the structure of the .dark block
+     * below — same token names, same hierarchy, inverted depth.
+     *
+     * Surface depth ladder (lowest → highest):
+     *   sidebar (#F7F7F7, recessed) → background (#FFFFFF, white)
+     *     → card / popover / input (#FFFFFF, defined by border + shadow)
+     *       → search / chat input / modal (#FCFCFC, faintly off-white)
+     *         → selected (#F2F2F2) → button-tertiary / dropdown (#F3F3F3)
+     *           → hover (#F4F4F4) → active (#E8E8E8) → tooltip (#1A1A1A, inverted)
+     *
+     * Foreground hierarchy:
+     *   primary #0D0D0D → secondary #5C5C5C → tertiary #939393 → placeholder #A8A8A8
+     *
+     * Brand accent: #0169CC. Status colors are REAL (no blue aliasing):
+     *   success / added green #0B953F | destructive / removed red #C23730
+     *   warning orange #C2410C | skill purple #6E2BD0
+     *   code highlight orange #B65913 | code highlight purple #6E2BD0
+     * ────────────────────────────────────────────────────────────────────────── */
 
-    /* Landing-page mockup illustration accents (sky / orange) — keep parity in dark */
-    --accent-sky: #0da2e7; /* #0da2e7 sky-500 */
-    --accent-orange: #f97415; /* #f97415 orange-500 */
+    /* ── Background surfaces ─────────────────────────────────────────────── */
+    --background: #ffffff;                       /* app backdrop */
+    --background-primary: #ffffff;               /* card surface (lifted by border + shadow, not fill) */
+    --background-secondary: #f3f3f3;             /* secondary button fill, dropdown trigger, tertiary button */
+    --background-tertiary: #e8e8e8;              /* pressed / heavier emphasis */
+    --background-modal: #fcfcfc;                 /* modal / dialog surface — hair off-white */
+    --background-modal-hover: #f4f4f4;           /* hover/selected inside modal/popover */
+    --background-popover: #ffffff;               /* popover surface (lifted by shadow only) */
+    --background-popover-hover: #f4f4f4;         /* popover item hover/selected */
+    --background-tooltip: #1a1a1a;               /* tooltip — dark pill inverted on light */
+    --background-input: #ffffff;                 /* form input fill (white, border-defined) */
+    --background-chat-input: #fcfcfc;            /* chat composer (faintly recessed) */
+    --background-selected: #f2f2f2;              /* selected radio/checkbox card ("For coding" state) */
+    --background-sidebar: #f7f7f7;               /* recessed sidebar — sits BELOW white backdrop */
+    --background-sidebar-active: #e3e3e3;        /* sidebar active/hover/selected fill */
+    --background-hover: #f4f4f4;                 /* generic subtle hover */
+    --background-active: #e8e8e8;                /* generic pressed */
+    --background-disabled: #f3f3f3;
+    --background-button-tertiary: #f3f3f3;       /* ghost-tinted button fill */
+    --background-dropdown-trigger: #f3f3f3;      /* dropdown trigger fill */
+    --background-weblab: #e6e6e6;                /* legacy alias */
+    --background-brand: #52b4ff;                 /* brand-tinted surface (kept lighter for light bg) */
+    --background-brand-secondary: #8fceff;
+    --background-toolbar-base: #ffffff;
 
-    --foreground: #1a1a1a; /* #1a1a1a */
-    --foreground-weblab: #333333; /* #333333 */
-    --foreground-brand: #0f9bff; /* #0f9bff blue[400] */
-    --foreground-primary: #1a1a1a; /* #1a1a1a */
-    --foreground-secondary: rgba(10, 18, 23, 0.6); /* #333333 */
-    --foreground-tertiary: rgba(10, 18, 23, 0.5); /* #545454 */
-    --foreground-quadranary: #787878; /* #787878 */
-    --foreground-positive: #0062b8; /* #0062b8 blue[600] */
-    --foreground-success: #0062b8; /* #0062b8 — semantic alias for "added/ok" */
-    --foreground-warning: #0065b2; /* #0065b3 — semantic alias for "modified/attention" */
-    --foreground-hover: #1f1f1f; /* #1f1f1f */
-    --foreground-active: #1a1a1a; /* #1a1a1a */
-    --foreground-disabled: #e6e6e6; /* #e6e6e6 */
+    /* Diff surfaces (soft mint / blush blocks) */
+    --background-diff-added: #e1f5e9;
+    --background-diff-removed: #ffe7e3;
 
-    --primary: #1a1a1a; /* #1a1a1a */
-    --primary-foreground: #ffffff; /* #ffffff */
+    /* Status surfaces — kept light-blue-tinted for soft callouts (text uses real colors) */
+    --background-positive: #e0f3ff;
+    --background-success: #e0f3ff;
+    --background-success-secondary: #8fceff;
+    --background-warning: #fef3e9;               /* light orange tint, mirrors warning text */
+    --background-warning-secondary: #fde0c8;
 
-    --secondary: #f2f2f2; /* #f2f2f2 */
-    --secondary-foreground: #1a1a1a; /* #1a1a1a */
+    /* Canvas editor surfaces (light mode) — see /design-system */
+    --background-canvas: #ebebeb;                /* viewport — recessed below white chrome */
+    --background-chrome: #ffffff;                /* top bar, side panels — matches app bg */
+    --background-bar: #ffffff;                   /* bottom toolbar */
+    --background-bar-active: #f2f2f2;
+    --background-tab-strip: #f2f2f2;
+    --background-tab-active: #ffffff;
 
-    --destructive: #dc2828; /* #dc2828 */
-    --destructive-foreground: #ffffff; /* #ffffff */
+    /* Landing-page mockup illustration accents (sky / orange) */
+    --accent-sky: #0da2e7;
+    --accent-orange: #f97415;
 
-    --card: #fafafa; /* #fafafa — slightly raised above #ffffff backdrop */
-    --card-foreground: #1a1a1a; /* #1a1a1a */
+    /* ── Foreground (text + icon hierarchy) ──────────────────────────────── */
+    --foreground: #0d0d0d;                       /* primary ink — near-black, softer than #000 */
+    --foreground-primary: #0d0d0d;
+    --foreground-secondary: #5c5c5c;             /* body copy, descriptions */
+    --foreground-tertiary: #939393;              /* section labels, captions, meta text */
+    --foreground-quadranary: #b0b0b0;            /* very dim (legacy slot) */
+    --foreground-placeholder: #a8a8a8;           /* input placeholders */
+    --foreground-disabled: #c8c8c8;
+    --foreground-hover: #0d0d0d;
+    --foreground-active: #0d0d0d;
+    --foreground-tooltip: #ffffff;               /* white on dark tooltip */
+    --foreground-brand: #0169cc;                 /* Codex signature blue — links, toggles, active states */
+    --foreground-weblab: #333333;                /* legacy alias */
 
-    --popover: #fafafa; /* #fafafa — slightly raised above #ffffff backdrop */
-    --popover-foreground: #1a1a1a; /* #1a1a1a */
+    /* Status / diff foreground (REAL colors, no blue aliasing) */
+    --foreground-positive: #0b953f;
+    --foreground-success: #0b953f;               /* added / ok */
+    --foreground-warning: #c2410c;               /* attention / modified */
+    --foreground-diff-added: #0b953f;
+    --foreground-diff-removed: #b82e21;
+    --foreground-skill: #6e2bd0;                 /* purple accent — skill tags, keywords */
 
-    --icon: #545454; /* #545454 */
-    --icon-hover: #1a1a1a; /* #1a1a1a */
-    --icon-active: #1a1a1a; /* #1a1a1a */
-    --icon-disabled: #333333; /* #333333 */
+    /* Code highlight (syntax-style accents in chat / diffs / inline code) */
+    --foreground-code-orange: #b65913;           /* strings, properties */
+    --foreground-code-purple: #6e2bd0;           /* keywords, types */
 
-    --border: #e6e6e6; /* #e6e6e6 */
-    --border-active: #919191; /* #919191 — toned down from #ababab for less contrast */
-    --border-hover: #c7c7c7; /* #c7c7c7 — toned down from #919191 for less contrast */
-    --border-success: #007fe0; /* #007fe0 blue[500] — semantic */
-    --border-warning: #52b4ff; /* #52b4ff blue[300] — semantic */
+    /* ── Primary / Secondary / Card / Popover / Modal ────────────────────── */
+    --primary: #0d0d0d;                          /* primary button fill (near-black) */
+    --primary-foreground: #ffffff;
 
-    /* Canvas editor surfaces (light mode) — see docs in /design-system */
-    --background-canvas: #ebebeb; /* #ebebeb — main canvas viewport */
-    --background-chrome: #ffffff; /* #ffffff — top bar, side panels */
-    --background-bar: #ffffff; /* #ffffff — bottom toolbar */
-    --background-bar-active: #f2f2f2; /* #f2f2f2 — pressed/active toolbar button */
-    --background-tab-strip: #f2f2f2; /* #f2f2f2 — tab list container */
-    --background-tab-active: #ffffff; /* #ffffff — active tab fill */
-    --border-canvas: #e0e0e0; /* #e0e0e0 — 1px frame around canvas */
-    --border-bar: #f0f0f0; /* #f0f0f0 — bottom toolbar border (neutralized from warm 60 4% 94%) */
-    --border-tab-active: #e0e0e0; /* #e0e0e0 — active tab border */
-    --border-tab-divider: #dbdbdb; /* #dbdbdb — 1×14 vertical divider in tab strip */
+    --secondary: #f3f3f3;                        /* secondary button fill (= bg-secondary) */
+    --secondary-foreground: #0d0d0d;
 
-    --muted: #f2f2f2; /* #f2f2f2 */
-    --muted-foreground: #333333; /* #333333 */
+    --destructive: #c23730;                      /* real red */
+    --destructive-foreground: #ffffff;
 
-    --accent: #f2f2f2; /* #f2f2f2 */
-    --accent-foreground: #1a1a1a; /* #1a1a1a */
+    --card: #ffffff;                             /* card surface (white, lifted by border + shadow) */
+    --card-foreground: #0d0d0d;
 
-    --input: #f2f2f2; /* #f2f2f2 */
-    --ring: #919191; /* #919191 — visible keyboard focus ring (was invisible at #e6e6e6) */
+    --popover: #ffffff;                          /* popover surface (white) */
+    --popover-foreground: #0d0d0d;
+
+    --modal: #fcfcfc;                            /* modal/dialog surface */
+    --modal-foreground: #0d0d0d;
+
+    /* ── Icons (button + dropdown glyphs) ────────────────────────────────── */
+    --icon: #5c5c5c;                             /* default icon tint */
+    --icon-hover: #0d0d0d;
+    --icon-active: #0d0d0d;
+    --icon-disabled: #a8a8a8;
+
+    /* ── Borders ─────────────────────────────────────────────────────────── */
+    --border: #e4e4e4;                           /* default visible hairline */
+    --border-card: #eaeaea;                      /* card outline (soft) */
+    --border-input: #e0e0e0;                     /* input outline (slightly stronger) */
+    --border-search: #e6e6e6;                    /* search outline */
+    --border-secondary: #ededed;                 /* secondary button + faint list dividers */
+    --border-popover: #e6e6e6;                   /* popover edge */
+    --border-hover: #d6d6d6;
+    --border-active: #c8c8c8;
+    --border-success: #0b953f;
+    --border-warning: #c2410c;
+
+    /* Editor chrome borders */
+    --border-canvas: #e0e0e0;
+    --border-bar: #f0f0f0;
+    --border-tab-active: #e0e0e0;
+    --border-tab-divider: #dbdbdb;
+
+    /* ── shadcn surface contracts (muted / accent / input / ring) ────────── */
+    --muted: #f3f3f3;
+    --muted-foreground: #5c5c5c;                 /* matches --foreground-secondary */
+    --accent: #f4f4f4;                           /* hover inside menus/dropdowns */
+    --accent-foreground: #0d0d0d;
+    --input: #ffffff;                            /* form input fill */
+    --ring: #0169cc;                             /* focus ring uses brand accent (was gray) */
 
     --radius: 1rem;
 
@@ -432,18 +501,21 @@
     --color-yellow-900: #002847; /* #002847 */
     --color-yellow-950: #001a2e; /* #001a2e */
 
-    /* Font Size Tokens */
+    /* Font Size Tokens — duplicates of @theme above, kept in sync for direct CSS use */
     --font-size-title1: 2.25rem;
     --font-leading-title1: auto;
-    --font-weight-title1: var(--font-weight-normal);
+    --font-weight-title1: var(--font-weight-medium);
+    --font-tracking-title1: -0.02em;
 
     --font-size-title2: 1.5rem;
     --font-leading-title2: normal;
-    --font-weight-title2: var(--font-weight-normal);
+    --font-weight-title2: var(--font-weight-medium);
+    --font-tracking-title2: -0.015em;
 
     --font-size-title3: 1.25rem;
     --font-leading-title3: normal;
-    --font-weight-title3: var(--font-weight-normal);
+    --font-weight-title3: var(--font-weight-medium);
+    --font-tracking-title3: -0.01em;
 
     --font-size-large-plus: 1rem;
     --font-leading-large-plus: 1.4rem;
@@ -494,14 +566,15 @@
     --font-leading-micro: normal;
     --font-weight-micro: var(--font-weight-normal);
     --font-tracking-micro: 0.005rem;
-    --sidebar: #fafafa;
-    --sidebar-foreground: #3f3f46;
-    --sidebar-primary: #18181b;
-    --sidebar-primary-foreground: #fafafa;
-    --sidebar-accent: #f4f4f5;
-    --sidebar-accent-foreground: #18181b;
-    --sidebar-border: #e5e7eb;
-    --sidebar-ring: #3b82f6;
+    /* Sidebar (recessed below white backdrop — Codex pattern) */
+    --sidebar: #f7f7f7;                          /* matches --background-sidebar */
+    --sidebar-foreground: #0d0d0d;
+    --sidebar-primary: #0169cc;                  /* brand accent */
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e3e3e3;                   /* active/hover/selected (matches --background-sidebar-active) */
+    --sidebar-accent-foreground: #0d0d0d;
+    --sidebar-border: #ededed;                   /* matches --border-secondary */
+    --sidebar-ring: #0169cc;                     /* brand accent */
 }
 
 .dark {
@@ -523,103 +596,186 @@
     --np-secondary-icon-background: #AE4AFF; /* purple-500*/
     --np-secondary-icon-shape: #F7EDFF; /* purple-100*/
 
-    --background: #131314; /* #131314 */
-    --background-weblab: #1a1a1a; /* #1a1a1a gray[900] */
-    --background-brand: #00518f; /* #00518f blue[700] */
-    --background-brand-secondary: #007fe0; /* #007fe0 blue[500] */
-    --background-primary: #1a1a1a; /* #1a1a1a gray[900] */
-    --background-secondary: #1f1f1f; /* #1f1f1f gray[800] */
-    --background-positive: #002c52; /* #002c52 blue[900] */
-    --background-success: #002c52; /* #002c52 — semantic alias for "added/ok" */
-    --background-success-secondary: #00518f; /* #00518f blue[700] */
-    --background-warning: #002847; /* #002847 — semantic alias for "modified/attention" */
-    --background-warning-secondary: #00518f; /* #00518f blue[700] */
-    --background-tertiary: #333333; /* #333333 gray[700] */
-    --background-toolbar-base: rgb(0 0 0 / 0.85); /* black[85] (alpha syntax) */
-    --background-hover: #1f1f1f; /* #1f1f1f gray[800] */
-    --background-active: #333333; /* #333333 gray[700] */
-    --background-disabled: #1a1a1a; /* #1a1a1a gray[900] */
+    /* ──────────────────────────────────────────────────────────────────────────
+     * DARK THEME — Codex-aligned (2026-05-23)
+     *
+     * Surface depth ladder (lowest → highest):
+     *   sidebar (#161616, recessed)
+     *     → background (#181818, app backdrop)
+     *       → card / primary (#1d1d1d)
+     *         → input (#1c1c1c — visually below card by 1pt for "inset" feel)
+     *         → modal (#212121)
+     *         → secondary / sidebar-active / popover (#222222)
+     *           → tertiary / hover (#2a2a2a)
+     *             → modal-hover / popover-hover / accent (#2e2e2e)
+     *               → tooltip (#3f3f3f, top of stack)
+     *
+     * Foreground hierarchy:
+     *   primary #ffffff → secondary #b2b2b2 → tertiary #717171
+     *     → placeholder #4d4d4d → disabled (matches surface)
+     *
+     * Brand accent: #458ef7 — used for focus ring, brand foreground, sidebar-primary.
+     *
+     * Status / diff colors are REAL (not blue-aliased anymore):
+     *   success/added green #6fc57e | destructive/removed red #e35446
+     *   warning orange #ec8c55 | skill purple #ad7bf9
+     *   code highlight orange #ff9335 | code highlight purple #bc69ff
+     * ────────────────────────────────────────────────────────────────────────── */
 
-    /* Landing-page mockup illustration accents (sky / orange) — slightly brighter for dark surfaces */
-    --accent-sky: #3ebaf4; /* #3ebaf4 sky-400 */
-    --accent-orange: #fa8938; /* #fa8938 orange-400 */
+    /* ── Background surfaces ─────────────────────────────────────────────── */
+    --background: #181818;                       /* app backdrop */
+    --background-primary: #1d1d1d;               /* card surface, raised 1 step */
+    --background-secondary: #222222;             /* secondary button fill, sidebar-active */
+    --background-tertiary: #2a2a2a;              /* pressed / heavier emphasis */
+    --background-modal: #212121;                 /* modal / dialog surface */
+    --background-modal-hover: #2e2e2e;           /* hover/selected inside modal/popover */
+    --background-popover: #222222;               /* popover surface (matches secondary) */
+    --background-popover-hover: #2e2e2e;         /* popover item hover/selected */
+    --background-tooltip: #3f3f3f;               /* keyboard shortcut tooltip pill */
+    --background-input: #1c1c1c;                 /* form input fill */
+    --background-chat-input: #232323;            /* chat composer (no border) */
+    --background-selected: #242424;              /* selected radio/checkbox card */
+    --background-sidebar: #161616;               /* recessed sidebar */
+    --background-sidebar-active: #222222;        /* sidebar active/hover/selected */
+    --background-hover: #232323;                 /* generic subtle hover */
+    --background-active: #2a2a2a;                /* generic pressed */
+    --background-disabled: #1f1f1f;
+    --background-button-tertiary: #1f1f1f;       /* ghost-tinted button fill */
+    --background-dropdown-trigger: #1f1f1f;      /* dropdown trigger fill */
+    --background-weblab: #1f1f1f;                /* legacy alias */
+    --background-brand: #00518f;                 /* brand-colored surface (deep blue) */
+    --background-brand-secondary: #007fe0;
+    --background-toolbar-base: rgb(0 0 0 / 0.85);
 
-    --foreground: #f9f9f9; /* #f9f9f9 — neutralized from 60 9.1% 97.8% (warm) */
-    --foreground-weblab: #ababab; /* #ababab gray[200] */
-    --foreground-brand: #0f9bff; /* #0f9bff blue[400] */
-    --foreground-primary: #ffffff; /* #ffffff gray[50] */
-    --foreground-secondary: rgba(232, 232, 232, 0.6); /* #ababab gray[200] */
-    --foreground-tertiary: rgba(232, 232, 232, 0.4); /* #919191 gray[300] */
-    --foreground-quadranary: #616161; /* #616161 gray[500] */
-    --foreground-positive: #8fd4ff; /* #8fd4ff blue[200] */
-    --foreground-success: #007fe0; /* #007fe0 blue[500] — semantic alias for "added/ok" */
-    --foreground-warning: #52b4ff; /* #52b4ff blue[300] — semantic alias for "modified/attention" */
-    --foreground-hover: #c7c7c7; /* #c7c7c7 gray[100] */
-    --foreground-active: #ffffff; /* #ffffff gray[50] */
-    --foreground-disabled: #1a1a1a; /* #1a1a1a gray[900] */
+    /* Diff surfaces (visual highlight blocks) */
+    --background-diff-added: #193323;
+    --background-diff-removed: #411d1a;
 
-    --primary: #f9f9f9; /* #f9f9f9 — neutralized from 60 9.1% 97.8% (warm) */
-    --primary-foreground: #1a1a1a; /* #1a1a1a — neutralized from 24 9.8% 10% (brown) */
+    /* Status surfaces (kept blue-aliased — visual blocks only; text uses real colors below) */
+    --background-positive: #002c52;
+    --background-success: #002c52;
+    --background-success-secondary: #00518f;
+    --background-warning: #002847;
+    --background-warning-secondary: #00518f;
 
-    --secondary: #272727; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
-    --secondary-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
+    /* Canvas editor surfaces (dark mode).
+       Chrome + bar share the main app backdrop so the editor reads as a single
+       app surface; canvas drops one step BELOW the chrome so the iframe viewport
+       feels recessed (like a paper sheet sunk into a desk). Tab-strip + tab-active
+       use secondary + accent for a clear elevated tab system. See /design-system. */
+    --background-canvas: #141414;                /* viewport — recessed below chrome */
+    --background-chrome: #181818;                /* top bar, side panels — matches app bg */
+    --background-bar: #181818;                   /* bottom toolbar — matches app bg */
+    --background-bar-active: #2a2a2a;            /* pressed toolbar button — matches tertiary */
+    --background-tab-strip: #222222;             /* tab list container — matches secondary */
+    --background-tab-active: #2e2e2e;            /* active tab fill — matches accent */
 
-    --destructive: #b91c1c; /* #b91c1c red[700] — toned down from #dc2828 for less contrast in dark mode */
-    --destructive-foreground: #ffffff; /* #ffffff */
+    /* Landing-page mockup illustration accents (sky / orange) */
+    --accent-sky: #3ebaf4;
+    --accent-orange: #fa8938;
 
-    --card: #1a1a1a; /* #1a1a1a — raised above #131314 backdrop */
-    --card-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
+    /* ── Foreground (text + icon hierarchy) ──────────────────────────────── */
+    --foreground: #ffffff;                       /* primary ink — pure white */
+    --foreground-primary: #ffffff;
+    --foreground-secondary: #b2b2b2;             /* body copy, descriptions */
+    --foreground-tertiary: #717171;              /* captions, helper text */
+    --foreground-quadranary: #616161;            /* very dim (legacy) */
+    --foreground-placeholder: #4d4d4d;           /* input/textarea placeholders */
+    --foreground-disabled: #1f1f1f;
+    --foreground-hover: #ffffff;
+    --foreground-active: #ffffff;
+    --foreground-tooltip: #d6d6d6;               /* shortcut tooltip text */
+    --foreground-brand: #458ef7;                 /* primary accent (Codex blue) */
+    --foreground-weblab: #ababab;                /* legacy alias */
 
-    --popover: #1a1a1a; /* #1a1a1a — raised above #131314 backdrop, was collapsing to background */
-    --popover-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
+    /* Status / diff foreground (REAL colors, no blue aliasing) */
+    --foreground-positive: #6fc57e;
+    --foreground-success: #6fc57e;               /* added / ok */
+    --foreground-warning: #ec8c55;               /* attention / modified */
+    --foreground-diff-added: #6fc57e;
+    --foreground-diff-removed: #e35446;
+    --foreground-skill: #ad7bf9;
 
-    --icon: #919191; /* #919191 gray[300] */
-    --icon-hover: #ffffff; /* #ffffff gray[50] */
-    --icon-active: #ffffff; /* #ffffff gray[50] */
-    --icon-disabled: #ababab; /* #ababab gray[200] */
+    /* Code highlight (syntax-style accents in chat / diffs / inline code) */
+    --foreground-code-orange: #ff9335;
+    --foreground-code-purple: #bc69ff;
 
-    --border: #1f1f1f; /* #1f1f1f gray[800] */
-    --border-active: #525252; /* #525252 — toned down from #787878 for less contrast */
-    --border-hover: #404040; /* #404040 — toned down from #616161 for less contrast */
-    --border-success: #007fe0; /* #007fe0 blue[500] — semantic */
-    --border-warning: #52b4ff; /* #52b4ff blue[300] — semantic */
+    /* ── Primary / Secondary / Card / Popover / Modal ────────────────────── */
+    --primary: #ffffff;                          /* primary button fill */
+    --primary-foreground: #181818;
 
-    /* Canvas editor surfaces (dark mode) — see docs in /design-system */
-    --background-canvas: #1c1c1c; /* #1c1c1c — main canvas viewport */
-    --background-chrome: #141414; /* #141414 — top bar, side panels */
-    --background-bar: #141414; /* #141414 — bottom toolbar (was #121212, lifted to match chrome — bar should never sit below backdrop) */
-    --background-bar-active: #262626; /* #262626 — pressed/active toolbar button (toned down from #2e2e2e) */
-    --background-tab-strip: #2B2B2B; /* #2B2B2B — tab list container (matches v4 input fill) */
-    --background-tab-active: #404040; /* #404040 — active tab fill stands one step above the strip */
-    --border-canvas: #212121; /* #212121 — 1px frame around canvas */
-    --border-bar: #1f1f1f; /* #1f1f1f — bottom toolbar border (aligned with --border) */
-    --border-tab-active: #2a2a2a; /* #2a2a2a — active tab border (subtle, was #454545) */
-    --border-tab-divider: #2a2a2a; /* #2a2a2a — 1×14 vertical divider in tab strip */
+    --secondary: #222222;                        /* secondary button fill */
+    --secondary-foreground: #ffffff;
 
-    --muted: #272727; /* #262626 (fixed malformed value) */
-    --muted-foreground: #a3a3a3; /* #a3a3a3 — neutralized from 24 5.4% 63.9% (warm taupe) */
+    --destructive: #e35446;                      /* real red — bright in dark mode */
+    --destructive-foreground: #ffffff;
 
-    --accent: #272727; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
-    --accent-foreground: #f9f9f9; /* #f9f9f9 — neutralized from warm */
+    --card: #1d1d1d;                             /* card surface */
+    --card-foreground: #ffffff;
 
-    --input: #272727; /* #262626 — neutralized from 12 6.5% 15.1% (brown) */
-    --ring: #525252; /* #525252 — toned down from #d3d3d3 for less contrast (visible to keyboard nav, not aggressive) */
-    --sidebar: #18181b;
-    --sidebar-foreground: #f4f4f5;
-    --sidebar-primary: #1d4ed8;
+    --popover: #222222;                          /* popover surface */
+    --popover-foreground: #ffffff;
+
+    --modal: #212121;                            /* modal/dialog surface */
+    --modal-foreground: #ffffff;
+
+    /* ── Icons (button + dropdown glyphs) ────────────────────────────────── */
+    --icon: #7f7f7f;                             /* default icon tint */
+    --icon-hover: #ffffff;
+    --icon-active: #ffffff;
+    --icon-disabled: #4d4d4d;
+
+    /* ── Borders ─────────────────────────────────────────────────────────── */
+    --border: #232323;                           /* subtle separator (most common) */
+    --border-card: #282828;                      /* card outline (slightly stronger) */
+    --border-input: #1c1c1c;                     /* input outline (matches fill) */
+    --border-search: #242424;                    /* search input outline */
+    --border-secondary: #2c2c2c;                 /* secondary button outline */
+    --border-popover: #2d2d2d;                   /* popover outline */
+    --border-hover: #3a3a3a;
+    --border-active: #3a3a3a;
+    --border-success: #6fc57e;
+    --border-warning: #ec8c55;
+
+    /* Editor chrome borders — aligned with main border ladder */
+    --border-canvas: #232323;                    /* 1px frame around canvas — matches --border */
+    --border-bar: #232323;                       /* bottom toolbar border — matches --border */
+    --border-tab-active: #2d2d2d;                /* active tab border — matches --border-popover */
+    --border-tab-divider: #232323;               /* tab strip divider — matches --border */
+
+    /* ── shadcn surface contracts (muted / accent / input / ring) ────────── */
+    --muted: #1f1f1f;                            /* tertiary button bg, dropdown trigger */
+    --muted-foreground: #b2b2b2;                 /* matches --foreground-secondary */
+    --accent: #2e2e2e;                           /* hover inside menus/dropdowns/popovers */
+    --accent-foreground: #ffffff;
+    --input: #1c1c1c;                            /* form input fill */
+    --ring: #458ef7;                             /* focus ring uses brand accent */
+
+    /* ── Sidebar (recessed surface, 1 step below app bg) ─────────────────── */
+    --sidebar: #161616;                          /* main sidebar bg */
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #458ef7;                  /* brand accent */
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #27272a;
-    --sidebar-accent-foreground: #f4f4f5;
-    --sidebar-border: #27272a;
-    --sidebar-ring: #3b82f6;
+    --sidebar-accent: #222222;                   /* active/hover/selected fill */
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #232323;                   /* subtle separator */
+    --sidebar-ring: #458ef7;
 }
 
 @layer base {
     * {
         @apply border-border;
     }
+    /* System-first font cascade — Mac users get SF Pro automatically; Inter
+       (loaded via next/font as --font-inter) is the cross-platform fallback. */
+    html {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Segoe UI', system-ui, sans-serif;
+    }
     body {
         @apply bg-background text-foreground;
+    }
+    code, kbd, pre, samp {
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
     }
     ::-webkit-scrollbar {
         @apply hidden;
@@ -648,6 +804,8 @@
     --color-foreground-secondary: var(--foreground-secondary);
     --color-foreground-tertiary: var(--foreground-tertiary);
     --color-foreground-quadranary: var(--foreground-quadranary);
+    --color-foreground-placeholder: var(--foreground-placeholder);
+    --color-foreground-tooltip: var(--foreground-tooltip);
     --color-foreground-brand: var(--foreground-brand);
     --color-foreground-weblab: var(--foreground-weblab);
     --color-foreground-positive: var(--foreground-positive);
@@ -656,6 +814,11 @@
     --color-foreground-hover: var(--foreground-hover);
     --color-foreground-active: var(--foreground-active);
     --color-foreground-disabled: var(--foreground-disabled);
+    --color-foreground-diff-added: var(--foreground-diff-added);
+    --color-foreground-diff-removed: var(--foreground-diff-removed);
+    --color-foreground-skill: var(--foreground-skill);
+    --color-foreground-code-orange: var(--foreground-code-orange);
+    --color-foreground-code-purple: var(--foreground-code-purple);
     --color-muted-foreground: var(--muted-foreground);
 
     /* Background tokens — enables opacity modifiers (e.g. bg-background-secondary/50) */
@@ -663,12 +826,57 @@
     --color-background-primary: var(--background-primary);
     --color-background-secondary: var(--background-secondary);
     --color-background-tertiary: var(--background-tertiary);
+    --color-background-modal: var(--background-modal);
+    --color-background-modal-hover: var(--background-modal-hover);
+    --color-background-popover: var(--background-popover);
+    --color-background-popover-hover: var(--background-popover-hover);
+    --color-background-tooltip: var(--background-tooltip);
+    --color-background-input: var(--background-input);
+    --color-background-chat-input: var(--background-chat-input);
+    --color-background-selected: var(--background-selected);
+    --color-background-sidebar: var(--background-sidebar);
+    --color-background-sidebar-active: var(--background-sidebar-active);
+    --color-background-hover: var(--background-hover);
+    --color-background-active: var(--background-active);
+    --color-background-button-tertiary: var(--background-button-tertiary);
+    --color-background-dropdown-trigger: var(--background-dropdown-trigger);
     --color-background-weblab: var(--background-weblab);
     --color-background-tab-strip: var(--background-tab-strip);
     --color-background-tab-active: var(--background-tab-active);
     --color-background-success: var(--background-success);
     --color-background-warning: var(--background-warning);
     --color-background-brand: var(--background-brand);
+    --color-background-diff-added: var(--background-diff-added);
+    --color-background-diff-removed: var(--background-diff-removed);
+
+    /* Surface tokens (modal/popover full primitives, exposed as bg-modal, bg-popover etc.) */
+    --color-modal: var(--modal);
+    --color-modal-foreground: var(--modal-foreground);
+
+    /* Primary / Secondary / Destructive token bindings — required for Tailwind v4
+       to generate `bg-primary` / `text-primary-foreground` (and siblings) used by
+       the canonical Button variants. Without these the default Button rendered
+       with inherited foreground color on top of `--primary`, producing
+       white-on-white text (a visually empty pill) in dark mode. */
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    /* Border tokens — semantic per element type (bg-border-card, etc.) */
+    --color-border-card: var(--border-card);
+    --color-border-input: var(--border-input);
+    --color-border-search: var(--border-search);
+    --color-border-secondary: var(--border-secondary);
+    --color-border-popover: var(--border-popover);
+
+    /* Icon tokens — exposed as text-icon, text-icon-hover, etc. */
+    --color-icon: var(--icon);
+    --color-icon-hover: var(--icon-hover);
+    --color-icon-active: var(--icon-active);
+    --color-icon-disabled: var(--icon-disabled);
 
     /* Landing-page accent tokens — exposed as bg-accent-sky, text-accent-orange, etc. */
     --color-accent-sky: var(--accent-sky);

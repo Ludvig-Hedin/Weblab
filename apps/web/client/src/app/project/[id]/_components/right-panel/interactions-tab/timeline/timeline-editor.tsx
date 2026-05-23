@@ -101,7 +101,10 @@ export const TimelineEditorPlaceholder = observer(function TimelineEditor({
             payload,
             isInitial: false,
         };
-        updateAnimation(activeAnimation.id, (a) => ({ ...a, steps: [...a.steps, step] }));
+        updateAnimation(activeAnimation.id, (a) => ({
+            ...a,
+            steps: [...a.steps, step],
+        }));
     };
 
     return (

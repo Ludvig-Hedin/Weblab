@@ -198,7 +198,11 @@ export const useSearch = (query: string, filter: SearchFilter, scope: SearchScop
 
         out.sort(smartSortComparator(debounced));
         const stripped: SearchResult[] = out.map(({ seqIndex: _seq, ...r }) => r);
-        return { results: stripped, totalCount: total, truncated: total > MAX_RESULTS };
+        return {
+            results: stripped,
+            totalCount: total,
+            truncated: total > MAX_RESULTS,
+        };
         // layerSizesKey / selectionKey are the MobX-change signals; editorEngine
         // is a stable ref used for fresh reads inside the memo.
         // eslint-disable-next-line react-hooks/exhaustive-deps

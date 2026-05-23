@@ -32,7 +32,11 @@ const REASONING_OPTIONS = [
         labelKey: transKeys.editor.panels.edit.tabs.chat.effort.deep.label,
         hintKey: transKeys.editor.panels.edit.tabs.chat.effort.deep.hint,
     },
-] as const satisfies ReadonlyArray<{ value: ReasoningEffort; labelKey: string; hintKey: string }>;
+] as const satisfies ReadonlyArray<{
+    value: ReasoningEffort;
+    labelKey: string;
+    hintKey: string;
+}>;
 
 export interface ReasoningEffortPillsProps {
     value: ReasoningEffort;
@@ -124,7 +128,7 @@ export const ReasoningEffortPills = ({
                                     onClick={() => onChange(option.value)}
                                     onKeyDown={(event) => handleKeyDown(event, index)}
                                     className={cn(
-                                        'text-xs focus-visible:ring-ring rounded-[6px] px-2 py-1 font-medium transition-colors focus-visible:ring-1 focus-visible:outline-none',
+                                        'focus-visible:ring-ring rounded-[6px] px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-1 focus-visible:outline-none',
                                         active
                                             ? 'bg-background-primary text-foreground-primary shadow-sm'
                                             : 'text-foreground-tertiary hover:text-foreground-secondary',

@@ -145,7 +145,12 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
         id: string;
         css: string;
         type: GradientState['type'];
-        stops: Array<{ id: string; color: string; position: number; opacity?: number }>;
+        stops: Array<{
+            id: string;
+            color: string;
+            position: number;
+            opacity?: number;
+        }>;
     }
 
     const presetGradients: PresetGradient[] = [
@@ -529,7 +534,9 @@ export const ColorPickerContent: React.FC<ColorPickerProps> = ({
                             <div
                                 key={level}
                                 className="border-foreground-tertiary/50 h-6 w-6 cursor-pointer content-center rounded border-[0.5px]"
-                                style={{ backgroundColor: palette.colors[Number.parseInt(level)] }}
+                                style={{
+                                    backgroundColor: palette.colors[Number.parseInt(level)],
+                                }}
                                 onClick={() => {
                                     if (hasGradient(backgroundImage)) {
                                         editorEngine.style.update('backgroundImage', 'none');

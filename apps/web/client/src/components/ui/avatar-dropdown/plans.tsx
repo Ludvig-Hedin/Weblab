@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { debounce } from 'lodash';
+import { api } from '@convex/_generated/api';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -11,25 +11,15 @@ import { Icons } from '@weblab/ui/icons';
 import { Progress } from '@weblab/ui/progress';
 
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 
-export const UsageSection = observer(({ open }: { open: boolean }) => {
+export const UsageSection = observer((_props: { open: boolean }) => {
     const t = useTranslations();
     const locale = useLocale();
     const state = useStateManager();
-    const { data: subscription, isLoading: subscriptionLoading } = api.subscription.get.useQuery();
-    const {
-        data: usageData,
-        refetch: refetchUsage,
-        isLoading: usageLoading,
-    } = api.usage.get.useQuery();
-
-    const debouncedRefetchUsage = debounce(refetchUsage, 1000, { leading: true, trailing: false });
-    useEffect(() => {
-        if (open) {
-            void debouncedRefetchUsage();
-        }
-    }, [open]);
+    const subscription = useQuery(api.subscriptions.get, {});
+    const usageData = useQuery(api.usage.get, {});
+    const subscriptionLoading = subscription === undefined;
+    const usageLoading = usageData === undefined;
 
     const isLoading = subscriptionLoading || usageLoading;
 
@@ -56,17 +46,20 @@ export const UsageSection = observer(({ open }: { open: boolean }) => {
         ) {
             message = t('usage.scheduledPlanStart', {
                 monthlyMessageLimit: String(subscription.scheduledChange.price.monthlyMessageLimit),
-                date: subscription.scheduledChange.scheduledChangeAt.toLocaleDateString(locale, {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                }),
+                date: new Date(subscription.scheduledChange.scheduledChangeAt).toLocaleDateString(
+                    locale,
+                    {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                    },
+                ),
             });
         } else if (
             subscription?.scheduledChange?.scheduledAction ===
             ScheduledSubscriptionAction.CANCELLATION
         ) {
-            message = `Your subscription will end on ${subscription.scheduledChange.scheduledChangeAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            message = `Your subscription will end on ${new Date(subscription.scheduledChange.scheduledChangeAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
         }
 
         if (message) {

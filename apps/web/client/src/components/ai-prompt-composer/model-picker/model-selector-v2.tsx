@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { motion } from 'motion/react';
 
 import type { ProviderManifestEntry, ProviderModelEntry, ProviderStatus } from '@weblab/ai/client';
@@ -33,7 +35,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@weblab/ui/popover';
 import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
-import { api } from '@/trpc/react';
 import { ProviderSetupDialog } from './provider-setup-dialog';
 import { PullModelDialog } from './pull-model-dialog';
 import { ReasoningEffortPills } from './reasoning-effort-pills';
@@ -123,14 +124,12 @@ export const ModelSelectorV2 = ({
     const [setupEntry, setSetupEntry] = useState<ProviderManifestEntry | null>(null);
     const [pullDialogOpen, setPullDialogOpen] = useState(false);
     const [disconnectTarget, setDisconnectTarget] = useState<ProviderManifestEntry | null>(null);
-    const { statuses, refresh } = useProviderStatuses({ localModels, localModelsLoading });
-    const disconnectMutation = api.provider.connectionsDelete.useMutation({
-        onSuccess: (_, vars) => {
-            refresh();
-            toast.success(`Disconnected ${vars.provider}`);
-        },
-        onError: () => toast.error('Disconnect failed. Try again.'),
+    const { statuses, refresh } = useProviderStatuses({
+        localModels,
+        localModelsLoading,
     });
+    const deleteProviderConnection = useMutation(api.users.deleteProviderConnection);
+    const [disconnectingProvider, setDisconnectingProvider] = useState<string | null>(null);
     const hasCliBridge =
         typeof window !== 'undefined' && Boolean(window.weblabNative?.cli?.providerStatus);
 
@@ -196,8 +195,9 @@ export const ModelSelectorV2 = ({
         requestAnimationFrame(() => setDisconnectTarget(entry));
     };
 
-    const confirmDisconnect = () => {
+    const confirmDisconnect = async () => {
         const entry = disconnectTarget;
+        setDisconnectTarget(null);
         if (!entry) return;
         if (
             entry.kind === 'codex' ||
@@ -205,9 +205,17 @@ export const ModelSelectorV2 = ({
             entry.kind === 'gemini' ||
             entry.kind === 'opencode'
         ) {
-            disconnectMutation.mutate({ provider: entry.kind });
+            setDisconnectingProvider(entry.kind);
+            try {
+                await deleteProviderConnection({ provider: entry.kind });
+                refresh();
+                toast.success(`Disconnected ${entry.kind}`);
+            } catch {
+                toast.error('Disconnect failed. Try again.');
+            } finally {
+                setDisconnectingProvider(null);
+            }
         }
-        setDisconnectTarget(null);
     };
 
     const handleQuitOllama = () => {
@@ -465,13 +473,11 @@ export const ModelSelectorV2 = ({
                                             <CommandItem
                                                 value={`${entry.label} disconnect`}
                                                 onSelect={() => requestDisconnect(entry)}
-                                                disabled={disconnectMutation.isPending}
+                                                disabled={disconnectingProvider !== null}
                                                 className="text-foreground-tertiary flex items-center gap-2 rounded-md px-2 py-1.5 text-xs"
                                             >
                                                 <span>
-                                                    {disconnectMutation.isPending &&
-                                                    disconnectMutation.variables?.provider ===
-                                                        entry.kind
+                                                    {disconnectingProvider === entry.kind
                                                         ? `Disconnecting ${entry.label}…`
                                                         : `Disconnect ${entry.label}`}
                                                 </span>
@@ -525,7 +531,7 @@ export const ModelSelectorV2 = ({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDisconnect}>
+                        <AlertDialogAction onClick={() => void confirmDisconnect()}>
                             Disconnect
                         </AlertDialogAction>
                     </AlertDialogFooter>

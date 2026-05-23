@@ -84,14 +84,20 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
             selected.branchId,
         );
         if (!ixId) return;
-        const interaction = makeInteraction({ triggerKind: kind, sourceIxId: ixId });
+        const interaction = makeInteraction({
+            triggerKind: kind,
+            sourceIxId: ixId,
+        });
         await editorEngine.interactions.addInteraction(interaction, selected.branchId);
         onOpenInteraction(interaction.id);
     };
 
     const addPageTrigger = async (kind: TriggerKind) => {
         const branchId = editorEngine.branches.activeBranch.id;
-        const interaction = makeInteraction({ triggerKind: kind, sourceIxId: null });
+        const interaction = makeInteraction({
+            triggerKind: kind,
+            sourceIxId: null,
+        });
         await editorEngine.interactions.addInteraction(interaction, branchId);
         onOpenInteraction(interaction.id);
     };

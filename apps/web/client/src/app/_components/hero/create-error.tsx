@@ -1,3 +1,4 @@
+import { runInAction } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -14,13 +15,17 @@ export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
     const t = useTranslations('landing.hero.errorBanner');
 
     const handleClick = () => {
-        createManager.error = null;
+        // Wrap the observable write so MobX's `enforceActions: 'always'`
+        // doesn't log a "modified outside an action" warning on every retry.
+        runInAction(() => {
+            createManager.error = null;
+        });
         onRetry?.();
     };
 
     return (
         <motion.div
-            className="mt-2 flex max-w-xl items-center gap-3 rounded-xl border border-red-500 bg-red-900/80 p-2 px-4 text-sm text-red-500"
+            className="border-destructive bg-destructive/20 text-destructive mt-2 flex max-w-xl items-center gap-3 rounded-xl border p-2 px-4 text-sm"
             initial={{ opacity: 0, filter: 'blur(4px)' }}
             animate={
                 error ? { opacity: 1, filter: 'blur(0px)' } : { opacity: 0, filter: 'blur(4px)' }
@@ -36,7 +41,7 @@ export const CreateError = observer(({ onRetry }: CreateErrorProps = {}) => {
             <button
                 type="button"
                 onClick={handleClick}
-                className="cursor-pointer rounded-md border border-red-500/60 px-2 py-1 text-xs font-medium text-red-200 transition-colors hover:bg-red-500/20"
+                className="border-destructive/60 text-destructive hover:bg-destructive/20 cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition-colors"
             >
                 {onRetry ? t('tryAgain') : t('dismiss')}
             </button>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import type { CmsCollection } from '@weblab/db';
@@ -18,8 +20,8 @@ import { Label } from '@weblab/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 interface Props {
     projectId: string;
@@ -37,20 +39,30 @@ interface Props {
 export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Props) => {
     const t = useTranslations();
 
-    const fieldsQuery = api.cms.field.listByCollection.useQuery(
-        { projectId, collectionId: collection.id },
-        { enabled: open },
+    const fieldsData = useQuery(
+        api.cmsFields.listByCollection,
+        open
+            ? {
+                  projectId: projectId as Id<'projects'>,
+                  collectionId: collection.id as Id<'cmsCollections'>,
+              }
+            : 'skip',
     );
-    const pagesQuery = api.cms.collectionPage.list.useQuery({ projectId }, { enabled: open });
+    const pagesData = useQuery(
+        api.cmsCollectionPages.list,
+        open ? { projectId: projectId as Id<'projects'> } : 'skip',
+    );
 
-    const existing = pagesQuery.data?.find((p) => p.collectionId === collection.id) ?? null;
+    const existing = pagesData?.find((p) => p.collectionId === collection.id) ?? null;
 
     const [pagePath, setPagePath] = useState('');
     const [matchFieldKey, setMatchFieldKey] = useState('');
 
-    const utils = api.useUtils();
-    const upsertMutation = api.cms.collectionPage.upsert.useMutation();
-    const deleteMutation = api.cms.collectionPage.delete.useMutation();
+    // Convex live queries auto-revalidate — no useUtils equivalent needed.
+    const upsertMutation = useMutation(api.cmsCollectionPages.upsert);
+    const deleteMutation = useMutation(api.cmsCollectionPages.remove);
+    const [isUpserting, setIsUpserting] = useState(false);
+    const [isRemoving, setIsRemoving] = useState(false);
 
     // Pre-fill once per (open × collection), but only after the first data
     // arrival — otherwise we'd lock in empty defaults before the queries
@@ -71,10 +83,9 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
             lastCollectionIdRef.current = collection.id;
         }
         if (initializedRef.current) return;
-        // Wait for both queries to actually have data — `isPending` stays
-        // true until the first response. `isLoading` flips false as soon as
-        // a stale cache is present, which would freeze in stale defaults.
-        if (pagesQuery.isPending || fieldsQuery.isPending) return;
+        // Wait for both queries to actually have data — Convex returns `undefined`
+        // while loading; using stale cache here would freeze in stale defaults.
+        if (pagesData === undefined || fieldsData === undefined) return;
         initializedRef.current = true;
         if (existing) {
             setPagePath(existing.pagePath);
@@ -84,21 +95,13 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
         // Defaults: /<slug>/[slug] is the most common pattern.
         setPagePath(`/${collection.slug}/[slug]`);
         // Prefer a `slug` field when present.
-        const fields = fieldsQuery.data ?? [];
+        const fields = fieldsData ?? [];
         const slugField =
             fields.find((f) => f.key === 'slug') ?? fields.find((f) => f.type === 'slug');
         setMatchFieldKey(slugField?.key ?? fields[0]?.key ?? '');
-    }, [
-        open,
-        existing,
-        fieldsQuery.data,
-        fieldsQuery.isPending,
-        pagesQuery.isPending,
-        collection.id,
-        collection.slug,
-    ]);
+    }, [open, existing, fieldsData, pagesData, collection.id, collection.slug]);
 
-    const fields = fieldsQuery.data ?? [];
+    const fields = fieldsData ?? [];
 
     const handleSave = async () => {
         if (!pagePath.trim()) {
@@ -111,30 +114,33 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
             toast.error(t(transKeys.cms.routing.pickFieldFirst));
             return;
         }
+        setIsUpserting(true);
         try {
-            await upsertMutation.mutateAsync({
-                projectId,
-                collectionId: collection.id,
+            await upsertMutation({
+                projectId: projectId as Id<'projects'>,
+                collectionId: collection.id as Id<'cmsCollections'>,
                 pagePath: pagePath.trim(),
                 matchFieldKey,
             });
-            await utils.cms.collectionPage.list.invalidate({ projectId });
-            // PAGE_ITEM_FIELD bindings that previously couldn't resolve
-            // against any registration now can — refresh the canvas snapshot.
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success(t(transKeys.cms.routing.saved));
             onOpenChange(false);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.routing.saveFailed));
+        } finally {
+            setIsUpserting(false);
         }
     };
 
     const handleRemove = async () => {
         if (!existing) return;
+        setIsRemoving(true);
         try {
-            const result = await deleteMutation.mutateAsync({ projectId, id: existing.id });
-            await utils.cms.collectionPage.list.invalidate({ projectId });
-            await utils.cms.binding.snapshot.invalidate({ projectId });
+            const result = await deleteMutation({
+                projectId: projectId as Id<'projects'>,
+                id: existing._id,
+            });
+            // Convex live queries auto-revalidate — no manual invalidate needed.
             toast.success(t(transKeys.cms.routing.removed));
             // Warn about now-orphaned PAGE_ITEM_FIELD bindings (BUG #8 from review).
             if (result?.orphanedBindingCount && result.orphanedBindingCount > 0) {
@@ -145,6 +151,8 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
             onOpenChange(false);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t(transKeys.cms.routing.removeFailed));
+        } finally {
+            setIsRemoving(false);
         }
     };
 
@@ -195,7 +203,7 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                             </SelectTrigger>
                             <SelectContent>
                                 {fields.map((f) => (
-                                    <SelectItem key={f.id} value={f.key}>
+                                    <SelectItem key={f._id} value={f.key}>
                                         {f.name}
                                     </SelectItem>
                                 ))}
@@ -214,7 +222,7 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                                 variant="ghost"
                                 className="text-red"
                                 onClick={() => void handleRemove()}
-                                disabled={deleteMutation.isPending || upsertMutation.isPending}
+                                disabled={isRemoving || isUpserting}
                             >
                                 {t(transKeys.cms.routing.remove)}
                             </Button>
@@ -227,10 +235,7 @@ export const RoutingDialog = ({ projectId, collection, open, onOpenChange }: Pro
                         <Button
                             onClick={() => void handleSave()}
                             disabled={
-                                upsertMutation.isPending ||
-                                deleteMutation.isPending ||
-                                !pagePath.trim() ||
-                                !matchFieldKey
+                                isUpserting || isRemoving || !pagePath.trim() || !matchFieldKey
                             }
                         >
                             {t(transKeys.cms.routing.save)}

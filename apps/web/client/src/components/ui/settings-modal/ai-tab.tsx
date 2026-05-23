@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
+// Uses Convex `getMappedSettings` / `updateMappedSettings` — they return /
+// accept the nested {chat, ai, appearance, language, git, customShortcuts}
+// shape this file was written against. Optimistic updates removed (Convex
+// live queries auto-revalidate after mutation completes; sub-second sync is
+// fine for a settings panel).
+import { useMutation, useQuery } from 'convex/react';
 import { debounce } from 'lodash';
 import { observer } from 'mobx-react-lite';
 
@@ -21,8 +28,6 @@ import { toast } from '@weblab/ui/sonner';
 import { Switch } from '@weblab/ui/switch';
 import { cn } from '@weblab/ui/utils';
 
-import { api } from '@/trpc/react';
-
 type PendingAI = {
     defaultModel?: string;
     showSuggestions?: boolean;
@@ -33,25 +38,32 @@ type PendingAI = {
 };
 
 export const AITab = observer(() => {
-    const apiUtils = api.useUtils();
-    const { data: userSettings } = api.user.settings.get.useQuery();
+    const userSettings = useQuery(api.users.getMappedSettings, {});
+    const updateMappedSettings = useMutation(api.users.updateMappedSettings);
     const [savedFlash, setSavedFlash] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const savedFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isMountedRef = useRef(true);
-    const { mutate: updateSettings, isPending: isSaving } = api.user.settings.upsert.useMutation({
-        onSuccess: () => {
-            void apiUtils.user.settings.get.invalidate();
-            if (isMountedRef.current) {
-                setSavedFlash(true);
-                if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
-                savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
-            }
-        },
-        onError: () => {
-            void apiUtils.user.settings.get.invalidate();
-            toast.error('Failed to save AI settings');
-        },
-    });
+
+    const updateSettings = (chatPatch: PendingAI) => {
+        setIsSaving(true);
+        // `updateMappedSettings` accepts the nested shape; pass chat-scoped
+        // patches under `chat`. The server flattens before writing.
+        updateMappedSettings({ settings: { chat: chatPatch } })
+            .then(() => {
+                if (isMountedRef.current) {
+                    setSavedFlash(true);
+                    if (savedFlashTimer.current) clearTimeout(savedFlashTimer.current);
+                    savedFlashTimer.current = setTimeout(() => setSavedFlash(false), 1800);
+                }
+            })
+            .catch(() => {
+                toast.error('Failed to save AI settings');
+            })
+            .finally(() => {
+                if (isMountedRef.current) setIsSaving(false);
+            });
+    };
 
     useEffect(
         () => () => {
@@ -79,10 +91,8 @@ export const AITab = observer(() => {
     useEffect(() => () => debouncedSave.flush(), [debouncedSave]);
 
     const patch = (changes: PendingAI) => {
-        apiUtils.user.settings.get.setData(undefined, (current) => {
-            if (!current) return current;
-            return { ...current, chat: { ...current.chat, ...changes } };
-        });
+        // Convex live queries auto-revalidate after mutation completes — no
+        // optimistic local cache write needed. UI sees the change within ~50ms.
         pending.current = { ...pending.current, ...changes };
         debouncedSave();
     };

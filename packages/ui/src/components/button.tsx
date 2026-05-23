@@ -23,40 +23,87 @@ function ButtonSpinner({ className }: { className?: string }) {
     );
 }
 
-const buttonVariants = cva(
-    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-sm inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap transition-colors duration-150 outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-    {
-        variants: {
-            variant: {
-                default: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs',
-                destructive:
-                    'bg-destructive hover:bg-destructive/90 dark:bg-destructive/60 text-white shadow-xs',
-                outline:
-                    'bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:text-foreground dark:border-input dark:hover:bg-input/50 border shadow-xs',
-                secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs',
-                ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-                link: 'text-primary underline-offset-4 hover:underline',
-                accent: 'bg-background-positive text-foreground-positive border-border-success hover:bg-background-positive/80 border shadow-xs',
-                chip: 'bg-background-secondary text-foreground-secondary hover:bg-background-tertiary rounded-sm shadow-xs',
-                warning:
-                    'bg-background-warning text-foreground-warning border-border-warning hover:bg-background-warning/80 border shadow-xs',
-                danger: 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/15 border shadow-xs',
-            },
-            size: {
-                default: 'h-9 px-3 py-2 has-[>svg]:px-3',
-                sm: 'h-8 gap-1.5 rounded-full px-3 has-[>svg]:px-2.5',
-                lg: 'h-10 rounded-full px-6 has-[>svg]:px-4',
-                icon: 'size-9',
-                toolbar: 'h-8 min-w-[28px] rounded-full px-1.5 py-1.5',
-                compact: 'text-mini h-7 gap-1 rounded-full px-2 has-[>svg]:px-2',
-            },
+/**
+ * Button design tokens — single source of truth for geometry/typography
+ * shared across every variant. Edit here once; all variants pick it up.
+ *
+ * Locked decisions (2026-05-23 button-resize pass):
+ *   - Radius: `rounded-md` (12px) on every size EXCEPT `pill` (fully round).
+ *     No more `rounded-full` overrides at call sites.
+ *   - Font weight: 400 (`font-normal`) across all variants. No bold/medium.
+ *   - Tracking: `-0.01em` for tight, modern label rhythm.
+ *   - Gap: 6px (`gap-1.5`) for label+icon spacing.
+ *   - Icon: scales with size (12→14→16→18px).
+ *
+ * Size scale (height / padding / font):
+ *   - compact      → 24px (`h-6`), 8px pad, text-mini (12px)        — chips, tags
+ *   - sm           → 28px (`h-7`), 10px pad, text-mini              — toolbars, dense rows
+ *   - default      → 36px (`h-9`), 14px pad, text-small (13px)      — primary app use
+ *   - lg           → 44px (`h-11`), 16px pad, text-regular (15px)   — hero/secondary CTA
+ *   - pill         → 44px (`h-11`), 20px pad, text-regular, FULLY ROUND — marketing CTAs
+ *   - toolbar      → 28px square, kept tight for editor chrome
+ *   - icon{,xs,sm,lg} → square icon buttons matching adjacent text-button sizes
+ *
+ * Color variants:
+ *   - default      → primary fill (near-black/white), inverted text (high emphasis)
+ *   - secondary    → secondary surface + visible border
+ *   - outline      → transparent + visible border (low emphasis)
+ *   - muted        → bg `#242424` + text `#DEDEDE` dark / mirrors light
+ *   - ghost        → text `#717171` resting → foreground on hover
+ *   - link         → brand-blue text, no fill, underline on hover
+ *   - destructive  → soft bg + bright destructive text, no border
+ *   - danger       → low-emphasis destructive tint
+ *   - accent       → brand-blue solid fill + white text
+ *   - warning      → orange solid fill + white text
+ *   - chip         → minimal pill, smaller radius
+ */
+const BUTTON_BASE =
+    'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive font-normal tracking-[-0.01em] inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md whitespace-nowrap transition-colors duration-150 outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0';
+
+const buttonVariants = cva(BUTTON_BASE, {
+    variants: {
+        variant: {
+            default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+            destructive:
+                'bg-[#FDEBEB] text-[#C23730] hover:bg-[#FBD9D9] dark:bg-[#321F20] dark:text-[#FF595D] dark:hover:bg-[#3a2326]',
+            outline:
+                'border-border-secondary text-foreground hover:bg-background-secondary border bg-transparent',
+            secondary:
+                'bg-secondary text-secondary-foreground hover:bg-background-tertiary border-border-secondary border',
+            muted: 'bg-[#F3F3F3] text-[#0E0E0E] hover:bg-[#E8E8E8] dark:bg-[#242424] dark:text-[#DEDEDE] dark:hover:bg-[#2a2a2a]',
+            ghost: 'hover:text-foreground hover:bg-background-hover dark:hover:text-foreground text-[#939393] dark:text-[#717171]',
+            link: 'text-foreground-brand px-0 underline-offset-4 hover:underline',
+            // Solid brand-blue accent: matches link color, applied as fill + white text.
+            accent: 'bg-foreground-brand hover:bg-foreground-brand/90 text-white',
+            chip: 'bg-background-secondary text-foreground-secondary hover:bg-background-tertiary rounded-sm',
+            // Solid orange warning matches the accent pattern (solid + white).
+            warning: 'bg-foreground-warning hover:bg-foreground-warning/90 text-white',
+            danger: 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/15 border',
         },
-        defaultVariants: {
-            variant: 'default',
-            size: 'default',
+        size: {
+            // Heights + padding + font scale together. Icon sizes scale with text.
+            default: "text-small h-9 px-3.5 has-[>svg]:px-3 [&_svg:not([class*='size-'])]:size-4",
+            sm: "text-mini h-7 px-2.5 has-[>svg]:px-2 [&_svg:not([class*='size-'])]:size-3.5",
+            xs: "text-mini h-6 px-2 has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+            lg: "text-regular h-11 px-4 has-[>svg]:px-3.5 [&_svg:not([class*='size-'])]:size-[18px]",
+            // Marketing / hero CTAs — fully round, generous padding, bigger label.
+            pill: "text-regular h-11 rounded-full px-5 has-[>svg]:px-4 [&_svg:not([class*='size-'])]:size-[18px]",
+            icon: "size-9 [&_svg:not([class*='size-'])]:size-4",
+            'icon-xs': "size-6 [&_svg:not([class*='size-'])]:size-3",
+            'icon-sm': "size-7 [&_svg:not([class*='size-'])]:size-3.5",
+            'icon-lg': "size-11 [&_svg:not([class*='size-'])]:size-[18px]",
+            // Editor toolbar buttons stay tight (28px) to preserve chrome density.
+            toolbar:
+                "text-mini h-7 min-w-[28px] px-1.5 py-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+            // Inline compact rows / chips — 24px tall.
+            compact: "text-mini h-6 px-2 has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
         },
     },
-);
+    defaultVariants: {
+        variant: 'default',
+        size: 'default',
+    },
+});
 
 type ButtonProps = React.ComponentProps<'button'> &
     VariantProps<typeof buttonVariants> & {
@@ -75,6 +122,7 @@ function Button({
     ...props
 }: ButtonProps) {
     const Comp = asChild ? Slot : 'button';
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- intentional: treat false || true as true
     const isDisabled = disabled || loading;
 
     return (

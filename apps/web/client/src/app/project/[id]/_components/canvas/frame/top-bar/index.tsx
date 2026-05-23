@@ -356,7 +356,11 @@ export const TopBar = observer(
                                 <DropdownMenuLabel>Add breakpoint</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {[
-                                    { id: 'phone-landscape', name: 'Phone Landscape', width: 844 },
+                                    {
+                                        id: 'phone-landscape',
+                                        name: 'Phone Landscape',
+                                        width: 844,
+                                    },
                                     {
                                         id: 'tablet-landscape',
                                         name: 'Tablet Landscape',

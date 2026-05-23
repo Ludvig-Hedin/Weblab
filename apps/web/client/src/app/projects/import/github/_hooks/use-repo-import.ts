@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api as convexApi } from '@convex/_generated/api';
 import { TRPCClientError } from '@trpc/client';
+import { useConvex, useQuery } from 'convex/react';
 
 import type { GitHubRepository } from '@weblab/github';
 
 import { api as clientApi } from '@/trpc/client';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 export type GitHubImportPhase =
@@ -22,7 +23,8 @@ export const useRepositoryImport = () => {
     const [phase, setPhase] = useState<GitHubImportPhase>('idle');
     const [error, setError] = useState<string | null>(null);
 
-    const { data: user } = api.user.get.useQuery();
+    const user = useQuery(convexApi.users.me, {});
+    const convex = useConvex();
 
     const importRepository = async (selectedRepo: GitHubRepository, signal?: AbortSignal) => {
         const checkAborted = () => {
@@ -31,7 +33,7 @@ export const useRepositoryImport = () => {
             }
         };
 
-        if (!user?.id) {
+        if (!user?._id) {
             setError('No user found');
             return;
         }
@@ -66,25 +68,14 @@ export const useRepositoryImport = () => {
             checkAborted();
 
             setPhase('creating-project');
-            const project = await clientApi.project.create.mutate(
-                {
-                    project: {
-                        name: selectedRepo.name ?? 'New project',
-                        description: selectedRepo.description ?? 'Imported from GitHub',
-                        // Default framework hint so the editor's preload-script
-                        // injector picks the Next.js path on first load instead
-                        // of falling through to the framework-detection race.
-                        // Adapter re-validates against the real sandbox files.
-                        runtimeMetadata: { framework: 'nextjs' },
-                    },
-                    sandboxId,
-                    sandboxUrl: previewUrl,
-                    sandboxRuntime,
-                },
-                {
-                    signal,
-                },
-            );
+            const project = await convex.mutation(convexApi.projects.create, {
+                name: selectedRepo.name ?? 'New project',
+                description: selectedRepo.description ?? 'Imported from GitHub',
+                sandboxId,
+                sandboxUrl: previewUrl,
+                sandboxRuntime,
+                framework: 'nextjs',
+            });
 
             if (!project) {
                 throw new Error('Failed to create project');
@@ -95,12 +86,12 @@ export const useRepositoryImport = () => {
             checkAborted();
             setPhase('opening-editor');
             didOpenEditor = true;
-            router.push(`${Routes.PROJECT}/${project.id}`);
-        } catch (error) {
+            router.push(`${Routes.PROJECT}/${project._id}`);
+        } catch (error: unknown) {
             if (forkedSandboxId) {
                 await clientApi.sandbox.deleteOrphan
                     .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupError) => {
+                    .catch((cleanupError: any) => {
                         console.warn('[useRepositoryImport] orphan sandbox cleanup failed', {
                             sandboxId: forkedSandboxId,
                             error:

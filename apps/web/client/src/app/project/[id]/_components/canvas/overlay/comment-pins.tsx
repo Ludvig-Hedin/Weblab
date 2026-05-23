@@ -19,7 +19,17 @@ function getInitials(name: string): string {
 export const CommentPins = observer(() => {
     const editorEngine = useEditorEngine();
     const { position, scale } = editorEngine.canvas;
-    const { comments, activeCommentId, pendingPlacement, commentsVisible } = editorEngine.comment;
+    // Defensive: `comments` is hydrated from a Convex query that returns
+    // `undefined` while the first subscription is in flight. Coerce to []
+    // so the `.map` below doesn't crash the canvas overlay on first render
+    // (synthetic projects with no real conversations hit this path forever).
+    const {
+        comments: commentsRaw,
+        activeCommentId,
+        pendingPlacement,
+        commentsVisible,
+    } = editorEngine.comment;
+    const comments = commentsRaw ?? [];
 
     if (editorEngine.state.editorMode === EditorMode.PREVIEW) {
         return null;

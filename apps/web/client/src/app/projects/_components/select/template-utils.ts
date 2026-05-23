@@ -75,7 +75,13 @@ export function getStaticTemplateMatches(
     for (const [templateId, templateName] of entries) {
         if (!templateName) continue;
         const match = resolveStaticTemplateProject(
-            { id: templateId, name: templateName, description: '', bg: '', accent: '' },
+            {
+                id: templateId,
+                name: templateName,
+                description: '',
+                bg: '',
+                accent: '',
+            },
             templateProjects,
         );
         if (match) {
