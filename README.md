@@ -1,17 +1,17 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 
 <div align="center">
-<!-- image. TDB / TODOD <img width="800" alt="header image" src="assets/web-preview.png"> -->
-<h3 align="center">Weblab</h3>
+
+<img width="800" alt="Weblab preview" src="assets/web-preview.webp">
+
+<h3>Weblab</h3>
+
   <p align="center">
     Cursor for Designers
     <br />
     <a href="https://docs.weblab.build"><strong>Explore the docs »</strong></a>
     <br />
-  </p>
     <br />
-    <!-- <a href="">View Demo</a> -->
-    ·
     <a href="https://github.com/Ludvig-Hedin/Weblab/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
     <a href="https://github.com/Ludvig-Hedin/Weblab/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
@@ -30,10 +30,6 @@
 [![Issues][issues-shield]][issues-url]
 [![Apache License][license-shield]][license-url] -->
 
-[![Discord][discord-shield]][discord-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
-[![Twitter][twitter-shield]][twitter-url]
-
 > 📚 **Looking for documentation?** See [`docs/README.md`](./docs/README.md) for the master table of contents covering agent docs, guides, audits, working notes, product/marketing, feature plans, and archive. The published documentation site source lives in [`apps/docs`](./apps/docs).
 
 [中文](https://www.readme-i18n.com/Ludvig-Hedin/Weblab?lang=zh) |
@@ -47,31 +43,31 @@
 
 </div>
 
-> **⚠️ Brand note for AI agents:** This product is **Weblab** (weblab.build, github.com/Ludvig-Hedin/Weblab). Brand constant: `APP_NAME` from `@weblab/constants`. Package scope `@weblab/*`. DOM attrs `data-weblab-*`. The local folder name `onlook/` is intentionally unchanged. Allowed remaining "Onlook" references: `LICENSE.md` (legal attribution), `CODE_REVIEW_BACKLOG.md` (history), `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts`, and a few test fixtures with deprecated inputs.
+# Weblab
 
-# An Open-Source, Visual-First Code Editor
+An open-source, visual-first code editor for building and editing real web
+projects with AI. Weblab lets you generate projects, inspect the live preview,
+edit visually, and keep those changes connected to code.
 
-Craft websites, prototypes, and designs with AI in Next.js + TailwindCSS. Make
-edits directly in the browser DOM with a visual editor. Design in realtime with
-code. An open-source alternative to Bolt.new, Lovable, V0, Replit Agent, Figma
-Make, Webflow, etc.
+Weblab currently focuses on React and web projects such as Next.js, Vite,
+Remix, Astro, TanStack Start, and static HTML, with first-class support for
+TailwindCSS.
 
 ### 🚧 🚧 🚧 Weblab is still under development 🚧 🚧 🚧
 
 We're actively looking for contributors to help make Weblab for Web an
 incredible prompt-to-build experience. Check the
 [open issues](https://github.com/Ludvig-Hedin/Weblab/issues) for a full list of
-proposed features (and known issues), and join our
-[Discord](https://discord.gg/hERDfFZCsH) to collaborate with hundreds of other
-builders.
+proposed features (and known issues) to collaborate with other builders.
 
-## What you can do with Weblab:
+## What you can do with Weblab
 
-- [x] Create Next.js app in seconds
+- [x] Create web apps in seconds
   - [x] Start from text or image
   - [x] Use prebuilt templates
-  - [ ] Import from Figma (Coming soon)
-  - [ ] Import from GitHub repo (Coming soon)
+  - [x] Detect project frameworks automatically
+  - [x] Import from Figma
+  - [x] Import from GitHub repo
   - [ ] Make a PR to a GitHub repo (Coming soon)
 - [x] Visually edit your app
   - [x] Use Figma-like UI
@@ -91,20 +87,18 @@ builders.
   - [x] Connect with app marketplace
 - [x] Deploy your app in seconds
   - [x] Generate sharable links
-  - [x] Link your custom domain    
-- [ ] Collaborate with your team
+  - [x] Link your custom domain
+- [x] Collaborate with your team
   - [x] Real-time editing
   - [x] Leave comments
 - [ ] Advanced AI capabilities
   - [x] Queue multiple messages at once
-  - [ ] Use Images as references and as assets in a project (Coming soon)
+  - [x] Use images as references and assets in a project
   - [ ] Setup and use MCPs in projects
   - [ ] Allow Weblab to use itself as a toolcall for branch creation and iteration
-- [ ] Advanced project support
-  - [ ] Support non-NextJS projects (Coming soon)
-  - [ ] Support non-Tailwind projects (Coming soon)
-
-![Weblab-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
+- [x] Advanced project support
+  - [x] Support non-Next.js projects
+  - [x] Support non-Tailwind projects
 
 ## Getting Started
 
@@ -113,14 +107,13 @@ Use our [hosted app](https://weblab.build) or
 
 ### Usage
 
-Weblab will run on any Next.js + TailwindCSS project, import your project into
-Weblab or start from scratch within the editor.
+Import an existing project into Weblab, or start from scratch inside the
+editor. Weblab is optimized for component-based web apps and can work with
+Next.js, Vite, Remix, Astro, TanStack Start, and static HTML projects.
 
 Use the AI chat to create or edit a project you're working on. At any time, you
 can always right-click an element to open up the exact location of the element
 in code.
-
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
 
 <br>
 
@@ -161,41 +154,48 @@ To see how to Contribute, visit
 6. When the element is edited, we edit the element in our iFrame, then in code
 7. Our AI chat also has code access and tools to understand and edit the code
 
-This architecture can theoretically scale to any language or framework that
-displays DOM elements declaratively (e.g. jsx/tsx/html). We are focused on
-making it work well with Next.js and TailwindCSS for now.
+This architecture can scale to any language or framework that displays DOM
+elements declaratively, such as JSX, TSX, and HTML. Weblab is currently focused
+on the modern web stack while keeping the framework layer extensible.
 
 For a full walkthrough, check out our
 [Architecture Docs](https://docs.weblab.build/developers/architecture).
 
 ### Our Tech Stack
 
-#### Front-end
+#### Frontend and editor
 
-- [Next.js](https://nextjs.org/) - Full stack
+- [Next.js](https://nextjs.org/) - App Router web application
+- [React](https://react.dev/) - UI runtime
 - [TailwindCSS](https://tailwindcss.com/) - Styling
-- [tRPC](https://trpc.io/) - Server interface
+- [MobX](https://mobx.js.org/) - Editor state management
+- [CodeMirror](https://codemirror.net/) - Code editing
+- [TipTap](https://tiptap.dev/) - AI prompt composer
 
-#### Database
+#### Backend, data, and auth
 
-- [Supabase](https://supabase.com/) - Auth, Database, Storage
-- [Drizzle](https://orm.drizzle.team/) - ORM
+- [Convex](https://www.convex.dev/) - Application backend, realtime data, and file storage
+- [Clerk](https://clerk.com/) - Authentication and user identity
+- [tRPC](https://trpc.io/) - Legacy API surface while remaining call sites migrate to Convex
+- [Supabase](https://supabase.com/) + [Drizzle](https://orm.drizzle.team/) - Legacy data layer retained for migration compatibility
 
 #### AI
 
-- [AI SDK](https://ai-sdk.dev/) - LLM client
+- [AI SDK](https://ai-sdk.dev/) - LLM client and streaming UI
 - [OpenRouter](https://openrouter.ai/) - LLM model provider
 - [Morph Fast Apply](https://morphllm.com) - Fast apply model provider
 - [Relace](https://relace.ai) - Fast apply model provider
 
-#### Sandbox and hosting
+#### Sandboxes, deployment, and infrastructure
 
-- [CodeSandboxSDK](https://codesandbox.io/docs/sdk) - Dev sandbox
-- [Freestyle](https://www.freestyle.sh/) - Hosting
+- [CodeSandbox SDK](https://codesandbox.io/docs/sdk) - Cloud dev sandboxes
+- [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) - Optional cloud sandbox runtime
+- [Freestyle](https://www.freestyle.sh/) - Managed app hosting
+- [Railway](https://railway.com/) - Weblab app and docs deployment
 
 #### Runtime
 
-- [Bun](https://bun.sh/) - Monorepo, runtime, bundler
+- [Bun](https://bun.sh/) - Monorepo package manager, scripts, and runtime
 - [Docker](https://www.docker.com/) - Container management
 
 ## Contributing
@@ -208,19 +208,9 @@ create a pull request. You can also
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
 
-#### Contributors
-
-<a href="https://github.com/Ludvig-Hedin/Weblab/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Ludvig-Hedin/Weblab" />
-</a>
-
 ## Contact
 
-![image](https://github.com/user-attachments/assets/60684b68-1925-4550-8efd-51a1509fc953)
-
-- Team: [Discord](https://discord.gg/hERDfFZCsH) -
-  [Twitter](https://twitter.com/weblab) -
-  [LinkedIn](https://www.linkedin.com/company/weblab/) -
+- Team:
   [Email](mailto:contact@weblab.build)
 - Project:
   [https://github.com/Ludvig-Hedin/Weblab](https://github.com/Ludvig-Hedin/Weblab)
