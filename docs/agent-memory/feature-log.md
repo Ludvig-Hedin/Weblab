@@ -16,6 +16,25 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-24 — CodeSandbox archived; Vercel Sandbox is the sole runtime
+Author: Claude Opus 4.7
+Area: `packages/code-provider`, `packages/constants`, `apps/web/client/convex`, `apps/web/client/src/components/store/editor/sandbox`, `apps/web/client/src/app/projects/import`
+Summary: Two-phase removal of the dual-mode sandbox abstraction. Phase 1 (`5e8dca441`) flipped `WEBLAB_CLOUD_PROVIDER` default to `vercel_sandbox`, made `CSB_API_KEY` optional, added `scaffoldStaticHtmlProject` + framework-aware dispatch to `VercelSandboxProvider.createProject`, and rewrote `convex.projectActions.createBlank` to always provision on Vercel for `framework ∈ {'nextjs', 'static-html'}`. Phase 2 (`de3dc9269`) routed every active CodeSandbox caller away from the SDK — editor session throws `CODESANDBOX_ARCHIVED_MESSAGE` for legacy CSB-backed projects, import flows hard-fail on non-Vercel provisioning, `branchActions.createBlank` ported to Vercel, and `projectActions.fork` / `branchActions.fork` / `publishHelpers.forkBuildSandbox` throw clear errors pointing at `TODO(sandbox-fork)` / `TODO(publish-vercel)`. CodeSandbox provider files and `@codesandbox/sdk` dep retained as `@deprecated` dead code so legacy DB rows still type-check; full deletion gated on row migration. CLAUDE.md gained a "Sandbox runtime — Vercel only" section; an ADR was appended documenting the decision and follow-ups.
+Files: `packages/code-provider/src/providers/vercel-sandbox/index.ts`, `packages/code-provider/src/types.ts`, `packages/code-provider/src/providers/codesandbox/index.ts`, `packages/code-provider/package.json`, `packages/constants/src/csb.ts`, `apps/web/client/src/env.ts`, `apps/web/client/.env.example`, `apps/web/client/convex/projectActions.ts`, `apps/web/client/convex/branchActions.ts`, `apps/web/client/convex/projects.ts`, `apps/web/client/convex/lib/publishHelpers.ts`, `apps/web/client/src/components/store/editor/sandbox/session.ts`, `apps/web/client/src/app/projects/import/local/_context/index.tsx`, `apps/web/client/src/app/projects/import/figma/_context/index.tsx`, `CLAUDE.md`, `docs/agent-memory/architecture-decisions.md`, `docs/notes/2026-05-13-vercel-sandbox-provider.md`
+Links: ADR `docs/agent-memory/architecture-decisions.md#2026-05-24-codesandbox-archived`
+
+## 2026-05-24 — Backend migration audit pass 3: validate remaining risks + deep edge sweep
+Author: Claude Sonnet 4.6
+Area: `apps/web/client/convex`, `apps/web/client/src/app/api`, `apps/web/client/src/utils/auth`
+Summary: Third audit pass. Validated all "remaining risks" from pass 2 (4 false alarms / out-of-scope, 4 deferred with TODOs) and ran a deep edge-case sweep that surfaced 13 new bugs (5 CRITICAL, 5 HIGH, 3 MEDIUM). Closed CRITICAL: `upsertCanvasView` IDOR (any signed-in caller could write userCanvases rows tied to foreign canvases), `revertIncrement` farmable free-credits (user could replay rateLimitId for unlimited refunds), `uploadServerSideBlob` unlimited binary uploads, `projectActions.createBlank` workspace-viewer IDOR (could burn paid CSB quota and inject sandbox iframes), `setStripeCustomerId` subscription hijack. Closed HIGH: `tab-complete` missing projectId ownership check, `utils.scrapeUrl` SSRF (no allowlist), `applyDiff`/`generateTitle`/`generateSuggestions` unbounded LLM input cost amplification, `captureScreenshot` viewer-tier Firecrawl spend, `projectInvitations._validateAndInsert` full users-table scan (would break at 16k users). Closed MEDIUM: `_createRedeployment` missing stale TTL (stuck redeploys forever), `deleteUserCascade` missing cursors cleanup, `inline-edit` empty-projectId bypass. Added schema fields (`usageRecords.linkedRateLimitId`, `cursors.by_user` index) + three new internal cap helpers (`_requireProjectCreateCap`, `_requireProjectUpdateCap`) so every action that does paid external calls now gates uniformly BEFORE the side effect. Full audit at `docs/agent-memory/backend-migration-audit.md`.
+Files: `apps/web/client/convex/users.ts`, `apps/web/client/convex/usage.ts`, `apps/web/client/convex/storageActions.ts`, `apps/web/client/convex/storage.ts`, `apps/web/client/convex/projects.ts`, `apps/web/client/convex/projectActions.ts`, `apps/web/client/convex/projectInvitations.ts`, `apps/web/client/convex/publishActionsDb.ts`, `apps/web/client/convex/utils.ts`, `apps/web/client/convex/chatActions.ts`, `apps/web/client/convex/internal/cascade.ts`, `apps/web/client/convex/schema.ts`, `apps/web/client/src/app/api/ai/tab-complete/route.ts`, `apps/web/client/src/app/api/ai/inline-edit/route.ts`, `apps/web/client/src/app/api/chat/helpers/usage.ts`, `docs/agent-memory/backend-migration-audit.md`
+
+## 2026-05-24 — Backend migration audit pass 2: IDOR + duplicate-user race + UX
+Author: Claude Sonnet 4.6
+Area: `apps/web/client/convex`, `apps/web/client/src/app/project/[id]`, `apps/web/client/src/app/_components/hero`, `apps/web/client/src/app/projects`, `apps/web/client/src/utils/auth`
+Summary: Second audit pass on the Clerk + Convex final cut. Closed two CRITICAL IDOR bugs (`branchActions.fork` / `createBlank` provisioned paid CSB sandboxes and wrote branches into ANY project for any signed-in caller — no `requireCap`). Closed a HIGH duplicate-user-race regression: prior pass fixed `requireUserJIT` via `.collect()+dedupe` but missed five other `.unique()` readers on `by_clerk_user_id` (`clerkWebhooks.upsertUser`/`deleteUser`, `userActionsInternal._getByClerkId`, `lib/stripeWebhook._resolveCallerUserId`, `users.getByClerkId`, `projectInvitations.resolveCaller`, `domainActionsDb`) — every one of those bricked profile sync, account delete, billing, project invitations, and domain ownership for affected users. Closed a HIGH cross-project integrity bug in `frames.update` (mirrored existing `frames.create` guard). Closed a HIGH UX bug where signed-in user on `/projects/new` was redirected to `/sign-in` (Convex `Doc<'users'>` has `_id`, not `id`; component read `user?.id`). Closed a HIGH FORBIDDEN→"session expired" miscategorization on `/project/<id>` that infinite-looped users without access through the sign-in flow. Added loud `console.error` on `clerk-bridge.ts` when Clerk's `convex` JWT template is misconfigured (prior silent null → redirect loop with no signal). Added shared `getUserByClerkIdSafe` helper in `convex/lib/permissions.ts` and a new `_requireProjectUpdateCap` internal query in `convex/branches.ts`. Full diff and remaining risks documented in `docs/agent-memory/backend-migration-audit.md`.
+Files: `apps/web/client/convex/branchActions.ts`, `apps/web/client/convex/branches.ts`, `apps/web/client/convex/clerkWebhooks.ts`, `apps/web/client/convex/userActionsInternal.ts`, `apps/web/client/convex/lib/stripeWebhook.ts`, `apps/web/client/convex/lib/permissions.ts`, `apps/web/client/convex/users.ts`, `apps/web/client/convex/projectInvitations.ts`, `apps/web/client/convex/domainActionsDb.ts`, `apps/web/client/convex/frames.ts`, `apps/web/client/src/utils/auth/clerk-bridge.ts`, `apps/web/client/src/app/project/[id]/page.tsx`, `apps/web/client/src/app/project/[id]/_components/project-load-error.tsx`, `apps/web/client/src/app/project/[id]/_components/offline-editor-bootstrap.tsx`, `apps/web/client/src/app/_components/hero/create.tsx`, `apps/web/client/src/app/_components/hero/index.tsx`, `apps/web/client/src/app/_components/hero-v2.tsx`, `apps/web/client/src/app/projects/new/page.tsx`, `apps/web/client/src/app/projects/_components/select/index.tsx`, `apps/web/client/src/app/projects/_components/templates/template-modal.tsx`, `docs/agent-memory/backend-migration-audit.md`
+
 ## 2026-05-24 — Backend migration audit: Clerk + Convex hardening
 Author: Claude Opus 4.7
 Area: `apps/web/client/convex`, `apps/web/client/src/utils/auth`, `apps/web/client/src/utils/supabase`, `apps/web/client/src/env.ts`, `.env.example`
@@ -438,6 +457,32 @@ Files: `apps/desktop/main.js`, `apps/desktop/preload.js`,
 `apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx`,
 `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`,
 `apps/desktop/RELEASES.md`.
+
+---
+
+## 2026-05-24 — Production security release-blocker remediation
+
+Author: Codex (agent)
+Area: dependencies, AI API routes, CSP, production build
+Summary: Upgraded the hosted web stack to Next.js 16.2.6 / React 19.2.6,
+removed an unused vulnerable AI dependency, added root dependency overrides for
+patched transitive audit findings, added byte/count payload caps to chat,
+inline-edit, and tab-complete, replaced internal AI route errors with stable
+public responses, removed `unsafe-eval` from production CSP, and fixed the
+Next.js 16.2 production build regression caused by browser-visible `@weblab/git`
+type imports.
+Validation: `bun audit --audit-level=moderate`, `bun typecheck`, and
+`bun --filter @weblab/web-client build` pass. `bun --filter @weblab/web-client
+lint` exits successfully with existing warnings. Repository-wide `bun lint`
+still fails on unrelated package lint debt/project-service config.
+Files: `package.json`, `bun.lock`, `apps/web/client/package.json`,
+`apps/docs/package.json`, `packages/email/package.json`,
+`packages/ai/package.json`, `apps/web/client/next.config.ts`,
+`apps/web/client/src/app/api/chat/**`,
+`apps/web/client/src/app/api/ai/**`,
+`apps/web/client/src/components/store/editor/git/git.ts`,
+`apps/web/client/src/components/ui/settings-modal/versions/version-row.tsx`,
+`docs/security/production-readiness-security-review-2026-05-24.md`.
 
 ---
 

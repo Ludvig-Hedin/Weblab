@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Sandbox runtime — Vercel only
+
+> **User projects run on Vercel Sandbox.** CodeSandbox was archived **2026-05-24** (commit `de3dc9269`). Do not describe this app as CodeSandbox-backed, do not re-introduce a multi-provider abstraction, and do not suggest `@codesandbox/sdk` for new code.
+>
+> - Required env (server): `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN`.
+> - Optional: `VERCEL_SANDBOX_TIMEOUT_MS`, `VERCEL_BLANK_SNAPSHOT_ID`, `WEBLAB_VERCEL_VCPUS`, `WEBLAB_VERCEL_WARM_POOL_SIZE`.
+> - Per-framework scaffolders live in [packages/code-provider/src/providers/vercel-sandbox/index.ts](packages/code-provider/src/providers/vercel-sandbox/index.ts) — `scaffoldNextProject` (Next.js 15 + Tailwind v4 + Turbopack) and `scaffoldStaticHtmlProject` (single index.html + `serve`). Vite/Remix/Astro/TanStack Start are gated upstream by `@weblab/framework` until their scaffolders land.
+> - `WEBLAB_CLOUD_PROVIDER` is legacy and no longer read by new code. `CSB_API_KEY` is retained as optional only because the union literal `'code_sandbox'` still exists in old DB rows.
+> - **What's temporarily disabled** on Vercel until snapshot-based fork lands: `project.fork`, `branch.fork`, and `publish` (clear errors surfaced). Tracked as `TODO(sandbox-fork)` and `TODO(publish-vercel)` — see [docs/notes/2026-05-13-vercel-sandbox-provider.md](docs/notes/2026-05-13-vercel-sandbox-provider.md).
+> - The CodeSandbox provider files at [packages/code-provider/src/providers/codesandbox/](packages/code-provider/src/providers/codesandbox/) and [packages/constants/src/csb.ts](packages/constants/src/csb.ts) are retained as `@deprecated` dead code. No production caller invokes them; slated for full deletion once legacy CSB-backed DB rows are migrated.
+
 ## ⚠️ Brand — Read First
 
 > **This product is Weblab** (domain: weblab.build, GitHub: github.com/Ludvig-Hedin/Weblab).

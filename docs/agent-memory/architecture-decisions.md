@@ -18,6 +18,56 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-24 — CodeSandbox archived; Vercel Sandbox is the sole runtime
+
+Decision: All new sandbox provisioning routes through Vercel Sandbox. The
+CodeSandbox provider (`@codesandbox/sdk`, `packages/code-provider/src/providers/codesandbox/`,
+`packages/constants/src/csb.ts`) is retained as `@deprecated` dead code so
+legacy DB rows with `cloud_provider: 'code_sandbox'` keep type-checking, but
+no production caller invokes it.
+
+Context: The codebase had a dual-mode sandbox abstraction since the Vercel
+provider landed (2026-05-13). Committed defaults still routed new projects
+to CodeSandbox, with Vercel only kicking in for `nextjs` when
+`WEBLAB_CLOUD_PROVIDER=vercel_sandbox` was set locally. The split meant
+agents reading the repo cold consistently described the runtime as
+CodeSandbox-backed even after the owner had moved local dev to Vercel,
+and ~30 files branched on the provider type. Owner explicitly asked to
+fully remove CodeSandbox and document the archive.
+
+Alternatives considered:
+- Full deletion of the CodeSandbox files and dependency. Rejected — would
+  break legacy project rows that still carry `'code_sandbox'` in their
+  runtime metadata, with no live migration path yet.
+- Keep dual-mode behind a feature flag. Rejected — already tried; the
+  ambiguity is what caused the agent-confusion problem in the first place.
+- Wait until every legacy CSB-backed project has been migrated. Rejected —
+  unbounded calendar time; the dead code keeps growing.
+
+Rationale: Archive-with-deprecation lands the user-visible change today
+(default flips, scaffolders work end-to-end on Vercel for Next.js +
+static-HTML, the editor surfaces a clear "re-import on Vercel" message
+for legacy rows) while leaving a single small follow-up — full deletion
+after legacy row migration — that can be done mechanically.
+
+Follow-ups (not yet done):
+- `TODO(sandbox-fork)` — implement Vercel snapshot-based fork for
+  `project.fork` and `branch.fork` (currently throw a clear error)
+- `TODO(publish-vercel)` — implement Vercel snapshot-based build fork in
+  `forkBuildSandbox` so publish works again
+- Full deletion of `packages/code-provider/src/providers/codesandbox/`,
+  `packages/constants/src/csb.ts`, `@codesandbox/sdk` dep, and the
+  `'code_sandbox'` union literal — gated on legacy row migration
+
+Reject: Do not re-introduce a multi-provider runtime abstraction unless a
+concrete second provider lands. Do not suggest `@codesandbox/sdk` for new
+code.
+
+Status: Active. See `docs/notes/2026-05-13-vercel-sandbox-provider.md` and
+the Phase 1 / Phase 2 commits (`5e8dca441`, `de3dc9269`).
+
+---
+
 ## 2026-05-23 — Codex-aligned dark palette + un-aliased status colors
 
 Decision: Adopt a Codex-exact dark palette as the canonical Weblab dark theme,

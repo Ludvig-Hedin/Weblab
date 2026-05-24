@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     {
+        slug: 'v2-1-vercel-only-sandbox',
+        version: '2.1',
+        title: 'Faster sandbox runtime',
+        description:
+            'New projects now boot on Vercel Sandbox end-to-end. Next.js scaffolds with Turbopack from a pre-baked snapshot when one is configured, and static-HTML projects ship with a built-in serve dev server. The legacy CodeSandbox runtime is archived. Forks and publish are temporarily disabled while we wire the Vercel-native equivalents; existing CodeSandbox-backed projects need to be re-imported to migrate.',
+        date: '2026-05-24',
+        tags: ['Infra', 'Performance', 'Sandbox'],
+    },
+    {
         slug: 'v2-0-publish-dropdown-polish',
         version: '2.0',
         title: 'Refined Publish Menu',

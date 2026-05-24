@@ -1,7 +1,19 @@
 # CodeSandbox Removal — Execution Plan
 
-**Status:** Investigation complete 2026-05-23. Execution deferred until parallel
-agent finishes the in-flight Supabase→Convex / Vercel browser provider work.
+> **Status (2026-05-24): COMPLETED via Phase 1 + Phase 2 commits.** The
+> dual-mode runtime is gone; Vercel Sandbox is the sole runtime. CodeSandbox
+> provider files and `@codesandbox/sdk` were retained as `@deprecated` dead
+> code per owner decision (full deletion gated on legacy row migration).
+> See [docs/notes/2026-05-13-vercel-sandbox-provider.md](../notes/2026-05-13-vercel-sandbox-provider.md)
+> for the post-archive runtime reference, and the architecture decision
+> log entry dated 2026-05-24 for the rationale. The phase-by-phase plan
+> below is retained as historical context; do not execute it again.
+
+---
+
+**Original status (now superseded):** Investigation complete 2026-05-23.
+Execution deferred until parallel agent finishes the in-flight
+Supabase→Convex / Vercel browser provider work.
 
 **Base commit:** `d893c9242` (HEAD when this was written). After parallel agent
 commits, re-verify file:line refs below — they may shift.

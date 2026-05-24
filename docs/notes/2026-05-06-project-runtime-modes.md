@@ -1,10 +1,20 @@
 # Project Runtime Modes
 
+> **Updated 2026-05-24:** the `cloud` mode is Vercel Sandbox-backed
+> (CodeSandbox archived). See
+> [2026-05-13-vercel-sandbox-provider.md](2026-05-13-vercel-sandbox-provider.md)
+> for the active runtime reference.
+
 Weblab supports first-class runtime metadata for three project modes:
 
-- `cloud`: current CodeSandbox-backed behavior. Code is uploaded to a sandbox and the canvas previews the sandbox URL.
-- `local`: desktop-first local editing. The project record points at a local root path, dev command, and localhost port. Code must stay on device and be read/written by the desktop local provider.
-- `hybrid`: planned v2. A project can have both a CodeSandbox runtime and a local root with sync enabled or paused per project.
+- `cloud`: Vercel Sandbox-backed. Code is provisioned via
+  `VercelSandboxProvider.createProject({ framework })` and the canvas
+  previews the Vercel sandbox URL (`sandbox.domain(port)`).
+- `local`: desktop-first local editing. The project record points at a
+  local root path, dev command, and localhost port. Code must stay on
+  device and be read/written by the desktop local provider.
+- `hybrid`: planned v2. A project can have both a Vercel sandbox runtime
+  and a local root with sync enabled or paused per project.
 
 ## Current implementation
 

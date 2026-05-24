@@ -1,5 +1,13 @@
 # CodeSandbox Preview Tokenized URLs
 
+> **HISTORICAL — superseded 2026-05-24.** CodeSandbox was archived as a
+> runtime; this note describes a feature of the legacy CodeSandbox-backed
+> preview pipeline. Vercel Sandbox returns its own preview URLs via
+> `sandbox.domain(port)` and has no equivalent "trust screen" / token
+> handshake. See
+> [2026-05-13-vercel-sandbox-provider.md](2026-05-13-vercel-sandbox-provider.md)
+> for the active runtime reference.
+
 Date: 2026-05-03
 
 ## Summary
