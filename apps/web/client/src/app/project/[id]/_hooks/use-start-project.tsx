@@ -293,14 +293,14 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         // on every poll would clobber the user's local pan/zoom that hasn't yet
         // been saved (canvas store debounces saves by 5s).
         if (!initialCanvasAppliedRef.current) {
-            editorEngine.canvas.applyCanvas(canvasWithFrames.userCanvas as Canvas);
+            editorEngine.canvas.applyCanvas(canvasWithFrames.userCanvas);
             initialCanvasAppliedRef.current = true;
         }
 
         // Re-apply frames on every refetch. `applyFrames` is now idempotent —
         // preserves attached views and selection; prunes server-deleted frames
         // that don't have a live view binding.
-        editorEngine.frames.applyFrames(canvasWithFrames.frames as Frame[]);
+        editorEngine.frames.applyFrames(canvasWithFrames.frames);
         updateProjectReadyState({ canvas: true });
 
         // First-load only: migrate legacy single-frame projects into full
@@ -311,9 +311,9 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             void (async () => {
                 try {
                     const expanded = await ensureBreakpointSiblings(
-                        canvasWithFrames.frames as Frame[],
+                        canvasWithFrames.frames,
                     );
-                    if (expanded.length !== (canvasWithFrames.frames as Frame[]).length) {
+                    if (expanded.length !== canvasWithFrames.frames.length) {
                         editorEngine.frames.applyFrames(expanded);
                     }
                 } catch (error) {
@@ -327,9 +327,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     useEffect(() => {
         const applyConversations = async () => {
             if (conversations) {
-                await editorEngine.chat.conversation.applyConversations(
-                    conversations as ChatConversation[],
-                );
+                await editorEngine.chat.conversation.applyConversations(conversations);
                 updateProjectReadyState({ conversations: true });
             }
         };
