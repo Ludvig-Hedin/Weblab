@@ -9,6 +9,9 @@
         ".": {
             "browser": "./src/index.browser.ts",
             "default": "./src/index.ts"
+        },
+        "./providers/vercel-sandbox": {
+            "default": "./src/providers/vercel-sandbox/index.ts"
         }
     },
     "version": "0.0.0",

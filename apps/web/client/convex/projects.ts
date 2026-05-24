@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
-import { internalMutation, mutation, query } from './_generated/server';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { audit } from './lib/audit';
 import { vProjectAccessMode } from './lib/enums';
 import { getOptionalUser, requireCap, requireUser } from './lib/permissions';
@@ -421,6 +421,16 @@ export const listAccess = query({
  * Creates a project from an externally-provisioned sandbox. The action layer
  * (projectActions.ts) is responsible for calling the sandbox provider; this
  * mutation only writes the DB graph.
+ *
+ * TODO(sandbox-trust): `sandboxId` and `sandboxUrl` are accepted from the
+ * client. A caller can supply another tenant's sandboxId, causing their new
+ * project's branch + frames to iframe-embed (and, via the shared CSB_API_KEY,
+ * issue file ops against) that tenant's sandbox. The legitimate flow is
+ * /projects/import/* which provisions a new sandbox first, but a hand-crafted
+ * client can pass an arbitrary id. Move the mutation behind an internalMutation
+ * + an action that derives sandboxId from a freshly provisioned sandbox
+ * (matching the branchActions.fork / createBlank pattern). Until then any
+ * import path should validate sandbox ownership server-side.
  */
 export const create = mutation({
     args: {
@@ -480,7 +490,11 @@ export const create = mutation({
             runtimeType: 'cloud',
             runtimeMetadata: {
                 cloud: {
-                    provider: args.sandboxRuntime?.provider ?? 'code_sandbox',
+                    // Vercel is the only runtime since 2026-05-24. Default
+                    // matches the new code path; rows that arrived earlier
+                    // still carry 'code_sandbox' and are read by legacy
+                    // editor branches until Phase 2 collapse.
+                    provider: args.sandboxRuntime?.provider ?? 'vercel_sandbox',
                     sandboxId: args.sandboxId,
                     previewUrl: args.sandboxUrl,
                     snapshotId: args.sandboxRuntime?.snapshotId,
@@ -670,6 +684,37 @@ export const _insertProjectGraph = internalMutation({
 });
 
 /**
+ * Action-side authorization helper: throws FORBIDDEN if the caller cannot
+ * create projects in the supplied workspace. Used by
+ * `projectActions.createBlank` BEFORE the costly CodeSandbox / Vercel
+ * Sandbox provisioning step so a workspace viewer (or non-member) can't
+ * burn paid sandbox quota and pollute another tenant's workspace.
+ */
+export const _requireProjectCreateCap = internalQuery({
+    args: { workspaceId: v.id('workspaces') },
+    handler: async (ctx, { workspaceId }) => {
+        await requireCap(ctx, 'project.create', { workspaceId });
+        return null;
+    },
+});
+
+/**
+ * Action-side authorization helper: throws FORBIDDEN if the caller cannot
+ * update the supplied project. Used by actions like `captureScreenshot`
+ * that perform costly third-party calls (Firecrawl + sharp + Convex
+ * storage) before persisting — gating on project.update upfront prevents
+ * workspace viewers from burning Firecrawl/storage quota on projects they
+ * cannot write to.
+ */
+export const _requireProjectUpdateCap = internalQuery({
+    args: { projectId: v.id('projects') },
+    handler: async (ctx, { projectId }) => {
+        await requireCap(ctx, 'project.update', { projectId });
+        return null;
+    },
+});
+
+/**
  * Internal helper for actions to look up the personal workspace for a user.
  */
 export const _resolvePersonalWorkspaceForAction = internalMutation({
@@ -770,7 +815,7 @@ export const remove = mutation({
     args: { projectId: v.id('projects') },
     handler: async (ctx, { projectId }) => {
         await requireCap(ctx, 'project.delete', { projectId });
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteProjectCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteProjectCascade, {
             projectId,
         });
         return { ok: true } as const;

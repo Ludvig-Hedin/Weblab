@@ -170,6 +170,13 @@ export interface CreateProjectInput {
     port?: number;
     devCommand?: string;
     snapshotId?: string;
+    /**
+     * Which framework scaffold to apply when the provider provisions a
+     * fresh VM. Currently honored by the Vercel Sandbox provider; legacy
+     * providers ignore it and use their template-id-based dispatch.
+     * Vercel-supported values today: `'nextjs'`, `'static-html'`.
+     */
+    framework?: string;
 }
 export interface CreateProjectOutput {
     id: string;

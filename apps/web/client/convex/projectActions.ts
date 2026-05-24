@@ -6,9 +6,13 @@ import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
 
 // Node-only actions for the projects domain. These wrap external SDK calls
-// (Firecrawl HTTP API, CodeSandbox / Vercel Sandbox SDKs, sharp image
-// compression, OpenRouter LLM) and persist results through internal
-// mutations.
+// (Firecrawl HTTP API, Vercel Sandbox SDK, sharp image compression,
+// OpenRouter LLM) and persist results through internal mutations.
+//
+// Sandbox runtime: Vercel only. CodeSandbox was removed 2026-05-24
+// (see docs/notes/2026-05-13-vercel-sandbox-provider.md). Existing
+// `cloud_provider: 'code_sandbox'` rows in `projects.runtimeMetadata`
+// are still readable but never written by new code.
 
 // ─── captureScreenshot ────────────────────────────────────────────────────────
 
@@ -37,6 +41,15 @@ export const captureScreenshot = action({
                     skipped: 'no-api-key' as const,
                 };
             }
+
+            // Authorization: require `project.update` upfront. The final
+            // `api.projects.update` call already enforces this, but without
+            // an upfront gate a workspace VIEWER (project.view only) would
+            // run all of Firecrawl + sharp + Convex storage before failing
+            // at the write — burning paid quota on a write they can't keep.
+            await ctx.runQuery(internal.projects._requireProjectUpdateCap, {
+                projectId: args.projectId,
+            });
 
             // Server-side dedupe — load project to inspect updatedPreviewImgAt.
             const project: any = await ctx.runQuery(api.projects.get, {
@@ -148,9 +161,19 @@ export const captureScreenshot = action({
 // ─── createBlank ──────────────────────────────────────────────────────────────
 
 /**
- * Creates a blank sandbox via the chosen code provider, then writes the
- * project graph via internal mutation. On insert failure, the sandbox is
- * destroyed to avoid leaking paid CodeSandbox / Vercel resources.
+ * Creates a blank Vercel sandbox via the per-framework scaffolder, then
+ * writes the project graph via internal mutation. On insert failure, the
+ * sandbox is stopped to avoid leaking paid Vercel resources.
+ *
+ * Supported frameworks (Vercel scaffolders implemented in
+ * `@weblab/code-provider/providers/vercel-sandbox`):
+ *   - `nextjs`      → Next 15 + Tailwind v4 + Turbopack
+ *   - `static-html` → single index.html + `serve`
+ *
+ * Vite/Remix/Astro/TanStack Start are gated upstream in
+ * `@weblab/framework`'s registry until their scaffolders land in the
+ * Vercel provider — passing them here throws a friendly error rather
+ * than provisioning an empty VM.
  */
 export const createBlank = action({
     args: {
@@ -170,66 +193,63 @@ export const createBlank = action({
         const me: any = await ctx.runQuery(api.users.me, {});
         if (!me) throw new Error('UNAUTHORIZED');
 
+        // Authorization: when caller supplies an explicit workspaceId,
+        // require `project.create` on it BEFORE the Vercel call. Without
+        // this gate a workspace VIEWER (member but no create cap) could burn
+        // paid sandbox quota against any workspace they can see and inject
+        // attacker-controlled sandbox iframes into a shared workspace.
+        // Personal-workspace fallback is unconditionally allowed (own data).
+        if (args.workspaceId) {
+            await ctx.runQuery(internal.projects._requireProjectCreateCap, {
+                workspaceId: args.workspaceId,
+            });
+        }
+
         const framework = args.framework ?? 'nextjs';
-        const cloudProvider =
-            framework === 'nextjs' && process.env.WEBLAB_CLOUD_PROVIDER === 'vercel_sandbox'
-                ? 'vercel_sandbox'
-                : 'code_sandbox';
 
-        // Template + port for the framework. CodeSandbox IDs MUST match the
-        // canonical constants in packages/constants/src/csb.ts (this Convex
-        // action can't import that package due to Node-only transitive deps,
-        // so the literals are mirrored here — keep them in sync):
-        //   nextjs      -> SandboxTemplates.BLANK.id        ('pf2nqh')
-        //   static-html -> STATIC_HTML_SANDBOX_ID           ('html-qz83hv')
-        // A wrong/empty template surfaces "Script not found 'dev'" and a
-        // permanent 502 preview iframe. Non-nextjs frameworks always route to
-        // code_sandbox (see cloudProvider above), so static-html's id matters.
-        const FRAMEWORK_TEMPLATES: Record<string, { codesandboxId: string; port: number }> = {
-            nextjs: { codesandboxId: 'pf2nqh', port: 3000 },
-            'vite-react': { codesandboxId: 'vite-react-ts', port: 5173 },
-            remix: { codesandboxId: 'remix', port: 3000 },
-            astro: { codesandboxId: 'astro', port: 4321 },
-            'tanstack-start': { codesandboxId: 'tanstack-start', port: 3000 },
-            'static-html': { codesandboxId: 'html-qz83hv', port: 8080 },
-        };
-        const template = FRAMEWORK_TEMPLATES[framework] ?? FRAMEWORK_TEMPLATES.nextjs!;
+        // Only nextjs + static-html have Vercel scaffolders today. Other
+        // frameworks are gated by `@weblab/framework`'s `isFrameworkReady`
+        // upstream — this is a defense-in-depth fence so a caller that
+        // bypasses the framework picker doesn't end up with an empty VM
+        // and a permanent 502 preview iframe.
+        if (framework !== 'nextjs' && framework !== 'static-html') {
+            throw new Error(
+                `Framework "${framework}" is not yet supported on Vercel Sandbox. ` +
+                    `Pick Next.js or static HTML, or wait for the scaffolder to land in ` +
+                    `@weblab/code-provider/providers/vercel-sandbox.`,
+            );
+        }
 
-        let forkedSandboxId: string | null = null;
+        if (!process.env.VERCEL_TOKEN) {
+            throw new Error(
+                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
+                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
+                    '(see apps/web/client/.env.example).',
+            );
+        }
+
+        let provisionedSandboxId: string | null = null;
         try {
-            // Provision sandbox via CodeSandbox / Vercel Sandbox SDK.
-            let sandboxId: string;
-            let previewUrl: string;
-            let port = template.port;
-            if (cloudProvider === 'code_sandbox') {
-                const csbKey = process.env.CSB_API_KEY;
-                if (!csbKey) throw new Error('CSB_API_KEY not configured');
-                const { CodeSandbox } = await import('@codesandbox/sdk');
-                const csb = new CodeSandbox(csbKey);
-                const sandbox = await csb.sandboxes.create({
-                    source: 'template',
-                    id: template.codesandboxId,
-                    title: `Blank project - ${me._id}`,
-                    tags: ['blank', String(me._id)],
-                    privacy: 'private',
-                });
-                sandboxId = sandbox.id;
-                forkedSandboxId = sandboxId;
-                previewUrl = `https://${sandboxId}-${port}.csb.app`;
-            } else {
-                const vercelToken = process.env.VERCEL_TOKEN;
-                if (!vercelToken) throw new Error('VERCEL_TOKEN not configured');
-                const { Sandbox } = await import('@vercel/sandbox');
-                const sandbox = await Sandbox.create({
-                    token: vercelToken,
-                    runtime: 'node22',
-                    timeout: 1000 * 60 * 10,
-                    ports: [port],
-                });
-                sandboxId = sandbox.sandboxId;
-                forkedSandboxId = sandboxId;
-                previewUrl = sandbox.domain(port);
-            }
+            // Provision sandbox via the Vercel provider's per-framework
+            // scaffolder. Returns a fully scaffolded, post-`npm install`,
+            // snapshotted-and-resumed sandbox ready for the editor.
+            const { VercelSandboxProvider } = await import(
+                '@weblab/code-provider/providers/vercel-sandbox'
+            );
+            const result = await VercelSandboxProvider.createProject({
+                source: 'template',
+                id: framework,
+                framework,
+                title: `Blank project - ${me._id}`,
+                tags: ['blank', String(me._id)],
+                privacy: 'private',
+            });
+
+            const sandboxId = result.id;
+            provisionedSandboxId = sandboxId;
+            const previewUrl = result.previewUrl ?? '';
+            const port =
+                result.port ?? (framework === 'static-html' ? 8080 : 3000);
 
             // Generate a unique-ish blank project name.
             const now = new Date();
@@ -259,27 +279,33 @@ export const createBlank = action({
                 framework,
                 sandboxId,
                 sandboxUrl: previewUrl,
-                cloudProvider,
+                cloudProvider: 'vercel_sandbox',
                 port,
             });
 
-            forkedSandboxId = null;
+            provisionedSandboxId = null;
             return { projectId };
         } catch (error) {
-            if (forkedSandboxId) {
+            if (provisionedSandboxId) {
+                // Vercel sandboxes auto-expire on the configured timeout,
+                // so explicit cleanup is best-effort: prevents paid VM-hours
+                // burning while the sandbox waits to time out.
                 try {
-                    // Best-effort cleanup of orphaned sandbox.
-                    if (cloudProvider === 'code_sandbox') {
-                        const csbKey = process.env.CSB_API_KEY;
-                        if (csbKey) {
-                            const { CodeSandbox } = await import('@codesandbox/sdk');
-                            const csb = new CodeSandbox(csbKey);
-                            await csb.sandboxes.shutdown(forkedSandboxId).catch(() => undefined);
-                        }
+                    const { Sandbox } = await import('@vercel/sandbox');
+                    const credentials = {
+                        teamId: process.env.VERCEL_TEAM_ID ?? '',
+                        projectId: process.env.VERCEL_PROJECT_ID ?? '',
+                        token: process.env.VERCEL_TOKEN ?? '',
+                    };
+                    if (credentials.teamId && credentials.projectId && credentials.token) {
+                        const sandbox = await Sandbox.get({
+                            sandboxId: provisionedSandboxId,
+                            ...credentials,
+                        });
+                        await sandbox.stop({ blocking: false }).catch(() => undefined);
                     }
-                    // Vercel sandboxes auto-expire; no explicit destroy needed.
                 } catch (cleanupErr) {
-                    console.warn('[createBlank] sandbox cleanup failed', cleanupErr);
+                    console.warn('[createBlank] Vercel sandbox cleanup failed', cleanupErr);
                 }
             }
             throw error;

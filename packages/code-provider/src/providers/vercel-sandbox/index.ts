@@ -75,6 +75,32 @@ const SDK_CALL_TIMEOUT_MS = 45_000;
 // forever" time. The `--` separates npm args from script args so
 // both `--turbopack` and `--hostname` reach `next dev`.
 const DEFAULT_DEV_COMMAND = 'npm run dev -- --turbopack --hostname 0.0.0.0';
+// Static HTML dev server. `serve -s` rewrites all routes to index.html
+// so client-side routing works; `-l <port>` binds. Listen on the host
+// interface so Vercel Sandbox's port forwarder can reach it.
+const STATIC_HTML_DEV_COMMAND = 'npm run dev';
+const STATIC_HTML_PORT = 8080;
+
+/**
+ * Framework scaffolders supported on Vercel Sandbox today.
+ *
+ * `nextjs` and `static-html` are wired end-to-end (scaffold +
+ * dev command + port). Other frameworks (Vite/Remix/Astro/TanStack)
+ * are gated upstream by `@weblab/framework` registry — adding them
+ * here means writing a matching scaffolder and adding the case to
+ * `scaffoldByFramework` below.
+ */
+export type VercelScaffoldFramework = 'nextjs' | 'static-html';
+
+interface FrameworkRuntime {
+    port: number;
+    devCommand: string;
+}
+
+const FRAMEWORK_RUNTIME: Record<VercelScaffoldFramework, FrameworkRuntime> = {
+    nextjs: { port: DEFAULT_PORT, devCommand: DEFAULT_DEV_COMMAND },
+    'static-html': { port: STATIC_HTML_PORT, devCommand: STATIC_HTML_DEV_COMMAND },
+};
 
 // vCPU count for sandboxes. Reads WEBLAB_VERCEL_VCPUS at module
 // load so the value is stable per server process — Vercel SDK
@@ -154,17 +180,22 @@ function splitShellCommand(command: string) {
     };
 }
 
-async function isNextDevServerRunning(sandbox: Sandbox): Promise<boolean> {
+// Process pattern that matches any dev server we spawn — Next.js (`next dev`
+// or the post-compile `next-server` worker) OR the static-html `serve` CLI.
+// Using a single regex keeps `isDevServerRunning` / `stopDevServers` framework
+// agnostic, so resuming a snapshot doesn't accidentally spawn a duplicate
+// process and fight over the host port.
+const DEV_SERVER_PATTERN = '[n]ext-server|[n]ext dev --hostname 0.0.0.0|node .*[/]serve[/]';
+
+async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
     const result = await sandbox.runCommand(
-        splitShellCommand('pgrep -f "[n]ext-server|[n]ext dev --hostname 0.0.0.0" >/dev/null'),
+        splitShellCommand(`pgrep -f "${DEV_SERVER_PATTERN}" >/dev/null`),
     );
     return result.exitCode === 0;
 }
 
-async function stopNextDevServers(sandbox: Sandbox): Promise<void> {
-    await sandbox.runCommand(
-        splitShellCommand('pkill -f "[n]ext-server|[n]ext dev --hostname 0.0.0.0" || true'),
-    );
+async function stopDevServers(sandbox: Sandbox): Promise<void> {
+    await sandbox.runCommand(splitShellCommand(`pkill -f "${DEV_SERVER_PATTERN}" || true`));
 }
 
 function createOutput(
@@ -294,6 +325,86 @@ async function scaffoldNextProject(sandbox: Sandbox) {
     ]);
 }
 
+async function scaffoldStaticHtmlProject(sandbox: Sandbox) {
+    await sandbox.writeFiles([
+        {
+            path: 'package.json',
+            content: JSON.stringify(
+                {
+                    name: 'weblab-static-html',
+                    private: true,
+                    scripts: {
+                        // `-s` makes serve treat the directory as a SPA and
+                        // rewrite unknown routes to index.html. `--no-clipboard`
+                        // skips serve's clipboard write that can fail in
+                        // headless sandboxes. `-l tcp://0.0.0.0:<port>` binds
+                        // to the host interface so the Vercel port forwarder
+                        // can reach it.
+                        dev: `serve -s --no-clipboard -l tcp://0.0.0.0:${STATIC_HTML_PORT}`,
+                        start: `serve -s --no-clipboard -l tcp://0.0.0.0:${STATIC_HTML_PORT}`,
+                    },
+                    dependencies: {
+                        serve: '^14.2.4',
+                    },
+                },
+                null,
+                2,
+            ),
+        },
+        {
+            path: 'index.html',
+            content:
+                '<!doctype html>\n' +
+                '<html lang="en">\n' +
+                '  <head>\n' +
+                '    <meta charset="utf-8" />\n' +
+                '    <meta name="viewport" content="width=device-width, initial-scale=1" />\n' +
+                '    <title>New Weblab project</title>\n' +
+                '    <link rel="stylesheet" href="./styles.css" />\n' +
+                '  </head>\n' +
+                '  <body>\n' +
+                '    <main>\n' +
+                '      <h1>New Weblab project</h1>\n' +
+                '      <p>Edit <code>index.html</code> to get started.</p>\n' +
+                '    </main>\n' +
+                '  </body>\n' +
+                '</html>\n',
+        },
+        {
+            path: 'styles.css',
+            content:
+                ':root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }\n' +
+                'body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2.5rem; }\n' +
+                'main { max-width: 32rem; }\n' +
+                'h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }\n' +
+                'code { background: rgba(127,127,127,0.18); padding: 0.125rem 0.375rem; border-radius: 4px; }\n',
+        },
+        {
+            path: 'public/_weblab/interactions.json',
+            content: JSON.stringify(EMPTY_INTERACTIONS_DOCUMENT, null, 2),
+        },
+        {
+            path: 'public/_weblab/interactions-initial.css',
+            content: '',
+        },
+    ]);
+}
+
+async function scaffoldByFramework(sandbox: Sandbox, framework: VercelScaffoldFramework) {
+    if (framework === 'nextjs') {
+        await scaffoldNextProject(sandbox);
+        return;
+    }
+    if (framework === 'static-html') {
+        await scaffoldStaticHtmlProject(sandbox);
+        return;
+    }
+    // Exhaustiveness guard. If a new framework is added to the union but
+    // not handled, fail loudly instead of silently shipping an empty VM.
+    const exhaustive: never = framework;
+    throw new Error(`Unhandled Vercel scaffold framework: ${String(exhaustive)}`);
+}
+
 export class VercelSandboxProvider extends Provider {
     private readonly options: VercelSandboxProviderOptions;
     private sandbox: Sandbox | null = null;
@@ -353,17 +464,24 @@ export class VercelSandboxProvider extends Provider {
         return this.sandbox;
     }
 
-    static async createProject(input: CreateProjectInput): Promise<CreateProjectOutput> {
-        const port = input.port ?? DEFAULT_PORT;
-        const devCommand = input.devCommand ?? DEFAULT_DEV_COMMAND;
+    static async createProject(
+        input: CreateProjectInput & { framework?: VercelScaffoldFramework },
+    ): Promise<CreateProjectOutput> {
+        // Default to Next.js for back-compat — earlier call sites that
+        // never passed `framework` were always provisioning Next.
+        const framework: VercelScaffoldFramework = input.framework ?? 'nextjs';
+        const runtime = FRAMEWORK_RUNTIME[framework];
+        const port = input.port ?? runtime.port;
+        const devCommand = input.devCommand ?? runtime.devCommand;
 
         // Fast path: resume from a pre-built snapshot (e.g.
         // VERCEL_BLANK_SNAPSHOT_ID). Snapshots can expire or be
         // deleted out-of-band, which would otherwise hard-fail every
         // new project. Catch the resume error and fall through to the
         // scaffold path so the user still gets a working sandbox —
-        // slower, but functional.
-        if (input.snapshotId) {
+        // slower, but functional. Snapshots are framework-specific —
+        // only honor for the framework they were baked for.
+        if (input.snapshotId && framework === 'nextjs') {
             try {
                 const sandbox = await resumeFromSnapshot(input.snapshotId, port);
                 return createOutput(sandbox, port, devCommand, input.snapshotId);
@@ -387,7 +505,7 @@ export class VercelSandboxProvider extends Provider {
             SDK_CALL_TIMEOUT_MS,
             'Sandbox.create(scaffold)',
         );
-        await scaffoldNextProject(sandbox);
+        await scaffoldByFramework(sandbox, framework);
         await sandbox.runCommand(splitShellCommand('npm install'));
         const checkpoint = await checkpointAndResume(sandbox, port);
         return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
@@ -623,7 +741,7 @@ cp -a "$src" "$dst"
         // Pre-warm the dev server so it starts compiling before the editor
         // opens the preview iframe. Do not spawn duplicate Next dev servers:
         // they can fight over the same .next output and leave preview assets 404ing.
-        if (!(await isNextDevServerRunning(sandbox))) {
+        if (!(await isDevServerRunning(sandbox))) {
             await sandbox.runCommand({
                 ...splitShellCommand(this.options.devCommand ?? DEFAULT_DEV_COMMAND),
                 detached: true,
@@ -780,7 +898,7 @@ class VercelTask extends ProviderTask {
     }
 
     async open(_dimensions?: ProviderTerminalShellSize): Promise<string> {
-        if (!this.activeCommand && !(await isNextDevServerRunning(this.sandbox))) {
+        if (!this.activeCommand && !(await isDevServerRunning(this.sandbox))) {
             await this.run();
         }
         return this.activeCommand?.open() ?? '';
@@ -796,7 +914,7 @@ class VercelTask extends ProviderTask {
 
     async restart(): Promise<void> {
         await this.stop().catch(() => undefined);
-        await stopNextDevServers(this.sandbox);
+        await stopDevServers(this.sandbox);
         await this.run();
     }
 

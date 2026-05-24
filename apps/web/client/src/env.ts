@@ -8,8 +8,21 @@ export const env = createEnv({
      */
     server: {
         NODE_ENV: z.enum(['development', 'test', 'production']),
-        CSB_API_KEY: z.string(),
-        WEBLAB_CLOUD_PROVIDER: z.enum(['code_sandbox', 'vercel_sandbox']).default('code_sandbox'),
+        // CodeSandbox is archived (2026-05-24 — see
+        // docs/notes/2026-05-13-vercel-sandbox-provider.md). Vercel Sandbox is
+        // the only runtime. CSB_API_KEY is retained as optional so legacy
+        // `.env.local` files don't trip the validator and so reading existing
+        // CSB-backed projects (which still carry `cloudProvider: 'code_sandbox'`
+        // in their DB row) doesn't crash during the rollout. New projects
+        // never use it; the variable is scheduled for removal once all live
+        // projects have been forked into Vercel sandboxes.
+        CSB_API_KEY: z.string().optional(),
+        // Phase 1 of the CSB removal flips this default to vercel_sandbox.
+        // The literal is retained in the enum to keep existing project rows
+        // readable until the union is collapsed in Phase 2.
+        WEBLAB_CLOUD_PROVIDER: z
+            .enum(['code_sandbox', 'vercel_sandbox'])
+            .default('vercel_sandbox'),
         VERCEL_TEAM_ID: z.string().optional(),
         VERCEL_PROJECT_ID: z.string().optional(),
         VERCEL_TOKEN: z.string().optional(),
@@ -208,9 +221,7 @@ export const env = createEnv({
      */
     runtimeEnv: {
         NODE_ENV: process.env.NODE_ENV,
-        CSB_API_KEY:
-            process.env.CSB_API_KEY ??
-            (process.env.NODE_ENV === 'development' ? 'dev_csb_api_key' : undefined),
+        CSB_API_KEY: process.env.CSB_API_KEY,
         WEBLAB_CLOUD_PROVIDER: process.env.WEBLAB_CLOUD_PROVIDER,
         VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID,
         VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
