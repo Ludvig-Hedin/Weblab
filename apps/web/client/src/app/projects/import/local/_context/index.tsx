@@ -17,7 +17,6 @@ import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/type
 import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
 import { env } from '@/env';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 export interface Project {
@@ -140,11 +139,32 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const removeProjectMutation = useMutation(convexApi.projects.remove);
     const deleteProject = ({ id }: { id: string }) =>
         removeProjectMutation({ projectId: id as Id<'projects'> });
-    // TODO(convex-migration): port api.sandbox.* — no Convex equivalents yet.
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
-    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
-    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
+    // TODO(sandbox-port): api.sandbox.* has no Convex equivalent yet — all
+    // sandbox calls throw a clear error until the routes are ported.
+    const forkSandbox = async (
+        _args: unknown,
+    ): Promise<{
+        sandboxId: string;
+        previewUrl: string;
+        sandboxRuntime: {
+            provider: 'code_sandbox' | 'vercel_sandbox';
+            snapshotId?: string;
+            port?: number;
+            devCommand?: string;
+            runtime?: string;
+        };
+    }> => {
+        throw new Error('Local import is temporarily unavailable.');
+    };
+    const startOrphanSandbox = async (_args: unknown): Promise<never> => {
+        throw new Error('Local import is temporarily unavailable.');
+    };
+    const deleteOrphanSandbox = async (_args: unknown): Promise<void> => {
+        // No-op: sandbox cleanup is unavailable until api.sandbox.* ports.
+    };
+    const orphanBulkUpload = async (_args: unknown): Promise<void> => {
+        throw new Error('Local import is temporarily unavailable.');
+    };
 
     /**
      * Tracks the in-flight finalize so cancel() can abort the chain and clean

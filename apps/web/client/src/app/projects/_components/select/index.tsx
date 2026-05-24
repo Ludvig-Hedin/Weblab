@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
@@ -33,10 +36,11 @@ import type { StaticTemplate } from '../templates/static-templates';
 import type { ProjectFolder, ProjectListItem } from './project-card-utils';
 import type { ProjectFilters, ProjectSort, ProjectView } from './projects-toolbar';
 import type { CreateSuggestion } from '@/app/_components/hero/create';
+import type { Id } from '@convex/_generated/dataModel';
 import { Create } from '@/app/_components/hero/create';
 import { CreateManagerProvider } from '@/components/store/create';
 import { useImportLocalProject } from '@/hooks/use-import-local-project';
-import { api } from '@/trpc/react';
+import { Routes } from '@/utils/constants';
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
 import { ProjectChooserCards } from '../project-chooser-cards';
 import { Templates } from '../templates';
@@ -47,6 +51,7 @@ import { FolderCard } from './folder-card';
 import { HighlightText } from './highlight-text';
 import { ProjectCard } from './project-card';
 import {
+    fromConvexProjectListCard,
     getFoldersStorageKey,
     moveProjectIdsToFolder,
     sanitizeFolders,
@@ -236,15 +241,17 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         key: string,
         values?: Record<string, string | number>,
     ) => string;
-    const utils = api.useUtils();
-    const { data: user } = api.user.get.useQuery();
-    const {
-        data: fetchedProjects,
-        isLoading,
-        refetch,
-    } = api.project.list.useQuery(workspaceId ? { workspaceId } : undefined);
-    const { mutateAsync: removeTag } = api.project.removeTag.useMutation();
-    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
+    const user = useQuery(api.users.me, {});
+    const fetchedProjects = useQuery(
+        api.projects.list,
+        workspaceId ? { workspaceId: workspaceId as Id<'workspaces'> } : {},
+    );
+    const isLoading = fetchedProjects === undefined;
+    // Convex queries refetch reactively; expose a no-op refetch so callers
+    // that still trigger refresh() after writes don't crash.
+    const refetch = async () => undefined;
+    const removeTag = useMutation(api.projects.removeTag);
+    const deleteProject = useMutation(api.projects.remove);
     const {
         handleImportLocalProject,
         isImporting: isImportingLocal,
@@ -274,9 +281,9 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     const [showDeleteSelectedDialog, setShowDeleteSelectedDialog] = useState(false);
     const [isDeletingSelected, setIsDeletingSelected] = useState(false);
 
-    const foldersStorageKey = useMemo(() => getFoldersStorageKey(user?.id), [user?.id]);
+    const foldersStorageKey = useMemo(() => getFoldersStorageKey(user?._id), [user?._id]);
     const listedProjects = useMemo(
-        () => (fetchedProjects ?? []) as ProjectListItem[],
+        () => (fetchedProjects ?? []).map((p) => fromConvexProjectListCard(p as never)),
         [fetchedProjects],
     );
     const projects = useMemo(
@@ -359,11 +366,13 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
     const handleUnmarkTemplate = async () => {
         if (!selectedTemplate?.id) return;
         try {
-            await removeTag({ projectId: selectedTemplate.id, tag: Tags.TEMPLATE });
+            await removeTag({
+                projectId: selectedTemplate.id as Id<'projects'>,
+                tag: Tags.TEMPLATE,
+            });
             toast.success(t('removedFromTemplates'));
             setIsTemplateModalOpen(false);
             setSelectedTemplate(null);
-            await Promise.all([utils.project.list.invalidate()]);
             await refetch();
         } catch {
             toast.error(t('failedTemplateTag'));
@@ -396,7 +405,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
 
     // Load + persist layout view across sessions, scoped per-user so two
     // accounts on the same machine don't fight over the same key.
-    const viewStorageKey = useMemo(() => getViewStorageKey(user?.id), [user?.id]);
+    const viewStorageKey = useMemo(() => getViewStorageKey(user?._id), [user?._id]);
     useEffect(() => {
         void (async () => {
             try {
@@ -646,7 +655,9 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         setIsDeletingSelected(true);
 
         try {
-            const results = await Promise.allSettled(ids.map((id) => deleteProject({ id })));
+            const results = await Promise.allSettled(
+                ids.map((id) => deleteProject({ projectId: id as Id<'projects'> })),
+            );
             const projectNameById = new Map(projects.map((project) => [project.id, project.name]));
             const deletedIds: string[] = [];
             const failures: { name: string; reason: string }[] = [];
@@ -668,7 +679,6 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
             if (deletedIds.length > 0) {
                 const nextFolders = moveProjectIdsToFolder(folders, deletedIds, null);
                 await persistFolders(nextFolders);
-                await utils.project.list.invalidate();
                 await refetch();
             }
 
@@ -743,6 +753,34 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         );
     }
 
+    // `api.users.me` resolves to `null` (not `undefined`) once Convex has
+    // confirmed there is no authenticated user. On this auth-gated page that
+    // means the session expired client-side. `api.projects.list` returns `[]`
+    // for an unauthenticated user, so without this branch the user would land
+    // on the empty "Start your first project" state with all their real
+    // projects hidden — which reads as data loss. Show a clear re-auth prompt
+    // instead. (`user === undefined` is still loading; don't trip on that.)
+    if (user === null) {
+        return (
+            <div className="mx-auto flex h-full w-full max-w-md flex-col items-center justify-center gap-6 px-6 py-16 text-center">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="border-foreground/10 bg-foreground/4 flex h-12 w-12 items-center justify-center rounded-full border">
+                        <Icons.LockClosed className="text-foreground-tertiary h-5 w-5" />
+                    </div>
+                    <div className="text-foreground text-2xl font-normal tracking-tight">
+                        {t('sessionExpiredTitle')}
+                    </div>
+                    <div className="text-foreground-tertiary max-w-sm text-sm leading-relaxed">
+                        {t('sessionExpiredBody')}
+                    </div>
+                </div>
+                <Button variant="default" size="default" asChild>
+                    <Link href={Routes.LOGIN}>{t('sessionExpiredSignIn')}</Link>
+                </Button>
+            </div>
+        );
+    }
+
     if (projects.length === 0) {
         return (
             <CreateManagerProvider>
@@ -771,7 +809,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                             cardKey={0}
                             isCreatingProject={isCreatingProject}
                             setIsCreatingProject={setIsCreatingProject}
-                            user={user ?? null}
+                            user={(user ?? null) as never}
                             suggestions={PROJECT_SUGGESTIONS}
                         />
                     </div>
@@ -1209,7 +1247,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                     onToggleStar={() => selectedTemplate && handleToggleStar(selectedTemplate.id)}
                     templateProject={selectedTemplate}
                     onUnmarkTemplate={() => void handleUnmarkTemplate()}
-                    user={user}
+                    user={user as never}
                 />
             )}
         </div>

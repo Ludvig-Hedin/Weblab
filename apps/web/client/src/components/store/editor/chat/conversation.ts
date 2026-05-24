@@ -1,20 +1,45 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import localforage from 'localforage';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { toast } from 'sonner';
 
-import { type ChatConversation } from '@weblab/models';
+import { AgentType, type ChatConversation } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
+import type { Id } from '@convex/_generated/dataModel';
 import { clearQueue } from '@/app/project/[id]/_hooks/use-chat/queue-storage';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.chat.conversation.upsert` → `api.conversations.upsert`,
-// `api.chat.conversation.generateTitle` → `api.chatActions.generateTitle`,
-// `api.chat.conversation.getAll` → `api.conversations.listByProject`,
-// `api.chat.conversation.update` → `api.conversations.update`,
-// `api.chat.conversation.delete` → `api.conversations.remove` once a Convex
-// HTTP client with Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { lastActiveConversationKey } from '@/utils/constants';
+
+// Convex stores conversations with `_id` / `displayName` / `_creationTime` /
+// numeric `updatedAt`. The editor was written against the Drizzle-era
+// `ChatConversation` shape (`id` / `title` / `Date` timestamps), so normalise
+// every Convex doc that flows back through the store so downstream components
+// keep working without learning two shapes.
+type ConvexConversationDoc = {
+    _id: string;
+    _creationTime: number;
+    projectId: string;
+    agentType?: string;
+    displayName?: string;
+    updatedAt: number;
+    suggestions?: unknown;
+};
+
+function normalizeConversation(doc: ConvexConversationDoc): ChatConversation {
+    return {
+        id: doc._id,
+        agentType: (doc.agentType as AgentType | undefined) ?? AgentType.ROOT,
+        title: doc.displayName ?? null,
+        projectId: doc.projectId,
+        createdAt: new Date(doc._creationTime),
+        updatedAt: new Date(doc.updatedAt),
+        suggestions: Array.isArray(doc.suggestions)
+            ? (doc.suggestions as ChatConversation['suggestions'])
+            : [],
+    };
+}
 
 interface CurrentConversation extends ChatConversation {
     messageCount: number;
@@ -24,6 +49,7 @@ export class ConversationManager {
     current: CurrentConversation | null = null;
     conversations: ChatConversation[] = [];
     creatingConversation = false;
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -104,9 +130,11 @@ export class ConversationManager {
                 // Already in a fresh, untitled conversation — nothing to create.
                 return;
             }
-            const newConversation = await api.chat.conversation.upsert.mutate({
-                projectId: this.editorEngine.projectId,
-            });
+            const projectId = this.editorEngine.projectId as Id<'projects'>;
+            const created = (await this.convex.mutation(convexApi.conversations.upsert, {
+                projectId,
+            })) as ConvexConversationDoc;
+            const newConversation = normalizeConversation(created);
             runInAction(() => {
                 this.current = {
                     ...newConversation,
@@ -177,10 +205,11 @@ export class ConversationManager {
             console.error('No conversation found');
             return;
         }
-        const title = await api.chat.conversation.generateTitle.mutate({
-            conversationId: this.current?.id,
+        const conversationId = this.current.id as Id<'conversations'>;
+        const title = (await this.convex.action(convexApi.chatActions.generateTitle, {
+            conversationId,
             content,
-        });
+        })) as string | null;
         if (!title) {
             console.error('Error generating conversation title. No title returned.');
             return;
@@ -204,24 +233,48 @@ export class ConversationManager {
     }
 
     async getConversationsFromStorage(id: string): Promise<ChatConversation[] | null> {
-        return api.chat.conversation.getAll.query({ projectId: id });
+        const projectId = id as Id<'projects'>;
+        const docs = (await this.convex.query(convexApi.conversations.list, {
+            projectId,
+        })) as ConvexConversationDoc[];
+        return docs.map(normalizeConversation);
     }
 
     async upsertConversationInStorage(
         conversation: Partial<ChatConversation>,
     ): Promise<ChatConversation> {
-        return await api.chat.conversation.upsert.mutate({
-            ...conversation,
-            projectId: this.editorEngine.projectId,
-        });
+        const projectId = this.editorEngine.projectId as Id<'projects'>;
+        const args: {
+            projectId: Id<'projects'>;
+            id?: Id<'conversations'>;
+            displayName?: string;
+            agentType?: AgentType;
+        } = { projectId };
+        if (conversation.id) args.id = conversation.id as Id<'conversations'>;
+        if (conversation.title != null) args.displayName = conversation.title;
+        if (conversation.agentType) args.agentType = conversation.agentType;
+        const doc = (await this.convex.mutation(
+            convexApi.conversations.upsert,
+            args,
+        )) as ConvexConversationDoc;
+        return normalizeConversation(doc);
     }
 
     async updateConversationInStorage(conversation: Partial<ChatConversation> & { id: string }) {
-        await api.chat.conversation.update.mutate(conversation);
+        const conversationId = conversation.id as Id<'conversations'>;
+        const args: {
+            conversationId: Id<'conversations'>;
+            displayName?: string;
+            agentType?: AgentType;
+        } = { conversationId };
+        if (conversation.title != null) args.displayName = conversation.title;
+        if (conversation.agentType) args.agentType = conversation.agentType;
+        await this.convex.mutation(convexApi.conversations.update, args);
     }
 
     async deleteConversationInStorage(id: string) {
-        await api.chat.conversation.delete.mutate({ conversationId: id });
+        const conversationId = id as Id<'conversations'>;
+        await this.convex.mutation(convexApi.conversations.remove, { conversationId });
     }
 
     clear() {

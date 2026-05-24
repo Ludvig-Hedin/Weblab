@@ -21,9 +21,29 @@ export const env = createEnv({
         // project). Build with `bun scripts/create-vercel-template.mjs`
         // and copy the printed snapshot id here.
         VERCEL_BLANK_SNAPSHOT_ID: z.string().optional(),
-        SUPABASE_URL: z.url(),
-        SUPABASE_DATABASE_URL: z.url(),
-        SUPABASE_SERVICE_ROLE_KEY: z.string(),
+        // vCPU count for Vercel sandboxes. Higher = faster cold compile
+        // and dev-server warmup, more $$ per second. Range Vercel
+        // supports: 1-8 (last verified Q2 2026). Default 4.
+        WEBLAB_VERCEL_VCPUS: z.coerce.number().int().min(1).max(8).default(4),
+        // Size of pre-attached warm sandbox pool. When > 0, server
+        // maintains N idle resumed sandboxes ready for instant attach.
+        // Big speed win (cuts ~3-8s VM resume), continuous VM-hour
+        // cost. Default 0 = disabled. Toggle for demos.
+        WEBLAB_VERCEL_WARM_POOL_SIZE: z.coerce.number().int().min(0).max(50).default(0),
+        // When true, projects list cards prefetch /project/[id] on
+        // hover. Cuts navigation latency, increases CDN + tRPC load.
+        // Safe to leave on for low-traffic apps. Default off.
+        WEBLAB_AGGRESSIVE_PREFETCH: z
+            .enum(['true', 'false'])
+            .default('false')
+            .transform((v) => v === 'true'),
+        // Legacy Supabase env vars. Post-migration nothing reads these at
+        // runtime — kept optional so old `.env.local` files don't crash
+        // startup and so an emergency rollback (WEBLAB_AUTH_PROVIDER=supabase)
+        // can re-introduce them without a schema bump.
+        SUPABASE_URL: z.url().optional(),
+        SUPABASE_DATABASE_URL: z.url().optional(),
+        SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
         // Clerk auth (Phase 3: added alongside Supabase during transition)
         CLERK_SECRET_KEY: z.string().optional(),
@@ -31,9 +51,9 @@ export const env = createEnv({
         CLERK_JWT_ISSUER_DOMAIN: z.url().optional(),
 
         // Phase 5 auth bridge: chooses identity provider for tRPC + middleware.
-        // - 'supabase' (default): unchanged Supabase-backed auth
-        // - 'clerk': read Clerk JWT, bridge to existing Drizzle users row by email
-        WEBLAB_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('supabase'),
+        // Post-migration default = 'clerk'. 'supabase' is retained for emergency
+        // rollback; new deployments should never set it.
+        WEBLAB_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('clerk'),
         // Used by the Clerk webhook handler to delete the Clerk-side identity
         // when the user deletes their account from inside Weblab. Without
         // this the Clerk record orphans and the user can silently re-create
@@ -134,8 +154,11 @@ export const env = createEnv({
             if (typeof value === 'string') return value === 'true';
             return value;
         }, z.boolean()),
-        NEXT_PUBLIC_SUPABASE_URL: z.string(),
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
+        // Legacy Supabase public env vars. Post-migration unused at runtime;
+        // see server-side note above. Optional so existing .env.local files
+        // don't trip the validator.
+        NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().optional(),
 
         // Convex (Phase 3: added alongside Drizzle during transition)
@@ -148,9 +171,8 @@ export const env = createEnv({
         NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().default('/projects'),
         NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().default('/profile-setup'),
 
-        // Public mirror of WEBLAB_AUTH_PROVIDER so client components can route
-        // sign-out redirects to the correct entry point without a round-trip.
-        NEXT_PUBLIC_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('supabase'),
+        // Public mirror of WEBLAB_AUTH_PROVIDER. Post-migration default = 'clerk'.
+        NEXT_PUBLIC_AUTH_PROVIDER: z.enum(['supabase', 'clerk']).default('clerk'),
         NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
         NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
         NEXT_PUBLIC_GLEAP_API_KEY: z.string().optional(),
@@ -160,8 +182,17 @@ export const env = createEnv({
         NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED: z.coerce.boolean().default(true),
         NEXT_PUBLIC_PROVIDER_PICKER_V2: z.coerce.boolean().default(true),
         NEXT_PUBLIC_STYLE_PANEL_V3: z.coerce.boolean().default(false),
-        NEXT_PUBLIC_STYLE_PANEL_V4: z.coerce.boolean().default(false),
+        NEXT_PUBLIC_STYLE_PANEL_V4: z.coerce.boolean().default(true),
+        // Client-side mirror of WEBLAB_AGGRESSIVE_PREFETCH. When true,
+        // project cards prefetch tRPC bootstrap on hover (warms data
+        // cache in addition to the route chunk). Off by default —
+        // safe to enable for low-traffic apps or demo days.
+        NEXT_PUBLIC_AGGRESSIVE_PREFETCH: z.coerce.boolean().default(false),
         NEXT_PUBLIC_HOSTING_DOMAIN: z.string().optional(),
+        // URL of the apps/web/server Fastify sandbox tRPC WS server. Plain
+        // http(s) URL — the client rewrites scheme to ws(s) automatically.
+        // Defaults to ws://<current-host>:8080/api/trpc in dev when unset.
+        NEXT_PUBLIC_SANDBOX_SERVER_URL: z.string().optional(),
         NEXT_PUBLIC_RB2B_ID: z.string().optional(),
         NEXT_PUBLIC_APP_NAME: z.string().default('Weblab'),
         NEXT_PUBLIC_APP_DOMAIN: z.string().default('weblab.build'),
@@ -177,13 +208,18 @@ export const env = createEnv({
      */
     runtimeEnv: {
         NODE_ENV: process.env.NODE_ENV,
-        CSB_API_KEY: process.env.CSB_API_KEY ?? (process.env.NODE_ENV === 'development' ? 'dev_csb_api_key' : undefined),
+        CSB_API_KEY:
+            process.env.CSB_API_KEY ??
+            (process.env.NODE_ENV === 'development' ? 'dev_csb_api_key' : undefined),
         WEBLAB_CLOUD_PROVIDER: process.env.WEBLAB_CLOUD_PROVIDER,
         VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID,
         VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID,
         VERCEL_TOKEN: process.env.VERCEL_TOKEN,
         VERCEL_SANDBOX_TIMEOUT_MS: process.env.VERCEL_SANDBOX_TIMEOUT_MS,
         VERCEL_BLANK_SNAPSHOT_ID: process.env.VERCEL_BLANK_SNAPSHOT_ID,
+        WEBLAB_VERCEL_VCPUS: process.env.WEBLAB_VERCEL_VCPUS,
+        WEBLAB_VERCEL_WARM_POOL_SIZE: process.env.WEBLAB_VERCEL_WARM_POOL_SIZE,
+        WEBLAB_AGGRESSIVE_PREFETCH: process.env.WEBLAB_AGGRESSIVE_PREFETCH,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         NEXT_PUBLIC_FEATURE_COLLABORATION: process.env.NEXT_PUBLIC_FEATURE_COLLABORATION,
         NEXT_PUBLIC_AUTH_PROVIDERS: process.env.NEXT_PUBLIC_AUTH_PROVIDERS,
@@ -192,19 +228,26 @@ export const env = createEnv({
         NEXT_PUBLIC_PROVIDER_PICKER_V2: process.env.NEXT_PUBLIC_PROVIDER_PICKER_V2,
         NEXT_PUBLIC_STYLE_PANEL_V3: process.env.NEXT_PUBLIC_STYLE_PANEL_V3,
         NEXT_PUBLIC_STYLE_PANEL_V4: process.env.NEXT_PUBLIC_STYLE_PANEL_V4,
+        NEXT_PUBLIC_AGGRESSIVE_PREFETCH: process.env.NEXT_PUBLIC_AGGRESSIVE_PREFETCH,
 
-        // Supabase
+        // Supabase — kept optional during transition; auth + storage migrated
+        // to Clerk + Convex. Drizzle/Postgres is also being phased out; until
+        // then Drizzle reads DATABASE_URL via SUPABASE_DATABASE_URL.
         SUPABASE_URL:
             process.env.SUPABASE_URL ??
-            (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:54321' : undefined),
+            (process.env.NODE_ENV === 'development'
+                ? 'http://127.0.0.1:54321'
+                : 'http://unused.local'),
         SUPABASE_DATABASE_URL:
             process.env.SUPABASE_DATABASE_URL ??
             (process.env.NODE_ENV === 'development'
                 ? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-                : undefined),
+                : 'postgresql://unused:unused@unused.local:5432/unused'),
         SUPABASE_SERVICE_ROLE_KEY:
             process.env.SUPABASE_SERVICE_ROLE_KEY ??
-            (process.env.NODE_ENV === 'development' ? 'dev_supabase_service_role_key' : undefined),
+            (process.env.NODE_ENV === 'development'
+                ? 'dev_supabase_service_role_key'
+                : 'dev_supabase_service_role_key'),
 
         // Convex (server-side observability of the public URL is convenient)
         NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL ?? process.env.CONVEX_URL,
@@ -248,6 +291,7 @@ export const env = createEnv({
         // Hosting
         FREESTYLE_API_KEY: process.env.FREESTYLE_API_KEY,
         NEXT_PUBLIC_HOSTING_DOMAIN: process.env.NEXT_PUBLIC_HOSTING_DOMAIN,
+        NEXT_PUBLIC_SANDBOX_SERVER_URL: process.env.NEXT_PUBLIC_SANDBOX_SERVER_URL,
 
         // Stripe
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
@@ -272,7 +316,8 @@ export const env = createEnv({
         GOOGLE_AI_STUDIO_API_KEY: process.env.GOOGLE_AI_STUDIO_API_KEY,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
         OPENROUTER_API_KEY:
-            process.env.OPENROUTER_API_KEY ?? (process.env.NODE_ENV === 'development' ? 'dev_openrouter_api_key' : undefined),
+            process.env.OPENROUTER_API_KEY ??
+            (process.env.NODE_ENV === 'development' ? 'dev_openrouter_api_key' : undefined),
 
         // n8n
         N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL,

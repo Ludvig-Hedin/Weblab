@@ -62,9 +62,11 @@ export const ProjectLoadError = observer(
         const editorEngine = useOptionalEditorEngine();
         // Only fetch the user when we actually have an engine — otherwise
         // there's no sandbox session to reconnect and the query is wasted.
+        // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+        // ref triggers `Could not find public function for 'skip'` and detonates.
         const user = useQuery(
-            (editorEngine ? api.users.me : 'skip') as typeof api.users.me,
-            editorEngine ? {} : undefined,
+            api.users.me,
+            editorEngine ? {} : 'skip',
         );
         const [isRetrying, setIsRetrying] = useState(false);
 

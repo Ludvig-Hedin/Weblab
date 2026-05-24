@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import { ScheduledSubscriptionAction } from '@weblab/stripe';
@@ -16,7 +18,6 @@ import { Separator } from '@weblab/ui/separator';
 import { toast } from '@weblab/ui/sonner';
 
 import { useStateManager } from '@/components/store/state';
-import { api } from '@/trpc/react';
 import { useSubscription } from '../pricing-modal/use-subscription';
 
 export const SubscriptionTab = observer(() => {
@@ -25,25 +26,27 @@ export const SubscriptionTab = observer(() => {
     const [isManageDropdownOpen, setIsManageDropdownOpen] = useState(false);
     const [isLoadingPortal, setIsLoadingPortal] = useState(false);
 
-    const manageSubscriptionMutation = api.subscription.manageSubscription.useMutation({
-        onSuccess: (session) => {
-            if (session?.url) {
-                window.open(session.url, '_blank');
-            }
-        },
-        onError: (error) => {
-            console.error('Failed to create portal session:', error);
-            toast.error('Failed to create portal session');
-        },
-        onSettled: () => {
-            setIsLoadingPortal(false);
-        },
-    });
+    const manageSubscription = useAction(api.subscriptionActions.manageSubscription);
 
     const handleUpgradePlan = () => {
         stateManager.setIsSubscriptionModalOpen(true);
         stateManager.setIsSettingsModalOpen(false);
         setIsManageDropdownOpen(false);
+    };
+
+    const openPortal = async () => {
+        setIsLoadingPortal(true);
+        try {
+            const session = (await manageSubscription({})) as { url?: string } | null;
+            if (session?.url) {
+                window.open(session.url, '_blank');
+            }
+        } catch (error) {
+            console.error('Failed to create portal session:', error);
+            toast.error('Failed to create portal session');
+        } finally {
+            setIsLoadingPortal(false);
+        }
     };
 
     // Bug fix #11: The previous custom "Are you sure?" modal was misleading — it didn't
@@ -52,14 +55,12 @@ export const SubscriptionTab = observer(() => {
     // real cancel flow lives.
     const handleCancelSubscription = async () => {
         setIsManageDropdownOpen(false);
-        setIsLoadingPortal(true);
-        await manageSubscriptionMutation.mutateAsync();
+        await openPortal();
     };
 
     const handleManageBilling = async () => {
         if (isPro && subscription) {
-            setIsLoadingPortal(true);
-            await manageSubscriptionMutation.mutateAsync();
+            await openPortal();
         }
     };
 
@@ -84,7 +85,9 @@ export const SubscriptionTab = observer(() => {
                                     ScheduledSubscriptionAction.CANCELLATION ? (
                                         <>
                                             Pro plan (cancelling on{' '}
-                                            {subscription.scheduledChange.scheduledChangeAt.toLocaleDateString()}
+                                            {new Date(
+                                                subscription.scheduledChange.scheduledChangeAt,
+                                            ).toLocaleDateString()}
                                             )
                                         </>
                                     ) : (
@@ -136,8 +139,8 @@ export const SubscriptionTab = observer(() => {
                                         onClick={() => {
                                             subscription?.scheduledChange?.scheduledAction ===
                                             ScheduledSubscriptionAction.CANCELLATION
-                                                ? handleManageBilling()
-                                                : handleCancelSubscription();
+                                                ? void handleManageBilling()
+                                                : void handleCancelSubscription();
                                         }}
                                         disabled={isLoadingPortal}
                                         className="group text-destructive hover:text-destructive cursor-pointer"
@@ -166,7 +169,7 @@ export const SubscriptionTab = observer(() => {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleManageBilling}
+                            onClick={() => void handleManageBilling()}
                             disabled={isLoadingPortal || !isPro}
                         >
                             {isLoadingPortal ? 'Opening...' : 'Manage'}

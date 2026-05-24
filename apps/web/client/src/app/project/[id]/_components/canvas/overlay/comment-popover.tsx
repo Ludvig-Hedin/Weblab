@@ -53,7 +53,17 @@ function clampToViewport(left: number, top: number): { left: number; top: number
 export const CommentPopover = observer(() => {
     const editorEngine = useEditorEngine();
     const { position, scale } = editorEngine.canvas;
-    const { activeCommentId, pendingPlacement, comments } = editorEngine.comment;
+    // `comments` is hydrated from a Convex query that returns `undefined`
+    // while the first subscription is in flight (synthetic projects never
+    // hydrate at all). Coerce to [] so the `.find` on line 111 doesn't
+    // detonate when an inbound `activeCommentId` race-arrives before the
+    // comments list does.
+    const {
+        activeCommentId,
+        pendingPlacement,
+        comments: commentsRaw,
+    } = editorEngine.comment;
+    const comments = commentsRaw ?? [];
 
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [newCommentText, setNewCommentText] = useState('');

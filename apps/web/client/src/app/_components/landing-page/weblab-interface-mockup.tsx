@@ -25,7 +25,6 @@ type PreviewTheme = 'light' | 'dark';
 const MODES: { id: ModeId; label: string }[] = [
     { id: 'design', label: 'Design' },
     { id: 'code', label: 'Code' },
-    { id: 'preview', label: 'Preview' },
     { id: 'cms', label: 'CMS' },
 ];
 
@@ -1646,6 +1645,7 @@ export function WeblabInterfaceMockup() {
             name: 'Mira',
             bg: 'bg-pink-500',
             text: 'text-pink-500',
+            border: 'border-pink-500',
             x: 68,
             y: 14,
         },
@@ -1654,6 +1654,7 @@ export function WeblabInterfaceMockup() {
             name: 'Kai',
             bg: 'bg-purple-500',
             text: 'text-purple-500',
+            border: 'border-purple-500',
             x: 84,
             y: 72,
         },
@@ -1662,10 +1663,29 @@ export function WeblabInterfaceMockup() {
             name: 'Sam',
             bg: 'bg-blue-500',
             text: 'text-blue-500',
+            border: 'border-blue-500',
             x: 35,
             y: 52,
         },
     ]);
+
+    // Collaborative selection — cycles every 4.2s through 3 regions of the
+    // website mockup. Each target is "owned" by a teammate cursor; while
+    // active, that cursor snaps to the selection's bottom-right handle to
+    // sell the illusion that they actually clicked the element. Other
+    // cursors keep wandering via the waypoint animation.
+    const SELECTION_TARGETS = useRef([
+        { id: 'hero', ownerId: 'm', x: 24, y: 14, w: 52, h: 18 },
+        { id: 'pro-card', ownerId: 'k', x: 36, y: 72, w: 28, h: 24 },
+        { id: 'starter-card', ownerId: 's', x: 6, y: 72, w: 28, h: 24 },
+    ]).current;
+    const [activeSelectionIdx, setActiveSelectionIdx] = useState(0);
+    useEffect(() => {
+        const id = setInterval(() => {
+            setActiveSelectionIdx((i) => (i + 1) % SELECTION_TARGETS.length);
+        }, 4200);
+        return () => clearInterval(id);
+    }, [SELECTION_TARGETS.length]);
 
     // Drives the SaaS landing-page mockup — current chat round highlights
     // the section being edited (pricing pulses, hero scales up, cards get
@@ -1872,7 +1892,7 @@ export function WeblabInterfaceMockup() {
     return (
         <div
             className={cn(
-                'bg-background-canvas border-border relative mx-auto -mt-10 aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-xl border shadow-2xl transition-all duration-1000 ease-out select-none',
+                'bg-background-canvas border-border relative aspect-[16/10] w-full overflow-hidden rounded-t-[12px] rounded-b-none border border-b-0 shadow-2xl transition-all duration-1000 ease-out select-none',
                 isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
             )}
         >
@@ -2028,38 +2048,96 @@ export function WeblabInterfaceMockup() {
                             )}
                         </div>
                     ))}
-                    {/* Live collaborator cursors — fake presence */}
-                    {presence.map((p) => (
-                        <div
-                            key={p.id}
-                            className="pointer-events-none absolute z-10 -translate-x-[2px] -translate-y-[2px]"
-                            style={{
-                                left: `${p.x}%`,
-                                top: `${p.y}%`,
-                                transition:
-                                    'left 1.6s cubic-bezier(0.25, 0.1, 0.25, 1), top 1.6s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                            }}
-                        >
-                            <svg
-                                className={cn(
-                                    'h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]',
-                                    p.text,
-                                )}
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
+                    {/* Active collaborative selection — outlined region
+                        with 4 resize handles, color of the owning cursor.
+                        Cycles between hero/Pro card/Starter card every
+                        4.2s; the owner cursor snaps to the bottom-right
+                        handle below. */}
+                    {(() => {
+                        const target = SELECTION_TARGETS[activeSelectionIdx];
+                        if (!target) return null;
+                        const owner = presence.find((p) => p.id === target.ownerId);
+                        if (!owner) return null;
+                        return (
+                            <div
+                                className="pointer-events-none absolute z-[15]"
+                                style={{
+                                    left: `${target.x}%`,
+                                    top: `${target.y}%`,
+                                    width: `${target.w}%`,
+                                    height: `${target.h}%`,
+                                    transition:
+                                        'left 0.55s cubic-bezier(0.22, 1, 0.36, 1), top 0.55s cubic-bezier(0.22, 1, 0.36, 1), width 0.55s cubic-bezier(0.22, 1, 0.36, 1), height 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+                                }}
                             >
-                                <path d="M2 2 L14 7 L8.5 9 L7 14 Z" />
-                            </svg>
-                            <span
-                                className={cn(
-                                    'ml-1.5 inline-block rounded-md px-1.5 py-px text-[9px] font-medium text-white ring-1 ring-white/10',
-                                    p.bg,
-                                )}
+                                <div
+                                    className={cn(
+                                        'absolute inset-0 rounded-[2px] border-[1.5px]',
+                                        owner.border,
+                                    )}
+                                />
+                                {[
+                                    { left: 0, top: 0 },
+                                    { left: '100%', top: 0 },
+                                    { left: 0, top: '100%' },
+                                    { left: '100%', top: '100%' },
+                                ].map((c, i) => (
+                                    <div
+                                        key={i}
+                                        className={cn(
+                                            'absolute h-1.5 w-1.5 rounded-sm border border-white shadow-sm',
+                                            owner.bg,
+                                        )}
+                                        style={{
+                                            left: c.left,
+                                            top: c.top,
+                                            transform: 'translate(-50%, -50%)',
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        );
+                    })()}
+                    {/* Live collaborator cursors — fake presence. Active
+                        owner cursor snaps to the selection's bottom-right
+                        handle; others keep wandering. */}
+                    {presence.map((p) => {
+                        const target = SELECTION_TARGETS[activeSelectionIdx];
+                        const isOwner = target?.ownerId === p.id;
+                        const x = isOwner && target ? target.x + target.w : p.x;
+                        const y = isOwner && target ? target.y + target.h : p.y;
+                        return (
+                            <div
+                                key={p.id}
+                                className="pointer-events-none absolute z-20 -translate-x-[2px] -translate-y-[2px]"
+                                style={{
+                                    left: `${x}%`,
+                                    top: `${y}%`,
+                                    transition:
+                                        'left 0.9s cubic-bezier(0.25, 0.1, 0.25, 1), top 0.9s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                                }}
                             >
-                                {p.name}
-                            </span>
-                        </div>
-                    ))}
+                                <svg
+                                    className={cn(
+                                        'h-5 w-5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]',
+                                        p.text,
+                                    )}
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                >
+                                    <path d="M2 2 L14 7 L8.5 9 L7 14 Z" />
+                                </svg>
+                                <span
+                                    className={cn(
+                                        'ml-1.5 inline-block rounded-md px-1.5 py-px text-[9px] font-medium text-white ring-1 ring-white/10',
+                                        p.bg,
+                                    )}
+                                >
+                                    {p.name}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
                 <div
                     data-canvas-element
@@ -2155,6 +2233,22 @@ export function WeblabInterfaceMockup() {
                         </span>
                     </button>
                     <div className="bg-border/60 mx-1 h-4 w-px" />
+                    {/* Preview toggle — muted outlined, sits before members */}
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setActiveMode((m) => (m === 'preview' ? 'design' : 'preview'))
+                        }
+                        className={cn(
+                            'mr-1 flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[11px] transition-colors',
+                            activeMode === 'preview'
+                                ? 'border-border bg-background-secondary text-foreground'
+                                : 'border-border/60 text-foreground-secondary hover:bg-background-secondary hover:text-foreground',
+                        )}
+                    >
+                        <Icons.EyeOpen className="h-3 w-3" />
+                        Preview
+                    </button>
                     {/* Members avatar stack — matches presence cursor colors */}
                     <div className="mr-1 flex -space-x-1.5">
                         <div className="ring-background-chrome h-5 w-5 rounded-full bg-pink-500 ring-2" />
@@ -2814,7 +2908,7 @@ export function WeblabInterfaceMockup() {
                             <div className="px-2 pb-2">
                                 <div
                                     className={cn(
-                                        'border-border-bar bg-background-bar/70 focus-within:border-border flex flex-col rounded-lg border transition-colors',
+                                        'bg-background-secondary border-foreground-primary/5 focus-within:border-border flex flex-col rounded-[8px] border transition-colors duration-200',
                                         chatComposerOpen && 'border-border bg-background-bar',
                                     )}
                                 >
@@ -2861,9 +2955,13 @@ export function WeblabInterfaceMockup() {
                                         onFocus={() => setChatComposerOpen(true)}
                                         onBlur={() => setChatComposerOpen(false)}
                                         onClick={() => setChatComposerOpen(true)}
-                                        className="text-foreground-primary placeholder-foreground-tertiary min-h-[44px] w-full cursor-text resize-none rounded-md bg-transparent px-2 py-1.5 text-[12px] leading-snug outline-none"
+                                        className="text-foreground-primary relative min-h-[44px] w-full cursor-text resize-none rounded-md bg-transparent px-2 py-1.5 text-[12px] leading-snug outline-none"
                                     >
-                                        {composerText}
+                                        {composerText || (
+                                            <span className="text-foreground-primary/50">
+                                                Describe what you want to build
+                                            </span>
+                                        )}
                                         {composerTyping && (
                                             <span className="bg-foreground/70 ml-0.5 inline-block h-3 w-px animate-pulse align-middle" />
                                         )}

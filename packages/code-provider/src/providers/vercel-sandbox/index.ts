@@ -63,12 +63,50 @@ import {
 const DEFAULT_PORT = 3000;
 const DEFAULT_RUNTIME = 'node24';
 const DEFAULT_TIMEOUT_MS = 45 * 60 * 1000;
+// Hard ceiling on any single Vercel SDK call. Vercel API rarely
+// stalls but when it does (network blip, region failover), we want
+// to throw fast and let our retry layer try again instead of hanging
+// for minutes. 45s covers a worst-case snapshot resume; anything
+// past that is wedged and the user is better served by an error.
+const SDK_CALL_TIMEOUT_MS = 45_000;
 // `--turbopack` runs Next 15's Turbopack bundler instead of webpack.
 // Stable in Next 15.x. Cold-compiles the first page request 5-10x
 // faster, which dominates the perceived "blank project loading
 // forever" time. The `--` separates npm args from script args so
 // both `--turbopack` and `--hostname` reach `next dev`.
 const DEFAULT_DEV_COMMAND = 'npm run dev -- --turbopack --hostname 0.0.0.0';
+
+// vCPU count for sandboxes. Reads WEBLAB_VERCEL_VCPUS at module
+// load so the value is stable per server process — Vercel SDK
+// rejects mid-flight changes anyway. Clamps to Vercel's 1-8 range
+// to avoid an unhelpful API error on a typo.
+function getVcpuCount(): number {
+    const raw = Number(process.env.WEBLAB_VERCEL_VCPUS);
+    if (Number.isFinite(raw) && raw >= 1 && raw <= 8) return Math.floor(raw);
+    return 4;
+}
+const VCPUS = getVcpuCount();
+
+// Race a promise against a timeout so we never hang forever on a
+// stalled Vercel SDK call. Caller layers (SessionManager.start,
+// sandbox.fork retry loop) already retry on rejection, so the
+// timeout failure becomes a fast retry instead of a wedged UI.
+async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        return await Promise.race([
+            p,
+            new Promise<T>((_, reject) => {
+                timer = setTimeout(
+                    () => reject(new Error(`[VercelSandbox] ${label} timed out after ${ms}ms`)),
+                    ms,
+                );
+            }),
+        ]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
 const PROJECT_ROOT = '/vercel/sandbox';
 
 export interface VercelSandboxProviderOptions {
@@ -147,13 +185,17 @@ function createOutput(
 }
 
 async function resumeFromSnapshot(snapshotId: string, port: number) {
-    return await Sandbox.create({
-        source: { type: 'snapshot', snapshotId },
-        ports: [port],
-        timeout: getTimeoutMs(),
-        resources: { vcpus: 4 },
-        ...getCredentials(),
-    });
+    return await withTimeout(
+        Sandbox.create({
+            source: { type: 'snapshot', snapshotId },
+            ports: [port],
+            timeout: getTimeoutMs(),
+            resources: { vcpus: VCPUS },
+            ...getCredentials(),
+        }),
+        SDK_CALL_TIMEOUT_MS,
+        'resumeFromSnapshot',
+    );
 }
 
 async function checkpointAndResume(sandbox: Sandbox, port: number) {
@@ -268,10 +310,14 @@ export class VercelSandboxProvider extends Provider {
 
         if (this.options.sandboxId) {
             try {
-                this.sandbox = await Sandbox.get({
-                    sandboxId: this.options.sandboxId,
-                    ...getCredentials(),
-                });
+                this.sandbox = await withTimeout(
+                    Sandbox.get({
+                        sandboxId: this.options.sandboxId,
+                        ...getCredentials(),
+                    }),
+                    SDK_CALL_TIMEOUT_MS,
+                    'Sandbox.get',
+                );
             } catch (error) {
                 if (!this.options.snapshotId) {
                     throw error;
@@ -285,13 +331,17 @@ export class VercelSandboxProvider extends Provider {
         }
 
         if (this.options.snapshotId) {
-            this.sandbox = await Sandbox.create({
-                source: { type: 'snapshot', snapshotId: this.options.snapshotId },
-                ports: [this.options.port ?? DEFAULT_PORT],
-                timeout: getTimeoutMs(this.options.timeoutMs),
-                resources: { vcpus: 4 },
-                ...getCredentials(),
-            });
+            this.sandbox = await withTimeout(
+                Sandbox.create({
+                    source: { type: 'snapshot', snapshotId: this.options.snapshotId },
+                    ports: [this.options.port ?? DEFAULT_PORT],
+                    timeout: getTimeoutMs(this.options.timeoutMs),
+                    resources: { vcpus: VCPUS },
+                    ...getCredentials(),
+                }),
+                SDK_CALL_TIMEOUT_MS,
+                'Sandbox.create(initialize)',
+            );
         }
         return {};
     }
@@ -306,24 +356,41 @@ export class VercelSandboxProvider extends Provider {
     static async createProject(input: CreateProjectInput): Promise<CreateProjectOutput> {
         const port = input.port ?? DEFAULT_PORT;
         const devCommand = input.devCommand ?? DEFAULT_DEV_COMMAND;
-        const sandbox = input.snapshotId
-            ? await resumeFromSnapshot(input.snapshotId, port)
-            : await Sandbox.create({
-                  ports: [port],
-                  runtime: DEFAULT_RUNTIME,
-                  timeout: getTimeoutMs(),
-                  resources: { vcpus: 4 },
-                  ...getCredentials(),
-              });
 
-        if (!input.snapshotId) {
-            await scaffoldNextProject(sandbox);
-            await sandbox.runCommand(splitShellCommand('npm install'));
-            const checkpoint = await checkpointAndResume(sandbox, port);
-            return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
+        // Fast path: resume from a pre-built snapshot (e.g.
+        // VERCEL_BLANK_SNAPSHOT_ID). Snapshots can expire or be
+        // deleted out-of-band, which would otherwise hard-fail every
+        // new project. Catch the resume error and fall through to the
+        // scaffold path so the user still gets a working sandbox —
+        // slower, but functional.
+        if (input.snapshotId) {
+            try {
+                const sandbox = await resumeFromSnapshot(input.snapshotId, port);
+                return createOutput(sandbox, port, devCommand, input.snapshotId);
+            } catch (err) {
+                console.warn(
+                    '[VercelSandbox] resumeFromSnapshot failed; falling back to scaffold + install. The snapshot may be expired or invalid. Re-bake via scripts/create-vercel-template.mjs and update VERCEL_BLANK_SNAPSHOT_ID.',
+                    err instanceof Error ? err.message : err,
+                );
+            }
         }
 
-        return createOutput(sandbox, port, devCommand, input.snapshotId);
+        // Slow path: fresh VM + scaffold + npm install + snapshot.
+        const sandbox = await withTimeout(
+            Sandbox.create({
+                ports: [port],
+                runtime: DEFAULT_RUNTIME,
+                timeout: getTimeoutMs(),
+                resources: { vcpus: VCPUS },
+                ...getCredentials(),
+            }),
+            SDK_CALL_TIMEOUT_MS,
+            'Sandbox.create(scaffold)',
+        );
+        await scaffoldNextProject(sandbox);
+        await sandbox.runCommand(splitShellCommand('npm install'));
+        const checkpoint = await checkpointAndResume(sandbox, port);
+        return createOutput(checkpoint.sandbox, port, devCommand, checkpoint.snapshotId);
     }
 
     static async createProjectFromGit(input: {
@@ -336,6 +403,10 @@ export class VercelSandboxProvider extends Provider {
     }): Promise<CreateProjectOutput> {
         const port = input.port ?? DEFAULT_PORT;
         const devCommand = input.devCommand ?? DEFAULT_DEV_COMMAND;
+        // Git clone needs a longer ceiling than the snapshot path —
+        // Vercel sandbox clones can take up to 5 minutes for large
+        // repos. Use the per-sandbox timeout (default 45min) rather
+        // than the short SDK-call timeout.
         const sandbox = await Sandbox.create({
             source: {
                 type: 'git',
@@ -346,7 +417,7 @@ export class VercelSandboxProvider extends Provider {
             ports: [port],
             runtime: DEFAULT_RUNTIME,
             timeout: getTimeoutMs(),
-            resources: { vcpus: 4 },
+            resources: { vcpus: VCPUS },
             ...getCredentials(),
         });
 
@@ -582,10 +653,14 @@ cp -a "$src" "$dst"
 
     async reconnect(): Promise<void> {
         if (!this.options.sandboxId) return;
-        this.sandbox = await Sandbox.get({
-            sandboxId: this.options.sandboxId,
-            ...getCredentials(),
-        });
+        this.sandbox = await withTimeout(
+            Sandbox.get({
+                sandboxId: this.options.sandboxId,
+                ...getCredentials(),
+            }),
+            SDK_CALL_TIMEOUT_MS,
+            'Sandbox.get(reconnect)',
+        );
     }
 
     async ping(): Promise<boolean> {

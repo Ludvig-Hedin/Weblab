@@ -16,6 +16,55 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-24 — Backend migration audit: Clerk + Convex hardening
+Author: Claude Opus 4.7
+Area: `apps/web/client/convex`, `apps/web/client/src/utils/auth`, `apps/web/client/src/utils/supabase`, `apps/web/client/src/env.ts`, `.env.example`
+Summary: Audited the final Supabase → Clerk + Convex push. Closed two real bugs (unauthenticated `convex/skillActions.previewImport`; `requireUserJIT` could race with the Clerk webhook and brick reads via `.unique()`), removed a type-only `@supabase/supabase-js` leak by introducing a local `BridgedUser` interface, added warn-once telemetry on the Supabase-storage stub, and made all `SUPABASE_*` env vars optional. Updated `.env.example` to surface Clerk + Convex as the canonical setup and demote Supabase to a rollback footer. Full audit report at `docs/agent-memory/backend-migration-audit.md`.
+Files: `apps/web/client/convex/skillActions.ts`, `apps/web/client/convex/lib/permissions.ts`, `apps/web/client/src/utils/auth/types.ts` (new), `apps/web/client/src/utils/auth/clerk-bridge.ts`, `apps/web/client/src/utils/auth/current-user.ts`, `apps/web/client/src/utils/supabase/client/index.ts`, `apps/web/client/src/env.ts`, `apps/web/client/.env.example`, `docs/agent-memory/backend-migration-audit.md` (new)
+
+## 2026-05-24 — Landing-page asset restyle + light bg token shift
+Author: Claude Opus 4.7
+Area: `apps/web/client` landing page, `packages/ui` light theme
+Summary: Restyled the three feature-trio assets (model picker, terminal, AI assistant) and side-by-side feature visuals to match new design language (light cream surfaces w/ subtle shadow + soft top gradient backdrop; dark mode mirror). Each asset now adapts to theme via `dark:` variants instead of being dark-only. Backed up originals as `*-v1.tsx`.
+- Light theme `--background` token: `#ffffff` → `#f7f7f4` (warm off-white).
+- `FeatureBackdrop`: gradient cream wash on light, kept blurred image + dark veil on dark.
+- Inline visuals (Components, Tokens/Brand, History/Revision, Structure/Layers) swapped `bg-background-secondary/80 backdrop-blur-sm` → explicit `bg-white dark:bg-[#1C1C1D]` w/ soft shadow.
+- Trio assets: rewritten to mirror Figma — Mac-style window chrome, dropdown anchored under composer, AI-chat layout with thought/tool-call sequence.
+Files: `apps/web/client/src/app/_components/landing-page/feature-trio-section.tsx`, `…/feature-backdrop.tsx`, `…/what-can-weblab-do-section-v2.tsx`, `packages/ui/src/globals.css`
+
+## 2026-05-23 — Component system pass: button rewrite, switch/slider/menu/tabs polish
+Author: Claude Sonnet 4.6
+Area: `packages/ui` components, `apps/web/client/src/components/ui`, `style-tab-v4`, design-system demos
+Summary: Comprehensive component-level alignment pass on top of the dark-token rewrite.
+- **Button**: dropped pill shape (`rounded-full`), now `rounded-sm` (8px), `h-7` default + sm, 10px horizontal padding, `text-mini` (12px). New variants: `destructive` (bg `#321F20` + text `#FF595D`, no border), `muted` (bg `#242424` + text `#DEDEDE`), `ghost` (text `#717171` resting). Outline uses `--border-secondary` so the line is visible. Same treatment applied to local `apps/web/client/src/components/ui/button.tsx` (still used by 13 pricing/marketing call sites).
+- **Switch**: `bg-foreground-brand` (#458ef7) when checked, `bg-background-tertiary` unchecked. Removed hardcoded green `rgb(52,199,89)`.
+- **Slider**: shrunk track to 1px, brand-tinted range fill, thumb gets a proper drop shadow + hover scale + brand-tinted focus ring (no longer flat/harsh).
+- **Dropdown/Popover/Menubar/ContextMenu/HoverCard/Select**: all swapped `border-foreground/8` (invisible) → `border-border-popover` (#2d2d2d). Items unified at `rounded-sm px-2.5 py-1.5 text-mini`. Added `duration-200 ease-out` (open) / `duration-150 ease-in` (close) for smoother enter/leave.
+- **NavigationMenu**: trigger now `h-7 px-2.5 text-mini` to match dropdown/menubar item density (was `h-9 px-4 text-sm` — too tall + too wide).
+- **Tabs**: added sliding active-rect indicator via `motion.span layoutId` (per-Tabs-instance scope), so the active background morphs between triggers instead of instant swap. Uses spring 380/32 for smooth glide.
+- **Reasoning effort demo** (chat.tsx): pill row was full-width grid with oversized buttons; now `inline-flex w-fit` + `h-6 px-2 rounded-xs`.
+- **Editor canvas tokens** (dark): `--background-canvas/chrome/bar/tab-strip/tab-active` pulled into new ladder (canvas=card #1d1d1d, chrome+bar=app #181818, tab-strip=secondary #222, tab-active=accent #2e2e2e).
+- **style-tab-v4 controls** (13 files): dropped 27 hardcoded `dark:bg-[#262626]`/`dark:hover:bg-[#2F2F2F]`/`dark:bg-[#3A3A3A]` overrides; semantic tokens (`bg-background-secondary` / `hover:bg-background-tertiary` / `bg-background-active`) now drive both modes.
+- **v3 chip controls left alone** per owner instruction (v4 is now the default — `NEXT_PUBLIC_STYLE_PANEL_V4` env default flipped to `true`).
+- **Purple-skill swap** (4 files): branch-management, layer tree, draft-context-pill, verify-project switched from `purple-*` palette → `text-foreground-skill`.
+- **Status palette swap** (8 files): `red-*` → `destructive`, `amber-*` → `foreground-warning`, `emerald-*` → `foreground-success` across hero/auth/project-row/context-menu/delete/mic-button.
+- **components/ui audit**: `select.tsx`, `table.tsx`, `label.tsx` confirmed dead (0 imports) — flagged for delete (rm blocked by sandbox; owner can `rm` manually). `button.tsx`, `card.tsx`, `avatar.tsx`, `alert.tsx`, `badge.tsx` tokenized to use semantic tokens instead of raw slate/red.
+- **Radius audit**: `rounded-[4px]` → `rounded-xs`, `rounded-[8px]` → `rounded-sm` across 21 files. `rounded-[10px]` kept (v4 spec). `rounded-[6px]` / large arbitrary values left for design call.
+- **Light-mode contrast analysis** (no fixes — analysis only per instruction): hierarchy collapsed (secondary ~`#6c6c6c` and tertiary ~`#7d7d7d` only 13 luminance apart vs dark's 78→32→53 hierarchy); border invisible (matches `--background-tertiary`); card/popover/modal all `#fafafa` — no elevation; status colors still blue-aliased (dark un-aliased); sidebar collapsed with card; ring still gray. Light needs its own full pass.
+Files: `packages/ui/src/components/{button,switch,slider,tabs,dropdown-menu,popover,menubar,context-menu,hover-card,select,navigation-menu}.tsx`, `apps/web/client/src/components/ui/{button,card,avatar,alert,badge}.tsx`, `apps/web/client/src/env.ts`, 13 style-tab-v4 control files, ~21 radius-normalized files, `apps/web/client/src/app/design-system/_components/demos/chat.tsx`
+Links: prior dark token entry below
+
+---
+
+## 2026-05-23 — Dark theme rewrite to Codex-aligned palette + new semantic tokens
+Author: Claude Sonnet 4.6
+Area: `packages/ui` design tokens, `apps/web/client/src/styles` and `design-system` page
+Summary: Rewrote `.dark` block in `packages/ui/src/globals.css` to use Codex-exact dark palette (bg `#181818`, card `#1d1d1d`, modal `#212121`, popover `#222222`, sidebar `#161616`, accent `#458ef7`, ring `#458ef7`). Added 25+ new semantic tokens: `--modal`, `--background-modal/popover/tooltip-hover`, `--background-sidebar/sidebar-active/chat-input/selected/diff-added/diff-removed`, `--foreground-placeholder/tooltip/diff-added/diff-removed/skill/code-orange/code-purple`, `--border-card/input/search/secondary/popover`. Un-aliased status colors so success=`#6fc57e` real green, warning=`#ec8c55` real orange, destructive=`#e35446` real red (previously all blue-aliased). Switched headings to `font-weight: 500` with tighter tracking. Switched font cascade to system-first (`-apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Segoe UI', system-ui`) so Mac users get SF Pro automatically; Inter remains cross-platform fallback. Fixed `ColorSwatch` to read live computed CSS values via `getComputedStyle` + `MutationObserver` instead of stale static HSL strings from `data.ts` (root cause of "all colors look the same" bug in `/design-system`). Light-mode stubs added for the new tokens; full light pass deferred.
+Files: `packages/ui/src/globals.css`, `apps/web/client/src/styles/globals.css`, `apps/web/client/src/app/design-system/_components/demos/color-swatch.tsx`, `apps/web/client/src/app/design-system/_components/demos/data.ts`
+Links: n/a (internal design system pass)
+
+---
+
 ## 2026-05-22 — Core flow QA fixes for login, editor boot, and sandbox preview
 Author: Codex (agent)
 Area: `apps/web/client` auth/editor flows, `packages/code-provider` Vercel Sandbox

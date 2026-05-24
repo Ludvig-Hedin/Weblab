@@ -59,6 +59,68 @@ const DEFAULT_PANEL_WIDTH = 352;
 // sees the AI picking up their request.
 const FIRST_CREATION_PANEL_WIDTH = 460;
 
+// Width bounds mirror the <ResizablePanel> min/max below; restored values are
+// clamped to these so a stale or hand-edited localStorage entry can never push
+// the panel outside its allowed range.
+const PANEL_MIN_WIDTH = 280;
+const PANEL_MAX_WIDTH = 560;
+
+// Persist the panel layout so it survives reloads. Plain localStorage (not
+// Convex) keeps this device-local and schema-free — it's a UI preference, not
+// shared state.
+const STORAGE_KEYS = {
+    width: 'weblab:right-panel:width',
+    collapsed: 'weblab:right-panel:collapsed',
+    tab: 'weblab:right-panel:tab',
+} as const;
+
+const isRightPanelTab = (value: unknown): value is RightPanelTab =>
+    value === 'style' || value === 'interactions' || value === 'chat';
+
+const readStoredWidth = (): number | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEYS.width);
+        if (raw === null) return null;
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isFinite(parsed)) return null;
+        return Math.min(PANEL_MAX_WIDTH, Math.max(PANEL_MIN_WIDTH, parsed));
+    } catch {
+        return null;
+    }
+};
+
+const readStoredCollapsed = (): boolean | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEYS.collapsed);
+        if (raw === null) return null;
+        return raw === 'true';
+    } catch {
+        return null;
+    }
+};
+
+const readStoredTab = (): RightPanelTab | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEYS.tab);
+        return isRightPanelTab(raw) ? raw : null;
+    } catch {
+        return null;
+    }
+};
+
+const writeStored = (key: string, value: string): void => {
+    if (typeof window === 'undefined') return;
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // Storage can be full or blocked (private mode); persistence is a
+        // best-effort enhancement, so swallow and keep the in-memory state.
+    }
+};
+
 export const RightPanel = observer(() => {
     const editorEngine = useEditorEngine();
     const t = useTranslations();
@@ -67,11 +129,23 @@ export const RightPanel = observer(() => {
     });
     const isFirstCreation = !!creationRequest;
     const [isChatHistoryOpen, setIsChatHistoryOpen] = useState(false);
+    // Initialize with SSR-safe defaults so the server-rendered HTML matches the
+    // first client paint (no hydration mismatch). The persisted layout is
+    // restored in a mount-only effect below — mirroring the `isMobile` pattern
+    // in main.tsx.
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [panelWidth, setPanelWidth] = useState(
         isFirstCreation ? FIRST_CREATION_PANEL_WIDTH : DEFAULT_PANEL_WIDTH,
     );
     const [activeTab, setActiveTab] = useState<RightPanelTab>('chat');
+    // `ResizablePanel` only reads `defaultWidth` at mount; to apply a restored
+    // width after hydration we push it through `forceWidth` once. Left
+    // undefined until the restore effect runs so SSR/first-paint stays at the
+    // default and drag-resizing afterwards is never clobbered.
+    const [forceWidth, setForceWidth] = useState<number | undefined>(undefined);
+    // Guards the persist effects so they don't overwrite stored values with the
+    // SSR defaults before the restore effect has had a chance to run.
+    const hasRestoredLayout = useRef(false);
     const currentConversation = editorEngine.chat.conversation.current;
     const hasElementSelection = editorEngine.elements.selected.length > 0;
     // Style tab has nothing to act on while editing code — disable it in CODE
@@ -116,6 +190,64 @@ export const RightPanel = observer(() => {
         }
     }, [hasElementSelection, isCodeMode, activeTab]);
 
+    // ── Restore + persist layout preferences ───────────────────────────────────
+    // Restore once, after mount, so server and client first-paint agree.
+    useEffect(() => {
+        const storedCollapsed = readStoredCollapsed();
+        if (storedCollapsed !== null) {
+            setIsCollapsed(storedCollapsed);
+        }
+        const storedTab = readStoredTab();
+        if (storedTab !== null) {
+            setActiveTab(storedTab);
+        }
+        // First-creation keeps its wider chat-first width; don't let a stored
+        // preference shrink the panel during the initial scaffold.
+        if (!isFirstCreation) {
+            const storedWidth = readStoredWidth();
+            if (storedWidth !== null) {
+                setPanelWidth(storedWidth);
+                // Push the restored width into the panel (its internal width is
+                // locked to the mount-time defaultWidth otherwise).
+                setForceWidth(storedWidth);
+            }
+        }
+        hasRestoredLayout.current = true;
+        // Mount-only: read persisted state exactly once. `isFirstCreation` is
+        // read at mount intentionally (matches the one-shot state init above).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Once `forceWidth` has applied the restored width, clear it so it can't
+    // re-clobber a later user drag on a panel remount (e.g. toggling collapse).
+    // `defaultWidth={panelWidth}` already carries the correct width on remount.
+    useEffect(() => {
+        if (forceWidth === undefined) return;
+        const timer = setTimeout(() => setForceWidth(undefined), 350);
+        return () => clearTimeout(timer);
+    }, [forceWidth]);
+
+    // Width changes fire continuously while dragging the resizer, so debounce
+    // the write to avoid thrashing localStorage on every pointer move.
+    useEffect(() => {
+        if (!hasRestoredLayout.current) return;
+        const timer = setTimeout(() => {
+            writeStored(STORAGE_KEYS.width, String(panelWidth));
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [panelWidth]);
+
+    // Collapse and active-tab change discretely, so write immediately.
+    useEffect(() => {
+        if (!hasRestoredLayout.current) return;
+        writeStored(STORAGE_KEYS.collapsed, String(isCollapsed));
+    }, [isCollapsed]);
+
+    useEffect(() => {
+        if (!hasRestoredLayout.current) return;
+        writeStored(STORAGE_KEYS.tab, activeTab);
+    }, [activeTab]);
+
     const showStyleDot = hasElementSelection && activeTab !== 'style' && !isCodeMode;
     const hasAnyInteractions =
         editorEngine.interactions.isLoaded && editorEngine.interactions.interactions.length > 0;
@@ -159,8 +291,9 @@ export const RightPanel = observer(() => {
                 <ResizablePanel
                     side="right"
                     defaultWidth={panelWidth}
-                    minWidth={280}
-                    maxWidth={560}
+                    minWidth={PANEL_MIN_WIDTH}
+                    maxWidth={PANEL_MAX_WIDTH}
+                    forceWidth={forceWidth}
                     onWidthChange={setPanelWidth}
                     className="overflow-hidden"
                 >

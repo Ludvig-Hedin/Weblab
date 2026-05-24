@@ -1,4 +1,7 @@
 import { type NextRequest } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
@@ -15,7 +18,7 @@ import { loadSkillSummaries } from '@weblab/ai/server';
 import { toDbMessage } from '@weblab/db';
 import { CHAT_MODEL_OPTIONS, ChatType } from '@weblab/models';
 
-import { api } from '@/trpc/server';
+import type { Id } from '../../../../convex/_generated/dataModel';
 import { trackEvent } from '@/utils/analytics/server';
 import {
     checkMessageLimit,
@@ -24,6 +27,81 @@ import {
     getSupabaseUser,
     incrementUsage,
 } from './helpers';
+
+const getConvexToken = async (): Promise<string | undefined> => {
+    const { getToken } = await auth();
+    const token = await getToken({ template: 'convex' });
+    return token ?? undefined;
+};
+
+// Convex-backed replacement for the legacy tRPC caller that @weblab/ai server
+// tools (get/update_project_settings) and the Agent Skills registry expect.
+// packages/ai stays Convex-agnostic — it casts `trpcCaller` to a small
+// caller-shaped interface and calls `.query`/`.mutate`. We satisfy that shape
+// here, where the per-request Convex auth token lives. All calls carry the
+// caller's token, so Convex's requireCap enforces project ownership server-side.
+const buildConvexToolCaller = (token: string | undefined) => ({
+    project: {
+        settings: {
+            get: {
+                query: ({ projectId }: { projectId: string }) =>
+                    fetchQuery(
+                        api.projectSettings.get,
+                        { projectId: projectId as Id<'projects'> },
+                        { token },
+                    ),
+            },
+            upsert: {
+                // The tool sends only the fields it wants to change, but the
+                // Convex mutation requires all three commands. Read-merge-write
+                // so unspecified fields keep their current value (matches the
+                // old tRPC upsert semantics).
+                mutate: async ({
+                    settings,
+                }: {
+                    projectId: string;
+                    settings: {
+                        projectId: string;
+                        runCommand?: string;
+                        buildCommand?: string;
+                        installCommand?: string;
+                    };
+                }) => {
+                    const pid = settings.projectId as Id<'projects'>;
+                    const current = await fetchQuery(
+                        api.projectSettings.get,
+                        { projectId: pid },
+                        { token },
+                    );
+                    return fetchMutation(
+                        api.projectSettings.upsert,
+                        {
+                            projectId: pid,
+                            runCommand: settings.runCommand ?? current?.runCommand ?? '',
+                            buildCommand: settings.buildCommand ?? current?.buildCommand ?? '',
+                            installCommand:
+                                settings.installCommand ?? current?.installCommand ?? '',
+                        },
+                        { token },
+                    );
+                },
+            },
+        },
+    },
+    skills: {
+        list: {
+            query: ({ projectId }: { projectId?: string; scope?: string }) =>
+                fetchQuery(
+                    api.skills.list,
+                    {
+                        ...(projectId ? { projectId: projectId as Id<'projects'> } : {}),
+                        scope: 'all' as const,
+                    },
+                    { token },
+                ),
+        },
+    },
+});
 
 // ollamaBaseUrl is user-supplied and may be passed to outbound HTTP calls,
 // so reject anything that isn't a loopback host to prevent SSRF against
@@ -121,7 +199,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     let parsedBody: z.infer<typeof ChatRequestBodySchema>;
     try {
         parsedBody = ChatRequestBodySchema.parse(await req.json());
-    } catch (err) {
+    } catch (err: any) {
         return new Response(
             JSON.stringify({
                 error: err instanceof Error ? err.message : 'Invalid request body',
@@ -140,10 +218,16 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     // serverToolContext below trusts projectId to scope server-side tools, so
     // this check is the contract that makes that trust safe.
     // PLAN mode without projectId = pre-creation planning session — skip check.
+    const convexToken = await getConvexToken();
+    const convexToolCaller = buildConvexToolCaller(convexToken);
     if (projectId) {
         try {
-            await api.project.get({ projectId });
-        } catch (err) {
+            await fetchQuery(
+                api.projects.get,
+                { projectId: projectId as Id<'projects'> },
+                { token: convexToken },
+            );
+        } catch (err: any) {
             console.warn('[chat] project access denied', err);
             return new Response(JSON.stringify({ error: 'Forbidden', code: 403 }), {
                 status: 403,
@@ -176,9 +260,12 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     // failure (falls back to the React/Next.js prompt).
     // PLAN pre-creation sessions have no projectId — skip and default to null.
     const frameworkPromise: Promise<ProjectFrameworkId | null> = projectId
-        ? api.project
-              .get({ projectId })
-              .then((p) => p?.metadata.runtime?.framework ?? null)
+        ? fetchQuery(
+              api.projects.get,
+              { projectId: projectId as Id<'projects'> },
+              { token: convexToken },
+          )
+              .then((p) => p?.runtimeMetadata?.framework ?? null)
               .catch((err) => {
                   console.warn('[chat] failed to read project framework, defaulting to React', err);
                   return null;
@@ -226,7 +313,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         usageRefunded = true;
         try {
             await decrementUsage(req, usageRecord);
-        } catch (err) {
+        } catch (err: any) {
             console.warn(`[chat] failed to refund usage (${reason})`, err);
         }
     };
@@ -237,14 +324,29 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
 
         // Skip usage tracking for local models — no API cost incurred
         if (chatType === ChatType.EDIT && !isLocalModel) {
-            usageRecord = await incrementUsage(req, traceId);
+            const incrementResult = await incrementUsage(req, traceId);
+            if (incrementResult && 'limitReached' in incrementResult) {
+                // PRO bucket exhausted. checkMessageLimit can pass under
+                // concurrency (it reads the pre-deduction count), so the
+                // up-front increment is the real gate — refuse before streaming
+                // any model output. The increment mutation rolled back, so
+                // there is nothing to refund.
+                return new Response(
+                    JSON.stringify({
+                        error: 'Credit limit exceeded. Please upgrade to a paid plan.',
+                        code: 402,
+                    }),
+                    { status: 402, headers: { 'Content-Type': 'application/json' } },
+                );
+            }
+            usageRecord = incrementResult;
         }
         // Await memories, framework, and skills — all kicked off concurrently
         // with model validation above. Each defaults safely on failure.
         const skillsPromise = loadSkillSummaries({
             userId,
             projectId: projectId ?? undefined,
-            trpcCaller: api,
+            trpcCaller: convexToolCaller,
         }).catch((err) => {
             console.warn('[chat] failed to load Agent Skills, continuing without them', err);
             return [];
@@ -275,7 +377,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                       userId,
                       projectId,
                       conversationId,
-                      trpcCaller: api,
+                      trpcCaller: convexToolCaller,
                       messages,
                   }
                 : undefined,
@@ -318,10 +420,14 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
                     .map((msg) => toDbMessage(msg, conversationId));
 
-                await api.chat.message.replaceConversationMessages({
-                    conversationId,
-                    messages: messagesToStore,
-                });
+                await fetchMutation(
+                    api.messages.replaceConversationMessages,
+                    {
+                        conversationId: conversationId as Id<'conversations'>,
+                        messages: messagesToStore as never,
+                    },
+                    { token: convexToken },
+                );
 
                 // Fire-and-forget: extract facts and store them in Mem0.
                 // Never awaited — the streaming response has already been sent.
@@ -337,7 +443,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                 return errorHandler(error);
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in streamResponse setup', error);
         // If there was an error setting up the stream and we incremented usage, revert it
         await refundUsageOnce('setup_error');

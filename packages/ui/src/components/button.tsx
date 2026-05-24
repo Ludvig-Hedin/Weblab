@@ -63,22 +63,25 @@ const BUTTON_BASE =
 const buttonVariants = cva(BUTTON_BASE, {
     variants: {
         variant: {
-            default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+            // Explicit colors avoid CSS-variable resolution failures in dark mode (white-on-white).
+            default:
+                'bg-[#0d0d0d] text-white hover:bg-[#141414] dark:bg-white dark:text-[#181818] dark:hover:bg-white/90',
             destructive:
                 'bg-[#FDEBEB] text-[#C23730] hover:bg-[#FBD9D9] dark:bg-[#321F20] dark:text-[#FF595D] dark:hover:bg-[#3a2326]',
             outline:
-                'border-border-secondary text-foreground hover:bg-background-secondary border bg-transparent',
+                'border-border-secondary dark:border-[#3a3a3a] text-foreground hover:bg-background-secondary border bg-transparent',
             secondary:
                 'bg-secondary text-secondary-foreground hover:bg-background-tertiary border-border-secondary border',
             muted: 'bg-[#F3F3F3] text-[#0E0E0E] hover:bg-[#E8E8E8] dark:bg-[#242424] dark:text-[#DEDEDE] dark:hover:bg-[#2a2a2a]',
-            ghost: 'hover:text-foreground hover:bg-background-hover dark:hover:text-foreground text-[#939393] dark:text-[#717171]',
+            ghost: 'hover:text-foreground hover:bg-background-hover dark:hover:text-foreground text-[#939393] dark:text-[#999999]',
             link: 'text-foreground-brand px-0 underline-offset-4 hover:underline',
             // Solid brand-blue accent: matches link color, applied as fill + white text.
             accent: 'bg-foreground-brand hover:bg-foreground-brand/90 text-white',
             chip: 'bg-background-secondary text-foreground-secondary hover:bg-background-tertiary rounded-sm',
             // Solid orange warning matches the accent pattern (solid + white).
             warning: 'bg-foreground-warning hover:bg-foreground-warning/90 text-white',
-            danger: 'bg-destructive/10 text-destructive border-destructive/30 hover:bg-destructive/15 border',
+            // Same style as destructive — soft red surface for error/offline status.
+            danger: 'bg-[#FDEBEB] text-[#C23730] hover:bg-[#FBD9D9] dark:bg-[#321F20] dark:text-[#FF595D] dark:hover:bg-[#3a2326]',
         },
         size: {
             // Heights + padding + font scale together. Icon sizes scale with text.
@@ -95,8 +98,8 @@ const buttonVariants = cva(BUTTON_BASE, {
             // Editor toolbar buttons stay tight (28px) to preserve chrome density.
             toolbar:
                 "text-mini h-7 min-w-[28px] px-1.5 py-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-            // Inline compact rows / chips — 24px tall.
-            compact: "text-mini h-6 px-2 has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+            // Inline compact rows / chips — 24px tall. rounded-sm overrides base rounded-md (12px on 24px = pill).
+            compact: "text-mini h-6 px-2 rounded-sm has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
         },
     },
     defaultVariants: {

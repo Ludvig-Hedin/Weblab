@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api as convexApi } from '@convex/_generated/api';
-import { TRPCClientError } from '@trpc/client';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
@@ -16,7 +15,6 @@ import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@webla
 import type { ProcessedFile } from '@/app/projects/types';
 import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { uploadToSandbox } from '../../local/_context';
 
@@ -88,12 +86,39 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
     const [finalizeError, setFinalizeError] = useState<string | null>(null);
 
     const user = useQuery(convexApi.users.me, {});
-    // TODO(convex-migration): port api.sandbox.* — no Convex equivalents yet (fork, startOrphan,
-    // deleteOrphan, orphanBulkUpload). Leaving tRPC calls for sandbox-only orchestration.
-    const { mutateAsync: forkSandbox } = api.sandbox.fork.useMutation();
-    const { mutateAsync: startOrphanSandbox } = api.sandbox.startOrphan.useMutation();
-    const { mutateAsync: deleteOrphanSandbox } = api.sandbox.deleteOrphan.useMutation();
-    const { mutateAsync: orphanBulkUpload } = api.sandbox.orphanBulkUpload.useMutation();
+    // TODO(sandbox-port): port api.sandbox.* — no Convex equivalents yet (fork, startOrphan,
+    // deleteOrphan, orphanBulkUpload). Replaced with stubs that throw so the
+    // import flow surfaces a clear error instead of silently doing nothing.
+    const forkSandbox = async (
+        _args: unknown,
+    ): Promise<{
+        sandboxId: string;
+        previewUrl: string;
+        sandboxRuntime: {
+            provider: 'code_sandbox' | 'vercel_sandbox';
+            snapshotId?: string;
+            port?: number;
+            devCommand?: string;
+            runtime?: string;
+        };
+    }> => {
+        throw new Error(
+            'Sandbox provisioning is temporarily unavailable while the sandbox service is migrated.',
+        );
+    };
+    const startOrphanSandbox = async (_args: unknown): Promise<unknown> => {
+        throw new Error(
+            'Sandbox start is temporarily unavailable while the sandbox service is migrated.',
+        );
+    };
+    const deleteOrphanSandbox = async (_args: unknown): Promise<void> => {
+        // No-op: the sandbox endpoint is gone, so there's nothing to clean up.
+    };
+    const orphanBulkUpload = async (_args: unknown): Promise<void> => {
+        throw new Error(
+            'Sandbox upload is temporarily unavailable while the sandbox service is migrated.',
+        );
+    };
     const createProjectMutation = useMutation(convexApi.projects.create);
     const removeProjectMutation = useMutation(convexApi.projects.remove);
     const createProject = (args: Parameters<typeof createProjectMutation>[0]) =>
@@ -295,16 +320,11 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
             if (err instanceof DOMException && err.name === 'AbortError') {
                 return;
             }
-            // Surface the actual tRPC error rather than a generic fallback so
+            // Surface the actual error rather than a generic fallback so
             // users see why the import failed (issue #40).
             const fallback =
                 'Failed to create project. If this keeps happening, check your Figma credentials or try again.';
-            const message =
-                err instanceof TRPCClientError
-                    ? err.message
-                    : err instanceof Error
-                      ? err.message
-                      : fallback;
+            const message = err instanceof Error ? err.message : fallback;
             setFinalizeError(message);
             if (inFlightSandboxId.current && !inFlightProjectId.current) {
                 await deleteOrphanSandbox({

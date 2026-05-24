@@ -194,7 +194,9 @@ export const update = mutation({
         avatarUrl: v.optional(v.union(v.string(), v.null())),
     },
     handler: async (ctx, { workspaceId, name, slug, avatarUrl }) => {
-        const { user, workspace } = await requireCap(ctx, 'workspace.update', { workspaceId });
+        const { user, workspace } = await requireCap(ctx, 'workspace.update', {
+            workspaceId,
+        });
         const patch: Partial<Doc<'workspaces'>> = { updatedAt: Date.now() };
         if (name !== undefined) {
             const trimmed = name.trim();
@@ -229,7 +231,9 @@ export const update = mutation({
 export const remove = mutation({
     args: { workspaceId: v.id('workspaces') },
     handler: async (ctx, { workspaceId }) => {
-        const { user, workspace } = await requireCap(ctx, 'workspace.delete', { workspaceId });
+        const { user, workspace } = await requireCap(ctx, 'workspace.delete', {
+            workspaceId,
+        });
         if (workspace.kind === PERSONAL) {
             throw new Error('BAD_REQUEST: personal workspaces cannot be deleted');
         }
@@ -246,7 +250,11 @@ export const remove = mutation({
             event: 'workspace.deleted',
             workspaceId,
             actorUserId: user._id,
-            payload: { name: workspace.name, slug: workspace.slug, kind: workspace.kind },
+            payload: {
+                name: workspace.name,
+                slug: workspace.slug,
+                kind: workspace.kind,
+            },
         });
         const members = await ctx.db
             .query('workspaceMembers')
@@ -293,7 +301,9 @@ export const leave = mutation({
 export const transferOwnership = mutation({
     args: { workspaceId: v.id('workspaces'), newOwnerUserId: v.id('users') },
     handler: async (ctx, { workspaceId, newOwnerUserId }) => {
-        const { user } = await requireCap(ctx, 'workspace.manage_members', { workspaceId });
+        const { user } = await requireCap(ctx, 'workspace.manage_members', {
+            workspaceId,
+        });
         const current = await getMembership(ctx, workspaceId, user._id);
         if (current?.role !== OWNER) throw new Error('FORBIDDEN: caller not owner');
         const target = await getMembership(ctx, workspaceId, newOwnerUserId);
@@ -348,7 +358,9 @@ export const updateMemberRole = mutation({
         role: vWorkspaceRole,
     },
     handler: async (ctx, { workspaceId, userId, role }) => {
-        const { user } = await requireCap(ctx, 'workspace.manage_members', { workspaceId });
+        const { user } = await requireCap(ctx, 'workspace.manage_members', {
+            workspaceId,
+        });
         const target = await getMembership(ctx, workspaceId, userId);
         if (!target) throw new Error('NOT_FOUND: member');
         if (target.role === OWNER && role !== OWNER) {
@@ -373,7 +385,9 @@ export const updateMemberRole = mutation({
 export const removeMember = mutation({
     args: { workspaceId: v.id('workspaces'), userId: v.id('users') },
     handler: async (ctx, { workspaceId, userId }) => {
-        const { user } = await requireCap(ctx, 'workspace.manage_members', { workspaceId });
+        const { user } = await requireCap(ctx, 'workspace.manage_members', {
+            workspaceId,
+        });
         if (userId === user._id) throw new Error('BAD_REQUEST: use leave() to remove self');
         const target = await getMembership(ctx, workspaceId, userId);
         if (!target) throw new Error('NOT_FOUND: member');
@@ -408,6 +422,16 @@ export const inviteCreate = mutation({
     },
     handler: async (ctx, { workspaceId, email, role }) => {
         const { user } = await requireCap(ctx, 'workspace.invite', { workspaceId });
+        // Personal workspaces are intentionally single-seat. Reject invites
+        // regardless of the caller's cap so a stale UI or hand-crafted call
+        // cannot create a second member in someone's personal space.
+        const workspace = await ctx.db.get(workspaceId);
+        if (!workspace) throw new Error('NOT_FOUND: workspace');
+        if (workspace.kind === PERSONAL) {
+            throw new Error(
+                'BAD_REQUEST: Personal workspaces cannot have invitations. Create a team workspace to collaborate.',
+            );
+        }
         const normalizedEmail = email.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
             throw new Error('BAD_REQUEST: invalid email');
@@ -485,7 +509,10 @@ export const inviteRevoke = mutation({
             workspaceId: row.workspaceId,
         });
         if (row.status !== 'pending') throw new Error('BAD_REQUEST: not pending');
-        await ctx.db.patch(invitationId, { status: 'revoked', revokedAt: Date.now() });
+        await ctx.db.patch(invitationId, {
+            status: 'revoked',
+            revokedAt: Date.now(),
+        });
         await audit(ctx, {
             event: 'workspace_invite.revoked',
             workspaceId: row.workspaceId,
@@ -525,7 +552,10 @@ export const inviteAccept = mutation({
         }
         const existing = await getMembership(ctx, row.workspaceId, user._id);
         if (existing) {
-            await ctx.db.patch(row._id, { status: 'accepted', acceptedAt: Date.now() });
+            await ctx.db.patch(row._id, {
+                status: 'accepted',
+                acceptedAt: Date.now(),
+            });
             return existing;
         }
         const memberId = await ctx.db.insert('workspaceMembers', {

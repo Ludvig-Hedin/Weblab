@@ -1,8 +1,10 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchAction } from 'convex/nextjs';
 
 import { getBannerById } from '@/lib/promo-banners';
-import { api } from '@/trpc/server';
 import { Routes } from '@/utils/constants';
 
 /**
@@ -40,10 +42,16 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const result = await api.subscription.startPromoCheckout({
-            plan: banner.action.plan,
-            promotionCode: banner.action.promotionCode,
-        });
+        const { getToken } = await auth();
+        const token = await getToken({ template: 'convex' });
+        const result = await fetchAction(
+            api.subscriptionActions.startPromoCheckout,
+            {
+                plan: banner.action.plan,
+                promotionCode: banner.action.promotionCode,
+            },
+            { token: token ?? undefined },
+        );
         if ('redirectUrl' in result && result.redirectUrl) {
             return NextResponse.redirect(result.redirectUrl, { status: 303 });
         }

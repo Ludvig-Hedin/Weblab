@@ -10,10 +10,17 @@ import { can, CAPABILITIES } from './auth';
 export async function getOptionalUser(ctx: QueryCtx | MutationCtx): Promise<Doc<'users'> | null> {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    return ctx.db
+    // Use `.collect()` then dedupe so a duplicate row (rare, see
+    // requireUserJIT) doesn't throw and lock the user out of every read.
+    // Queries can't delete; cleanup happens lazily on the next mutation
+    // that flows through `requireUserJIT`.
+    const matches = await ctx.db
         .query('users')
         .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
-        .unique();
+        .collect();
+    if (matches.length === 0) return null;
+    if (matches.length === 1) return matches[0]!;
+    return [...matches].sort((a, b) => a._creationTime - b._creationTime)[0]!;
 }
 
 export async function requireUser(ctx: QueryCtx | MutationCtx): Promise<Doc<'users'>> {
@@ -26,11 +33,41 @@ export async function requireUserJIT(ctx: MutationCtx): Promise<Doc<'users'>> {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('UNAUTHORIZED');
 
-    const existing = await ctx.db
+    // INVARIANT: at most one users row per clerkUserId. Convex has no native
+    // UNIQUE constraint — Convex transactions are serializable per-mutation,
+    // so two concurrent first-login mutations cannot both land an insert in
+    // the same logical timeline. But the Clerk webhook (`upsertUser`) and
+    // this JIT path are independent writers that race on cold starts: the
+    // webhook can land between our `.unique()` read and our insert,
+    // producing two rows. `.unique()` then throws on every subsequent read
+    // and the user is bricked until manual cleanup. Use `.collect()` so we
+    // can detect and self-heal that case here instead of letting it bleed
+    // into every downstream query.
+    const matches = await ctx.db
         .query('users')
         .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
-        .unique();
-    if (existing) return existing;
+        .collect();
+    if (matches.length === 1) return matches[0]!;
+    if (matches.length > 1) {
+        // Keep the earliest row (most likely to be the one downstream tables
+        // already FK into); delete the rest. Best-effort: errors here are
+        // swallowed because the user is signed in and the canonical row is
+        // already chosen — we don't want to fail the request over cleanup.
+        const sorted = [...matches].sort((a, b) => a._creationTime - b._creationTime);
+        const keep = sorted[0]!;
+        for (const dup of sorted.slice(1)) {
+            try {
+                await ctx.db.delete(dup._id);
+            } catch (err) {
+                console.warn('[requireUserJIT] duplicate cleanup failed', {
+                    clerkUserId: identity.subject,
+                    duplicateId: dup._id,
+                    err,
+                });
+            }
+        }
+        return keep;
+    }
 
     const id = await ctx.db.insert('users', {
         clerkUserId: identity.subject,
@@ -121,7 +158,10 @@ export async function requireCap(
     const user = await requireUser(ctx);
     const c = await resolveScope(ctx, user, scope);
     const r: PermissionResource = {
-        workspace: { id: c.workspace._id, createdByUserId: c.workspace.createdByUserId },
+        workspace: {
+            id: c.workspace._id,
+            createdByUserId: c.workspace.createdByUserId,
+        },
         workspaceRole: c.workspaceRole,
         project: c.project
             ? {
@@ -151,7 +191,10 @@ export async function getCapabilities(
         return [];
     }
     const r: PermissionResource = {
-        workspace: { id: c.workspace._id, createdByUserId: c.workspace.createdByUserId },
+        workspace: {
+            id: c.workspace._id,
+            createdByUserId: c.workspace.createdByUserId,
+        },
         workspaceRole: c.workspaceRole,
         project: c.project
             ? {

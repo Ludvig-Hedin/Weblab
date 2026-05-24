@@ -1,20 +1,40 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { makeAutoObservable, reaction } from 'mobx';
 
-import type { Branch, RouterType } from '@weblab/models';
+import type { Branch, Frame, RouterType } from '@weblab/models';
 import type { ParsedError } from '@weblab/utility';
 import { CodeFileSystem } from '@weblab/file-system';
 import { toast } from '@weblab/ui/sonner';
 
 import type { EditorEngine } from '../engine';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.branch.fork` → `api.branchActions.fork`,
-// `api.branch.createBlank` → `api.branchActions.createBlank`,
-// `api.branch.update` → `api.branches.update` once a Convex HTTP client with
-// Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import type { Id } from '@convex/_generated/dataModel';
+import { fromConvexBranch } from '@/app/project/[id]/_adapters/convex-bootstrap';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { ErrorManager } from '../error';
 import { HistoryManager } from '../history';
 import { SandboxManager } from '../sandbox';
+
+// Shape returned by `api.branchActions.fork` / `api.branchActions.createBlank`
+// after they run the internal `_insertBranchWithFrames` mutation. Both fields
+// are flat Convex docs — see `convex/branches.ts`.
+type ConvexBranchActionResult = {
+    branch: Parameters<typeof fromConvexBranch>[0];
+    frames: Array<{
+        _id: string;
+        canvasId: string;
+        branchId?: string;
+        url: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        groupId?: string;
+        breakpointId?: string;
+        breakpointName?: string;
+        breakpointOrder?: number;
+    }>;
+};
 
 export interface BranchData {
     branch: Branch;
@@ -29,6 +49,7 @@ export class BranchManager {
     private currentBranchId: string | null = null;
     private branchMap = new Map<string, BranchData>();
     private reactionDisposer: (() => void) | null = null;
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(editorEngine: EditorEngine) {
         this.editorEngine = editorEngine;
@@ -207,20 +228,30 @@ export class BranchManager {
         try {
             toast.loading(`Forking branch "${branch.name}"...`);
             // Call the fork API
-            const result = await api.branch.fork.mutate({ branchId });
+            const result = (await this.convex.action(convexApi.branchActions.fork, {
+                branchId: branchId as Id<'branches'>,
+            })) as ConvexBranchActionResult;
+
+            // Convex returns flat docs — normalize the branch so editor code
+            // gets the nested `sandbox`/`git`/`runtime` shape it expects.
+            const newBranch = fromConvexBranch(result.branch);
 
             // Add the new branch to the local branch map
-            const branchData = this.createBranchData(result.branch);
+            const branchData = this.createBranchData(newBranch);
             await branchData.codeEditor.initialize();
             await branchData.sandbox.init();
 
-            // Add the created frames to the frame manager
+            // Add the created frames to the frame manager. applyFrames is
+            // declared to accept `Frame[]` — the rest of the editor casts the
+            // bootstrap Convex docs the same way (see
+            // _hooks/use-start-project.tsx), so the runtime shape mismatch is
+            // already absorbed by the receiving code.
             if (result.frames && result.frames.length > 0) {
-                this.editorEngine.frames.applyFrames(result.frames);
+                this.editorEngine.frames.applyFrames(result.frames as unknown as Frame[]);
             }
 
             // Switch to the new branch
-            await this.switchToBranch(result.branch.id);
+            await this.switchToBranch(newBranch.id);
         } catch (error) {
             console.error('Failed to fork branch:', error);
             toast.error('Failed to fork branch');
@@ -257,26 +288,29 @@ export class BranchManager {
             const projectId = currentBranches[0]!.branch.projectId;
 
             // Call the createBlank API
-            const result = await api.branch.createBlank.mutate({
-                projectId,
+            const result = (await this.convex.action(convexApi.branchActions.createBlank, {
+                projectId: projectId as Id<'projects'>,
                 branchName,
                 framePosition,
-            });
+            })) as ConvexBranchActionResult;
 
             const routerConfig = await this.activeSandbox.getRouterConfig();
 
+            const newBranch = fromConvexBranch(result.branch);
+
             // Add the new branch to the local branch map
-            const branchData = this.createBranchData(result.branch, routerConfig?.type);
+            const branchData = this.createBranchData(newBranch, routerConfig?.type);
             await branchData.codeEditor.initialize();
             await branchData.sandbox.init();
 
-            // Add the created frames to the frame manager
+            // Add the created frames to the frame manager. See `forkBranch`
+            // for why this cast is safe.
             if (result.frames && result.frames.length > 0) {
-                this.editorEngine.frames.applyFrames(result.frames);
+                this.editorEngine.frames.applyFrames(result.frames as unknown as Frame[]);
             }
 
             // Switch to the new branch
-            await this.switchToBranch(result.branch.id);
+            await this.switchToBranch(newBranch.id);
         } catch (error) {
             console.error('Failed to create blank sandbox:', error);
             toast.error('Failed to create blank sandbox');
@@ -293,10 +327,33 @@ export class BranchManager {
         }
 
         try {
-            await api.branch.update.mutate({
-                id: branchId,
-                ...updates,
-            });
+            // Flatten the nested model shape (`git: { branch, commitSha,
+            // repoUrl }`, `runtime: { type, ... }`) into the flat Convex
+            // mutation contract. Only forward fields the caller actually set.
+            const args: {
+                branchId: Id<'branches'>;
+                name?: string;
+                description?: string | null;
+                isDefault?: boolean;
+                gitBranch?: string | null;
+                gitCommitSha?: string | null;
+                gitRepoUrl?: string | null;
+                runtimeType?: 'cloud' | 'local' | 'hybrid';
+                runtimeMetadata?: unknown;
+            } = { branchId: branchId as Id<'branches'> };
+            if (updates.name !== undefined) args.name = updates.name;
+            if (updates.description !== undefined) args.description = updates.description;
+            if (updates.isDefault !== undefined) args.isDefault = updates.isDefault;
+            if (updates.git !== undefined) {
+                args.gitBranch = updates.git?.branch ?? null;
+                args.gitCommitSha = updates.git?.commitSha ?? null;
+                args.gitRepoUrl = updates.git?.repoUrl ?? null;
+            }
+            if (updates.runtime !== undefined) {
+                args.runtimeType = updates.runtime.type;
+                args.runtimeMetadata = updates.runtime;
+            }
+            await this.convex.mutation(convexApi.branches.update, args);
 
             // Update local branch state
             Object.assign(branchData.branch, updates);

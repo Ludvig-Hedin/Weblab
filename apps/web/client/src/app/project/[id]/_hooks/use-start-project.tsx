@@ -29,6 +29,7 @@ import { ensureBreakpointSiblings } from '@/components/store/editor/frames';
 import { useOnlineStatus } from '@/services/offline/online-status';
 import { cacheProjectExtras, getCachedProject } from '@/services/offline/project-cache';
 import { replayQueue } from '@/services/offline/replay-controller';
+import { fromConvexBootstrap, fromConvexConversation } from '../_adapters/convex-bootstrap';
 import { useTabActive } from '../_hooks/use-tab-active';
 
 interface ProjectReadyState {
@@ -55,25 +56,31 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const processedRequestIdRef = useRef<string | null>(null);
     const { tabState } = useTabActive();
     const convex = useConvex();
-    const user = useQuery(
-        (online ? api.users.me : 'skip') as typeof api.users.me,
-        online ? {} : (undefined as unknown as Record<string, never>),
-    );
+    // Convex's `'skip'` sentinel goes in the SECOND argument, not the first.
+    // The migration left every gated query passing `'skip'` as the FunctionReference,
+    // which Convex looked up as a query named literally `skip:default` — failing
+    // with `Could not find public function for 'skip'.` and detonating the
+    // entire editor route. Pass `api.X` unconditionally and gate `'skip'` on
+    // the args slot so the query subscribes only when the gate flips true.
+    const user = useQuery(api.users.me, online ? {} : 'skip');
     const userError: { message?: string } | null = null;
     // CR-050: poll the canvas + frames row so collaborator mutations show up
     // without a full reload. The userCanvas row is per-user (scale/position),
     // so re-applying it on every poll would clobber the local pan/zoom — we
     // gate that with `initialCanvasAppliedRef` below. Frames are shared and
     // re-apply safely thanks to the new idempotent `applyFrames`.
-    const bootstrap = useQuery(
-        (online && !initialBootstrap
-            ? api.projects.getEditorBootstrap
-            : 'skip') as typeof api.projects.getEditorBootstrap,
+    const rawBootstrap = useQuery(
+        api.projects.getEditorBootstrap,
         online && !initialBootstrap
             ? { projectId: editorEngine.projectId as Id<'projects'> }
-            : (undefined as unknown as { projectId: Id<'projects'> }),
+            : 'skip',
     );
     const bootstrapError: { message?: string } | null = null;
+    // Map the raw Convex doc graph into the editor-store shapes the stores were
+    // written against. The server-rendered `initialBootstrap` (page.tsx) is
+    // already mapped via `fromConvexBootstrap`; this covers the client-side
+    // refetch path so both feed identical shapes downstream.
+    const bootstrap = rawBootstrap ? fromConvexBootstrap(rawBootstrap as never) : undefined;
     const effectiveBootstrap = initialBootstrap ?? bootstrap ?? undefined;
 
     // TODO(convex-migration): `userCanvas.getWithFrames` had no direct Convex
@@ -83,26 +90,27 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
     const canvasError: { message?: string } | null = null;
     const initialCanvasAppliedRef = useRef(false);
     const breakpointMigrationRanRef = useRef(false);
+    const liveConversations = useQuery(
+        api.conversations.list,
+        online && Boolean(effectiveBootstrap)
+            ? { projectId: editorEngine.projectId as Id<'projects'> }
+            : 'skip',
+    );
+    // `conversations.list` returns raw Convex docs (`_id`/`displayName`); map
+    // them to `ChatConversation` (`id`/`title`) so `applyConversations` and the
+    // chat panel see a real `id`. `effectiveBootstrap.conversations` is already
+    // mapped (server bootstrap or the mapped client `bootstrap` above).
     const conversations =
-        useQuery(
-            (online && Boolean(effectiveBootstrap)
-                ? api.conversations.list
-                : 'skip') as typeof api.conversations.list,
-            online && Boolean(effectiveBootstrap)
-                ? { projectId: editorEngine.projectId as Id<'projects'> }
-                : (undefined as unknown as { projectId: Id<'projects'> }),
-        ) ??
-        effectiveBootstrap?.conversations ??
-        undefined;
+        (liveConversations
+            ? liveConversations.map(fromConvexConversation)
+            : effectiveBootstrap?.conversations) ?? undefined;
     const conversationsError: { message?: string } | null = null;
     const creationRequest =
         useQuery(
-            (online && Boolean(effectiveBootstrap)
-                ? api.projectCreateRequests.getPendingRequest
-                : 'skip') as typeof api.projectCreateRequests.getPendingRequest,
+            api.projectCreateRequests.getPendingRequest,
             online && Boolean(effectiveBootstrap)
                 ? { projectId: editorEngine.projectId as Id<'projects'> }
-                : (undefined as unknown as { projectId: Id<'projects'> }),
+                : 'skip',
         ) ??
         effectiveBootstrap?.creationRequest ??
         undefined;

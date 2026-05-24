@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api as convexApi } from '@convex/_generated/api';
-import { TRPCClientError } from '@trpc/client';
 import { useConvex, useQuery } from 'convex/react';
 
 import type { GitHubRepository } from '@weblab/github';
 
-import { api as clientApi } from '@/trpc/client';
 import { Routes } from '@/utils/constants';
 
 export type GitHubImportPhase =
@@ -54,16 +52,27 @@ export const useRepositoryImport = () => {
         let didOpenEditor = false;
         try {
             checkAborted();
-            const { sandboxId, previewUrl, sandboxRuntime } =
-                await clientApi.sandbox.createFromGitHub.mutate(
-                    {
-                        repoUrl: selectedRepo.clone_url,
-                        branch: selectedRepo.default_branch,
-                    },
-                    {
-                        signal,
-                    },
-                );
+            // TODO(sandbox-port): api.sandbox.createFromGitHub has no Convex
+            // equivalent yet — surface a clear error until the route lands.
+            const createFromGitHub = async (
+                _args: { repoUrl: string; branch: string },
+                _opts: { signal?: AbortSignal },
+            ): Promise<{
+                sandboxId: string;
+                previewUrl: string;
+                sandboxRuntime: unknown;
+            }> => {
+                throw new Error('GitHub import is temporarily unavailable.');
+            };
+            const { sandboxId, previewUrl, sandboxRuntime } = await createFromGitHub(
+                {
+                    repoUrl: selectedRepo.clone_url,
+                    branch: selectedRepo.default_branch,
+                },
+                {
+                    signal,
+                },
+            );
             forkedSandboxId = sandboxId;
             checkAborted();
 
@@ -73,7 +82,7 @@ export const useRepositoryImport = () => {
                 description: selectedRepo.description ?? 'Imported from GitHub',
                 sandboxId,
                 sandboxUrl: previewUrl,
-                sandboxRuntime,
+                sandboxRuntime: sandboxRuntime as never,
                 framework: 'nextjs',
             });
 
@@ -89,33 +98,22 @@ export const useRepositoryImport = () => {
             router.push(`${Routes.PROJECT}/${project._id}`);
         } catch (error: unknown) {
             if (forkedSandboxId) {
-                await clientApi.sandbox.deleteOrphan
-                    .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupError: any) => {
-                        console.warn('[useRepositoryImport] orphan sandbox cleanup failed', {
-                            sandboxId: forkedSandboxId,
-                            error:
-                                cleanupError instanceof Error
-                                    ? cleanupError.message
-                                    : String(cleanupError),
-                        });
-                    });
+                // TODO(sandbox-port): api.sandbox.deleteOrphan has no Convex
+                // equivalent yet — orphan cleanup is a no-op until the route lands.
+                console.warn('[useRepositoryImport] orphan sandbox cleanup unavailable', {
+                    sandboxId: forkedSandboxId,
+                });
             }
             if (error instanceof DOMException && error.name === 'AbortError') {
                 return;
             }
-            // Surface the actual tRPC error (it carries the server-side reason).
-            // Fall back to a generic hint when there's no message — typically
-            // auth/permission failures benefit from a nudge to check repo
-            // visibility and Weblab GitHub access (issue #40).
+            // Surface the actual error message (it carries the server-side
+            // reason). Fall back to a generic hint when there's no message —
+            // typically auth/permission failures benefit from a nudge to check
+            // repo visibility and Weblab GitHub access (issue #40).
             const fallback =
                 "Failed to import repository. If this keeps happening, check that the repo is public or that you've granted access to Weblab.";
-            const errorMessage =
-                error instanceof TRPCClientError
-                    ? error.message
-                    : error instanceof Error
-                      ? error.message
-                      : fallback;
+            const errorMessage = error instanceof Error ? error.message : fallback;
             setError(errorMessage);
             console.error('Error importing repository:', error);
         } finally {

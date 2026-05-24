@@ -1,5 +1,6 @@
 'use client';
 
+import { useMutation } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { Project } from '@weblab/models';
@@ -7,26 +8,23 @@ import { Tags } from '@weblab/constants';
 import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
-import { api } from '@/trpc/react';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 export function CreateTemplate({ project, refetch }: { project: Project; refetch: () => void }) {
-    const utils = api.useUtils();
-    const { mutateAsync: addTag } = api.project.addTag.useMutation();
-    const { mutateAsync: removeTag } = api.project.removeTag.useMutation();
+    const addTag = useMutation(api.projects.addTag);
+    const removeTag = useMutation(api.projects.removeTag);
     const isTemplate = project.metadata.tags.includes(Tags.TEMPLATE) || false;
 
     const handleTemplateToggle = async () => {
         try {
             if (isTemplate) {
-                await removeTag({ projectId: project.id, tag: Tags.TEMPLATE });
+                await removeTag({ projectId: project.id as Id<'projects'>, tag: Tags.TEMPLATE });
                 toast.success('Removed from templates');
             } else {
-                await addTag({ projectId: project.id, tag: Tags.TEMPLATE });
+                await addTag({ projectId: project.id as Id<'projects'>, tag: Tags.TEMPLATE });
                 toast.success('Added to templates');
             }
-
-            // Invalidate and refetch both project lists and template lists
-            await Promise.all([utils.project.list.invalidate()]);
 
             refetch();
         } catch (error) {

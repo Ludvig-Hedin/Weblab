@@ -65,19 +65,19 @@ export const ContentSection = observer(function ContentSection() {
     const isList = !!actionElement?.attributes && 'data-weblab-list' in actionElement.attributes;
 
     const enableCmsQueries = !!projectId && isList;
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
     const collections = useQuery(
-        (enableCmsQueries ? api.cmsCollections.list : 'skip') as typeof api.cmsCollections.list,
+        api.cmsCollections.list,
         enableCmsQueries
             ? { projectId: projectId as Id<'projects'> }
-            : (undefined as unknown as { projectId: Id<'projects'> }),
+            : 'skip',
     );
     const bindings = useQuery(
-        (enableCmsQueries
-            ? api.cmsBindings.listForProject
-            : 'skip') as typeof api.cmsBindings.listForProject,
+        api.cmsBindings.listForProject,
         enableCmsQueries
             ? { projectId: projectId as Id<'projects'> }
-            : (undefined as unknown as { projectId: Id<'projects'> }),
+            : 'skip',
     );
 
     const oid = selected?.oid ?? null;
@@ -88,18 +88,13 @@ export const ContentSection = observer(function ContentSection() {
     const collectionId = repeatBinding?.collectionId ?? '';
     const enableFieldsQuery = !!projectId && !!collectionId && isList;
     const fields = useQuery(
-        (enableFieldsQuery
-            ? api.cmsFields.listByCollection
-            : 'skip') as typeof api.cmsFields.listByCollection,
+        api.cmsFields.listByCollection,
         enableFieldsQuery
             ? {
                   projectId: projectId as Id<'projects'>,
                   collectionId: collectionId as Id<'cmsCollections'>,
               }
-            : (undefined as unknown as {
-                  projectId: Id<'projects'>;
-                  collectionId: Id<'cmsCollections'>;
-              }),
+            : 'skip',
     );
 
     const upsertBinding = useMutation(api.cmsBindings.upsert);

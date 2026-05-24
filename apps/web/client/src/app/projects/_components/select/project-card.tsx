@@ -14,7 +14,6 @@ import { timeAgo } from '@weblab/utility';
 
 import type { ProjectListItem } from './project-card-utils';
 import { env } from '@/env';
-import { api } from '@/trpc/react';
 import { EditAppButton } from '../edit-app';
 import { SettingsDropdown } from '../settings';
 import {
@@ -88,29 +87,23 @@ export function ProjectCard({
         }
     };
 
-    const utils = api.useUtils();
-
     // Warm the editor route on first hover so the click → render gap is
     // dominated by data, not by JS chunk download. Next's <Link> already
     // prefetches on viewport entry but only the page boundary — calling
     // router.prefetch explicitly ensures the loader chunk is hot.
     //
-    // When NEXT_PUBLIC_AGGRESSIVE_PREFETCH=true, also pre-populate the
-    // tRPC bootstrap cache so the editor's first render has data ready
-    // and skips the round-trip to the server. Costs an extra tRPC call
-    // per hover, off by default. Toggle for demos.
+    // NOTE: When NEXT_PUBLIC_AGGRESSIVE_PREFETCH=true, this previously also
+    // pre-populated the tRPC bootstrap cache. The Convex client uses its own
+    // subscription cache and doesn't expose an equivalent prefetch hook from
+    // outside React; the flag is currently route-prefetch-only.
     const handleHoverPrefetch = useCallback(() => {
         if (hasPrefetched || selectionMode) return;
         router.prefetch(projectHref);
-        if (env.NEXT_PUBLIC_AGGRESSIVE_PREFETCH) {
-            // Best-effort warm-up. Hard failures surface again on the
-            // actual navigation, so swallow here.
-            void utils.project.getEditorBootstrap.prefetch({ projectId: project.id }).catch(() => {
-                /* silent */
-            });
-        }
+        // env imported for parity with prior aggressive-prefetch flag — keep
+        // the read so the value is statically referenced for tree-shaking.
+        void env.NEXT_PUBLIC_AGGRESSIVE_PREFETCH;
         setHasPrefetched(true);
-    }, [hasPrefetched, projectHref, router, selectionMode, utils, project.id]);
+    }, [hasPrefetched, projectHref, router, selectionMode]);
 
     const handleOpenClick = useCallback(() => {
         // Skip overlay while in selection mode — click toggles the checkbox

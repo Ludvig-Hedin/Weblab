@@ -123,14 +123,14 @@ html[data-font-family='mono']  { font-family: ui-monospace, 'SF Mono', 'Cascadia
     @media (min-width: 80rem)  { .heading-style-h1 { font-size: 4.5rem;  } } /* xl → 7xl */
 
     .heading-style-h2 {
-        font-size: 2.25rem;             /* 4xl */
+        font-size: 1.875rem;            /* 3xl */
         font-weight: 500;
         line-height: 0.97;
         letter-spacing: -0.03em;
         text-wrap: balance;
     }
-    @media (min-width: 40rem) { .heading-style-h2 { font-size: 2.75rem;    } } /* sm → 5xl */
-    @media (min-width: 64rem) { .heading-style-h2 { font-size: 3.75rem; } } /* lg → 6xl */
+    @media (min-width: 40rem) { .heading-style-h2 { font-size: 2.25rem;    } } /* sm → 4xl */
+    @media (min-width: 64rem) { .heading-style-h2 { font-size: 3rem; } } /* lg → 5xl */
 
     .heading-style-h3 {
         font-size: 1.875rem;            /* 3xl */

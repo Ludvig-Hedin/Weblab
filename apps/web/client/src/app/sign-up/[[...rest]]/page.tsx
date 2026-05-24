@@ -19,11 +19,12 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
     if (returnUrl) params.set('returnUrl', returnUrl);
     const qs = params.toString();
 
-    // Supabase mode still has its own legacy form at /login. Send signups
-    // there so the redirect chain doesn't loop through /sign-in for a
-    // provider that doesn't support it.
+    // Supabase mode fallback. The legacy `/login` route directory was removed
+    // in the Clerk migration, so signups land on the live /sign-in entry. This
+    // branch is the documented Supabase rollback lever and is intentionally
+    // preserved.
     if (env.WEBLAB_AUTH_PROVIDER !== 'clerk') {
-        redirect(`/login${qs ? `?${qs}` : ''}`);
+        redirect(`/sign-in${qs ? `?${qs}` : ''}`);
     }
 
     redirect(`/sign-in${qs ? `?${qs}` : ''}`);

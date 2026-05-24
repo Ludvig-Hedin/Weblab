@@ -1,16 +1,17 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { isAfter, subMinutes } from 'date-fns';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
 import type { EditorEngine } from '../engine';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.project.captureScreenshot` → `api.projectActions.captureScreenshot`
-// once a Convex HTTP client with Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import type { Id } from '@convex/_generated/dataModel';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 
 export class ScreenshotManager {
     _lastScreenshotTime: Date | null = null;
     isCapturing = false;
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -40,9 +41,10 @@ export class ScreenshotManager {
                     return;
                 }
             }
-            const result = await api.project.captureScreenshot.mutate({
-                projectId: this.editorEngine.projectId,
-            });
+            const projectId = this.editorEngine.projectId as Id<'projects'>;
+            const result = (await this.convex.action(convexApi.projectActions.captureScreenshot, {
+                projectId,
+            })) as { success?: boolean } | null;
             if (!result?.success) {
                 throw new Error('Failed to capture screenshot');
             }

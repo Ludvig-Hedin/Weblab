@@ -1,23 +1,31 @@
-import { createTRPCClient } from '@trpc/client';
-import { type inferRouterInputs, type inferRouterOutputs } from '@trpc/server';
-import { type AppRouter } from '~/server/api/root';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+// Post-migration silent stub for `@/trpc/client`. Vanilla client used by
+// class-based MobX stores. Calls resolve to undefined / no-op silently.
+// Each consumer is being migrated to use Convex via
+// `@/components/store/lib/convex-http-client`.
 
-import { links } from './helpers';
+function makeStubProxy(): any {
+    return new Proxy(function () {}, {
+        get(_target, prop) {
+            if (typeof prop === 'symbol') return undefined;
+            const name = String(prop);
+            if (name === 'mutate' || name === 'query' || name === 'fetch') {
+                return async () => undefined;
+            }
+            if (name === 'subscribe') {
+                return () => ({ unsubscribe: () => undefined });
+            }
+            return makeStubProxy();
+        },
+        apply: () => undefined,
+    });
+}
 
-/**
- * Inference helper for inputs.
- *
- * @example type HelloInput = RouterInputs['example']['hello']
- */
-export type RouterInputs = inferRouterInputs<AppRouter>;
+const stub: any = makeStubProxy();
 
-/**
- * Inference helper for outputs.
- *
- * @example type HelloOutput = RouterOutputs['example']['hello']
- */
-export type RouterOutputs = inferRouterOutputs<AppRouter>;
-
-export const api = createTRPCClient<AppRouter>({
-    links,
-});
+export const trpcClient: any = stub;
+export const apiUtils: any = stub;
+export const apiClient: any = stub;
+export const trpcApi: any = stub;
+export const api: any = stub;
+export default stub;

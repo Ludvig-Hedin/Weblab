@@ -60,6 +60,10 @@ Observed active areas:
   `/assets/web-preview.webp`.
 - **Weblab brand migration and cleanup** across app routes, metadata, copy,
   constants, package metadata, docs, and public assets (ongoing).
+- **Convex/Clerk migration cleanup** is in progress. Legacy Supabase
+  migrations are retained only as a read-only archive in
+  `apps/backend/supabase/`; active backend work should not add new Supabase
+  migrations.
 - **AI prompt composer unification** — homepage, create-project,
   empty-projects, and canvas chat. Legacy snapshots kept beside previous
   create/editor implementations.

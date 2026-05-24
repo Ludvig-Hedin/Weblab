@@ -2,11 +2,11 @@ import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
-import type { ChatMessage } from '@weblab/models';
 import { Icons } from '@weblab/ui/icons/index';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
+import { fromConvexMessage } from '../../../_adapters/convex-bootstrap';
 import { ChatTabContent } from './chat-tab-content';
 
 interface ChatTabProps {
@@ -16,13 +16,13 @@ interface ChatTabProps {
 
 export const ChatTab = ({ conversationId, projectId }: ChatTabProps) => {
     const t = useTranslations();
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
     const initialMessages = useQuery(
-        (conversationId
-            ? api.messages.listByConversation
-            : 'skip') as typeof api.messages.listByConversation,
+        api.messages.listByConversation,
         conversationId
             ? { conversationId: conversationId as Id<'conversations'> }
-            : (undefined as unknown as { conversationId: Id<'conversations'> }),
+            : 'skip',
     );
     const isLoading = initialMessages === undefined;
 
@@ -41,7 +41,7 @@ export const ChatTab = ({ conversationId, projectId }: ChatTabProps) => {
             key={conversationId}
             conversationId={conversationId}
             projectId={projectId}
-            initialMessages={initialMessages as unknown as ChatMessage[]}
+            initialMessages={initialMessages.map(fromConvexMessage)}
         />
     );
 };

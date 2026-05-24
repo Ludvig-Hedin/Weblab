@@ -2,50 +2,63 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
-
-import { api } from '@/trpc/react';
 
 interface WorkspaceInvitationMainProps {
     id: string;
     token: string | null;
 }
 
-export function WorkspaceInvitationMain({ id, token }: WorkspaceInvitationMainProps) {
+export function WorkspaceInvitationMain({ id: _id, token }: WorkspaceInvitationMainProps) {
     const router = useRouter();
     const [error, setError] = useState<string | null>(null);
-    const { data: invitation, isLoading } = api.workspaceInvitation.getWithoutToken.useQuery(
-        { id },
-        { retry: false },
-    );
+    const [isAccepting, setIsAccepting] = useState(false);
+
+    // Convex workspace invitations are looked up by token (the original
+    // workspaceInvitation.getWithoutToken by id is not yet ported); the URL
+    // already provides the token so we can switch lookups without changing
+    // the page contract.
+    const invitation = useQuery(api.workspaces.inviteGetByToken, token ? { token } : 'skip');
+    const isLoading = token ? invitation === undefined : false;
 
     const workspace =
         invitation && 'workspace' in invitation && invitation.workspace
             ? (invitation.workspace as { id: string; slug: string; name: string })
             : null;
 
-    const accept = api.workspaceInvitation.accept.useMutation({
-        onSuccess: async () => {
+    const acceptMutation = useMutation(api.workspaces.inviteAccept);
+
+    const handleAccept = async () => {
+        if (!token) return;
+        setIsAccepting(true);
+        setError(null);
+        try {
+            await acceptMutation({ token });
             toast.success(`Joined ${workspace?.name ?? 'workspace'}`);
             // Land directly in the workspace the user just joined. Falls back
             // to /projects (which redirects to first available workspace) if
             // the relation wasn't loaded for some reason.
             router.push(workspace ? `/w/${workspace.slug}/projects` : '/projects');
-        },
-        onError: (err) => setError(err.message),
-    });
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setIsAccepting(false);
+        }
+    };
 
     if (isLoading) {
         return <CenteredCard>Loading…</CenteredCard>;
     }
-    if (!invitation) {
-        return <CenteredCard>Invitation not found.</CenteredCard>;
-    }
     if (!token) {
         return <CenteredCard>Invitation link is missing its token.</CenteredCard>;
+    }
+    if (!invitation) {
+        return <CenteredCard>Invitation not found.</CenteredCard>;
     }
 
     const workspaceName = workspace?.name ?? 'a workspace';
@@ -65,8 +78,8 @@ export function WorkspaceInvitationMain({ id, token }: WorkspaceInvitationMainPr
             </p>
             {error && <p className="text-destructive text-sm">{error}</p>}
             <div className="flex gap-2">
-                <Button onClick={() => accept.mutate({ id, token })} disabled={accept.isPending}>
-                    {accept.isPending ? 'Accepting…' : 'Accept invitation'}
+                <Button onClick={() => void handleAccept()} disabled={isAccepting}>
+                    {isAccepting ? 'Accepting…' : 'Accept invitation'}
                 </Button>
                 <Button variant="ghost" onClick={() => router.push('/projects')}>
                     Decline

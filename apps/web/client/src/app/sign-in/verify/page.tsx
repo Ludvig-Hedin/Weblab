@@ -215,7 +215,9 @@ export default function ClerkVerifyPage() {
             // in one request. For sign-up we re-create + re-prepare.
             if (mode === 'sign-up') {
                 await signUp.create({ emailAddress: email });
-                await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                await signUp.prepareEmailAddressVerification({
+                    strategy: 'email_code',
+                });
             } else {
                 await signIn.create({
                     strategy: 'email_code',
@@ -248,8 +250,9 @@ export default function ClerkVerifyPage() {
 
     if (email === null) {
         return (
-            <div className="flex h-screen w-screen items-center justify-center">
+            <div className="flex h-screen w-screen flex-col items-center justify-center gap-3">
                 <Icons.LoadingSpinner className="text-foreground-secondary h-6 w-6 animate-spin" />
+                <p className="text-foreground-tertiary text-sm">Checking session…</p>
             </div>
         );
     }
@@ -290,7 +293,7 @@ export default function ClerkVerifyPage() {
                                 <InputOTPSlot index={5} />
                             </InputOTPGroup>
                         </InputOTP>
-                        {error && <p className="text-small text-red-500">{error}</p>}
+                        {error && <p className="text-small text-destructive">{error}</p>}
                         <Button
                             variant="outline"
                             className="w-full"

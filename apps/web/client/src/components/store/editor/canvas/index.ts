@@ -1,3 +1,4 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
@@ -6,15 +7,15 @@ import { DefaultSettings } from '@weblab/constants';
 import { DefaultDesktopFrame } from '@weblab/db';
 
 import type { EditorEngine } from '../engine';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.userCanvas.update` → `api.users.upsertCanvasView` once a
-// Convex HTTP client with Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import type { Id } from '@convex/_generated/dataModel';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 
 export class CanvasManager {
     private _id = '';
     private _scale: number = DefaultSettings.SCALE;
     private _position: RectPosition = DefaultSettings.PAN_POSITION;
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private readonly editorEngine: EditorEngine) {
         this._position = this.getDefaultPanPosition();
@@ -73,15 +74,18 @@ export class CanvasManager {
     private lastSaveErrorMessage: string | null = null;
 
     private async undebouncedSaveCanvas() {
+        // Guard against the unset/transient case — the canvas store is
+        // constructed before `applyCanvas` runs, so any debounced save fired
+        // before bootstrap (e.g., the initial scale setter) would otherwise
+        // throw inside Convex with an empty id.
+        if (!this.id) return;
+        const canvasId = this.id as Id<'canvases'>;
         const attempt = async () =>
-            api.userCanvas.update.mutate({
-                projectId: this.editorEngine.projectId,
-                canvasId: this.id,
-                canvas: {
-                    scale: this.scale.toString(),
-                    x: this.position.x.toString(),
-                    y: this.position.y.toString(),
-                },
+            this.convex.mutation(convexApi.users.upsertCanvasView, {
+                canvasId,
+                scale: this.scale,
+                x: this.position.x,
+                y: this.position.y,
             });
 
         try {

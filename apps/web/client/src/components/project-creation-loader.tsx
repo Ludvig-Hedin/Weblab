@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 import { BrandLogo } from '@weblab/ui/brand';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
@@ -14,6 +16,13 @@ interface ProjectCreationLoaderProps {
     caption?: string;
     steps?: CreationLoaderStep[];
     overlay?: boolean;
+    /**
+     * Optional slot rendered beneath the steps. Used by the editor boot path
+     * to surface a non-blocking watchdog affordance (e.g. a Retry button) when
+     * startup stalls past a timeout. Purely additive — existing call sites that
+     * omit it render exactly as before.
+     */
+    footer?: ReactNode;
 }
 
 /**
@@ -28,6 +37,7 @@ export function ProjectCreationLoader({
     caption,
     steps,
     overlay = false,
+    footer,
 }: ProjectCreationLoaderProps) {
     const containerClass = overlay
         ? 'bg-background fixed inset-0 z-[200] flex items-center justify-center'
@@ -108,6 +118,9 @@ export function ProjectCreationLoader({
                         })}
                     </ul>
                 )}
+
+                {/* Optional watchdog/affordance slot (e.g. Retry on stall). */}
+                {footer && <div className="flex w-full flex-col items-center gap-2">{footer}</div>}
             </div>
         </div>
     );

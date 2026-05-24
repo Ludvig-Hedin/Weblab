@@ -15,7 +15,7 @@ import { TelemetryProvider } from '@/components/telemetry-provider';
 import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
-import { TRPCReactProvider } from '@/trpc/react';
+import { AppQueryClientProvider } from '@/components/query-client-provider';
 import { CookieConsent } from './_components/cookie-consent';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
@@ -209,7 +209,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <SWRegister />
                 <ViewTransitionNoiseSuppress />
                 <ClerkConvexProviders>
-                    <TRPCReactProvider>
+                    <AppQueryClientProvider>
                         <FeatureFlagsProvider>
                             <TelemetryProvider>
                                 <ThemeProvider
@@ -230,7 +230,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                                 </ThemeProvider>
                             </TelemetryProvider>
                         </FeatureFlagsProvider>
-                    </TRPCReactProvider>
+                    </AppQueryClientProvider>
                 </ClerkConvexProviders>
             </body>
         </html>

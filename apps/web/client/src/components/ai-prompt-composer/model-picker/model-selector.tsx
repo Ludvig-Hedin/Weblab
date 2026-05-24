@@ -89,11 +89,11 @@ const ModelSelectorLegacy = ({
                         key={option.model}
                         onClick={() => onChange(option.model)}
                         className={cn(
-                            'flex flex-col items-start gap-0.5 px-3 py-2',
+                            'flex flex-col items-start gap-0.5 rounded-md px-3 py-2',
                             option.model === value && 'bg-background-weblab',
                         )}
                     >
-                        <span className="text-small font-medium">{option.label}</span>
+                        <span className="text-mini font-medium">{option.label}</span>
                         <span className="text-foreground-tertiary text-mini">{option.model}</span>
                     </DropdownMenuItem>
                 ))}
@@ -113,12 +113,12 @@ const ModelSelectorLegacy = ({
                             key={option.model}
                             onClick={() => onChange(option.model)}
                             className={cn(
-                                'flex flex-col items-start gap-0.5 px-3 py-2',
+                                'flex flex-col items-start gap-0.5 rounded-md px-3 py-2',
                                 option.model === value && 'bg-background-weblab',
                             )}
                         >
                             <div className="flex w-full items-center justify-between">
-                                <span className="text-small font-medium">{option.label}</span>
+                                <span className="text-mini font-medium">{option.label}</span>
                                 {option.size && (
                                     <span className="text-foreground-tertiary text-mini">
                                         {option.size}

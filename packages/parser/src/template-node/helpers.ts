@@ -38,7 +38,7 @@ function getTemplateTag(element: T.JSXOpeningElement | T.JSXClosingElement): Tem
     return {
         start: {
             line: element.loc?.start?.line ?? 0,
-            column: element.loc?.start?.column ?? 0 + 1,
+            column: (element.loc?.start?.column ?? 0) + 1,
         },
         end: {
             line: element.loc?.end?.line ?? 0,

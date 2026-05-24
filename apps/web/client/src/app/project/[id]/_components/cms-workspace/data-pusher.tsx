@@ -3,10 +3,13 @@
 import { useEffect, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import { useQuery } from 'convex/react';
+
 import type { CmsBindingPayload } from '@weblab/models';
 
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/react';
 
 interface CmsItemSnapshot {
     id: string;
@@ -36,24 +39,19 @@ export const CmsDataPusher = observer(() => {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId;
 
-    const snapshotQuery = api.cms.binding.snapshot.useQuery(
-        { projectId: projectId ?? '' },
-        {
-            enabled: !!projectId,
-            // Refetch periodically in case bindings change in another tab
-            // or via a collaborator. The pusher itself also invalidates the
-            // query when it owns the change.
-            refetchInterval: 30_000,
-            staleTime: 5_000,
-        },
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
+    const snapshotData = useQuery(
+        api.cmsBindings.snapshot,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
     // Used to validate that `cmsCurrentItemId` belongs to a collection that
     // actually has a registered detail page — prevents an item picked for
     // one collection from leaking into PAGE_ITEM_FIELD bindings on a
     // different collection's page (BUG #2 from review).
-    const pagesQuery = api.cms.collectionPage.list.useQuery(
-        { projectId: projectId ?? '' },
-        { enabled: !!projectId, staleTime: 30_000 },
+    const pagesData = useQuery(
+        api.cmsCollectionPages.list,
+        projectId ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
 
     const currentItemId = editorEngine.state.cmsCurrentItemId;
@@ -64,35 +62,37 @@ export const CmsDataPusher = observer(() => {
      * matching its URL.
      */
     const basePayload = useMemo(() => {
-        const data = snapshotQuery.data;
+        const data = snapshotData;
         if (!data) return null;
         const bindings: Record<string, CmsBindingPayload> = {};
         for (const b of data.bindings) {
-            bindings[b.oid] = b.binding;
+            bindings[b.oid] = b.binding as CmsBindingPayload;
         }
         const items: Record<string, CmsItemSnapshot> = {};
         const itemsByCollection: Record<string, string[]> = {};
         for (const it of data.items) {
-            items[it.id] = {
-                id: it.id,
-                collectionId: it.collectionId,
-                values: it.values ?? {},
+            const id = it._id as unknown as string;
+            const collectionId = it.collectionId as unknown as string;
+            items[id] = {
+                id,
+                collectionId,
+                values: (it.values ?? {}) as Record<string, unknown>,
             };
-            const list = itemsByCollection[it.collectionId] ?? [];
-            list.push(it.id);
-            itemsByCollection[it.collectionId] = list;
+            const list = itemsByCollection[collectionId] ?? [];
+            list.push(id);
+            itemsByCollection[collectionId] = list;
         }
         return { bindings, items, itemsByCollection };
-    }, [snapshotQuery.data]);
+    }, [snapshotData]);
 
     // `useQuery` returns a fresh `data` reference only when payload changes,
     // but `?? []` would synthesize a new empty array each render. Memoizing
-    // off `pagesQuery.data` keeps the reference stable so downstream memos /
+    // off `pagesData` keeps the reference stable so downstream memos /
     // effects don't thrash (the 2s push interval used to be torn down +
     // recreated on every render — making the retry effectively a no-op).
-    const pages = useMemo(() => pagesQuery.data ?? [], [pagesQuery.data]);
+    const pages = useMemo(() => pagesData ?? [], [pagesData]);
     const validCollectionIds = useMemo(
-        () => new Set(pages.map((p: any) => p.collectionId)),
+        () => new Set(pages.map((p) => p.collectionId as unknown as string)),
         [pages],
     );
 
@@ -125,7 +125,8 @@ export const CmsDataPusher = observer(() => {
         for (const page of pages) {
             const segValue = matchSegment(page.pagePath, pathname);
             if (!segValue) continue;
-            const itemIds = basePayload.itemsByCollection[page.collectionId] ?? [];
+            const itemIds =
+                basePayload.itemsByCollection[page.collectionId as unknown as string] ?? [];
             for (const id of itemIds) {
                 const item = basePayload.items[id];
                 if (!item) continue;

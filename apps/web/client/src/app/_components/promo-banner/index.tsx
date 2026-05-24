@@ -9,9 +9,11 @@ import { toast } from 'sonner';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { useAction } from 'convex/react';
+
+import { api } from '@convex/_generated/api';
 import type { PromoBanner as PromoBannerConfig } from '@/lib/promo-banners';
 import { getActiveBanner, PROMO_BANNER_DISMISSED_STORAGE_PREFIX } from '@/lib/promo-banners';
-import { api } from '@/trpc/react';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 
 /**
@@ -130,7 +132,7 @@ function PromoBannerView({ banner, onDismiss }: PromoBannerViewProps) {
     const t = useTranslations('promoBanner');
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const startPromoCheckout = api.subscription.startPromoCheckout.useMutation();
+    const startPromoCheckout = useAction(api.subscriptionActions.startPromoCheckout);
     const prefersReducedMotion = useReducedMotion();
 
     // Subtle "fade + de-blur" entry. Bar slides in vertically, text de-blurs
@@ -150,12 +152,16 @@ function PromoBannerView({ banner, onDismiss }: PromoBannerViewProps) {
         const action = banner.action;
         startTransition(async () => {
             try {
-                const result = await startPromoCheckout.mutateAsync({
+                const result = await startPromoCheckout({
                     plan: action.plan,
                     promotionCode: action.promotionCode,
                 });
                 if ('redirectUrl' in result && result.redirectUrl) {
                     window.location.href = result.redirectUrl;
+                    return;
+                }
+                if (!('errorCode' in result)) {
+                    toast.error(t('genericError'));
                     return;
                 }
                 switch (result.errorCode) {

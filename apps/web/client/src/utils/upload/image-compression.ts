@@ -57,18 +57,15 @@ export async function compressImage(
             try {
                 onProgress?.(30);
 
-                // Calculate new dimensions
+                // Calculate new dimensions. Scale down to fit within BOTH
+                // bounds in a single pass — clamping width then height
+                // sequentially can leave the result exceeding the other bound
+                // for an image that overflows both limits. min(1, ...) never
+                // upscales.
                 let { width, height } = img;
-                const aspectRatio = width / height;
-
-                if (width > opts.maxWidth) {
-                    width = opts.maxWidth;
-                    height = width / aspectRatio;
-                }
-                if (height > opts.maxHeight) {
-                    height = opts.maxHeight;
-                    width = height * aspectRatio;
-                }
+                const scale = Math.min(1, opts.maxWidth / width, opts.maxHeight / height);
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
 
                 canvas.width = width;
                 canvas.height = height;

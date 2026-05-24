@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { api as convexApi } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import type { Project } from '@weblab/models';
@@ -12,13 +14,12 @@ import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 
 export function RenameProject({ project, refetch }: { project: Project; refetch: () => void }) {
     const t = useTranslations();
-    const utils = api.useUtils();
-    const { mutateAsync: updateProject } = api.project.update.useMutation();
+    const updateProject = useMutation(convexApi.projects.update);
     const [showRenameDialog, setShowRenameDialog] = useState(false);
     const [projectName, setProjectName] = useState(project.name);
     // Reject whitespace-only names too — `length === 0` previously let `"   "` through (issue #41).
@@ -35,15 +36,11 @@ export function RenameProject({ project, refetch }: { project: Project; refetch:
 
         try {
             await updateProject({
-                id: project.id,
+                projectId: project.id as Id<'projects'>,
                 name: trimmedName,
-                updatedAt: now,
             });
-            // Invalidate queries to refresh UI
-            await Promise.all([
-                utils.project.list.invalidate(),
-                utils.project.get.invalidate({ projectId: project.id }),
-            ]);
+            // Convex queries auto-revalidate via subscription — no manual
+            // invalidate needed.
 
             // Optimistically update list ordering and title immediately
             window.dispatchEvent(

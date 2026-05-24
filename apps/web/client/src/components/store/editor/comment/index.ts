@@ -1,17 +1,67 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { EditorEngine } from '../engine';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.comment.comment.list` → `api.comments.listByProject`,
-// `api.comment.comment.create` → `api.comments.create`,
-// `api.comment.comment.update` → `api.comments.update`,
-// `api.comment.comment.delete` → `api.comments.remove`,
-// `api.comment.comment.resolve` → `api.comments.resolve`,
-// `api.comment.comment.unresolve` → `api.comments.unresolve`,
-// `api.comment.reply.create` → `api.commentReplies.create`,
-// `api.comment.reply.delete` → `api.commentReplies.remove` once a Convex
-// HTTP client with Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import type { Id } from '@convex/_generated/dataModel';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
+
+// Convex stores comments/replies with `_id` + numeric epoch timestamps; the
+// editor was written against the Drizzle shape (`id`, `Date`). Normalise once
+// at the store boundary so downstream components keep using the same shape.
+type ConvexCommentReplyDoc = {
+    _id: string;
+    _creationTime: number;
+    commentId: string;
+    content: string;
+    authorId: string;
+    authorName: string;
+    updatedAt: number;
+};
+
+type ConvexCommentDoc = {
+    _id: string;
+    _creationTime: number;
+    projectId: string;
+    canvasX: number;
+    canvasY: number;
+    elementSelector?: string;
+    content: string;
+    authorId: string;
+    authorName: string;
+    updatedAt: number;
+    resolvedAt?: number;
+    replies?: ConvexCommentReplyDoc[];
+};
+
+function normalizeReply(doc: ConvexCommentReplyDoc): CommentReply {
+    return {
+        id: doc._id,
+        commentId: doc.commentId,
+        content: doc.content,
+        authorId: doc.authorId,
+        authorName: doc.authorName,
+        createdAt: new Date(doc._creationTime),
+        updatedAt: new Date(doc.updatedAt),
+    };
+}
+
+function normalizeComment(doc: ConvexCommentDoc): ProjectComment {
+    return {
+        id: doc._id,
+        projectId: doc.projectId,
+        canvasX: doc.canvasX,
+        canvasY: doc.canvasY,
+        elementSelector: doc.elementSelector ?? null,
+        content: doc.content,
+        authorId: doc.authorId,
+        authorName: doc.authorName,
+        createdAt: new Date(doc._creationTime),
+        updatedAt: new Date(doc.updatedAt),
+        resolvedAt: doc.resolvedAt != null ? new Date(doc.resolvedAt) : null,
+        replies: (doc.replies ?? []).map(normalizeReply),
+    };
+}
 
 export interface ProjectComment {
     id: string;
@@ -56,6 +106,19 @@ function getTRPCErrorCode(error: unknown): string | undefined {
     return typeof data.code === 'string' ? data.code : undefined;
 }
 
+/**
+ * Convex throws plain `Error('UNAUTHORIZED')` / `Error('FORBIDDEN: ...')` for
+ * permission failures, surfaced to the client wrapped in a `ConvexError`
+ * whose message includes the original string. Detect either keyword in the
+ * message so the comment polling loop disables itself cleanly when a viewer
+ * lacks `project.view` access (logged-out preview, expired session) instead
+ * of hammering the endpoint every 30s.
+ */
+function isConvexPermissionError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    return /\b(UNAUTHORIZED|FORBIDDEN)\b/i.test(message);
+}
+
 export class CommentManager {
     comments: ProjectComment[] = [];
     activeCommentId: string | null = null;
@@ -69,6 +132,7 @@ export class CommentManager {
     private loadPromise: Promise<void> | null = null;
     private commentsUnavailable = false;
     private hasLoggedLoadError = false;
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -164,18 +228,25 @@ export class CommentManager {
             this.isLoading = true;
         });
         try {
-            const result = await api.comment.comment.list.query({ projectId });
+            const convexProjectId = projectId as Id<'projects'>;
+            const result = (await this.convex.query(convexApi.comments.list, {
+                projectId: convexProjectId,
+            })) as ConvexCommentDoc[];
+            const normalized = result.map(normalizeComment);
             runInAction(() => {
-                this.comments = result as unknown as ProjectComment[];
+                this.comments = normalized;
                 this.isLoading = false;
             });
         } catch (error) {
+            // tRPC-shaped code is still checked for backwards-compat with any
+            // legacy thrown error, but Convex throws plain `Error` instances
+            // whose message includes the marker — the secondary check covers
+            // those.
             const code = getTRPCErrorCode(error);
-            const message = error instanceof Error ? error.message : 'Unknown error';
             const shouldDisable =
                 code === 'UNAUTHORIZED' ||
                 code === 'FORBIDDEN' ||
-                (code === undefined && message.includes('Unauthorized'));
+                (code === undefined && isConvexPermissionError(error));
 
             if (shouldDisable) {
                 this.commentsUnavailable = true;
@@ -248,9 +319,15 @@ export class CommentManager {
         elementSelector?: string;
     }) {
         try {
-            const result = await api.comment.comment.create.mutate(input);
+            const result = (await this.convex.mutation(convexApi.comments.create, {
+                projectId: input.projectId as Id<'projects'>,
+                canvasX: input.canvasX,
+                canvasY: input.canvasY,
+                content: input.content,
+                elementSelector: input.elementSelector,
+            })) as ConvexCommentDoc;
             await this.loadComments(input.projectId);
-            const newId = result.id;
+            const newId = result._id;
             runInAction(() => {
                 this.pendingPlacement = null;
                 this.markAsSeen(newId); // own comments are immediately "seen"
@@ -263,7 +340,10 @@ export class CommentManager {
 
     async updateComment(commentId: string, content: string) {
         try {
-            await api.comment.comment.update.mutate({ commentId, content });
+            await this.convex.mutation(convexApi.comments.update, {
+                commentId: commentId as Id<'projectComments'>,
+                content,
+            });
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);
             }
@@ -274,7 +354,9 @@ export class CommentManager {
 
     async deleteComment(commentId: string) {
         try {
-            await api.comment.comment.delete.mutate({ commentId });
+            await this.convex.mutation(convexApi.comments.remove, {
+                commentId: commentId as Id<'projectComments'>,
+            });
             if (this.activeCommentId === commentId) {
                 runInAction(() => {
                     this.activeCommentId = null;
@@ -291,7 +373,9 @@ export class CommentManager {
 
     async resolveComment(commentId: string) {
         try {
-            await api.comment.comment.resolve.mutate({ commentId });
+            await this.convex.mutation(convexApi.comments.resolve, {
+                commentId: commentId as Id<'projectComments'>,
+            });
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);
             }
@@ -302,7 +386,9 @@ export class CommentManager {
 
     async unresolveComment(commentId: string) {
         try {
-            await api.comment.comment.unresolve.mutate({ commentId });
+            await this.convex.mutation(convexApi.comments.unresolve, {
+                commentId: commentId as Id<'projectComments'>,
+            });
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);
             }
@@ -313,7 +399,10 @@ export class CommentManager {
 
     async createReply(commentId: string, content: string) {
         try {
-            await api.comment.reply.create.mutate({ commentId, content });
+            await this.convex.mutation(convexApi.commentReplies.create, {
+                commentId: commentId as Id<'projectComments'>,
+                content,
+            });
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);
             }
@@ -324,7 +413,9 @@ export class CommentManager {
 
     async deleteReply(replyId: string) {
         try {
-            await api.comment.reply.delete.mutate({ replyId });
+            await this.convex.mutation(convexApi.commentReplies.remove, {
+                replyId: replyId as Id<'commentReplies'>,
+            });
             if (this.currentProjectId) {
                 await this.loadComments(this.currentProjectId);
             }

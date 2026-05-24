@@ -84,9 +84,22 @@ Common violations:
 - ❌ `<Input defaultValue={...}>` used for persistent state. If the value is saved to state and re-read, it should be controlled (`value` + `onChange`).
 - ❌ Form fields outside of `Form` / `useForm()` when validation is needed.
 
+## Input variants (2026-05-24)
+
+`Input` now has a `variant` prop:
+
+| Variant | When to use | Dark mode surface |
+|---|---|---|
+| `primary` (default) | Standard form fields | `bg-[#232323] border-[#2d2d2d]` — solid, clearly visible |
+| `ghost` | Search/filter fields | `bg-transparent border-[#232323]` — minimal, border only |
+
+The old `dark:bg-input/30 border-input` pattern is **removed** — those were near-invisible in dark mode.
+Inputs inside popovers and dialogs get `bg-[#2d2d2d] border-[#3a3a3a]` automatically via a base-layer CSS rule (no prop needed).
+
 ## Allowed customizations
 
 - `className="w-full"` for width-fill (forms, dropdowns).
+- `variant="ghost"` for search/filter inputs.
 - `placeholder` from `next-intl`.
 - `aria-label`, `aria-describedby` for accessibility.
 - Slot composition via `InputGroup`.

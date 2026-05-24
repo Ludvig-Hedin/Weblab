@@ -18,6 +18,44 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-23 — Codex-aligned dark palette + un-aliased status colors
+
+Decision: Adopt a Codex-exact dark palette as the canonical Weblab dark theme,
+expand the semantic token system with named surfaces for every elevation tier
+(modal, popover, sidebar, sidebar-active, tooltip, chat-input, selected,
+diff-added/removed, etc.), and un-alias status colors so success/warning/
+destructive use real green/orange/red instead of the prior blue-aliased values.
+
+Context: Earlier audit showed border was invisible (matched secondary
+background), card had no elevation differentiation (matched primary surface),
+focus ring was neutral gray, and brand blue was dim against the backdrop.
+Owner shared Codex screenshots with literal token values (`#181818`, `#1d1d1d`,
+`#458ef7`, etc.) and a long list of additional surface/foreground tokens
+needed for chat, diff viewer, code highlight, sidebar, tooltips, etc.
+
+Alternatives considered:
+- Keep existing tokens, only tweak hex values — would not cover the
+  modal/popover-hover/diff/code/skill use cases owner listed.
+- Add tokens piecemeal as features need them — risked drift and another
+  round of "all colors look the same" / palette inconsistency.
+
+Rationale: A single coordinated pass keeps tokens internally consistent
+(every surface tier named, every foreground tier named), gives `@theme inline`
+a single source of truth, and lets new components reach for a token instead
+of inventing a hex. Un-aliasing status colors removes confusion ("why is
+warning blue?") and matches how Codex / GitHub / modern dark UIs render diff
+and status. Live-read in `ColorSwatch` (via `getComputedStyle` +
+`MutationObserver`) eliminates the stale-data class of bugs in
+`/design-system` — the page now reflects whatever is in `globals.css`.
+
+Light mode left with stubs; full light pass deferred until owner approves
+the dark palette in production.
+
+Status: Active. See `packages/ui/src/globals.css` `.dark` block (top comment
+documents the surface depth ladder).
+
+---
+
 ## 2026-05-20 — Harden Railway client service against silent crashes
 
 Decision: Add three layered defenses against the silent-crash failure mode that
@@ -130,6 +168,26 @@ Alternatives considered:
 Rationale: Repo-scoped, three-file split keeps each file focused. Agents read
 `user-preferences.md` every session; `feature-log.md` and
 `architecture-decisions.md` only on big changes.
+Status: Active.
+
+---
+
+## 2026-05-23 — Supabase migrations retained as read-only archive
+
+Decision: Keep `apps/backend/supabase/` in the repository as a read-only
+archive of the legacy Supabase migration history while current backend work
+uses Convex and Clerk.
+Context: The Convex/Clerk migration removes active Supabase/tRPC/Drizzle
+runtime dependencies, but deleting the historical Supabase migrations creates
+a large diff and removes useful audit/recovery context.
+Alternatives considered:
+- Delete the legacy migrations with the rest of the Supabase cleanup
+  (rejected: loses history and makes review unnecessarily noisy).
+- Restore the full old backend stack (rejected: current architecture is
+  Convex/Clerk; only the migration archive is needed).
+Rationale: Retaining the migration files preserves historical schema context
+without reintroducing them into the active runtime. The archive is documented
+in `apps/backend/supabase/README.md` and should not receive new migrations.
 Status: Active.
 
 ---

@@ -27,6 +27,30 @@ export function InputsDemo() {
     return (
         <div id="inputs">
             <Section
+                title="Input variants"
+                tag="inputs"
+                inspectId="input"
+                filePath="packages/ui/src/components/input.tsx"
+            >
+                <p className="text-foreground-tertiary mb-4 max-w-2xl text-xs">
+                    Two surface styles. Use{' '}
+                    <code className="font-mono">variant=&quot;primary&quot;</code> (default) for
+                    standard form fields — solid fill, clearly visible in dark mode. Use{' '}
+                    <code className="font-mono">variant=&quot;ghost&quot;</code> for search and
+                    filter fields — transparent bg, border only.
+                </p>
+                <div className="grid max-w-xl grid-cols-[6rem_1fr] items-center gap-x-4 gap-y-3">
+                    <span className="text-foreground-tertiary font-mono text-[10px]">primary</span>
+                    <Input variant="primary" placeholder="Enter value…" />
+                    <span className="text-foreground-tertiary font-mono text-[10px]">ghost</span>
+                    <div className="relative">
+                        <Icons.MagnifyingGlass className="text-foreground-tertiary absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input variant="ghost" placeholder="Search…" className="pl-9" />
+                    </div>
+                </div>
+            </Section>
+
+            <Section
                 title="Form inputs"
                 tag="inputs"
                 inspectId="input"

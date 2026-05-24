@@ -56,15 +56,19 @@ export const OfflineBanner = observer(() => {
             <div
                 className={[
                     'pointer-events-auto w-[210px] rounded-xl border px-3 py-2.5 text-xs shadow-lg',
-                    isWarning
-                        ? 'bg-background-warning/90 border-border-warning/60 text-foreground-warning'
-                        : 'bg-destructive/10 border-destructive/25 text-destructive',
+                    'bg-neutral-900/95 text-neutral-100',
+                    isWarning ? 'border-amber-500/25' : 'border-red-500/25',
                 ].join(' ')}
                 style={{ backdropFilter: 'blur(16px)' }}
             >
                 {/* Header row: icon + title + dismiss */}
                 <div className="flex items-start gap-2">
-                    <Icons.InfoCircled className="mt-px h-3.5 w-3.5 shrink-0 opacity-80" />
+                    <Icons.InfoCircled
+                        className={[
+                            'mt-px h-3.5 w-3.5 shrink-0',
+                            isWarning ? 'text-amber-400' : 'text-red-400',
+                        ].join(' ')}
+                    />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         {!online ? (
                             <>
@@ -90,7 +94,7 @@ export const OfflineBanner = observer(() => {
                         type="button"
                         onClick={() => setDismissed(true)}
                         aria-label="Dismiss"
-                        className="mt-px -mr-0.5 rounded p-0.5 opacity-40 transition-opacity hover:opacity-80"
+                        className="mt-px -mr-0.5 rounded p-0.5 text-neutral-400 transition-opacity hover:text-neutral-100"
                     >
                         <Icons.CrossS className="h-3 w-3" />
                     </button>
@@ -100,7 +104,7 @@ export const OfflineBanner = observer(() => {
                 <button
                     type="button"
                     onClick={() => setPanelOpen(true)}
-                    className="mt-2 flex items-center gap-1 opacity-60 transition-opacity hover:opacity-100"
+                    className="mt-2 flex items-center gap-1 text-neutral-400 transition-colors hover:text-neutral-100"
                 >
                     <span className="underline underline-offset-2">Details</span>
                     <Icons.ArrowRight className="h-2.5 w-2.5" />

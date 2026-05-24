@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -18,16 +19,17 @@ import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 export function DeleteProject({ project, refetch }: { project: Project; refetch: () => void }) {
     const t = useTranslations();
-    const { mutateAsync: deleteProject } = api.project.delete.useMutation();
+    const deleteProject = useMutation(api.projects.remove);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const handleDeleteProject = async () => {
         try {
-            await deleteProject({ id: project.id });
+            await deleteProject({ projectId: project.id as Id<'projects'> });
             setShowDeleteDialog(false);
             refetch();
         } catch (error) {

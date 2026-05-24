@@ -15,11 +15,11 @@ import { useHasAuthCookie } from '@/hooks/use-has-auth-cookie';
 // surface that reads .appearance.*) keeps working without a flat-shape rewrite.
 export function AppearanceProvider({ children }: { children: React.ReactNode }) {
     const hasAuthCookie = useHasAuthCookie();
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
     const userSettings = useQuery(
-        (hasAuthCookie === true
-            ? api.users.getMappedSettings
-            : 'skip') as typeof api.users.getMappedSettings,
-        hasAuthCookie === true ? {} : (undefined as never),
+        api.users.getMappedSettings,
+        hasAuthCookie === true ? {} : 'skip',
     );
     const { setTheme } = useTheme();
     const stateManager = useStateManager();

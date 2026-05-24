@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useAction } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -20,12 +21,12 @@ import { Label } from '@weblab/ui/label';
 import { cn } from '@weblab/ui/utils';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 export function CloneProject({ project, refetch }: { project: Project; refetch: () => void }) {
     const t = useTranslations();
-    const utils = api.useUtils();
-    const { mutateAsync: forkProject } = api.project.fork.useMutation();
+    const forkProject = useAction(api.projectActions.fork);
     const [showCloneDialog, setShowCloneDialog] = useState(false);
     const [cloneProjectName, setCloneProjectName] = useState(`${project.name} (Clone)`);
     const [isCloningProject, setIsCloningProject] = useState(false);
@@ -41,13 +42,10 @@ export function CloneProject({ project, refetch }: { project: Project; refetch: 
     const handleCloneProject = async () => {
         setIsCloningProject(true);
         try {
-            const clonedProject = await forkProject({
-                projectId: project.id,
+            await forkProject({
+                projectId: project.id as Id<'projects'>,
                 name: cloneProjectName,
             });
-
-            // Invalidate and refetch project lists
-            await Promise.all([utils.project.list.invalidate()]);
 
             toast.success('Project cloned successfully');
             setShowCloneDialog(false);

@@ -1,18 +1,21 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+// Post-migration stub: the Drizzle client is gone. Any runtime caller that
+// reaches `db.query.X` / `db.insert(...)` etc. throws immediately so the
+// caller is rewritten to use Convex queries/mutations.
+//
+// New code MUST NOT import `db` from here.
 
-import * as schema from '@weblab/db/src/schema';
+function throwingProxy(): never {
+    throw new Error(
+        '[@weblab/db/src/client] Drizzle is removed. Use Convex queries/mutations instead.',
+    );
+}
 
-/**
- * Cache the database connection in development. This avoids creating a new connection on every HMR
- * update.
- */
-const globalForDb = globalThis as unknown as {
-    conn: postgres.Sql | undefined;
-};
-
-const conn = globalForDb.conn ?? postgres(process.env.SUPABASE_DATABASE_URL!, { prepare: false });
-if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
-
-export const db = drizzle(conn, { schema });
-export type DrizzleDb = typeof db;
+export const db = new Proxy(
+    {},
+    {
+        get() {
+            return throwingProxy;
+        },
+    },
+) as never;

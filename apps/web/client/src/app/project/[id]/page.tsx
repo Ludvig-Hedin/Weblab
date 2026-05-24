@@ -6,7 +6,12 @@ import { fetchQuery } from 'convex/nextjs';
 import { APP_NAME } from '@weblab/constants';
 
 import type { Id } from '@convex/_generated/dataModel';
-import { fromConvexBranch, fromConvexProject } from './_adapters/convex-bootstrap';
+import { env } from '@/env';
+import {
+    fromConvexBootstrap,
+    fromConvexBranch,
+    fromConvexProject,
+} from './_adapters/convex-bootstrap';
 import { Main } from './_components/main';
 import { OfflineEditorBootstrap } from './_components/offline-editor-bootstrap';
 import { ProjectLoadError } from './_components/project-load-error';
@@ -61,7 +66,11 @@ function collectFramePreconnectOrigins(
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
     const resolved = await params;
     const projectId = resolved.id;
-    console.log('[project/page] resolved params:', resolved, 'projectId:', projectId);
+    // Dev-only: this runs server-side on every project open. Guard it so it
+    // never floods production logs (mirrors the NODE_ENV guard in error.tsx).
+    if (env.NODE_ENV !== 'production') {
+        console.log('[project/page] resolved params:', resolved, 'projectId:', projectId);
+    }
     if (!projectId || projectId === 'undefined') {
         return <ProjectLoadError variant="invalid-id" />;
     }
@@ -98,7 +107,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 {preconnectOrigins.map((origin) => (
                     <link key={`dns-prefetch-${origin}`} rel="dns-prefetch" href={origin} />
                 ))}
-                <Main initialBootstrap={bootstrap as unknown as any} />
+                <Main initialBootstrap={fromConvexBootstrap(bootstrap as never)} />
             </ProjectProviders>
         );
     } catch (error) {

@@ -29,6 +29,7 @@ export function OfflineEditorBootstrap({
 }) {
     const [state, setState] = useState<CacheState>({ status: 'loading' });
     const stalenessToastedRef = useRef(false);
+    const accessChangeToastedRef = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -56,6 +57,20 @@ export function OfflineEditorBootstrap({
                         },
                     );
                 }
+                // We're rendering an interactive editor from cache because the
+                // server fetch failed with an access error (401/403/session),
+                // NOT a plain network/offline failure. The data the user sees
+                // is stale and edits may not sync, so warn non-blockingly —
+                // they keep full editor access but know the caveat. One-time
+                // per mount; independent of the staleness toast above so both
+                // can fire if the copy is also old.
+                if (fallbackVariant === 'unauthorized' && !accessChangeToastedRef.current) {
+                    accessChangeToastedRef.current = true;
+                    toast.warning("You're viewing a cached copy.", {
+                        description:
+                            'Your access may have changed — edits might not sync. Reload to reconnect.',
+                    });
+                }
             } else {
                 setState({ status: 'miss' });
             }
@@ -63,7 +78,7 @@ export function OfflineEditorBootstrap({
         return () => {
             cancelled = true;
         };
-    }, [projectId]);
+    }, [projectId, fallbackVariant]);
 
     if (state.status === 'loading') {
         return (

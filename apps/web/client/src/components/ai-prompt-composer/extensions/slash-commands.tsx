@@ -24,9 +24,9 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                         const q = query.toLowerCase();
                         return commands.filter(
                             (cmd) =>
-                                cmd.name.includes(q) ||
+                                cmd.name.toLowerCase().includes(q) ||
                                 cmd.label.toLowerCase().includes(q) ||
-                                cmd.keywords?.some((k) => k.includes(q)),
+                                cmd.keywords?.some((k) => k.toLowerCase().includes(q)),
                         );
                     },
                     render: () => {

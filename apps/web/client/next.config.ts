@@ -61,6 +61,18 @@ const nextConfig: NextConfig = {
                 destination: '/features/blocks',
                 permanent: false,
             },
+            // Common short paths that external sites/email footers link to.
+            // Canonical routes live under the longer slugs.
+            {
+                source: '/privacy',
+                destination: '/privacy-policy',
+                permanent: true,
+            },
+            {
+                source: '/terms',
+                destination: '/terms-of-service',
+                permanent: true,
+            },
         ];
     },
     async headers() {

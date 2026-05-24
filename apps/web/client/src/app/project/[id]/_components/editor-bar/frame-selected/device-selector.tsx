@@ -62,21 +62,29 @@ export const DeviceSelector = observer(() => {
     const editorEngine = useEditorEngine();
     const frameData = editorEngine.frames.selected[0];
     const [isOpen, setIsOpen] = useState(false);
+    // Defensive: `frame.dimension` is missing on synthetic projects (no real
+    // canvas/frames bootstrap). The original chain `frameData?.frame.dimension`
+    // throws because `?.` short-circuits only one level — once `frameData` is
+    // undefined, the chain returns undefined but the *next* `.dimension` is
+    // still accessed at parse time. Chain `?.` through every hop so the
+    // device selector renders an empty default instead of crashing the
+    // editor-bar (which currently boots the whole `error.tsx` boundary and
+    // hides every other editor panel).
     const [metadata, setMetadata] = useState<WindowMetadata>(() =>
         computeWindowMetadata(
-            frameData?.frame.dimension.width.toString() ?? '0',
-            frameData?.frame.dimension.height.toString() ?? '0',
+            frameData?.frame?.dimension?.width?.toString() ?? '0',
+            frameData?.frame?.dimension?.height?.toString() ?? '0',
         ),
     );
 
     useEffect(() => {
         setMetadata(
             computeWindowMetadata(
-                frameData?.frame.dimension.width.toString() ?? '0',
-                frameData?.frame.dimension.height.toString() ?? '0',
+                frameData?.frame?.dimension?.width?.toString() ?? '0',
+                frameData?.frame?.dimension?.height?.toString() ?? '0',
             ),
         );
-    }, [frameData?.frame.dimension.width, frameData?.frame.dimension.height]);
+    }, [frameData?.frame?.dimension?.width, frameData?.frame?.dimension?.height]);
 
     if (!frameData) return null;
 

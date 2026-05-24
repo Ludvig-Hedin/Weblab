@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { useTranslations } from 'next-intl';
 
 import { BrandLogo } from '@weblab/ui/brand';
@@ -13,7 +15,6 @@ import { Label } from '@weblab/ui/label';
 import { extractNames } from '@weblab/utility';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 import { sanitizeReturnUrl } from '@/utils/url';
 
@@ -44,12 +45,12 @@ function deriveNameFromEmail(email: string): string | null {
  * names are populated by the provider in the auth callback.
  *
  * Behavior:
- *   - Loads the current user via `api.user.get`.
+ *   - Loads the current user via `api.users.me`.
  *   - If the user already has a real name on record, redirects to `returnUrl`
  *     immediately (returning OTP users, OAuth users, anyone re-visiting).
  *   - Otherwise shows a single "What should we call you?" name field,
  *     prefilled with a guess derived from the email. On save, calls
- *     `api.user.updateProfile` and routes to `returnUrl`.
+ *     `api.users.updateProfile` and routes to `returnUrl`.
  *   - "Skip for now" routes to `returnUrl`, persisting the email-derived
  *     guess so the UI never has to fall back to showing the raw email.
  */
@@ -57,7 +58,6 @@ export default function ProfileSetupPage() {
     const t = useTranslations();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const apiUtils = api.useUtils();
 
     // The verify page passes `returnUrl` as the post-setup destination — this
     // is the user's pre-login intent, already sanitized server-side. Sanitize
@@ -75,19 +75,13 @@ export default function ProfileSetupPage() {
             ? Routes.PROJECTS
             : sanitizedReturnUrl;
 
-    const { data: user, isLoading: isLoadingUser } = api.user.get.useQuery();
-    const { mutate: updateProfile, isPending: isSaving } = api.user.updateProfile.useMutation({
-        onSuccess: () => {
-            void apiUtils.user.get.invalidate();
-            router.push(finalRedirect);
-        },
-        onError: (error) => {
-            setError(error.message || t(transKeys.welcome.profileSetup.errorSaveFailed));
-        },
-    });
+    const user = useQuery(api.users.me, {});
+    const isLoadingUser = user === undefined;
+    const updateProfile = useMutation(api.users.updateProfile);
 
     const [name, setName] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     // Track whether we've already run the auto-redirect check so the form
     // doesn't flash for users who already have a name on record.
     const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
@@ -99,7 +93,7 @@ export default function ProfileSetupPage() {
     useEffect(() => {
         if (isLoadingUser) return;
         if (!user) {
-            // api.user.get returned null (e.g. session present but no public.users row).
+            // api.users.me returned null (e.g. session present but no user row).
             // Don't sit on the spinner — let the form render so the user can fill it in.
             setHasCheckedProfile(true);
             return;
@@ -125,10 +119,22 @@ export default function ProfileSetupPage() {
         setHasCheckedProfile(true);
     }, [isLoadingUser, user, router, finalRedirect]);
 
-    const persistName = (fullName: string) => {
+    const persistName = async (fullName: string) => {
         const trimmed = fullName.trim();
         const { firstName, lastName } = extractNames(trimmed);
-        updateProfile({ firstName, lastName, displayName: trimmed });
+        setIsSaving(true);
+        try {
+            await updateProfile({ firstName, lastName, displayName: trimmed });
+            router.push(finalRedirect);
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : t(transKeys.welcome.profileSetup.errorSaveFailed),
+            );
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -140,7 +146,7 @@ export default function ProfileSetupPage() {
             return;
         }
         setError(null);
-        persistName(trimmed);
+        void persistName(trimmed);
     };
 
     const handleSkip = () => {
@@ -152,7 +158,7 @@ export default function ProfileSetupPage() {
         // email yields nothing usable.
         const derived = user?.email ? deriveNameFromEmail(user.email) : null;
         if (derived) {
-            persistName(derived);
+            void persistName(derived);
             return;
         }
         router.push(finalRedirect);
@@ -203,7 +209,7 @@ export default function ProfileSetupPage() {
                                 required
                             />
                         </div>
-                        {error && <p className="text-small text-red-500">{error}</p>}
+                        {error && <p className="text-small text-destructive">{error}</p>}
                         <div className="flex flex-col space-y-2 pt-2">
                             <Button
                                 type="submit"

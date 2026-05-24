@@ -8,7 +8,6 @@ import { toast } from '@weblab/ui/sonner';
 import type { ErrorManager } from '../error';
 import type { CLISession, TerminalSession } from './terminal';
 import { isOnline } from '@/services/offline/online-status';
-import { api } from '@/trpc/client';
 import { isSandboxGoneError, isShellStartupError } from './errors';
 import { OfflineProvider } from './offline-provider';
 import { CLISessionImpl, CLISessionType } from './terminal';
@@ -92,11 +91,9 @@ export class SessionManager {
         }
 
         const attemptConnection = async () => {
-            const vercelSession =
-                this.branch.runtime.type !== 'local' &&
-                this.branch.runtime.cloud?.provider === 'vercel_sandbox'
-                    ? await api.sandbox.start.mutate({ sandboxId })
-                    : null;
+            // TODO(sandbox-port): api.sandbox.start has no Convex equivalent yet.
+            // Fall back to caller-provided sandboxId without invoking the proxy.
+            const vercelSession = null as { sandboxId?: string } | null;
             const activeSandboxId = vercelSession?.sandboxId ?? sandboxId;
 
             // Keep activeSandboxId current — Vercel may assign a new sandbox ID
@@ -124,8 +121,10 @@ export class SessionManager {
                                     sandboxId,
                                     userId,
                                     initClient: true,
-                                    getSession: async (sandboxId, _userId) => {
-                                        return api.sandbox.start.mutate({ sandboxId });
+                                    getSession: async (_sandboxId, _userId) => {
+                                        // TODO(sandbox-port): api.sandbox.start has no
+                                        // Convex equivalent yet — return a stub session.
+                                        return {} as never;
                                     },
                                 },
                             },
@@ -293,8 +292,8 @@ export class SessionManager {
         }
     }
 
-    async hibernate(sandboxId: string) {
-        await api.sandbox.hibernate.mutate({ sandboxId });
+    async hibernate(_sandboxId: string) {
+        // TODO(sandbox-port): api.sandbox.hibernate has no Convex equivalent yet.
     }
 
     async reconnect(sandboxId: string, userId?: string) {

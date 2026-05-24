@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
 import type { Frame } from '@weblab/models';
@@ -15,7 +16,8 @@ import type { IFrameView } from './view';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
-import { api } from '@/trpc/react';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 import { RightClickMenu } from '../../right-click-menu';
 import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
@@ -295,12 +297,12 @@ export const FrameView = observer(
         const TIP_INTERVAL_MS = 12000;
         const autoPreviewRestoreModeRef = useRef<EditorMode | null>(null);
 
-        // Read the pending create request from the tRPC cache. When this is set
+        // Read the pending create request from Convex. When this is set
         // the user just submitted a prompt — swap the generic "Starting up"
         // copy for a creation-aware message so they understand the wait isn't
         // an error.
-        const { data: creationRequest } = api.project.createRequest.getPendingRequest.useQuery({
-            projectId: editorEngine.projectId,
+        const creationRequest = useQuery(api.projectCreateRequests.getPendingRequest, {
+            projectId: editorEngine.projectId as Id<'projects'>,
         });
         const isFirstCreation = !!creationRequest;
 
@@ -434,33 +436,42 @@ export const FrameView = observer(
         const sandboxIsGone =
             livenessState === 'gone' ||
             (livenessState === 'notFound' && bootElapsedMs >= NOTFOUND_GRACE_MS);
-        const restoreMutation = api.sandbox.restore.useMutation();
-        const utilsForRestore = api.useUtils();
+        // TODO(sandbox-port): wire to Convex once a `sandboxActions.restore`
+        // action exists. The tRPC sandbox.restore endpoint was removed during
+        // the Convex migration; restoration is currently a no-op so the CTA
+        // surfaces but cannot recover the sandbox. Track restore-in-flight
+        // state locally so the existing UI affordances (spinner + disabled
+        // button) keep behaving correctly.
+        const [isRestorePending, setIsRestorePending] = useState(false);
+        const restoreMutation = { isPending: isRestorePending };
         const restoreInFlightRef = useRef(false);
         const autoRestoreFiredRef = useRef(false);
         const autoRestartFiredRef = useRef(false);
         const handleRestoreSandbox = async ({ silent = false } = {}) => {
             if (restoreInFlightRef.current) return;
             restoreInFlightRef.current = true;
+            setIsRestorePending(true);
             try {
-                await restoreMutation.mutateAsync({ branchId: frame.branchId });
-                // Refetch the canvas so frame.url updates to the new
-                // sandbox preview, then force a fresh iframe load.
-                await utilsForRestore.userCanvas.getWithFrames.invalidate({
-                    projectId: editorEngine.projectId,
-                });
-                immediateReload();
-                if (!silent) toast.success('Project restored from snapshot');
+                // TODO(sandbox-port): restore action is unavailable post-migration.
+                // Surface a soft error so the user understands the manual
+                // retry didn't recover anything; reactive Convex queries will
+                // refresh the canvas automatically once the sandbox is back.
+                throw new Error('Sandbox restore is temporarily unavailable.');
+                // immediateReload();
+                // if (!silent) toast.success('Project restored from snapshot');
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown error';
                 // Surface failures even on the silent path — if auto-restore
                 // can't fix it, the user needs to know rather than stare at
                 // a stuck spinner.
-                toast.error("Couldn't restore the sandbox", { description: message });
+                if (!silent) {
+                    toast.error("Couldn't restore the sandbox", { description: message });
+                }
                 // Allow another manual attempt after a failure.
                 autoRestoreFiredRef.current = false;
             } finally {
                 restoreInFlightRef.current = false;
+                setIsRestorePending(false);
             }
         };
 

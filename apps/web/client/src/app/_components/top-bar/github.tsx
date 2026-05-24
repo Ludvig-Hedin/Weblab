@@ -27,9 +27,16 @@ export function useGitHubStats() {
                 const repoResponse = await fetch(
                     'https://api.github.com/repos/Ludvig-Hedin/Weblab',
                 );
-                const repoData = await repoResponse.json();
-                setRaw(repoData.stargazers_count);
-                setFormatted(formatStarCount(repoData.stargazers_count));
+                // On a rate-limited 403 the body has no stargazers_count;
+                // guard so formatStarCount(undefined) can't throw and abort the
+                // contributors fetch below — fall back to the default instead.
+                if (repoResponse.ok) {
+                    const repoData = await repoResponse.json();
+                    if (typeof repoData.stargazers_count === 'number') {
+                        setRaw(repoData.stargazers_count);
+                        setFormatted(formatStarCount(repoData.stargazers_count));
+                    }
+                }
 
                 // Contributors (use the Link header for pagination)
                 const contribResponse = await fetch(

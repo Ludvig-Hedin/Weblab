@@ -1,23 +1,15 @@
 import { v } from 'convex/values';
 
+import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
 
 // Convex-side Clerk webhook handlers. INTERNAL — not callable from clients.
+// Invoked by `convex/http.ts::/clerk-webhook` after Svix signature verify.
 //
-// During Phase 5, the Next.js webhook handler at
-// `apps/web/client/src/app/api/clerk/webhook/route.ts` is the single trust
-// boundary: it Svix-verifies the request, then writes the canonical user
-// row to Drizzle (the live data store). Convex `users` is dormant — no
-// production router reads from it yet — so this module currently exists as
-// scaffolding for Phase 4 when Convex becomes a real consumer.
-//
-// These functions are `internalMutation` rather than `mutation` so they
-// cannot be invoked from outside the Convex deployment. A previous shape
-// exposed them as public mutations gated by a shared-secret arg, which was
-// brute-forceable by anyone who knew `NEXT_PUBLIC_CONVEX_URL`. To wire
-// these up safely in Phase 4, add an `httpAction` (in `convex/http.ts`)
-// that Svix-verifies the request inside Convex and calls these
-// internalMutations via `ctx.runMutation`.
+// These are `internalMutation` rather than `mutation` so they cannot be
+// reached from outside the Convex deployment. A previous shape exposed
+// public mutations gated by a shared-secret arg, which was brute-forceable
+// by anyone who knew `NEXT_PUBLIC_CONVEX_URL`.
 
 export const upsertUser = internalMutation({
     args: {
@@ -58,37 +50,16 @@ export const deleteUser = internalMutation({
             .unique();
         if (!user) return { ok: false, reason: 'NOT_FOUND' as const };
 
-        const settings = await ctx.db
-            .query('userSettings')
-            .withIndex('by_user', (q) => q.eq('userId', user._id))
-            .collect();
-        for (const s of settings) await ctx.db.delete(s._id);
-
-        const canvases = await ctx.db
-            .query('userCanvases')
-            .withIndex('by_user_canvas', (q) => q.eq('userId', user._id))
-            .collect();
-        for (const c of canvases) await ctx.db.delete(c._id);
-
-        const conns = await ctx.db
-            .query('providerConnections')
-            .withIndex('by_user', (q) => q.eq('userId', user._id))
-            .collect();
-        for (const c of conns) await ctx.db.delete(c._id);
-
-        const memberships = await ctx.db
-            .query('workspaceMembers')
-            .withIndex('by_user', (q) => q.eq('userId', user._id))
-            .collect();
-        for (const m of memberships) await ctx.db.delete(m._id);
-
-        const projectMemberships = await ctx.db
-            .query('projectMembers')
-            .withIndex('by_user', (q) => q.eq('userId', user._id))
-            .collect();
-        for (const pm of projectMemberships) await ctx.db.delete(pm._id);
-
-        await ctx.db.delete(user._id);
+        // Full cascade — settings, providerConnections, memberships, owned
+        // personal workspace + its projects, subscriptions, rateLimits,
+        // usageRecords, hostingProviderConnections, feedbacks, skills.
+        // Same path as `userActions.remove` (in-app account-delete flow), so
+        // user-data hygiene is identical regardless of where the deletion
+        // originated (Clerk dashboard webhook vs. account-settings UI).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await ctx.runMutation((internal as any)['internal/cascade'].deleteUserCascade, {
+            userId: user._id,
+        });
         return { ok: true } as const;
     },
 });

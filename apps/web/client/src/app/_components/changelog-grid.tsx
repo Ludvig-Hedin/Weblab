@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { format, isValid, parseISO } from 'date-fns';
 
+import { Icons } from '@weblab/ui/icons';
+
+import { ButtonLink } from '@/app/_components/button-link';
 import { Reveal } from '@/components/motion/reveal';
 import { CHANGELOG_ENTRIES } from '@/lib/changelog-entries';
 import { Routes } from '@/utils/constants';
@@ -26,12 +29,12 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
                     </p>
                     <h2 className="heading-style-h4 text-foreground-primary">Changelog</h2>
                 </div>
-                <Link
+                <ButtonLink
                     href={Routes.CHANGELOG}
-                    className="text-foreground-secondary hover:text-foreground-primary text-sm transition-colors"
+                    rightIcon={<Icons.ArrowRight className="h-4 w-4" />}
                 >
-                    See all updates →
-                </Link>
+                    See all updates
+                </ButtonLink>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -39,7 +42,7 @@ export function ChangelogGrid({ limit = 4 }: ChangelogGridProps) {
                     <Reveal key={entry.slug} delay={idx * 0.06}>
                         <Link
                             href={Routes.CHANGELOG}
-                            className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-xl p-5 ring-1 transition-colors"
+                            className="group ring-foreground-primary/10 bg-foreground-primary/[0.03] hover:bg-foreground-primary/[0.05] flex flex-col gap-3 rounded-[12px] p-5 ring-1 transition-colors"
                         >
                             <div className="flex items-center gap-2">
                                 <span className="border-foreground-primary/20 text-foreground-secondary rounded-full border px-2 py-0.5 text-xs font-medium">

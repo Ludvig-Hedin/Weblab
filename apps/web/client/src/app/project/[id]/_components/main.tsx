@@ -6,6 +6,7 @@ import { observer } from 'mobx-react-lite';
 
 import { EditorAttributes } from '@weblab/constants';
 import { EditorMode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import { TooltipProvider } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 
@@ -18,6 +19,7 @@ import { usePanelMeasurements } from '../_hooks/use-panel-measure';
 import { useStartProject } from '../_hooks/use-start-project';
 import { BottomBar } from './bottom-bar';
 import { Canvas } from './canvas';
+import { CanvasErrorBoundary } from './canvas-error-boundary';
 import { EditorBar } from './editor-bar';
 import { LeftPanel } from './left-panel';
 import { MobileLayout } from './mobile-layout';
@@ -76,6 +78,11 @@ const CmsWorkspace = dynamic(() => import('./cms-workspace').then((m) => m.CmsWo
     ssr: false,
 });
 
+// Watchdog threshold for the cold-start loader. After this long without the
+// project becoming ready (and with no surfaced error), we show a Retry escape
+// hatch. Module-scoped so it's stable across renders and effect deps.
+const STARTUP_STALL_TIMEOUT_MS = 25_000;
+
 export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorBootstrapData }) => {
     const editorEngine = useEditorEngine();
     const { isProjectReady, error, readyState, hasPendingCreation } =
@@ -92,6 +99,26 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
     // the browser paints, eliminating the hydration mismatch that arose when
     // the lazy initialiser diverged between server (false) and mobile client (true).
     const [isMobile, setIsMobile] = useState<boolean>(false);
+
+    // Cold-start watchdog: if startup stalls past STARTUP_STALL_TIMEOUT_MS
+    // without the project becoming ready AND without a surfaced error, the
+    // sandbox has likely silently failed to connect (no `connectionError`
+    // emitted). We surface a non-blocking Retry affordance so the user isn't
+    // stranded on a loader that could spin forever. Additive — never blocks or
+    // replaces the loader.
+    const [startupStalled, setStartupStalled] = useState(false);
+
+    useEffect(() => {
+        // Only arm the watchdog while we'd actually be showing the blocking
+        // creation loader. Once ready, or if an error is already surfaced
+        // (handled by its own UI), there's nothing to escape from.
+        if (isProjectReady || error) {
+            setStartupStalled(false);
+            return;
+        }
+        const timer = setTimeout(() => setStartupStalled(true), STARTUP_STALL_TIMEOUT_MS);
+        return () => clearTimeout(timer);
+    }, [isProjectReady, error]);
 
     useLayoutEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -150,6 +177,22 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                     'We saved your prompt. The AI will start writing as soon as the editor is ready.'
                 }
                 steps={steps}
+                footer={
+                    startupStalled ? (
+                        <>
+                            <p className="text-foreground-tertiary text-small text-center leading-snug">
+                                Still starting your workspace… this is taking longer than usual.
+                            </p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.location.reload()}
+                            >
+                                Reload project
+                            </Button>
+                        </>
+                    ) : undefined
+                }
             />
         );
     }
@@ -186,13 +229,17 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                 not in a normal editor session yet. */}
                 <OnboardingTour suppressed={hasPendingCreation} />
                 <div className="relative flex h-screen w-screen flex-row overflow-hidden select-none">
-                    <Canvas />
+                    <CanvasErrorBoundary label="Canvas">
+                        <Canvas />
+                    </CanvasErrorBoundary>
 
                     {/* Editor chrome — hidden only in full-screen preview mode.
                     In CMS mode the top bar stays visible so users can navigate
                     back to Design via the mode toggle. */}
                     <div className={cn('absolute top-0 w-full', isPreview && 'hidden')}>
-                        <TopBar />
+                        <CanvasErrorBoundary label="TopBar" fallback={null}>
+                            <TopBar />
+                        </CanvasErrorBoundary>
                     </div>
 
                     {/* Left Panel */}
@@ -204,7 +251,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                         )}
                         style={isCode ? { right: toolbarRight } : undefined}
                     >
-                        <LeftPanel />
+                        <CanvasErrorBoundary label="LeftPanel" fallback={null}>
+                            <LeftPanel />
+                        </CanvasErrorBoundary>
                     </div>
                     {/* EditorBar anchored between panels */}
                     <div
@@ -221,7 +270,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                         }}
                     >
                         <div style={{ pointerEvents: 'auto' }}>
-                            <EditorBar availableWidth={editorBarAvailableWidth} />
+                            <CanvasErrorBoundary label="EditorBar" fallback={null}>
+                                <EditorBar availableWidth={editorBarAvailableWidth} />
+                            </CanvasErrorBoundary>
                         </div>
                     </div>
 
@@ -234,7 +285,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                             (isPreview || isCms) && 'hidden',
                         )}
                     >
-                        <RightPanel />
+                        <CanvasErrorBoundary label="RightPanel" fallback={null}>
+                            <RightPanel />
+                        </CanvasErrorBoundary>
                     </div>
 
                     {/* Per-page settings drawer — opened from the Pages tab cog.
@@ -254,7 +307,9 @@ export const Main = observer(({ initialBootstrap }: { initialBootstrap?: EditorB
                         style={{ left: toolbarLeft, right: toolbarRight }}
                     >
                         <div className="pointer-events-auto">
-                            <BottomBar />
+                            <CanvasErrorBoundary label="BottomBar" fallback={null}>
+                                <BottomBar />
+                            </CanvasErrorBoundary>
                         </div>
                     </div>
 

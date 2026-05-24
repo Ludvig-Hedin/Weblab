@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import { WorkspaceKind } from '@weblab/models';
@@ -9,48 +11,68 @@ import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
 
-import { api } from '@/trpc/react';
+import type { Id } from '../../../../../../convex/_generated/dataModel';
 import { useActiveWorkspace } from '../../_components/workspace-context';
 
 export default function WorkspaceGeneralPage() {
     const workspace = useActiveWorkspace();
     const router = useRouter();
-    const utils = api.useUtils();
-    const { data: caps } = api.user.capabilities.useQuery({
-        workspaceId: workspace.id,
-    });
+    const workspaceId = workspace.id as Id<'workspaces'>;
+    const caps = useQuery(api.users.capabilities, { workspaceId });
     const canUpdate = caps?.includes('workspace.update') ?? false;
     const canDelete = caps?.includes('workspace.delete') ?? false;
 
     const [name, setName] = useState(workspace.name);
     const [confirmDelete, setConfirmDelete] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isLeaving, setIsLeaving] = useState(false);
 
-    const updateMutation = api.workspace.update.useMutation({
-        onSuccess: async () => {
+    const updateWorkspace = useMutation(api.workspaces.update);
+    const deleteWorkspace = useMutation(api.workspaces.remove);
+    const leaveWorkspace = useMutation(api.workspaces.leave);
+
+    const handleUpdate = async () => {
+        setIsUpdating(true);
+        try {
+            await updateWorkspace({
+                workspaceId,
+                name: name.trim(),
+            });
             toast.success('Workspace updated');
-            await utils.workspace.list.invalidate();
-            await utils.workspace.getBySlug.invalidate({ slug: workspace.slug });
             router.refresh();
-        },
-        onError: (err: any) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to update workspace');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
-    const deleteMutation = api.workspace.delete.useMutation({
-        onSuccess: () => {
+    const handleDelete = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteWorkspace({ workspaceId });
             toast.success('Workspace deleted');
             router.push('/projects');
-        },
-        onError: (err: any) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to delete workspace');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
-    const leaveMutation = api.workspace.leave.useMutation({
-        onSuccess: async () => {
+    const handleLeave = async () => {
+        setIsLeaving(true);
+        try {
+            await leaveWorkspace({ workspaceId });
             toast.success('Left workspace');
-            await utils.workspace.list.invalidate();
             router.push('/projects');
-        },
-        onError: (err: any) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to leave workspace');
+        } finally {
+            setIsLeaving(false);
+        }
+    };
 
     const isPersonal = workspace.kind === WorkspaceKind.PERSONAL;
 
@@ -79,16 +101,11 @@ export default function WorkspaceGeneralPage() {
                             !canUpdate ||
                             name.trim().length === 0 ||
                             name.trim() === workspace.name ||
-                            updateMutation.isPending
+                            isUpdating
                         }
-                        onClick={() =>
-                            updateMutation.mutate({
-                                workspaceId: workspace.id,
-                                name: name.trim(),
-                            })
-                        }
+                        onClick={() => void handleUpdate()}
                     >
-                        {updateMutation.isPending ? 'Saving…' : 'Save changes'}
+                        {isUpdating ? 'Saving…' : 'Save changes'}
                     </Button>
                 </div>
             </section>
@@ -106,18 +123,18 @@ export default function WorkspaceGeneralPage() {
                         <Button
                             variant="outline"
                             size="compact"
-                            disabled={leaveMutation.isPending}
+                            disabled={isLeaving}
                             onClick={() => {
                                 if (
                                     window.confirm(
                                         `Leave ${workspace.name}? You will lose access to its projects unless invited back.`,
                                     )
                                 ) {
-                                    leaveMutation.mutate({ workspaceId: workspace.id });
+                                    void handleLeave();
                                 }
                             }}
                         >
-                            {leaveMutation.isPending ? 'Leaving…' : 'Leave workspace'}
+                            {isLeaving ? 'Leaving…' : 'Leave workspace'}
                         </Button>
                     </div>
                 </section>
@@ -145,10 +162,10 @@ export default function WorkspaceGeneralPage() {
                         <Button
                             variant="destructive"
                             size="compact"
-                            disabled={confirmDelete !== workspace.slug || deleteMutation.isPending}
-                            onClick={() => deleteMutation.mutate({ workspaceId: workspace.id })}
+                            disabled={confirmDelete !== workspace.slug || isDeleting}
+                            onClick={() => void handleDelete()}
                         >
-                            {deleteMutation.isPending ? 'Deleting…' : 'Delete workspace'}
+                            {isDeleting ? 'Deleting…' : 'Delete workspace'}
                         </Button>
                     </div>
                 </section>

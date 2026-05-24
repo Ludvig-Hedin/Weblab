@@ -1,46 +1,44 @@
-import { createBrowserClient } from '@supabase/ssr';
+// Post-migration: Supabase Storage replaced by Convex File Storage. This
+// shim keeps the import path alive so unmigrated call sites don't break.
+// Returns null for legacy Supabase paths.
+//
+// New code MUST use `useQuery(api.storage.getFileUrl, { storageId })` from
+// `convex/react` instead.
 
-import { env } from '@/env';
-
-export function createClient() {
-    // Create a supabase client on the browser with project's credentials
-    return createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+// One-shot warn so legacy traffic that still hits this stub surfaces in
+// logs without spamming the console. Once the warning has fired we know
+// the shim is still load-bearing; if it never fires across a release we
+// can drop the shim and the four call-site imports together.
+let warnedLegacyPath = false;
+function warnLegacyOnce(fn: string): void {
+    if (warnedLegacyPath) return;
+    warnedLegacyPath = true;
+    console.warn(
+        `[utils/supabase/client] ${fn} called — legacy Supabase Storage path is no longer backed. ` +
+            'Migrate the caller to Convex File Storage (api.storage.*). Returns null.',
+    );
 }
 
-export const getFileUrlFromStorage = (bucket: string, path: string) => {
-    const supabase = createClient();
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+export function createClient() {
+    throw new Error('[utils/supabase/client] Supabase removed. Use Convex hooks directly.');
+}
 
-    return data.publicUrl;
+export const getFileUrlFromStorage = (_bucket: string, _path: string): string | null => {
+    warnLegacyOnce('getFileUrlFromStorage');
+    return null;
 };
 
-export const getFileInfoFromStorage = async (bucket: string, path: string) => {
-    const supabase = createClient();
-    const { data, error } = await supabase.storage.from(bucket).info(path);
-    if (error) {
-        console.error('Error getting file info:', error);
-        return null;
-    }
-    return data;
+export const getFileInfoFromStorage = async (_bucket: string, _path: string): Promise<null> => {
+    warnLegacyOnce('getFileInfoFromStorage');
+    return null;
 };
 
 export const uploadBlobToStorage = async (
-    bucket: string,
-    path: string,
-    file: Blob,
-    options: {
-        upsert?: boolean;
-        contentType?: string;
-        cacheControl?: string;
-    },
-) => {
-    const supabase = createClient();
-    const { data, error } = await supabase.storage.from(bucket).upload(path, file, options);
-
-    if (error) {
-        console.error('Error uploading file:', error);
-        return null;
-    }
-
-    return data;
+    _bucket: string,
+    _path: string,
+    _file: Blob,
+    _options?: { upsert?: boolean; contentType?: string; cacheControl?: string },
+): Promise<null> => {
+    warnLegacyOnce('uploadBlobToStorage');
+    return null;
 };

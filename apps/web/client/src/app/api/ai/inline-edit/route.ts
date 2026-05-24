@@ -1,9 +1,13 @@
 import { type NextRequest } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { api } from '@convex/_generated/api';
+import { fetchQuery } from 'convex/nextjs';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { ChatModel } from '@weblab/models';
 import { createInlineEditStream, inferProviderFromModelId } from '@weblab/ai';
 
+import type { Id } from '../../../../../convex/_generated/dataModel';
 import {
     checkMessageLimit,
     decrementUsage,
@@ -70,9 +74,34 @@ export async function POST(req: NextRequest) {
 
     if (!body.instruction?.trim() || !body.selection?.trim()) {
         return new Response(
-            JSON.stringify({ error: 'instruction and selection are required', code: 400 }),
+            JSON.stringify({
+                error: 'instruction and selection are required',
+                code: 400,
+            }),
             { status: 400, headers: { 'Content-Type': 'application/json' } },
         );
+    }
+
+    // Verify the caller can access body.projectId BEFORE incrementing usage or
+    // streaming — mirrors chat/route.ts. body.projectId is client-controlled and
+    // flows into the stream's telemetry/trace scope; `projects.get` runs
+    // requireCap('project.view') and throws for non-members, so a non-owner gets
+    // 403 instead of silently attributing usage/traces to a project they don't own.
+    if (body.projectId) {
+        const { getToken } = await auth();
+        const token = (await getToken({ template: 'convex' })) ?? undefined;
+        try {
+            await fetchQuery(
+                api.projects.get,
+                { projectId: body.projectId as Id<'projects'> },
+                { token },
+            );
+        } catch {
+            return new Response(JSON.stringify({ error: 'Forbidden', code: 403 }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
     }
 
     if (body.model) {
@@ -98,7 +127,16 @@ export async function POST(req: NextRequest) {
 
     try {
         if (!isLocalModel) {
-            usageRecord = await incrementUsage(req, traceId);
+            const incrementResult = await incrementUsage(req, traceId);
+            if (incrementResult && 'limitReached' in incrementResult) {
+                // PRO bucket exhausted under concurrency — refuse before
+                // streaming. The increment mutation rolled back, nothing to refund.
+                return new Response(
+                    JSON.stringify({ error: 'Credit limit exceeded.', code: 402 }),
+                    { status: 402, headers: { 'Content-Type': 'application/json' } },
+                );
+            }
+            usageRecord = incrementResult;
         }
 
         const stream = createInlineEditStream({

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useMutation } from 'convex/react';
 
 import type { ProjectInvitation } from '@weblab/db';
 import { constructInvitationLink } from '@weblab/email';
@@ -9,19 +11,13 @@ import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { getInitials } from '@weblab/utility';
 
+import type { Id } from '@convex/_generated/dataModel';
 import { env } from '@/env';
-import { api } from '@/trpc/react';
 
 export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation }) => {
-    const apiUtils = api.useUtils();
     const initials = getInitials(invitation.inviteeEmail ?? '');
     const [isCopied, setIsCopied] = useState(false);
-    const cancelInvitationMutation = api.invitation.revoke.useMutation({
-        onSuccess: () => {
-            apiUtils.invitation.list.invalidate();
-            apiUtils.project.listAccess.invalidate({ projectId: invitation.projectId });
-        },
-    });
+    const cancelInvitation = useMutation(api.projectInvitations.revoke);
 
     const copyInvitationLink = async () => {
         try {
@@ -70,7 +66,9 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                                cancelInvitationMutation.mutate({ id: invitation.id });
+                                void cancelInvitation({
+                                    id: invitation.id as Id<'projectInvitations'>,
+                                });
                             }}
                         >
                             <Icons.MailX className="text-muted-foreground size-4 transition-colors" />

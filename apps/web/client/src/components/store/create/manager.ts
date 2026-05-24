@@ -1,22 +1,28 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { FrameworkId } from '@weblab/framework';
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
-import { createDefaultProject } from '@weblab/db';
-import { getFrameworkAdapter } from '@weblab/framework';
-import { CreateRequestContextType } from '@weblab/models';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
-// TODO(convex-migration): non-React class-based store using the tRPC vanilla
-// client. Several call sites (`api.sandbox.fork`, `api.sandbox.createFromGitHub`,
-// `api.sandbox.deleteOrphan`, `api.github.validate`) have no Convex equivalent
-// yet. `api.project.generateName` → `api.projectActions.generateName`,
-// `api.project.create` → `api.projects.create` once a ConvexHttpClient with
-// Clerk auth is wired up for non-React contexts. Keeping tRPC client until
-// both sandbox endpoints and a non-React Convex client wrapper exist.
-import { api } from '@/trpc/client';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { parseRepoUrl } from './parse-repo-url';
+
+// TODO(sandbox-port): The legacy create flow ran through the tRPC sandbox
+// routers (`api.sandbox.fork`, `api.sandbox.createFromGitHub`,
+// `api.sandbox.deleteOrphan`, `api.github.validate`) plus the bespoke
+// `api.project.create` mutation that wrote the project graph and persisted
+// the sandbox bindings in a single transaction. None of those have Convex
+// equivalents yet — the corresponding Convex action
+// (`api.projectActions.createBlank`) only handles the blank-project shape and
+// does not accept prompts, image context, github subpaths, or pre-seeded
+// templates. Until those paths are ported, the prompt / GitHub / public-
+// template create flows fail fast with a user-visible error instead of
+// silently corrupting state. `generateName` is wired through Convex so the
+// title-generation path remains usable for the rest of the create UI.
+const UNAVAILABLE_MESSAGE =
+    'Project creation is temporarily unavailable while the sandbox layer is being migrated to Convex. Please check back shortly.';
 
 /**
  * Returns the workspace id the new project should land in. The dashboard
@@ -81,6 +87,7 @@ export function isInvalidInputError(error: unknown): boolean {
 export class CreateManager {
     error: string | null = null;
     phase: CreatePhase = 'idle';
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor() {
         makeAutoObservable(this);
@@ -88,9 +95,12 @@ export class CreateManager {
 
     async generateProjectName(prompt: string): Promise<string> {
         try {
-            const generatedName = await api.project.generateName.mutate({
-                prompt: prompt,
-            });
+            const generatedName = (await this.convex.action(
+                convexApi.projectActions.generateName,
+                {
+                    prompt,
+                },
+            )) as string;
             return generatedName;
         } catch (error: unknown) {
             console.error('Error generating project name:', error);
@@ -98,205 +108,83 @@ export class CreateManager {
         }
     }
 
-    async startCreate(userId: string, prompt: string, images: ImageMessageContext[]) {
+    /**
+     * TODO(sandbox-port): replace once the prompt-create flow is ported to
+     * Convex. The legacy implementation chained `api.sandbox.fork` →
+     * `api.project.create`. Both still have no Convex equivalents that accept
+     * a prompt + image context, so the entry point throws a friendly error
+     * surfaced by the caller's toast. The signature is preserved so the
+     * callers compile; the unused locals keep TS happy without changing the
+     * public API.
+     */
+    async startCreate(
+        userId: string,
+        _prompt: string,
+        _images: ImageMessageContext[],
+    ): Promise<{ id: string }> {
         this.error = null;
-        // Track the forked sandbox so we can release it (best-effort) if any
-        // step after `sandbox.fork` throws. Without this, the user pays for a
-        // CodeSandbox sandbox that has no project row, no `/projects` entry,
-        // and cannot be reached via `sandbox.delete` (which requires a branch).
-        let forkedSandboxId: string | null = null;
-        try {
-            if (!userId) {
-                // Throw a typed sentinel so callers can distinguish "user is
-                // signed out" from a real failure and re-open the auth modal
-                // instead of surfacing a misleading toast. The previous silent
-                // return produced a dead-end (button reset, no feedback) when
-                // a session expired between the auth gate and the click.
-                throw new CreateFlowNotAuthenticatedError();
-            }
-            const config = {
-                title: `Prompted project - ${userId}`,
-                tags: ['prompt', userId],
-            };
-
-            runInAction(() => {
-                this.phase = 'forking-sandbox';
-            });
-            const [{ sandboxId, previewUrl, sandboxRuntime }, projectName] = await Promise.all([
-                api.sandbox.fork.mutate({
-                    sandbox: DEFAULT_NEW_PROJECT_TEMPLATE,
-                    config,
-                }),
-                this.generateProjectName(prompt),
-            ]);
-            forkedSandboxId = sandboxId;
-            // Defense-in-depth: a degenerate fork response (empty id/url)
-            // would persist `frames.url = ''`, and the editor's
-            // <iframe src=""> then resolves to the parent document URL —
-            // the user sees Weblab rendered inside itself with no recovery
-            // path. Reject here so the catch block deletes the orphan and
-            // the toast surfaces the cause.
-            if (!sandboxId || !previewUrl) {
-                throw new Error(
-                    'Sandbox fork returned an incomplete response (missing sandbox id or preview URL). Please try again.',
-                );
-            }
-
-            runInAction(() => {
-                this.phase = 'creating-project';
-            });
-            const project = createDefaultProject({
-                overrides: {
-                    name: projectName,
-                    // DEFAULT_NEW_PROJECT_TEMPLATE is a Next.js sandbox. Persisting
-                    // this lets the editor's preload-script injector pick the
-                    // Next.js path immediately on first load instead of falling
-                    // through to the framework-detection race that surfaced as
-                    // "No router config found for preload script injection".
-                    runtimeMetadata: { framework: 'nextjs' },
-                },
-            });
-            const newProject = await api.project.create.mutate({
-                project,
-                sandboxId,
-                sandboxUrl: previewUrl,
-                sandboxRuntime,
-                workspaceId: readActiveWorkspaceId(),
-                creationData: {
-                    context: [
-                        {
-                            type: CreateRequestContextType.PROMPT,
-                            content: prompt,
-                        },
-                        ...images.map((image) => ({
-                            // `as const` keeps `type` narrowed to the
-                            // literal `IMAGE` member rather than widening to
-                            // the full `CreateRequestContextType` enum, which
-                            // is required by `ImageCreateRequestContext`.
-                            type: CreateRequestContextType.IMAGE as const,
-                            content: image.content,
-                            mimeType: image.mimeType,
-                        })),
-                    ],
-                },
-            });
-
-            // Sandbox is now attached to a project — clear so the catch path
-            // does not try to delete it as an orphan.
-            forkedSandboxId = null;
-            runInAction(() => {
-                this.phase = 'opening-editor';
-            });
-            return newProject;
-        } catch (error: unknown) {
-            console.error(error);
-            runInAction(() => {
-                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-                this.phase = 'idle';
-            });
-            if (forkedSandboxId) {
-                await api.sandbox.deleteOrphan
-                    .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr: any) => {
-                        console.warn('[createManager] failed to clean up orphan sandbox', {
-                            sandboxId: forkedSandboxId,
-                            error:
-                                cleanupErr instanceof Error
-                                    ? cleanupErr.message
-                                    : String(cleanupErr),
-                        });
-                    });
-            }
-            // Re-throw so the caller can distinguish thrown errors from a
-            // legitimate `undefined` return (e.g. missing userId guard above).
-            throw error;
+        if (!userId) {
+            throw new CreateFlowNotAuthenticatedError();
         }
+        runInAction(() => {
+            this.error = UNAVAILABLE_MESSAGE;
+            this.phase = 'idle';
+        });
+        throw new Error(UNAVAILABLE_MESSAGE);
     }
 
     resetPhase() {
         this.phase = 'idle';
     }
 
-    async startGitHubTemplate(userId: string, repoUrl: string) {
+    /**
+     * TODO(sandbox-port): see `startCreate`. GitHub-template imports relied on
+     * `api.github.validate`, `api.sandbox.createFromGitHub`, and
+     * `api.project.create` — none have Convex equivalents yet.
+     */
+    async startGitHubTemplate(userId: string, repoUrl: string): Promise<{ id: string }> {
         this.error = null;
-        let forkedSandboxId: string | null = null;
-        try {
-            if (!userId) {
-                throw new CreateFlowNotAuthenticatedError();
-            }
-            const { owner, repo } = parseRepoUrl(repoUrl);
-            const { branch, isPrivateRepo } = await api.github.validate.mutate({
-                owner: owner,
-                repo: repo,
-            });
-
-            if (isPrivateRepo) {
-                throw new CreateFlowInvalidInputError(
-                    "The repository you've provided is private. Only public repositories are supported.",
-                );
-            }
-
-            const [{ sandboxId, previewUrl, sandboxRuntime }, projectName] = await Promise.all([
-                this.createSandboxFromGithub(repoUrl, branch),
-                this.generateProjectName(`Import from GitHub repository: ${repo}`),
-            ]);
-            forkedSandboxId = sandboxId;
-            // See `startCreate` — reject incomplete responses before
-            // persisting so the orphan-cleanup path can fire.
-            if (!sandboxId || !previewUrl) {
-                throw new Error(
-                    'Sandbox import returned an incomplete response (missing sandbox id or preview URL). Please try again.',
-                );
-            }
-            const project = createDefaultProject({
-                overrides: {
-                    name: projectName,
-                    // Hint Next.js to avoid the preload-injector framework
-                    // detection race; adapter still re-validates from sandbox.
-                    runtimeMetadata: { framework: 'nextjs' },
-                },
-            });
-            const newProject = await api.project.create.mutate({
-                project,
-                sandboxId,
-                sandboxUrl: previewUrl,
-                sandboxRuntime,
-            });
-            forkedSandboxId = null;
-            return newProject;
-        } catch (error: unknown) {
-            console.error(error);
-            runInAction(() => {
-                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-            });
-            if (forkedSandboxId) {
-                await api.sandbox.deleteOrphan
-                    .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr: any) => {
-                        console.warn('[createManager] failed to clean up orphan sandbox', {
-                            sandboxId: forkedSandboxId,
-                            error:
-                                cleanupErr instanceof Error
-                                    ? cleanupErr.message
-                                    : String(cleanupErr),
-                        });
-                    });
-            }
-            // Re-throw so the caller can surface a toast / re-open the
-            // auth modal. Without this, callers see `!project`, no toast
-            // fires, and the UX dies silently. Mirrors `startCreate`.
-            throw error;
+        if (!userId) {
+            throw new CreateFlowNotAuthenticatedError();
         }
-    }
-
-    async createSandboxFromGithub(repoUrl: string, branch: string, subpath?: string) {
-        return await api.sandbox.createFromGitHub.mutate({
-            repoUrl,
-            branch,
-            subpath,
+        // Validate the URL shape eagerly so the user gets a precise error for
+        // a bad URL before hitting the unavailability message — preserves the
+        // pre-migration UX where parseRepoUrl errors surfaced as a toast.
+        parseRepoUrl(repoUrl);
+        runInAction(() => {
+            this.error = UNAVAILABLE_MESSAGE;
         });
+        throw new Error(UNAVAILABLE_MESSAGE);
     }
 
+    /**
+     * TODO(sandbox-port): wraps `api.sandbox.createFromGitHub` — no Convex
+     * equivalent yet. The shape is preserved so callers (currently only
+     * `startPublicGitHubTemplate`) compile.
+     */
+    async createSandboxFromGithub(
+        _repoUrl: string,
+        _branch: string,
+        _subpath?: string,
+    ): Promise<{
+        sandboxId: string;
+        previewUrl: string;
+        sandboxRuntime?: {
+            provider: 'code_sandbox' | 'vercel_sandbox';
+            snapshotId?: string;
+            port?: number;
+            devCommand?: string;
+            runtime?: string;
+        };
+    }> {
+        throw new Error(UNAVAILABLE_MESSAGE);
+    }
+
+    /**
+     * TODO(sandbox-port): replace once template-based create lands in Convex.
+     * Legacy implementation supported a fast `api.sandbox.fork` path for
+     * pre-seeded templates plus a slow `api.sandbox.createFromGitHub` path.
+     */
     async startPublicGitHubTemplate(input: {
         userId: string;
         name: string;
@@ -316,111 +204,19 @@ export class CreateManager {
          * pre-multi-framework template authoring).
          */
         framework?: FrameworkId;
-    }) {
+    }): Promise<{ id: string }> {
         this.error = null;
-        let forkedSandboxId: string | null = null;
-        try {
-            if (!input.userId) {
-                throw new CreateFlowNotAuthenticatedError();
-            }
-
-            if (input.sandboxId && input.subpath) {
-                throw new CreateFlowInvalidInputError(
-                    'Cannot use subpath with pre-seeded sandbox templates.',
-                );
-            }
-
-            let sandboxResult: {
-                sandboxId: string;
-                previewUrl: string;
-                sandboxRuntime?: {
-                    provider: 'code_sandbox' | 'vercel_sandbox';
-                    snapshotId?: string;
-                    port?: number;
-                    devCommand?: string;
-                    runtime?: string;
-                };
-            };
-
-            if (input.sandboxId) {
-                // Fast path: fork a pre-seeded sandbox template (~2 s).
-                // Resolve the dev-server port from the template's framework
-                // adapter (Next=3000, Vite=5173, Astro=4321, ...) so a non-Next
-                // template added to EXTERNAL_TEMPLATES does not persist
-                // `frames.url` pointing at port 3000 and 404 on first preview.
-                // Same fix pattern as fork.ts L213-214. The slow path below
-                // still goes through `sandbox.createFromGitHub`, which has its
-                // own DEFAULT_PORT=3000 default — that call site is owned by
-                // the sandbox router and must be fixed there.
-                const templatePort = getFrameworkAdapter(input.framework ?? 'nextjs').template.port;
-                sandboxResult = await api.sandbox.fork.mutate({
-                    sandbox: { id: input.sandboxId, port: templatePort },
-                    provider:
-                        (input.framework ?? 'nextjs') === 'nextjs' ? undefined : 'code_sandbox',
-                    config: {
-                        title: input.name,
-                        tags: ['template-import'],
-                    },
-                });
-            } else {
-                // Slow path: import directly from GitHub (~90 s).
-                sandboxResult = await this.createSandboxFromGithub(
-                    input.repoUrl,
-                    input.branch,
-                    input.subpath,
-                );
-            }
-            forkedSandboxId = sandboxResult.sandboxId;
-            // See `startCreate` — reject incomplete responses before
-            // persisting so the orphan-cleanup path can fire.
-            if (!sandboxResult.sandboxId || !sandboxResult.previewUrl) {
-                throw new Error(
-                    'Sandbox provisioning returned an incomplete response (missing sandbox id or preview URL). Please try again.',
-                );
-            }
-
-            const project = createDefaultProject({
-                overrides: {
-                    name: input.name,
-                    description: input.description,
-                    tags: ['template-import'],
-                    // Default Next.js when caller didn't specify — avoids the
-                    // preload-injector race on first load.
-                    runtimeMetadata: { framework: input.framework ?? 'nextjs' },
-                },
-            });
-
-            const newProject = await api.project.create.mutate({
-                project,
-                sandboxId: sandboxResult.sandboxId,
-                sandboxUrl: sandboxResult.previewUrl,
-                sandboxRuntime: sandboxResult.sandboxRuntime,
-                workspaceId: readActiveWorkspaceId(),
-            });
-            forkedSandboxId = null;
-            return newProject;
-        } catch (error: unknown) {
-            console.error(error);
-            runInAction(() => {
-                this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-            });
-            if (forkedSandboxId) {
-                await api.sandbox.deleteOrphan
-                    .mutate({ sandboxId: forkedSandboxId })
-                    .catch((cleanupErr: any) => {
-                        console.warn('[createManager] failed to clean up orphan sandbox', {
-                            sandboxId: forkedSandboxId,
-                            error:
-                                cleanupErr instanceof Error
-                                    ? cleanupErr.message
-                                    : String(cleanupErr),
-                        });
-                    });
-            }
-            // Re-throw so the caller can surface a toast / re-open the
-            // auth modal. Without this, callers see `!project`, no toast
-            // fires, and the UX dies silently. Mirrors `startCreate`.
-            throw error;
+        if (!input.userId) {
+            throw new CreateFlowNotAuthenticatedError();
         }
+        if (input.sandboxId && input.subpath) {
+            throw new CreateFlowInvalidInputError(
+                'Cannot use subpath with pre-seeded sandbox templates.',
+            );
+        }
+        runInAction(() => {
+            this.error = UNAVAILABLE_MESSAGE;
+        });
+        throw new Error(UNAVAILABLE_MESSAGE);
     }
 }

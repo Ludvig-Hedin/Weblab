@@ -1,4 +1,4 @@
-import type { Project } from '@weblab/models';
+import type { PreviewImg, Project, ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
 import { STORAGE_BUCKETS } from '@weblab/constants';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';
@@ -11,6 +11,64 @@ export interface ProjectListItem extends Project {
     // iframe fallback in the preview surface while the static screenshot is
     // (re-)captured. Internal only — do not surface in shareable UI.
     sandboxPreviewUrl?: string | null;
+}
+
+// Shape returned by the Convex `projects.list` query (flat Convex doc + extra fields).
+type ConvexProjectListCard = {
+    _id: string;
+    _creationTime: number;
+    name: string;
+    description?: string;
+    tags: string[];
+    updatedAt: number;
+    previewImgUrl?: string;
+    previewImgPath?: string;
+    previewImgBucket?: string;
+    updatedPreviewImgAt?: number;
+    storageMode?: string;
+    runtimeMetadata?: unknown;
+    siteUrl?: string | null;
+    previewUrl?: string | null;
+    publishedUrl?: string | null;
+    sandboxPreviewUrl?: string | null;
+};
+
+export function fromConvexProjectListCard(doc: ConvexProjectListCard): ProjectListItem {
+    let previewImg: PreviewImg | null = null;
+    if (doc.previewImgPath) {
+        previewImg = {
+            type: 'storage',
+            storagePath: {
+                bucket: doc.previewImgBucket ?? STORAGE_BUCKETS.PREVIEW_IMAGES,
+                path: doc.previewImgPath,
+            },
+            updatedAt: doc.updatedPreviewImgAt ? new Date(doc.updatedPreviewImgAt) : null,
+        };
+    } else if (doc.previewImgUrl) {
+        previewImg = {
+            type: 'url',
+            url: doc.previewImgUrl,
+            updatedAt: doc.updatedPreviewImgAt ? new Date(doc.updatedPreviewImgAt) : null,
+        };
+    }
+
+    return {
+        id: doc._id,
+        name: doc.name,
+        metadata: {
+            createdAt: new Date(doc._creationTime),
+            updatedAt: new Date(doc.updatedAt),
+            description: doc.description ?? null,
+            tags: doc.tags ?? [],
+            previewImg,
+            storageMode: doc.storageMode as ProjectStorageMode | undefined,
+            runtime: (doc.runtimeMetadata as ProjectRuntimeMetadata | null | undefined) ?? null,
+        },
+        siteUrl: doc.siteUrl ?? null,
+        previewUrl: doc.previewUrl ?? null,
+        publishedUrl: doc.publishedUrl ?? null,
+        sandboxPreviewUrl: doc.sandboxPreviewUrl ?? null,
+    };
 }
 
 export interface ProjectFolder {

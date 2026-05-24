@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { EditorMode } from '@weblab/models';
+import { Button } from '@weblab/ui/button';
 import { HotkeyLabel } from '@weblab/ui/hotkey-label';
 import { Icons } from '@weblab/ui/icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
@@ -245,6 +246,29 @@ export const BottomBar = observer(() => {
                         {/* Errors console — surfaces dev-server errors with one-click AI fix
                             without forcing the user to open the chat panel. */}
                         <ErrorsConsole />
+
+                        <div className="bg-border-bar/80 mx-0.5 h-5 w-px" />
+
+                        {/* Keyboard-shortcuts cheatsheet trigger — a persistent,
+                            discoverable entry point for the same modal that's
+                            otherwise only reachable via the command palette or the
+                            Cmd+Shift+/ hotkey. Opens the shared hotkeys state. */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t(transKeys.editor.commandPalette.openShortcuts)}
+                                    className="text-foreground-tertiary hover:text-foreground-hover hover:bg-background-bar-active h-9 w-9 rounded-md"
+                                    onClick={() => editorEngine.state.setHotkeysOpen(true)}
+                                >
+                                    <Icons.Keyboard className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={5} hideArrow>
+                                {t(transKeys.editor.commandPalette.openShortcuts)}
+                            </TooltipContent>
+                        </Tooltip>
                     </TerminalArea>
                 </motion.div>
             </AnimatePresence>

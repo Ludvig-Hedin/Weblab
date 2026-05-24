@@ -51,12 +51,12 @@ import {
     ProviderTerminal,
 } from '@weblab/code-provider';
 
-// TODO(convex-migration): `api.sandbox.*` endpoints (fileWrite, fileRename,
+// TODO(sandbox-port): `api.sandbox.*` endpoints (fileWrite, fileRename,
 // fileStat, fileDelete, fileList, fileRead, fileDownload, fileCopy, fileMkdir,
 // commandRun, commandRunBackground, gitStatus, delete, taskOpen, taskRestart)
 // have no Convex equivalent yet — sandbox proxy lives outside the Convex
-// migration scope. Keeping tRPC client until sandbox routes are ported.
-import { api } from '@/trpc/client';
+// migration scope. All sandbox calls return safe defaults until the routes
+// are ported.
 
 export interface VercelBrowserProviderOptions {
     sandboxId: string;
@@ -75,101 +75,57 @@ export class VercelBrowserProvider extends Provider {
         return {};
     }
 
-    async writeFile(input: WriteFileInput): Promise<WriteFileOutput> {
-        return api.sandbox.fileWrite.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-            content:
-                typeof input.args.content === 'string'
-                    ? input.args.content
-                    : Array.from(input.args.content),
-            overwrite: input.args.overwrite,
-        });
+    async writeFile(_input: WriteFileInput): Promise<WriteFileOutput> {
+        // TODO(sandbox-port): api.sandbox.fileWrite has no Convex equivalent yet.
+        return { success: false } as never;
     }
 
-    async renameFile(input: RenameFileInput): Promise<RenameFileOutput> {
-        return api.sandbox.fileRename.mutate({
-            sandboxId: this.sandboxId,
-            oldPath: input.args.oldPath,
-            newPath: input.args.newPath,
-        });
+    async renameFile(_input: RenameFileInput): Promise<RenameFileOutput> {
+        // TODO(sandbox-port): api.sandbox.fileRename has no Convex equivalent yet.
+        return { success: false } as never;
     }
 
-    async statFile(input: StatFileInput): Promise<StatFileOutput> {
-        return api.sandbox.fileStat.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-        });
+    async statFile(_input: StatFileInput): Promise<StatFileOutput> {
+        // TODO(sandbox-port): api.sandbox.fileStat has no Convex equivalent yet.
+        return { type: 'file', isSymlink: false, size: 0 } as never;
     }
 
-    async deleteFiles(input: DeleteFilesInput): Promise<DeleteFilesOutput> {
-        return api.sandbox.fileDelete.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-            recursive: input.args.recursive,
-        });
+    async deleteFiles(_input: DeleteFilesInput): Promise<DeleteFilesOutput> {
+        // TODO(sandbox-port): api.sandbox.fileDelete has no Convex equivalent yet.
+        return { success: false } as never;
     }
 
-    async listFiles(input: ListFilesInput): Promise<ListFilesOutput> {
-        return api.sandbox.fileList.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-        });
+    async listFiles(_input: ListFilesInput): Promise<ListFilesOutput> {
+        // TODO(sandbox-port): api.sandbox.fileList has no Convex equivalent yet.
+        return { files: [] } as never;
     }
 
     async readFile(input: ReadFileInput): Promise<ReadFileOutput> {
-        const file = await api.sandbox.fileRead.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-        });
-        const content: string | Uint8Array =
-            file.binary && Array.isArray(file.content)
-                ? Uint8Array.from(file.content)
-                : String(file.content);
-        const decoded = typeof content === 'string' ? content : new TextDecoder().decode(content);
-        if (file.binary) {
-            return {
-                file: {
-                    path: file.path,
-                    type: 'binary',
-                    content:
-                        typeof content === 'string' ? new TextEncoder().encode(content) : content,
-                    toString: () => decoded,
-                },
-            };
-        }
+        // TODO(sandbox-port): api.sandbox.fileRead has no Convex equivalent yet.
+        const decoded = '';
         return {
             file: {
-                path: file.path,
+                path: input.args.path,
                 type: 'text',
                 content: decoded,
                 toString: () => decoded,
             },
-        };
+        } as never;
     }
 
-    async downloadFiles(input: DownloadFilesInput): Promise<DownloadFilesOutput> {
-        return api.sandbox.fileDownload.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-        });
+    async downloadFiles(_input: DownloadFilesInput): Promise<DownloadFilesOutput> {
+        // TODO(sandbox-port): api.sandbox.fileDownload has no Convex equivalent yet.
+        return { downloadUrl: '' } as never;
     }
 
-    async copyFiles(input: CopyFilesInput): Promise<CopyFileOutput> {
-        return api.sandbox.fileCopy.mutate({
-            sandboxId: this.sandboxId,
-            sourcePath: input.args.sourcePath,
-            targetPath: input.args.targetPath,
-            recursive: input.args.recursive,
-            overwrite: input.args.overwrite,
-        });
+    async copyFiles(_input: CopyFilesInput): Promise<CopyFileOutput> {
+        // TODO(sandbox-port): api.sandbox.fileCopy has no Convex equivalent yet.
+        return { success: false } as never;
     }
 
-    async createDirectory(input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
-        return api.sandbox.fileMkdir.mutate({
-            sandboxId: this.sandboxId,
-            path: input.args.path,
-        });
+    async createDirectory(_input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
+        // TODO(sandbox-port): api.sandbox.fileMkdir has no Convex equivalent yet.
+        return { success: false } as never;
     }
 
     async watchFiles(_input: WatchFilesInput): Promise<WatchFilesOutput> {
@@ -184,27 +140,23 @@ export class VercelBrowserProvider extends Provider {
         return { task: new VercelBrowserTask(this.sandboxId, input.args.id) };
     }
 
-    async runCommand(input: TerminalCommandInput): Promise<TerminalCommandOutput> {
-        return api.sandbox.commandRun.mutate({
-            sandboxId: this.sandboxId,
-            command: input.args.command,
-        });
+    async runCommand(_input: TerminalCommandInput): Promise<TerminalCommandOutput> {
+        // TODO(sandbox-port): api.sandbox.commandRun has no Convex equivalent yet.
+        return { output: '', success: false, exitCode: 0 } as never;
     }
 
     async runBackgroundCommand(
         input: TerminalBackgroundCommandInput,
     ): Promise<TerminalBackgroundCommandOutput> {
-        const result = await api.sandbox.commandRunBackground.mutate({
-            sandboxId: this.sandboxId,
-            command: input.args.command,
-        });
+        // TODO(sandbox-port): api.sandbox.commandRunBackground has no Convex equivalent yet.
         return {
-            command: new VercelBrowserBackgroundCommand(result.command, result.output),
+            command: new VercelBrowserBackgroundCommand(input.args.command, ''),
         };
     }
 
     async gitStatus(_input: GitStatusInput): Promise<GitStatusOutput> {
-        return api.sandbox.gitStatus.mutate({ sandboxId: this.sandboxId });
+        // TODO(sandbox-port): api.sandbox.gitStatus has no Convex equivalent yet.
+        return { hasGit: false, branch: '', ahead: 0, behind: 0, changes: [] } as never;
     }
 
     async createSession(_input: CreateSessionInput): Promise<CreateSessionOutput> {
@@ -240,7 +192,7 @@ export class VercelBrowserProvider extends Provider {
     }
 
     async stopProject(_input: StopProjectInput): Promise<StopProjectOutput> {
-        await api.sandbox.delete.mutate({ sandboxId: this.sandboxId });
+        // TODO(sandbox-port): api.sandbox.delete has no Convex equivalent yet.
         return {};
     }
 
@@ -273,7 +225,8 @@ class VercelBrowserTerminal extends ProviderTerminal {
     private readonly terminalId = 'vercel-terminal';
     private readonly terminalName = 'terminal';
 
-    constructor(private readonly sandboxId: string) {
+    // sandboxId currently unused — kept for restoration when api.sandbox.* ports.
+    constructor(private readonly _sandboxId: string) {
         super();
     }
 
@@ -294,14 +247,12 @@ class VercelBrowserTerminal extends ProviderTerminal {
         await this.run(input);
     }
 
-    async run(input: string): Promise<void> {
-        const result = await api.sandbox.commandRun.mutate({
-            sandboxId: this.sandboxId,
-            command: input,
-        });
-        this.output += result.output;
+    async run(_input: string): Promise<void> {
+        // TODO(sandbox-port): api.sandbox.commandRun has no Convex equivalent yet.
+        const output = '';
+        this.output += output;
         for (const callback of this.callbacks) {
-            callback(result.output);
+            callback(output);
         }
     }
 
@@ -323,8 +274,9 @@ class VercelBrowserTask extends ProviderTask {
     private callbacks = new Set<(data: string) => void>();
     private readonly taskCommand = 'npm run dev -- --hostname 0.0.0.0';
 
+    // sandboxId currently unused — kept for restoration when api.sandbox.* ports.
     constructor(
-        private readonly sandboxId: string,
+        private readonly _sandboxId: string,
         private readonly taskId: string,
     ) {
         super();
@@ -350,24 +302,20 @@ class VercelBrowserTask extends ProviderTask {
     }
 
     async run(): Promise<void> {
-        const result = await api.sandbox.taskOpen.mutate({
-            sandboxId: this.sandboxId,
-            taskId: this.taskId,
-        });
-        this.output = result.output;
+        // TODO(sandbox-port): api.sandbox.taskOpen has no Convex equivalent yet.
+        const output = '';
+        this.output = output;
         for (const callback of this.callbacks) {
-            callback(result.output);
+            callback(output);
         }
     }
 
     async restart(): Promise<void> {
-        const result = await api.sandbox.taskRestart.mutate({
-            sandboxId: this.sandboxId,
-            taskId: this.taskId,
-        });
-        this.output = result.output;
+        // TODO(sandbox-port): api.sandbox.taskRestart has no Convex equivalent yet.
+        const output = '';
+        this.output = output;
         for (const callback of this.callbacks) {
-            callback(result.output);
+            callback(output);
         }
     }
 

@@ -1,11 +1,15 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
-import { InvitationStatus } from '@weblab/models';
+import { InvitationStatus, WorkspaceKind } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 import { useActiveWorkspace } from '../../_components/workspace-context';
 
 const STATUS_LABEL: Record<InvitationStatus, string> = {
@@ -17,18 +21,28 @@ const STATUS_LABEL: Record<InvitationStatus, string> = {
 
 export default function InvitationsPage() {
     const workspace = useActiveWorkspace();
-    const utils = api.useUtils();
-    const { data: invitations, isLoading } = api.workspaceInvitation.list.useQuery({
-        workspaceId: workspace.id,
-    });
+    const isPersonal = workspace.kind === WorkspaceKind.PERSONAL;
+    const workspaceId = workspace.id as Id<'workspaces'>;
+    const invitations = useQuery(api.workspaces.inviteList, isPersonal ? 'skip' : { workspaceId });
+    const isLoading = !isPersonal && invitations === undefined;
 
-    const revoke = api.workspaceInvitation.revoke.useMutation({
-        onSuccess: async () => {
+    const revokeMutation = useMutation(api.workspaces.inviteRevoke);
+    const [revokingIds, setRevokingIds] = useState<Set<string>>(new Set());
+    const revoke = async (invitationId: Id<'workspaceInvitations'>) => {
+        setRevokingIds((prev) => new Set(prev).add(invitationId));
+        try {
+            await revokeMutation({ invitationId });
             toast.success('Invite revoked');
-            await utils.workspaceInvitation.list.invalidate({ workspaceId: workspace.id });
-        },
-        onError: (err) => toast.error(err.message),
-    });
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Failed to revoke invite');
+        } finally {
+            setRevokingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(invitationId);
+                return next;
+            });
+        }
+    };
 
     return (
         <div className="flex max-w-2xl flex-col gap-6">
@@ -38,40 +52,60 @@ export default function InvitationsPage() {
                     Pending and historical invites for {workspace.name}.
                 </p>
             </header>
-            <section className="flex flex-col gap-2">
-                {isLoading ? (
-                    <p className="text-foreground-tertiary text-sm">Loading…</p>
-                ) : (invitations ?? []).length === 0 ? (
-                    <p className="text-foreground-tertiary text-sm">No invitations.</p>
-                ) : (
-                    (invitations ?? []).map((inv) => (
-                        <div
-                            key={inv.id}
-                            className="border-border flex items-center gap-3 rounded-md border p-3"
-                        >
-                            <div className="flex flex-1 flex-col">
-                                <span className="text-foreground text-sm font-medium">
-                                    {inv.email}
-                                </span>
-                                <span className="text-foreground-tertiary text-xs">
-                                    {STATUS_LABEL[inv.status]} · {inv.role}
-                                    {inv.status === InvitationStatus.PENDING &&
-                                        ` · expires ${new Date(inv.expiresAt).toLocaleDateString()}`}
-                                </span>
+            {isPersonal ? (
+                <section className="bg-background-secondary/40 flex flex-col gap-2 rounded-md border p-4">
+                    <h2 className="text-foreground text-sm font-medium">
+                        Personal workspaces are solo
+                    </h2>
+                    <p className="text-foreground-tertiary text-xs">
+                        Personal workspaces can&apos;t have invitations. Create a team workspace to
+                        invite collaborators.
+                    </p>
+                    <div>
+                        <Button asChild size="compact" variant="secondary">
+                            <Link href="/w/new">Create a team workspace</Link>
+                        </Button>
+                    </div>
+                </section>
+            ) : (
+                <section className="flex flex-col gap-2">
+                    {isLoading ? (
+                        <p className="text-foreground-tertiary text-sm">Loading…</p>
+                    ) : (invitations ?? []).length === 0 ? (
+                        <p className="text-foreground-tertiary text-sm">No invitations.</p>
+                    ) : (
+                        (invitations ?? []).map((inv) => (
+                            <div
+                                key={inv._id}
+                                className="border-border flex items-center gap-3 rounded-md border p-3"
+                            >
+                                <div className="flex flex-1 flex-col">
+                                    <span className="text-foreground text-sm font-medium">
+                                        {inv.email}
+                                    </span>
+                                    <span className="text-foreground-tertiary text-xs">
+                                        {STATUS_LABEL[inv.status as InvitationStatus]} · {inv.role}
+                                        {inv.status === InvitationStatus.PENDING &&
+                                            ` · expires ${new Date(
+                                                inv.expiresAt,
+                                            ).toLocaleDateString()}`}
+                                    </span>
+                                </div>
+                                {inv.status === InvitationStatus.PENDING && (
+                                    <Button
+                                        variant="ghost"
+                                        size="compact"
+                                        disabled={revokingIds.has(inv._id)}
+                                        onClick={() => void revoke(inv._id)}
+                                    >
+                                        Revoke
+                                    </Button>
+                                )}
                             </div>
-                            {inv.status === InvitationStatus.PENDING && (
-                                <Button
-                                    variant="ghost"
-                                    size="compact"
-                                    onClick={() => revoke.mutate({ id: inv.id })}
-                                >
-                                    Revoke
-                                </Button>
-                            )}
-                        </div>
-                    ))
-                )}
-            </section>
+                        ))
+                    )}
+                </section>
+            )}
         </div>
     );
 }

@@ -56,11 +56,13 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
     const editorEngine = useEditorEngine();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
     const data = useQuery(
-        (open ? api.deployments.list : 'skip') as typeof api.deployments.list,
+        api.deployments.list,
         open
             ? { projectId: editorEngine.projectId as Id<'projects'>, limit: 25 }
-            : (undefined as unknown as { projectId: Id<'projects'>; limit?: number }),
+            : 'skip',
     );
     const isLoading = open && data === undefined;
 

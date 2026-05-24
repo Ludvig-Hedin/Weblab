@@ -16,8 +16,9 @@ import {
 } from '@weblab/ui/select';
 import { toast } from '@weblab/ui/sonner';
 
+import { useAction } from 'convex/react';
+import { api } from '@convex/_generated/api';
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { useSubscription } from './use-subscription';
 
 const FREE_TIER = {
@@ -57,7 +58,7 @@ export const FreeCard = ({
     const { subscription, isPro, setIsCheckingSubscription } = useSubscription({
         enabled: !isUnauthenticated,
     });
-    const { mutateAsync: manageSubscription } = api.subscription.manageSubscription.useMutation();
+    const manageSubscription = useAction(api.subscriptionActions.manageSubscription);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const isFree = !isPro;
     const isScheduledCancellation =
@@ -66,7 +67,7 @@ export const FreeCard = ({
     const handleDowngradeToFree = async () => {
         try {
             setIsCheckingOut(true);
-            const session = await manageSubscription();
+            const session = await manageSubscription({});
 
             if (session?.url) {
                 window.open(session.url, '_blank');

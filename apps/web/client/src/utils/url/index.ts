@@ -4,6 +4,15 @@ export function getReturnUrlQueryParam(returnUrl: string | null): string {
     return returnUrl ? `${LocalForageKeys.RETURN_URL}=${encodeURIComponent(returnUrl)}` : '';
 }
 
+/** True if the string contains an ASCII control char (incl. CR/LF/NUL/DEL). */
+function hasControlChar(value: string): boolean {
+    for (let i = 0; i < value.length; i++) {
+        const code = value.charCodeAt(i);
+        if (code < 0x20 || code === 0x7f) return true;
+    }
+    return false;
+}
+
 export function sanitizeReturnUrl(
     returnUrl: string | null,
     opts: { origin?: string } = {},
@@ -13,8 +22,15 @@ export function sanitizeReturnUrl(
         return Routes.HOME;
     }
     try {
-        // If it's a relative path, it's safe
-        if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+        // If it's a relative path, it's safe — but reject backslashes (browsers
+        // treat "/\" like "//", a protocol-relative open redirect) and control
+        // chars (CR/LF can enable header-splitting in downstream redirects).
+        if (
+            returnUrl.startsWith('/') &&
+            !returnUrl.startsWith('//') &&
+            !returnUrl.includes('\\') &&
+            !hasControlChar(returnUrl)
+        ) {
             return returnUrl;
         }
         // Resolve current origin from options or the browser (if available)

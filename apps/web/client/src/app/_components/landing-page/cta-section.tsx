@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@weblab/ui/button';
+import { Icons } from '@weblab/ui/icons';
 
 import { Reveal } from '@/components/motion/reveal';
 import { SplitText } from '@/components/motion/split-text';
@@ -71,12 +72,12 @@ export function CTASection({
                 </h2>
                 <Reveal delay={0.2} className="flex w-full flex-row items-center justify-end gap-3">
                     <Button
-                        variant="secondary"
-                        size="lg"
-                        className="hover:bg-foreground-primary hover:text-background-primary cursor-pointer p-6 transition-colors"
+                        variant="default"
+                        className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors"
                         onClick={href === '/' ? handleHomepageNavigation : handleGetStartedClick}
                     >
                         {resolvedButton}
+                        <Icons.ArrowRight className="h-4 w-4" />
                     </Button>
                 </Reveal>
             </div>

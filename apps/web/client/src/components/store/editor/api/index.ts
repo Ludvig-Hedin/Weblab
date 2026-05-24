@@ -1,16 +1,18 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { makeAutoObservable } from 'mobx';
 
 import type { ChatMessage } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.utils.webSearch`, `api.utils.applyDiff`, `api.utils.scrapeUrl`
-// → `api.utils.*` (actions) and `api.chat.message.getAll` →
-// `api.messages.listByConversation` once a Convex HTTP client with Clerk
-// auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
+
+// ConvexHttpClient comes from the shared singleton — its Clerk auth token is
+// wired by <ConvexAuthBridge> mounted in clerk-convex-providers.tsx.
 
 export class ApiManager {
+    private convex: ConvexHttpClient = getConvexHttpClient();
+
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
     }
@@ -20,8 +22,7 @@ export class ApiManager {
         allowed_domains: string[] | undefined;
         blocked_domains: string[] | undefined;
     }) {
-        const result = await api.utils.webSearch.mutate(input);
-        return result;
+        return this.convex.action(convexApi.utils.webSearch, input);
     }
 
     async applyDiff(input: {
@@ -33,7 +34,7 @@ export class ApiManager {
             conversationId: string | undefined;
         };
     }) {
-        return await api.utils.applyDiff.mutate(input);
+        return this.convex.action(convexApi.utils.applyDiff, input);
     }
 
     async scrapeUrl(input: {
@@ -44,10 +45,15 @@ export class ApiManager {
         excludeTags?: string[] | undefined;
         waitFor?: number | undefined;
     }) {
-        return await api.utils.scrapeUrl.mutate(input);
+        return this.convex.action(convexApi.utils.scrapeUrl, input);
     }
 
     async getConversationMessages(conversationId: string): Promise<ChatMessage[]> {
-        return await api.chat.message.getAll.query({ conversationId });
+        const id = conversationId as Parameters<
+            typeof this.convex.query<typeof convexApi.messages.listByConversation>
+        >[1]['conversationId'];
+        return (await this.convex.query(convexApi.messages.listByConversation, {
+            conversationId: id,
+        })) as unknown as ChatMessage[];
     }
 }

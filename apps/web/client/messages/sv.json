@@ -431,11 +431,14 @@
         "notNow": "Inte nu",
         "startFirstHeading": "Starta ditt första projekt",
         "startFirstBody": "Beskriv vad du vill bygga så genererar AI:n det, eller välj en annan startpunkt nedan.",
+        "sessionExpiredTitle": "Din session har gått ut",
+        "sessionExpiredBody": "Du har loggats ut. Logga in igen för att komma tillbaka till dina projekt – inget har gått förlorat.",
+        "sessionExpiredSignIn": "Logga in igen",
         "projectsHeading": "Projekt",
         "createFolder": "Skapa mapp",
         "doneSelecting": "Klar med markering",
         "select": "Markera",
-        "sortLastViewed": "Senast visad",
+        "sortLastViewed": "Senast ändrad",
         "sortDateCreated": "Skapad",
         "sortAlphabetical": "A–Ö",
         "sortLabel": "Sortera",
@@ -2193,7 +2196,7 @@
         },
         "featureTrio": {
             "eyebrow": "Öppen i design",
-            "heading": "Välj modell, äg din stack, designa med dina riktiga komponenter.",
+            "heading": "Välj modell, äg din terminal, jobba med en AI som levererar.",
             "models": {
                 "title": "Modellagnostisk",
                 "body": "Växla mellan ledande modeller efter behov. Välj den som passar uppgiften."
@@ -2202,17 +2205,22 @@
                 "title": "Riktig kod, riktig terminal",
                 "body": "Installera, bygg, testa och deploya från din egen terminal. Ingen inlåsning, ingen black box."
             },
-            "components": {
-                "eyebrow": "Ditt designsystem",
-                "title": "Dina riktiga komponenter",
-                "body": "Designa med knappar, kort och layouter dina utvecklare redan byggt."
+            "aiAssistant": {
+                "eyebrow": "AI-assistent",
+                "title": "Fråga, iterera, skicka",
+                "body": "Beskriv vad du vill ha. Weblab planerar, redigerar rätt filer och visar ändringarna innan du skickar."
+            },
+            "tokens": {
+                "eyebrow": "Designtokens",
+                "title": "Ditt designsystem, kopplat",
+                "body": "Färger, typografi, spacing — definierat en gång, används överallt. Ändra en token, alla komponenter följer."
             }
         },
         "whatCanWeblabDoV2": {
             "headingAi": "AI",
             "headingCode": "Kod",
             "headingDesign": "Design",
-            "headingSideBySide": "Sida-vid-sida-vid-sida",
+            "headingSideBySide": "Sida vid sida",
             "subhead": "Allt på en canvas. Inga flikar, ingen överlämning, ingen översättning som tappar bort något.",
             "cta": "Börja bygga",
             "brandVisual": {

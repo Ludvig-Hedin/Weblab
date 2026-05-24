@@ -192,7 +192,11 @@ export function ClerkAuthForm({
                 return 'sign-in';
             } catch (err) {
                 type ClerkAPIErrorLike = {
-                    errors?: Array<{ code?: string; message?: string; longMessage?: string }>;
+                    errors?: Array<{
+                        code?: string;
+                        message?: string;
+                        longMessage?: string;
+                    }>;
                 };
                 const apiErr = err as ClerkAPIErrorLike;
                 const code = apiErr?.errors?.[0]?.code;
@@ -201,7 +205,9 @@ export function ClerkAuthForm({
                 // invalid) we propagate so the outer catch shows it.
                 if (code !== 'form_identifier_not_found') throw err;
                 await signUp.create({ emailAddress: normalizedEmail });
-                await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                await signUp.prepareEmailAddressVerification({
+                    strategy: 'email_code',
+                });
                 return 'sign-up';
             }
         }
@@ -255,6 +261,10 @@ export function ClerkAuthForm({
                         <button
                             type="button"
                             aria-label={t(transKeys.welcome.login.github)}
+                            // `title` surfaces the same label as a hover
+                            // tooltip — the buttons are icon-only so sighted
+                            // mouse users get parity with screen readers.
+                            title={t(transKeys.welcome.login.github)}
                             onClick={() => void handleOAuth('github')}
                             disabled={!isLoaded}
                             className={cn(oauthButtonClass, providerButtonClassName)}
@@ -267,6 +277,7 @@ export function ClerkAuthForm({
                         <button
                             type="button"
                             aria-label={t(transKeys.welcome.login.google)}
+                            title={t(transKeys.welcome.login.google)}
                             onClick={() => void handleOAuth('google')}
                             disabled={!isLoaded}
                             className={cn(oauthButtonClass, providerButtonClassName)}
@@ -279,6 +290,7 @@ export function ClerkAuthForm({
                         <button
                             type="button"
                             aria-label="Sign in with Vercel"
+                            title="Sign in with Vercel"
                             onClick={() => void handleOAuth('vercel')}
                             disabled={!isLoaded}
                             className={cn(oauthButtonClass, providerButtonClassName)}
@@ -290,7 +302,7 @@ export function ClerkAuthForm({
                 </div>
             )}
             {oauthError && (
-                <p className="text-small w-full text-center text-red-500">{oauthError}</p>
+                <p className="text-small text-destructive w-full text-center">{oauthError}</p>
             )}
             {hasOAuthProvider && (
                 <div className="flex w-full items-center gap-3">
@@ -342,7 +354,7 @@ export function ClerkAuthForm({
                     maxLength={254}
                 />
                 {emailError && (
-                    <p className="text-small w-full text-center text-red-500">{emailError}</p>
+                    <p className="text-small text-destructive w-full text-center">{emailError}</p>
                 )}
                 <Button
                     type="submit"
@@ -364,6 +376,16 @@ export function ClerkAuthForm({
                         t(transKeys.welcome.login.email)
                     )}
                 </Button>
+                {/* Hint at what the "Continue with email" action does — the
+                    flow uses Clerk's `email_code` strategy, so the next step
+                    is a 6-digit code in their inbox, not a password prompt.
+                    Hidden during loading/cooldown to avoid competing with the
+                    button's status text. */}
+                {!isEmailLoading && cooldownSecondsRemaining === 0 && (
+                    <p className="text-small text-foreground-tertiary w-full text-center">
+                        We&apos;ll email you a code
+                    </p>
+                )}
                 <p className="text-small text-foreground-tertiary w-full text-center">
                     Don&apos;t have an account?{' '}
                     {/* /sign-up redirects to /sign-in; the form below already

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
@@ -24,8 +25,9 @@ import {
 import { Icons } from '@weblab/ui/icons';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface ProjectCardContextMenuProps {
     project: Project;
@@ -40,7 +42,8 @@ export function ProjectCardContextMenu({
 }: ProjectCardContextMenuProps) {
     const t = useTranslations();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const { mutateAsync: deleteProject, isPending: isDeleting } = api.project.delete.useMutation();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const deleteProject = useMutation(api.projects.remove);
 
     const projectHref = `${Routes.PROJECT}/${project.id}`;
 
@@ -61,8 +64,9 @@ export function ProjectCardContextMenu({
         window.open(projectHref, '_blank', 'noopener,noreferrer,popup,width=1280,height=800');
 
     const handleDelete = async () => {
+        setIsDeleting(true);
         try {
-            await deleteProject({ id: project.id });
+            await deleteProject({ projectId: project.id as Id<'projects'> });
             setShowDeleteDialog(false);
             await refetch();
             toast.success('Project deleted');
@@ -70,6 +74,8 @@ export function ProjectCardContextMenu({
             toast.error('Failed to delete project', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
+        } finally {
+            setIsDeleting(false);
         }
     };
 

@@ -2,6 +2,8 @@
 
 Actionable rules for repo agents—keep diffs minimal, safe, token‑efficient.
 
+> **⚠️ Brand note for AI agents:** This product is **Weblab** (weblab.build, github.com/Ludvig-Hedin/Weblab). Brand constant: `APP_NAME` from `@weblab/constants`. Package scope `@weblab/*`. DOM attrs `data-weblab-*`. The local folder name `onlook/` is intentionally unchanged. Allowed remaining "Onlook" references: `LICENSE.md` (legal attribution), `CODE_REVIEW_BACKLOG.md` (history), `DEPRECATED_PRELOAD_SCRIPT_SRCS` in `packages/constants/src/files.ts`, and a few test fixtures with deprecated inputs.
+
 ### ⚠️ Brand — Critical for All Agents
 
 > **This product is Weblab** (domain: weblab.build, GitHub: github.com/Ludvig-Hedin/Weblab).

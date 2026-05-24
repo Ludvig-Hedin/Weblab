@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
 
@@ -9,7 +10,8 @@ import { Input } from '@weblab/ui/input';
 import { timeAgo } from '@weblab/utility/src/time';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/client';
+import { api } from '@convex/_generated/api';
+import type { Id } from '@convex/_generated/dataModel';
 
 interface BranchManagementProps {
     branch: Branch;
@@ -17,6 +19,7 @@ interface BranchManagementProps {
 
 export const BranchManagement = observer(({ branch }: BranchManagementProps) => {
     const editorEngine = useEditorEngine();
+    const removeBranchMutation = useMutation(api.branches.remove);
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(branch.name);
     const [isForking, setIsForking] = useState(false);
@@ -94,8 +97,8 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
                 await editorEngine.branches.switchToBranch(targetBranch.id);
             }
 
-            await api.branch.delete.mutate({
-                branchId: branch.id,
+            await removeBranchMutation({
+                branchId: branch.id as Id<'branches'>,
             });
 
             editorEngine.branches.removeBranch(branch.id);

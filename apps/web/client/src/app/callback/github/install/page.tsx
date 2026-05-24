@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { Button } from '@weblab/ui/button';
 import { Card, CardContent, CardDescription, CardTitle } from '@weblab/ui/card';
 import { Icons } from '@weblab/ui/icons';
 
-import { api } from '@/trpc/react';
 import { Routes } from '@/utils/constants';
 
 type CallbackState = 'loading' | 'success' | 'error';
@@ -28,7 +29,7 @@ export default function GitHubInstallCallbackPage() {
         }
     }, []);
 
-    const handleInstallationCallback = api.github.handleInstallationCallbackUrl.useMutation();
+    const handleInstallationCallback = useAction(api.githubActions.handleInstallationCallbackUrl);
 
     useEffect(() => {
         // Guard against React Strict Mode double-invocation in development —
@@ -59,28 +60,24 @@ export default function GitHubInstallCallbackPage() {
             return;
         }
 
-        // Call the TRPC mutation to handle the callback.
+        // Call the Convex action to handle the callback.
         // Scrub sensitive params from the URL only after the request completes
         // so that Next.js router history changes don't race with the in-flight fetch.
-        handleInstallationCallback.mutate(
-            {
-                installationId,
-                setupAction: setupAction,
-                state: stateParam,
-            },
-            {
-                onSuccess: () => {
-                    window.history.replaceState({}, '', window.location.pathname);
-                    setState('success');
-                },
-                onError: (error) => {
-                    window.history.replaceState({}, '', window.location.pathname);
-                    setState('error');
-                    setMessage(error.message);
-                    console.error('GitHub App installation callback failed:', error);
-                },
-            },
-        );
+        handleInstallationCallback({
+            installationId,
+            setupAction: setupAction,
+            state: stateParam,
+        })
+            .then(() => {
+                window.history.replaceState({}, '', window.location.pathname);
+                setState('success');
+            })
+            .catch((error: Error) => {
+                window.history.replaceState({}, '', window.location.pathname);
+                setState('error');
+                setMessage(error.message);
+                console.error('GitHub App installation callback failed:', error);
+            });
     }, []);
 
     // Auto-close the tab only when this page was opened by window.open()

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
+import { useAction, useMutation } from 'convex/react';
 import { Coins } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -19,7 +21,6 @@ import {
 import { toast } from '@weblab/ui/sonner';
 
 import { transKeys } from '@/i18n/keys';
-import { api } from '@/trpc/react';
 import { LegacyPromotion } from './legacy-promotion';
 import { useSubscription } from './use-subscription';
 
@@ -48,11 +49,12 @@ export const ProCard = ({
     const { subscription, isPro, refetchSubscription, setIsCheckingSubscription } = useSubscription(
         { enabled: !isUnauthenticated },
     );
-    const { mutateAsync: checkout } = api.subscription.checkout.useMutation();
-    const { mutateAsync: getPriceId } = api.subscription.getPriceId.useMutation();
-    const { mutateAsync: updateSubscription } = api.subscription.update.useMutation();
-    const { mutateAsync: releaseSubscriptionSchedule } =
-        api.subscription.releaseSubscriptionSchedule.useMutation();
+    const checkout = useAction(api.subscriptionActions.checkout);
+    const getPriceId = useMutation(api.subscriptions.getPriceId);
+    const updateSubscription = useAction(api.subscriptionActions.update);
+    const releaseSubscriptionSchedule = useAction(
+        api.subscriptionActions.releaseSubscriptionSchedule,
+    );
 
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [selectedTier, setSelectedTier] = useState<PriceKey>(PriceKey.PRO_MONTHLY_TIER_1);
@@ -124,7 +126,15 @@ export const ProCard = ({
     const createCheckoutSession = async () => {
         try {
             setIsCheckingOut(true);
-            const stripePriceId = await getPriceId({ priceKey: selectedTier });
+            // The Convex `getPriceId` validator narrows to TIER_1..11. The
+            // UI's `PriceKey` enum also exposes legacy TIER_25/50/75 entries
+            // that the server-side validator rejects at runtime, but the
+            // currently-rendered tiers come from `PRO_PRODUCT_CONFIG.prices`.
+            // Cast at the boundary; runtime selection prevents legacy keys
+            // from reaching here in practice.
+            const stripePriceId = await getPriceId({
+                priceKey: selectedTier as Parameters<typeof getPriceId>[0]['priceKey'],
+            });
             const session = await checkout({ priceId: stripePriceId });
 
             if (!session?.url) {
@@ -150,7 +160,15 @@ export const ProCard = ({
             }
 
             setIsCheckingOut(true);
-            const stripePriceId = await getPriceId({ priceKey: selectedTier });
+            // The Convex `getPriceId` validator narrows to TIER_1..11. The
+            // UI's `PriceKey` enum also exposes legacy TIER_25/50/75 entries
+            // that the server-side validator rejects at runtime, but the
+            // currently-rendered tiers come from `PRO_PRODUCT_CONFIG.prices`.
+            // Cast at the boundary; runtime selection prevents legacy keys
+            // from reaching here in practice.
+            const stripePriceId = await getPriceId({
+                priceKey: selectedTier as Parameters<typeof getPriceId>[0]['priceKey'],
+            });
             await updateSubscription({
                 stripePriceId,
                 stripeSubscriptionId: subscription.stripeSubscriptionId,

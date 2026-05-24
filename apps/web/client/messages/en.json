@@ -429,11 +429,14 @@
         "notNow": "Not now",
         "startFirstHeading": "Start your first project",
         "startFirstBody": "Describe what you want to build and the AI will generate it, or pick another starting point below.",
+        "sessionExpiredTitle": "Your session expired",
+        "sessionExpiredBody": "You've been signed out. Sign in again to get back to your projects — nothing was lost.",
+        "sessionExpiredSignIn": "Sign in again",
         "projectsHeading": "Projects",
         "createFolder": "Create folder",
         "doneSelecting": "Done selecting",
         "select": "Select",
-        "sortLastViewed": "Last viewed",
+        "sortLastViewed": "Last modified",
         "sortDateCreated": "Date created",
         "sortAlphabetical": "A to Z",
         "sortLabel": "Sort",
@@ -2286,8 +2289,8 @@
             "body": "Weblab ships production code you can install, build, test, and deploy from your own terminal, with no lock-in and no black box."
         },
         "featureTrio": {
-            "eyebrow": "Open by design",
-            "heading": "Pick your model, own your stack, design with your real components.",
+            "eyebrow": "Built open",
+            "heading": "Pick your model, own your terminal, work with an AI that ships.",
             "models": {
                 "title": "Model agnostic",
                 "body": "Switch between leading models as you need. Pick the one that fits the task."
@@ -2296,17 +2299,22 @@
                 "title": "Real code, real terminal",
                 "body": "Install, build, test, and deploy from your own terminal. No lock-in, no black box."
             },
-            "components": {
-                "eyebrow": "Your design system",
-                "title": "Your real components",
-                "body": "Design with the buttons, cards, and layouts your engineers already built."
+            "aiAssistant": {
+                "eyebrow": "AI assistant",
+                "title": "Ask, iterate, ship",
+                "body": "Describe what you want. Weblab plans, edits the right files, and shows the diff before you ship."
+            },
+            "tokens": {
+                "eyebrow": "Design tokens",
+                "title": "Your design system, wired",
+                "body": "Colors, type, spacing — defined once, used everywhere. Edit a token, every component follows."
             }
         },
         "whatCanWeblabDoV2": {
             "headingAi": "AI",
             "headingCode": "Code",
             "headingDesign": "Design",
-            "headingSideBySide": "Side-by-side-by-side",
+            "headingSideBySide": "Side-by-side",
             "subhead": "Everything in one canvas. No tabs, no handoffs, no translation losses.",
             "cta": "Start building",
             "brandVisual": {

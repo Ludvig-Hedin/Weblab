@@ -22,9 +22,10 @@ export const Routes = {
     WORKFLOWS_VIBE_CODING: '/workflows/vibe-coding',
     WORKFLOWS_CODEX: '/workflows/codex',
 
-    // Auth
-    LOGIN: '/login',
-    LOGIN_VERIFY: '/login/verify',
+    // Auth — Clerk sign-in/sign-up flow. The legacy `/login` route directory
+    // was deleted during the Clerk migration; these point at the live routes.
+    LOGIN: '/sign-in',
+    LOGIN_VERIFY: '/sign-in/verify',
     AUTH_CALLBACK: '/auth/callback',
     AUTH_CODE_ERROR: '/auth/auth-code-error',
     AUTH_REDIRECT: '/auth/redirect',

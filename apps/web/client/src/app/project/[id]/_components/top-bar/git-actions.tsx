@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
 
@@ -27,7 +28,7 @@ import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@/trpc/client';
+import { api } from '@convex/_generated/api';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
@@ -51,6 +52,7 @@ interface CommitModalProps {
 
 const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModalProps) => {
     const editorEngine = useEditorEngine();
+    const createPullRequest = useAction(api.githubActions.createPullRequest);
 
     const [fileCount, setFileCount] = useState<number | null>(null);
     const [stagedFileCount, setStagedFileCount] = useState<number | null>(null);
@@ -180,7 +182,7 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     return;
                 }
 
-                const prResult = await api.github.createPullRequest.mutate({
+                const prResult = await createPullRequest({
                     repoUrl: prRepoUrl,
                     headBranch: prBranchName,
                     baseBranch,

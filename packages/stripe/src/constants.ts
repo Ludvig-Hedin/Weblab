@@ -1,6 +1,9 @@
 import { ProductType } from './types';
 
 export enum PriceKey {
+    PRO_MONTHLY_TIER_25 = 'PRO_MONTHLY_TIER_25',
+    PRO_MONTHLY_TIER_50 = 'PRO_MONTHLY_TIER_50',
+    PRO_MONTHLY_TIER_75 = 'PRO_MONTHLY_TIER_75',
     PRO_MONTHLY_TIER_1 = 'PRO_MONTHLY_TIER_1',
     PRO_MONTHLY_TIER_2 = 'PRO_MONTHLY_TIER_2',
     PRO_MONTHLY_TIER_3 = 'PRO_MONTHLY_TIER_3',
@@ -25,6 +28,33 @@ export interface PriceConfig {
 }
 
 export const PRO_PRICES: PriceConfig[] = [
+    {
+        description: '25 Credits per Month',
+        key: PriceKey.PRO_MONTHLY_TIER_25,
+        name: 'Tier 25',
+        product: ProductType.PRO,
+        monthlyMessageLimit: 25,
+        cost: 625,
+        paymentInterval: 'month',
+    },
+    {
+        description: '50 Credits per Month',
+        key: PriceKey.PRO_MONTHLY_TIER_50,
+        name: 'Tier 50',
+        product: ProductType.PRO,
+        monthlyMessageLimit: 50,
+        cost: 1250,
+        paymentInterval: 'month',
+    },
+    {
+        description: '75 Credits per Month',
+        key: PriceKey.PRO_MONTHLY_TIER_75,
+        name: 'Tier 75',
+        product: ProductType.PRO,
+        monthlyMessageLimit: 75,
+        cost: 1875,
+        paymentInterval: 'month',
+    },
     {
         description: '100 Credits per Month',
         key: PriceKey.PRO_MONTHLY_TIER_1,

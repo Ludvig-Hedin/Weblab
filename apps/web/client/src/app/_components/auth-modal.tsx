@@ -12,9 +12,9 @@ import {
 } from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 
+import { ClerkAuthForm } from '@/app/sign-in/_components/clerk-auth-form';
 import { transKeys } from '@/i18n/keys';
 import { useAuthContext } from '../auth/auth-context';
-import { AuthForm } from './auth-form';
 
 export function AuthModal() {
     const { setIsAuthModalOpen, isAuthModalOpen } = useAuthContext();
@@ -31,11 +31,7 @@ export function AuthModal() {
                         {t(transKeys.welcome.login.shareProjects)}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AuthForm
-                    providerLayout="stack"
-                    providerButtonClassName="!bg-card"
-                    onBeforeNavigate={() => setIsAuthModalOpen(false)}
-                />
+                <ClerkAuthForm providerButtonClassName="!bg-card" />
                 <AlertDialogFooter className="flex w-full !justify-center">
                     <Button variant={'ghost'} onClick={() => setIsAuthModalOpen(false)}>
                         {t(transKeys.projects.actions.close)}

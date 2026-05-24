@@ -16,6 +16,12 @@ export interface StyleValue {
     writeTarget: WriteTarget;
     /** True when "Override (this element only)" is enabled for this property+element. */
     override: boolean;
+    /**
+     * True when more than one element is selected and they resolve to
+     * different values for this property. The field is blanked (Figma-style
+     * "Mixed") so a single edit doesn't silently overwrite divergent values.
+     */
+    mixed?: boolean;
 }
 
 const EMPTY_VALUE: StyleValue = {
@@ -127,6 +133,59 @@ function isPresentInMap(map: Record<string, string>, property: string): boolean 
 const AUTO_SEEDED_PROPS = new Set(['width', 'height']);
 
 /**
+ * Resolve a property's value / source / authored-state from a single
+ * element's style maps. Extracted from the hook body so it can be run
+ * per-element across a multi-selection to detect divergence ("Mixed").
+ */
+function resolveFromStyles(
+    styles: { defined?: Record<string, string>; computed?: Record<string, string> },
+    property: string,
+): { value: string; source: StyleSource; isSet: boolean } {
+    const defined = styles.defined ?? {};
+    const computed = styles.computed ?? {};
+
+    const definedValue = lookup(defined, property);
+    const computedValue = lookup(computed, property);
+
+    // A property is "authored" when it shows up in `defined` (inline or
+    // stylesheet rule) — OR, for a shorthand, when any of its longhands do.
+    let authored = isPresentInMap(defined, property);
+
+    // Guard against the `width`/`height` `'auto'` seed: only count it as
+    // authored if it diverges from the browser-computed value.
+    const kebab = toKebab(property);
+    if (
+        authored &&
+        AUTO_SEEDED_PROPS.has(kebab) &&
+        present(definedValue) &&
+        definedValue === 'auto' &&
+        present(computedValue) &&
+        computedValue !== 'auto'
+    ) {
+        authored = false;
+    }
+
+    if (authored) {
+        // The current StyleManager merges stylesheet + inline into `defined`,
+        // so we can't yet split `inline` vs `class` precisely — surface as
+        // `class` (the common case for Tailwind-driven projects). What matters
+        // for consumers is the authored/default distinction.
+        const value = present(definedValue)
+            ? String(definedValue)
+            : present(computedValue)
+              ? String(computedValue)
+              : '';
+        return { value, source: 'class', isSet: true };
+    }
+
+    if (present(computedValue)) {
+        return { value: String(computedValue), source: 'computed', isSet: false };
+    }
+
+    return { value: '', source: 'unset', isSet: false };
+}
+
+/**
  * Read the current resolved value for a CSS property on the selected element,
  * along with metadata about where the value came from and how it would be
  * written back if the user edits it.
@@ -155,59 +214,40 @@ export function useStyleValue(property: string): StyleValue {
         return { ...EMPTY_VALUE, writeTarget, override };
     }
 
-    const defined = selectedStyle.styles.defined ?? {};
-    const computed = selectedStyle.styles.computed ?? {};
+    // Single-element resolution — identical behavior to before for the
+    // common (single-select) case.
+    const primary = resolveFromStyles(selectedStyle.styles, property);
 
-    const definedValue = lookup(defined, property);
-    const computedValue = lookup(computed, property);
-
-    // A property is "authored" when it shows up in `defined` (inline or
-    // stylesheet rule) — OR, for a shorthand, when any of its longhands do.
-    let authored = isPresentInMap(defined, property);
-
-    // Guard against the `width`/`height` `'auto'` seed: only count it as
-    // authored if it diverges from the browser-computed value.
-    const kebab = toKebab(property);
-    if (
-        authored &&
-        AUTO_SEEDED_PROPS.has(kebab) &&
-        present(definedValue) &&
-        definedValue === 'auto' &&
-        present(computedValue) &&
-        computedValue !== 'auto'
-    ) {
-        authored = false;
+    // Multi-selection: resolve the property for every selected element. If the
+    // values diverge, blank the field and flag it `mixed` so a single edit
+    // doesn't silently overwrite the others (the panel previously showed only
+    // the first element's value). When all selected elements agree, fall
+    // through to the shared value — identical to the single-select result.
+    if (selected.length > 1) {
+        const domIdToStyle = editorEngine.style.domIdToStyle;
+        const resolved = selected.map((el) => {
+            const elStyles = domIdToStyle.get(el.domId)?.styles ?? selectedStyle.styles;
+            return resolveFromStyles(elStyles, property);
+        });
+        const first = resolved[0]?.value ?? primary.value;
+        const allEqual = resolved.every((r) => r.value === first);
+        if (!allEqual) {
+            return {
+                value: '',
+                source: primary.source,
+                isSet: resolved.some((r) => r.isSet),
+                writeTarget,
+                override,
+                mixed: true,
+            };
+        }
     }
 
-    if (authored) {
-        // The current StyleManager merges stylesheet + inline into `defined`,
-        // so we can't yet split `inline` vs `class` precisely — surface as
-        // `class` (the common case for Tailwind-driven projects). What matters
-        // for consumers is the authored/default distinction: `isSet` true and
-        // a non-`computed`/`inherited` source both mean "overridden".
-        const value = present(definedValue)
-            ? String(definedValue)
-            : present(computedValue)
-              ? String(computedValue)
-              : '';
-        return {
-            value,
-            source: 'class',
-            isSet: true,
-            writeTarget,
-            override,
-        };
-    }
-
-    if (present(computedValue)) {
-        return {
-            value: String(computedValue),
-            source: 'computed',
-            isSet: false,
-            writeTarget,
-            override,
-        };
-    }
-
-    return { ...EMPTY_VALUE, writeTarget, override };
+    return {
+        value: primary.value,
+        source: primary.source,
+        isSet: primary.isSet,
+        writeTarget,
+        override,
+    };
 }

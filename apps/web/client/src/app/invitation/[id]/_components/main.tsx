@@ -1,15 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
+import { api } from '@convex/_generated/api';
+import { useMutation, useQuery } from 'convex/react';
 
 import { APP_NAME } from '@weblab/constants';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
 import { Skeleton } from '@weblab/ui/skeleton';
 
-import { api } from '@/trpc/react';
+import type { Id } from '@convex/_generated/dataModel';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { signOutEverywhere } from '@/utils/auth/sign-out';
 import { Routes } from '@/utils/constants';
@@ -21,27 +24,37 @@ export function Main({ invitationId }: { invitationId: string }) {
     const searchParams = useSearchParams();
     const token = useSearchParams().get('token');
     const { signOut: clerkSignOut } = useClerk();
-    const {
-        data: invitation,
-        isLoading: loadingInvitation,
-        error: getInvitationError,
-    } = api.invitation.getWithoutToken.useQuery({
-        id: invitationId,
-    });
+    // Convex queries throw to nearest ErrorBoundary on failure rather than
+    // returning an error — error state is reserved for the mutation path only.
+    const [acceptInvitationError, setAcceptInvitationError] = useState<Error | null>(null);
+    const [isAcceptingInvitation, setIsAcceptingInvitation] = useState(false);
 
-    const {
-        mutate: acceptInvitation,
-        isPending: isAcceptingInvitation,
-        error: acceptInvitationError,
-    } = api.invitation.accept.useMutation({
-        onSuccess: () => {
-            if (invitation?.projectId) {
+    const invitation = useQuery(api.projectInvitations.getWithoutToken, {
+        id: invitationId as Id<'projectInvitations'>,
+    });
+    const loadingInvitation = invitation === undefined;
+
+    const acceptInvitationMutation = useMutation(api.projectInvitations.accept);
+
+    const acceptInvitation = async (args: { id: string; token: string }) => {
+        setIsAcceptingInvitation(true);
+        setAcceptInvitationError(null);
+        try {
+            await acceptInvitationMutation({
+                id: args.id as Id<'projectInvitations'>,
+                token: args.token,
+            });
+            if (invitation && 'projectId' in invitation && invitation.projectId) {
                 router.push(`${Routes.PROJECT}/${invitation.projectId}`);
             } else {
                 router.push(Routes.PROJECTS);
             }
-        },
-    });
+        } catch (err) {
+            setAcceptInvitationError(err instanceof Error ? err : new Error(String(err)));
+        } finally {
+            setIsAcceptingInvitation(false);
+        }
+    };
 
     const handleReAuthenticate = async () => {
         // Clear analytics/feedback identities before signing out
@@ -51,7 +64,7 @@ export function Main({ invitationId }: { invitationId: string }) {
         router.push(getSignInUrlClient(currentUrl));
     };
 
-    const error = getInvitationError || acceptInvitationError;
+    const error = acceptInvitationError;
 
     if (loadingInvitation) {
         return (
@@ -137,9 +150,10 @@ export function Main({ invitationId }: { invitationId: string }) {
                     <Button
                         type="button"
                         onClick={() => {
-                            acceptInvitation({
+                            if (!token) return;
+                            void acceptInvitation({
                                 id: invitationId,
-                                token: token,
+                                token,
                             });
                         }}
                         disabled={!token || isAcceptingInvitation}

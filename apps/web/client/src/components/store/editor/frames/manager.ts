@@ -1,21 +1,83 @@
+import type { ConvexHttpClient } from 'convex/browser';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import { v4 as uuid } from 'uuid';
 
-import { DEFAULT_BREAKPOINT_PRESETS, GROUP_GUTTER, toDbFrame, toDbPartialFrame } from '@weblab/db';
+import { DEFAULT_BREAKPOINT_PRESETS, GROUP_GUTTER } from '@weblab/db';
 import { type Frame, type FrameBreakpoint } from '@weblab/models';
 import { calculateNonOverlappingPosition } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
-// TODO(convex-migration): non-React class-based store using tRPC vanilla
-// client. `api.frame.delete` → `api.frames.remove`,
-// `api.frame.create` → `api.frames.create`,
-// `api.frame.update` → `api.frames.update` once a Convex HTTP client with
-// Clerk auth is wired for non-React contexts.
-import { api } from '@/trpc/client';
+import type { Id } from '@convex/_generated/dataModel';
+import { api as convexApi } from '@convex/_generated/api';
+import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { roundDimensions } from './dimension';
 import { FrameNavigationManager } from './navigation';
+
+// Convex `frames` rows are flat (x/y/width/height/breakpointId/...) while the
+// editor model nests `position`, `dimension`, `breakpoint`. Inline the mapping
+// here — the @weblab/db `toDbFrame` / `toDbPartialFrame` helpers are now
+// pass-through stubs (Drizzle is gone) so we can't lean on them anymore.
+function toConvexFrame(frame: Frame): {
+    canvasId: Id<'canvases'>;
+    branchId?: Id<'branches'>;
+    url: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    groupId?: string;
+    breakpointId?: string;
+    breakpointName?: string;
+    breakpointOrder?: number;
+} {
+    return {
+        canvasId: frame.canvasId as Id<'canvases'>,
+        branchId: frame.branchId as Id<'branches'>,
+        url: frame.url,
+        x: frame.position.x,
+        y: frame.position.y,
+        width: frame.dimension.width,
+        height: frame.dimension.height,
+        groupId: frame.groupId,
+        breakpointId: frame.breakpoint.id,
+        breakpointName: frame.breakpoint.name,
+        breakpointOrder: frame.breakpoint.order,
+    };
+}
+
+function toConvexPartialFrame(partial: Partial<Frame>): {
+    url?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    groupId?: string;
+    breakpointId?: string;
+    breakpointName?: string;
+    breakpointOrder?: number;
+    branchId?: Id<'branches'>;
+} {
+    const out: ReturnType<typeof toConvexPartialFrame> = {};
+    if (partial.url !== undefined) out.url = partial.url;
+    if (partial.position) {
+        out.x = partial.position.x;
+        out.y = partial.position.y;
+    }
+    if (partial.dimension) {
+        out.width = partial.dimension.width;
+        out.height = partial.dimension.height;
+    }
+    if (partial.groupId !== undefined) out.groupId = partial.groupId;
+    if (partial.breakpoint) {
+        out.breakpointId = partial.breakpoint.id;
+        out.breakpointName = partial.breakpoint.name;
+        out.breakpointOrder = partial.breakpoint.order;
+    }
+    if (partial.branchId !== undefined) out.branchId = partial.branchId as Id<'branches'>;
+    return out;
+}
 
 export interface FrameData {
     frame: Frame;
@@ -29,6 +91,7 @@ export class FramesManager {
     private _frameIdToData = new Map<string, FrameData>();
     private _navigation = new FrameNavigationManager();
     private _disposers: Array<() => void> = [];
+    private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private editorEngine: EditorEngine) {
         makeAutoObservable(this);
@@ -298,8 +361,8 @@ export class FramesManager {
         }
 
         try {
-            await api.frame.delete.mutate({
-                frameId: frameData.frame.id,
+            await this.convex.mutation(convexApi.frames.remove, {
+                frameId: frameData.frame.id as Id<'frames'>,
             });
             this.disposeFrame(frameData.frame.id);
             this.repackGroup(frameData.frame.groupId);
@@ -309,17 +372,19 @@ export class FramesManager {
     }
 
     async create(frame: Frame) {
-        const success = await api.frame.create.mutate(toDbFrame(roundDimensions(frame)));
-
-        if (success) {
+        try {
+            await this.convex.mutation(
+                convexApi.frames.create,
+                toConvexFrame(roundDimensions(frame)),
+            );
             this._frameIdToData.set(frame.id, {
                 frame,
                 view: null,
                 selected: false,
                 contentHeight: null,
             });
-        } else {
-            console.error('Failed to create frame');
+        } catch (error) {
+            console.error('Failed to create frame', error);
         }
     }
 
@@ -423,14 +488,18 @@ export class FramesManager {
         await this.saveToStorage(frameId, frame);
     }
 
+    // TODO(bug-hunt): a single shared debounce collapses rapid successive calls
+    // into ONE trailing call carrying only the LAST frame's args, so multi-frame
+    // writes (repackGroup / navigateToPath / addBreakpoint loops) lose all but
+    // the last frame's persisted position/url to Convex. Key the debounce
+    // per-frameId (Map<frameId, DebouncedFn>) or merge pending partials per id.
     saveToStorage = debounce(this.undebouncedSaveToStorage.bind(this), 1000);
 
     async undebouncedSaveToStorage(frameId: string, frame: Partial<Frame>) {
         try {
-            const frameToUpdate = toDbPartialFrame(frame);
-            await api.frame.update.mutate({
-                ...frameToUpdate,
-                id: frameId,
+            await this.convex.mutation(convexApi.frames.update, {
+                frameId: frameId as Id<'frames'>,
+                ...toConvexPartialFrame(frame),
             });
         } catch (error) {
             console.error('Failed to update frame', error);

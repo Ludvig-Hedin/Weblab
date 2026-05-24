@@ -2,9 +2,8 @@
 
 import { notFound } from 'next/navigation';
 import { SignInButton, SignOutButton, useUser } from '@clerk/nextjs';
+import { api } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
-
-import { api } from '../../../../convex/_generated/api';
 
 // /dev/convex-smoke — Phase 3 validation surface.
 //

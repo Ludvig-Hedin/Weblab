@@ -260,7 +260,7 @@ export function ButtonsDemo() {
                 <div className="grid gap-4 md:grid-cols-2">
                     <div className="border-border bg-background-secondary/40 rounded-lg border p-4">
                         <div className="mb-3 flex items-center gap-2">
-                            <span className="bg-background-success text-foreground-success rounded px-1.5 py-0.5 text-[10px] font-medium">
+                            <span className="bg-background-secondary text-foreground-secondary rounded px-1.5 py-0.5 text-[10px] font-medium">
                                 Do
                             </span>
                             <span className="text-foreground-secondary text-xs font-medium">
@@ -471,7 +471,7 @@ function DeviationRow({ title, path, offSpec, canonical, problem, fix }: Deviati
                     <p className="text-foreground-tertiary text-xs">{problem}</p>
                 </div>
                 <div className="border-border bg-background flex flex-col gap-2 rounded-md border p-3">
-                    <span className="bg-background-success text-foreground-success w-fit rounded px-1.5 py-0.5 text-[10px] font-medium">
+                    <span className="bg-background-secondary text-foreground-secondary w-fit rounded px-1.5 py-0.5 text-[10px] font-medium">
                         Canonical
                     </span>
                     <div className="flex min-h-9 items-center">{canonical}</div>

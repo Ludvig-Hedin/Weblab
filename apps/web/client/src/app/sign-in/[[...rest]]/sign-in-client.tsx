@@ -31,7 +31,10 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
 
     // Same desktop-bridge handling as /login so the in-app build hides the
     // home link and reads the Electron version instead of the bundled web one.
-    const [desktop, setDesktop] = useState<{ isDesktop: boolean; version: string | null }>({
+    const [desktop, setDesktop] = useState<{
+        isDesktop: boolean;
+        version: string | null;
+    }>({
         isDesktop: false,
         version: null,
     });
@@ -82,16 +85,14 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                     <p>
                         {t(transKeys.welcome.terms.agreement)}{' '}
                         <Link
-                            href="https://weblab.build/privacy-policy"
-                            target="_blank"
+                            href="/privacy-policy"
                             className="hover:text-foreground-primary underline transition-colors duration-200"
                         >
                             {t(transKeys.welcome.terms.privacy)}
                         </Link>{' '}
                         {t(transKeys.welcome.terms.and)}{' '}
                         <Link
-                            href="https://weblab.build/terms-of-service"
-                            target="_blank"
+                            href="/terms-of-service"
                             className="hover:text-foreground-primary underline transition-colors duration-200"
                         >
                             {t(transKeys.welcome.terms.tos)}

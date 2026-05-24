@@ -43,9 +43,11 @@ export const HostingIntegrationsDialog = ({ open, onOpenChange }: Props) => {
     const [token, setToken] = useState('');
     const [accountLabel, setAccountLabel] = useState('');
 
+    // Convex 'skip' goes in arg 2, not arg 1. Passing 'skip' as the function
+    // ref triggers `Could not find public function for 'skip'` and detonates.
     const connections = useQuery(
-        (open ? api.hostingConnections.list : 'skip') as typeof api.hostingConnections.list,
-        open ? {} : (undefined as unknown as Record<string, never>),
+        api.hostingConnections.list,
+        open ? {} : 'skip',
     );
     const validate = useAction(api.hostingConnectionActions.validateToken);
     const create = useAction(api.hostingConnectionActions.createWithValidation);

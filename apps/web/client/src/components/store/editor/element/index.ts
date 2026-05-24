@@ -107,18 +107,21 @@ export class ElementsManager {
             return;
         }
 
+        // Per-element guards use `continue` (not `return`) so that one
+        // un-deletable element in a multi-select doesn't silently abort
+        // deletion of the remaining selected elements.
         for (const selectedEl of selected) {
             const frameId = selectedEl.frameId;
             const frameData = this.editorEngine.frames.get(frameId);
             if (!frameData?.view) {
                 console.error('No frame view found');
-                return;
+                continue;
             }
             const { shouldDelete, error } = await this.shouldDelete(selectedEl, frameData);
 
             if (!shouldDelete) {
                 this.emitError(error ?? 'Unknown error');
-                return;
+                continue;
             }
 
             const removeAction: RemoveElementAction | null = await frameData.view.getRemoveAction(
@@ -128,12 +131,12 @@ export class ElementsManager {
 
             if (!removeAction) {
                 this.emitError('Remove action not found. Try refreshing the page.');
-                return;
+                continue;
             }
             const oid = selectedEl.instanceId ?? selectedEl.oid;
             if (!oid) {
                 this.emitError('OID not found. Try refreshing the page.');
-                return;
+                continue;
             }
 
             const branchData = this.editorEngine.branches.getBranchDataById(selectedEl.branchId);
@@ -141,14 +144,14 @@ export class ElementsManager {
                 this.emitError(
                     `Branch data not found for branchId: ${selectedEl.branchId}. Try refreshing the page.`,
                 );
-                return;
+                continue;
             }
 
             const metadata = await branchData.codeEditor.getJsxElementMetadata(oid);
 
             if (!metadata?.code) {
                 this.emitError('Code block not found. Try refreshing the page.');
-                return;
+                continue;
             }
 
             removeAction.codeBlock = metadata.code;

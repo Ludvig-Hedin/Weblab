@@ -10,6 +10,7 @@ import { cn } from '@weblab/ui/utils';
 
 import { Routes } from '@/utils/constants';
 import { DirectEditingInteractive } from '../shared/mockups/direct-editing-interactive';
+import { AiAssistantVisual as FigmaAiAssistantVisual } from './feature-trio-section';
 import { FeatureBackdrop } from './feature-backdrop';
 import { ClaudeIcon } from './provider-icons';
 
@@ -67,7 +68,7 @@ function FeatureCard({ visual, subtitle, title, paragraph, reverse, backdrop }: 
                 src={backdrop}
                 className={cn(
                     'aspect-[860/650] w-full overflow-hidden rounded-[12px]',
-                    'px-10 py-6 md:px-20 md:py-11',
+                    'px-4 py-3 sm:px-8 sm:py-6 md:px-20 md:py-11',
                     'md:col-span-6',
                 )}
             >
@@ -334,15 +335,15 @@ function ComponentsVisual() {
     const cycle = useAmbientCycle(items.length, 2200);
     return (
         <div
-            className="border-foreground-primary/10 bg-background-secondary/80 w-full max-w-sm overflow-hidden rounded-[12px] border backdrop-blur-sm"
+            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
                 <span className="text-style-tagline">Components</span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-            <div className="flex flex-col p-1.5">
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
                 {items.map((it, idx) => {
                     const isActive = idx === cycle.index;
                     return (
@@ -350,7 +351,7 @@ function ComponentsVisual() {
                             key={it.label}
                             type="button"
                             onClick={() => cycle.setIndex(idx)}
-                            className="group/row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[7px] px-3 py-2.5 text-left transition-colors duration-150"
+                            className="group/row hover:bg-foreground-primary/[0.04] relative flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
                         >
                             {isActive && (
                                 <motion.span
@@ -361,7 +362,7 @@ function ComponentsVisual() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[7px] ring-1 ring-inset"
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
                                     aria-hidden
                                 />
                             )}
@@ -432,9 +433,9 @@ function BrandVisual() {
         { name: 'Berkeley Mono', sample: 'Aa', meta: 'Mono · 13/20', mono: true },
     ];
     return (
-        <div className="border-foreground-primary/10 bg-background-secondary/80 flex w-full max-w-sm flex-col overflow-hidden rounded-[12px] border backdrop-blur-sm">
+        <div className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]">
             {/* Header */}
-            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
                 <div className="text-style-tagline">Tokens</div>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
@@ -446,7 +447,7 @@ function BrandVisual() {
                     <div
                         key={token.name}
                         className={cn(
-                            'group/token relative flex items-center gap-3 rounded-[7px] px-3 py-2 transition-colors duration-150',
+                            'group/token relative flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-150',
                             token.active
                                 ? 'bg-foreground-primary/[0.06] ring-foreground-primary/10 ring-1 ring-inset'
                                 : 'hover:bg-foreground-primary/[0.03]',
@@ -462,7 +463,7 @@ function BrandVisual() {
                         </span>
                         <span
                             className={cn(
-                                'text-small flex-1 truncate font-mono font-light',
+                                'flex-1 truncate font-mono text-[10.5px] font-light',
                                 token.active
                                     ? 'text-foreground-primary'
                                     : 'text-foreground-secondary',
@@ -470,7 +471,7 @@ function BrandVisual() {
                         >
                             {token.name}
                         </span>
-                        <span className="text-foreground-tertiary text-mini font-mono tabular-nums">
+                        <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
                             {token.hex}
                         </span>
                         {token.active && (
@@ -484,12 +485,12 @@ function BrandVisual() {
             </div>
 
             {/* Typography */}
-            <div className="border-foreground-primary/10 flex flex-col gap-0.5 border-t p-1.5">
+            <div className="flex flex-col gap-0.5 border-t border-black/[0.05] p-1.5 dark:border-white/[0.06]">
                 <div className="text-style-tagline mb-1 px-3 pt-1">Typography</div>
                 {typeTokens.map((token) => (
                     <div
                         key={token.name}
-                        className="hover:bg-foreground-primary/[0.03] flex items-center gap-3 rounded-[7px] px-3 py-2 transition-colors duration-150"
+                        className="hover:bg-foreground-primary/[0.03] flex items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-150"
                     >
                         <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                             <span
@@ -501,10 +502,10 @@ function BrandVisual() {
                                 {token.sample}
                             </span>
                         </span>
-                        <span className="text-foreground-secondary text-small flex-1 font-light tracking-tight">
+                        <span className="text-foreground-secondary flex-1 text-[11px] font-light tracking-tight">
                             {token.name}
                         </span>
-                        <span className="text-foreground-tertiary text-mini font-mono tabular-nums">
+                        <span className="text-foreground-tertiary font-mono text-[10px] tabular-nums">
                             {token.meta}
                         </span>
                     </div>
@@ -541,15 +542,15 @@ function LayersVisual() {
 
     return (
         <div
-            className="border-foreground-primary/10 bg-background-secondary/80 w-full max-w-sm overflow-hidden rounded-[12px] border backdrop-blur-sm"
+            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/10 flex items-center justify-between border-b px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
                 <span className="text-style-tagline">{t('layersTitle')}</span>
                 <Icons.MagnifyingGlass className="text-foreground-tertiary h-3 w-3" />
             </div>
-            <div className="flex flex-col p-1.5">
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
                 {layers.map((l, idx) => {
                     const isSelected = idx === selectedIdx;
                     const isComponent = l.kind === 'component';
@@ -565,7 +566,7 @@ function LayersVisual() {
                                 )
                             }
                             className={cn(
-                                'group/layer text-small relative flex h-8 w-full items-center rounded-[7px] pr-1.5 font-light tracking-tight transition-colors duration-150',
+                                'group/layer text-small relative flex h-8 w-full items-center rounded-[10px] pr-1.5 font-light tracking-tight transition-colors duration-150',
                                 isComponent
                                     ? 'hover:bg-foreground-primary/[0.04] text-purple-500/90 dark:text-purple-300/90'
                                     : 'text-foreground-secondary hover:bg-foreground-primary/[0.04]',
@@ -580,7 +581,7 @@ function LayersVisual() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[7px] ring-1 ring-inset"
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
                                     aria-hidden
                                 />
                             )}
@@ -668,15 +669,15 @@ function RevisionVisual() {
     const cycle = useAmbientCycle(versions.length, 3000);
     return (
         <div
-            className="border-foreground-primary/10 bg-background-secondary/80 w-full max-w-sm overflow-hidden rounded-[12px] border backdrop-blur-sm"
+            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
-            <div className="border-foreground-primary/10 flex items-center gap-2 border-b px-4 py-3">
+            <div className="flex shrink-0 items-center gap-2 border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
                 <Icons.CounterClockwiseClock className="text-foreground-tertiary h-3.5 w-3.5" />
                 <span className="text-style-tagline">{t('revisionToday')}</span>
             </div>
-            <div className="flex flex-col p-1.5">
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden p-1.5">
                 {versions.map((v, idx) => {
                     const isActive = idx === cycle.index;
                     return (
@@ -684,7 +685,7 @@ function RevisionVisual() {
                             key={v.title}
                             type="button"
                             onClick={() => cycle.setIndex(idx)}
-                            className="group/row hover:bg-foreground-primary/[0.03] relative flex w-full items-center justify-between rounded-[7px] px-3 py-2.5 text-left transition-colors duration-150"
+                            className="group/row hover:bg-foreground-primary/[0.03] relative flex w-full items-center justify-between rounded-[10px] px-3 py-2.5 text-left transition-colors duration-150"
                         >
                             {isActive && (
                                 <motion.span
@@ -695,7 +696,7 @@ function RevisionVisual() {
                                         damping: 34,
                                         mass: 0.45,
                                     }}
-                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[7px] ring-1 ring-inset"
+                                    className="bg-foreground-primary/[0.06] ring-foreground-primary/10 pointer-events-none absolute inset-0 rounded-[10px] ring-1 ring-inset"
                                     aria-hidden
                                 />
                             )}
@@ -744,15 +745,16 @@ type CodeTok = {
     v: string;
 };
 
-const CODE_COLORS: Record<CodeTok['t'], string> = {
-    kw: '#AD3DA4',
-    str: '#D12F1B',
-    jsx: '#1F8E48',
-    attr: '#B85800',
-    fn: '#5C7BA1',
-    text: '#1F2024',
-    punct: '#4A4A4A',
-    ws: '#1F2024',
+// Theme-aware code-token colors via CSS vars. Light = Xcode, dark = VS Dark.
+const CODE_TOKEN_VARS: Record<CodeTok['t'], string> = {
+    kw: 'var(--code-kw)',
+    str: 'var(--code-str)',
+    jsx: 'var(--code-jsx)',
+    attr: 'var(--code-attr)',
+    fn: 'var(--code-fn)',
+    text: 'var(--code-text)',
+    punct: 'var(--code-punct)',
+    ws: 'var(--code-text)',
 };
 
 const HOME_TOKENS: CodeTok[] = [
@@ -854,7 +856,7 @@ function CodePanelVisual() {
         if (start >= charCount) break;
         const slice = end <= charCount ? tok.v : tok.v.slice(0, charCount - start);
         fragments.push(
-            <span key={i} style={{ color: CODE_COLORS[tok.t] }}>
+            <span key={i} style={{ color: CODE_TOKEN_VARS[tok.t] }}>
                 {slice}
             </span>,
         );
@@ -868,36 +870,70 @@ function CodePanelVisual() {
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            <div className="overflow-hidden rounded-xl border border-black/[0.06] bg-[#fbf6ed] shadow-[0_10px_40px_-12px_rgba(0,0,0,0.25)]">
-                {/* Title bar */}
-                <div className="relative flex items-center border-b border-black/[0.06] px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
+            <div
+                className={cn(
+                    'overflow-hidden rounded-[12px] border shadow-[0_10px_40px_-12px_rgba(0,0,0,0.25)]',
+                    // Light: Xcode cream
+                    'border-black/[0.06] bg-[#fbf6ed]',
+                    // Dark: VS Code-style
+                    'dark:border-0 dark:bg-[#1E1E1F]',
+                )}
+                style={
+                    {
+                        '--code-kw': '#AD3DA4',
+                        '--code-str': '#D12F1B',
+                        '--code-jsx': '#1F8E48',
+                        '--code-attr': '#B85800',
+                        '--code-fn': '#5C7BA1',
+                        '--code-text': '#1F2024',
+                        '--code-punct': '#4A4A4A',
+                    } as React.CSSProperties
+                }
+            >
+                <style>{`
+                  .dark .code-panel-root {
+                    --code-kw: #C586C0;
+                    --code-str: #CE9178;
+                    --code-jsx: #4EC9B0;
+                    --code-attr: #9CDCFE;
+                    --code-fn: #DCDCAA;
+                    --code-text: #D4D4D4;
+                    --code-punct: #808080;
+                  }
+                `}</style>
+                <div className="code-panel-root">
+                    {/* Title bar — very tight */}
+                    <div className="relative flex items-center border-b border-black/[0.06] px-2 py-1 dark:border-white/[0.06]">
+                        <div className="flex items-center gap-[5px]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
+                        </div>
+                        <span className="absolute left-1/2 -translate-x-1/2 text-[9.5px] font-medium text-[#3a3a3a]/70 dark:text-white/55">
+                            Weblab
+                        </span>
                     </div>
-                    <span className="absolute left-1/2 -translate-x-1/2 text-[10px] font-medium text-[#3a3a3a]/70">
-                        Weblab
-                    </span>
-                </div>
-                {/* Tab bar */}
-                <div className="flex items-end gap-0.5 border-b border-black/[0.06] bg-[#f1ebe0] px-2 pt-1">
-                    <div className="-mb-px flex items-center gap-1.5 rounded-t-md bg-[#fbf6ed] px-3 py-1.5 text-[10.5px] font-medium text-[#2a2a2a]">
-                        Home.tsx
-                        <Icons.CrossS className="h-2.5 w-2.5 text-[#2a2a2a]/40" />
+                    {/* Tab bar — tighter, no vertical padding above tabs */}
+                    <div className="flex items-end gap-0.5 border-b border-black/[0.06] bg-[#f1ebe0] px-1.5 pt-0.5 dark:border-white/[0.06] dark:bg-[#161617]">
+                        <div className="-mb-px flex items-center gap-1.5 rounded-t-[6px] bg-[#fbf6ed] px-2.5 py-0.5 text-[10px] font-medium text-[#2a2a2a] dark:bg-[#1E1E1F] dark:text-white/85">
+                            Home.tsx
+                            <Icons.CrossS className="h-2 w-2 text-[#2a2a2a]/40 dark:text-white/40" />
+                        </div>
+                        <div className="px-2.5 py-0.5 text-[10px] text-[#2a2a2a]/50 dark:text-white/40">
+                            Chat.tsx
+                        </div>
                     </div>
-                    <div className="px-3 py-1.5 text-[10.5px] text-[#2a2a2a]/50">Chat.tsx</div>
+                    {/* Code body */}
+                    <pre className="min-h-[280px] px-4 py-3 font-mono text-[10px] leading-[1.55] whitespace-pre-wrap text-[var(--code-text)]">
+                        {fragments}
+                        {typing && (
+                            <span
+                                className="ml-0.5 inline-block h-2.5 w-[1.5px] translate-y-[1px] animate-pulse bg-[#2a2a2a] dark:bg-white/85"
+                                aria-hidden
+                            />
+                        )}
+                    </pre>
                 </div>
-                {/* Code body */}
-                <pre className="min-h-[280px] px-4 py-3 font-mono text-[10px] leading-[1.55] whitespace-pre-wrap text-[#1F2024]">
-                    {fragments}
-                    {typing && (
-                        <span
-                            className="ml-0.5 inline-block h-2.5 w-[1.5px] translate-y-[1px] animate-pulse bg-[#2a2a2a]"
-                            aria-hidden
-                        />
-                    )}
-                </pre>
             </div>
         </div>
     );
@@ -914,7 +950,7 @@ const FEATURE_KEYS = [
 ] as const;
 
 const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = {
-    aiAssistant: <AiAssistantVisual />,
+    aiAssistant: <FigmaAiAssistantVisual />,
     canvas: (
         <div className="w-full max-w-sm">
             <DirectEditingInteractive />
@@ -930,7 +966,7 @@ const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = 
 const BACKDROPS: Record<(typeof FEATURE_KEYS)[number], string> = {
     aiAssistant: '/assets/landing/feature-backdrops/sky.webp',
     canvas: '/assets/landing/feature-backdrops/sand.webp',
-    code: '/assets/landing/feature-backdrops/mist.webp',
+    code: '/assets/landing/feature-backdrops/ivory.webp',
     components: '/assets/landing/feature-backdrops/pearl.webp',
     brand: '/assets/landing/feature-backdrops/ivory.webp',
     structure: '/assets/landing/feature-backdrops/sand.webp',
@@ -949,7 +985,7 @@ export function WhatCanWeblabDoSectionV2() {
                 className="mb-20 grid grid-cols-1 gap-12 md:grid-cols-12 md:gap-x-14"
             >
                 <h2 className="heading-style-h2 text-foreground-primary md:col-span-7">
-                    {t('headingAi')} • {t('headingCode')} • {t('headingDesign')}
+                    {t('headingDesign')}, {t('headingCode')} & {t('headingAi')},
                     <br />
                     {t('headingSideBySide')}
                 </h2>
@@ -959,12 +995,10 @@ export function WhatCanWeblabDoSectionV2() {
                     </p>
                     <Link
                         href={Routes.PROJECTS}
-                        className="text-foreground-primary group bg-foreground-primary/5 hover:bg-foreground-primary/10 inline-flex items-center gap-3 rounded-full py-1 pr-1 pl-4 text-sm font-medium transition-colors"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-foreground/20 px-4 text-sm font-medium text-foreground transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                         {t('cta')}
-                        <span className="bg-foreground-primary text-background inline-flex h-7 w-7 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5">
-                            <Icons.ArrowRight className="h-3.5 w-3.5" />
-                        </span>
+                        <Icons.ArrowRight className="h-4 w-4" />
                     </Link>
                 </div>
             </motion.div>
