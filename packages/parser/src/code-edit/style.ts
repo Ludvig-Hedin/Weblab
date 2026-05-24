@@ -91,8 +91,13 @@ export function updateNodeProp(
             existingAttr.value = t.jsxExpressionContainer(
                 t.arrowFunctionExpression([], t.blockStatement([])),
             );
+        } else if (typeof value === 'number') {
+            existingAttr.value = t.jsxExpressionContainer(t.numericLiteral(value));
         } else {
-            existingAttr.value = t.jsxExpressionContainer(t.identifier(value.toString()));
+            // Fallback: JSON.stringify prevents [object Object] from corrupting JSX output
+            existingAttr.value = t.jsxExpressionContainer(
+                t.stringLiteral(JSON.stringify(value)),
+            );
         }
     } else {
         let newAttr: T.JSXAttribute;
@@ -108,10 +113,16 @@ export function updateNodeProp(
                 t.jsxIdentifier(key),
                 t.jsxExpressionContainer(t.arrowFunctionExpression([], t.blockStatement([]))),
             );
-        } else {
+        } else if (typeof value === 'number') {
             newAttr = t.jsxAttribute(
                 t.jsxIdentifier(key),
-                t.jsxExpressionContainer(t.identifier(value.toString())),
+                t.jsxExpressionContainer(t.numericLiteral(value)),
+            );
+        } else {
+            // Fallback: JSON.stringify prevents [object Object] from corrupting JSX output
+            newAttr = t.jsxAttribute(
+                t.jsxIdentifier(key),
+                t.jsxExpressionContainer(t.stringLiteral(JSON.stringify(value))),
             );
         }
 

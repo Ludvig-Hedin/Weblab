@@ -14,10 +14,13 @@ export function parseModeAndValue(value: string): {
     mode: LayoutMode;
     layoutValue: string;
 } {
+    // `auto` is treated as fit-content (Fit). The earlier `|| value === 'auto'`
+    // on the Fill branch below was dead (this branch already returns for
+    // 'auto'); removed so the two branches no longer claim the same input.
     if (value === 'fit-content' || value === 'auto' || value === '') {
         return { mode: LayoutMode.Fit, layoutValue: '' };
     }
-    if (value === '100%' || value === 'auto') {
+    if (value === '100%') {
         return { mode: LayoutMode.Fill, layoutValue: '100%' };
     }
     if (value.includes('%')) {

@@ -565,9 +565,21 @@ export class FileSystem {
 
         await listRecursive(this.basePath);
 
-        // Simple pattern matching (not full glob)
+        // Simple pattern matching (not full glob). `**/` matches zero-or-more
+        // leading path segments (incl. none) so `**/*` (the default) matches
+        // root files AND deeply-nested files alike. Stash the `**/` and `**`
+        // expansions behind placeholders FIRST so the `*` → `[^/]*` pass can't
+        // corrupt the `.*` inside them (which would re-limit `**/` to a single
+        // segment and drop everything below depth 1).
         if (pattern.includes('*')) {
-            const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+            const regexStr = pattern
+                .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                .replace(/\*\*\//g, '__GLOBSTAR_SLASH__')
+                .replace(/\*\*/g, '__DOUBLESTAR__')
+                .replace(/\*/g, '[^/]*')
+                .replace(/__GLOBSTAR_SLASH__/g, '(?:.*/)?')
+                .replace(/__DOUBLESTAR__/g, '.*');
+            const regex = new RegExp('^' + regexStr + '$');
             return files.filter((f) => regex.test(f));
         }
 

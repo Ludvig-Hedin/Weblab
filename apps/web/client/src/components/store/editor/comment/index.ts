@@ -270,7 +270,8 @@ export class CommentManager {
         this.currentProjectId = projectId;
         this.stopPolling();
         this.pollingInterval = setInterval(() => {
-            void this.loadComments(projectId);
+            if (!this.currentProjectId) return;
+            void this.loadComments(this.currentProjectId);
         }, 30_000);
         if (typeof document !== 'undefined') {
             document.addEventListener('visibilitychange', this.onVisibilityChange);

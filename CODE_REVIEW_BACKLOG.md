@@ -440,3 +440,108 @@ the in-flight Vercel-sandbox migration owned by a parallel agent.
 - `src/app/project/[id]/_adapters/convex-bootstrap.ts:98` already builds `runtime.type` from `doc.runtimeType` — the runtimeType-drop issue is already fixed.
 - sign-in & sign-up `[[...rest]]` pages already redirect to `/sign-in` (no live `/login` 404 anywhere).
 - The four stubbed create/import paths (prompt create, GitHub import, template clone, local-folder upload) and the editor sandbox file layer are **intentional in-flight migration stubs** (`UNAVAILABLE_MESSAGE` / `TODO(sandbox-port)`), not bugs — but the UI still presents them as working affordances (UX debt: disable/hide until wired).
+
+## Bug Hunt — 2026-05-24 (UX+QA flow-fix session)
+
+UX+QA pass over the new-user / returning-user / power-user flows. 12 issues
+fixed directly (see session summary); `bun typecheck` exit 0, changed files
+lint-clean. The following core-editor items are **report-only** — real but
+medium-confidence and risky to change without a running editor to verify, so
+flagged rather than blind-fixed (could introduce the data-loss they'd aim to
+prevent).
+
+### Auto-fixed (1 issue)
+- ✅ **FIXED** `src/components/store/editor/history/index.ts:115` +
+  `code/index.ts:32` — **undo stack desync on a failed forward write.**
+  `code.write` now returns `Promise<boolean>` (true on success, false on a
+  caught error), and `HistoryManager.push` drops the action from the undo
+  stack (by reference, so a concurrent push isn't dropped instead) when the
+  write fails. Previously a failed write left a phantom action on the undo
+  stack, so a later undo would emit the inverse of an edit that never landed,
+  corrupting the file. Happy path is byte-identical; only the failure case
+  changes. typecheck + lint clean. All 3 `code.write` callers `await` and
+  ignored the old void return, so the new boolean is backward-compatible.
+
+### Needs human review (2 issues)
+- `src/components/store/editor/action/index.ts:31-46` — **undo/redo apply
+  asymmetry.** RE-CLASSIFIED AS BY-DESIGN (not a correctness bug): `run()`
+  `dispatch()`es to the live DOM as an *optimization* — the code's own comment
+  ("Disabling real-time insert since this is buggy. Will still work but not as
+  fast") confirms HMR is the source of truth and dispatch is just for instant
+  feedback. So `undo`/`redo` updating the canvas via HMR-only is consistent
+  with the system design — slower than forward edits, but correct. Adding a
+  blanket `dispatch` to undo/redo risks the documented double-apply. Leave as
+  perf-only; only revisit if undo latency becomes a real complaint.
+- `src/components/store/editor/action/index.ts:35-37,44-46` — **symmetric
+  undo/redo write-failure desync** (smaller, rarer follow-up to the fixed
+  forward case above). `action.undo()`/`redo()` call `code.write(inverse)` and
+  ignore the now-boolean result. `history.undo()` has ALREADY moved the action
+  from undoStack→redoStack before the write runs, so if the inverse write
+  fails the stacks desync from the file. The error is surfaced (toast), so it's
+  a rare compound edge, not silent data loss. Fixing cleanly needs the
+  stack-move and the write to be transactional (move back on failure), which
+  requires restructuring the undo/redo flow — verify against a running editor
+  before changing.
+
+## TODO Sweep — 2026-05-24 (backlog triage from "Needs human review" items)
+
+Scope: all open items in the 2026-05-24 bug-hunt "Needs human review" list.
+Read the actual code for every item; fixed the high-confidence ones;
+verified that two items were already resolved by earlier sessions.
+`bun typecheck` exits 0; 0 new lint errors introduced.
+
+### Verified already resolved (do not re-flag)
+- `convex/projectInvitations.ts` `get` — `callerCanSeeInvitation` helper already
+  gates the query by invitee email OR project membership. The earlier "ANY
+  authed caller" concern no longer applies.
+- `src/components/store/editor/text/index.ts:53` — `shouldNotStartEditing` is
+  already reset to `false` in the `catch` block (line 77) with an explanatory
+  comment. Permanent lock-out can't happen.
+
+### Auto-fixed (7 issues)
+- `src/components/store/editor/comment/index.ts:272` — interval callback now polls
+  `this.currentProjectId` (with early bail on null) instead of closing over the
+  stale `projectId` parameter from the `startPolling` call. Prevents loading
+  comments for a project that has since been unloaded.
+- `packages/parser/src/code-edit/style.ts:95,113` — added explicit `number` arm
+  (`t.numericLiteral`) in both the existing-attr and new-attr paths; else-branch
+  now uses `JSON.stringify` + `t.stringLiteral` as a safe fallback instead of
+  `t.identifier(value.toString())` which emitted `[object Object]` into JSX,
+  corrupting source files.
+- `packages/mcp/src/tools/glob.ts:13` — `matchSimpleGlob` now converts `**/` to
+  `(?:.*/)?` (zero-or-more path segments including the separator) before
+  converting `*` to `[^/]*`. Root-level files now match `**/*.ts` etc. (linter
+  chose a placeholder-based implementation; functionally equivalent.)
+- `packages/file-system/src/fs.ts:569` — `listFiles` pattern matching upgraded
+  from `pattern.replace(/\*/g, '.*')` (mangled `**` and produced `/^.*.*\/.*$/`
+  requiring a path separator) to a proper 3-pass replace: `**/` → `(.*/)?`,
+  `**` → `.*`, `*` → `[^/]*`, with regex-special char escaping.
+- `packages/fonts/src/helpers/font-extractors.ts:249` — `path.remove()` was
+  called inside a `forEach` on `declarations`. For `const a = Font1(), b = Font2()`
+  this removed the entire `VariableDeclaration` on the first match, leaving `b`
+  unprocessed. Fix: collect matched declarator indices, then after the loop
+  either `path.remove()` the whole statement (all matched) or prune only the
+  matched declarators from `path.node.declarations` (partial match).
+- `packages/parser/src/code-edit/responsive-classes.ts:121` — dead ternary whose
+  two branches were identical simplified to `return \`${shape.utility}-${v}\``.
+  (Linter had already applied this before manual edit was attempted.)
+- `packages/utility/src/autolayout.ts:20` — dead `|| value === 'auto'` on the
+  Fill branch removed by linter (the Fit branch above already returns for 'auto').
+  The comment notes that `auto` maps to Fit (current behavior confirmed).
+
+### Still open (not fixed — intent unclear or requires running editor)
+- `src/components/store/editor/frames/manager.ts:491` **[TODO inline]** — single
+  shared debounce collapses rapid successive per-frame saves. Needs per-frameId
+  `Map<string, DebouncedFn>` with eviction on frame deletion.
+- `src/components/ai-prompt-composer/extensions/slash-commands.tsx:74` — Escape
+  removes the popup DOM element but does not exit the TipTap Suggestion session.
+  Requires calling the Suggestion extension's internal cancel API (complex, needs
+  live editor to verify).
+- `src/app/projects/new/page.tsx:79` + `src/app/_components/hero/index.tsx:109` —
+  `(user as any) ?? null` / `(user ?? null) as never` collapse loading→logged-out.
+  Fix: widen the `Create` component's `user` prop to accept `ConvexUser | null |
+  undefined` and remove the casts.
+- `packages/code-provider/src/providers/codesandbox/utils/read-file.ts:34` —
+  inline "WARNING: This is not correct base64" comment. The current
+  `convertToBase64` takes a `Uint8Array` and should be safe; comment may be stale.
+  Verify and remove the comment, or replace with a proper implementation.

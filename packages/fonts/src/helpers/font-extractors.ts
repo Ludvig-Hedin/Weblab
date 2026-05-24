@@ -219,36 +219,57 @@ export function migrateFontsFromLayout(content: string): {
                     return;
                 }
 
-                path.node.declarations.forEach((declaration: T.VariableDeclarator) => {
-                    if (!t.isIdentifier(declaration.id) || !declaration.init) {
-                        return;
-                    }
-
-                    const fontId = declaration.id.name;
-
-                    if (t.isCallExpression(declaration.init)) {
-                        const callee = declaration.init.callee;
-
-                        let fontType = '';
-                        if (t.isIdentifier(callee) && fontImports[callee.name]) {
-                            fontType = fontImports[callee.name] ?? '';
+                // Collect matched declarator indices first; removing inside forEach would
+                // drop the entire VariableDeclaration on the first match, leaving any
+                // subsequent font declarators (e.g. const a = Font1(), b = Font2()) unprocessed.
+                const matchedIndices: number[] = [];
+                path.node.declarations.forEach(
+                    (declaration: T.VariableDeclarator, index: number) => {
+                        if (!t.isIdentifier(declaration.id) || !declaration.init) {
+                            return;
                         }
 
-                        const configArg = declaration.init.arguments[0];
-                        fontVariables.push(fontId);
+                        const fontId = declaration.id.name;
 
-                        if (t.isObjectExpression(configArg)) {
-                            const fontConfig = buildFontConfiguration(fontId, fontType, configArg);
+                        if (t.isCallExpression(declaration.init)) {
+                            const callee = declaration.init.callee;
 
-                            if (!fontConfig.variable) {
-                                fontConfig.variable = `--font-${fontId}`;
+                            let fontType = '';
+                            if (t.isIdentifier(callee) && fontImports[callee.name]) {
+                                fontType = fontImports[callee.name] ?? '';
                             }
 
-                            fonts.push(fontConfig);
+                            const configArg = declaration.init.arguments[0];
+                            fontVariables.push(fontId);
+
+                            if (t.isObjectExpression(configArg)) {
+                                const fontConfig = buildFontConfiguration(
+                                    fontId,
+                                    fontType,
+                                    configArg,
+                                );
+
+                                if (!fontConfig.variable) {
+                                    fontConfig.variable = `--font-${fontId}`;
+                                }
+
+                                fonts.push(fontConfig);
+                            }
+                            matchedIndices.push(index);
                         }
-                        path.remove();
-                    }
-                });
+                    },
+                );
+
+                if (matchedIndices.length === 0) return;
+                if (matchedIndices.length === path.node.declarations.length) {
+                    // All declarators are font calls — remove the entire statement
+                    path.remove();
+                } else {
+                    // Only some declarators are fonts — prune just those, keep the rest
+                    path.node.declarations = path.node.declarations.filter(
+                        (_: T.VariableDeclarator, i: number) => !matchedIndices.includes(i),
+                    );
+                }
             },
             JSXOpeningElement(path) {
                 if (!path.node || !t.isJSXIdentifier(path.node.name) || !path.node.attributes) {

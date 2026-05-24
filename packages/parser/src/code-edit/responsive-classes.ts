@@ -118,9 +118,9 @@ export function tailwindClassFor(property: string, value: string): string | null
         return shape.toClassValue(value);
     }
     const v = shape.toClassValue ? shape.toClassValue(value) : `[${value.trim()}]`;
-    return v.startsWith('[') || !shape.toClassValue
-        ? `${shape.utility}-${v}`
-        : `${shape.utility}-${v}`;
+    // Both arms of the previous ternary produced the same value, so the
+    // condition was dead — arbitrary values and scale tokens both join with `-`.
+    return `${shape.utility}-${v}`;
 }
 
 /**

@@ -11,11 +11,18 @@ export const globSchema = z.object({
 });
 
 function matchSimpleGlob(pattern: string, filePath: string): boolean {
-    // Convert glob pattern to regex
+    // Convert glob pattern to regex. `**/` matches zero-or-more leading path
+    // segments (incl. none) so `**/*.ts` matches both root files (`index.ts`)
+    // AND deeply-nested files (`src/a/foo.ts`). Stash the `**/` and `**`
+    // expansions behind placeholders FIRST so the `*` → `[^/]*` pass can't
+    // corrupt the `.*` inside them (which would otherwise re-limit `**/` to a
+    // single segment).
     const escaped = pattern
         .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*\//g, '__GLOBSTAR_SLASH__')
         .replace(/\*\*/g, '__DOUBLESTAR__')
         .replace(/\*/g, '[^/]*')
+        .replace(/__GLOBSTAR_SLASH__/g, '(?:.*/)?')
         .replace(/__DOUBLESTAR__/g, '.*');
     return new RegExp(`^${escaped}$`).test(filePath);
 }
