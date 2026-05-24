@@ -8,7 +8,7 @@ import localforage from 'localforage';
 import { AnimatePresence, motion } from 'motion/react';
 import { toast } from 'sonner';
 
-import type { Project, User } from '@weblab/models';
+import type { Project } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -36,7 +36,11 @@ interface TemplateModalProps {
     onToggleStar?: () => void;
     templateProject: Project;
     onUnmarkTemplate?: () => void;
-    user?: User | null;
+    // Accepts both legacy `User` (`id`) and Convex `Doc<'users'>` (`_id`).
+    // Page-level callers pass the Convex doc — see Create's CreateUser type
+    // for the same pattern + why this matters (signed-in user otherwise
+    // bounced to the auth modal because `Doc.id` is undefined).
+    user?: { _id?: string; id?: string } | null;
 }
 
 export function TemplateModal({
@@ -62,7 +66,8 @@ export function TemplateModal({
     const router = useRouter();
 
     const handleUseTemplate = async () => {
-        if (!user?.id) {
+        const userId = user?._id ?? user?.id;
+        if (!userId) {
             await localforage.setItem(LocalForageKeys.RETURN_URL, window.location.pathname);
             setIsAuthModalOpen(true);
             return;
@@ -156,7 +161,7 @@ export function TemplateModal({
                             />
 
                             {isNew && (
-                                <div className="absolute top-4 left-4 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white">
+                                <div className="absolute top-4 left-4 rounded-full bg-foreground-brand px-2 py-1 text-mini font-medium text-background">
                                     New
                                 </div>
                             )}

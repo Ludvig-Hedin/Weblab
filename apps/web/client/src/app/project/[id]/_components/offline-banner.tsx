@@ -66,7 +66,7 @@ export const OfflineBanner = observer(() => {
                     <Icons.InfoCircled
                         className={[
                             'mt-px h-3.5 w-3.5 shrink-0',
-                            isWarning ? 'text-amber-400' : 'text-red-400',
+                            isWarning ? 'text-foreground-warning' : 'text-destructive',
                         ].join(' ')}
                     />
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">

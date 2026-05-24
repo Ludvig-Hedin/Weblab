@@ -54,7 +54,7 @@ export default function PricingPage() {
         <WebsiteLayout showFooter={true}>
             <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-8">
                 <div className="mt-24 mb-16 w-full text-left">
-                    <h1 className="text-foreground mb-4 text-5xl font-light">{t('heading')}</h1>
+                    <h1 className="text-foreground mb-4 heading-style-h1">{t('heading')}</h1>
                     <p className="text-muted-foreground text-regular">{t('subhead')}</p>
                 </div>
 
@@ -66,7 +66,7 @@ export default function PricingPage() {
                     <div className="border-border-primary rounded-lg border p-8 sm:p-12">
                         <div className="mb-8 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
                             <div className="text-left">
-                                <h2 className="text-foreground mb-3 text-3xl font-light sm:text-4xl">
+                                <h2 className="text-foreground mb-3 heading-style-h2">
                                     {t('forTeamsHeading')}
                                 </h2>
                                 <p className="text-regular text-foreground-secondary">
@@ -108,10 +108,10 @@ export default function PricingPage() {
                                             <IconComponent className="text-foreground-weblab h-5 w-5" />
                                         </div>
                                         <div className="flex flex-col gap-1">
-                                            <h3 className="text-foreground text-base font-medium">
+                                            <h3 className="text-foreground text-regularPlus">
                                                 {t(`features.${feature.key}.title`)}
                                             </h3>
-                                            <p className="text-foreground-secondary text-sm text-balance">
+                                            <p className="text-foreground-secondary text-small text-balance">
                                                 {t(`features.${feature.key}.description`, {
                                                     appName: APP_NAME,
                                                 })}
@@ -131,7 +131,7 @@ export default function PricingPage() {
                             {ENTERPRISE_FEATURES.map((feature) => (
                                 <div
                                     key={feature}
-                                    className="text-foreground-secondary flex items-center gap-3 text-base"
+                                    className="text-foreground-secondary flex items-center gap-3 text-regular"
                                 >
                                     <Icons.CheckCircled className="text-foreground-weblab h-5 w-5 flex-shrink-0" />
                                     <span>{t(`enterpriseFeatures.${feature}`)}</span>

@@ -185,18 +185,22 @@ export const NewSelectFolder = () => {
                 throw new Error('No valid files found in the selected folder');
             }
 
-            const projectName = extractProjectName(processedFiles);
-
-            if (!projectName) {
-                setError('No project name found in the selected folder');
-                return;
-            }
+            // Fall back to the folder name for projects without package.json
+            // (e.g. static HTML) so they aren't rejected before framework
+            // detection even runs.
+            const projectName =
+                extractProjectName(processedFiles) ?? folderPath ?? 'New Project';
 
             // Auto-detect framework BEFORE validating so the validator runs
             // against the right adapter (e.g. an HTML folder validates via
             // static-html, not Next.js). Detection failure is non-fatal —
             // validation will surface a clearer error if no adapter matches.
             await autoDetectFramework(processedFiles);
+            // TODO(bug-hunt): stale closure — autoDetectFramework calls setFramework
+            // (async React state update) but validateNextJsProject reads the old
+            // `framework` closure value from the current render pass, so validation
+            // runs against the wrong adapter. Fix: return detected FrameworkId from
+            // autoDetectFramework and pass it as an override to validateNextJsProject.
             const validationResult = await validateNextJsProject(processedFiles);
             setValidation(validationResult);
 
@@ -227,7 +231,7 @@ export const NewSelectFolder = () => {
     const readDirectory = async (dirEntry: any): Promise<File[]> => {
         const files: File[] = [];
 
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const reader = dirEntry.createReader();
 
             const readEntries = () => {
@@ -269,7 +273,7 @@ export const NewSelectFolder = () => {
 
                     // Continue reading entries (directories can have many entries)
                     readEntries();
-                });
+                }, reject);
             };
 
             readEntries();
@@ -530,7 +534,7 @@ export const NewSelectFolder = () => {
                     </Button>
                 </motion.div>
                 {error && (
-                    <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-small text-destructive">
                         {error}
                     </div>
                 )}

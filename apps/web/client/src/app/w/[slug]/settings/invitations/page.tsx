@@ -47,17 +47,15 @@ export default function InvitationsPage() {
     return (
         <div className="flex max-w-2xl flex-col gap-6">
             <header>
-                <h1 className="text-foreground text-xl font-medium">Invitations</h1>
-                <p className="text-foreground-tertiary mt-1 text-sm">
+                <h1 className="text-foreground text-title3 font-medium">Invitations</h1>
+                <p className="text-foreground-tertiary mt-1 text-small">
                     Pending and historical invites for {workspace.name}.
                 </p>
             </header>
             {isPersonal ? (
                 <section className="bg-background-secondary/40 flex flex-col gap-2 rounded-md border p-4">
-                    <h2 className="text-foreground text-sm font-medium">
-                        Personal workspaces are solo
-                    </h2>
-                    <p className="text-foreground-tertiary text-xs">
+                    <h2 className="text-foreground text-smallPlus">Personal workspaces are solo</h2>
+                    <p className="text-foreground-tertiary text-mini">
                         Personal workspaces can&apos;t have invitations. Create a team workspace to
                         invite collaborators.
                     </p>
@@ -70,9 +68,9 @@ export default function InvitationsPage() {
             ) : (
                 <section className="flex flex-col gap-2">
                     {isLoading ? (
-                        <p className="text-foreground-tertiary text-sm">Loading…</p>
+                        <p className="text-foreground-tertiary text-small">Loading…</p>
                     ) : (invitations ?? []).length === 0 ? (
-                        <p className="text-foreground-tertiary text-sm">No invitations.</p>
+                        <p className="text-foreground-tertiary text-small">No invitations.</p>
                     ) : (
                         (invitations ?? []).map((inv) => (
                             <div
@@ -80,10 +78,10 @@ export default function InvitationsPage() {
                                 className="border-border flex items-center gap-3 rounded-md border p-3"
                             >
                                 <div className="flex flex-1 flex-col">
-                                    <span className="text-foreground text-sm font-medium">
+                                    <span className="text-foreground text-smallPlus">
                                         {inv.email}
                                     </span>
-                                    <span className="text-foreground-tertiary text-xs">
+                                    <span className="text-foreground-tertiary text-mini">
                                         {STATUS_LABEL[inv.status as InvitationStatus]} · {inv.role}
                                         {inv.status === InvitationStatus.PENDING &&
                                             ` · expires ${new Date(

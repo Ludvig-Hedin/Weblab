@@ -76,8 +76,8 @@ export const FigmaCredentials = () => {
                             />
                         </div>
                         {fetchError && (
-                            <div className="rounded-md border border-red-800 bg-red-900/50 p-3">
-                                <p className="text-sm text-red-200">{fetchError}</p>
+                            <div className="rounded-md border border-destructive bg-destructive/50 p-3">
+                                <p className="text-small text-foreground">{fetchError}</p>
                             </div>
                         )}
                     </div>

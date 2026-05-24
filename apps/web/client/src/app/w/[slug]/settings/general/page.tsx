@@ -7,6 +7,16 @@ import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import { WorkspaceKind } from '@weblab/models';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
@@ -27,6 +37,7 @@ export default function WorkspaceGeneralPage() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
+    const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
     const updateWorkspace = useMutation(api.workspaces.update);
     const deleteWorkspace = useMutation(api.workspaces.remove);
@@ -79,8 +90,8 @@ export default function WorkspaceGeneralPage() {
     return (
         <div className="flex max-w-xl flex-col gap-8">
             <header>
-                <h1 className="text-foreground text-xl font-medium">General settings</h1>
-                <p className="text-foreground-tertiary mt-1 text-sm">
+                <h1 className="text-foreground text-title3 font-medium">General settings</h1>
+                <p className="text-foreground-tertiary mt-1 text-small">
                     Manage how {workspace.name} appears across the dashboard.
                 </p>
             </header>
@@ -113,8 +124,8 @@ export default function WorkspaceGeneralPage() {
             {!isPersonal && (
                 <section className="border-border bg-background-secondary/40 flex flex-col gap-3 rounded-md border p-4">
                     <div>
-                        <h2 className="text-foreground text-sm font-medium">Leave workspace</h2>
-                        <p className="text-foreground-tertiary mt-1 text-xs">
+                        <h2 className="text-foreground text-smallPlus">Leave workspace</h2>
+                        <p className="text-foreground-tertiary mt-1 text-mini">
                             Remove yourself from {workspace.name}. If you are the only owner,
                             transfer ownership first.
                         </p>
@@ -124,15 +135,7 @@ export default function WorkspaceGeneralPage() {
                             variant="outline"
                             size="compact"
                             disabled={isLeaving}
-                            onClick={() => {
-                                if (
-                                    window.confirm(
-                                        `Leave ${workspace.name}? You will lose access to its projects unless invited back.`,
-                                    )
-                                ) {
-                                    void handleLeave();
-                                }
-                            }}
+                            onClick={() => setLeaveDialogOpen(true)}
                         >
                             {isLeaving ? 'Leaving…' : 'Leave workspace'}
                         </Button>
@@ -143,8 +146,8 @@ export default function WorkspaceGeneralPage() {
             {!isPersonal && canDelete && (
                 <section className="border-destructive/40 flex flex-col gap-3 rounded-md border p-4">
                     <div>
-                        <h2 className="text-destructive text-sm font-medium">Delete workspace</h2>
-                        <p className="text-foreground-tertiary mt-1 text-xs">
+                        <h2 className="text-destructive text-smallPlus">Delete workspace</h2>
+                        <p className="text-foreground-tertiary mt-1 text-mini">
                             This permanently removes the workspace, its members, and pending
                             invites. Projects must be moved or deleted first.
                         </p>
@@ -170,6 +173,24 @@ export default function WorkspaceGeneralPage() {
                     </div>
                 </section>
             )}
+
+            <AlertDialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Leave workspace</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Leave {workspace.name}? You will lose access to its projects unless
+                            invited back.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => void handleLeave()}>
+                            Leave
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

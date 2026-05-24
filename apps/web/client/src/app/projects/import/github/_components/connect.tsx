@@ -91,8 +91,8 @@ export const ConnectGithub = () => {
                     <Separator orientation="horizontal" className="bg-border mb-6 shrink-0" />
                     {statusRow()}
                     {error && (
-                        <div className="mt-4 rounded-md border border-red-800 bg-red-900 p-3">
-                            <div className="text-sm text-red-100">{error}</div>
+                        <div className="mt-4 rounded-md border border-destructive bg-destructive/90 p-3">
+                            <div className="text-small text-foreground">{error}</div>
                         </div>
                     )}
                     <Separator orientation="horizontal" className="bg-border mt-6 shrink-0" />

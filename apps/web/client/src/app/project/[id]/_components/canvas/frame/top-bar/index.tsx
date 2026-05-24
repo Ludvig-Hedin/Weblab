@@ -4,6 +4,16 @@ import { observer } from 'mobx-react-lite';
 
 import type { Frame } from '@weblab/models';
 import { DEFAULT_BREAKPOINT_PRESETS } from '@weblab/db';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -30,6 +40,7 @@ export const TopBar = observer(
         const toolBarRef = useRef<HTMLDivElement>(null);
         const [customWidthInput, setCustomWidthInput] = useState('');
         const [addBreakpointMenuOpen, setAddBreakpointMenuOpen] = useState(false);
+        const [deleteBreakpointDialogOpen, setDeleteBreakpointDialogOpen] = useState(false);
         const [shouldShowExternalLink, setShouldShowExternalLink] = useState(true);
         const mouseDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
@@ -146,8 +157,10 @@ export const TopBar = observer(
 
         const handleDeleteBreakpoint = () => {
             if (groupSiblings.length <= 1) return;
-            if (!confirm(`Remove "${frame.breakpoint?.name ?? 'this breakpoint'}" from the group?`))
-                return;
+            setDeleteBreakpointDialogOpen(true);
+        };
+
+        const confirmDeleteBreakpoint = () => {
             void editorEngine.frames.delete(frame.id);
         };
 
@@ -177,6 +190,7 @@ export const TopBar = observer(
         // corners. The selected-frame state shifts to the bar-active fill so the
         // selection is still legible without the previous translucent blue tint.
         return (
+            <>
             <div
                 ref={topBarRef}
                 className={cn(
@@ -508,6 +522,28 @@ export const TopBar = observer(
                     </Link>
                 </HoverOnlyTooltip>
             </div>
+
+            <AlertDialog
+                open={deleteBreakpointDialogOpen}
+                onOpenChange={setDeleteBreakpointDialogOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove breakpoint</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Remove &ldquo;{frame.breakpoint?.name ?? 'this breakpoint'}&rdquo; from
+                            the group?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteBreakpoint}>
+                            Remove
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            </>
         );
     },
 );

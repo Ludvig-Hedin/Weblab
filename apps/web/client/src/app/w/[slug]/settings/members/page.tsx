@@ -7,6 +7,16 @@ import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import { WorkspaceKind, WorkspaceRole } from '@weblab/models';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@weblab/ui/alert-dialog';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
@@ -91,16 +101,16 @@ export default function MembersPage() {
     return (
         <div className="flex max-w-2xl flex-col gap-8">
             <header>
-                <h1 className="text-foreground text-xl font-medium">Members</h1>
-                <p className="text-foreground-tertiary mt-1 text-sm">People in {workspace.name}.</p>
+                <h1 className="text-foreground text-title3 font-medium">Members</h1>
+                <p className="text-foreground-tertiary mt-1 text-small">
+                    People in {workspace.name}.
+                </p>
             </header>
 
             {isPersonal && (
                 <section className="bg-background-secondary/40 flex flex-col gap-2 rounded-md border p-4">
-                    <h2 className="text-foreground text-sm font-medium">
-                        Personal workspaces are solo
-                    </h2>
-                    <p className="text-foreground-tertiary text-xs">
+                    <h2 className="text-foreground text-smallPlus">Personal workspaces are solo</h2>
+                    <p className="text-foreground-tertiary text-mini">
                         Personal workspaces can&apos;t be shared. Create a team workspace to invite
                         collaborators.
                     </p>
@@ -115,10 +125,10 @@ export default function MembersPage() {
             {!isPersonal && canInvite && (
                 <section className="bg-background-secondary/40 flex flex-col gap-3 rounded-md border p-4">
                     <header>
-                        <h2 className="text-foreground text-sm font-medium">
+                        <h2 className="text-foreground text-smallPlus">
                             Invite to workspace: {workspace.name}
                         </h2>
-                        <p className="text-foreground-tertiary mt-1 text-xs">
+                        <p className="text-foreground-tertiary mt-1 text-mini">
                             This person will become a workspace member. They may access
                             workspace-visible projects based on their role.
                         </p>
@@ -164,7 +174,7 @@ export default function MembersPage() {
 
             <section className="flex flex-col gap-2">
                 {isLoading ? (
-                    <p className="text-foreground-tertiary text-sm">Loading…</p>
+                    <p className="text-foreground-tertiary text-small">Loading…</p>
                 ) : (
                     (members ?? []).map((m) => (
                         <div
@@ -172,11 +182,11 @@ export default function MembersPage() {
                             className="border-border flex items-center gap-3 rounded-md border p-3"
                         >
                             <div className="flex flex-1 flex-col">
-                                <span className="text-foreground text-sm font-medium">
+                                <span className="text-foreground text-smallPlus">
                                     {m.user?.displayName ?? m.user?.email ?? 'Unknown'}
                                 </span>
                                 {m.user?.email && (
-                                    <span className="text-foreground-tertiary text-xs">
+                                    <span className="text-foreground-tertiary text-mini">
                                         {m.user.email}
                                     </span>
                                 )}
@@ -205,7 +215,7 @@ export default function MembersPage() {
                                     </SelectContent>
                                 </Select>
                             ) : (
-                                <span className="text-foreground-secondary text-xs uppercase">
+                                <span className="text-foreground-secondary text-mini uppercase">
                                     {m.role}
                                 </span>
                             )}
@@ -247,43 +257,73 @@ function TransferOwnerButton({
     onConfirm,
 }: MemberActionProps & { pending: boolean }) {
     const name = user.displayName ?? user.email ?? 'this user';
+    const [open, setOpen] = useState(false);
     return (
-        <Button
-            variant="ghost"
-            size="compact"
-            disabled={pending}
-            onClick={() => {
-                if (
-                    window.confirm(
-                        `Transfer ownership of ${workspaceName} to ${name}? You will be demoted to admin.`,
-                    )
-                ) {
-                    onConfirm(user.id);
-                }
-            }}
-        >
-            Make owner
-        </Button>
+        <>
+            <Button
+                variant="ghost"
+                size="compact"
+                disabled={pending}
+                onClick={() => setOpen(true)}
+            >
+                Make owner
+            </Button>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Transfer ownership</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Transfer ownership of {workspaceName} to {name}? You will be demoted to
+                            admin.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                onConfirm(user.id);
+                                setOpen(false);
+                            }}
+                        >
+                            Transfer
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 
 function RemoveMemberButton({ user, workspaceName, onConfirm }: MemberActionProps) {
     const name = user.displayName ?? user.email ?? 'this user';
+    const [open, setOpen] = useState(false);
     return (
-        <Button
-            variant="ghost"
-            size="compact"
-            onClick={() => {
-                if (
-                    window.confirm(
-                        `Remove ${name} from ${workspaceName}? They will lose access to workspace-visible projects.`,
-                    )
-                ) {
-                    onConfirm(user.id);
-                }
-            }}
-        >
-            Remove
-        </Button>
+        <>
+            <Button variant="ghost" size="compact" onClick={() => setOpen(true)}>
+                Remove
+            </Button>
+            <AlertDialog open={open} onOpenChange={setOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove member</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Remove {name} from {workspaceName}? They will lose access to
+                            workspace-visible projects.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                onConfirm(user.id);
+                                setOpen(false);
+                            }}
+                        >
+                            Remove
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }

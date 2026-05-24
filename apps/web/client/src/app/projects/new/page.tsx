@@ -59,7 +59,7 @@ const Page = () => {
                     />
                     <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-6 py-12 select-none">
                         <div className="flex flex-col items-center gap-2 text-center">
-                            <h1 className="text-foreground text-[42px] leading-[1.05] font-light tracking-[-0.02em]">
+                            <h1 className="text-foreground heading-style-h1">
                                 Start a new project
                             </h1>
                             <p className="text-foreground-secondary max-w-md text-sm leading-relaxed">
@@ -75,9 +75,13 @@ const Page = () => {
                                 cardKey={0}
                                 isCreatingProject={isCreatingFromPrompt}
                                 setIsCreatingProject={setIsCreatingFromPrompt}
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                user={(user as any) ?? null}
-                                autoSubmitRestoredDraft={shouldResumeCreate}
+                                user={user ?? null}
+                                // `user` is `undefined` while the query loads and
+                                // coerces to `null` (logged-out) above. Hold the
+                                // restored-draft auto-submit until it resolves so a
+                                // signed-in user isn't bounced to the auth modal
+                                // mid-load.
+                                autoSubmitRestoredDraft={shouldResumeCreate && user !== undefined}
                                 suggestions={PROJECT_SUGGESTIONS}
                             />
                         </div>
