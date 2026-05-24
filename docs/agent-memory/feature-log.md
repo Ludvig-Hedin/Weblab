@@ -421,6 +421,22 @@ across `apps/web/client/src/app/project/[id]/_components/**`,
 
 ---
 
+## 2026-05-24 — Desktop auth window and sign-in drag fix
+
+Author: Codex (agent)
+Area: desktop shell, sign-in
+Summary: Desktop OAuth provider redirects now open in a small Weblab-owned auth
+BrowserWindow that shares the app's `persist:weblab` session, then closes when a
+Weblab callback URL is reached and finishes sign-in in the main window. The
+desktop sign-in screen also restores a usable top drag strip without blocking
+the normal web sign-in page.
+Files: `apps/desktop/main.js`, `apps/desktop/preload.js`,
+`apps/web/client/src/app/layout.tsx`,
+`apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx`,
+`apps/desktop/RELEASES.md`.
+
+---
+
 ## 2026-05-14 — Faster project creation, editor open, and imports
 
 Author: Codex (agent)

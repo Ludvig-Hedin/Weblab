@@ -36,34 +36,140 @@ const ALLOWED_IPC_ORIGINS = new Set([
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
 const PROTOCOL = 'weblab';
 
-// OAuth provider hosts that must never render inside the BrowserWindow.
-// The login flow now hands provider URLs to the system browser up front (see
-// the renderer's `openOAuth` path), so these should never be reached in-window
-// — this set is the defense-in-depth net: if anything still tries to navigate
-// or redirect the window onto a provider host, bounce it to the default
-// browser. Google additionally blocks OAuth inside embedded webviews outright.
+// OAuth provider hosts that should leave the main app window. They are opened
+// in a small first-party auth BrowserWindow that shares the app's persistent
+// cookie partition, then the final Weblab callback is handed back to the main
+// window.
 const BLOCKED_OAUTH_HOSTS = new Set([
     'accounts.google.com',
     'appleid.apple.com',
     'github.com',
+    'vercel.com',
+    'clerk.weblab.build',
+    'accounts.weblab.build',
 ]);
 
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
 
 let mainWindow;
+let authWindow;
 
 ipcMain.on('weblab:get-version', (event) => {
     event.returnValue = app.getVersion();
 });
 
-// Renderer can ask the main process to open an OAuth URL in the system browser.
+function isOAuthHost(hostname) {
+    for (const host of BLOCKED_OAUTH_HOSTS) {
+        if (hostname === host || hostname.endsWith(`.${host}`)) return true;
+    }
+    return hostname.endsWith('.clerk.accounts.dev');
+}
+
+function isAppUrl(url) {
+    try {
+        return new URL(url).origin === APP_ORIGIN;
+    } catch {
+        return false;
+    }
+}
+
+function completeAuthInMainWindow(url) {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        createWindow(url);
+        return;
+    }
+    mainWindow.loadURL(url);
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+}
+
+function openAuthWindow(url) {
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        return false;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+
+    if (authWindow && !authWindow.isDestroyed()) {
+        authWindow.loadURL(url);
+        authWindow.focus();
+        return true;
+    }
+
+    authWindow = new BrowserWindow({
+        width: 520,
+        height: 720,
+        minWidth: 420,
+        minHeight: 560,
+        title: `${APP_NAME} Sign In`,
+        parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+        modal: false,
+        backgroundColor: '#ffffff',
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            partition: 'persist:weblab',
+        },
+        show: false,
+    });
+
+    authWindow.once('ready-to-show', () => {
+        if (authWindow && !authWindow.isDestroyed()) authWindow.show();
+    });
+
+    authWindow.on('closed', () => {
+        authWindow = null;
+    });
+
+    const finishIfAppUrl = (event, nextUrl) => {
+        if (!isAppUrl(nextUrl)) return false;
+        event.preventDefault();
+        completeAuthInMainWindow(nextUrl);
+        if (authWindow && !authWindow.isDestroyed()) authWindow.close();
+        return true;
+    };
+
+    authWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
+        if (isAppUrl(nextUrl)) {
+            completeAuthInMainWindow(nextUrl);
+            if (authWindow && !authWindow.isDestroyed()) authWindow.close();
+            return { action: 'deny' };
+        }
+        try {
+            const parsedNext = new URL(nextUrl);
+            if (parsedNext.protocol === 'http:' || parsedNext.protocol === 'https:') {
+                authWindow.loadURL(nextUrl);
+            } else {
+                shell.openExternal(nextUrl);
+            }
+        } catch {
+            // Invalid target — keep it out of the auth window.
+        }
+        return { action: 'deny' };
+    });
+
+    authWindow.webContents.on('will-navigate', (event, nextUrl) => {
+        finishIfAppUrl(event, nextUrl);
+    });
+
+    authWindow.webContents.on('will-redirect', (event, nextUrl) => {
+        finishIfAppUrl(event, nextUrl);
+    });
+
+    authWindow.loadURL(url);
+    return true;
+}
+
+// Renderer can ask the main process to open an OAuth URL in the native auth window.
 ipcMain.handle('weblab:open-oauth', async (_event, url) => {
     try {
         const parsed = new URL(url);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-        await shell.openExternal(url);
-        return true;
+        return openAuthWindow(url);
     } catch {
         return false;
     }
@@ -216,16 +322,16 @@ function createWindow(initialURL) {
     });
 
     // Open external links in the system browser. Also: if the WebContents
-    // tries to navigate to a known-blocked OAuth provider, route through
-    // the system browser so OAuth actually completes.
+    // tries to navigate to a known OAuth provider, route through the native
+    // auth window so sign-in doesn't involve the user's default browser.
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         try {
             const parsed = new URL(url);
             if (parsed.origin === APP_ORIGIN) {
                 return { action: 'allow' };
             }
-            if (BLOCKED_OAUTH_HOSTS.has(parsed.host)) {
-                shell.openExternal(url);
+            if (isOAuthHost(parsed.hostname)) {
+                openAuthWindow(url);
                 return { action: 'deny' };
             }
         } catch {
@@ -238,9 +344,9 @@ function createWindow(initialURL) {
     mainWindow.webContents.on('will-navigate', (event, url) => {
         try {
             const parsed = new URL(url);
-            if (BLOCKED_OAUTH_HOSTS.has(parsed.host)) {
+            if (isOAuthHost(parsed.hostname)) {
                 event.preventDefault();
-                shell.openExternal(url);
+                openAuthWindow(url);
             }
         } catch {
             // ignore
@@ -255,9 +361,9 @@ function createWindow(initialURL) {
     mainWindow.webContents.on('will-redirect', (event, url) => {
         try {
             const parsed = new URL(url);
-            if (BLOCKED_OAUTH_HOSTS.has(parsed.host)) {
+            if (isOAuthHost(parsed.hostname)) {
                 event.preventDefault();
-                shell.openExternal(url);
+                openAuthWindow(url);
             }
         } catch {
             // ignore

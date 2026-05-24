@@ -10,12 +10,12 @@ import { APP_DOMAIN, APP_NAME } from '@weblab/constants';
 import { Toaster } from '@weblab/ui/sonner';
 
 import { ClerkConvexProviders } from '@/components/clerk-convex-providers';
+import { AppQueryClientProvider } from '@/components/query-client-provider';
 import RB2BLoader from '@/components/rb2b-loader';
 import { TelemetryProvider } from '@/components/telemetry-provider';
 import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
-import { AppQueryClientProvider } from '@/components/query-client-provider';
 import { CookieConsent } from './_components/cookie-consent';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
@@ -169,6 +169,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 [data-desktop='true'] :is(.top-bar, .desktop-drag-region) :is(div, span, h1, h2, h3, h4, h5, h6, p, section, header, nav, img, svg, ul, ol, li) {
   -webkit-app-region: drag;
   app-region: drag;
+}
+[data-desktop='true'] .desktop-drag-region {
+  pointer-events: auto;
 }
 [data-desktop='true'] :is(.top-bar, .desktop-drag-region) :is(a, button, [role='button'], [role='menuitem'], [role='tab'], [role='switch'], [role='link'], [role='combobox'], input, select, textarea, [contenteditable='true'], [contenteditable='']),
 [data-desktop='true'] .desktop-no-drag {

@@ -78,12 +78,9 @@ const bridge = {
     target: 'desktop',
     version: ipcRenderer.sendSync('weblab:get-version'),
     /**
-     * Open an OAuth URL in the user's default browser. Returns true if the
-     * URL was handed off successfully. After the user signs in the OS will
-     * dispatch the resulting `weblab://auth/callback?code=…` deep link back
-     * to the app, which then loads the canonical https URL inside this
-     * BrowserWindow so the existing `/auth/callback` handler can finish the
-     * exchange in this cookie jar.
+     * Open an OAuth URL in the desktop auth window. It shares the app's
+     * persistent cookie partition, then the main process closes it when a
+     * Weblab callback URL is reached and finishes sign-in in the main window.
      */
     openOAuth: (url) => ipcRenderer.invoke('weblab:open-oauth', url),
     cli: cliBridge,
