@@ -400,7 +400,7 @@ components/hooks/utils, server+convex). Editor sandbox runtime layer
 (`session.ts`, `vercel-browser-provider.ts`) deliberately left untouched — it's
 the in-flight Vercel-sandbox migration owned by a parallel agent.
 
-### Auto-fixed (17 issues)
+### Auto-fixed (19 issues)
 - `apps/web/client/convex/projects.ts` `_insertProjectGraph` — **IDOR**: added workspace-membership guard before inserting the project graph (callers pass a client-supplied `workspaceId`).
 - `apps/web/client/convex/projectActions.ts:180` — stale CodeSandbox template IDs: `nextjs` `pcz35m`→`pf2nqh`, `static-html` `static-template`→`html-qz83hv` (wrong id ⇒ "Script not found 'dev'" + 502 preview).
 - `apps/web/client/convex/branchActions.ts:139` — same stale template id `pcz35m`→`pf2nqh`.
@@ -417,12 +417,12 @@ the in-flight Vercel-sandbox migration owned by a parallel agent.
 - `apps/web/client/src/components/store/editor/element/index.ts` `delete()` — `return`→`continue` on per-element guards so one un-deletable element no longer aborts the rest of a multi-select delete.
 - `apps/web/client/src/utils/upload/image-compression.ts:64` — single fit-scale (`min(1, maxW/w, maxH/h)`) instead of sequential per-axis clamps that could leave the other axis over the bound.
 - `apps/web/client/src/app/_components/top-bar/github.tsx:31` — guard `response.ok` + numeric `stargazers_count` so a 403 rate-limit can't throw and skip the contributors fetch.
+- `apps/web/client/src/components/store/editor/text/index.ts:72` — reset `shouldNotStartEditing` in the `catch` so a failed text-edit start doesn't permanently lock `editSelectedElement()` for the session.
+- `apps/web/client/src/hooks/use-parallax-cursor.ts` — moved the magnetic target into a ref so the RAF animation loop no longer restarts on every mouse move (deps `[smoothness]`).
 
-### Needs human review (15 issues — TODO added inline where marked)
+### Needs human review (13 issues — TODO added inline where marked)
 - `src/components/store/editor/frames/manager.ts:491` **[TODO inline]** — shared `debounce` drops all-but-last frame on multi-frame writes (repackGroup/navigateToPath/addBreakpoint loops) → silent position/url data loss. Key per-frameId.
-- `convex/projectInvitations.ts` `get` **[TODO inline]** — invitation row (projectId/role/inviter) disclosed to ANY authed caller knowing the id; only `token` is email-gated. Gate by invitee email OR `project.view`.
-- `src/components/store/editor/text/index.ts:53` — `shouldNotStartEditing=true` not reset if overlay setup throws → permanent text-edit lockout for the session. Reset in `catch`.
-- `src/hooks/use-parallax-cursor.ts:41` — `useEffect` dep `[mousePosition]` restarts the RAF loop on every mouse move; hold target in a ref, deps `[smoothness]`.
+- `convex/projectInvitations.ts` `get` **[TODO inline]** — invitation row (projectId/role/inviter) disclosed to ANY authed caller knowing the id; only `token` is email-gated. Gate by invitee email OR `project.view`. (NOTE: a parallel agent has since hardened this query — verify before acting.)
 - `src/app/projects/new/page.tsx:79` — `(user as any) ?? null` collapses loading→logged-out; a fast submit during load can bounce a signed-in user to the auth modal.
 - `src/components/ai-prompt-composer/extensions/slash-commands.tsx:74` — Escape destroys the renderer without exiting the Suggestion session → menu stays gone until the trigger char is retyped.
 - `src/components/store/editor/comment/index.ts:272` — polling interval closes over the start-time `projectId`; poll `this.currentProjectId` (bail if null) to avoid loading stale-project comments.
