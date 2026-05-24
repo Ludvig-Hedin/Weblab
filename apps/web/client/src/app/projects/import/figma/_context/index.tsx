@@ -230,67 +230,35 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
                 },
             ];
 
-            if (forkedSandbox.sandboxRuntime.provider === 'vercel_sandbox') {
-                // Vercel Sandbox SDK is server-only — upload via tRPC.
-                setFinalizeProgress({
-                    phase: 'uploading',
-                    filesUploaded: 0,
-                    totalFiles: files.length,
-                });
-                await orphanBulkUpload({
-                    sandboxId: forkedSandbox.sandboxId,
-                    files: files.map((f) => ({
-                        path: f.path,
-                        content: f.content as string,
-                    })),
-                    runSetup: true,
-                });
-                setFinalizeProgress({
-                    phase: 'installing',
-                    filesUploaded: files.length,
-                    totalFiles: files.length,
-                });
-            } else {
-                // CodeSandbox: browser WebSocket upload. Use startOrphan (not
-                // start) — no branch row exists until project.create below.
-                const provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                    providerOptions: {
-                        codesandbox: {
-                            sandboxId: forkedSandbox.sandboxId,
-                            userId: user._id,
-                            initClient: true,
-                            keepActiveWhileConnected: false,
-                            getSession: async (sandboxId) =>
-                                startOrphanSandbox({ sandboxId, provider: 'code_sandbox' }),
-                        },
-                    },
-                });
-
-                try {
-                    setFinalizeProgress({
-                        phase: 'uploading',
-                        filesUploaded: 0,
-                        totalFiles: files.length,
-                    });
-                    await uploadToSandbox(files, provider, {
-                        onProgress: ({ uploaded, total }) =>
-                            setFinalizeProgress({
-                                phase: 'uploading',
-                                filesUploaded: uploaded,
-                                totalFiles: total,
-                            }),
-                    });
-                    checkAborted();
-                    setFinalizeProgress({
-                        phase: 'installing',
-                        filesUploaded: files.length,
-                        totalFiles: files.length,
-                    });
-                    await provider.setup({});
-                } finally {
-                    await provider.destroy();
-                }
+            // Vercel Sandbox SDK is server-only — upload via tRPC. CodeSandbox
+            // was removed 2026-05-24; any non-Vercel provider is a server
+            // misconfiguration and should fail loudly rather than fall back
+            // to a now-archived runtime.
+            if (forkedSandbox.sandboxRuntime.provider !== 'vercel_sandbox') {
+                throw new Error(
+                    'Server provisioned a non-Vercel sandbox during Figma import. ' +
+                        'CodeSandbox is archived; set WEBLAB_CLOUD_PROVIDER and ' +
+                        'the VERCEL_* tokens (see apps/web/client/.env.example).',
+                );
             }
+            setFinalizeProgress({
+                phase: 'uploading',
+                filesUploaded: 0,
+                totalFiles: files.length,
+            });
+            await orphanBulkUpload({
+                sandboxId: forkedSandbox.sandboxId,
+                files: files.map((f) => ({
+                    path: f.path,
+                    content: f.content as string,
+                })),
+                runSetup: true,
+            });
+            setFinalizeProgress({
+                phase: 'installing',
+                filesUploaded: files.length,
+                totalFiles: files.length,
+            });
             checkAborted();
 
             setFinalizeProgress({

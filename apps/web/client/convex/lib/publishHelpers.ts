@@ -4,11 +4,6 @@ import type { FreestyleFile } from 'freestyle-sandboxes';
 
 import type { Provider } from '@weblab/code-provider';
 import type { DeploymentType } from '@weblab/models';
-import {
-    CodeProvider,
-    createCodeProviderClient,
-    getStaticCodeProvider,
-} from '@weblab/code-provider';
 import { HOSTING_PROVIDER_LABELS, HostingProvider } from '@weblab/models';
 
 import type { Doc } from '../_generated/dataModel';
@@ -43,29 +38,27 @@ export function getProjectUrlsFromRows(args: {
 
 // ─── Sandbox fork ────────────────────────────────────────────────────────────
 
+/**
+ * Historically forked the source CodeSandbox into a build-only sandbox so
+ * publish couldn't race with active user edits. CodeSandbox was archived
+ * 2026-05-24. A native Vercel Sandbox equivalent (snapshot source → resume
+ * into a build sandbox) is not yet implemented — this throws so publish
+ * fails loudly instead of building an empty VM.
+ *
+ * Tracked as TODO(publish-vercel) — see
+ * docs/notes/2026-05-13-vercel-sandbox-provider.md.
+ */
 export async function forkBuildSandbox(
-    sandboxId: string,
-    userId: string,
-    deploymentId: string,
+    _sandboxId: string,
+    _userId: string,
+    _deploymentId: string,
 ): Promise<{ provider: Provider; sandboxId: string }> {
-    const CodesandboxProvider = await getStaticCodeProvider(CodeProvider.CodeSandbox);
-    const project = await CodesandboxProvider.createProject({
-        source: 'template',
-        id: sandboxId,
-        title: 'Deployment Fork of ' + sandboxId,
-        description: 'Forked sandbox for deployment',
-        tags: ['deployment', 'preview', userId, deploymentId],
-    });
-    const forkedProvider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-        providerOptions: {
-            codesandbox: {
-                sandboxId: project.id,
-                userId,
-                initClient: true,
-            },
-        },
-    });
-    return { provider: forkedProvider, sandboxId: project.id };
+    throw new Error(
+        'Publish is temporarily unavailable on the Vercel runtime. ' +
+            'CodeSandbox was archived 2026-05-24; the Vercel snapshot-based ' +
+            'build fork is not yet implemented. See ' +
+            'docs/notes/2026-05-13-vercel-sandbox-provider.md (TODO(publish-vercel)).',
+    );
 }
 
 // ─── Env extraction ──────────────────────────────────────────────────────────

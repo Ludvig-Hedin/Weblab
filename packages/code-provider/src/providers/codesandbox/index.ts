@@ -1,3 +1,17 @@
+/**
+ * @deprecated CodeSandbox runtime was archived 2026-05-24. Vercel Sandbox is
+ * the only supported provider. This file is retained as dead code so the
+ * type system keeps `CodeProvider.CodeSandbox` valid for legacy project rows,
+ * but every production caller has been routed away from it (see
+ * `apps/web/client/convex/projectActions.ts`,
+ * `apps/web/client/convex/branchActions.ts`,
+ * `apps/web/client/convex/lib/publishHelpers.ts`,
+ * `apps/web/client/src/components/store/editor/sandbox/session.ts`).
+ * Slated for full deletion once all DB rows with `cloud_provider: 'code_sandbox'`
+ * have been forked into Vercel sandboxes.
+ *
+ * See docs/notes/2026-05-13-vercel-sandbox-provider.md for migration notes.
+ */
 import { CodeSandbox } from '@codesandbox/sdk';
 import { connectToSandbox } from '@codesandbox/sdk/browser';
 

@@ -5,6 +5,15 @@ import type { Branch } from '@weblab/models';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { toast } from '@weblab/ui/sonner';
 
+// Friendly error surfaced when an editor session targets an archived
+// CodeSandbox-backed project. CodeSandbox was removed 2026-05-24 — these
+// projects need to be re-imported into Vercel before the editor can open
+// them.
+const CODESANDBOX_ARCHIVED_MESSAGE =
+    'This project was created on the archived CodeSandbox runtime. ' +
+    'Vercel is now the only sandbox runtime. Re-import the project (or ' +
+    'create a new blank project) to migrate it to Vercel Sandbox.';
+
 import type { ErrorManager } from '../error';
 import type { CLISession, TerminalSession } from './terminal';
 import { isOnline } from '@/services/offline/online-status';
@@ -115,20 +124,14 @@ export class SessionManager {
                       })
                     : this.branch.runtime.cloud?.provider === 'vercel_sandbox'
                       ? new VercelBrowserProvider({ sandboxId: activeSandboxId })
-                      : await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                            providerOptions: {
-                                codesandbox: {
-                                    sandboxId,
-                                    userId,
-                                    initClient: true,
-                                    getSession: async (_sandboxId, _userId) => {
-                                        // TODO(sandbox-port): api.sandbox.start has no
-                                        // Convex equivalent yet — return a stub session.
-                                        return {} as never;
-                                    },
-                                },
-                            },
-                        });
+                      : (() => {
+                            // Any non-Vercel cloud provider is a legacy
+                            // CodeSandbox row from before the 2026-05-24
+                            // archive. We can't connect to those sandboxes
+                            // anymore — surface a clear message instead of
+                            // a silent "isOffline" stall.
+                            throw new Error(CODESANDBOX_ARCHIVED_MESSAGE);
+                        })();
 
             runInAction(() => {
                 this.provider = provider;

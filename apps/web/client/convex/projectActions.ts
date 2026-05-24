@@ -367,9 +367,14 @@ export const generateName = action({
 // ─── fork ─────────────────────────────────────────────────────────────────────
 
 /**
- * Forks a project — provisions a new sandbox per source branch via CSB,
- * then atomically writes the new project graph. Cleans up orphaned sandboxes
- * if the DB write fails.
+ * Forks a project. Historically duplicated each source branch's CodeSandbox
+ * via `csb.sandboxes.create({source:'template', id})`; that path was removed
+ * 2026-05-24 along with the rest of the CodeSandbox runtime.
+ *
+ * A native Vercel Sandbox fork (snapshot source → resume into new sandbox)
+ * has not been re-implemented yet, so this action surfaces a clear error
+ * rather than silently failing or provisioning an empty VM. Tracked as
+ * TODO(sandbox-fork) — see docs/notes/2026-05-13-vercel-sandbox-provider.md.
  *
  * Caller must have project.view on the source project.
  */
@@ -378,103 +383,12 @@ export const fork = action({
         projectId: v.id('projects'),
         name: v.optional(v.string()),
     },
-    handler: async (ctx, args): Promise<{ projectId: string }> => {
-        const me: any = await ctx.runQuery(api.users.me, {});
-        if (!me) throw new Error('UNAUTHORIZED');
-
-        const sourceProject: any = await ctx.runQuery(api.projects.get, {
-            projectId: args.projectId,
-        });
-        if (!sourceProject) throw new Error('NOT_FOUND: source project');
-
-        const sourceBranches: any[] = await ctx.runQuery(api.branches.getByProjectId, {
-            projectId: args.projectId,
-        });
-        if (sourceBranches.length === 0) {
-            throw new Error('Source project has no branches');
-        }
-
-        const csbKey = process.env.CSB_API_KEY;
-        if (!csbKey) throw new Error('CSB_API_KEY not configured');
-        const { CodeSandbox } = await import('@codesandbox/sdk');
-        const csb = new CodeSandbox(csbKey);
-
-        // Default port: extract from first frame, fall back to 3000.
-        const defaultBranch = sourceBranches.find((b: any) => b.isDefault) ?? sourceBranches[0]!;
-        const frameUrl: string = defaultBranch.frames[0]?.url ?? '';
-        const portMatch = /https:\/\/[^-]+-(\d+)\.csb\.app/.exec(frameUrl);
-        const port = portMatch ? parseInt(portMatch[1]!, 10) : 3000;
-
-        // Fork all source sandboxes in parallel.
-        const createdSandboxIds: string[] = [];
-        let newProjectId: string | null = null;
-        try {
-            const forkedMappings: Array<{
-                sourceBranch: any;
-                newSandboxId: string;
-                newSandboxUrl: string;
-            }> = await Promise.all(
-                sourceBranches.map(async (branch: any) => {
-                    const newSandbox = await csb.sandboxes.create({
-                        source: 'template',
-                        id: branch.sandboxId,
-                        title: `${sourceProject.name} (Fork) - ${branch.name}`,
-                        tags: ['template-fork'],
-                        privacy: 'private',
-                    });
-                    createdSandboxIds.push(newSandbox.id);
-                    const url = `https://${newSandbox.id}-${port}.csb.app`;
-                    return {
-                        sourceBranch: branch,
-                        newSandboxId: newSandbox.id,
-                        newSandboxUrl: url,
-                    };
-                }),
-            );
-
-            // Resolve workspace via internal personal-workspace helper.
-            const workspaceId: any = await ctx.runMutation(
-                internal.projects._resolvePersonalWorkspaceForAction,
-                { userId: me._id },
-            );
-
-            // Write the project + default branch via the existing internal
-            // mutation. Additional branches are added afterwards.
-            const defaultMapping =
-                forkedMappings.find((m) => m.sourceBranch.isDefault) ?? forkedMappings[0]!;
-            newProjectId = await ctx.runMutation(internal.projects._insertProjectGraph, {
-                userId: me._id,
-                workspaceId,
-                name: args.name ?? `${sourceProject.name} (Copy)`,
-                description: sourceProject.description ?? '',
-                tags: (sourceProject.tags ?? []).filter((t: string) => t !== 'template'),
-                framework: sourceProject.runtimeMetadata?.framework ?? 'nextjs',
-                sandboxId: defaultMapping.newSandboxId,
-                sandboxUrl: defaultMapping.newSandboxUrl,
-                cloudProvider: 'code_sandbox',
-                port,
-            });
-
-            // Insert any additional branches (non-default).
-            for (const m of forkedMappings) {
-                if (m === defaultMapping) continue;
-                await ctx.runMutation(api.branches.create, {
-                    projectId: newProjectId as any,
-                    name: m.sourceBranch.name,
-                    description: m.sourceBranch.description ?? undefined,
-                    isDefault: false,
-                    sandboxId: m.newSandboxId,
-                    runtimeType: 'cloud',
-                });
-            }
-
-            return { projectId: newProjectId as string };
-        } catch (error) {
-            // Best-effort sandbox cleanup.
-            await Promise.allSettled(
-                createdSandboxIds.map((id) => csb.sandboxes.shutdown(id).catch(() => undefined)),
-            );
-            throw error;
-        }
+    handler: async (_ctx, _args): Promise<{ projectId: string }> => {
+        throw new Error(
+            'Project fork is temporarily unavailable. ' +
+                'CodeSandbox was archived 2026-05-24; the Vercel Sandbox snapshot-based ' +
+                'fork is not yet implemented. Use "Create blank project" with the same ' +
+                'framework as a workaround until TODO(sandbox-fork) lands.',
+        );
     },
 });

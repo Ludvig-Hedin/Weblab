@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 
 import type { Provider } from '@weblab/code-provider';
 import type { FrameworkId, ProjectFile } from '@weblab/framework';
-import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { SandboxTemplates, Templates } from '@weblab/constants';
 import { detectFrameworkFromFiles, getFrameworkAdapter } from '@weblab/framework';
 
@@ -139,6 +138,11 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
     const removeProjectMutation = useMutation(convexApi.projects.remove);
     const deleteProject = ({ id }: { id: string }) =>
         removeProjectMutation({ projectId: id as Id<'projects'> });
+    // TODO(bug-hunt): No UX guard prevents users from entering the full import
+    // wizard before hitting this stub. Users click through all steps, reach
+    // "Finalizing", and then get a generic "Failed to create project" error
+    // with no explanation. Fix: disable the local import route or show a
+    // prominent "coming soon" banner before the wizard starts.
     // TODO(sandbox-port): api.sandbox.* has no Convex equivalent yet — all
     // sandbox calls throw a clear error until the routes are ported.
     const forkSandbox = async (
@@ -190,8 +194,6 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             }
         };
         let didOpenEditor = false;
-        let provider: Provider | null = null;
-
         try {
             setIsFinalizing(true);
             setFinalizeProgress({
@@ -230,75 +232,38 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             inFlightSandboxId.current = forkedSandbox.sandboxId;
             checkAborted();
 
-            if (forkedSandbox.sandboxRuntime.provider === 'vercel_sandbox') {
-                // Vercel Sandbox SDK is server-only — upload via tRPC.
-                setFinalizeProgress({
-                    phase: 'uploading',
-                    filesUploaded: 0,
-                    totalFiles: projectData.files.length,
-                });
-                await orphanBulkUpload({
-                    sandboxId: forkedSandbox.sandboxId,
-                    files: projectData.files.map((f) => ({
-                        path: f.path,
-                        content:
-                            f.type === ProcessedFileType.BINARY
-                                ? Array.from(new Uint8Array(f.content))
-                                : f.content,
-                    })),
-                    runSetup: true,
-                });
-                setFinalizeProgress({
-                    phase: 'installing',
-                    filesUploaded: projectData.files.length,
-                    totalFiles: projectData.files.length,
-                });
-            } else {
-                // CodeSandbox: browser WebSocket upload. Use startOrphan (not
-                // start) — no branch row exists until project.create below.
-                provider = await createCodeProviderClient(CodeProvider.CodeSandbox, {
-                    providerOptions: {
-                        codesandbox: {
-                            sandboxId: forkedSandbox.sandboxId,
-                            userId: user._id,
-                            initClient: true,
-                            keepActiveWhileConnected: false,
-                            getSession: async (sandboxId) => {
-                                return startOrphanSandbox({
-                                    sandboxId,
-                                    provider: 'code_sandbox',
-                                });
-                            },
-                        },
-                    },
-                });
-
-                try {
-                    setFinalizeProgress({
-                        phase: 'uploading',
-                        filesUploaded: 0,
-                        totalFiles: projectData.files.length,
-                    });
-                    await uploadToSandbox(projectData.files, provider, {
-                        onProgress: ({ uploaded, total }) =>
-                            setFinalizeProgress({
-                                phase: 'uploading',
-                                filesUploaded: uploaded,
-                                totalFiles: total,
-                            }),
-                    });
-                    checkAborted();
-                    setFinalizeProgress({
-                        phase: 'installing',
-                        filesUploaded: projectData.files.length,
-                        totalFiles: projectData.files.length,
-                    });
-                    await provider.setup({});
-                } finally {
-                    await provider.destroy();
-                    provider = null;
-                }
+            // Vercel Sandbox SDK is server-only — upload via tRPC. CodeSandbox
+            // was removed 2026-05-24; any non-Vercel provider is a server
+            // misconfiguration and should fail loudly rather than fall back
+            // to a now-archived runtime.
+            if (forkedSandbox.sandboxRuntime.provider !== 'vercel_sandbox') {
+                throw new Error(
+                    'Server provisioned a non-Vercel sandbox during import. ' +
+                        'CodeSandbox is archived; set WEBLAB_CLOUD_PROVIDER and ' +
+                        'the VERCEL_* tokens (see apps/web/client/.env.example).',
+                );
             }
+            setFinalizeProgress({
+                phase: 'uploading',
+                filesUploaded: 0,
+                totalFiles: projectData.files.length,
+            });
+            await orphanBulkUpload({
+                sandboxId: forkedSandbox.sandboxId,
+                files: projectData.files.map((f) => ({
+                    path: f.path,
+                    content:
+                        f.type === ProcessedFileType.BINARY
+                            ? Array.from(new Uint8Array(f.content))
+                            : f.content,
+                })),
+                runSetup: true,
+            });
+            setFinalizeProgress({
+                phase: 'installing',
+                filesUploaded: projectData.files.length,
+                totalFiles: projectData.files.length,
+            });
             checkAborted();
 
             setFinalizeProgress({
@@ -351,11 +316,6 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             inFlightProjectId.current = null;
             return;
         } finally {
-            if (provider) {
-                await provider.destroy().catch((destroyError) => {
-                    console.warn('Failed to destroy import provider:', destroyError);
-                });
-            }
             if (!didOpenEditor) {
                 setIsFinalizing(false);
                 setFinalizeProgress(INITIAL_FINALIZE_PROGRESS);

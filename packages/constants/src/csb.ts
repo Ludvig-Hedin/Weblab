@@ -1,3 +1,13 @@
+/**
+ * @deprecated CodeSandbox runtime was archived 2026-05-24. Vercel Sandbox is
+ * the only supported provider. The constants in this file (template IDs,
+ * CSB_DOMAIN, getSandboxPreviewUrl) are retained for legacy project rows
+ * that still carry a CodeSandbox sandbox id; no new code should reference
+ * them. Slated for full deletion once all CSB-backed projects have been
+ * migrated to Vercel.
+ *
+ * See docs/notes/2026-05-13-vercel-sandbox-provider.md.
+ */
 import type { SandboxTemplate } from '@weblab/models';
 
 export enum Templates {
