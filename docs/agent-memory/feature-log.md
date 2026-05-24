@@ -429,10 +429,14 @@ Summary: Desktop OAuth provider redirects now open in a small Weblab-owned auth
 BrowserWindow that shares the app's `persist:weblab` session, then closes when a
 Weblab callback URL is reached and finishes sign-in in the main window. The
 desktop sign-in screen also restores a usable top drag strip without blocking
-the normal web sign-in page.
+the normal web sign-in page. Follow-up: email OTP sign-in now clears a stale
+Clerk client session once and retries, fixing the false "You're already signed
+in" error when the page renders signed-out but Clerk still has a leftover
+session.
 Files: `apps/desktop/main.js`, `apps/desktop/preload.js`,
 `apps/web/client/src/app/layout.tsx`,
 `apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx`,
+`apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`,
 `apps/desktop/RELEASES.md`.
 
 ---

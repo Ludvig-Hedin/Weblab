@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 // Use the legacy hooks subpath. `@clerk/nextjs` v7 re-exports the "Future"
 // API from its main entry, which is an experimental shape (`SignInFutureResource`)
 // missing `authenticateWithRedirect` / `prepareFirstFactor`. The legacy export
@@ -80,6 +81,20 @@ const OAUTH_STRATEGIES = {
     vercel: 'oauth_vercel',
 } as const;
 
+function isAlreadySignedInError(err: unknown) {
+    type ClerkAPIErrorLike = {
+        errors?: Array<{
+            code?: string;
+            message?: string;
+            longMessage?: string;
+        }>;
+    };
+    const apiErr = err as ClerkAPIErrorLike;
+    const first = apiErr?.errors?.[0];
+    const text = `${first?.code ?? ''} ${first?.message ?? ''} ${first?.longMessage ?? ''}`;
+    return /already\s+signed\s+in|session.*exist|signed_in/i.test(text);
+}
+
 /**
  * Custom sign-in / sign-up form for Clerk mode. Renders a single OTP form
  * that handles both existing and new users — we try `signIn.create` first
@@ -94,6 +109,7 @@ export function ClerkAuthForm({
 }: ClerkAuthFormProps) {
     const t = useTranslations();
     const router = useRouter();
+    const { signOut } = useClerk();
     const { isLoaded: isSignInLoaded, signIn } = useSignIn();
     const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
     const isLoaded = isSignInLoaded && isSignUpLoaded;
@@ -184,13 +200,29 @@ export function ClerkAuthForm({
         // mode so the verify page can call the matching attempt method.
         async function startOtpFlow(): Promise<ClerkOtpMode> {
             if (!signIn || !signUp) throw new Error('Clerk not loaded.');
-            try {
-                await signIn.create({
+            const signInResource = signIn;
+            const signUpResource = signUp;
+            async function createSignInAttempt() {
+                await signInResource.create({
                     strategy: 'email_code',
                     identifier: normalizedEmail,
                 });
+            }
+
+            try {
+                await createSignInAttempt();
                 return 'sign-in';
             } catch (err) {
+                let flowError = err;
+                if (isAlreadySignedInError(err)) {
+                    await signOut();
+                    try {
+                        await createSignInAttempt();
+                        return 'sign-in';
+                    } catch (retryError) {
+                        flowError = retryError;
+                    }
+                }
                 type ClerkAPIErrorLike = {
                     errors?: Array<{
                         code?: string;
@@ -198,14 +230,14 @@ export function ClerkAuthForm({
                         longMessage?: string;
                     }>;
                 };
-                const apiErr = err as ClerkAPIErrorLike;
+                const apiErr = flowError as ClerkAPIErrorLike;
                 const code = apiErr?.errors?.[0]?.code;
                 // `form_identifier_not_found` is Clerk's "no user with this
                 // email" error. Anything else (network, rate limit, identifier
                 // invalid) we propagate so the outer catch shows it.
-                if (code !== 'form_identifier_not_found') throw err;
-                await signUp.create({ emailAddress: normalizedEmail });
-                await signUp.prepareEmailAddressVerification({
+                if (code !== 'form_identifier_not_found') throw flowError;
+                await signUpResource.create({ emailAddress: normalizedEmail });
+                await signUpResource.prepareEmailAddressVerification({
                     strategy: 'email_code',
                 });
                 return 'sign-up';
