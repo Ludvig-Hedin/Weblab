@@ -184,8 +184,8 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         if (!online) return;
         if (!canvasWithFrames) return;
         void cacheProjectExtras(editorEngine.projectId, {
-            userCanvas: canvasWithFrames.userCanvas as Canvas,
-            frames: canvasWithFrames.frames as Frame[],
+            userCanvas: canvasWithFrames.userCanvas,
+            frames: canvasWithFrames.frames,
         });
     }, [online, canvasWithFrames, editorEngine.projectId]);
 
@@ -193,7 +193,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
         if (!online) return;
         if (!conversations) return;
         void cacheProjectExtras(editorEngine.projectId, {
-            conversations: conversations as ChatConversation[],
+            conversations,
         });
     }, [online, conversations, editorEngine.projectId]);
 

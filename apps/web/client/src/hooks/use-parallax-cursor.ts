@@ -7,7 +7,10 @@ interface ParallaxCursorOptions {
 
 export function useParallaxCursor(options?: ParallaxCursorOptions) {
     const { intensity = 0.02, smoothness = 0.1 } = options || {};
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+    // Latest magnetic target lives in a ref so the animation effect doesn't
+    // depend on it — otherwise every mouse move would tear down and restart
+    // the requestAnimationFrame loop, fighting the smoothing lerp.
+    const mousePositionRef = useRef({ x: 0, y: 0 });
     const [parallaxPosition, setParallaxPosition] = useState({ x: 0, y: 0 });
     const animationFrameRef = useRef<number | null>(null);
 
@@ -25,24 +28,21 @@ export function useParallaxCursor(options?: ParallaxCursorOptions) {
             const magneticX = distanceX * Math.abs(distanceX) * intensity;
             const magneticY = distanceY * Math.abs(distanceY) * intensity;
 
-            setMousePosition({ x: magneticX, y: magneticY });
+            mousePositionRef.current = { x: magneticX, y: magneticY };
         };
 
         window.addEventListener('mousemove', handleMouseMove);
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
         };
     }, [intensity]);
 
     useEffect(() => {
         const animate = () => {
             setParallaxPosition((prev) => ({
-                x: prev.x + (mousePosition.x - prev.x) * smoothness,
-                y: prev.y + (mousePosition.y - prev.y) * smoothness,
+                x: prev.x + (mousePositionRef.current.x - prev.x) * smoothness,
+                y: prev.y + (mousePositionRef.current.y - prev.y) * smoothness,
             }));
 
             animationFrameRef.current = requestAnimationFrame(animate);
@@ -55,7 +55,7 @@ export function useParallaxCursor(options?: ParallaxCursorOptions) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [mousePosition, smoothness]);
+    }, [smoothness]);
 
     return parallaxPosition;
 }

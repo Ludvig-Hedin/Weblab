@@ -71,6 +71,10 @@ export class TextEditingManager {
             );
         } catch (error) {
             console.error('Error starting text edit:', error);
+            // Reset the guard so a failure after it was set doesn't permanently
+            // block editSelectedElement() for the rest of the session — it is
+            // otherwise only reset in clean().
+            this.shouldNotStartEditing = false;
         }
     }
 
