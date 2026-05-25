@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import { CustomExpander, GroupShell, LabeledTextInput, SliderField } from '../controls';
@@ -40,6 +40,11 @@ export const TransformsSection = observer(function TransformsSection() {
     ].filter((v) => v.isSet).length;
 
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
+
+    // Auto-open when switching to an element that already has transforms set.
+    useEffect(() => {
+        if (advancedSetCount > 0) setCustomOpen(true);
+    }, [advancedSetCount]);
 
     return (
         <Section id="transforms" title="Transforms">

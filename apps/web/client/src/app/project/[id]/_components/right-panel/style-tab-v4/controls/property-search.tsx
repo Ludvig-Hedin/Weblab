@@ -47,7 +47,6 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
         sectionId: 'layout',
     },
     { property: 'align-items', label: 'Align items', sectionId: 'layout' },
-    { property: 'flex-wrap', label: 'Flex wrap', sectionId: 'layout' },
     { property: 'gap', label: 'Gap', sectionId: 'layout' },
     // `padding`/`margin` shorthands have no `data-style-property` node — the
     // `TrblGrid` control only renders per-side inputs labelled `padding-top`
@@ -80,8 +79,7 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     { property: 'max-height', label: 'Max height', sectionId: 'size' },
     { property: 'aspect-ratio', label: 'Aspect ratio', sectionId: 'size' },
     { property: 'object-fit', label: 'Object fit', sectionId: 'size' },
-    { property: 'box-sizing', label: 'Box sizing', sectionId: 'size' },
-    { property: 'overflow-x', label: 'Overflow', sectionId: 'size' },
+    { property: 'overflow', label: 'Overflow', sectionId: 'size' },
     // Text
     { property: 'font-family', label: 'Font family', sectionId: 'text' },
     { property: 'font-size', label: 'Font size', sectionId: 'text' },
@@ -100,35 +98,32 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
     // Styles
     { property: 'opacity', label: 'Opacity', sectionId: 'styles' },
     { property: 'visibility', label: 'Visibility', sectionId: 'styles' },
-    // Overlays — background & border
+    // Background
     {
         property: 'background-color',
         label: 'Background color',
-        sectionId: 'overlays',
+        sectionId: 'background',
     },
     {
         property: 'background-image',
         label: 'Background image',
-        sectionId: 'overlays',
+        sectionId: 'background',
     },
     {
         property: 'background-size',
         label: 'Background size',
-        sectionId: 'overlays',
-    },
-    {
-        property: 'background-position',
-        label: 'Background position',
-        sectionId: 'overlays',
+        sectionId: 'background',
     },
     {
         property: 'background-repeat',
         label: 'Background repeat',
-        sectionId: 'overlays',
+        sectionId: 'background',
     },
-    { property: 'border-width', label: 'Border width', sectionId: 'overlays' },
-    { property: 'border-color', label: 'Border color', sectionId: 'overlays' },
-    { property: 'border-style', label: 'Border style', sectionId: 'overlays' },
+    // Border
+    { property: 'border-width', label: 'Border width', sectionId: 'border' },
+    { property: 'border-color', label: 'Border color', sectionId: 'border' },
+    { property: 'border-style', label: 'Border style', sectionId: 'border' },
+    { property: 'border-radius', label: 'Border radius', sectionId: 'border' },
     // Effects
     { property: 'box-shadow', label: 'Box shadow', sectionId: 'effects' },
     { property: 'filter', label: 'Filter', sectionId: 'effects' },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Variable } from 'lucide-react';
 import { observer } from 'mobx-react-lite';
 
@@ -46,6 +46,14 @@ export const AdvancedSection = observer(function AdvancedSection() {
     const [variablesOpen, setVariablesOpen] = useState(customRows.length > 0);
     const [layoutOpen, setLayoutOpen] = useState(layoutAnySet);
     const [draftRow, setDraftRow] = useState(false);
+
+    // Auto-open when switching to an element that already has these properties set.
+    useEffect(() => {
+        if (customRows.length > 0) setVariablesOpen(true);
+    }, [customRows.length]);
+    useEffect(() => {
+        if (layoutAnySet) setLayoutOpen(true);
+    }, [layoutAnySet]);
 
     return (
         <Section id="advanced" title="Advanced">

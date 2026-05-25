@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
 import {
@@ -82,6 +82,12 @@ export const EffectsSection = observer(function EffectsSection() {
     ].filter((v) => v.isSet).length;
 
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
+
+    // Auto-open when switching to an element that already has effects set.
+    // useState only initializes once; this keeps the expander in sync across selections.
+    useEffect(() => {
+        if (advancedSetCount > 0) setCustomOpen(true);
+    }, [advancedSetCount]);
 
     return (
         <Section id="effects" title="Effects">
