@@ -235,33 +235,29 @@ http.route({
         try {
             switch (event.type) {
                 case 'customer.subscription.created':
-                    await ctx.runMutation(
-                        (internal as any)['lib/stripeWebhook']._handleSubCreated,
-                        { event: eventInput },
-                    );
+                    await ctx.runMutation(internal.lib.stripeWebhook._handleSubCreated, {
+                        event: eventInput,
+                    });
                     break;
                 case 'customer.subscription.updated':
-                    await ctx.runMutation(
-                        (internal as any)['lib/stripeWebhook']._handleSubUpdated,
-                        { event: eventInput },
-                    );
+                    await ctx.runMutation(internal.lib.stripeWebhook._handleSubUpdated, {
+                        event: eventInput,
+                    });
                     break;
                 case 'customer.subscription.deleted':
-                    await ctx.runMutation(
-                        (internal as any)['lib/stripeWebhook']._handleSubDeleted,
-                        { event: eventInput },
-                    );
+                    await ctx.runMutation(internal.lib.stripeWebhook._handleSubDeleted, {
+                        event: eventInput,
+                    });
                     break;
                 case 'customer.subscription.paused':
-                    await ctx.runMutation((internal as any)['lib/stripeWebhook']._handleSubPaused, {
+                    await ctx.runMutation(internal.lib.stripeWebhook._handleSubPaused, {
                         event: eventInput,
                     });
                     break;
                 case 'customer.subscription.resumed':
-                    await ctx.runMutation(
-                        (internal as any)['lib/stripeWebhook']._handleSubResumed,
-                        { event: eventInput },
-                    );
+                    await ctx.runMutation(internal.lib.stripeWebhook._handleSubResumed, {
+                        event: eventInput,
+                    });
                     break;
                 default:
                     // Other event types accept-ignored — Stripe webhook

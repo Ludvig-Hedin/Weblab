@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 
 import { internalQuery } from './_generated/server';
+import { getUserByClerkIdSafe } from './lib/permissions';
 
 // V8-side internal helpers for the Node-only userActions.ts. Actions cannot
 // declare internalQuery/internalMutation directly (the "use node" runtime
@@ -15,9 +16,9 @@ import { internalQuery } from './_generated/server';
 export const _getByClerkId = internalQuery({
     args: { clerkUserId: v.string() },
     handler: async (ctx, { clerkUserId }) => {
-        return ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', clerkUserId))
-            .unique();
+        // `.collect()` + dedupe via the shared helper — never `.unique()`
+        // on by_clerk_user_id. A duplicate row from the JIT/webhook race
+        // would otherwise brick the account-delete flow.
+        return getUserByClerkIdSafe(ctx, clerkUserId);
     },
 });

@@ -22,6 +22,79 @@ async function requireCaller(ctx: ActionCtx) {
     return me;
 }
 
+// Length cap for the three string args of applyDiff. Bounds the LLM input
+// size per call. 100 KB per arg matches a generous file/snippet ceiling
+// while keeping the worst-case OpenRouter/Morph/Relace bill bounded per
+// authenticated caller.
+const APPLY_DIFF_MAX_STRING_BYTES = 100 * 1024;
+
+// SSRF guard for scrapeUrl: reject non-http(s) protocols, loopback,
+// link-local, RFC1918 private ranges, IPv6 ULA/link-local, IPv4-mapped IPv6,
+// and the cloud-metadata endpoints (169.254.169.254, fd00:ec2::254,
+// metadata.google.internal). Firecrawl performs its own egress hardening
+// but treat that as defense-in-depth, not a primary control.
+function isPrivateOrMetadataHost(hostname: string): boolean {
+    const h = hostname.toLowerCase();
+    if (h === 'localhost' || h === '::1' || h === '0.0.0.0') return true;
+    // Cloud-metadata hostnames + IPv4.
+    if (
+        h === '169.254.169.254' ||
+        h === 'metadata.google.internal' ||
+        h === 'metadata.azure.com'
+    ) {
+        return true;
+    }
+    // IPv6 ranges. URL parser may surround in `[...]` — strip brackets.
+    const v6 = h.startsWith('[') && h.endsWith(']') ? h.slice(1, -1) : h;
+    // Unique-local (fc00::/7), link-local (fe80::/10), AWS metadata
+    // (fd00:ec2::), IPv4-mapped (::ffff:0:0/96).
+    if (
+        v6.startsWith('fc') ||
+        v6.startsWith('fd') ||
+        v6.startsWith('fe8') ||
+        v6.startsWith('fe9') ||
+        v6.startsWith('fea') ||
+        v6.startsWith('feb') ||
+        v6.startsWith('::ffff:')
+    ) {
+        return true;
+    }
+    // IPv4 dotted notation — bail to private ranges if it parses.
+    const v4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (v4) {
+        const [a, b] = [parseInt(v4[1]!, 10), parseInt(v4[2]!, 10)];
+        // 0/8 (unspecified, routes to localhost on some kernels),
+        // 10/8, 127/8, 169.254/16, 192.168/16, 172.16/12
+        if (a === 0 || a === 10 || a === 127) return true;
+        if (a === 169 && b === 254) return true;
+        if (a === 192 && b === 168) return true;
+        if (a === 172 && b >= 16 && b <= 31) return true;
+    }
+    // Reject obviously obfuscated IPv4 (hex `0x...`, single-int notation
+    // `2130706433`, or non-decimal). URL parser leaves these in `.hostname`
+    // unnormalized. Anything that looks like an IPv4-attempt but doesn't
+    // match the decimal-dotted pattern is rejected as suspect.
+    if (/^(0x|0[oO]?\d|\d{8,})/i.test(h)) {
+        return true;
+    }
+    return false;
+}
+
+function assertSafeHttpUrl(raw: string): void {
+    let parsed: URL;
+    try {
+        parsed = new URL(raw);
+    } catch {
+        throw new Error('BAD_REQUEST: invalid URL');
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('BAD_REQUEST: URL must be http(s)');
+    }
+    if (isPrivateOrMetadataHost(parsed.hostname)) {
+        throw new Error('BAD_REQUEST: URL host is not allowed');
+    }
+}
+
 export const applyDiff = action({
     args: {
         originalCode: v.string(),
@@ -40,6 +113,18 @@ export const applyDiff = action({
     ): Promise<{ result: string | null; error: string | null }> => {
         try {
             const me = await requireCaller(ctx);
+            // Bound input length so a malicious caller can't drive Morph/
+            // Relace LLM spend with multi-MB payloads (each call is billed
+            // per-token against the shared OpenRouter account).
+            if (
+                originalCode.length > APPLY_DIFF_MAX_STRING_BYTES ||
+                updateSnippet.length > APPLY_DIFF_MAX_STRING_BYTES ||
+                instruction.length > APPLY_DIFF_MAX_STRING_BYTES
+            ) {
+                throw new Error(
+                    `BAD_REQUEST: input exceeds ${APPLY_DIFF_MAX_STRING_BYTES} bytes per field`,
+                );
+            }
             const result = await applyCodeChange(originalCode, updateSnippet, instruction, {
                 ...metadata,
                 userId: me._id,
@@ -85,6 +170,7 @@ export const scrapeUrl = action({
     }> => {
         try {
             await requireCaller(ctx);
+            assertSafeHttpUrl(input.url);
             if (!process.env.FIRECRAWL_API_KEY) {
                 throw new Error('FIRECRAWL_API_KEY is not configured');
             }
@@ -231,6 +317,12 @@ export const webSearch = action({
             }
             if (input.query.trim().length < 2) {
                 throw new Error('BAD_REQUEST: query too short');
+            }
+            // Bound the query length to prevent abuse — Exa bills per
+            // request but very long queries don't make sense and may be
+            // probes. 2 KB is generous for natural-language search.
+            if (input.query.length > 2048) {
+                throw new Error('BAD_REQUEST: query too long');
             }
 
             const exa = new Exa(process.env.EXA_API_KEY);

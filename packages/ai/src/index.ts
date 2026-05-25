@@ -4,6 +4,7 @@ export * from './chat';
 export * from './contexts';
 export * from './image';
 export * from './memory';
+export * from './observability';
 export * from './prompt';
 export * from './providers/manifest';
 export * from './skills';

@@ -112,16 +112,21 @@ export const decrementUsage = async (
             return;
         }
         const { usageRecordId, rateLimitId } = usageRecord;
-        // We should call revertIncrement even if only one of the IDs is available
-        // For free plan users, rateLimitId will be undefined but we still want to delete the usage record
-        if (!usageRecordId && !rateLimitId) {
+        // `usageRecordId` is now REQUIRED by `api.usage.revertIncrement`.
+        // Server-side `increment` always inserts a record, so this should
+        // always be set — bail out silently if it isn't (free-tier callers
+        // that never hit `increment`).
+        if (!usageRecordId) {
             return;
         }
         const token = await getConvexToken();
         await fetchMutation(
             api.usage.revertIncrement,
             {
-                usageRecordId: usageRecordId as Id<'usageRecords'> | undefined,
+                usageRecordId: usageRecordId as Id<'usageRecords'>,
+                // Kept for backward-compat with the mutation arg shape; the
+                // server ignores this and reads the authoritative
+                // `linkedRateLimitId` off the usageRecord itself.
                 rateLimitId: rateLimitId as Id<'rateLimits'> | undefined,
             },
             { token },

@@ -27,6 +27,15 @@ export const generateUploadUrl = mutation({
  * Resolves a storage id to a short-lived signed URL. Returns null if the
  * caller isn't authenticated OR the storageId is unknown — both treated
  * the same so we never leak existence-of-id to anonymous callers.
+ *
+ * TODO(storage-scope): the Convex storage namespace is global. Any signed-in
+ * user can fetch any other tenant's blob if the storageId leaks (logs,
+ * stale UI state, exfiltrated workspace membership). There are currently
+ * no in-app callers, but before wiring this up to project thumbnails or
+ * chat uploads, change the signature to `(storageId, { projectId })` and
+ * verify the project's record (e.g. `projects.previewImgStorageId`) owns
+ * the supplied storageId before returning a URL. Mirror the same model for
+ * future per-message attachment lookups.
  */
 export const getFileUrl = query({
     args: { storageId: v.id('_storage') },

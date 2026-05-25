@@ -16,6 +16,9 @@ export const verifyDomainOwnership = (
     ownedDomains: string[],
     hostingDomain?: string,
 ): boolean => {
+    // An empty request list must not pass: `[].every() === true` would
+    // vacuously grant ownership if this is ever used as an authz gate.
+    if (requestDomains.length === 0) return false;
     return requestDomains.every((requestDomain) => {
         // Check if domain is directly owned
         if (ownedDomains.includes(requestDomain)) {

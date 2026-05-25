@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import type { Doc, Id } from '../_generated/dataModel';
+import type { Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { internalMutation } from '../_generated/server';
 
@@ -378,12 +378,13 @@ export const deleteUserCascade = internalMutation({
             .collect();
         for (const d of deployments) await ctx.db.delete(d._id);
 
-        // Project invitations created by this user
-        const invitesByUser: Doc<'projectInvitations'>[] = [];
-        const allProjectInvites = await ctx.db.query('projectInvitations').collect();
-        for (const inv of allProjectInvites) {
-            if (inv.inviterId === userId) invitesByUser.push(inv);
-        }
+        // Project invitations created by this user. Indexed by inviter — a full
+        // `projectInvitations` table scan here blew the Convex read limit (and
+        // failed user deletion) once invitation volume grew.
+        const invitesByUser = await ctx.db
+            .query('projectInvitations')
+            .withIndex('by_inviter', (q) => q.eq('inviterId', userId))
+            .collect();
         for (const i of invitesByUser) await ctx.db.delete(i._id);
 
         // User canvases
@@ -392,6 +393,16 @@ export const deleteUserCascade = internalMutation({
             .withIndex('by_user_canvas', (q) => q.eq('userId', userId))
             .collect();
         for (const uc of ucs) await ctx.db.delete(uc._id);
+
+        // Live-presence cursor rows. Without this cleanup, other tenants'
+        // active sessions would continue showing this user's last cursor
+        // position until the 5-second `presence.listActive` TTL elided it,
+        // and the rows linger until the periodic purge cron runs.
+        const cursors = await ctx.db
+            .query('cursors')
+            .withIndex('by_user', (q) => q.eq('userId', userId))
+            .collect();
+        for (const c of cursors) await ctx.db.delete(c._id);
 
         await ctx.db.delete(userId);
         return { ok: true } as const;

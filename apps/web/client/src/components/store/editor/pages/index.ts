@@ -64,8 +64,11 @@ export class PagesManager {
             this.setPages(applyPageSettingsToNodes(realPages, settingsMap));
             return;
         } catch (error) {
+            // Keep the last good tree on a transient scan failure (e.g. the
+            // branch's sandbox isn't connected yet on a fast branch switch).
+            // Wiping to [] here would blank the Pages panel; a stale tree is
+            // strictly better and self-heals on the next successful scan.
             console.error('Failed to scan pages from sandbox:', error);
-            this.setPages([]);
         } finally {
             runInAction(() => {
                 this._isScanning = false;

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
-import type { GitCommit } from '@weblab/git';
 import { MessageCheckpointType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
@@ -12,6 +11,7 @@ import { cn } from '@weblab/ui/utils';
 import { formatCommitDate, timeAgo } from '@weblab/utility';
 
 import { useEditorEngine } from '@/components/store/editor';
+import type { GitCommit } from '@/components/store/editor/git';
 import { restoreCheckpoint } from '@/components/store/editor/git';
 import { useStateManager } from '@/components/store/state';
 

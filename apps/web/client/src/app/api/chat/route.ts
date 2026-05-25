@@ -5,10 +5,18 @@ import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 
-import type { ChatMessage, ChatMetadata, ChatModel, ProjectFrameworkId } from '@weblab/models';
+import type { UserTier } from '@weblab/ai';
+import type {
+    ChatMessage,
+    ChatMetadata,
+    ChatModel,
+    ChatProviderMetadata,
+    ProjectFrameworkId,
+} from '@weblab/models';
 import {
     addMemoriesFromConversation,
-    createRootAgentStream,
+    AUTO_MODEL_ID,
+    buildChatRequest,
     extractInstructionText,
     inferProviderFromModelId,
     prePlanToolset,
@@ -52,10 +60,6 @@ const buildConvexToolCaller = (token: string | undefined) => ({
                     ),
             },
             upsert: {
-                // The tool sends only the fields it wants to change, but the
-                // Convex mutation requires all three commands. Read-merge-write
-                // so unspecified fields keep their current value (matches the
-                // old tRPC upsert semantics).
                 mutate: async ({
                     settings,
                 }: {
@@ -103,9 +107,6 @@ const buildConvexToolCaller = (token: string | undefined) => ({
     },
 });
 
-// ollamaBaseUrl is user-supplied and may be passed to outbound HTTP calls,
-// so reject anything that isn't a loopback host to prevent SSRF against
-// internal services or cloud metadata endpoints.
 const ALLOWED_OLLAMA_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
 function sanitizeOllamaBaseUrl(url: string | undefined): string | undefined {
@@ -120,12 +121,10 @@ function sanitizeOllamaBaseUrl(url: string | undefined): string | undefined {
     }
 }
 
-// Only allow safe model name characters after the "ollama/" prefix so
-// path-traversal strings like "ollama/../foo" are rejected before reaching
-// the upstream Ollama HTTP API.
 const OLLAMA_NAME_RE = /^[a-z0-9._:-]+$/i;
 
 function isValidChatModel(model: string): boolean {
+    if (model === AUTO_MODEL_ID) return true;
     if (!model.startsWith('ollama/')) return true; // OpenRouter models validated by the SDK
     const name = model.slice('ollama/'.length);
     return name.length > 0 && OLLAMA_NAME_RE.test(name);
@@ -141,6 +140,34 @@ const ChatRequestBodySchema = z.object({
     ollamaBaseUrl: z.string().optional(),
     reasoningEffort: z.enum(['minimal', 'low', 'medium', 'high']).optional(),
 });
+
+const MAX_MESSAGES = 200;
+const MAX_MESSAGE_BYTES = 16 * 1024;
+const MAX_TOTAL_MESSAGE_BYTES = 1 * 1024 * 1024;
+
+function getSerializedBytes(value: unknown): number {
+    return new TextEncoder().encode(JSON.stringify(value)).length;
+}
+
+function validateMessagePayload(messages: unknown[]): string | null {
+    if (messages.length > MAX_MESSAGES) {
+        return `too many messages (max ${MAX_MESSAGES})`;
+    }
+
+    let totalBytes = 0;
+    for (const message of messages) {
+        const messageBytes = getSerializedBytes(message);
+        if (messageBytes > MAX_MESSAGE_BYTES) {
+            return `message exceeds ${MAX_MESSAGE_BYTES} bytes`;
+        }
+        totalBytes += messageBytes;
+        if (totalBytes > MAX_TOTAL_MESSAGE_BYTES) {
+            return `total message payload exceeds ${MAX_TOTAL_MESSAGE_BYTES} bytes`;
+        }
+    }
+
+    return null;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -184,7 +211,7 @@ export async function POST(req: NextRequest) {
         console.error('Error in chat', error);
         return new Response(
             JSON.stringify({
-                error: error instanceof Error ? error.message : String(error),
+                error: 'An unexpected error occurred while starting chat.',
                 code: 500,
             }),
             {
@@ -210,19 +237,24 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     }
     const messages = parsedBody.messages as ChatMessage[];
     const { chatType, conversationId, projectId } = parsedBody;
-    const body = parsedBody as Omit<z.infer<typeof ChatRequestBodySchema>, 'model'> & {
-        model?: ChatModel;
-    };
+    const messagePayloadError = validateMessagePayload(parsedBody.messages);
+    if (messagePayloadError) {
+        return new Response(JSON.stringify({ error: messagePayloadError, code: 400 }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
 
-    // Verify project access BEFORE any work or usage increment. The
-    // serverToolContext below trusts projectId to scope server-side tools, so
-    // this check is the contract that makes that trust safe.
-    // PLAN mode without projectId = pre-creation planning session — skip check.
     const convexToken = await getConvexToken();
     const convexToolCaller = buildConvexToolCaller(convexToken);
+
+    // SINGLE projects.get — previously called twice (once for access check, once
+    // for framework). One round-trip serves both: the query throws on access
+    // denial via requireCap so the absence of a throw is the access check.
+    let projectDoc: { runtimeMetadata?: { framework?: ProjectFrameworkId } } | null = null;
     if (projectId) {
         try {
-            await fetchQuery(
+            projectDoc = await fetchQuery(
                 api.projects.get,
                 { projectId: projectId as Id<'projects'> },
                 { token: convexToken },
@@ -240,73 +272,51 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             headers: { 'Content-Type': 'application/json' },
         });
     }
+    const framework: ProjectFrameworkId | null = projectDoc?.runtimeMetadata?.framework ?? null;
 
-    // Launch memory search concurrently with model validation so it doesn't add latency.
-    // Extract only the <instruction> text from the hydrated user message — the parts
-    // also contain large XML context blobs (file contents, highlights, errors) that
-    // would produce terrible semantic search results if sent verbatim to Mem0.
+    // Memory search query (extract only the instruction text; the full
+    // hydrated message contains huge XML context blocks that would poison
+    // semantic search).
     const lastUserMessageForMemory = messages.findLast((m) => m.role === 'user');
     const rawQueryText = (lastUserMessageForMemory?.parts ?? [])
         .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
         .map((p) => p.text)
         .join(' ');
     const memoryQueryText = rawQueryText ? extractInstructionText(rawQueryText) : '';
-    const memoriesPromise = memoryQueryText
-        ? searchMemories(memoryQueryText, userId)
-        : Promise.resolve([]);
-    // Fetch the project's framework concurrently with memories so the system
-    // prompt can be calibrated to the actual stack (Next.js vs static HTML).
-    // Project access is already verified above; the framework lookup tolerates
-    // failure (falls back to the React/Next.js prompt).
-    // PLAN pre-creation sessions have no projectId — skip and default to null.
-    const frameworkPromise: Promise<ProjectFrameworkId | null> = projectId
-        ? fetchQuery(
-              api.projects.get,
-              { projectId: projectId as Id<'projects'> },
-              { token: convexToken },
-          )
-              .then((p) => p?.runtimeMetadata?.framework ?? null)
-              .catch((err) => {
-                  console.warn('[chat] failed to read project framework, defaulting to React', err);
-                  return null;
-              })
-        : Promise.resolve(null);
 
-    const selectedModel: ChatModel = body.model ?? CHAT_MODEL_OPTIONS[0].model;
+    const selectedModel = (parsedBody.model ?? CHAT_MODEL_OPTIONS[0].model) as ChatModel | 'auto';
     if (!isValidChatModel(selectedModel)) {
         return new Response(JSON.stringify({ error: 'Invalid model identifier.', code: 400 }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
         });
     }
-    const isLocalModel = selectedModel.startsWith('ollama/');
+    const isLocalModel = typeof selectedModel === 'string' && selectedModel.startsWith('ollama/');
 
     // CLI providers (Codex, Claude Code, Gemini, OpenCode, Cursor) only run on
-    // the user's machine via the desktop CLI bridge. If the renderer somehow
-    // sends one of those models to the hosted /api/chat (e.g. someone running
-    // hosted web with a stale model selection), refuse early. Provider-specific
-    // outbound model routing has not landed yet; the DB connection check is
-    // deferred until routing is actually implemented (see CODE_REVIEW_BACKLOG CR-069).
-    const provider = inferProviderFromModelId(selectedModel);
-    if (provider !== 'openrouter' && provider !== 'ollama') {
-        return new Response(
-            JSON.stringify({
-                error: `Provider "${provider}" routing is not yet implemented on hosted web. Use the desktop app for CLI providers.`,
-                code: 'cli_provider_routing_not_implemented',
-            }),
-            { status: 501, headers: { 'Content-Type': 'application/json' } },
-        );
+    // the user's machine via the desktop CLI bridge. If the renderer sends one
+    // of those models to the hosted /api/chat, refuse early.
+    if (selectedModel !== AUTO_MODEL_ID) {
+        const provider = inferProviderFromModelId(selectedModel as string);
+        if (provider !== 'openrouter' && provider !== 'ollama') {
+            return new Response(
+                JSON.stringify({
+                    error: `Provider "${provider}" routing is not yet implemented on hosted web. Use the desktop app for CLI providers.`,
+                    code: 'cli_provider_routing_not_implemented',
+                }),
+                { status: 501, headers: { 'Content-Type': 'application/json' } },
+            );
+        }
     }
 
-    // Updating the usage record and rate limit is done here to avoid
-    // abuse in the case where a single user sends many concurrent requests.
-    // If the call below fails, the user will not be penalized.
+    // Up-front usage record. Increment is the real concurrency-safe gate;
+    // checkMessageLimit can pass under concurrency (it reads a pre-deduction
+    // count). If increment fails with USAGE_LIMIT_REACHED, refuse before
+    // streaming so concurrent users don't each get a free LLM response.
     let usageRecord: {
         usageRecordId: string | undefined;
         rateLimitId: string | undefined;
     } | null = null;
-    // Guards against double-refund when both onFinish (abort) and onError
-    // fire for the same request.
     let usageRefunded = false;
     const refundUsageOnce = async (reason: string) => {
         if (!usageRecord || usageRefunded) return;
@@ -322,15 +332,9 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
         const lastUserMessage = messages.findLast((message) => message.role === 'user');
         const traceId = lastUserMessage?.id ?? uuidv4();
 
-        // Skip usage tracking for local models — no API cost incurred
         if (chatType === ChatType.EDIT && !isLocalModel) {
             const incrementResult = await incrementUsage(req, traceId);
             if (incrementResult && 'limitReached' in incrementResult) {
-                // PRO bucket exhausted. checkMessageLimit can pass under
-                // concurrency (it reads the pre-deduction count), so the
-                // up-front increment is the real gate — refuse before streaming
-                // any model output. The increment mutation rolled back, so
-                // there is nothing to refund.
                 return new Response(
                     JSON.stringify({
                         error: 'Credit limit exceeded. Please upgrade to a paid plan.',
@@ -341,37 +345,57 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             }
             usageRecord = incrementResult;
         }
-        // Await memories, framework, and skills — all kicked off concurrently
-        // with model validation above. Each defaults safely on failure.
+
+        // Parallel context fetches. Everything below this point can run
+        // concurrently — none depend on each other's results.
+        const memoriesPromise = memoryQueryText
+            ? searchMemories(memoryQueryText, userId)
+            : Promise.resolve([]);
         const skillsPromise = loadSkillSummaries({
             userId,
             projectId: projectId ?? undefined,
             trpcCaller: convexToolCaller,
-        }).catch((err) => {
+        }).catch((err: unknown) => {
             console.warn('[chat] failed to load Agent Skills, continuing without them', err);
             return [];
         });
-        const [memories, framework, skills] = await Promise.all([
+        const summaryPromise = projectId
+            ? fetchQuery(
+                  api.conversations.getSummary,
+                  { conversationId: conversationId as Id<'conversations'> },
+                  { token: convexToken },
+              ).catch(() => null)
+            : Promise.resolve(null);
+        const tierPromise = fetchQuery(api.usage.tier, {}, { token: convexToken }).catch(
+            (err: unknown) => {
+                console.warn('[chat] tier lookup failed; defaulting to free', err);
+                return 'free' as UserTier;
+            },
+        );
+
+        const [memories, skills, conversationSummary, tier] = await Promise.all([
             memoriesPromise,
-            frameworkPromise,
             skillsPromise,
+            summaryPromise,
+            tierPromise,
         ]);
-        const stream = createRootAgentStream({
+
+        const built = await buildChatRequest({
             chatType,
-            conversationId,
-            projectId: projectId ?? '',
-            userId,
-            traceId,
             messages,
-            model: selectedModel,
-            ollamaBaseUrl: sanitizeOllamaBaseUrl(body.ollamaBaseUrl),
+            selectedModel,
+            userId,
+            projectId,
+            conversationId,
+            traceId,
             reasoningEffort: parsedBody.reasoningEffort,
-            memories,
+            ollamaBaseUrl: sanitizeOllamaBaseUrl(parsedBody.ollamaBaseUrl),
+            tier,
             framework,
+            memories,
             skills,
+            conversationSummary,
             abortSignal: req.signal,
-            // PLAN pre-creation sessions have no projectId — omit serverToolContext
-            // and restrict to interaction-only tools (no file access).
             serverToolContext: projectId
                 ? {
                       userId,
@@ -383,10 +407,67 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                 : undefined,
             toolSetOverride: chatType === ChatType.PLAN && !projectId ? prePlanToolset : undefined,
         });
-        return stream.toUIMessageStreamResponse<ChatMessage>({
+
+        const usageSink = async (event: {
+            userId: string;
+            conversationId?: string;
+            projectId?: string;
+            /** SDK-generated UUID, not a Convex Id. */
+            messageId?: string;
+            provider: 'anthropic-direct' | 'openrouter' | 'ollama';
+            model: string;
+            chatType: string;
+            resolvedFromAuto: boolean;
+            inputTokens: number;
+            outputTokens: number;
+            cacheCreationTokens: number;
+            cacheReadTokens: number;
+            estimatedCostUsd: number;
+            ttfMs?: number;
+            totalMs?: number;
+            toolCallCount?: number;
+            errorType?: string;
+        }) => {
+            await fetchMutation(
+                api.aiUsageEvents.insert,
+                {
+                    userId: userId as Id<'users'>,
+                    conversationId: event.conversationId
+                        ? (event.conversationId as Id<'conversations'>)
+                        : undefined,
+                    projectId: event.projectId ? (event.projectId as Id<'projects'>) : undefined,
+                    messageId: event.messageId,
+                    provider: event.provider,
+                    model: event.model,
+                    chatType: event.chatType,
+                    resolvedFromAuto: event.resolvedFromAuto,
+                    inputTokens: event.inputTokens,
+                    outputTokens: event.outputTokens,
+                    cacheCreationTokens: event.cacheCreationTokens,
+                    cacheReadTokens: event.cacheReadTokens,
+                    estimatedCostUsd: event.estimatedCostUsd,
+                    ttfMs: event.ttfMs,
+                    totalMs: event.totalMs,
+                    toolCallCount: event.toolCallCount,
+                    errorType: event.errorType,
+                },
+                { token: convexToken },
+            );
+        };
+
+        return built.stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
             generateMessageId: () => uuidv4(),
             messageMetadata: ({ part }) => {
+                // First user-visible delta means the model is producing output —
+                // mark TTF here so the dashboard reflects perceived latency.
+                if (part.type === 'text-delta' || part.type === 'reasoning-delta') {
+                    built.onFirstToken();
+                }
+                const providerMetadata =
+                    'providerMetadata' in part
+                        ? (part.providerMetadata as ChatProviderMetadata | undefined)
+                        : undefined;
                 return {
                     createdAt: new Date(),
                     conversationId,
@@ -394,7 +475,11 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     checkpoints: [],
                     finishReason: part.type === 'finish-step' ? part.finishReason : undefined,
                     usage: part.type === 'finish-step' ? part.usage : undefined,
-                } satisfies ChatMetadata;
+                    providerMetadata:
+                        part.type === 'finish-step' ? providerMetadata : undefined,
+                    resolvedModel: built.resolvedModel,
+                    resolvedFromAuto: built.resolvedFromAuto,
+                } satisfies ChatMetadata & { providerMetadata?: ChatProviderMetadata };
             },
             onFinish: async ({ messages: finalMessages, isAborted, responseMessage }) => {
                 const responseHasContent =
@@ -407,10 +492,6 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                             p.type === 'file',
                     );
 
-                // If the stream aborted before any meaningful content was
-                // produced, do NOT replace the conversation: the existing
-                // history is the source of truth and a wholesale replace would
-                // wipe it. Refund usage in the same case.
                 if (isAborted || !responseHasContent) {
                     await refundUsageOnce(isAborted ? 'aborted' : 'empty_response');
                     return;
@@ -429,24 +510,43 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                     { token: convexToken },
                 );
 
+                const responseMetadata = responseMessage.metadata as
+                    | (ChatMetadata & { providerMetadata?: ChatProviderMetadata })
+                    | undefined;
+                const toolCallCount = (responseMessage?.parts ?? []).filter((p) =>
+                    p.type?.startsWith('tool-'),
+                ).length;
+                void built.finalizeUsage({
+                    usage: responseMetadata?.usage,
+                    providerMetadata: responseMetadata?.providerMetadata,
+                    toolCallCount,
+                    messageId: responseMessage?.id,
+                    sink: usageSink,
+                });
+
                 // Fire-and-forget: extract facts and store them in Mem0.
-                // Never awaited — the streaming response has already been sent.
                 addMemoriesFromConversation(finalMessages, userId, projectId ?? '').catch((err) => {
                     console.warn('[mem0] Failed to store memories:', err);
                 });
             },
             onError: (error) => {
-                // Mid-stream errors (provider 5xx, network drop) should refund
-                // the usage that was incremented up-front. errorHandler still
-                // formats the error string for the client.
                 void refundUsageOnce('stream_error');
+                void built.finalizeUsage({
+                    errorType: error instanceof Error ? error.name : 'unknown',
+                    sink: usageSink,
+                });
                 return errorHandler(error);
             },
         });
     } catch (error: any) {
         console.error('Error in streamResponse setup', error);
-        // If there was an error setting up the stream and we incremented usage, revert it
         await refundUsageOnce('setup_error');
-        throw error;
+        return new Response(
+            JSON.stringify({
+                error: 'An unexpected error occurred while preparing chat.',
+                code: 500,
+            }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+        );
     }
 };

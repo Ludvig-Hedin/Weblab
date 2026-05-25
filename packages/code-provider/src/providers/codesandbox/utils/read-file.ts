@@ -30,7 +30,9 @@ export async function readFile(
                 content: file.content,
                 type: file.type,
                 toString: () => {
-                    // WARNING: This is not correct base64
+                    // file.content is a Uint8Array (bytes 0-255) for binary
+                    // files; convertToBase64 maps each byte via String.fromCharCode
+                    // then btoa, which is correct base64 for that range.
                     return file.content ? convertToBase64(file.content) : '';
                 },
             },

@@ -246,7 +246,11 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
         api.projects.list,
         workspaceId ? { workspaceId: workspaceId as Id<'workspaces'> } : {},
     );
-    const isLoading = fetchedProjects === undefined;
+    // Treat a still-loading user query as loading too. Otherwise, if
+    // `projects.list` resolves to `[]` (its unauthenticated fallback) before
+    // `users.me` resolves to `null`, the empty "create your first project"
+    // state flashes for a frame before the session-expired prompt below.
+    const isLoading = fetchedProjects === undefined || user === undefined;
     // Convex queries refetch reactively; expose a no-op refetch so callers
     // that still trigger refresh() after writes don't crash.
     const refetch = async () => undefined;
@@ -809,7 +813,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                             cardKey={0}
                             isCreatingProject={isCreatingProject}
                             setIsCreatingProject={setIsCreatingProject}
-                            user={(user ?? null) as never}
+                            user={user ?? null}
                             suggestions={PROJECT_SUGGESTIONS}
                         />
                     </div>
@@ -1247,7 +1251,7 @@ export const SelectProject = ({ workspaceId }: { workspaceId?: string } = {}) =>
                     onToggleStar={() => selectedTemplate && handleToggleStar(selectedTemplate.id)}
                     templateProject={selectedTemplate}
                     onUnmarkTemplate={() => void handleUnmarkTemplate()}
-                    user={user as never}
+                    user={user ?? null}
                 />
             )}
         </div>

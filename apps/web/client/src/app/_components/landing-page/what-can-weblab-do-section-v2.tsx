@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useTranslations } from 'next-intl';
 
 import { Icons } from '@weblab/ui/icons';
@@ -10,9 +10,8 @@ import { cn } from '@weblab/ui/utils';
 
 import { Routes } from '@/utils/constants';
 import { DirectEditingInteractive } from '../shared/mockups/direct-editing-interactive';
-import { AiAssistantVisual as FigmaAiAssistantVisual } from './feature-trio-section';
 import { FeatureBackdrop } from './feature-backdrop';
-import { ClaudeIcon } from './provider-icons';
+import { AiAssistantVisual as FigmaAiAssistantVisual } from './feature-trio-section';
 
 const REVEAL = {
     initial: { opacity: 0, y: 24 },
@@ -58,29 +57,33 @@ function FeatureCard({ visual, subtitle, title, paragraph, reverse, backdrop }: 
             viewport={REVEAL.viewport}
             transition={REVEAL.transition}
             className={cn(
-                // 12-col grid; 56px gap between asset and text
-                'grid grid-cols-1 items-end gap-10 md:grid-cols-12 md:gap-x-14 md:gap-y-8',
+                'grid grid-cols-1 items-end gap-4 md:grid-cols-12 md:gap-x-8',
                 reverse && 'md:[&>*:first-child]:order-2',
             )}
         >
-            {/* Asset — ar 860/650, 12px radius, 24/40 padding on small, 44/80 on large */}
+            {/* Asset — 8 cols, ar 860/650, 12px radius, min-height for small screens */}
             <FeatureBackdrop
                 src={backdrop}
                 className={cn(
-                    'aspect-[860/650] w-full overflow-hidden rounded-[12px]',
-                    'px-4 py-3 sm:px-8 sm:py-6 md:px-20 md:py-11',
-                    'md:col-span-6',
+                    'aspect-[860/650] min-h-[280px] w-full overflow-hidden rounded-[12px]',
+                    'px-6 py-6 sm:px-10 sm:py-8',
+                    'md:col-span-8',
                 )}
             >
                 {visual}
             </FeatureBackdrop>
-            {/* Text side — bottom-aligned with image, no icon */}
-            <div className="flex w-full max-w-md flex-col gap-3 pb-1 text-left md:col-span-6">
+            {/* Text side — 4 cols, with ~3vw gap from image */}
+            <div
+                className={cn(
+                    'flex w-full min-w-[200px] flex-col gap-3 pb-1 text-left md:col-span-4',
+                    reverse ? 'md:pr-8' : 'md:pl-8',
+                )}
+            >
                 <span className="text-style-tagline">{subtitle}</span>
                 <h3 className="heading-style-h4 text-foreground-primary w-full tracking-tight">
                     {title}
                 </h3>
-                <p className="text-foreground-secondary w-full text-base leading-[1.4] font-light tracking-tight text-balance">
+                <p className="text-foreground-secondary w-full text-base leading-[1.3] font-light tracking-tight text-balance">
                     {paragraph}
                 </p>
             </div>
@@ -94,230 +97,6 @@ function FeatureCard({ visual, subtitle, title, paragraph, reverse, backdrop }: 
 
 const BRAND = 'var(--foreground-brand)';
 const BRAND_SOFT = 'color-mix(in srgb, var(--foreground-brand) 16%, transparent)';
-
-// ─── AI Assistant — full conversation choreography ──────────────────────
-// Cycles through prompt → user message → AI thinking → AI reply (typed) →
-// tool call. Pauses on hover. Matches the real Weblab composer styling
-// (rounded-xl input, model chip, footer controls).
-
-type AiPhase = 'typing-prompt' | 'send-pause' | 'thinking' | 'ai-typing' | 'tool-call' | 'hold';
-
-const AI_CONVERSATIONS = [
-    {
-        prompt: 'Add a dark mode toggle',
-        reply: "I'll add a system-aware dark mode toggle with a smooth color transition.",
-        tool: 'app/layout.tsx',
-    },
-    {
-        prompt: 'Make this a pricing grid',
-        reply: 'Converting the section to a 3-column pricing grid with a featured tier.',
-        tool: 'sections/pricing.tsx',
-    },
-    {
-        prompt: 'Refactor the hero with a video',
-        reply: 'Adding a muted hero video with a poster fallback for first paint.',
-        tool: 'sections/hero.tsx',
-    },
-] as const;
-
-function AiAssistantVisual() {
-    const [convIdx, setConvIdx] = useState(0);
-    const [phase, setPhase] = useState<AiPhase>('typing-prompt');
-    const [paused, setPaused] = useState(false);
-    const [promptLen, setPromptLen] = useState(0);
-    const [replyLen, setReplyLen] = useState(0);
-
-    const conv = AI_CONVERSATIONS[convIdx]!;
-
-    useEffect(() => {
-        if (paused) return;
-
-        if (phase === 'typing-prompt') {
-            if (promptLen < conv.prompt.length) {
-                const id = setTimeout(() => setPromptLen((n) => n + 1), 38);
-                return () => clearTimeout(id);
-            }
-            const id = setTimeout(() => setPhase('send-pause'), 380);
-            return () => clearTimeout(id);
-        }
-        if (phase === 'send-pause') {
-            const id = setTimeout(() => setPhase('thinking'), 480);
-            return () => clearTimeout(id);
-        }
-        if (phase === 'thinking') {
-            const id = setTimeout(() => setPhase('ai-typing'), 880);
-            return () => clearTimeout(id);
-        }
-        if (phase === 'ai-typing') {
-            if (replyLen < conv.reply.length) {
-                const id = setTimeout(() => setReplyLen((n) => n + 1), 22);
-                return () => clearTimeout(id);
-            }
-            const id = setTimeout(() => setPhase('tool-call'), 360);
-            return () => clearTimeout(id);
-        }
-        if (phase === 'tool-call') {
-            const id = setTimeout(() => setPhase('hold'), 1600);
-            return () => clearTimeout(id);
-        }
-        if (phase === 'hold') {
-            const id = setTimeout(() => {
-                setPromptLen(0);
-                setReplyLen(0);
-                setConvIdx((i) => (i + 1) % AI_CONVERSATIONS.length);
-                setPhase('typing-prompt');
-            }, 1400);
-            return () => clearTimeout(id);
-        }
-    }, [phase, promptLen, replyLen, paused, conv.prompt, conv.reply]);
-
-    const showUserMsg =
-        phase === 'thinking' || phase === 'ai-typing' || phase === 'tool-call' || phase === 'hold';
-    const showThinking = phase === 'thinking';
-    const showAiReply = phase === 'ai-typing' || phase === 'tool-call' || phase === 'hold';
-    const showToolCall = phase === 'tool-call' || phase === 'hold';
-    const inputHasText =
-        phase === 'typing-prompt' || phase === 'send-pause' ? promptLen > 0 : false;
-
-    return (
-        <div
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            className="flex w-full max-w-[380px] flex-col gap-3"
-        >
-            {/* Chat history — mirrors design-system chat demo */}
-            <div className="flex min-h-[180px] flex-col gap-2.5">
-                <AnimatePresence>
-                    {showUserMsg && (
-                        <motion.div
-                            key={`user-${convIdx}`}
-                            initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                            className="flex justify-end"
-                        >
-                            <div className="bg-background-muted text-small text-foreground-primary flex max-w-[85%] flex-col rounded-xl px-3 py-2 leading-snug tracking-[-0.005em]">
-                                {conv.prompt}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <AnimatePresence>
-                    {showThinking && (
-                        <motion.div
-                            key={`thinking-${convIdx}`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="flex items-center gap-1 px-3 pt-1"
-                        >
-                            <span className="bg-foreground-tertiary h-1.5 w-1.5 animate-pulse rounded-full [animation-delay:-0.3s] [animation-duration:1.2s]" />
-                            <span className="bg-foreground-tertiary h-1.5 w-1.5 animate-pulse rounded-full [animation-delay:-0.15s] [animation-duration:1.2s]" />
-                            <span className="bg-foreground-tertiary h-1.5 w-1.5 animate-pulse rounded-full [animation-duration:1.2s]" />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                {showAiReply && (
-                    <div className="text-small text-foreground-primary flex flex-col gap-1.5 px-3 py-2 leading-snug tracking-[-0.005em]">
-                        {conv.reply.slice(0, replyLen)}
-                        {phase === 'ai-typing' && (
-                            <span
-                                className="ml-0.5 inline-block h-3 w-[2px] translate-y-[2px] animate-pulse"
-                                style={{ backgroundColor: 'var(--foreground-primary)' }}
-                                aria-hidden
-                            />
-                        )}
-                    </div>
-                )}
-                <AnimatePresence>
-                    {showToolCall && (
-                        <motion.div
-                            key={`tool-${convIdx}`}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                            className="bg-background-secondary/80 flex flex-col gap-2 rounded-md p-3"
-                        >
-                            <div className="text-foreground-tertiary/80 flex items-center gap-2">
-                                <span
-                                    className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2"
-                                    style={{
-                                        borderColor:
-                                            'color-mix(in srgb, var(--foreground-primary) 15%, transparent)',
-                                        borderTopColor: BRAND,
-                                    }}
-                                    aria-hidden
-                                />
-                                <span className="text-regularPlus text-foreground-primary font-mono text-[11px]">
-                                    Editing {conv.tool}
-                                </span>
-                                <span className="text-foreground-tertiary text-mini ml-auto font-mono">
-                                    running
-                                </span>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-            {/* Composer — matches the real AiPromptComposer surface */}
-            <div className="bg-background-secondary border-foreground-primary/5 flex w-full cursor-text flex-col rounded-xl border">
-                <div className="text-small text-foreground-primary min-h-[44px] px-3 pt-3 leading-snug tracking-[-0.005em]">
-                    {phase === 'typing-prompt' || phase === 'send-pause' ? (
-                        <>
-                            {conv.prompt.slice(0, promptLen)}
-                            <span
-                                className="ml-0.5 inline-block h-3.5 w-[2px] translate-y-[2px] animate-pulse"
-                                style={{ backgroundColor: BRAND }}
-                                aria-hidden
-                            />
-                        </>
-                    ) : (
-                        <span className="text-foreground-primary/50">Ask anything…</span>
-                    )}
-                </div>
-                <div className="flex w-full items-center justify-between px-2 py-1.5">
-                    <div className="flex items-center gap-1">
-                        <span className="text-foreground-tertiary inline-flex h-7 w-7 items-center justify-center">
-                            <Icons.Image className="h-4 w-4" />
-                        </span>
-                        <span className="text-foreground-tertiary inline-flex h-7 w-7 items-center justify-center">
-                            <Icons.Plus className="h-4 w-4" />
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <span className="border-foreground-primary/10 inline-flex items-center gap-1.5 rounded-md border px-2 py-1">
-                            <ClaudeIcon className="text-foreground-secondary h-3 w-3" />
-                            <span className="text-foreground-secondary text-mini tracking-tight">
-                                Claude Opus 4.7
-                            </span>
-                            <Icons.ChevronDown className="text-foreground-tertiary h-3 w-3" />
-                        </span>
-                        <span
-                            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-200"
-                            style={{
-                                backgroundColor: inputHasText
-                                    ? 'var(--foreground-primary)'
-                                    : 'color-mix(in srgb, var(--foreground-primary) 10%, transparent)',
-                            }}
-                            aria-hidden
-                        >
-                            <Icons.ArrowRight
-                                className="h-3.5 w-3.5"
-                                style={{
-                                    color: inputHasText
-                                        ? 'var(--background)'
-                                        : 'var(--foreground-tertiary)',
-                                }}
-                            />
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 function ComponentsVisual() {
     const items: {
@@ -335,7 +114,7 @@ function ComponentsVisual() {
     const cycle = useAmbientCycle(items.length, 2200);
     return (
         <div
-            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
@@ -433,7 +212,7 @@ function BrandVisual() {
         { name: 'Berkeley Mono', sample: 'Aa', meta: 'Mono · 13/20', mono: true },
     ];
     return (
-        <div className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]">
+        <div className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]">
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/[0.06]">
                 <div className="text-style-tagline">Tokens</div>
@@ -542,7 +321,7 @@ function LayersVisual() {
 
     return (
         <div
-            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
@@ -669,7 +448,7 @@ function RevisionVisual() {
     const cycle = useAmbientCycle(versions.length, 3000);
     return (
         <div
-            className="flex h-[300px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
+            className="flex h-[360px] w-full max-w-sm flex-col overflow-hidden rounded-[16px] border border-black/[0.06] bg-white shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)] dark:border-0 dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]"
             onMouseEnter={cycle.onMouseEnter}
             onMouseLeave={cycle.onMouseLeave}
         >
@@ -902,8 +681,8 @@ function CodePanelVisual() {
                   }
                 `}</style>
                 <div className="code-panel-root">
-                    {/* Title bar — very tight */}
-                    <div className="relative flex items-center border-b border-black/[0.06] px-2 py-1 dark:border-white/[0.06]">
+                    {/* Title bar */}
+                    <div className="relative flex items-center border-b border-black/[0.06] px-2.5 py-2 dark:border-white/[0.06]">
                         <div className="flex items-center gap-[5px]">
                             <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
                             <span className="h-1.5 w-1.5 rounded-full bg-black/20 dark:bg-white/20" />
@@ -964,10 +743,10 @@ const FEATURE_VISUALS: Record<(typeof FEATURE_KEYS)[number], React.ReactNode> = 
 };
 
 const BACKDROPS: Record<(typeof FEATURE_KEYS)[number], string> = {
-    aiAssistant: '/assets/landing/feature-backdrops/sky.webp',
-    canvas: '/assets/landing/feature-backdrops/sand.webp',
-    code: '/assets/landing/feature-backdrops/ivory.webp',
-    components: '/assets/landing/feature-backdrops/pearl.webp',
+    aiAssistant: '/assets/landing/feature-backdrops/ivory.webp',
+    canvas: '/assets/landing/feature-backdrops/sky.webp',
+    code: '/assets/landing/feature-backdrops/sand.webp',
+    components: '/assets/landing/feature-backdrops/mist.webp',
     brand: '/assets/landing/feature-backdrops/ivory.webp',
     structure: '/assets/landing/feature-backdrops/sand.webp',
     history: '/assets/landing/feature-backdrops/sky.webp',
@@ -976,7 +755,7 @@ const BACKDROPS: Record<(typeof FEATURE_KEYS)[number], string> = {
 export function WhatCanWeblabDoSectionV2() {
     const t = useTranslations('landing.whatCanWeblabDoV2') as (key: string) => string;
     return (
-        <section className="mx-auto w-full max-w-6xl px-4 py-32 sm:px-6 md:px-8">
+        <section className="mx-auto w-full max-w-[1400px] px-4 py-32 sm:px-6 md:px-8">
             <motion.div
                 initial={REVEAL.initial}
                 whileInView={REVEAL.whileInView}
@@ -990,12 +769,12 @@ export function WhatCanWeblabDoSectionV2() {
                     {t('headingSideBySide')}
                 </h2>
                 <div className="flex flex-col items-start justify-end gap-6 md:col-span-5">
-                    <p className="text-foreground-secondary max-w-md text-base leading-[1.4] font-light tracking-tight">
+                    <p className="text-foreground-secondary max-w-md text-base leading-[1.3] font-light tracking-tight">
                         {t('subhead')}
                     </p>
                     <Link
                         href={Routes.PROJECTS}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-foreground/20 px-4 text-sm font-medium text-foreground transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        className="border-foreground/20 text-foreground hover:bg-background-secondary focus-visible:ring-foreground/40 focus-visible:ring-offset-background inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                         {t('cta')}
                         <Icons.ArrowRight className="h-4 w-4" />

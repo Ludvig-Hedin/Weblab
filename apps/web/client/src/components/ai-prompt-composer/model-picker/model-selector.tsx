@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import type { ChatModel, LocalModelOption, ReasoningEffort } from '@weblab/models';
-import { CHAT_MODEL_OPTIONS, modelSupportsReasoningEffort } from '@weblab/models';
+import { AUTO_MODEL_ID, CHAT_MODEL_OPTIONS, modelSupportsReasoningEffort } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import {
     DropdownMenu,
@@ -84,19 +84,31 @@ const ModelSelectorLegacy = ({
                 <DropdownMenuLabel className="text-foreground-tertiary text-mini px-3 py-1.5 font-normal">
                     Cloud models
                 </DropdownMenuLabel>
-                {CHAT_MODEL_OPTIONS.map((option) => (
-                    <DropdownMenuItem
-                        key={option.model}
-                        onClick={() => onChange(option.model)}
-                        className={cn(
-                            'flex flex-col items-start gap-0.5 rounded-md px-3 py-2',
-                            option.model === value && 'bg-background-weblab',
-                        )}
-                    >
-                        <span className="text-mini font-medium">{option.label}</span>
-                        <span className="text-foreground-tertiary text-mini">{option.model}</span>
-                    </DropdownMenuItem>
-                ))}
+                {CHAT_MODEL_OPTIONS.map((option) => {
+                    const isAuto = option.model === AUTO_MODEL_ID;
+                    const sub =
+                        'description' in option && option.description
+                            ? option.description
+                            : option.model;
+                    return (
+                        <DropdownMenuItem
+                            key={option.model}
+                            onClick={() => onChange(option.model)}
+                            className={cn(
+                                'flex flex-col items-start gap-0.5 rounded-md px-3 py-2',
+                                option.model === value && 'bg-background-weblab',
+                            )}
+                        >
+                            <span className="text-mini flex items-center gap-1.5 font-medium">
+                                {isAuto && (
+                                    <Icons.MagicWand className="h-3 w-3 text-violet-400" />
+                                )}
+                                {option.label}
+                            </span>
+                            <span className="text-foreground-tertiary text-mini">{sub}</span>
+                        </DropdownMenuItem>
+                    );
+                })}
 
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-foreground-tertiary text-mini px-3 py-1.5 font-normal">

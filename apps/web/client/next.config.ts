@@ -113,7 +113,9 @@ const nextConfig: NextConfig = {
                             "object-src 'none'",
                             "img-src 'self' data: blob: https:",
                             "font-src 'self' data: https:",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+                            process.env.NODE_ENV === 'production'
+                                ? "script-src 'self' 'unsafe-inline' https:"
+                                : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
                             "style-src 'self' 'unsafe-inline' https:",
                             // Local Ollama is a development convenience only. In production we
                             // must not advertise that any visitor's localhost is reachable from

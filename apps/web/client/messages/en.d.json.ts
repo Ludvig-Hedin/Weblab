@@ -302,9 +302,9 @@ declare const messages: {
             "editApp": "Edit App",
             "projectSettings": "Project settings",
             "showInExplorer": "Show in Explorer",
-            "renameProject": "Rename Project",
-            "deleteProject": "Delete Project",
-            "cloneProject": "Clone Project",
+            "renameProject": "Rename project",
+            "deleteProject": "Delete project",
+            "cloneProject": "Clone project",
             "cancel": "Cancel",
             "delete": "Delete",
             "rename": "Rename",
@@ -317,8 +317,8 @@ declare const messages: {
             "subscriptions": "Subscriptions",
             "settings": "Settings",
             "you": "You",
-            "sendFeedback": "Send Feedback",
-            "downloadCode": "Download Code",
+            "sendFeedback": "Send feedback",
+            "downloadCode": "Download code",
             "downloadingCode": "Preparing download...",
             "downloadSuccess": "Download started successfully",
             "downloadError": "Failed to prepare download",
@@ -339,17 +339,17 @@ declare const messages: {
         },
         "dialogs": {
             "delete": {
-                "title": "Delete this project?",
+                "title": "Delete project",
                 "description": "This permanently removes your project and all its data.",
                 "moveToTrash": "Also move folder to trash"
             },
             "rename": {
-                "title": "Rename Project",
+                "title": "Rename project",
                 "label": "Project Name",
                 "error": "Project name can't be empty"
             },
             "clone": {
-                "title": "Clone Project",
+                "title": "Clone project",
                 "label": "Project Name",
                 "placeholder": "Enter name for cloned project",
                 "error": "Project name can't be empty"
@@ -391,7 +391,7 @@ declare const messages: {
             "verifying": "Verifying...",
             "resend": "Resend code",
             "resendIn": "Resend in {seconds}s",
-            "back": "Back to login",
+            "back": "Back to sign in",
             "wrongEmail": "Wrong email?"
         },
         "terms": {
@@ -539,7 +539,7 @@ declare const messages: {
     },
     "authCodeError": {
         "eyebrow": "Authentication error",
-        "backToLogin": "Back to login",
+        "backToLogin": "Back to sign in",
         "goHome": "Go home",
         "getHelp": "Get help",
         "errorCodeLabel": "Error code",
@@ -589,7 +589,7 @@ declare const messages: {
         "readComparison": "Read the comparison →",
         "ctaLine1": "See for yourself.",
         "ctaLine2": "Open {appName} on your repo.",
-        "ctaButton": "Get Started",
+        "ctaButton": "Get started",
         "competitors": {
             "lovable": {
                 "tagline": "Chat-based AI app builder",
@@ -727,7 +727,7 @@ declare const messages: {
         "cta": {
             "line1": "Ready to stop rebuilding?",
             "line2": "Your design system, on a canvas.",
-            "button": "Get Started"
+            "button": "Get started"
         }
     },
     "faqPage": {
@@ -735,7 +735,7 @@ declare const messages: {
         "subhead": "Everything you need to know about Weblab, the AI-powered visual editor for frontend development.",
         "topics": "Topics",
         "stillQuestions": "Still have questions?",
-        "getStarted": "Get Started",
+        "getStarted": "Get started",
         "srTitle": "Weblab Frequently Asked Questions",
         "srBody": "Weblab is an AI-powered visual editor for frontend development. It connects to existing React and Next.js codebases and lets teams design with real components. AI is constrained to your design system, preventing brand drift. Changes become mergeable pull requests. Weblab supports React-based frameworks (Next.js, Vite, Remix, Astro, TanStack Start, and static HTML), all major styling approaches (Tailwind, CSS Modules, styled-components, Emotion, SASS/SCSS), and component libraries (shadcn/ui, Material UI, Chakra UI, Mantine, Radix UI, Ant Design, Headless UI, Fluent UI). It's open source under Apache 2.0.",
         "sections": {
@@ -842,7 +842,7 @@ declare const messages: {
         "forTeamsHeading": "For Teams",
         "forTeamsSub": "Custom pricing tailored to your team's needs",
         "contactUs": "Contact us",
-        "getStarted": "Get Started",
+        "getStarted": "Get started",
         "andMore": "And more...",
         "disclaimerPart1": "Existing paid plan users can continue using {appName}. New users, please contact us to get your team set up. If you're looking to self-host {appName}, please check out the ",
         "disclaimerLink": "GitHub repository",
@@ -960,7 +960,7 @@ declare const messages: {
             "currentPlan": "Current Plan",
             "getPro": "Get Pro",
             "manageSubscription": "Manage Subscription",
-            "getStarted": "Get Started",
+            "getStarted": "Get started",
             "upgrade": "Upgrade"
         },
         "freeCard": {
@@ -1846,12 +1846,12 @@ declare const messages: {
         "mobileMenu": {
             "open": "Open menu",
             "close": "Close menu",
-            "getStarted": "Get Started"
+            "getStarted": "Get started"
         },
         "user": {
             "download": "Download",
             "projects": "Projects",
-            "signIn": "Sign In"
+            "signIn": "Sign in"
         },
         "categories": {
             "product": {
@@ -2062,7 +2062,7 @@ declare const messages: {
         "cta": {
             "defaultHeadingLine1": "Ready to stop rebuilding?",
             "defaultHeadingLine2": "Your design system, on a canvas.",
-            "defaultButton": "Get Started"
+            "defaultButton": "Get started"
         },
         "featuresIntro": {
             "eyebrow": "Native Design Tool Features",

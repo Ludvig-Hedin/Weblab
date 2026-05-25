@@ -113,7 +113,20 @@ export class HistoryManager {
         }
 
         this.undoStack.push(action);
-        await this.editorEngine.code.write(action);
+        const written = await this.editorEngine.code.write(action);
+
+        if (!written) {
+            // The code write failed (the error was already surfaced to the
+            // user by `code.write`). Remove this action from the undo stack —
+            // leaving it would let a later undo emit the inverse of an edit
+            // that never landed, corrupting the file. Remove by reference
+            // (not a blind pop) so a concurrent push isn't dropped instead.
+            const idx = this.undoStack.lastIndexOf(action);
+            if (idx !== -1) {
+                this.undoStack.splice(idx, 1);
+            }
+            return;
+        }
 
         switch (action.type) {
             case 'update-style':
@@ -139,7 +152,7 @@ export class HistoryManager {
         this.persistDebounced();
     };
 
-    undo = async (): Promise<Action | null> => {
+    undo = async (): Promise<{ inverse: Action; redoEntry: Action } | null> => {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             await this.commitTransaction();
         }
@@ -148,15 +161,34 @@ export class HistoryManager {
         if (top == null) {
             return null;
         }
-        const action = undoAction(top);
+        const inverse = undoAction(top);
 
         this.redoStack.push(top);
         this.persistDebounced();
 
-        return action;
+        // `redoEntry` is the action moved onto the redo stack; the caller hands
+        // it back to `rollbackUndo` if applying `inverse` fails, so the stacks
+        // stay in sync with the actual file contents.
+        return { inverse, redoEntry: top };
     };
 
-    redo = async (): Promise<Action | null> => {
+    /**
+     * Reverse the most recent `undo()` stack move. Called when the caller's
+     * apply of the inverse action failed (the file was never reverted), so the
+     * undone action must go back onto the undo stack. Removes by reference so an
+     * interleaved undo/redo can't cause the wrong entry to be restored.
+     */
+    rollbackUndo = (redoEntry: Action) => {
+        const idx = this.redoStack.lastIndexOf(redoEntry);
+        if (idx === -1) {
+            return;
+        }
+        this.redoStack.splice(idx, 1);
+        this.undoStack.push(redoEntry);
+        this.persistDebounced();
+    };
+
+    redo = async (): Promise<{ forward: Action; redoEntry: Action } | null> => {
         if (this.inTransaction.type === TransactionType.IN_TRANSACTION) {
             await this.commitTransaction();
         }
@@ -166,11 +198,29 @@ export class HistoryManager {
             return null;
         }
 
-        const action = transformRedoAction(top);
-        this.undoStack.push(action);
+        const forward = transformRedoAction(top);
+        this.undoStack.push(forward);
         this.persistDebounced();
 
-        return action;
+        // `forward` is what was pushed onto the undo stack; `redoEntry` (`top`)
+        // is what we popped off the redo stack. The caller hands both back to
+        // `rollbackRedo` if applying `forward` fails.
+        return { forward, redoEntry: top };
+    };
+
+    /**
+     * Reverse the most recent `redo()` stack move. Called when the caller's
+     * apply of the forward action failed. Removes the forward action from the
+     * undo stack (by reference) and restores the original onto the redo stack.
+     */
+    rollbackRedo = (forward: Action, redoEntry: Action) => {
+        const idx = this.undoStack.lastIndexOf(forward);
+        if (idx === -1) {
+            return;
+        }
+        this.undoStack.splice(idx, 1);
+        this.redoStack.push(redoEntry);
+        this.persistDebounced();
     };
 
     clear = () => {

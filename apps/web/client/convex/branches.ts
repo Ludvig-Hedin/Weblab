@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 
 import type { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { internalMutation, mutation, query } from './_generated/server';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { vBranchRuntimeType } from './lib/enums';
 import { requireCap } from './lib/permissions';
 
@@ -99,7 +99,7 @@ export const create = mutation({
         });
 
         if (isDefault) {
-            await ctx.runMutation((internal as any)['internal/cascade'].setDefaultBranch, {
+            await ctx.runMutation(internal.internal.cascade.setDefaultBranch, {
                 projectId: args.projectId,
                 branchId,
             });
@@ -157,7 +157,7 @@ export const update = mutation({
         await ctx.db.patch(branchId, patch);
 
         if (promoteToDefault) {
-            await ctx.runMutation((internal as any)['internal/cascade'].setDefaultBranch, {
+            await ctx.runMutation(internal.internal.cascade.setDefaultBranch, {
                 projectId: existing.projectId,
                 branchId,
             });
@@ -173,7 +173,7 @@ export const remove = mutation({
         const existing = await ctx.db.get(branchId);
         if (!existing) throw new Error('NOT_FOUND: Branch not found');
         await requireCap(ctx, 'project.update', { projectId: existing.projectId });
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteBranchCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteBranchCascade, {
             branchId,
         });
         return { ok: true } as const;
@@ -204,6 +204,13 @@ export const _insertBranchWithFrames = internalMutation({
         ),
     },
     handler: async (ctx, args) => {
+        // Defense-in-depth: the action layer (branchActions.fork / createBlank)
+        // is expected to gate via _requireProjectCap before reaching here, but
+        // re-check at the write site so a missing or skipped action-side check
+        // can't silently insert branches/frames into a project the caller
+        // doesn't own. Internal mutations still inherit the action's auth
+        // context, so requireCap works the same as in a public mutation.
+        await requireCap(ctx, 'project.update', { projectId: args.projectId });
         const now = Date.now();
         const branchId = await ctx.db.insert('branches', {
             projectId: args.projectId,
@@ -221,15 +228,21 @@ export const _insertBranchWithFrames = internalMutation({
             .query('canvases')
             .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
             .first();
-        if (canvas && args.framePosition) {
+        if (canvas) {
             const defaultFrames = [
                 { name: 'Desktop', width: 1440, height: 900, order: 0 },
                 { name: 'Tablet', width: 768, height: 1024, order: 1 },
                 { name: 'Phone', width: 375, height: 812, order: 2 },
             ];
-            // Offset new group right of source frame
-            const startX = args.framePosition.x + args.framePosition.width + 100;
-            const startY = args.framePosition.y;
+            // `framePosition` is only sent when the client had an active source
+            // frame to offset from. When it's absent (e.g. creating a blank
+            // branch with no active frame) fall back to the canvas origin —
+            // otherwise the branch was created with ZERO frames and rendered as
+            // an empty, unusable canvas. When it IS present, behavior is
+            // unchanged (offset right of the source group).
+            const framePosition = args.framePosition ?? { x: 0, y: 0, width: 0, height: 0 };
+            const startX = framePosition.x + framePosition.width + 100;
+            const startY = framePosition.y;
             const groupId = crypto.randomUUID();
             let xOffset = 0;
             for (const f of defaultFrames) {
@@ -263,18 +276,40 @@ export const _insertBranchWithFrames = internalMutation({
 });
 
 /**
- * Internal lookup so actions can read source branch metadata.
+ * Internal lookup so actions can read source branch metadata. Reads are
+ * gated on the parent project's `project.view` cap so an action layer that
+ * forgets to authorize the caller can't leak another tenant's sandbox/frame
+ * data — even though source branch IDs are opaque, treat them as guessable.
+ *
+ * Declared as `internalQuery` because the handler only reads; mutations are
+ * serialized per document and pay OCC retry overhead on conflict, which
+ * costs `branchActions.fork`/`createBlank` latency for no benefit.
  */
-export const _getBranchWithFrames = internalMutation({
+export const _getBranchWithFrames = internalQuery({
     args: { branchId: v.id('branches') },
     handler: async (ctx, { branchId }) => {
         const branch = await ctx.db.get(branchId);
         if (!branch) return null;
+        await requireCap(ctx, 'project.view', { projectId: branch.projectId });
         const frames = await ctx.db
             .query('frames')
             .withIndex('by_branch', (q) => q.eq('branchId', branchId))
             .collect();
         return { branch, frames };
+    },
+});
+
+/**
+ * Action-side authorization helper: throws FORBIDDEN if the caller cannot
+ * update the project. Used by branchActions.fork / createBlank BEFORE the
+ * costly CodeSandbox provisioning step so an unauthorized caller can never
+ * burn paid sandbox quota or pollute another tenant's editor.
+ */
+export const _requireProjectUpdateCap = internalQuery({
+    args: { projectId: v.id('projects') },
+    handler: async (ctx, { projectId }) => {
+        await requireCap(ctx, 'project.update', { projectId });
+        return null;
     },
 });
 

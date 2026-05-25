@@ -159,6 +159,15 @@ export const _assertReadyToRun = internalQuery({
 
 // ─── shared row helpers ──────────────────────────────────────────────────────
 
+// A deploy action that dies without writing a terminal status (Convex's ~10-min
+// action timeout — see the warning in publishActions.run — an OOM, or an infra
+// restart) leaves a `pending`/`in_progress` row behind. Without a TTL, that row
+// would block EVERY future publish/retry for the project forever (and the
+// publish button would spin "Publishing" indefinitely). Rows older than this are
+// treated as stale so they no longer block a fresh deploy; the threshold is
+// comfortably past the action timeout to avoid racing a slow-but-live build.
+const STALE_DEPLOYMENT_MS = 15 * 60 * 1000;
+
 async function assertNoInflight(
     ctx: QueryCtx | MutationCtx,
     projectId: Doc<'projects'>['_id'],
@@ -174,7 +183,10 @@ async function assertNoInflight(
             q.eq('projectId', projectId).eq('status', 'in_progress'),
         )
         .collect();
-    const both = [...rows, ...inProgress].filter((r) => r.type === type);
+    const now = Date.now();
+    const both = [...rows, ...inProgress].filter(
+        (r) => r.type === type && now - r._creationTime < STALE_DEPLOYMENT_MS,
+    );
     if (both.length > 0) {
         throw new Error(
             both[0]!.status === 'in_progress'

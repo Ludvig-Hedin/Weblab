@@ -121,15 +121,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         // server-side but are functionally the same to the user:
         //   1. truly offline (fetch failed)
         //   2. session expired during a long offline session (401)
-        //   3. transient backend/Supabase outage
+        //   3. transient backend outage
         // The previous string-match-based gate sent (2) and (3) straight to
         // an error page, stranding users with valid offline edits.
-        const fallbackHint: 'unauthorized' | 'not-found' | 'unknown' =
-            lower.includes('unauth') || lower.includes('forbidden') || lower.includes('session')
-                ? 'unauthorized'
-                : lower.includes('not found') || lower.includes('not_found')
-                  ? 'not-found'
-                  : 'unknown';
+        //
+        // FORBIDDEN is split from the unauthorized/session bucket: a signed-in
+        // user with no access should not be told "session expired" and given a
+        // sign-in CTA — that loops them right back here. They get the dedicated
+        // "no access" variant instead.
+        const fallbackHint: 'unauthorized' | 'forbidden' | 'not-found' | 'unknown' = lower.includes(
+            'forbidden',
+        )
+            ? 'forbidden'
+            : lower.includes('unauth') || lower.includes('session')
+              ? 'unauthorized'
+              : lower.includes('not found') || lower.includes('not_found')
+                ? 'not-found'
+                : 'unknown';
         return (
             <OfflineEditorBootstrap
                 projectId={projectId}

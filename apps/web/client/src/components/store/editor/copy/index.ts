@@ -22,7 +22,11 @@ export class CopyManager {
         makeAutoObservable(this);
     }
 
-    async copy() {
+    // `clearOsClipboard` writes '' to the OS clipboard so a subsequent native
+    // Cmd+V can't paste foreign text into the editor (paste isolation). The
+    // in-app `duplicate()` path passes `false` so alt-drag/Cmd+D doesn't wipe
+    // the user's real OS clipboard as a side effect.
+    async copy(clearOsClipboard = true) {
         const selected = this.editorEngine.elements.selected;
         if (selected.length === 0) {
             return;
@@ -65,7 +69,7 @@ export class CopyManager {
 
         const metadata = await branchData.codeEditor.getJsxElementMetadata(selectedEl.oid);
         this.copied = { element: targetEl, codeBlock: metadata?.code || null };
-        await this.clearClipboard();
+        if (clearOsClipboard) await this.clearClipboard();
     }
 
     async clearClipboard() {
@@ -94,8 +98,17 @@ export class CopyManager {
             return;
         }
 
-        const targets: Array<ActionTarget> = this.editorEngine.elements.selected.map(
-            (selectedEl) => {
+        // Mirror copy()'s `!oid` guard: an element with no oid can't anchor a
+        // valid insert. Bail on the primary and drop any oid-less targets so the
+        // InsertElementAction never receives a malformed (null-oid) target.
+        if (!selectedEl.oid) {
+            console.error('Failed to paste: selected element has no oid');
+            return;
+        }
+
+        const targets: Array<ActionTarget> = this.editorEngine.elements.selected
+            .filter((el) => el.oid)
+            .map((selectedEl) => {
                 const target: ActionTarget = {
                     frameId: selectedEl.frameId,
                     branchId: selectedEl.branchId,
@@ -103,8 +116,7 @@ export class CopyManager {
                     oid: selectedEl.oid,
                 };
                 return target;
-            },
-        );
+            });
 
         const location = await this.getInsertLocation(selectedEl);
         if (!location) {
@@ -138,7 +150,8 @@ export class CopyManager {
 
     async duplicate() {
         const savedCopied = this.copied;
-        await this.copy();
+        // Don't wipe the user's OS clipboard for an in-app duplicate.
+        await this.copy(false);
         await this.paste();
         this.copied = savedCopied;
     }

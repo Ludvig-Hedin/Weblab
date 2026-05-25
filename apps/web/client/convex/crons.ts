@@ -11,11 +11,6 @@ const crons = cronJobs();
 // close without `presence.leave` firing). Over time the `by_project_lastSeen`
 // scan slows and storage bloats. Cleanup is cheap — index range query +
 // delete.
-crons.interval(
-    'purge stale cursors',
-    { minutes: 5 },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (internal as any)['internal/cleanup'].purgeStaleCursors,
-);
+crons.interval('purge stale cursors', { minutes: 5 }, internal.internal.cleanup.purgeStaleCursors);
 
 export default crons;

@@ -14,7 +14,7 @@ import { useOptionalEditorEngine } from '@/components/store/editor';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
 import { Routes } from '@/utils/constants';
 
-type Variant = 'invalid-id' | 'not-found' | 'unauthorized' | 'unknown';
+type Variant = 'invalid-id' | 'not-found' | 'unauthorized' | 'forbidden' | 'unknown';
 
 const COPY: Record<
     Variant,
@@ -42,6 +42,17 @@ const COPY: Record<
         description: 'Sign in again to continue working on this project.',
         primaryLabel: 'Sign in',
         primaryAction: 'login',
+    },
+    // Distinct from `unauthorized` (session expired): the caller IS signed
+    // in but lacks access to this project. Showing a "Sign in" CTA here
+    // creates an infinite loop because sign-in completes and lands them
+    // right back on the same `/project/<id>` they can't view.
+    forbidden: {
+        title: 'You don’t have access to this project',
+        description:
+            'This project belongs to someone else. Ask the owner to invite you, or head back to your own projects.',
+        primaryLabel: 'Go to projects',
+        primaryAction: 'home',
     },
     unknown: {
         title: 'Failed to load project',

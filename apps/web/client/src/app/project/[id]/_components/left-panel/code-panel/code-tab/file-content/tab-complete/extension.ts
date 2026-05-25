@@ -185,6 +185,11 @@ const fetchPlugin = ViewPlugin.fromClass(
             const view = this.view;
             const ctx = view.state.field(contextField);
             if (!ctx.enabled) return;
+            // Skip when context hasn't been seeded yet (initial mount race
+            // with code-editor's seeding effect). Server requires a non-empty
+            // projectId and 400s otherwise — drop the request client-side so
+            // we don't burn server roundtrips on initial keystrokes.
+            if (!ctx.projectId) return;
 
             const sel = view.state.selection.main;
             if (sel.from !== sel.to) return; // Don't suggest while user has a selection

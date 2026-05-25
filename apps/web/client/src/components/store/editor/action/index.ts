@@ -29,21 +29,35 @@ export class ActionManager {
     }
 
     async undo() {
-        const action = await this.editorEngine.history.undo();
+        const result = await this.editorEngine.history.undo();
 
-        if (action == null) {
+        if (result == null) {
             return;
         }
-        await this.editorEngine.code.write(action);
+        const written = await this.editorEngine.code.write(result.inverse);
+        if (!written) {
+            // The inverse write failed (error already surfaced by code.write),
+            // so the undo never actually reverted the files. Roll the history
+            // stack move back so undo/redo state stays in sync with the file
+            // contents and the user can retry.
+            this.editorEngine.history.rollbackUndo(result.redoEntry);
+            return;
+        }
         this.editorEngine.posthog.capture('undo');
     }
 
     async redo() {
-        const action = await this.editorEngine.history.redo();
-        if (action == null) {
+        const result = await this.editorEngine.history.redo();
+        if (result == null) {
             return;
         }
-        await this.editorEngine.code.write(action);
+        const written = await this.editorEngine.code.write(result.forward);
+        if (!written) {
+            // The forward write failed — roll the redo stack move back so the
+            // action returns to the redo stack and state stays consistent.
+            this.editorEngine.history.rollbackRedo(result.forward, result.redoEntry);
+            return;
+        }
         this.editorEngine.posthog.capture('redo');
     }
 
@@ -97,8 +111,14 @@ export class ActionManager {
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData) {
+                // Skip this target — NOT `return`. A multi-target action fans
+                // out across sibling/responsive frames; if one frame isn't
+                // booted (or was removed), `return` would abort the whole
+                // action: remaining targets get no style AND the source-rebase
+                // loop below never runs, so the edit isn't persisted to source
+                // at all. Matches the `!frameData.view` handling just below.
                 console.error('Failed to get frameView');
-                return;
+                continue;
             }
             const convertedChange = Object.fromEntries(
                 Object.entries(target.change.updated).map(([key, value]) => {
@@ -202,15 +222,20 @@ export class ActionManager {
         for (const elementMetadata of targets) {
             const frameData = this.editorEngine.frames.get(elementMetadata.frameId);
             if (!frameData?.view) {
+                // Skip an unbooted frame (can't receive the optimistic insert
+                // anyway) and keep applying to the rest — matches updateStyle.
                 console.error('Failed to get frameView');
-                return;
+                continue;
             }
 
             try {
                 const result = await frameData.view.insertElement(element, location);
                 if (!result) {
+                    // Source is already persisted (history.push→code.write before
+                    // dispatch); HMR reconciles this frame. Don't abort the other
+                    // frames' optimistic inserts.
                     console.error('Failed to insert element');
-                    return;
+                    continue;
                 }
 
                 void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
@@ -224,15 +249,17 @@ export class ActionManager {
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
+                // Skip an unbooted frame and keep applying to the rest.
                 console.error('Failed to get frameView');
-                return;
+                continue;
             }
 
             const result = await frameData.view.removeElement(location);
 
             if (!result) {
+                // Source persisted before dispatch; HMR reconciles. Keep going.
                 console.error('Failed to remove element');
-                return;
+                continue;
             }
 
             await this.editorEngine.overlay.refresh();
@@ -245,13 +272,15 @@ export class ActionManager {
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
+                // Skip an unbooted frame and keep applying to the rest.
                 console.error('Failed to get frameView');
-                return;
+                continue;
             }
             const result = await frameData.view.moveElement(target.domId, location.index);
             if (!result) {
+                // Source persisted before dispatch; HMR reconciles. Keep going.
                 console.error('Failed to move element');
-                return;
+                continue;
             }
             void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);
         }
@@ -261,13 +290,15 @@ export class ActionManager {
         for (const target of targets) {
             const frameData = this.editorEngine.frames.get(target.frameId);
             if (!frameData?.view) {
+                // Skip an unbooted frame and keep applying to the rest.
                 console.error('Failed to get frameView');
-                return;
+                continue;
             }
             const result = await frameData.view.editText(target.domId, newContent);
             if (!result) {
+                // Source persisted before dispatch; HMR reconciles. Keep going.
                 console.error('Failed to edit text');
-                return;
+                continue;
             }
 
             void this.refreshAndClickMutatedElement(result.domEl, frameData, result.newMap);

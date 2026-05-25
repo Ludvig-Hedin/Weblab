@@ -10,13 +10,29 @@ import { can, CAPABILITIES } from './auth';
 export async function getOptionalUser(ctx: QueryCtx | MutationCtx): Promise<Doc<'users'> | null> {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    // Use `.collect()` then dedupe so a duplicate row (rare, see
-    // requireUserJIT) doesn't throw and lock the user out of every read.
-    // Queries can't delete; cleanup happens lazily on the next mutation
-    // that flows through `requireUserJIT`.
+    return getUserByClerkIdSafe(ctx, identity.subject);
+}
+
+/**
+ * Read a `users` row by clerkUserId without throwing on the rare duplicate.
+ *
+ * `users.clerkUserId` has only an index — no native UNIQUE constraint in
+ * Convex. `requireUserJIT` and the Clerk `user.created` webhook are
+ * independent writers and CAN race on cold first login, producing two rows
+ * with the same clerkUserId. Any reader that uses `.unique()` then throws
+ * "more than one result" on every subsequent call and the user is bricked
+ * (no profile updates, no billing, no account delete) until manual cleanup.
+ *
+ * Use this helper from every read site that previously called `.unique()` on
+ * `by_clerk_user_id`. Lazy cleanup happens in `requireUserJIT`.
+ */
+export async function getUserByClerkIdSafe(
+    ctx: QueryCtx | MutationCtx,
+    clerkUserId: string,
+): Promise<Doc<'users'> | null> {
     const matches = await ctx.db
         .query('users')
-        .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
+        .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', clerkUserId))
         .collect();
     if (matches.length === 0) return null;
     if (matches.length === 1) return matches[0]!;

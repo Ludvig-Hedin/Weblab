@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as aiUsageEvents from "../aiUsageEvents.js";
 import type * as branchActions from "../branchActions.js";
 import type * as branches from "../branches.js";
 import type * as chatActions from "../chatActions.js";
@@ -89,6 +90,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiUsageEvents: typeof aiUsageEvents;
   branchActions: typeof branchActions;
   branches: typeof branches;
   chatActions: typeof chatActions;

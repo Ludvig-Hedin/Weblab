@@ -4,7 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { internalMutation, mutation, query } from './_generated/server';
 import { audit } from './lib/audit';
-import { requireCap, requireUser } from './lib/permissions';
+import { getUserByClerkIdSafe, requireCap, requireUser } from './lib/permissions';
 
 const PENDING = 'pending' as const;
 const ACCEPTED = 'accepted' as const;
@@ -25,10 +25,9 @@ async function resolveCaller(
 ): Promise<{ email?: string; userId?: Doc<'users'>['_id'] }> {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return {};
-    const me = await ctx.db
-        .query('users')
-        .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
-        .unique();
+    // `.collect()` + dedupe via the shared helper — never `.unique()` on
+    // by_clerk_user_id (JIT/webhook race tolerance).
+    const me = await getUserByClerkIdSafe(ctx, identity.subject);
     return {
         email: me?.email ?? identity.email ?? undefined,
         userId: me?._id,
@@ -194,9 +193,12 @@ export const suggested = query({
         }
         const domain = user.email!.split('@').at(-1)!.toLowerCase();
 
-        // Convex has no LIKE — enumerate users + filter. Bounded by user
-        // count; this dashboard rarely sees more than a few hundred users.
-        const allUsers = await ctx.db.query('users').collect();
+        // Convex has no LIKE — enumerate users + filter. Cap the read at
+        // 4k rows so this query can't blow past the 16k mutation read limit
+        // once the user base scales. At that point the domain-suggestion
+        // feature stops returning results for very large user bases; track
+        // a follow-up to index by (emailDomain, email) if this matters.
+        const allUsers = await ctx.db.query('users').take(4000);
         const candidates = allUsers.filter(
             (u) => u.email && u.email.toLowerCase().endsWith(`@${domain}`),
         );
@@ -410,11 +412,25 @@ export const _validateAndInsert = internalMutation({
             throw new Error('FORBIDDEN: actorUserId mismatch');
         }
 
-        // Conflict guard: already a member.
-        const existingByEmail = await ctx.db.query('users').collect();
-        const existingUser = existingByEmail.find(
-            (u) => u.email && u.email.toLowerCase() === args.inviteeEmail.toLowerCase(),
-        );
+        // Conflict guard: already a member. Use the `by_email` index instead
+        // of scanning all users — Convex's 16k document read limit per
+        // mutation would otherwise cap invitations once the user base grows.
+        // Email matching is case-insensitive: try lowercase first (canonical
+        // form for new rows), fall back to the as-supplied value for legacy
+        // rows that may have mixed casing.
+        const lcEmail = args.inviteeEmail.toLowerCase();
+        const lcMatch = await ctx.db
+            .query('users')
+            .withIndex('by_email', (q) => q.eq('email', lcEmail))
+            .first();
+        const existingUser =
+            lcMatch ??
+            (lcEmail === args.inviteeEmail
+                ? null
+                : await ctx.db
+                      .query('users')
+                      .withIndex('by_email', (q) => q.eq('email', args.inviteeEmail))
+                      .first());
         if (existingUser) {
             const existingMember = await ctx.db
                 .query('projectMembers')

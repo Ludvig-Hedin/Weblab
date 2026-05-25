@@ -106,7 +106,7 @@ export const remove = mutation({
         await requireCap(ctx, 'project.use_ai', { projectId: existing.projectId });
         // Cascade messages, then delete conversation. Helper in
         // internal/cascade.ts owns the ordering.
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteConversationCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteConversationCascade, {
             conversationId,
         });
         return { ok: true } as const;
@@ -138,6 +138,57 @@ export const _setSuggestions = internalMutation({
     },
     handler: async (ctx, { conversationId, suggestions }) => {
         await ctx.db.patch(conversationId, { suggestions, updatedAt: Date.now() });
+    },
+});
+
+/**
+ * Read the stored background summary + cursor for a conversation. Called
+ * from the chat API route before building the LLM request — when present
+ * and not stale, the request-builder swaps older messages for the summary
+ * to keep the cache prefix warm.
+ *
+ * `requireCap('project.use_ai')` because this is invoked by the same
+ * server-side path that runs the chat. Returns null when no summary exists.
+ */
+export const getSummary = query({
+    args: { conversationId: v.id('conversations') },
+    handler: async (ctx, { conversationId }) => {
+        const conversation = await loadConversation(ctx, conversationId);
+        await requireCap(ctx, 'project.use_ai', {
+            projectId: conversation.projectId,
+        });
+        if (!conversation.summaryText || !conversation.summarizedUpToMessageId) {
+            return null;
+        }
+        return {
+            text: conversation.summaryText,
+            upToMessageId: conversation.summarizedUpToMessageId,
+            updatedAt: conversation.summaryUpdatedAt ?? null,
+        };
+    },
+});
+
+/**
+ * Persist a freshly-computed summary. Called from the /api/chat/summarize
+ * route after summarizeConversation() returns. We don't bump `updatedAt`
+ * on the conversation row — that's reserved for user-visible mutations
+ * (new messages); a background summary is invisible to the chat list.
+ */
+export const setSummary = mutation({
+    args: {
+        conversationId: v.id('conversations'),
+        summaryText: v.string(),
+        summarizedUpToMessageId: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const existing = await loadConversation(ctx, args.conversationId);
+        await requireCap(ctx, 'project.use_ai', { projectId: existing.projectId });
+        await ctx.db.patch(args.conversationId, {
+            summaryText: args.summaryText,
+            summarizedUpToMessageId: args.summarizedUpToMessageId,
+            summaryUpdatedAt: Date.now(),
+        });
+        return { ok: true } as const;
     },
 });
 

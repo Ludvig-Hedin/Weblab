@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
+import { FEATURE_BACKDROP_SRCS, FeatureBackdrop } from './feature-backdrop';
 import { ClaudeIcon, DeepSeekIcon, GeminiIcon, KimiIcon, OpenAIIcon } from './provider-icons';
 
 const REVEAL = {
@@ -15,8 +16,6 @@ const REVEAL = {
     viewport: { once: true, amount: 0.2 },
     transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
 };
-
-const BRAND = 'var(--foreground-brand)';
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Card shell — soft backdrop, theme-aware. Asset floats centered.
@@ -28,9 +27,10 @@ interface FeatureTrioCardProps {
     eyebrow: string;
     title: string;
     body: string;
+    bgSrc: string;
 }
 
-function FeatureTrioCard({ visual, eyebrow, title, body }: FeatureTrioCardProps) {
+function FeatureTrioCard({ visual, eyebrow, title, body, bgSrc }: FeatureTrioCardProps) {
     return (
         <motion.div
             initial={REVEAL.initial}
@@ -39,31 +39,17 @@ function FeatureTrioCard({ visual, eyebrow, title, body }: FeatureTrioCardProps)
             transition={REVEAL.transition}
             className="flex flex-col gap-5"
         >
-            {/* Backdrop — soft gradient surface, 12px radius, ar 860/650 */}
-            <div
-                className={cn(
-                    'relative w-full overflow-hidden rounded-[12px]',
-                    'aspect-square',
-                    'flex items-center justify-center',
-                    // Light: soft cool wash like screenshots; light border for definition
-                    'border border-black/5 bg-[radial-gradient(ellipse_120%_70%_at_50%_-10%,_#E6EAF0_0%,_#F2F0EA_60%,_#F2F0EA_100%)]',
-                    // Dark: no border, deep wash only
-                    'dark:border-0 dark:bg-[radial-gradient(ellipse_120%_70%_at_50%_-10%,_#262830_0%,_#1A1A1B_60%,_#1A1A1B_100%)]',
-                )}
-            >
-                {/* Scale widget down on smaller cards so internal text/layout doesn't overflow */}
-                <div className="origin-center scale-[0.85] sm:scale-90 md:scale-[0.85] lg:scale-95 xl:scale-100">
-                    {visual}
-                </div>
-            </div>
+            <FeatureBackdrop src={bgSrc} className="aspect-square w-full rounded-[12px] p-6">
+                {visual}
+            </FeatureBackdrop>
 
             {/* Text */}
-            <div className="flex flex-col gap-2 pt-1">
+            <div className="flex flex-col gap-1 pt-1">
                 <span className="text-style-tagline">{eyebrow}</span>
                 <h3 className="text-foreground-primary text-lg font-medium tracking-tight">
                     {title}
                 </h3>
-                <p className="text-foreground-secondary text-sm leading-[1.4] font-light tracking-tight">
+                <p className="text-foreground-secondary text-sm leading-[1.3] font-light tracking-tight">
                     {body}
                 </p>
             </div>
@@ -80,24 +66,33 @@ function MacChrome({
     label,
     children,
     className,
+    glass,
 }: {
     label?: string;
     children: React.ReactNode;
     className?: string;
+    glass?: boolean;
 }) {
     return (
         <div
             className={cn(
-                'overflow-hidden rounded-[12px] border shadow-[0_8px_28px_-12px_rgba(0,0,0,0.18)]',
+                'flex flex-col overflow-hidden rounded-[12px] border shadow-[0_8px_28px_-12px_rgba(0,0,0,0.18)]',
                 // Light
-                'border-black/[0.06] bg-[#FBFAF6]',
+                'border-black/[0.06]',
+                !glass && 'bg-[#FBFAF6]',
                 // Dark
-                'dark:border-white/[0.08] dark:bg-[#161617] dark:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]',
+                'dark:border-white/[0.08] dark:shadow-[0_8px_28px_-12px_rgba(0,0,0,0.6)]',
+                !glass && 'dark:bg-[#161617]',
                 className,
             )}
         >
             {/* Title bar */}
-            <div className="relative flex items-center border-b border-black/[0.05] px-2.5 py-2 dark:border-white/[0.06]">
+            <div
+                className={cn(
+                    'relative flex shrink-0 items-center border-b border-black/[0.05] px-2.5 py-2 dark:border-white/[0.06]',
+                    glass && 'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]/80',
+                )}
+            >
                 <div className="flex items-center gap-[5px]">
                     <span className="h-2 w-2 rounded-full bg-black/15 dark:bg-white/15" />
                     <span className="h-2 w-2 rounded-full bg-black/15 dark:bg-white/15" />
@@ -124,7 +119,11 @@ const TERMINAL_RUNS = [
         cmd: 'bun run build',
         lines: [
             { text: '▲ Next.js 16.1.6', kind: 'head' as const, delay: 200 },
-            { text: 'Creating an optimized production build...', kind: 'mute' as const, delay: 380 },
+            {
+                text: 'Creating an optimized production build...',
+                kind: 'mute' as const,
+                delay: 380,
+            },
             { text: '✓ Compiled successfully', kind: 'ok' as const, delay: 520 },
         ],
     },
@@ -178,7 +177,7 @@ function TerminalVisual() {
 
     return (
         <div
-            className="w-full max-w-[300px]"
+            className="w-[300px]"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
@@ -205,12 +204,9 @@ function TerminalVisual() {
                                 transition={{ duration: 0.2 }}
                                 className={cn(
                                     'flex items-center gap-1.5',
-                                    line.kind === 'head' &&
-                                        'text-black/80 dark:text-white/85',
-                                    line.kind === 'mute' &&
-                                        'text-black/45 dark:text-white/45',
-                                    line.kind === 'ok' &&
-                                        'text-[color:var(--foreground-brand)]',
+                                    line.kind === 'head' && 'text-black/80 dark:text-white/85',
+                                    line.kind === 'mute' && 'text-black/45 dark:text-white/45',
+                                    line.kind === 'ok' && 'text-[color:var(--foreground-brand)]',
                                 )}
                             >
                                 {line.text}
@@ -230,14 +226,15 @@ function TerminalVisual() {
 
 type ModelKey = 'kimi' | 'gpt' | 'opus' | 'gemini' | 'deepseek' | 'sonnet';
 
-const MODELS: { name: string; key: ModelKey; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { name: 'Kimi k2.6', key: 'kimi', Icon: KimiIcon },
-    { name: 'GPT-5.5', key: 'gpt', Icon: OpenAIIcon },
-    { name: 'Opus 4.7', key: 'opus', Icon: ClaudeIcon },
-    { name: 'Gemini 3.1 Pro', key: 'gemini', Icon: GeminiIcon },
-    { name: 'DeepSeek V4', key: 'deepseek', Icon: DeepSeekIcon },
-    { name: 'Sonnet 4.6', key: 'sonnet', Icon: ClaudeIcon },
-];
+const MODELS: { name: string; key: ModelKey; Icon: React.ComponentType<{ className?: string }> }[] =
+    [
+        { name: 'Kimi k2.6', key: 'kimi', Icon: KimiIcon },
+        { name: 'GPT-5.5', key: 'gpt', Icon: OpenAIIcon },
+        { name: 'Opus 4.7', key: 'opus', Icon: ClaudeIcon },
+        { name: 'Gemini 3.1 Pro', key: 'gemini', Icon: GeminiIcon },
+        { name: 'DeepSeek V4', key: 'deepseek', Icon: DeepSeekIcon },
+        { name: 'Sonnet 4.6', key: 'sonnet', Icon: ClaudeIcon },
+    ];
 
 function ModelsVisual() {
     const [active, setActive] = useState<ModelKey>('opus');
@@ -258,14 +255,14 @@ function ModelsVisual() {
 
     return (
         <div
-            className="flex w-full max-w-[280px] flex-col items-stretch gap-2"
+            className="flex w-[300px] flex-col items-stretch gap-2"
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
             {/* Composer */}
             <div
                 className={cn(
-                    'rounded-[12px] border px-3 py-2 shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
+                    'rounded-[12px] border px-2 py-2 shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
                     'border-black/[0.06] bg-white',
                     'dark:border-white/[0.08] dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]',
                 )}
@@ -294,10 +291,10 @@ function ModelsVisual() {
                 </div>
             </div>
 
-            {/* Dropdown — anchored under the Opus chip */}
+            {/* Dropdown — anchored under the Opus chip, ~60% width of composer */}
             <div
                 className={cn(
-                    'ml-[44px] rounded-[12px] border p-1 shadow-[0_8px_24px_-10px_rgba(0,0,0,0.22)]',
+                    'ml-[44px] w-[176px] rounded-[12px] border p-1 shadow-[0_8px_24px_-10px_rgba(0,0,0,0.22)]',
                     'border-black/[0.06] bg-white',
                     'dark:border-white/[0.08] dark:bg-[#1C1C1D] dark:shadow-[0_8px_24px_-10px_rgba(0,0,0,0.6)]',
                 )}
@@ -357,7 +354,10 @@ function ModelsVisual() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
- * AI ASSISTANT ASSET — Weblab chat window, tabs, message + tool calls
+ * AI ASSISTANT ASSET — smooth typewriter sequence:
+ * type in composer → send → thinking dots → thought/explored → AI reply
+ * typewriter → tool calls → hold → reset.
+ * Composer is fixed-height at bottom — never jumps or resizes.
  * ────────────────────────────────────────────────────────────────────────── */
 
 const AI_RUNS = [
@@ -370,52 +370,104 @@ const AI_RUNS = [
             { kind: 'Created' as const, file: 'Pricing.tsx' },
             { kind: 'Edited' as const, file: 'Home.tsx' },
         ],
-        done: 'Done. Added a `Pricing section` with Starter, Pro, and Enterprise tiers below the hero.',
     },
     {
-        prompt: 'Make the hero darker',
-        reply: 'Tuning the hero background and copy contrast.',
+        prompt: 'Make the hero headline larger',
+        reply: 'Bumping the h1 to text-7xl with tighter leading.',
         thought: '3s',
         explored: '2 files',
-        tools: [
-            { kind: 'Edited' as const, file: 'Hero.tsx' },
-            { kind: 'Edited' as const, file: 'theme.css' },
-        ],
-        done: 'Done. `Hero` background is deeper and copy has higher contrast.',
+        tools: [{ kind: 'Edited' as const, file: 'Hero.tsx' }],
+    },
+    {
+        prompt: 'Style the cards with a teal accent',
+        reply: 'Applying border-teal-300 to the Card component on hover.',
+        thought: '2s',
+        explored: '1 file',
+        tools: [{ kind: 'Edited' as const, file: 'Card.tsx' }],
     },
 ];
 
+type AiPhase =
+    | 'typing'
+    | 'pre-send'
+    | 'thinking-dots'
+    | 'thinking-text'
+    | 'ai-typing'
+    | 'tool-call'
+    | 'hold';
+
 export function AiAssistantVisual() {
     const [runIdx, setRunIdx] = useState(0);
-    const [stage, setStage] = useState<'sending' | 'thinking' | 'tools' | 'done' | 'hold'>(
-        'sending',
-    );
+    const [phase, setPhase] = useState<AiPhase>('typing');
+    const [promptLen, setPromptLen] = useState(0);
+    const [replyLen, setReplyLen] = useState(0);
     const [paused, setPaused] = useState(false);
 
     const run = AI_RUNS[runIdx]!;
 
     useEffect(() => {
         if (paused) return;
-        const next: Record<typeof stage, [typeof stage, number]> = {
-            sending: ['thinking', 700],
-            thinking: ['tools', 1100],
-            tools: ['done', 1100],
-            done: ['hold', 1600],
-            hold: ['sending', 0],
-        };
-        const [n, ms] = next[stage]!;
-        const id = setTimeout(() => {
-            if (stage === 'hold') {
-                setRunIdx((i) => (i + 1) % AI_RUNS.length);
-            }
-            setStage(n);
-        }, ms);
-        return () => clearTimeout(id);
-    }, [stage, paused]);
 
-    const showThinking = stage !== 'sending';
-    const showTools = stage === 'tools' || stage === 'done' || stage === 'hold';
-    const showDone = stage === 'done' || stage === 'hold';
+        if (phase === 'typing') {
+            if (promptLen < run.prompt.length) {
+                const id = setTimeout(() => setPromptLen((n) => n + 1), 40);
+                return () => clearTimeout(id);
+            }
+            const id = setTimeout(() => setPhase('pre-send'), 360);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'pre-send') {
+            const id = setTimeout(() => setPhase('thinking-dots'), 420);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'thinking-dots') {
+            const id = setTimeout(() => setPhase('thinking-text'), 800);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'thinking-text') {
+            const id = setTimeout(() => setPhase('ai-typing'), 900);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'ai-typing') {
+            if (replyLen < run.reply.length) {
+                const id = setTimeout(() => setReplyLen((n) => n + 1), 22);
+                return () => clearTimeout(id);
+            }
+            const id = setTimeout(() => setPhase('tool-call'), 380);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'tool-call') {
+            const id = setTimeout(() => setPhase('hold'), 1800);
+            return () => clearTimeout(id);
+        }
+        if (phase === 'hold') {
+            const id = setTimeout(() => {
+                setPromptLen(0);
+                setReplyLen(0);
+                setRunIdx((i) => (i + 1) % AI_RUNS.length);
+                setPhase('typing');
+            }, 2000);
+            return () => clearTimeout(id);
+        }
+    }, [phase, promptLen, replyLen, paused, run.prompt, run.reply]);
+
+    const composerText =
+        phase === 'typing'
+            ? run.prompt.slice(0, promptLen)
+            : phase === 'pre-send'
+              ? run.prompt
+              : '';
+
+    const sendActive = phase === 'typing' || phase === 'pre-send';
+    const showUserMsg = !sendActive;
+    const showDots = phase === 'thinking-dots';
+    const showThoughtText =
+        phase === 'thinking-text' ||
+        phase === 'ai-typing' ||
+        phase === 'tool-call' ||
+        phase === 'hold';
+    const showAiReply = phase === 'ai-typing' || phase === 'tool-call' || phase === 'hold';
+    const showToolCalls = phase === 'tool-call' || phase === 'hold';
 
     const firstFile = run.tools[0]?.file ?? '';
 
@@ -425,9 +477,9 @@ export function AiAssistantVisual() {
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
         >
-            {/* Floating "Pricing.tsx Created" chip — top-left, outside window */}
+            {/* Floating chip — file created */}
             <AnimatePresence>
-                {showTools && (
+                {showToolCalls && (
                     <motion.div
                         key={`f1-${runIdx}`}
                         initial={{ opacity: 0, y: -4 }}
@@ -446,9 +498,9 @@ export function AiAssistantVisual() {
                 )}
             </AnimatePresence>
 
-            {/* Floating "Home.tsx +24 -2" chip — bottom-right, outside window */}
+            {/* Floating chip — diff summary */}
             <AnimatePresence>
-                {showDone && (
+                {showAiReply && phase !== 'ai-typing' && (
                     <motion.div
                         key={`f2-${runIdx}`}
                         initial={{ opacity: 0, y: 4 }}
@@ -468,18 +520,23 @@ export function AiAssistantVisual() {
                 )}
             </AnimatePresence>
 
-            <MacChrome label="Weblab">
-                {/* Tabs row — pill style */}
-                <div className="flex items-center gap-1 border-b border-black/[0.05] px-2 py-1.5 dark:border-white/[0.06]">
+            <MacChrome label="Weblab" glass className="h-[440px]">
+                {/* Tabs row */}
+                <div
+                    className={cn(
+                        'flex shrink-0 items-center gap-1 border-b border-black/[0.05] px-1.5 py-0.5 dark:border-white/[0.06]',
+                        'bg-white/80 backdrop-blur-[24px] dark:bg-[#161617]/80',
+                    )}
+                >
                     {[
                         { label: 'Add pricing section', active: true },
                         { label: 'Add dark mode', active: false },
-                        { label: 'Translate to english', active: false },
+                        { label: 'Translate to en', active: false },
                     ].map((t) => (
                         <div
                             key={t.label}
                             className={cn(
-                                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] whitespace-nowrap',
+                                'inline-flex h-6 items-center gap-1 rounded-[6px] px-1.5 text-[9px] whitespace-nowrap',
                                 t.active
                                     ? 'bg-black/[0.06] text-black/85 dark:bg-white/[0.08] dark:text-white/90'
                                     : 'text-black/45 dark:text-white/45',
@@ -491,130 +548,205 @@ export function AiAssistantVisual() {
                     ))}
                 </div>
 
-                {/* Body */}
-                <div className="flex min-h-[200px] flex-col gap-2.5 px-3.5 py-3">
-                    {/* Centered user prompt pill */}
-                    <div className="flex justify-center">
-                        <div className="rounded-full bg-black/[0.05] px-3 py-1 text-[10px] text-black/85 dark:bg-white/[0.06] dark:text-white/90">
-                            {run.prompt}
-                        </div>
-                    </div>
-                    {/* AI reply */}
-                    <div className="text-[10px] leading-[1.5] text-black/80 dark:text-white/80">
-                        {run.reply}
-                    </div>
-                    {/* Thought + Explored */}
-                    <AnimatePresence>
-                        {showThinking && (
-                            <motion.div
-                                key={`th-${runIdx}`}
-                                initial={{ opacity: 0, y: 3 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="flex flex-col gap-0.5"
-                            >
-                                <span className="text-[10px] text-black/85 dark:text-white/85">
-                                    <span className="font-semibold">Thought</span>{' '}
-                                    <span className="font-normal text-black/45 dark:text-white/45">
-                                        {run.thought}
-                                    </span>
-                                </span>
-                                <span className="text-[10px] text-black/85 dark:text-white/85">
-                                    <span className="font-semibold">Explored</span>{' '}
-                                    <span className="font-normal text-black/45 dark:text-white/45">
-                                        {run.explored}
-                                    </span>
-                                </span>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    {/* Tool calls — bigger, padded */}
-                    <AnimatePresence>
-                        {showTools && (
-                            <motion.div
-                                key={`to-${runIdx}`}
-                                initial={{ opacity: 0, y: 3 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="flex flex-col gap-1.5"
-                            >
-                                {run.tools.map((tool, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-center justify-between gap-2 rounded-[8px] bg-black/[0.04] px-2.5 py-1.5 dark:bg-white/[0.05]"
+                {/* Body — messages grow, composer pinned at bottom (never jumps) */}
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#FBFAF6] dark:bg-[#161617]">
+                    {/* Messages area — scrollable, clipped */}
+                    <div className="min-h-0 flex-1 overflow-hidden px-3.5 pt-3 pb-1">
+                        <div className="flex flex-col gap-2">
+                            {/* User message — fades in from right on send */}
+                            <AnimatePresence>
+                                {showUserMsg && (
+                                    <motion.div
+                                        key={`user-${runIdx}`}
+                                        initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                                        className="flex justify-end"
                                     >
-                                        <span className="text-[10px]">
-                                            <span className="mr-1.5 font-medium text-black/55 dark:text-white/55">
-                                                {tool.kind}
-                                            </span>
-                                            <span className="font-mono text-black/85 dark:text-white/85">
-                                                {tool.file}
+                                        <div className="rounded-full bg-black/[0.06] px-3 py-1 text-[10px] text-black/85 dark:bg-white/[0.08] dark:text-white/90">
+                                            {run.prompt}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Thinking dots */}
+                            <AnimatePresence>
+                                {showDots && (
+                                    <motion.div
+                                        key={`dots-${runIdx}`}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.18 }}
+                                        className="flex items-center gap-1 px-1"
+                                    >
+                                        {[0, 1, 2].map((i) => (
+                                            <span
+                                                key={i}
+                                                className="h-1.5 w-1.5 animate-pulse rounded-full bg-black/25 dark:bg-white/30"
+                                                style={{
+                                                    animationDelay: `${i * 220}ms`,
+                                                    animationDuration: '1.3s',
+                                                }}
+                                            />
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Thought + Explored */}
+                            <AnimatePresence>
+                                {showThoughtText && (
+                                    <motion.div
+                                        key={`thought-${runIdx}`}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -4 }}
+                                        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                                        className="flex flex-col gap-0.5"
+                                    >
+                                        <span className="text-[10px] text-black/85 dark:text-white/85">
+                                            <span className="font-semibold">Thought</span>{' '}
+                                            <span className="font-normal text-black/40 dark:text-white/40">
+                                                {run.thought}
                                             </span>
                                         </span>
-                                        <Icons.Check className="h-2.5 w-2.5 text-black/55 dark:text-white/55" />
-                                    </div>
-                                ))}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                    {/* Done */}
-                    <AnimatePresence>
-                        {showDone && (
-                            <motion.div
-                                key={`d-${runIdx}`}
-                                initial={{ opacity: 0, y: 3 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.18 }}
-                                className="text-[10px] leading-[1.5] text-black/80 dark:text-white/80"
-                            >
-                                {run.done.split(/(`[^`]+`)/g).map((seg, i) =>
-                                    seg.startsWith('`') ? (
-                                        <code
-                                            key={i}
-                                            className="rounded bg-black/[0.06] px-1 py-px font-mono text-[10px] text-black/85 dark:bg-white/[0.07] dark:text-white/85"
-                                        >
-                                            {seg.slice(1, -1)}
-                                        </code>
-                                    ) : (
-                                        <span key={i}>{seg}</span>
-                                    ),
+                                        <span className="text-[10px] text-black/85 dark:text-white/85">
+                                            <span className="font-semibold">Explored</span>{' '}
+                                            <span className="font-normal text-black/40 dark:text-white/40">
+                                                {run.explored}
+                                            </span>
+                                        </span>
+                                    </motion.div>
                                 )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                            </AnimatePresence>
 
-                    {/* Composer at bottom */}
-                    <div
-                        className={cn(
-                            'mt-auto rounded-[10px] border px-2.5 py-2',
-                            'border-black/[0.06] bg-white',
-                            'dark:border-white/[0.08] dark:bg-[#1F1F20]',
-                        )}
-                    >
-                        <div className="mb-2 text-[10px] text-black/35 dark:text-white/35">
-                            Describe what you want to build
+                            {/* AI reply — typewriter */}
+                            <AnimatePresence>
+                                {showAiReply && (
+                                    <motion.div
+                                        key={`ai-${runIdx}`}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.35 }}
+                                        className="text-[10px] leading-[1.55] text-black/80 dark:text-white/80"
+                                    >
+                                        {run.reply.slice(0, replyLen)}
+                                        {phase === 'ai-typing' && (
+                                            <span
+                                                className="ml-0.5 inline-block h-3 w-px translate-y-px animate-pulse bg-black/60 align-middle dark:bg-white/60"
+                                                aria-hidden
+                                            />
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* Tool calls — stagger in */}
+                            <AnimatePresence>
+                                {showToolCalls && (
+                                    <motion.div
+                                        key={`tools-${runIdx}`}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="flex flex-col gap-1.5"
+                                    >
+                                        {run.tools.map((tool, i) => (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 0, y: 5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{
+                                                    duration: 0.28,
+                                                    delay: i * 0.14,
+                                                    ease: [0.22, 1, 0.36, 1],
+                                                }}
+                                                className="flex items-center justify-between gap-2 rounded-[8px] bg-black/[0.04] px-2.5 py-1.5 dark:bg-white/[0.05]"
+                                            >
+                                                <span className="text-[10px]">
+                                                    <span className="mr-1.5 font-medium text-black/50 dark:text-white/50">
+                                                        {tool.kind}
+                                                    </span>
+                                                    <span className="font-mono text-black/85 dark:text-white/85">
+                                                        {tool.file}
+                                                    </span>
+                                                </span>
+                                                <Icons.Check className="h-2.5 w-2.5 text-black/50 dark:text-white/50" />
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center gap-1 text-[9.5px] text-black/55 dark:text-white/55">
-                                    <span aria-hidden className="text-[11px] leading-none">
-                                        ∞
+                    </div>
+
+                    {/* Composer — fixed height, pinned to bottom, never jumps */}
+                    <div className="shrink-0 px-3.5 pb-3">
+                        <div
+                            className={cn(
+                                'rounded-[10px] border',
+                                'border-black/[0.06] bg-white',
+                                'dark:border-white/[0.08] dark:bg-[#1F1F20]',
+                            )}
+                        >
+                            {/* Text row — fixed height prevents layout shift */}
+                            <div className="flex h-[30px] items-center px-2.5 pt-2 text-[10px]">
+                                {composerText ? (
+                                    <span className="truncate text-black/85 dark:text-white/90">
+                                        {composerText}
+                                        {phase === 'typing' && (
+                                            <span
+                                                className="ml-0.5 inline-block h-3 w-px translate-y-px animate-pulse bg-black/70 align-middle dark:bg-white/70"
+                                                aria-hidden
+                                            />
+                                        )}
                                     </span>
-                                    Build
-                                    <Icons.ChevronDown className="h-2 w-2" />
-                                </span>
-                                <span className="inline-flex items-center gap-1 text-[9.5px] text-black/55 dark:text-white/55">
-                                    <ClaudeIcon className="h-2.5 w-2.5" />
-                                    Sonnet 4.6
-                                    <Icons.ChevronDown className="h-2 w-2" />
-                                </span>
+                                ) : (
+                                    <span className="text-black/30 dark:text-white/30">
+                                        Describe what you want to build
+                                    </span>
+                                )}
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <Icons.Image className="h-3 w-3 text-black/40 dark:text-white/40" />
-                                <Icons.Microphone className="h-3 w-3 text-black/40 dark:text-white/40" />
-                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-white dark:bg-white dark:text-black">
-                                    <Icons.ArrowRight className="h-2.5 w-2.5" />
-                                </span>
+                            {/* Footer controls */}
+                            <div className="flex items-center justify-between px-2 pt-1 pb-2">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="inline-flex items-center gap-1 text-[9.5px] text-black/55 dark:text-white/55">
+                                        <span aria-hidden className="text-[11px] leading-none">
+                                            ∞
+                                        </span>
+                                        Build
+                                        <Icons.ChevronDown className="h-2 w-2" />
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[9.5px] text-black/55 dark:text-white/55">
+                                        <ClaudeIcon className="h-2.5 w-2.5" />
+                                        Sonnet 4.6
+                                        <Icons.ChevronDown className="h-2 w-2" />
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <Icons.Image className="h-3 w-3 text-black/40 dark:text-white/40" />
+                                    <Icons.Microphone className="h-3 w-3 text-black/40 dark:text-white/40" />
+                                    <span
+                                        className="flex h-5 w-5 items-center justify-center rounded-full transition-colors duration-200"
+                                        style={{
+                                            backgroundColor: sendActive
+                                                ? '#000'
+                                                : 'rgba(0,0,0,0.07)',
+                                        }}
+                                        aria-hidden
+                                    >
+                                        <Icons.ArrowRight
+                                            className="h-2.5 w-2.5 transition-colors duration-200"
+                                            style={{
+                                                color: sendActive ? '#fff' : 'rgba(0,0,0,0.28)',
+                                            }}
+                                        />
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -659,7 +791,7 @@ function TokensVisual() {
     return (
         <div
             className={cn(
-                'flex w-full max-w-[280px] flex-col overflow-hidden rounded-[12px] border shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
+                'flex w-[300px] flex-col overflow-hidden rounded-[12px] border shadow-[0_6px_20px_-10px_rgba(0,0,0,0.18)]',
                 'border-black/[0.06] bg-white',
                 'dark:border-white/[0.08] dark:bg-[#1C1C1D] dark:shadow-[0_6px_20px_-10px_rgba(0,0,0,0.6)]',
             )}
@@ -736,7 +868,7 @@ export function FeatureTrioSection() {
 
     return (
         <section
-            className="mx-auto w-full max-w-6xl px-4 py-24 sm:px-6 md:px-8 md:py-32"
+            className="mx-auto w-full max-w-[1400px] px-4 py-24 sm:px-6 md:px-8 md:py-32"
             id="feature-trio"
         >
             <motion.div
@@ -752,13 +884,14 @@ export function FeatureTrioSection() {
                 </h2>
             </motion.div>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:gap-x-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-12 md:gap-x-4">
                 <div className="md:col-span-4">
                     <FeatureTrioCard
                         visual={<ModelsVisual />}
                         eyebrow={tModel('eyebrow')}
                         title={tTrio('models.title')}
                         body={tTrio('models.body')}
+                        bgSrc={FEATURE_BACKDROP_SRCS.ivory}
                     />
                 </div>
                 <div className="md:col-span-4">
@@ -767,6 +900,7 @@ export function FeatureTrioSection() {
                         eyebrow={tTerm('eyebrow')}
                         title={tTrio('terminal.title')}
                         body={tTrio('terminal.body')}
+                        bgSrc={FEATURE_BACKDROP_SRCS.pearl}
                     />
                 </div>
                 <div className="md:col-span-4">
@@ -775,6 +909,7 @@ export function FeatureTrioSection() {
                         eyebrow={tTrio('tokens.eyebrow')}
                         title={tTrio('tokens.title')}
                         body={tTrio('tokens.body')}
+                        bgSrc={FEATURE_BACKDROP_SRCS.sand}
                     />
                 </div>
             </div>

@@ -44,7 +44,7 @@ export const remove = action({
 
         // 2. Cascade Convex side. internal['internal/cascade'] is the slash-keyed
         // module name codegen produces for files under convex/internal/.
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteUserCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteUserCascade, {
             userId: user._id,
         });
 

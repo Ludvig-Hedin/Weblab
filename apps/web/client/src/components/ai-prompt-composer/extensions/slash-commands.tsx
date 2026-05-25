@@ -59,6 +59,10 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                             onUpdate(props) {
                                 if (!component || !popupEl) return;
 
+                                // Re-show if a prior Escape hid the popup but the
+                                // user kept typing in the same suggestion session.
+                                popupEl.style.display = '';
+
                                 component.updateProps({
                                     items: props.items,
                                     command: (item: SlashCommand) => {
@@ -74,10 +78,12 @@ export function buildSlashCommandsExtension(commands: SlashCommand[]) {
                             onKeyDown(props) {
                                 if (!component || !popupEl) return false;
                                 if (props.event.key === 'Escape') {
-                                    popupEl.remove();
-                                    component.destroy();
-                                    popupEl = undefined;
-                                    component = undefined;
+                                    // Hide (don't destroy) so the menu can reappear
+                                    // if the user keeps typing — destroying the
+                                    // renderer here stranded the session invisible
+                                    // until the trigger char was retyped. onExit
+                                    // performs the real teardown.
+                                    popupEl.style.display = 'none';
                                     return true;
                                 }
                                 return component.ref?.onKeyDown({ event: props.event }) ?? false;

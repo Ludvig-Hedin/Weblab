@@ -167,6 +167,11 @@ export class BranchManager {
             return;
         }
         this.currentBranchId = branchId;
+        // Re-scan pages so the Pages panel reflects the switched-to branch's
+        // route tree, not the previous branch's. Fire-and-forget: scanPages
+        // guards re-entrancy (_isScanning) and now keeps the prior tree on error
+        // (so an unconnected sandbox can't blank the panel).
+        void this.editorEngine.pages.scanPages();
     }
 
     getBranchDataById(branchId: string): BranchData | null {
@@ -366,14 +371,19 @@ export class BranchManager {
     async removeBranch(branchId: string): Promise<void> {
         const branchData = this.branchMap.get(branchId);
         if (branchData) {
-            // Remove all frames associated with this branch
+            // Remove all frames associated with this branch. Await them so the
+            // Convex `frames.remove` mutations complete BEFORE we tear down the
+            // branch's code editor / sandbox below — otherwise the deletes race
+            // branch teardown (and any error is swallowed inside `delete`).
             const framesToRemove = this.editorEngine.frames
                 .getAll()
                 .filter((frameState) => frameState.frame.branchId === branchId);
 
-            for (const frameState of framesToRemove) {
-                void this.editorEngine.frames.delete(frameState.frame.id);
-            }
+            await Promise.all(
+                framesToRemove.map((frameState) =>
+                    this.editorEngine.frames.delete(frameState.frame.id),
+                ),
+            );
 
             // Clean up the sandbox, history, error manager, and code editor
             branchData.sandbox.clear();

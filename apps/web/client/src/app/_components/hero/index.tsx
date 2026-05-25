@@ -106,7 +106,7 @@ export function Hero() {
                         cardKey={0}
                         isCreatingProject={isCreatingProject}
                         setIsCreatingProject={setIsCreatingProject}
-                        user={(user ?? null) as never}
+                        user={user ?? null}
                         variant="hero"
                         suggestions={PROJECT_SUGGESTIONS}
                     />

@@ -549,12 +549,33 @@ function JsonFieldInput({
                 placeholder={placeholder}
                 value={raw}
                 onChange={(e) => {
-                    setRaw(e.target.value);
+                    const text = e.target.value;
+                    setRaw(text);
                     // Soft-clear the error while typing — re-validate on blur
                     // so the user isn't yelled at mid-keystroke.
                     if (error) {
                         setError(null);
                         onValidityChange?.(false);
+                    }
+                    // Live-commit to the parent as the user types so a Save
+                    // click (which blurs this field) can't race the deferred
+                    // onBlur commit and persist a STALE value — the last edit
+                    // to IMAGE/OPTION/REFERENCE (JSON) fields was being dropped
+                    // on save. Mirrors the blur-validate success path (commit +
+                    // sync `lastExternalValueRef` so the value-sync effect
+                    // doesn't reset the caret). Parse errors are intentionally
+                    // NOT surfaced here — blur owns validation messaging.
+                    if (text.trim() === '') {
+                        onChange(undefined);
+                        lastExternalValueRef.current = undefined;
+                    } else {
+                        try {
+                            const parsed: unknown = JSON.parse(text);
+                            onChange(parsed);
+                            lastExternalValueRef.current = parsed;
+                        } catch {
+                            // Invalid mid-typing — keep the last committed value.
+                        }
                     }
                 }}
                 onBlur={(e) => validate(e.target.value)}

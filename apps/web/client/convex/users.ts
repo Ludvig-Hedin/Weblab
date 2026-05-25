@@ -1,7 +1,14 @@
 import { v } from 'convex/values';
 
 import { mutation, query } from './_generated/server';
-import { getCapabilities, getOptionalUser, requireUser, requireUserJIT } from './lib/permissions';
+import {
+    getCapabilities,
+    getOptionalUser,
+    getUserByClerkIdSafe,
+    requireCap,
+    requireUser,
+    requireUserJIT,
+} from './lib/permissions';
 
 const DEFAULT_USER_SETTINGS = {
     autoApplyCode: true,
@@ -40,10 +47,10 @@ export const getByClerkId = query({
         // authenticated user's own id, so the legit path is unaffected.
         const identity = await ctx.auth.getUserIdentity();
         if (identity?.subject !== clerkUserId) return null;
-        return ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', clerkUserId))
-            .unique();
+        // `.collect()` + dedupe — never `.unique()` on by_clerk_user_id. A
+        // duplicate row from the JIT/webhook race would otherwise brick the
+        // RSC bridge and redirect-loop the user.
+        return getUserByClerkIdSafe(ctx, clerkUserId);
     },
 });
 
@@ -76,6 +83,24 @@ export const setStripeCustomerId = mutation({
     args: { stripeCustomerId: v.string() },
     handler: async (ctx, { stripeCustomerId }) => {
         const user = await requireUser(ctx);
+        // SECURITY: enforce one-to-one mapping between users and Stripe
+        // customer ids. Without this guard a signed-in caller could pre-claim
+        // a victim's stripeCustomerId (`cus_VICTIM`) — the next Stripe
+        // webhook for that customer would resolve to the attacker via
+        // `findUserByStripeCustomerId`, transferring the victim's
+        // subscription + rateLimits + Pro entitlements to the attacker.
+        // Format guard rejects obviously bogus values that aren't even
+        // Stripe customer ids (Stripe prefix is `cus_`).
+        if (!stripeCustomerId.startsWith('cus_')) {
+            throw new Error('BAD_REQUEST: stripeCustomerId must be a Stripe customer id');
+        }
+        const conflict = await ctx.db
+            .query('users')
+            .withIndex('by_stripe_customer_id', (q) => q.eq('stripeCustomerId', stripeCustomerId))
+            .first();
+        if (conflict && conflict._id !== user._id) {
+            throw new Error('CONFLICT: Stripe customer is already linked to another account');
+        }
         await ctx.db.patch(user._id, { stripeCustomerId, updatedAt: Date.now() });
     },
 });
@@ -95,7 +120,9 @@ export const setGithubInstallationId = mutation({
         if (githubInstallationId) {
             const conflict = await ctx.db
                 .query('users')
-                .filter((q) => q.eq(q.field('githubInstallationId'), githubInstallationId))
+                .withIndex('by_github_installation_id', (q) =>
+                    q.eq('githubInstallationId', githubInstallationId),
+                )
                 .first();
             if (conflict && conflict._id !== user._id) {
                 throw new Error(
@@ -471,6 +498,19 @@ export const getCanvasView = query({
     handler: async (ctx, { canvasId }) => {
         const user = await getOptionalUser(ctx);
         if (!user) return null;
+        // SECURITY: gate by `project.view` on the canvas's project. Without
+        // this, any signed-in caller could enumerate canvasIds and learn that
+        // a canvas exists (a row returned by `userCanvases` confirms it).
+        const canvas = await ctx.db.get(canvasId);
+        if (!canvas) return null;
+        try {
+            await requireCap(ctx, 'project.view', { projectId: canvas.projectId });
+        } catch {
+            // Soft-fail for unauthorized callers — match the rest of the
+            // read-side surface which returns null rather than throwing for
+            // missing access.
+            return null;
+        }
         return ctx.db
             .query('userCanvases')
             .withIndex('by_user_canvas', (q) => q.eq('userId', user._id).eq('canvasId', canvasId))
@@ -486,7 +526,16 @@ export const upsertCanvasView = mutation({
         y: v.number(),
     },
     handler: async (ctx, { canvasId, scale, x, y }) => {
-        const user = await requireUser(ctx);
+        // SECURITY: gate the write by `project.view` on the canvas's project.
+        // Without this, any signed-in caller could write `userCanvases` rows
+        // tied to (callerUserId, foreignCanvasId) for arbitrary canvases —
+        // those rows then get nuked when the foreign project's cascade runs
+        // (and leak the existence of foreign canvases to the attacker).
+        const canvas = await ctx.db.get(canvasId);
+        if (!canvas) throw new Error('NOT_FOUND: Canvas not found');
+        const { user } = await requireCap(ctx, 'project.view', {
+            projectId: canvas.projectId,
+        });
         const existing = await ctx.db
             .query('userCanvases')
             .withIndex('by_user_canvas', (q) => q.eq('userId', user._id).eq('canvasId', canvasId))

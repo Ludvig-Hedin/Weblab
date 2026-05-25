@@ -86,7 +86,12 @@ export const _createRedeployment = internalMutation({
     },
     handler: async (ctx, args) => {
         // Block if another deployment is in-flight for the same type, mirroring
-        // the public deployments.create check.
+        // the public deployments.create check — including the 15-minute stale
+        // window. Without the stale filter, a deploy action that crashed
+        // (Convex timeout, infra restart) would leave a `pending` row that
+        // blocks every future redeploy forever; the user has no recovery path
+        // short of someone manually calling `deployments.cancel`.
+        const STALE_DEPLOYMENT_MS = 15 * 60 * 1000;
         const pending = await ctx.db
             .query('deployments')
             .withIndex('by_project_status', (q) =>
@@ -99,7 +104,10 @@ export const _createRedeployment = internalMutation({
                 q.eq('projectId', args.projectId).eq('status', 'in_progress'),
             )
             .collect();
-        const inFlight = [...pending, ...inProgress].find((d) => d.type === args.type);
+        const now = Date.now();
+        const inFlight = [...pending, ...inProgress].find(
+            (d) => d.type === args.type && now - d._creationTime < STALE_DEPLOYMENT_MS,
+        );
         if (inFlight) {
             throw new Error('BAD_REQUEST: A deployment is already in progress for this target.');
         }

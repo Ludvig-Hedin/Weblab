@@ -61,7 +61,7 @@ html[data-font-size='large']  { font-size: 16px; }
    Inter (loaded via next/font in layout.tsx) acts as the cross-platform fallback
    so Windows/Linux still look consistent. Downloaded Electron app picks up
    the host system font (Apple license forbids embedding SF Pro/Mono). */
-html[data-font-family='sans']  { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Segoe UI', system-ui, sans-serif; }
+html[data-font-family='sans']  { font-family: system-ui, var(--font-inter), Arial, sans-serif; }
 html[data-font-family='serif'] { font-family: 'New York', Georgia, 'Times New Roman', serif; }
 html[data-font-family='mono']  { font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace; }
 
@@ -113,19 +113,17 @@ html[data-font-family='mono']  { font-family: ui-monospace, 'SF Mono', 'Cascadia
     /* Heading scale — medium weight (500) for stronger presence,
        tightened tracking for compact, Codex-style typography. */
     .heading-style-h1 {
-        font-size: 2.25rem;             /* 4xl  */
+        /* clamp: 2.25rem mobile → fluid → 3.75rem desktop max (exceeds h2's 3rem cap). */
+        font-size: clamp(2.25rem, 2.5vw + 1rem, 3.75rem);
         font-weight: 500;
         line-height: 0.95;
         letter-spacing: -0.03em;
     }
-    @media (min-width: 40rem)  { .heading-style-h1 { font-size: 3rem;    } } /* sm → 5xl */
-    @media (min-width: 64rem)  { .heading-style-h1 { font-size: 3.75rem; } } /* lg → 6xl */
-    @media (min-width: 80rem)  { .heading-style-h1 { font-size: 4.5rem;  } } /* xl → 7xl */
 
     .heading-style-h2 {
         font-size: 1.875rem;            /* 3xl */
         font-weight: 500;
-        line-height: 0.97;
+        line-height: 0.92;
         letter-spacing: -0.03em;
         text-wrap: balance;
     }

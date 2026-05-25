@@ -22,6 +22,7 @@ import type { MemorySearchResult } from '../memory/types';
 import type { SkillSummary } from '../skills/types';
 import type { ServerToolContext } from '../tools/server-context';
 import type { ToolCall } from '@ai-sdk/provider-utils';
+import type { AnthropicSystemContentBlock } from '../prompt/cache-blocks';
 import {
     convertToStreamMessages,
     getAskModeSystemPrompt,
@@ -48,6 +49,7 @@ export const createRootAgentStream = ({
     serverToolContext,
     skills,
     toolSetOverride,
+    systemBlocks,
 }: {
     chatType: ChatType;
     conversationId: string;
@@ -81,9 +83,20 @@ export const createRootAgentStream = ({
      * are passed instead of the full read-only set.
      */
     toolSetOverride?: ToolSet;
+    /**
+     * Pre-built cache-aware system content. When provided, the agent uses this
+     * structured array form (carrying anthropic cacheControl markers) instead
+     * of recomputing the prompt from memories + framework + skills. The
+     * request-builder always sets this in production; the legacy path is
+     * still supported for ad-hoc callers (tests, inline-edit agent).
+     */
+    systemBlocks?: AnthropicSystemContentBlock[] | string;
 }) => {
     const modelConfig = getModelFromType(chatType, model, ollamaBaseUrl, reasoningEffort);
-    const systemPrompt = getSystemPromptFromType(chatType, memories, framework, skills);
+    // When the caller didn't pre-build the system blocks, fall back to the
+    // legacy prompt assembly so behaviour is unchanged for those callers.
+    const systemPromptFromArgs: AnthropicSystemContentBlock[] | string =
+        systemBlocks ?? getSystemPromptFromType(chatType, memories, framework, skills);
     const toolSet =
         toolSetOverride ?? getToolSetFromType(chatType, { serverContext: serverToolContext });
     const provider = getProviderFromModel(model);
@@ -91,7 +104,11 @@ export const createRootAgentStream = ({
         providerOptions: modelConfig.providerOptions,
         messages: convertToStreamMessages(messages),
         model: modelConfig.model,
-        system: systemPrompt,
+        // The Vercel AI SDK accepts either a string or a content-block array
+        // for `system`. We pass the array (with cacheControl markers) when
+        // available so Anthropic gets a proper cache breakpoint between the
+        // stable and volatile halves of the prompt.
+        system: systemPromptFromArgs as unknown as string,
         tools: toolSet,
         headers: modelConfig.headers,
         // Without this, streamText silently uses the SDK default cap (~4k),

@@ -109,7 +109,7 @@ export const remove = mutation({
             throw new Error('FORBIDDEN: not the comment author');
         }
         // Cascade replies via internal helper.
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteCommentCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteCommentCascade, {
             commentId,
         });
         return { ok: true } as const;

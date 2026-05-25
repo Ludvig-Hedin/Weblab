@@ -32,20 +32,20 @@ export function FeatureBackdrop({
                 className,
             )}
         >
-            {/* Dark mode only: blurred image backdrop — lighter veil so image shows through */}
+            {/* Blurred image backdrop — light: white veil, dark: subtle dark veil */}
             <Image
                 src={src}
                 alt=""
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="pointer-events-none hidden scale-110 object-cover blur-2xl dark:block"
+                className="pointer-events-none scale-110 object-cover blur-2xl brightness-125"
                 aria-hidden
             />
             <div
-                className="bg-background/25 pointer-events-none absolute inset-0 hidden dark:block"
+                className="bg-white/50 dark:bg-background/10 pointer-events-none absolute inset-0"
                 aria-hidden
             />
-            <div className="relative flex h-full w-full items-center justify-center">
+            <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
                 {children}
             </div>
         </div>

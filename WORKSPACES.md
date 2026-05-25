@@ -1,4 +1,7 @@
-Below is a detailed feature spec you can paste into docs/specs/workspaces.md or hand to Claude Code as product truth.
+> **Canonical copy:** [`docs/specs/workspaces.md`](docs/specs/workspaces.md). This
+> root file is a handoff/paste artifact and is byte-identical to the canonical
+> spec below. Edit the canonical copy under `docs/specs/`; treat this one as a
+> mirror so the two don't diverge (CR-2026-05-18-001).
 
 # Weblab Workspaces — Product & Technical Specification
 ## 1. Goal

@@ -23,7 +23,22 @@ async function loadBridgedUser(): Promise<BridgedUser | null> {
     if (!userId) return null;
 
     const token = await getToken({ template: 'convex' });
-    if (!token) return null;
+    if (!token) {
+        // Loud server log: the only way `getToken({ template: 'convex' })`
+        // returns null for a signed-in user is a Clerk dashboard
+        // misconfiguration — the JWT template is missing or named something
+        // other than `convex`. Silently returning null here makes every
+        // protected RSC redirect to `/sign-in`, which then redirects back to
+        // the protected route once Clerk reports the user as signed in,
+        // looping forever with no visible error.
+        console.error(
+            '[clerk-bridge] Clerk getToken({ template: "convex" }) returned null for signed-in user %s. ' +
+                'Check Clerk dashboard → JWT Templates: a template named "convex" must exist with the Convex issuer URL. ' +
+                'Every protected route will redirect-loop until this is fixed.',
+            userId,
+        );
+        return null;
+    }
 
     // Reuse Clerk's primary email for the synthetic user shape — Convex stores
     // the same value but Clerk is the canonical source of truth.

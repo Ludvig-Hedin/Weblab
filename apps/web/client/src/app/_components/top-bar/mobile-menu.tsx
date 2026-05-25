@@ -98,7 +98,7 @@ export function MobileMenu({ isOpen, onOpenChange }: MobileMenuProps) {
                                                                 key={link.href}
                                                                 href={link.href}
                                                                 onClick={() => onOpenChange(false)}
-                                                                className="text-foreground-primary hover:text-foreground-primary hover:bg-foreground/[0.04] flex flex-col rounded-md py-2 transition-colors active:scale-[0.99]"
+                                                                className="text-foreground-primary hover:text-foreground-primary hover:bg-foreground/[0.04] flex flex-col rounded-md px-2 py-2 transition-colors active:scale-[0.99]"
                                                                 {...(link.external && {
                                                                     target: '_blank',
                                                                     rel: 'noopener noreferrer',

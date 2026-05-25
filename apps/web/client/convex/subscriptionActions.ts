@@ -52,10 +52,7 @@ interface CheckoutSessionLike {
 export const checkout = action({
     args: { priceId: v.string() },
     handler: async (ctx, { priceId }): Promise<CheckoutSessionLike> => {
-        const caller = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._resolveCallerUserId,
-            {},
-        );
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
         if (!caller) throw new Error('UNAUTHORIZED');
 
         const stripe = getStripe();
@@ -71,7 +68,7 @@ export const checkout = action({
                 email: caller.email ?? '',
             });
             stripeCustomerId = customer.id;
-            await ctx.runMutation((internal as any)['lib/stripeWebhook']._setStripeCustomerId, {
+            await ctx.runMutation(internal.lib.stripeWebhook._setStripeCustomerId, {
                 userId: caller.id as Id<'users'>,
                 stripeCustomerId,
             });
@@ -100,14 +97,11 @@ export const checkout = action({
 export const manageSubscription = action({
     args: {},
     handler: async (ctx): Promise<{ id: string; url: string }> => {
-        const caller = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._resolveCallerUserId,
-            {},
-        );
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
         if (!caller) throw new Error('UNAUTHORIZED');
 
         const sub = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findActiveSubscriptionForCaller,
+            internal.lib.stripeWebhook._findActiveSubscriptionForCaller,
             { userId: caller.id as Id<'users'> },
         );
         if (!sub) throw new Error('No active subscription found for user');
@@ -139,14 +133,11 @@ export const update = action({
         ctx,
         { stripeSubscriptionId, stripeSubscriptionItemId, stripePriceId },
     ): Promise<{ ok: true }> => {
-        const caller = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._resolveCallerUserId,
-            {},
-        );
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
         if (!caller) throw new Error('UNAUTHORIZED');
 
         const owned = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findOwnedSubscriptionForUpdate,
+            internal.lib.stripeWebhook._findOwnedSubscriptionForUpdate,
             {
                 userId: caller.id as Id<'users'>,
                 stripeSubscriptionId,
@@ -155,10 +146,9 @@ export const update = action({
         );
         if (!owned) throw new Error('Subscription not found');
 
-        const newPrice = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findPriceForStripeId,
-            { stripePriceId },
-        );
+        const newPrice = await ctx.runQuery(internal.lib.stripeWebhook._findPriceForStripeId, {
+            stripePriceId,
+        });
         if (!newPrice) throw new Error(`Price not found for priceId: ${stripePriceId}`);
 
         const stripe = getStripe();
@@ -209,7 +199,7 @@ export const update = action({
         const endDate = updatedSchedule.phases[0]?.end_date;
         const scheduledChangeAt = endDate ? endDate * 1000 : Date.now();
 
-        await ctx.runMutation((internal as any)['lib/stripeWebhook']._applyScheduleChange, {
+        await ctx.runMutation(internal.lib.stripeWebhook._applyScheduleChange, {
             stripeSubscriptionItemId,
             stripeSubscriptionScheduleId: updatedSchedule.id,
             scheduledPriceId: newPrice.id as Id<'prices'>,
@@ -235,11 +225,8 @@ export const startPromoCheckout = action({
         ctx,
         { promotionCode },
     ): Promise<{ errorCode: string } | { redirectUrl: string }> => {
-        const caller = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._resolveCallerUserId,
-            {},
-        );
-        if (!caller || !caller.email) {
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
+        if (!caller?.email) {
             return { errorCode: 'not_authenticated' };
         }
 
@@ -247,15 +234,14 @@ export const startPromoCheckout = action({
         // of a live subscription are either a no-op or a double-charge
         // depending on Stripe rules — neither is the experience we want.
         const alreadyPro = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findActiveProSubscriptionForPromo,
+            internal.lib.stripeWebhook._findActiveProSubscriptionForPromo,
             { userId: caller.id as Id<'users'> },
         );
         if (alreadyPro) return { errorCode: 'already_subscribed' };
 
-        const stripePriceId = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findPriceByKey,
-            { priceKey: 'PRO_MONTHLY_TIER_1' as const },
-        );
+        const stripePriceId = await ctx.runQuery(internal.lib.stripeWebhook._findPriceByKey, {
+            priceKey: 'PRO_MONTHLY_TIER_1' as const,
+        });
         if (!stripePriceId) return { errorCode: 'plan_not_found' };
 
         const stripe = getStripe();
@@ -280,7 +266,7 @@ export const startPromoCheckout = action({
                 email: caller.email,
             });
             stripeCustomerId = customer.id;
-            await ctx.runMutation((internal as any)['lib/stripeWebhook']._setStripeCustomerId, {
+            await ctx.runMutation(internal.lib.stripeWebhook._setStripeCustomerId, {
                 userId: caller.id as Id<'users'>,
                 stripeCustomerId,
             });
@@ -312,14 +298,11 @@ export const startPromoCheckout = action({
 export const releaseSubscriptionSchedule = action({
     args: { subscriptionScheduleId: v.string() },
     handler: async (ctx, { subscriptionScheduleId }): Promise<{ subscriptionId: unknown }> => {
-        const caller = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._resolveCallerUserId,
-            {},
-        );
+        const caller = await ctx.runQuery(internal.lib.stripeWebhook._resolveCallerUserId, {});
         if (!caller) throw new Error('UNAUTHORIZED');
 
         const owned = await ctx.runQuery(
-            (internal as any)['lib/stripeWebhook']._findOwnedSubscriptionBySchedule,
+            internal.lib.stripeWebhook._findOwnedSubscriptionBySchedule,
             {
                 userId: caller.id as Id<'users'>,
                 stripeSubscriptionScheduleId: subscriptionScheduleId,
@@ -340,10 +323,9 @@ export const releaseSubscriptionSchedule = action({
             // Already released — fall through to DB cleanup.
         }
 
-        const updatedId = await ctx.runMutation(
-            (internal as any)['lib/stripeWebhook']._clearScheduleChange,
-            { stripeSubscriptionScheduleId: subscriptionScheduleId },
-        );
+        const updatedId = await ctx.runMutation(internal.lib.stripeWebhook._clearScheduleChange, {
+            stripeSubscriptionScheduleId: subscriptionScheduleId,
+        });
         return { subscriptionId: updatedId };
     },
 });

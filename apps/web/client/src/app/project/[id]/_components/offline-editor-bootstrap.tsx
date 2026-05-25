@@ -25,7 +25,7 @@ export function OfflineEditorBootstrap({
 }: {
     projectId: string;
     reason?: string;
-    fallbackVariant?: 'unauthorized' | 'not-found' | 'unknown' | 'invalid-id';
+    fallbackVariant?: 'unauthorized' | 'forbidden' | 'not-found' | 'unknown' | 'invalid-id';
 }) {
     const [state, setState] = useState<CacheState>({ status: 'loading' });
     const stalenessToastedRef = useRef(false);

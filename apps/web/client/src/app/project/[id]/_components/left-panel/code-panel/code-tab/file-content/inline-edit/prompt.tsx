@@ -214,6 +214,13 @@ export const InlineEditPrompt = ({
     };
 
     const accept = () => {
+        // Never apply an incomplete or failed generation. A mid-stream failure
+        // (provider 5xx / network drop) leaves a truncated `preview` plus an
+        // `error`; applying it would write a half-written edit into the file.
+        // Only a fully-streamed, error-free preview is acceptable.
+        if (session.streaming || session.error) {
+            return;
+        }
         const cleaned = stripCodeFences(session.preview);
         if (!cleaned.trim()) {
             close();

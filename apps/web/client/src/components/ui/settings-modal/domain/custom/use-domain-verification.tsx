@@ -105,6 +105,13 @@ export const DomainVerificationProvider = ({ children }: { children: ReactNode }
             setError(
                 error instanceof Error ? error.message : 'Failed to create domain verification',
             );
+            // Reset back to the input state on failure — otherwise the state
+            // stays at CREATING_VERIFICATION, which keeps the domain input
+            // permanently disabled (no-domain-input.tsx gates `disabled` on
+            // `state !== INPUTTING_DOMAIN`), dead-ending custom-domain setup on
+            // the first transient error. Matches the `!verificationRequest`
+            // branch above.
+            setVerificationState(VerificationState.INPUTTING_DOMAIN);
         }
     };
 

@@ -227,6 +227,13 @@ export default function ClerkVerifyPage() {
 
             setResendCountdown(RESEND_COOLDOWN);
             setOtp('');
+            // Clear any still-running countdown before starting a new one —
+            // otherwise the original interval is orphaned (the cleanup only
+            // clears the current ref), leaking a timer that keeps decrementing
+            // the countdown in parallel (runs roughly twice as fast).
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
             intervalRef.current = setInterval(() => {
                 setResendCountdown((prev) => {
                     if (prev <= 1) {

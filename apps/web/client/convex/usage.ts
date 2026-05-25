@@ -136,6 +136,40 @@ export const get = query({
     },
 });
 
+/**
+ * Returns the auto-router tier classification for the caller. Used by the
+ * /api/chat route to decide which model to resolve when the user picks
+ * "Auto". Computed from the same usage signals as `get` but boiled down to
+ * a single 4-state enum the router consumes.
+ *
+ * Tiering rules (kept conservative — we'd rather under-promote than
+ * over-promote):
+ *   - free + monthly < 80%  → 'free'
+ *   - free + monthly >= 80% → 'free-heavy'
+ *   - pro + monthly < 90%   → 'pro'
+ *   - pro + monthly >= 90%  → 'pro-heavy'
+ */
+export const tier = query({
+    args: {},
+    handler: async (ctx): Promise<'free' | 'free-heavy' | 'pro' | 'pro-heavy'> => {
+        const user = await requireUser(ctx);
+        const now = Date.now();
+        const active = await loadActiveSubscriptionWithProduct(ctx, user._id);
+        const usage =
+            !active || !active.isPro
+                ? await freePlanUsage(ctx, user._id, now)
+                : await proPlanUsage(ctx, user._id, now);
+        const monthlyRatio =
+            usage.monthly.limitCount > 0
+                ? usage.monthly.usageCount / usage.monthly.limitCount
+                : 0;
+        if (!active || !active.isPro) {
+            return monthlyRatio >= 0.8 ? 'free-heavy' : 'free';
+        }
+        return monthlyRatio >= 0.9 ? 'pro-heavy' : 'pro';
+    },
+});
+
 // Increment usage:
 //  * For PRO users with an active subscription: locate the rate limit with
 //    the most carry-over (== oldest credits first) and decrement `left`.
@@ -175,6 +209,12 @@ export const increment = mutation({
             type,
             timestamp: now,
             traceId,
+            // SECURITY: link the record to the bucket we decremented so
+            // `revertIncrement` can refund the SAME bucket without trusting
+            // a client-supplied rateLimitId (which would otherwise let any
+            // user farm unlimited refunds by replaying their own rate-limit
+            // ids).
+            linkedRateLimitId: rateLimitId,
         });
 
         return { rateLimitId, usageRecordId };
@@ -207,31 +247,55 @@ async function pickRateLimitForDeduction(
 // Revert a previously-attempted increment. Used when an AI request fails
 // after the credit was deducted — we restore the credit and delete the
 // audit record so the user is not charged for the failure.
+//
+// SECURITY: `usageRecordId` is now REQUIRED and authoritative. The refund
+// targets the rateLimit bucket stored on the record itself
+// (`linkedRateLimitId`), not whatever id the client passes in. The record
+// is deleted on first successful refund so a second call against the same
+// id is a no-op — refunds cannot be replayed. The `rateLimitId` arg is
+// kept for backward compatibility with the API route but is IGNORED.
+//
+// Without this gate, any signed-in user could call `revertIncrement`
+// repeatedly with their own rateLimit id (no record needed) and farm
+// unlimited credits.
 export const revertIncrement = mutation({
     args: {
-        usageRecordId: v.optional(v.id('usageRecords')),
+        usageRecordId: v.id('usageRecords'),
+        // Kept for backward compat with the chat API route's payload. NOT
+        // trusted — the authoritative id is read from the usageRecord.
         rateLimitId: v.optional(v.id('rateLimits')),
     },
-    handler: async (ctx, { usageRecordId, rateLimitId }) => {
+    handler: async (ctx, { usageRecordId }) => {
         const user = await requireUser(ctx);
 
-        if (rateLimitId) {
-            const rate = await ctx.db.get(rateLimitId);
+        const record = await ctx.db.get(usageRecordId);
+        // Idempotent: missing record means a prior call already reverted it.
+        if (!record) return { ok: true as const, refunded: false as const };
+        if (record.userId !== user._id) throw new Error('FORBIDDEN');
+
+        const linkedId = record.linkedRateLimitId;
+        let creditRefunded = false;
+        if (linkedId) {
+            const rate = await ctx.db.get(linkedId);
+            // Defensive: only refund if the bucket still belongs to the same
+            // user. (The bucket can roll over before a revert lands; in that
+            // case the refund is silently skipped — the credit is already
+            // forfeit to the new period.)
             if (rate && rate.userId === user._id) {
-                await ctx.db.patch(rateLimitId, {
+                await ctx.db.patch(linkedId, {
                     left: rate.left + 1,
                     updatedAt: Date.now(),
                 });
+                creditRefunded = true;
             }
         }
 
-        if (usageRecordId) {
-            const record = await ctx.db.get(usageRecordId);
-            if (record && record.userId === user._id) {
-                await ctx.db.delete(usageRecordId);
-            }
-        }
-
-        return { rateLimitId, usageRecordId };
+        await ctx.db.delete(usageRecordId);
+        // `refunded` reflects whether a rateLimit credit was actually
+        // restored. Free-tier records (no `linkedRateLimitId`) and Pro
+        // records whose bucket rolled over both return `false` — the
+        // record was still deleted (idempotency holds) but no credit
+        // movement happened.
+        return { ok: true as const, refunded: creditRefunded };
     },
 });

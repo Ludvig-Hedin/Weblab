@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
+import { getUserByClerkIdSafe } from './lib/permissions';
 
 // Convex-side Clerk webhook handlers. INTERNAL — not callable from clients.
 // Invoked by `convex/http.ts::/clerk-webhook` after Svix signature verify.
@@ -21,10 +22,10 @@ export const upsertUser = internalMutation({
         avatarUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const existing = await ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', args.clerkUserId))
-            .unique();
+        // `.collect()` + dedupe — never `.unique()` on by_clerk_user_id. A
+        // duplicate row from the JIT/webhook race would otherwise throw on
+        // every subsequent webhook delivery, blocking profile sync.
+        const existing = await getUserByClerkIdSafe(ctx, args.clerkUserId);
         const now = Date.now();
         if (existing) {
             await ctx.db.patch(existing._id, {
@@ -44,10 +45,11 @@ export const upsertUser = internalMutation({
 export const deleteUser = internalMutation({
     args: { clerkUserId: v.string() },
     handler: async (ctx, { clerkUserId }) => {
-        const user = await ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', clerkUserId))
-            .unique();
+        // `.collect()` + dedupe — same reasoning as `upsertUser`. We
+        // cascade-delete the canonical (earliest) row; any duplicate left
+        // behind has no Clerk-side identity anymore and is harmless dust
+        // that the next JIT pass cleans up.
+        const user = await getUserByClerkIdSafe(ctx, clerkUserId);
         if (!user) return { ok: false, reason: 'NOT_FOUND' as const };
 
         // Full cascade — settings, providerConnections, memberships, owned
@@ -56,8 +58,7 @@ export const deleteUser = internalMutation({
         // Same path as `userActions.remove` (in-app account-delete flow), so
         // user-data hygiene is identical regardless of where the deletion
         // originated (Clerk dashboard webhook vs. account-settings UI).
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await ctx.runMutation((internal as any)['internal/cascade'].deleteUserCascade, {
+        await ctx.runMutation(internal.internal.cascade.deleteUserCascade, {
             userId: user._id,
         });
         return { ok: true } as const;

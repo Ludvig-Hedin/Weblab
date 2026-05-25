@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { internalMutation, internalQuery } from '../_generated/server';
+import { getUserByClerkIdSafe } from './permissions';
 
 // Convex Stripe webhook handlers. INTERNAL — invoked only by the
 // `/webhooks/stripe` httpAction in `convex/http.ts` after signature
@@ -562,10 +563,11 @@ export const _resolveCallerUserId = internalQuery({
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return null;
-        const user = await ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', identity.subject))
-            .unique();
+        // `.collect()` + dedupe via the shared helper — never `.unique()`
+        // on by_clerk_user_id. Duplicate rows from the JIT/webhook race
+        // would otherwise break checkout, subscription management, and
+        // promo flows for affected users.
+        const user = await getUserByClerkIdSafe(ctx, identity.subject);
         if (!user) return null;
         return {
             id: user._id,

@@ -44,6 +44,20 @@ export interface InlineEditStreamArgs {
     traceId: string;
     /** Propagate client aborts so cancelled requests stop billing tokens upstream. */
     abortSignal?: AbortSignal;
+    /**
+     * Called on a mid-stream failure (provider 5xx, network drop, abort). The
+     * stream is returned lazily and errors fire AFTER the route's try/catch has
+     * exited, so the caller can't catch them — this hook lets the caller refund
+     * usage that was charged up-front and log the failure. Optional; omitting it
+     * preserves the prior behavior exactly.
+     */
+    onError?: (error: unknown) => void;
+    /**
+     * Called when the client aborts mid-stream. The AI SDK routes aborts to
+     * `onAbort`, NOT `onError`, so refund-on-cancel must hook this separately.
+     * Optional; omitting it preserves the prior behavior exactly.
+     */
+    onAbort?: () => void;
 }
 
 export const createInlineEditStream = ({
@@ -59,6 +73,8 @@ export const createInlineEditStream = ({
     projectId,
     traceId,
     abortSignal,
+    onError,
+    onAbort,
 }: InlineEditStreamArgs): ReturnType<typeof streamText> => {
     const selectedModel: ChatModel = model ?? DEFAULT_INLINE_EDIT_MODEL;
     const provider = getProviderFromModel(selectedModel);
@@ -87,6 +103,8 @@ export const createInlineEditStream = ({
         // Cap output — inline edits should not be enormous.
         maxOutputTokens: Math.min(modelConfig.maxOutputTokens, 4096),
         abortSignal,
+        onError: onError ? (event) => onError(event.error) : undefined,
+        onAbort: onAbort ? () => onAbort() : undefined,
         experimental_transform: smoothStream(),
         experimental_telemetry: {
             isEnabled: true,

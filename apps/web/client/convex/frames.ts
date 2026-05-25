@@ -66,6 +66,16 @@ export const create = mutation({
         const canvas = await ctx.db.get(args.canvasId);
         if (!canvas) throw new Error('NOT_FOUND: Canvas not found');
         await requireCap(ctx, 'project.update', { projectId: canvas.projectId });
+        // Integrity: a frame's branch must live in the same project as its
+        // canvas. Without this a caller with update access to project A could
+        // attach a frame referencing a branch id from project B (the Drizzle
+        // FK used to enforce this).
+        if (args.branchId) {
+            const branch = await ctx.db.get(args.branchId);
+            if (!branch || branch.projectId !== canvas.projectId) {
+                throw new Error('BAD_REQUEST: branch does not belong to canvas project');
+            }
+        }
         const id = await ctx.db.insert('frames', args);
         return (await ctx.db.get(id))!;
     },
@@ -92,6 +102,18 @@ export const update = mutation({
         const canvas = await ctx.db.get(existing.canvasId);
         if (!canvas) throw new Error('NOT_FOUND: Canvas not found');
         await requireCap(ctx, 'project.update', { projectId: canvas.projectId });
+        // Integrity (mirrors frames.create): if the caller reassigns the
+        // frame's branchId, the new branch must live in the same project as
+        // the canvas. Without this, a caller with update access to project A
+        // could point one of A's frames at a branch from project B and leak
+        // B's preview iframe URL into A's canvas (or orphan the frame from
+        // B's cascade deletes).
+        if (rest.branchId) {
+            const branch = await ctx.db.get(rest.branchId);
+            if (!branch || branch.projectId !== canvas.projectId) {
+                throw new Error('BAD_REQUEST: branch does not belong to canvas project');
+            }
+        }
 
         const patch: Partial<Doc<'frames'>> = {};
         for (const [k, value] of Object.entries(rest)) {

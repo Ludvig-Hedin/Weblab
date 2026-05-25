@@ -29,7 +29,15 @@ export class CodeManager {
         makeAutoObservable(this);
     }
 
-    async write(action: Action) {
+    /**
+     * Apply an action's code changes to the file system. Returns `true` on
+     * success and `false` if the write failed (the error is surfaced to the
+     * user here via toast + the Errors console). Callers use the result to
+     * keep history in sync — see `HistoryManager.push`, which drops an action
+     * from the undo stack when its write fails so a later undo can't emit the
+     * inverse of an edit that never landed.
+     */
+    async write(action: Action): Promise<boolean> {
         try {
             // TODO: This is a hack to write code, we should refactor this
             if (action.type === 'write-code' && action.diffs[0]) {
@@ -48,6 +56,7 @@ export class CodeManager {
                 const requests = await this.collectRequests(action);
                 await this.writeRequest(requests);
             }
+            return true;
         } catch (error) {
             console.error('Error writing requests:', error);
             toast.error('Error writing requests', {
@@ -57,6 +66,7 @@ export class CodeManager {
                 error instanceof Error ? error.message : 'Unknown error',
                 action,
             );
+            return false;
         }
     }
 

@@ -3,7 +3,7 @@ import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation, internalQuery } from './_generated/server';
-import { requireCap } from './lib/permissions';
+import { getUserByClerkIdSafe, requireCap } from './lib/permissions';
 
 // V8-runtime DB helpers invoked by domainActions.ts. Split from the action
 // file because Convex `"use node"` modules cannot also export queries/mutations
@@ -259,10 +259,9 @@ export const _ensureUserOwnsDomain = internalQuery({
         // member of plus all projects in workspaces they're a member of.
         // Mirrors the legacy `userProjects` join used by ensureUserOwnsDomain.
         const me = (await ctx.auth.getUserIdentity())!;
-        const userRow = await ctx.db
-            .query('users')
-            .withIndex('by_clerk_user_id', (q) => q.eq('clerkUserId', me.subject))
-            .unique();
+        // `.collect()` + dedupe via the shared helper — never `.unique()` on
+        // by_clerk_user_id (JIT/webhook race tolerance).
+        const userRow = await getUserByClerkIdSafe(ctx, me.subject);
         if (!userRow) return { ownsDomain: false };
 
         const projectMems = await ctx.db

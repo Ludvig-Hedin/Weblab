@@ -14,7 +14,7 @@ function DraggableElement({
     setDragOffset,
     children,
     style = {},
-    outlineColor = 'red',
+    outlineColor = '#0F9BFF',
     initialSize = { width: 100, height: 100 },
     ...rest
 }: {
@@ -170,7 +170,7 @@ function DraggableElement({
                             width: '12px',
                             height: '12px',
                             background: 'white',
-                            border: '2px solid #ef4444',
+                            border: '2px solid #0F9BFF',
                             borderRadius: '50%',
                             cursor: 'nwse-resize',
                             zIndex: 2,
@@ -186,7 +186,7 @@ function DraggableElement({
                             width: '12px',
                             height: '12px',
                             background: 'white',
-                            border: '2px solid #ef4444',
+                            border: '2px solid #0F9BFF',
                             borderRadius: '50%',
                             cursor: 'nesw-resize',
                             zIndex: 2,
@@ -202,7 +202,7 @@ function DraggableElement({
                             width: '12px',
                             height: '12px',
                             background: 'white',
-                            border: '2px solid #ef4444',
+                            border: '2px solid #0F9BFF',
                             borderRadius: '50%',
                             cursor: 'nesw-resize',
                             zIndex: 2,
@@ -218,7 +218,7 @@ function DraggableElement({
                             width: '12px',
                             height: '12px',
                             background: 'white',
-                            border: '2px solid #ef4444',
+                            border: '2px solid #0F9BFF',
                             borderRadius: '50%',
                             cursor: 'nwse-resize',
                             zIndex: 2,
@@ -295,9 +295,9 @@ export function DirectEditingInteractive() {
     }, [draggedElement, dragOffset]);
 
     return (
-        <div className="h-100 w-full overflow-hidden rounded-lg">
-            <div className="canvas-container relative top-60 left-1/2 h-100 w-90 -translate-x-1/2 -translate-y-1/2 transform rounded-lg bg-[#0A484D] text-[#F0EFE3]">
-                <div className="flex h-8 w-full flex-row items-center justify-between border-b border-[#F0EFE3]/50 px-2">
+        <div className="flex w-full items-center justify-center overflow-hidden rounded-[12px]">
+            <div className="canvas-container relative h-[400px] w-[360px] overflow-hidden rounded-[12px] bg-white text-[#1a1a1a]">
+                <div className="flex h-8 w-full flex-row items-center justify-between border-b border-black/10 px-2">
                     <div className="flex flex-row items-center gap-1 select-none">
                         <Illustrations.VinoLogo className="h-4 w-4" />
                         <Illustrations.VinoWordmark className="h-12 w-12" />

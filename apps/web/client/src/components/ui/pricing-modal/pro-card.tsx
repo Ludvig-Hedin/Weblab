@@ -141,7 +141,16 @@ export const ProCard = ({
                 throw new Error('No checkout URL received');
             }
 
-            window.open(session.url, '_blank');
+            // `window.open` returns null when the popup is blocked (no throw),
+            // so without this check the UI flips to "checking payment" and
+            // hangs forever waiting for a checkout the user never saw.
+            const checkoutWindow = window.open(session.url, '_blank');
+            if (!checkoutWindow) {
+                toast.error(t('pricing.toasts.error.title'), {
+                    description: 'Allow pop-ups for this site, then try again.',
+                });
+                return;
+            }
             setIsCheckingSubscription(true);
         } catch (error) {
             toast.error(t('pricing.toasts.error.title'), {

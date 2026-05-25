@@ -68,7 +68,7 @@ export function UseCasesSection() {
 
                 {/* Right: copy + tabs */}
                 <div className="flex flex-col">
-                    <span className="text-mini text-foreground-primary/80">{t('eyebrow')}</span>
+                    <span className="text-style-tagline">{t('eyebrow')}</span>
 
                     <ul className="mt-5 flex flex-col">
                         {USE_CASES.map((u, idx) => {

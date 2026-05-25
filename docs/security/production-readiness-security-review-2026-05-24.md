@@ -2,16 +2,30 @@
 
 ## Executive Summary
 
-Recommendation: **do not release this build to production for real users yet.**
+Recommendation after the 2026-05-24 remediation pass: **the named release
+blockers are fixed for the hosted web app, but keep the release gate closed until
+the repository-wide `bun lint` baseline is brought back to green or formally
+risk-accepted.**
 
 The application has several good security foundations: protected project routes,
 Convex capability checks on most project data, signed Clerk and Stripe webhooks,
 server-side admin gating, ignored local env files, and baseline security headers.
-However, this worktree is not production-safe because the web app is pinned to a
-Next.js version currently reported vulnerable by `bun audit`, the CSP allows
-`unsafe-inline` and `unsafe-eval`, and several paid AI endpoints accept large
-client-controlled payloads before invoking LLM providers. Those issues create
-real exposure for public users and should be fixed before launch.
+The original review found a vulnerable Next.js version, broad critical/high
+dependency advisories, permissive production CSP, unbounded paid AI payloads,
+and client-visible internal errors. Those release-blocking items have now been
+remediated in code and dependencies. Remaining validation risk is operational:
+`bun lint` still fails because unrelated packages have existing lint warnings
+and project-service configuration errors; the web-client targeted lint command
+exits successfully.
+
+Remediation status:
+
+- `bun audit --audit-level=moderate` exits successfully with no reported
+  moderate/high/critical advisories.
+- `bun typecheck` exits successfully.
+- `bun --filter @weblab/web-client build` exits successfully on Next.js 16.2.6.
+- `bun --filter @weblab/web-client lint` exits successfully, while the
+  repository-wide `bun lint` command remains blocked by unrelated lint debt.
 
 Scope reviewed:
 
@@ -32,6 +46,7 @@ secret rotation history.
 ### SEC-001 - Vulnerable Next.js version in production app
 
 - **Severity:** Critical
+- **Status:** Fixed 2026-05-24.
 - **Rule:** NEXT-SUPPLY-001
 - **Location:** `apps/web/client/package.json:93`
 - **Evidence:**
@@ -44,9 +59,8 @@ secret rotation history.
 - **Impact:** Public attackers may exploit framework-level vulnerabilities before
   application code runs. Because the app uses the App Router and middleware, this
   is a release blocker until Next.js is upgraded and the lockfile is refreshed.
-- **Fix:** Upgrade `next` to a currently patched version, preferably at least
-  `16.2.5` based on local audit output, then run `bun install`, `bun typecheck`,
-  `bun lint`, and `bun --filter @weblab/web-client build`.
+- **Fix:** Upgraded hosted web and docs workspaces to `next@16.2.6`, with a root
+  override so transitive tooling also resolves to the patched version.
 - **Mitigation:** If immediate upgrade is impossible, block affected request
   shapes at the edge/proxy and remove any risky rewrites, but this should be
   treated as temporary only.
@@ -59,6 +73,7 @@ secret rotation history.
 ### SEC-002 - Dependency audit has unresolved critical/high vulnerabilities
 
 - **Severity:** High
+- **Status:** Fixed 2026-05-24.
 - **Rule:** Supply-chain hygiene
 - **Location:** `bun.lock`, workspace dependencies
 - **Evidence:**
@@ -70,10 +85,10 @@ secret rotation history.
   workspaces, but several are in the web-client dependency graph. A production
   release should not ship with known critical/high advisories unresolved or
   explicitly risk-accepted.
-- **Fix:** Triage each advisory by production reachability, upgrade direct
-  dependencies, use targeted overrides where appropriate, and re-run
-  `bun audit --audit-level=moderate` until production-reachable critical/high
-  findings are gone.
+- **Fix:** Removed the unused vulnerable `fg` dependency from `@weblab/ai`,
+  upgraded Next/React and React Email tooling, and added targeted root overrides
+  for patched transitive packages. `bun audit --audit-level=moderate` now exits
+  successfully.
 - **Mitigation:** If a vulnerable transitive dependency is not used in production
   runtime, document that with evidence and isolate it to dev-only workspaces.
 - **False positive notes:** `bun audit` is intentionally broad across the
@@ -83,6 +98,8 @@ secret rotation history.
 ### SEC-003 - CSP is too permissive for a real-user production launch
 
 - **Severity:** High
+- **Status:** Partially fixed 2026-05-24; nonce rollout remains a defense-in-depth
+  follow-up.
 - **Rule:** JS-XSS-003 / REACT-XSS-001 defense in depth
 - **Location:** `apps/web/client/next.config.ts:108-128`
 - **Evidence:**
@@ -94,9 +111,10 @@ secret rotation history.
   syntax-highlighted HTML, third-party scripts, or future UI code, the current
   CSP gives the browser much less ability to contain it. `unsafe-eval` also
   expands the impact of injected strings and compromised dependencies.
-- **Fix:** Move toward nonce/hash-based scripts, remove `unsafe-eval` in
-  production, inventory required third-party script hosts, and add a CSP report
-  endpoint/report-only rollout before enforcement.
+- **Fix:** Production CSP now removes `unsafe-eval` from `script-src`; non-prod
+  keeps it for development tooling. `unsafe-inline` remains because the app has
+  existing inline script/style patterns that require a separate nonce/hash
+  rollout.
 - **Mitigation:** Keep raw HTML rendering centralized and sanitized where input
   can be user-controlled. Avoid adding new `dangerouslySetInnerHTML` outside
   trusted constant JSON-LD or sanitized highlighter output.
@@ -106,6 +124,7 @@ secret rotation history.
 ### SEC-004 - Chat endpoint accepts unbounded client-controlled message payloads
 
 - **Severity:** High
+- **Status:** Fixed 2026-05-24.
 - **Rule:** NEXT-INPUT-001 / AI spend abuse controls
 - **Location:** `apps/web/client/src/app/api/chat/route.ts:127-136`,
   `apps/web/client/src/app/api/chat/route.ts:191-204`,
@@ -118,9 +137,8 @@ secret rotation history.
   an expensive AI route. Existing usage checks meter count-based limits, not
   input size or cost. This can cause high provider spend, memory pressure, or
   degraded service before the request is rejected.
-- **Fix:** Mirror the summarizer endpoint's bounds: max message count,
-  max serialized bytes per message, max total serialized bytes, and a typed
-  message/parts schema. Reject before model/provider work begins.
+- **Fix:** Added max message count, per-message byte cap, and total serialized
+  message byte cap. Requests are rejected before project/tool/provider work.
 - **Mitigation:** Add per-user distributed rate limiting and request body size
   limits at Railway/edge where possible.
 - **False positive notes:** The endpoint requires authentication and project
@@ -130,6 +148,7 @@ secret rotation history.
 ### SEC-005 - Inline edit and tab-complete endpoints lack payload-size caps
 
 - **Severity:** High
+- **Status:** Fixed 2026-05-24.
 - **Rule:** NEXT-INPUT-001 / AI spend abuse controls
 - **Location:** `apps/web/client/src/app/api/ai/inline-edit/route.ts:65-83`,
   `apps/web/client/src/app/api/ai/inline-edit/route.ts:167-179`,
@@ -142,9 +161,9 @@ secret rotation history.
     calls.
 - **Impact:** Any authenticated project member can submit very large source-code
   buffers to paid AI endpoints. This can drive provider spend and memory usage.
-- **Fix:** Add Zod schemas with max lengths for file path, language,
-  instruction, and code-context fields. Enforce total byte caps before
-  `incrementUsage` and before provider calls.
+- **Fix:** Added Zod runtime schemas and byte caps for file path, language,
+  instruction, and code-context fields. Oversized requests are rejected before
+  provider calls and before paid usage increments where applicable.
 - **Mitigation:** Add endpoint-level rate limiting for tab completion, since it
   is designed to fire frequently while typing.
 - **False positive notes:** Both routes correctly verify project access before
@@ -154,6 +173,7 @@ secret rotation history.
 ### SEC-006 - API error responses can leak internal exception messages
 
 - **Severity:** High
+- **Status:** Fixed 2026-05-24.
 - **Rule:** NEXT-ERROR-001
 - **Location:** `apps/web/client/src/app/api/chat/route.ts:176-187`,
   `apps/web/client/src/app/api/chat/route.ts:508-511`,
@@ -168,8 +188,9 @@ secret rotation history.
   learn internal provider state, model routing details, service configuration, or
   stack-derived strings. This weakens incident response and may reveal sensitive
   architecture details.
-- **Fix:** Return stable public error codes/messages and log detailed errors
-  server-side with trace IDs.
+- **Fix:** Replaced client-visible internal exception strings in chat,
+  streaming, summarize, inline-edit, and tab-complete error paths with stable
+  public messages while retaining server-side logging.
 - **Mitigation:** Preserve `X-Trace-Id` on AI routes and include that in logs so
   support can diagnose without exposing internals to clients.
 - **False positive notes:** Some errors are already generic, for example the
@@ -250,24 +271,22 @@ secret rotation history.
 
 Before production release to real users:
 
-1. Upgrade Next.js and resolve production-reachable critical/high dependency
-   advisories.
-2. Add payload size limits and typed runtime schemas to chat, inline-edit, and
-   tab-complete.
-3. Replace client-visible internal errors with stable public error responses.
-4. Tighten CSP, starting with removing `unsafe-eval` in production or documenting
-   the exact blocker and rollout plan.
-5. Re-run:
+1. Clear or formally risk-accept the unrelated repository-wide `bun lint`
+   baseline failures.
+2. Verify live production headers and auth behavior on the deployed Railway URL
+   before opening access broadly.
+3. Plan the CSP nonce/hash rollout so production can eventually remove
+   `unsafe-inline`.
+4. Re-run before release:
    - `bun audit --audit-level=moderate`
    - `bun typecheck`
    - `bun lint`
    - `bun --filter @weblab/web-client build`
-6. Verify live production headers and auth behavior on the deployed Railway URL
-   before opening access broadly.
+   - `bun --filter @weblab/web-client lint`
 
 ## Confidence
 
-I am confident this build should **not** be released as-is. The largest blockers
-are evidence-backed: current dependency advisories, permissive CSP, and unbounded
-paid AI payloads. I would do a second pass after those fixes land, including live
-header checks and route-level abuse tests.
+I am confident the specific security release blockers in this review were
+addressed in code and dependencies. I am not willing to call the entire monorepo
+release-perfect while `bun lint` is red from unrelated package lint baselines;
+that should be fixed or formally accepted before broad production access.

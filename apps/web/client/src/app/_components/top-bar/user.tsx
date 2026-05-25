@@ -37,26 +37,30 @@ export const AuthButton = () => {
     const t = useTranslations('nav.user');
     return (
         <div className="mt-0 flex items-center gap-3">
-            <Link
-                href={Routes.DOWNLOAD}
-                className="text-foreground-secondary hover:text-foreground text-mini hidden items-center gap-1.5 transition-colors duration-150 lg:inline-flex"
+            <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden cursor-pointer rounded-full lg:inline-flex"
             >
-                <Icons.Download className="h-3.5 w-3.5" />
-                {t('download')}
-            </Link>
+                <Link href={Routes.DOWNLOAD}>
+                    <Icons.Download className="h-3.5 w-3.5" />
+                    {t('download')}
+                </Link>
+            </Button>
             {isSignedIn === null ? (
                 // Reserve space while the auth check is in-flight so the
                 // layout doesn't jump from "Sign In" → avatar after hydrate.
                 <div className="h-8 w-[7.5rem]" aria-hidden />
             ) : isSignedIn ? (
                 <>
-                    <Button variant="secondary" size="sm" asChild className="cursor-pointer">
+                    <Button variant="secondary" size="sm" asChild className="cursor-pointer rounded-full">
                         <Link href={Routes.PROJECTS}>{t('projects')}</Link>
                     </Button>
                     <CurrentUserAvatar className="cursor-pointer hover:opacity-80" />
                 </>
             ) : (
-                <Button variant="secondary" size="sm" asChild className="cursor-pointer">
+                <Button variant="outline" size="sm" asChild className="cursor-pointer rounded-full">
                     <Link href={getSignInUrlClient()}>{t('signIn')}</Link>
                 </Button>
             )}

@@ -1,3 +1,4 @@
+import type { LanguageModel } from 'ai';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { convertToModelMessages, generateObject, generateText } from 'ai';
 import { v } from 'convex/values';
@@ -15,6 +16,16 @@ import { vMessageRole } from './lib/enums';
 const TITLE_MAX_LENGTH = 50;
 const TITLE_PROMPT_PREFIX =
     'Generate a concise and meaningful conversation title (2-4 words maximum) that reflects the main purpose or theme of the conversation based on the user creation prompt. Generate only the conversation title, nothing else. Keep it short and descriptive. User prompt:';
+
+// Bounds on client-supplied LLM inputs. Without these, a member-tier caller
+// could drive OpenRouter spend by passing megabytes of fake message context
+// (every byte hits a billed token bucket). The conversation already gates
+// on `project.use_ai`, so the caps protect the shared OpenRouter account,
+// not unauthorized access.
+const TITLE_CONTENT_MAX_BYTES = 4 * 1024;
+const SUGGESTIONS_MAX_MESSAGES = 50;
+const SUGGESTIONS_MESSAGE_MAX_BYTES = 4 * 1024;
+const SUGGESTIONS_TOTAL_MAX_BYTES = 100 * 1024;
 
 const SUGGESTION_SYSTEM_PROMPT =
     "You are an expert front-end product designer suggesting the next thing to build for a page. The user is iterating on a webpage with an AI coding assistant. Produce 3 high-leverage, concrete, realistic next steps the user should take. Each suggestion is a short title (max 60 chars) and a longer detailed prompt the user could paste into the AI to execute it. Don't repeat what the assistant has already produced. Don't suggest broad rewrites. Suggest the smallest, most impactful next move. Avoid vague advice ('improve the UI'); be specific ('add a sticky CTA above the fold with copy …').";
@@ -63,9 +74,19 @@ export const generateTitle = action({
         });
         if (!conversation) throw new Error('NOT_FOUND: conversation');
 
+        if (content.length > TITLE_CONTENT_MAX_BYTES) {
+            throw new Error(`BAD_REQUEST: content exceeds ${TITLE_CONTENT_MAX_BYTES} bytes`);
+        }
+
         const openrouter = requireOpenRouter();
         const result = await generateText({
-            model: openrouter('anthropic/claude-3.5-haiku'),
+            // `@openrouter/ai-sdk-provider` returns a model built against an
+            // older `@ai-sdk/provider`; `ai`'s `generateText` now expects the
+            // newer `LanguageModelV2` type from `@ai-sdk/gateway`'s nested
+            // provider. Both implement the same runtime contract — cast
+            // through `unknown` to bridge the two type trees until the
+            // upstream openrouter package bumps its provider peer.
+            model: openrouter('anthropic/claude-3.5-haiku') as unknown as LanguageModel,
             prompt: `${TITLE_PROMPT_PREFIX} <prompt>${content}</prompt>`,
             maxOutputTokens: 50,
         });
@@ -107,9 +128,29 @@ export const generateSuggestions = action({
         });
         if (!conversation) throw new Error('NOT_FOUND: conversation');
 
+        if (messages.length > SUGGESTIONS_MAX_MESSAGES) {
+            throw new Error(`BAD_REQUEST: too many messages (max ${SUGGESTIONS_MAX_MESSAGES})`);
+        }
+        let totalBytes = 0;
+        for (const m of messages) {
+            if (m.content.length > SUGGESTIONS_MESSAGE_MAX_BYTES) {
+                throw new Error(
+                    `BAD_REQUEST: message content exceeds ${SUGGESTIONS_MESSAGE_MAX_BYTES} bytes`,
+                );
+            }
+            totalBytes += m.content.length;
+            if (totalBytes > SUGGESTIONS_TOTAL_MAX_BYTES) {
+                throw new Error(
+                    `BAD_REQUEST: total content exceeds ${SUGGESTIONS_TOTAL_MAX_BYTES} bytes`,
+                );
+            }
+        }
+
         const openrouter = requireOpenRouter();
         const { object } = await generateObject({
-            model: openrouter('openai/gpt-5.5'),
+            // Same cross-provider type bridge as `generateTitle` above; see
+            // that comment for rationale.
+            model: openrouter('openai/gpt-5.5') as unknown as LanguageModel,
             schema: ChatSuggestionsSchema,
             messages: [
                 { role: 'system', content: SUGGESTION_SYSTEM_PROMPT },

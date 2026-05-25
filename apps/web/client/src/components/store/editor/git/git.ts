@@ -2,7 +2,6 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import stripAnsi from 'strip-ansi';
 
 import { APP_NAME, SUPPORT_EMAIL } from '@weblab/constants';
-import { type GitCommit } from '@weblab/git';
 
 import type { SandboxManager } from '../sandbox';
 import {
@@ -14,6 +13,14 @@ import {
 import { isSandboxGoneError, isShellStartupError } from '../sandbox/errors';
 
 const MAX_DIFF_FILE_BYTES = 500_000;
+
+export interface GitCommit {
+    oid: string;
+    message: string;
+    displayName: string | null;
+    author: { name: string; email: string };
+    timestamp: number;
+}
 
 function containsNullByte(bytes: Uint8Array): boolean {
     // Cheap binary detection: scan the first ~8KB for a null byte.

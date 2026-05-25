@@ -310,9 +310,7 @@ export const useStartProject = (initialBootstrap?: EditorBootstrapData) => {
             breakpointMigrationRanRef.current = true;
             void (async () => {
                 try {
-                    const expanded = await ensureBreakpointSiblings(
-                        canvasWithFrames.frames,
-                    );
+                    const expanded = await ensureBreakpointSiblings(canvasWithFrames.frames);
                     if (expanded.length !== canvasWithFrames.frames.length) {
                         editorEngine.frames.applyFrames(expanded);
                     }

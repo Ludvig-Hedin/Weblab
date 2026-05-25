@@ -219,13 +219,13 @@ export const ChatInput = observer(
 
         const inputEmpty = !inputValue || inputValue.trim().length === 0;
 
-        function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
+        const handleInput: React.InputEventHandler<HTMLTextAreaElement> = (e) => {
             if (isComposing) {
                 return;
             }
             e.currentTarget.style.height = 'auto';
             e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-        }
+        };
 
         const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === 'Tab') {

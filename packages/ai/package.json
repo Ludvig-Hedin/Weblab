@@ -39,13 +39,13 @@
         "typescript": "^5.5.4"
     },
     "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.79",
         "@ai-sdk/openai": "^2",
         "@mendable/firecrawl-js": "^1.29.1",
         "@openrouter/ai-sdk-provider": "^1.2.0",
         "@weblab/ui": "*",
         "ai": "5.0.60",
         "exa-js": "^1.8.26",
-        "fg": "^0.0.3",
         "gpt-tokenizer": "^3.0.1",
         "marked": "^15.0.7",
         "mem0ai": "^2.1.0",

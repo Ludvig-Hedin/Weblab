@@ -1,3 +1,9 @@
+// ⚠️ NOT THE ACTIVE MIDDLEWARE. Next.js loads `apps/web/client/middleware.ts`
+// (package root), which is the canonical, maintained copy. This file is a
+// byte-identical duplicate kept intentionally (deletion declined by the owner).
+// Do NOT edit logic here — change the root `middleware.ts` and mirror it, or the
+// two will silently drift. See CODE_REVIEW_BACKLOG.md CR-2026-05-24-009.
+
 import { NextResponse } from 'next/server';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 

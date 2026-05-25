@@ -305,6 +305,20 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
     const enableWidth = styles.width?.endsWith('px');
     const enableHeight = styles.height?.endsWith('px');
 
+    // Holds the teardown for an in-flight resize drag. `onMouseUp` clears it on
+    // a normal release; if the component unmounts mid-drag instead (selection
+    // cleared, element deleted, breakpoint switch — all common while holding a
+    // handle), `onMouseUp` never fires, so this effect runs the teardown to
+    // avoid leaking document listeners + an orphaned full-screen capture overlay
+    // (zIndex:9999) that would make the entire canvas unclickable.
+    const activeResizeCleanupRef = React.useRef<(() => void) | null>(null);
+    React.useEffect(() => {
+        return () => {
+            activeResizeCleanupRef.current?.();
+            activeResizeCleanupRef.current = null;
+        };
+    }, []);
+
     // Calculate radius handle position (20px or 25% of width/height, whichever is smaller)
     const radiusOffset = Math.min(20, width * 0.25, height * 0.25);
     const showRadius = width >= 10 && height >= 10;
@@ -431,17 +445,34 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             upEvent.stopPropagation();
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            document.body.removeChild(captureOverlay);
+            // `.remove()` instead of `body.removeChild(...)`: it's a no-op if
+            // the node was already detached, so a double-fire or an unmount
+            // race can't throw a NotFoundError here and abort the rest of
+            // onMouseUp (which commits the resize history transaction).
+            captureOverlay.remove();
             if (rafId !== null) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
             }
             flush();
             editorEngine.history.commitTransaction();
+            activeResizeCleanupRef.current = null;
         };
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+        // Unmount-safety net (see activeResizeCleanupRef): tear down if the
+        // component unmounts before mouseup fires.
+        activeResizeCleanupRef.current = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            captureOverlay.remove();
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            void editorEngine.history.commitTransaction();
+        };
     };
 
     const handleMouseDownRadius = (
@@ -479,12 +510,25 @@ export const ResizeHandles: React.FC<ResizeHandlesProps> = ({
             upEvent.stopPropagation();
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            document.body.removeChild(captureOverlay);
+            // `.remove()` instead of `body.removeChild(...)`: it's a no-op if
+            // the node was already detached, so a double-fire or an unmount
+            // race can't throw a NotFoundError here and abort the rest of
+            // onMouseUp (which commits the resize history transaction).
+            captureOverlay.remove();
             editorEngine.history.commitTransaction();
+            activeResizeCleanupRef.current = null;
         };
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+        // Unmount-safety net (see activeResizeCleanupRef): tear down if the
+        // component unmounts before mouseup fires.
+        activeResizeCleanupRef.current = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            captureOverlay.remove();
+            void editorEngine.history.commitTransaction();
+        };
     };
 
     return (

@@ -202,7 +202,7 @@ function Headline() {
             >
                 {t('headline')}
             </SplitText>
-            <p className="text-foreground-secondary mt-5 max-w-md text-base leading-relaxed font-light tracking-tight text-balance">
+            <p className="text-foreground-secondary mt-5 max-w-md text-base leading-[1.4] font-light tracking-tight text-balance">
                 {t('body')}
             </p>
         </Reveal>

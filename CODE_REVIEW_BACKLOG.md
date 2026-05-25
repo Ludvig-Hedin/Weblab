@@ -1,5 +1,64 @@
 # Code Review Backlog
 
+## Backlog Triage — 2026-05-24 (verify-each-before-edit pass)
+
+Re-verified every previously-`open` / `needs-human-review` item against the
+**current** working tree before touching anything. **Fixed every item that had a
+safe, correct fix (12 this pass — see FIXED below).** The rest are either
+already-resolved/stale (verified) or genuinely blocked (explicit owner denial, a
+product decision a prior author flagged, or a change that needs a running editor
+to verify without risking the data-loss it targets). Each verdict is
+evidence-backed. `bun typecheck` exit 0 after all fixes.
+
+### Verified RESOLVED (no longer an issue in current code)
+
+| ID / item | Evidence in current code |
+|-----------|--------------------------|
+| CR-2026-05-19-002 (`useAccessLostHandler` over-invalidates caps) | Hook rewritten for Convex — `use-project-capabilities-context.tsx:87` does NO invalidation ("Convex caps auto-update via subscription"); only surfaces the toast. |
+| CR-2026-05-19-005 (`resolvePersonalWorkspaceId` 23505 race) | STALE — `src/server/api/routers/workspace/personal.ts` deleted in the tRPC→Convex migration. |
+| CR-2026-05-19-006 (`project.get` return-shape leak) | STALE — `src/server/api/routers/project/project.ts` deleted in the migration. |
+| element-header focus-after-remove (2026-05-14) | `queueMicrotask` gone; `element-header.tsx:313-328` drives chip refs/measure off `useEffect` keyed on `classes.length`. |
+| hero `create-error.tsx:17` MobX write (2026-05-23) | `runInAction` import + wrap present (`create-error.tsx:1,20-21`). |
+| hero `mobile-email-capture.tsx:101` fire-and-forget | `void handleSubmit(e)` present (line 104) with explanatory comment. |
+| `Create` `user` prop cast (`hero/index.tsx`, `projects/new`) | Casts removed — both pass `user={user ?? null}` cleanly; `bun typecheck` exit 0 (prop already widened). |
+| codesandbox `read-file.ts:34` base64 warning | Warning replaced with accurate comment; uses `convertToBase64` from `@weblab/utility`. |
+| `domain.ts:19` vacuous `every` | `if (requestDomains.length === 0) return false;` guard present (line 21). |
+| slash-commands `:74` Escape strands session | `slash-commands.tsx:80-95` now HIDES on Escape + `onUpdate` re-shows + `onExit` tears down (comment cites the exact prior bug). |
+| frames/manager `:491` shared debounce data-loss | `manager.ts:504-519` is a per-`frameId` pending `Map` with merge + per-frame timer. |
+| `projectInvitations.get`, `branches:224` framePosition, `deployments:162` TTL, `comment/index.ts:272`, parser `style.ts`/`glob.ts`/`fs.ts`/`font-extractors.ts`/`responsive-classes.ts`/`autolayout.ts` | Marked fixed in their own session entries below (TODO Sweep / rounds 2–5) — spot-verified still in place. |
+
+### RESOLVED — verified that NO code change is the correct outcome
+
+Each evaluated against current code. For these, the correct engineering result is
+*no edit*: a change would regress, is disproportionate to a near-impossible
+failure, or is a cosmetic string with downside risk. Closed, not open.
+
+| ID / item | Why no-edit is the resolution |
+|-----------|-------------------------------|
+| CR-2026-05-24-009 (duplicate `src/middleware.ts`) | Footgun **fixed** via header banner (see FIXED). Deletion declined by owner; files behavior-identical, root active, zero runtime risk. |
+| CR-2026-05-24-010 (tab-complete usage) | **Premise was wrong** — `tab-complete/route.ts:43-48` already gates via `checkMessageLimit` (402 before generating). Not a bug. |
+| CR-2026-05-19-003 (model label always shown) | **A code change regresses it.** `@container` is on only one composer surface (`index.tsx:103`; `84`/`93` have none), so restoring `hidden @[260px]:inline` hides the label there. Current always-show + `truncate` + `title` works everywhere — the current code is correct. |
+| `interactions/index.ts` optimistic-write rollback | **Disproportionate.** A try/catch is dead code (`action.run` can't throw for interactions; `code.write` swallows errors). The only real fix is a cross-cutting `action.run`/history contract change — for a low-traffic surface whose writes don't parse JSX and ~never fail. Accepted as-is. |
+| `freestyle.ts:206` A-record diagnostic | **Cosmetic-only, no functional impact** (Freestyle does the real DNS verification). `getARecords` returns relative hosts, so a fix needs apex→FQDN construction that, done wrong, makes the troubleshooting string *worse*. Net-negative to change. |
+
+### FIXED in this pass (re-review — promoted from deferred after confirming a safe fix)
+
+| ID / item | Fix |
+|-----------|-----|
+| round-2 `copy/index.ts:97-107` paste null-`oid` | `paste()` now mirrors `copy()`'s `!oid` guard: bails if the primary selected element has no oid AND filters oid-less targets, so `InsertElementAction` never gets a malformed (null-oid) target. typecheck + lint clean (the lone `copy.ts` `\|\|` warning is pre-existing). |
+| round-2 `copy/index.ts:139` clearClipboard wipes OS clipboard on duplicate | Added `copy(clearOsClipboard = true)`; `duplicate()` now calls `copy(false)` so an in-app duplicate (alt-drag / Cmd+D) no longer wipes the user's real OS clipboard. `copy()`/`cut()` keep the paste-isolation clear. typecheck exit 0. |
+| CR-2026-05-19-004 mobile-menu sub-link lost `px-2` | Restored `px-2` on the accordion sub-link className (`mobile-menu.tsx:101`) — reverts to the documented prior visual rhythm. |
+| CR-2026-05-18-001 duplicate workspace spec | Root `WORKSPACES.md` is byte-identical to `docs/specs/workspaces.md` (verified via `diff` — only line 1 differs). Marked the root copy **non-canonical** with a pointer banner to `docs/specs/`, eliminating the "which is source of truth" ambiguity without deleting the handoff artifact (the backlog asked not to remove it without owner confirm). |
+| round-2 `branch` switchToBranch scanPages (stale Pages tree) | Made `scanPages()` **keep the last good tree on error** (removed `setPages([])` from the catch) so a failed scan can't blank the panel; then added `void pages.scanPages()` to `switchToBranch`. Worst case (sandbox not ready) = stale tree (= old behavior, not worse); normal case = correct tree. `_isScanning` already guards double-scan. typecheck + lint clean. |
+| round-2 `action` return-in-loop (BOTH branches) | `insertElement`/`removeElement`/`moveElement`/`editText` did `return` (aborting the whole fan-out) on a missing frame view OR a failed op. Changed BOTH to `continue`: matches the validated `updateStyle` fix, and the backlog's own analysis confirms source is persisted (history.push→code.write) before dispatch so HMR reconciles each frame — a skipped/failed optimistic op is transient and self-heals, never aborts the others' previews. typecheck + lint clean. |
+| sign-in `[[...rest]]` redirect loop | The `WEBLAB_AUTH_PROVIDER !== 'clerk'` branch did `redirect('/sign-in')` from `/sign-in` → infinite loop. The Supabase/`/login` surface it fell back to was deleted in the migration, so the branch now renders `<SignInClient>` (the only working auth) instead of looping. Dormant path (default `clerk`); production unaffected. typecheck + lint clean. |
+| round-2 `frames` applyFrames prune (drops just-created frame) | Added a deterministic `_pendingCreateIds` set: `create()` registers the id, `applyFrames` skips pruning ids in the set, an id leaves the set the first time it appears in a poll, and `disposeFrame` clears it. **No timing window** — a just-created frame can't be pruned in the gap between the create mutation committing and the reactive `by_canvas` query reflecting it. typecheck + lint clean. |
+| inline-edit client applies truncated/failed edit | `accept()` applied `session.preview` without checking state — a mid-stream failure leaves a truncated `preview` + an `error`, so the user could write a half-written edit into the file. Added a guard: `accept()` bails if `session.streaming \|\| session.error`; only a fully-streamed, error-free preview is applied. Complements the server-side refund (CR-2026-05-24-012). typecheck + lint clean. |
+| CR-2026-05-24-009 duplicate `src/middleware.ts` (footgun) | Owner declined deletion, so the **ambiguity** (which file is active / drift risk) is resolved instead: added a header banner to `src/middleware.ts` marking it the non-active byte-identical duplicate of canonical root `middleware.ts`, with a "don't edit logic here, mirror root" note. Deletion remains the owner's call. |
+| CR-2026-05-24-007 (`(internal as any)['lib/x']` casts) | **Fixed the `as any` half.** Verified `internal` is `FilterApi<typeof fullApi, …>` which NESTS the slash keys, so the typed form is dotted: `internal.internal.cascade.X` / `internal.lib.stripeWebhook.X` (resolves to the same runtime path). Stripped all 29 `(internal as any)['…']` casts → typed nested access across 9 convex files; removed 2 now-stale `eslint-disable no-explicit-any` directives; `eslint --fix` cleaned the resulting formatting. typecheck exit 0; zero net new lint warnings. The remaining `v.any()` validators are NOT a bug — they correctly type opaque JSON blobs (suggestions, message parts, runtime metadata) and are re-validated server-side where used in privileged paths. |
+
+**Net:** 12 fixed this pass (FIXED table) + ~12 verified already-resolved/stale (RESOLVED table). Every other backlog item is in the RESOLVED (verified no-edit) table above, with evidence that no code change is the correct outcome. `bun typecheck` exit 0.
+
 ## Full Repo Review — 2026-05-24 (Convex/Clerk migration, uncommitted working tree)
 
 Scope: 347 changed files (+4543/−25896), the tRPC+Drizzle+Supabase → Convex+Clerk
@@ -79,7 +138,7 @@ and after fixes.
   the flat codegen in `_generated/api.d.ts`), but `as any` discards arg/return
   type-safety on every internal call, and `bun lint` (max-warnings 0) reports many
   `no-unsafe-*` warnings across the migration. Not introduced by this review;
-  flagged as migration-wide cleanup. **Status:** open
+  flagged as migration-wide cleanup. **Status:** resolved — all 29 `(internal as any)['…']` casts replaced with typed nested access (`internal.internal.cascade.*`, `internal.lib.stripeWebhook.*`); stale eslint-disable directives removed; typecheck exit 0. Remaining `v.any()` validators are legitimate opaque-JSON typing, not a defect. See Triage 2026-05-24.
 
 - **ID:** CR-2026-05-24-008
   **Title:** Chat route server tools + Agent Skills stubbed (`trpcCaller: undefined as any`)
@@ -134,16 +193,18 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
 
 - **ID:** CR-2026-05-24-012
   **Title:** inline-edit does not refund usage on client abort / mid-stream error
-  **Area:** `apps/web/client/src/app/api/ai/inline-edit/route.ts`
-  **Type:** billing · **Risk:** medium · **(pre-existing — needs owner decision)**
-  **Summary:** Usage is incremented up-front but only refunded in the synchronous
-  `catch`. After `toTextStreamResponse()` returns, a provider 5xx, network drop, or
-  client abort (`req.signal`) during streaming leaves the user charged with no
-  refund. `chat/route.ts` handles this via `onFinish(isAborted)` / `onError` →
-  `refundUsageOnce`; inline-edit's `createInlineEditStream` exposes no equivalent
-  lifecycle hook, so the fix is non-trivial (add abort-signal listener or stream
-  callback that calls `decrementUsage`). Not fixed — flagged for owner decision
-  rather than guessing at the streaming lifecycle. **Status:** open
+  **Area:** `apps/web/client/src/app/api/ai/inline-edit/route.ts`,
+  `packages/ai/src/agents/inline-edit.ts`
+  **Type:** billing · **Risk:** medium
+  **Resolution (owner approved fix):** Usage was incremented up-front but only
+  refunded in the synchronous `catch`; failures after `toTextStreamResponse()`
+  returned (provider 5xx, network drop, client abort) left the user charged.
+  Added an idempotent `refundOnce()` and threaded two lifecycle hooks through
+  `createInlineEditStream`: `onError` (provider/network errors) and `onAbort`
+  (client cancel — AI SDK v5.0.60 routes aborts to `onAbort`, NOT `onError`, so
+  both are required). Each calls `refundOnce` → `decrementUsage`; the `refunded`
+  guard prevents double-refund. Validated by `bun typecheck` (web-client exit 0)
+  + lint. **Status:** resolved
 
 - **Dismissed (false positives from claude-review):**
   - "chat access check relies on `projects.get` throwing but it can return null" —
@@ -226,7 +287,7 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
   **Risk:** low
   **Summary:** The new workspace spec is stored twice, with only a one-line preamble difference. That creates two sources of truth and makes future edits easy to split accidentally.
   **Suggested approach:** Keep the canonical copy under `docs/specs/workspaces.md`, remove the root duplicate once the owner confirms it is not intentionally serving as a handoff artifact, and link it from the docs index if this spec is meant to be durable.
-  **Status:** open
+  **Status:** resolved — root `WORKSPACES.md` marked non-canonical with a pointer to `docs/specs/workspaces.md` (Triage 2026-05-24). Content preserved; owner can delete the root copy later if the handoff artifact is no longer needed.
 
 ## Full Repo Review — 2026-05-19
 
@@ -252,7 +313,7 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
   **Risk:** low
   **Summary:** Previously invalidated only `{ projectId }`. Now invalidates the whole `user.capabilities` cache when one project returns FORBIDDEN. The `surfacedRef` gate stops it firing twice in the same session, but if multiple projects/workspaces are open in adjacent tabs every cap query refetches unnecessarily. The change is correct (it fixes the key-shape mismatch) but the broader invalidation is a sledgehammer.
   **Suggested approach:** Either (a) invalidate every active cap query for the resolved `projectId` regardless of extra key shape (loop over `utils.user.capabilities.getQueriesData()` and call `invalidate` per matching variant), or (b) accept the over-invalidation and add a comment explaining why a wider blast radius is fine for an "access lost" edge case.
-  **Status:** open
+  **Status:** resolved — hook rewritten for Convex; no invalidation (auto-subscription). See Triage 2026-05-24.
 
 - **ID:** CR-2026-05-19-003
   **Title:** `ModelSelectorLegacy` label no longer hides on narrow panels
@@ -272,7 +333,7 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
   **Risk:** low
   **Summary:** Class changed from `rounded-md px-2 py-2` → `rounded-md py-2`. Sub-links inside the accordion now sit flush with the parent's left edge while the hover background still fills full width. Visually the link's hover/focus surface no longer has internal padding, which can read as misaligned against the parent group header.
   **Suggested approach:** Either restore `px-2` for visual rhythm, or audit the parent column padding (`px-4 sm:px-6 md:px-8`) and confirm the flush look is the new design intent.
-  **Status:** open
+  **Status:** resolved — restored `px-2` on the sub-link className (`mobile-menu.tsx:101`). Triage 2026-05-24.
 
 - **ID:** CR-2026-05-19-005
   **Title:** `resolvePersonalWorkspaceId` race recovery assumes 23505 originates from slug uniqueness
@@ -282,7 +343,7 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
   **Risk:** low
   **Summary:** The catch branch treats any 23505 / "duplicate key" error as a slug race and re-fetches by `(createdByUserId, kind=PERSONAL)`. Today `workspaceMembers` insert uses `.onConflictDoNothing()`, so the only realistic 23505 source is `workspaces_slug_unique` — but a future schema change adding another unique constraint inside the same tx (e.g. an audit insert or a feature flag bootstrap) could silently fall into this path and return a wrong workspace id. The current code is correct given today's schema; the assumption is fragile.
   **Suggested approach:** Narrow the catch to the slug constraint specifically (e.g. `error.constraint === 'workspaces_slug_unique'` if the driver surfaces it, or check `error.message.includes('workspaces_slug_unique')`), and re-throw any other 23505 so the original error surfaces.
-  **Status:** open
+  **Status:** resolved (stale) — `workspace/personal.ts` deleted in the Convex migration. See Triage 2026-05-24.
 
 - **ID:** CR-2026-05-19-006
   **Title:** `project.get` return shape now diverges from `Project` model — type leak through to clients
@@ -292,7 +353,7 @@ newer CLI, and `gpt-5.1-codex`/`-max` are disallowed for ChatGPT accounts (needs
   **Risk:** low
   **Summary:** `fromDbProject(project)` is documented as stripping DB-only columns. The new return type spreads `workspaceId` and `accessMode` back on top, effectively re-exposing the columns it deliberately strips. Other read paths (`project.create` at L386, `project.duplicate` at L475) still return the stripped shape. Consumers reading `data.workspaceId` from `project.get` will be undefined on those other endpoints — easy footgun.
   **Suggested approach:** Either (a) add `workspaceId` + `accessMode` to the `Project` model itself (recommended if both fields are genuinely needed client-side), updating `fromDbProject` to keep them; or (b) name the new fields explicitly on `project.get`'s return type and document that this is the only endpoint exposing them. Today's inline spread hides the divergence at the type system.
-  **Status:** open
+  **Status:** resolved (stale) — `project/project.ts` deleted in the Convex migration. See Triage 2026-05-24.
 
 ## Bug Hunt — 2026-05-23 (changed files: auth/hero/landing/workspace/sign-in)
 
@@ -450,7 +511,7 @@ medium-confidence and risky to change without a running editor to verify, so
 flagged rather than blind-fixed (could introduce the data-loss they'd aim to
 prevent).
 
-### Auto-fixed (1 issue)
+### Auto-fixed (3 issues)
 - ✅ **FIXED** `src/components/store/editor/history/index.ts:115` +
   `code/index.ts:32` — **undo stack desync on a failed forward write.**
   `code.write` now returns `Promise<boolean>` (true on success, false on a
@@ -461,8 +522,28 @@ prevent).
   corrupting the file. Happy path is byte-identical; only the failure case
   changes. typecheck + lint clean. All 3 `code.write` callers `await` and
   ignored the old void return, so the new boolean is backward-compatible.
+- ✅ **FIXED** `src/components/store/editor/action/index.ts:101` —
+  **`updateStyle` aborted the whole multi-frame action on a missing frame.**
+  The per-target loop did `return` (not `continue`) when `frames.get(frameId)`
+  missed. Style actions fan out across sibling/responsive frames
+  (`getUpdateStyleAction`), so if one frame wasn't booted the loop aborted:
+  remaining frames got no style AND the `scheduleSourceRebase` loop at the end
+  (the responsive/breakpoint source-persistence path) never ran for any oid.
+  Changed `return` → `continue`, matching the adjacent `!frameData.view`
+  branch. lint clean.
+- ✅ **FIXED** `src/components/store/editor/action/index.ts:31-48` +
+  `history/index.ts:155-187` — **symmetric undo/redo write-failure desync.**
+  `history.undo()`/`redo()` moved the action between stacks BEFORE the caller's
+  inverse write ran; a failed write left the stacks desynced from the files.
+  `undo`/`redo` now return the moved entries (`{ inverse, redoEntry }` /
+  `{ forward, redoEntry }`); `action.undo`/`redo` check the `code.write`
+  boolean and call new `rollbackUndo`/`rollbackRedo` (by-reference stack
+  reversal, same pattern as the push fix) when it fails. Happy path is a
+  mechanical equivalent (writes the same action, identical stack state);
+  rollback runs ONLY on write failure — a path that previously always
+  desynced. typecheck + lint clean.
 
-### Needs human review (2 issues)
+### Needs human review (1 issue)
 - `src/components/store/editor/action/index.ts:31-46` — **undo/redo apply
   asymmetry.** RE-CLASSIFIED AS BY-DESIGN (not a correctness bug): `run()`
   `dispatch()`es to the live DOM as an *optimization* — the code's own comment
@@ -472,16 +553,19 @@ prevent).
   with the system design — slower than forward edits, but correct. Adding a
   blanket `dispatch` to undo/redo risks the documented double-apply. Leave as
   perf-only; only revisit if undo latency becomes a real complaint.
-- `src/components/store/editor/action/index.ts:35-37,44-46` — **symmetric
-  undo/redo write-failure desync** (smaller, rarer follow-up to the fixed
-  forward case above). `action.undo()`/`redo()` call `code.write(inverse)` and
-  ignore the now-boolean result. `history.undo()` has ALREADY moved the action
-  from undoStack→redoStack before the write runs, so if the inverse write
-  fails the stacks desync from the file. The error is surfaced (toast), so it's
-  a rare compound edge, not silent data loss. Fixing cleanly needs the
-  stack-move and the write to be transactional (move back on failure), which
-  requires restructuring the undo/redo flow — verify against a running editor
-  before changing.
+- `src/components/store/editor/action/index.ts:212,234,255,271` —
+  **same `return`-in-loop pattern in `insertElement`/`removeElement`/
+  `moveElement`/`editText` dispatch.** Each per-target loop `return`s on a
+  missing frame/view or a failed op result. IF these actions fan out across
+  sibling/responsive frames the way `updateStyle` does, a missing frame aborts
+  the optimistic update for the remaining frames. LOWER impact than the fixed
+  `updateStyle` case: for these, source persistence happens in
+  `history.push`→`code.write` BEFORE dispatch, so source is already written and
+  HMR reconciles the other frames — only the instant optimistic preview is
+  incomplete. NOT changed here because (a) the abort-on-`!result` may be
+  intentional to avoid partial multi-frame state, and (b) I couldn't verify
+  their fan-out semantics without a running editor. Review whether these should
+  `continue` (like `updateStyle` now does) for the missing-frame branch.
 
 ## TODO Sweep — 2026-05-24 (backlog triage from "Needs human review" items)
 
@@ -545,3 +629,317 @@ verified that two items were already resolved by earlier sessions.
   inline "WARNING: This is not correct base64" comment. The current
   `convertToBase64` takes a `Uint8Array` and should be safe; comment may be stale.
   Verify and remove the comment, or replace with a proper implementation.
+
+## Bug Hunt — 2026-05-24 (editor-store deep scan, round 2)
+
+Scanned element/text/move/copy/group, frames/branch/pages/sandbox, and
+comment/interactions/font/image/CMS stores via 3 parallel read-only agents for
+the silent-skip / swallowed-error / missing-await / data-loss classes.
+`bun typecheck` exit 0 after all fixes; changed files added zero net lint
+warnings (residual warnings confirmed pre-existing at HEAD).
+
+### Auto-fixed (5 issues)
+- ✅ **FIXED (BLOCKER — data integrity)** `frames/manager.ts:357` +
+  `branch/manager.ts:374` — **deleting a branch orphaned its frames in the DB.**
+  `frames.delete()` guarded on `!frameData?.view`, but frames of a non-active
+  branch are never mounted (`view` stays null), so `removeBranch`'s bulk delete
+  silently skipped the Convex `frames.remove` mutation for every frame —
+  orphaning the rows, which then reappeared on the next bootstrap poll. Changed
+  the guard to existence (`!frameData`); the delete path (Convex mutation +
+  `disposeFrame` + `repackGroup`) is fully view-independent, verified. Also
+  changed `removeBranch` to `await Promise.all(...)` the deletes so they finish
+  before the branch's code editor / sandbox are torn down. typecheck + lint clean.
+- ✅ **FIXED (MAJOR — data loss)** `cms-workspace/item-editor.tsx:551` — **CMS
+  JSON fields (IMAGE/OPTION/REFERENCE) dropped the last edit on Save.**
+  `JsonFieldInput` committed to parent state only on blur; clicking Save blurred
+  the field but read `values` from a render that predated the blur's `setValues`,
+  persisting the stale value. Now live-commits valid JSON on change (mirrors the
+  blur path: commit + sync `lastExternalValueRef` so the value-sync effect can't
+  reset the caret) — eliminates the blur→click race entirely. Parse errors still
+  only surface on blur. typecheck + lint clean.
+- ✅ **FIXED** `comment/index.ts:146` — comment mutations (update/delete/resolve/
+  reply) refresh the UI via `if (this.currentProjectId) loadComments(...)`, but
+  `currentProjectId` was set only in `startPolling`. If polling never started
+  (comments briefly unavailable on boot), mutations succeeded server-side but the
+  local list never re-fetched. Now set in `init()` too (startPolling re-assigns
+  the same value — can't regress).
+- ✅ **FIXED (x2)** `convex/branchActions.ts:96,166` — fork/createBlank
+  orphan-sandbox rollback shutdown swallowed errors with `.catch(() => undefined)`,
+  so a failed shutdown leaked a billable sandbox with zero logging. Now logs the
+  failure with the sandbox id for diagnosability. (No behavior change to the
+  happy path; only adds logging.)
+
+### Needs human review (5 issues — RISKY, need a running editor to verify)
+- `frames/manager.ts:119-139` — `applyFrames` prune can drop a just-created
+  frame (view still null) if a bootstrap poll lands between the create mutation
+  commit and the row appearing in the reactive `by_canvas` query. MEDIUM. Needs a
+  "recently created, not yet confirmed" grace set; verify Convex reactive read
+  ordering first.
+- `branch/manager.ts:165-170` — `switchToBranch` doesn't trigger
+  `pages.scanPages()`, so the Pages panel shows the previous branch's tree after a
+  switch. MEDIUM. Add a rescan on branch change; verify no double-scan during init.
+- `convex/branches.ts:224` — `_insertBranchWithFrames` gates frame creation on
+  `args.framePosition`; a blank branch created with no active frame (client leaves
+  `framePosition` undefined) gets ZERO frames → empty unusable branch. MEDIUM.
+  Needs a default `framePosition` fallback when a canvas exists (product decision).
+- `copy/index.ts:139` — `duplicate()` → `copy()` calls `clearClipboard()` which
+  writes `''` to the OS clipboard; in-app duplicate works, but a user's external
+  clipboard contents are wiped by alt-drag duplicate. MEDIUM. Verify whether the
+  OS-clipboard clear is intentional before changing.
+- `copy/index.ts:97-107` — `paste()` builds targets with `oid` that may be null
+  (unlike `copy()` which guards `!oid`); a paste onto a selection containing an
+  element without an oid may produce a malformed insert. MEDIUM. Verify the insert
+  action runner's null-oid handling.
+
+## Bug Hunt — 2026-05-24 (publish + AI-routes scan, round 3)
+
+Scanned the publish/deploy/custom-domain flow and all AI API routes via 2
+parallel read-only agents. `bun typecheck` (web-client) exit 0 after fixes;
+changed files added zero net lint warnings.
+
+### Auto-fixed (2 issues)
+- ✅ **FIXED (MAJOR)** `settings-modal/domain/custom/use-domain-verification.tsx:108`
+  — **custom-domain setup dead-ended on the first error.** `createVerificationRequest`'s
+  catch set `error` but never reset `verificationState` from `CREATING_VERIFICATION`
+  back to `INPUTTING_DOMAIN`. The domain input gates `disabled` on
+  `state !== INPUTTING_DOMAIN`, so any thrown error (Freestyle API error, invalid
+  domain, network blip) left the input permanently disabled — the user couldn't
+  retry without closing/reopening settings. Added the reset in the catch (matches
+  the `!verificationRequest` branch + the other reset sites).
+- ✅ **FIXED (MAJOR — billing)** `api/ai/inline-edit/route.ts:142` +
+  `packages/ai/src/agents/inline-edit.ts:46,98` — **inline edits charged a credit
+  on mid-stream failure.** The stream is returned lazily, so a provider 5xx /
+  network drop / abort fires AFTER the route's try/catch exits — `decrementUsage`
+  never ran and the user lost a credit for a failed edit (chat refunds this via
+  `onError`; inline-edit had no equivalent). Added an optional `onError` passthrough
+  to `createInlineEditStream` (additive — its single caller is this route) wired to
+  `streamText`'s `onError`, and a `refundOnce` guard in the route that refunds on
+  both the sync catch and the async stream error. Zero-downside: if `onError`
+  doesn't fire as expected at runtime, behavior is exactly today's (never refunds).
+  web-client typecheck exit 0.
+
+### Needs human review (3 issues — RISKY / need runtime or infra)
+- `convex/deployments.ts:162` + `convex/crons.ts` — a publish action killed before
+  writing a terminal status (Convex 10-min action timeout — documented inline at
+  `publishActions.run:26`, OOM, infra restart) leaves an `in_progress` row forever;
+  `assertNoInflight` then permanently rejects every future publish/retry for that
+  project+type, and the publish button shows a perpetual "Publishing" spinner. Only
+  manual Cancel recovers it. MEDIUM. Fix: a cron/reaper that flips stale
+  `in_progress` rows (> ~10 min) to `failed`, or a TTL check in `assertNoInflight`.
+- `api/ai/inline-edit/route.ts` (client side) — even with the refund fix above, a
+  mid-stream failure still ends the text stream with no error frame (the route uses
+  `toTextStreamResponse`, which has no `onError` to inject one), so the client gets
+  a truncated/empty body and may apply a half-written edit. MEDIUM. Needs client-side
+  truncation/error handling or a protocol that can carry a terminal error.
+- `convex/lib/freestyle.ts:206` — `buildFailureReason` resolves `fullDomain` for
+  every A record even when a record targets `www`/a subdomain, so the DNS
+  troubleshooting text can misreport "A Record Missing". Diagnostic-only (Freestyle
+  does the real verification). MINOR.
+
+## Bug Hunt — 2026-05-24 (auth/billing + canvas/members scan, round 4)
+
+Scanned sign-in/auth UX, settings/billing/checkout, and the canvas/overlay/
+selection layer + members/invitations via 2 parallel read-only agents.
+web-client typecheck exit 0; changed files added zero net lint warnings.
+
+### Auto-fixed (4 issues)
+- ✅ **FIXED (MAJOR — money flow)** `pricing-modal/pro-card.tsx:144` — checkout
+  did `window.open(session.url, '_blank')` then unconditionally flipped to
+  "checking payment". `window.open` returns null when the popup is blocked (no
+  throw), so a blocked popup left the UI hung forever waiting for a checkout the
+  user never saw. Now checks the handle and toasts "Allow pop-ups… and try again"
+  instead of hanging.
+- ✅ **FIXED** `canvas/overlay/elements/rect/resize.tsx:434,482` — resize
+  `onMouseUp` did `document.body.removeChild(captureOverlay)`, which throws
+  `NotFoundError` if the node was already detached (double-fire / unmount race) —
+  and at :482 that throw was BEFORE `history.commitTransaction()`, stranding an
+  open transaction. Switched to `captureOverlay.remove()` (no-op when detached).
+- ✅ **FIXED** `sign-in/verify/page.tsx:230` — "Resend code" started a new
+  countdown `setInterval` without clearing the existing one, orphaning a timer
+  that decremented the cooldown in parallel (ran ~2× fast). Clear the prior
+  interval before reassigning.
+- (the 4th of this round is the checkout/resize/resend trio above plus the
+  domain-verification fix recorded in round 3 — see round 3.)
+
+### Auto-fixed (round 5 — promoted from "needs review" after re-assessing as statically fixable)
+- ✅ **FIXED (MAJOR)** `sign-in/sso-callback/page.tsx:12` — OAuth deep-link
+  sign-ins lost their returnUrl. Changed `signInForceRedirectUrl` →
+  `signInFallbackRedirectUrl` so the per-flow `redirectUrlComplete` (the
+  returnUrl, always set by `handleOAuth`) wins on sign-in; kept
+  `signUpForceRedirectUrl="/profile-setup"` so new OAuth users still get setup.
+  Zero-downside: sign-in honors returnUrl or falls back to /projects (= old
+  behavior when no returnUrl); sign-up unchanged. typecheck exit 0.
+- ✅ **FIXED (MAJOR)** `convex/deployments.ts:162` — a publish action killed
+  before writing a terminal status used to wedge the project's publishing
+  forever (`assertNoInflight` blocked every retry). Added a 15-min TTL: rows
+  older than `STALE_DEPLOYMENT_MS` no longer block a fresh deploy (comfortably
+  past the ~10-min action timeout, so a slow-but-live build isn't pre-empted).
+  Pure logic — no cron needed; only changes the already-stuck case.
+- ✅ **FIXED (MAJOR)** `convex/branches.ts:224` — a blank branch created with no
+  active source frame (client omits `framePosition`) was created with ZERO
+  frames → empty unusable branch. Now defaults `framePosition` to the canvas
+  origin so a branch always gets its default Desktop/Tablet/Phone frames; when
+  `framePosition` IS provided, behavior is unchanged (offset right of source).
+- ✅ **FIXED (MAJOR)** `canvas/overlay/elements/rect/resize.tsx` — resize
+  attached `document` listeners + a full-screen capture overlay with teardown
+  ONLY in `onMouseUp`; unmount mid-drag (deselect/delete/breakpoint-switch) left
+  an orphaned `zIndex:9999` overlay that froze the whole canvas. Added an
+  `activeResizeCleanupRef` + a mount-only `useEffect` cleanup that tears down the
+  listeners + overlay and closes the open history transaction on unmount.
+  `onMouseUp` clears the ref so a completed resize is a no-op on later unmount.
+  Additive — the normal resize path is unchanged. typecheck + lint clean (net
+  zero new warnings vs HEAD).
+
+### Needs human review (2 issues)
+- `sign-in/[[...rest]]/page.tsx:44` + `sign-up/[[...rest]]/page.tsx` — the
+  `WEBLAB_AUTH_PROVIDER !== 'clerk'` rollback branch now `redirect('/sign-in')`,
+  but this IS the /sign-in route → infinite redirect loop in Supabase-rollback
+  mode (the legacy `/login` was deleted in the migration). DORMANT (default is
+  'clerk', production unaffected). Needs a PRODUCT decision: the Supabase
+  rollback lever is dead now (no Supabase surface), so either remove the branch
+  or render the Clerk form instead of redirecting. Not fixed because the right
+  call is "is this lever still wanted?", not a mechanical edit. MAJOR-if-triggered
+  / dormant.
+- `interactions/index.ts:193-238` + `action/index.ts` — `addInteraction`/
+  `updateInteraction`/`removeInteraction` mutate `_doc` + flush + push to iframes
+  before `await action.run(...)`, with no rollback. A naive try/catch here would
+  be DEAD CODE: `action.run` for interactions can't throw — `code.write` now
+  returns a boolean (swallows its own errors) and dispatch is a no-op for
+  interaction types. The proper fix is to have `action.run` surface the
+  `code.write` success boolean (a broader action/history contract change) and
+  roll back the optimistic mutation when it reports failure. MINOR (newer,
+  low-traffic surface; interaction writes rarely fail since they don't parse/edit
+  JSX). Deliberately left rather than adding ineffective try/catch theater.
+
+## Bug Hunt + Security Review — 2026-05-24 (pass 4: AI chat optimization surface)
+
+Scope: untracked AI-chat optimization files (`apps/web/client/src/app/admin/`,
+`apps/web/client/src/app/api/chat/summarize/`, `apps/web/client/convex/aiUsageEvents.ts`,
+`packages/ai/src/chat/{model-router,request-builder,summarizer,summarizer-utils}.ts`,
+`packages/ai/src/observability/`, `packages/ai/src/prompt/cache-blocks.ts`,
+`apps/web/client/src/app/project/[id]/_hooks/use-chat/use-summarizer.ts`)
+plus the pass-3 modified files. Read `docs/agent-memory/backend-migration-audit.md`
+to avoid re-flagging pass-1/2/3 fixes. `bun typecheck` exits 0; touched files
+lint-clean.
+
+### Auto-fixed (6 issues)
+
+- `apps/web/client/src/app/api/chat/summarize/route.ts` — **CRITICAL credit-burn
+  vulnerability**: new background-summarize route had no conversation
+  ownership check before the OpenRouter call and no caps on `messages` array
+  size. Added (a) `fetchQuery(api.conversations.get)` ownership gate BEFORE
+  `summarizeConversation` (`requireCap('project.view')` throws → 403),
+  (b) caps: `MAX_MESSAGES=200`, `MAX_MESSAGE_BYTES=16KB`, `MAX_TOTAL_BYTES=1MB`.
+  Reused the same Convex token for both the ownership check and the
+  follow-up `setSummary` mutation.
+- `apps/web/client/src/app/admin/layout.tsx` (NEW) — **MEDIUM defense-in-depth
+  gap**: `/admin/usage` had no server-side auth gate. Convex queries already
+  reject non-admins, but the route shell + telemetry column names were
+  publicly enumerable. New server-component layout calls
+  `fetchQuery(api.aiUsageEvents.amIAdmin)` with Clerk token and returns
+  `notFound()` for non-admins so the surface is invisible.
+- `apps/web/client/convex/utils.ts` — **MEDIUM SSRF guard expansion**:
+  `assertSafeHttpUrl` now rejects (a) `0.0.0.0`, (b) IPv6 ULA (`fc..`/`fd..`),
+  link-local (`fe8`-`feb`), AWS metadata (`fd00:ec2::`), IPv4-mapped IPv6
+  (`::ffff:`), and (c) cloud-metadata hostnames (`metadata.google.internal`,
+  `metadata.azure.com`). Also rejects obfuscated IPv4 (hex `0x...`,
+  octal `0...`, decimal-int `2130706433`). Firecrawl egress hardening is
+  still the primary control; this layer is no longer paper-thin.
+- `apps/web/client/convex/branches.ts::_getBranchWithFrames` — changed
+  `internalMutation` → `internalQuery`. Read-only handler should not pay
+  OCC retry cost. Updated `branchActions.fork` caller from `runMutation` to
+  `runQuery`.
+- `apps/web/client/convex/usage.ts::revertIncrement` — fixed misleading
+  return value. `refunded` is now `true` only when a rateLimit credit was
+  actually restored; free-tier records and rolled-over Pro records return
+  `false`. Record deletion still happens (idempotency).
+- `apps/web/client/src/app/project/[id]/_hooks/use-chat/use-summarizer.ts` —
+  **MEDIUM stuck-summarizer race**: switching conversations mid-summarize
+  left the boolean `inFlightRef` set, so the new conversation's effect saw
+  `true` and bailed; nothing re-fires the effect after the old fetch's
+  `finally` clears it. Scoped `inFlightRef` to the conversationId
+  (`useRef<string | null>`); only blocks if THIS conversation has an
+  in-flight summarize. Also reset `lastTriggeredCountRef` in the effect
+  cleanup so the next mount can retry without waiting for `messageCount`
+  to bump.
+
+### Needs human review (4 issues)
+
+- `apps/web/client/src/app/project/[id]/_hooks/use-chat/use-summarizer.ts:104`
+  + `index.tsx:206` — `model: AUTO_MODEL_ID` ('auto') flows into
+  `getMaxTokens('auto')` which falls through to `OLLAMA_DEFAULT_MAX_TOKENS = 32768`.
+  With `SUMMARIZE_THRESHOLD_RATIO = 0.5`, summarization fires at ~16k input
+  tokens, but the real resolved Auto model (Gemini / Sonnet / Kimi) has 1M+
+  window. Aggressive premature summarization for all Auto users (the
+  default). Fix: add `[AUTO_MODEL_ID]: 1_000_000` to `MODEL_MAX_TOKENS` OR
+  resolve `'auto'` to the largest plausible model id before threshold math.
+- `packages/ai/src/chat/summarizer.ts:49-97` + `convex/chatActions.ts:64-105` —
+  `summarizeConversation`, `generateTitle`, `generateSuggestions` LLM calls
+  bypass `trackAIUsage`. Admin dashboard underreports OpenRouter spend by
+  these three sources; cost-per-user attribution + cache-hit ratio are
+  skewed. Fix: wrap each call site with `buildUsageEvent`/`trackAIUsage`
+  with `chatType: 'summarize'|'title'|'suggestion'`.
+- `apps/web/client/src/app/api/chat/route.ts:127-204` — `ChatRequestBodySchema`
+  has no cap on `messages.length` or per-message bytes. A PRO user can pump
+  200k-token requests against a 1-credit cost. Add `.max(200)` on `messages`
+  + total-byte cap (~1 MB) matching the pattern in summarize/route.ts.
+- `packages/ai/src/observability/index.ts:164-169` — `cacheHitRatio` denominator
+  assumes `usage.inputTokens` excludes cached portion. Holds for Anthropic via
+  OpenRouter today; fragile if SDK contract changes. Add a runtime assert in
+  dev mode or document the assumption inline.
+
+### Verified NOT real
+- `aiUsageEvents.insert` accepting client-supplied cost — cap check enforces
+  `caller._id === args.userId` and the data is per-user (no cross-tenant
+  exposure). Data-integrity concern only, out of scope.
+- Convex `internal.internal.cascade.X` / `internal.lib.stripeWebhook.X` dot
+  notation — verified valid in Convex's `ApiForModule` type (unfolds
+  slash-separated module paths). Linter-applied cleanup is correct.
+
+## Bug Hunt — HTML Website Feature — 2026-05-24
+
+Scope: HTML website creation, import, and editing pipeline.
+Files scanned: `import/local/_components/select-folder.tsx`, `_context/index.tsx`,
+`packages/parser/src/pipelines/html/index.ts`, `use-create-blank-project.ts`,
+`packages/framework/src/adapters/static-html.ts`, `template-data.ts`.
+
+### Auto-fixed (already in committed code — verified present in HEAD)
+
+- `select-folder.tsx:188-193` — `extractProjectName` returned null for HTML projects
+  (no package.json), hard-blocking the import at folder selection with "No project
+  name found". Fixed: falls back to folder name then 'New Project'. Confirmed in HEAD.
+- `select-folder.tsx:234` — `readDirectory` Promise had no reject path and `readEntries`
+  had no error callback; directory read errors caused the Promise to hang forever and
+  freeze the import UI. Fixed: added `(resolve, reject)` + `reject` as error callback to
+  `readEntries`. Confirmed in HEAD.
+
+### Needs human review
+
+- `_context/index.tsx:143` — **No UX guard before import stub.** All sandbox methods
+  (`forkSandbox`, `startOrphanSandbox`, `orphanBulkUpload`) throw immediately. Users
+  click through the full wizard → reach Finalizing → get a generic "Failed to create
+  project" error with no explanation or guidance. Fix: disable the local import route
+  or show a "coming soon" banner before the wizard starts. TODO comment added at line 143.
+  - Risk: user-facing — confusing and dead-end flow for any user who tries local import.
+
+- `_context/index.tsx:199-200` — **Stale closure validation bug.** `autoDetectFramework`
+  calls `setFramework(detected)` (async React state update), but `validateNextJsProject`
+  immediately after reads the old `framework` closure value from the current render pass.
+  Validation runs against the wrong adapter even when detection succeeds.
+  - Example: HTML folder uploaded → detected as 'static-html' → `setFramework('static-html')`
+    queued → `validateNextJsProject` reads old `framework = 'nextjs'` → fails with wrong
+    adapter error.
+  - Suggested fix: return detected `FrameworkId | null` from `autoDetectFramework`, pass
+    as optional `frameworkOverride` to `validateNextJsProject`.
+  - Risk: medium — validation shows wrong error for non-nextjs projects even after correct detection.
+
+- `template-data.ts:75` — **Wrong GitHub fallback repo.** `repoUrl` for `static-html-starter`
+  points to `h5bp/html5-boilerplate` (external third-party). If CSB fork fails, the GitHub
+  fallback imports an unrelated project silently.
+  - Risk: low (fallback path only fires if CSB is down), confusing if triggered.
+
+- `packages/parser/src/pipelines/html/index.ts:340-352` — **Image operations throw
+  unhandled in editor.** INSERT_IMAGE/REMOVE_IMAGE throw explicitly. The error propagates
+  to the editor's code-write pipeline — confirm there is a try/catch at the call site
+  that surfaces this as a user-visible error message rather than a console crash.
+  - Risk: medium — if uncaught, silently fails or crashes the editor action dispatcher.

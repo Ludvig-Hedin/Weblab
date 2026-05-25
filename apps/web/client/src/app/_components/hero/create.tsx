@@ -8,7 +8,7 @@ import { AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { ChatModel, ImageMessageContext, User } from '@weblab/models';
+import type { ChatModel, ImageMessageContext } from '@weblab/models';
 import { ChatType, DEFAULT_CHAT_MODEL, MessageContextType } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { toast } from '@weblab/ui/sonner';
@@ -41,7 +41,23 @@ export interface CreateSuggestion {
     prompt: string;
 }
 
+/**
+ * Narrow user shape the Create component cares about. Accepts either the
+ * legacy `User` from `@weblab/models` (`id`) OR a Convex `Doc<'users'>`
+ * (`_id`) so the page can hand either through without casting through
+ * `as never`. Post-migration every live caller passes the Convex doc.
+ *
+ * NOTE: previously typed as `User | null` and read `user?.id` — the Convex
+ * doc has no `id` field, so signed-in users were treated as logged out and
+ * bounced to the auth modal. Reading `_id ?? id` handles both shapes.
+ */
+export type CreateUser = { _id?: string; id?: string } | null;
+
 const MIN_PROMPT_LENGTH = 1;
+
+function getUserId(user: CreateUser): string | undefined {
+    return user?._id ?? user?.id;
+}
 
 export const Create = observer(
     ({
@@ -56,11 +72,12 @@ export const Create = observer(
         cardKey: number;
         isCreatingProject: boolean;
         setIsCreatingProject: (isCreatingProject: boolean) => void;
-        user: User | null;
+        user: CreateUser;
         suggestions?: CreateSuggestion[];
         variant?: 'hero' | 'create';
         autoSubmitRestoredDraft?: boolean;
     }) => {
+        const userId = getUserId(user);
         const createManager = useCreateManager();
         const router = useRouter();
         const t = useTranslations('landing.hero.create');
@@ -92,7 +109,7 @@ export const Create = observer(
                     return;
                 }
 
-                if (!user?.id) {
+                if (!userId) {
                     await saveAiPromptCreateDraft(prompt, images);
                     await localforage.setItem(
                         LocalForageKeys.RETURN_URL,
@@ -104,7 +121,7 @@ export const Create = observer(
 
                 setIsCreatingProject(true);
                 try {
-                    const project = await createManager.startCreate(user?.id, prompt, images);
+                    const project = await createManager.startCreate(userId, prompt, images);
                     if (!project) {
                         // Reaching this branch means the manager bailed early
                         // (e.g. missing user id) without throwing. Don't
@@ -154,7 +171,7 @@ export const Create = observer(
                 router,
                 setIsAuthModalOpen,
                 setIsCreatingProject,
-                user?.id,
+                userId,
             ],
         );
 
@@ -191,7 +208,7 @@ export const Create = observer(
         useEffect(() => {
             if (
                 !autoSubmitRestoredDraft ||
-                !user?.id ||
+                !userId ||
                 !restoredDraftRef.current ||
                 isCreatingProject ||
                 inputValue.trim().length < MIN_PROMPT_LENGTH
@@ -203,7 +220,7 @@ export const Create = observer(
         }, [
             autoSubmitRestoredDraft,
             createProject,
-            user?.id,
+            userId,
             isCreatingProject,
             inputValue,
             selectedImages,
@@ -438,7 +455,7 @@ export const Create = observer(
                             aria-live="polite"
                         />
                     }
-                    submitTooltip={!user?.id ? t('signInTooltip') : undefined}
+                    submitTooltip={!userId ? t('signInTooltip') : undefined}
                     leftControls={
                         <div className="flex items-center gap-1">
                             <ModelSelector

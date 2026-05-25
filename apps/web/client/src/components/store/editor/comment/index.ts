@@ -140,6 +140,11 @@ export class CommentManager {
 
     async init() {
         const projectId = this.editorEngine.projectId;
+        // Set this here (not only in startPolling) so the comment mutations
+        // — which refresh the UI via `if (this.currentProjectId) loadComments(...)`
+        // — still re-fetch even when polling never starts (e.g. comments
+        // briefly unavailable on boot). startPolling re-assigns the same value.
+        this.currentProjectId = projectId;
         this.loadSeenIds(projectId);
         await this.loadComments(projectId);
         if (!this.commentsUnavailable) {

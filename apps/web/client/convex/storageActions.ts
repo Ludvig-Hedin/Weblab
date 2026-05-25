@@ -13,6 +13,24 @@ import { action } from './_generated/server';
 // payload (e.g. tRPC-era `project.captureScreenshot` after Firecrawl).
 // Returns the storage id; caller persists it on the parent record.
 
+// 25 MB ceiling. Matches the transcribe API's cap and bounds the cost a
+// single authenticated user can impose on the Convex storage quota per call.
+// Higher caps invite free-tier abuse (any signed-in user can fill storage).
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+// Allowlist of MIME types this entry point is intended to handle. Today
+// it's only project preview screenshots + a small set of user-supplied
+// images. Reject anything else loudly so a future caller doesn't smuggle
+// arbitrary blobs through the path.
+const ALLOWED_CONTENT_TYPES = new Set([
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+]);
+
 export const uploadServerSideBlob = action({
     args: {
         contentType: v.string(),
@@ -21,7 +39,22 @@ export const uploadServerSideBlob = action({
     handler: async (ctx, { contentType, base64Data }) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error('UNAUTHORIZED');
+        if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+            throw new Error(`BAD_REQUEST: contentType '${contentType}' not allowed`);
+        }
+        // Reject obviously oversized payloads before allocating a Buffer. The
+        // base64 string is ~4/3 the binary size; cheap upper-bound check.
+        if (base64Data.length > Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 4) {
+            throw new Error(
+                `BAD_REQUEST: payload exceeds ${MAX_UPLOAD_BYTES} bytes (base64 length ${base64Data.length})`,
+            );
+        }
         const binary = Buffer.from(base64Data, 'base64');
+        if (binary.length > MAX_UPLOAD_BYTES) {
+            throw new Error(
+                `BAD_REQUEST: payload exceeds ${MAX_UPLOAD_BYTES} bytes (decoded ${binary.length})`,
+            );
+        }
         const blob = new Blob([binary], { type: contentType });
         return ctx.storage.store(blob);
     },

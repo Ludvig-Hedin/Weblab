@@ -92,7 +92,8 @@ export default defineSchema({
     })
         .index('by_clerk_user_id', ['clerkUserId'])
         .index('by_email', ['email'])
-        .index('by_stripe_customer_id', ['stripeCustomerId']),
+        .index('by_stripe_customer_id', ['stripeCustomerId'])
+        .index('by_github_installation_id', ['githubInstallationId']),
 
     userSettings: defineTable({
         userId: v.id('users'),
@@ -290,7 +291,8 @@ export default defineSchema({
         .index('by_token', ['token'])
         .index('by_invitee_email_project', ['inviteeEmail', 'projectId'])
         .index('by_status', ['status'])
-        .index('by_project', ['projectId']),
+        .index('by_project', ['projectId'])
+        .index('by_inviter', ['inviterId']),
 
     projectOfflinePins: defineTable({
         userId: v.id('users'),
@@ -359,6 +361,18 @@ export default defineSchema({
         displayName: v.optional(v.string()),
         updatedAt: v.number(),
         suggestions: v.optional(v.any()), // ChatSuggestion[]
+        // Background-generated rolling summary of older turns. Set when chat
+        // history grows past 50% of the model's context window so subsequent
+        // turns can ship a compact summary in place of the raw transcript and
+        // keep the Anthropic prompt-cache prefix warm.
+        summaryText: v.optional(v.string()),
+        // Cursor: the id of the last message included in summaryText. When
+        // the request-builder applies the summary, it drops messages up to
+        // and including this id and replaces them with the summary.
+        summarizedUpToMessageId: v.optional(v.string()),
+        // Epoch ms when the summary was generated. Used by the client to
+        // detect a stale summary (e.g. older than the last N user turns).
+        summaryUpdatedAt: v.optional(v.number()),
     })
         .index('by_project', ['projectId'])
         .index('by_project_updated', ['projectId', 'updatedAt']),
@@ -672,6 +686,13 @@ export default defineSchema({
         type: vUsageType,
         timestamp: v.number(),
         traceId: v.optional(v.string()),
+        // The rateLimit bucket the original `increment` mutation decremented
+        // from (Pro users only — undefined for free-tier records). Required
+        // so `revertIncrement` can refund the SAME bucket and ignore the
+        // client-supplied `rateLimitId`. Without this link, any signed-in
+        // caller could call `revertIncrement` repeatedly with any of their
+        // own rateLimitIds and receive unlimited free credits.
+        linkedRateLimitId: v.optional(v.id('rateLimits')),
     })
         .index('by_user_time', ['userId', 'timestamp'])
         .index('by_user_trace', ['userId', 'traceId'])
@@ -706,5 +727,47 @@ export default defineSchema({
         lastSeen: v.number(),
     })
         .index('by_project_user', ['projectId', 'userId'])
-        .index('by_project_lastSeen', ['projectId', 'lastSeen']),
+        .index('by_project_lastSeen', ['projectId', 'lastSeen'])
+        // Lets `deleteUserCascade` target a user's cursor rows directly
+        // instead of scanning the whole cursors table.
+        .index('by_user', ['userId']),
+
+    // -------------------------------------------------------------------------
+    // AI usage events — per-request token/cost/cache/latency telemetry
+    // -------------------------------------------------------------------------
+    // Inserted fire-and-forget from the chat API's onFinish callback. Powers
+    // the admin /admin/usage dashboard and lets us answer "what is each user
+    // costing us" and "what is our cache hit rate" without hitting LangFuse.
+    // No prompt/output content is stored here — counts only.
+    aiUsageEvents: defineTable({
+        userId: v.id('users'),
+        conversationId: v.optional(v.id('conversations')),
+        projectId: v.optional(v.id('projects')),
+        // SDK-generated message UUID (NOT a Convex Id). The chat route uses
+        // uuidv4 for the in-stream message id; the persisted Convex _id is
+        // assigned later by replaceConversationMessages. We store the SDK id
+        // so analytics can correlate a usage event with a UI message without
+        // racing the Convex insert.
+        messageId: v.optional(v.string()),
+        provider: v.string(), // 'anthropic-direct' | 'openrouter' | 'ollama'
+        model: v.string(),
+        chatType: v.string(),
+        resolvedFromAuto: v.boolean(),
+        inputTokens: v.number(),
+        outputTokens: v.number(),
+        cacheCreationTokens: v.number(),
+        cacheReadTokens: v.number(),
+        estimatedCostUsd: v.number(),
+        ttfMs: v.optional(v.number()),
+        totalMs: v.optional(v.number()),
+        toolCallCount: v.optional(v.number()),
+        errorType: v.optional(v.string()),
+        // Epoch ms — Convex auto-stores _creationTime, but we keep an explicit
+        // createdAt so range queries on a manual index are predictable.
+        createdAt: v.number(),
+    })
+        .index('by_user_createdAt', ['userId', 'createdAt'])
+        .index('by_conversation', ['conversationId'])
+        .index('by_model_createdAt', ['model', 'createdAt'])
+        .index('by_createdAt', ['createdAt']),
 });

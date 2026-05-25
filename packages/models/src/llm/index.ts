@@ -127,8 +127,19 @@ export function getProviderFromModel(model: ChatModel): LLMProvider {
 // ---------------------------------------------------------------------------
 // Chat model options — shown in the UI model picker (cloud / OpenRouter)
 // Edit here to add/remove models from the user-facing dropdown.
+//
+// `auto` (AUTO_MODEL_ID) is a sentinel — when the user picks it, the chat
+// route delegates to `resolveAutoModel` in @weblab/ai to pick the real model
+// per chat type + user tier + estimated input size.
 // ---------------------------------------------------------------------------
+export const AUTO_MODEL_ID = 'auto' as const;
+
 export const CHAT_MODEL_OPTIONS = [
+    {
+        label: 'Auto',
+        model: AUTO_MODEL_ID,
+        description: 'Pick the best model per task automatically',
+    },
     {
         label: 'GPT-5.5',
         model: OPENROUTER_MODELS.OPEN_AI_GPT_5_5,
@@ -160,12 +171,14 @@ export const CHAT_MODEL_OPTIONS = [
  *   - `DefaultSettings.AI_SETTINGS.defaultModel` in `@weblab/constants`
  *   - the `ai-tab` settings UI fallback
  *
- * Always anchored to the head of `CHAT_MODEL_OPTIONS` so changing the option
- * order changes the default automatically (CR-025).
+ * Anchored to the FIRST entry in `CHAT_MODEL_OPTIONS` (the `auto` sentinel)
+ * so new users default to auto routing — gives best perf-per-dollar without
+ * forcing the user to learn the model lineup.
  */
-export const DEFAULT_CHAT_MODEL: OPENROUTER_MODELS = CHAT_MODEL_OPTIONS[0].model;
+export const DEFAULT_CHAT_MODEL: OPENROUTER_MODELS | typeof AUTO_MODEL_ID =
+    CHAT_MODEL_OPTIONS[0].model;
 
-export type ChatModel = OPENROUTER_MODELS | OllamaModelId;
+export type ChatModel = OPENROUTER_MODELS | OllamaModelId | typeof AUTO_MODEL_ID;
 
 // ---------------------------------------------------------------------------
 // Per-provider model lists — edit here to add/remove models everywhere.

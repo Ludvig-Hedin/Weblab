@@ -801,10 +801,8 @@
     * {
         @apply border-border;
     }
-    /* System-first font cascade — Mac users get SF Pro automatically; Inter
-       (loaded via next/font as --font-inter) is the cross-platform fallback. */
     html {
-        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-inter), 'Segoe UI', system-ui, sans-serif;
+        font-family: system-ui, var(--font-inter), Arial, sans-serif;
     }
     body {
         @apply bg-background text-foreground;

@@ -33,6 +33,7 @@ import {
     wasStreamInFlight,
 } from './queue-storage';
 import { RoutingChatTransport } from './routing-transport';
+import { useConversationSummarizer } from './use-summarizer';
 import { createCheckpointsForAllBranches, getUserChatMessageFromString } from './utils';
 
 export type SendMessage = (content: string, type: ChatType) => Promise<ChatMessage>;
@@ -196,6 +197,13 @@ export function useChat({
     useEffect(() => {
         editorEngine.chat.setIsStreaming(isStreaming);
     }, [editorEngine.chat, isStreaming]);
+
+    // Background summarizer: when history exceeds 50% of the model's context
+    // window, fire a request to /api/chat/summarize so the next turn ships a
+    // compact summary instead of the full transcript. Trigger keys on message
+    // count, not array reference — so it runs once per turn (not per token)
+    // and covers both "while streaming" and "while user is typing" windows.
+    useConversationSummarizer({ conversationId, messages, model });
 
     // Persist in-flight flag so a page reload can detect an interrupted stream
     // and auto-regenerate instead of silently leaving an incomplete response.

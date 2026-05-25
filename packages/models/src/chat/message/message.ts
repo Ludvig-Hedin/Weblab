@@ -13,6 +13,14 @@ export type ChatMetadata = {
     finishReason?: FinishReason;
     usage?: LanguageModelUsage;
     error?: string;
+    /**
+     * The concrete model that actually ran. Set when the user picked "Auto"
+     * and the router resolved a real model — surfaced in the UI so the user
+     * can see what's powering their reply.
+     */
+    resolvedModel?: string;
+    /** True when `resolvedModel` came from auto routing. */
+    resolvedFromAuto?: boolean;
 };
 
 export type ChatProviderMetadata = Record<string, Record<string, JSONValue>>;

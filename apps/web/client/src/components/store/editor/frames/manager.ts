@@ -1,5 +1,4 @@
 import type { ConvexHttpClient } from 'convex/browser';
-import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 import { v4 as uuid } from 'uuid';
 
@@ -89,6 +88,13 @@ export interface FrameData {
 
 export class FramesManager {
     private _frameIdToData = new Map<string, FrameData>();
+    // Frames created locally whose row hasn't yet shown up in a reactive poll.
+    // applyFrames must NOT prune these (they'd otherwise be dropped as
+    // "removed server-side" in the window between the create mutation
+    // committing and the `by_canvas` query reflecting it). An id leaves this set
+    // the first time it appears in an incoming poll (confirmed), after which
+    // normal prune semantics apply. Deterministic — no timing window.
+    private _pendingCreateIds = new Set<string>();
     private _navigation = new FrameNavigationManager();
     private _disposers: Array<() => void> = [];
     private convex: ConvexHttpClient = getConvexHttpClient();
@@ -121,9 +127,16 @@ export class FramesManager {
         const isInitialApply = this._frameIdToData.size === 0;
         const incomingIds = new Set(frames.map((f) => f.id));
 
-        // Prune frames removed server-side (skip those still bound to a view).
+        // A locally-created frame is "confirmed" the first time it appears in a
+        // poll — clear it from the pending set so normal prune resumes.
+        for (const id of this._pendingCreateIds) {
+            if (incomingIds.has(id)) this._pendingCreateIds.delete(id);
+        }
+
+        // Prune frames removed server-side (skip those still bound to a view,
+        // and skip just-created frames the poll hasn't caught up to yet).
         for (const [id, data] of this._frameIdToData) {
-            if (!incomingIds.has(id) && data.view === null) {
+            if (!incomingIds.has(id) && data.view === null && !this._pendingCreateIds.has(id)) {
                 this._frameIdToData.delete(id);
             }
         }
@@ -270,6 +283,7 @@ export class FramesManager {
 
     disposeFrame(frameId: string) {
         this._frameIdToData.delete(frameId);
+        this._pendingCreateIds.delete(frameId);
         this.editorEngine?.ast?.mappings?.remove(frameId);
         this._navigation.removeFrame(frameId);
     }
@@ -355,7 +369,14 @@ export class FramesManager {
 
     async delete(id: string) {
         const frameData = this.get(id);
-        if (!frameData?.view) {
+        // Guard on existence, NOT on `.view`. Frames belonging to a non-active
+        // branch are never mounted (`view` stays null), so a `!frameData.view`
+        // guard made bulk deletes (e.g. removeBranch) silently skip the Convex
+        // `frames.remove` mutation — orphaning those rows in the DB so they
+        // reappeared on the next bootstrap. The delete path (Convex mutation +
+        // disposeFrame + repackGroup) is view-independent, so deleting an
+        // unmounted frame is safe.
+        if (!frameData) {
             console.error('Frame not found for delete', id);
             return;
         }
@@ -383,6 +404,8 @@ export class FramesManager {
                 selected: false,
                 contentHeight: null,
             });
+            // Protect this frame from applyFrames pruning until a poll confirms it.
+            this._pendingCreateIds.add(frame.id);
         } catch (error) {
             console.error('Failed to create frame', error);
         }
@@ -488,12 +511,29 @@ export class FramesManager {
         await this.saveToStorage(frameId, frame);
     }
 
-    // TODO(bug-hunt): a single shared debounce collapses rapid successive calls
-    // into ONE trailing call carrying only the LAST frame's args, so multi-frame
-    // writes (repackGroup / navigateToPath / addBreakpoint loops) lose all but
-    // the last frame's persisted position/url to Convex. Key the debounce
-    // per-frameId (Map<frameId, DebouncedFn>) or merge pending partials per id.
-    saveToStorage = debounce(this.undebouncedSaveToStorage.bind(this), 1000);
+    // Per-frame debounced persist. A single shared debounce would collapse
+    // rapid successive calls into ONE trailing call carrying only the LAST
+    // frame's args, so multi-frame writes (repackGroup / navigateToPath /
+    // addBreakpoint loops) would lose all but the last frame's position/url.
+    // Each frameId gets its own 1s timer, and partial updates to the same frame
+    // within the window are merged. The pending map lives in this closure (not
+    // an observable field) so it stays out of the MobX graph.
+    saveToStorage = (() => {
+        const pending = new Map<
+            string,
+            { frame: Partial<Frame>; timer: ReturnType<typeof setTimeout> }
+        >();
+        return (frameId: string, frame: Partial<Frame>): void => {
+            const existing = pending.get(frameId);
+            if (existing) clearTimeout(existing.timer);
+            const mergedFrame: Partial<Frame> = { ...(existing?.frame ?? {}), ...frame };
+            const timer = setTimeout(() => {
+                pending.delete(frameId);
+                void this.undebouncedSaveToStorage(frameId, mergedFrame);
+            }, 1000);
+            pending.set(frameId, { frame: mergedFrame, timer });
+        };
+    })();
 
     async undebouncedSaveToStorage(frameId: string, frame: Partial<Frame>) {
         try {
