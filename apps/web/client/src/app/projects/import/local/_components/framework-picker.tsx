@@ -13,13 +13,13 @@ import { useProjectCreation } from '../_context';
  *
  * Hides itself when:
  *   - the multi-framework flag is off (preserves Next.js-only behavior), OR
- *   - fewer than two adapters have a real CodeSandbox template id (showing a
+ *   - fewer than two adapters have a Vercel scaffolder implemented (showing a
  *     dropdown with one option is dead UI; "(coming soon)" entries leak
  *     roadmap and create dead clicks).
  *
- * Adapters whose `template.codesandboxId` is still a `TODO_*` placeholder are
- * filtered out entirely rather than rendered as disabled — once a real
- * template id lands they'll appear automatically via `listReadyFrameworkAdapters`.
+ * Adapters whose `template.vercelScaffold` is `'pending'` are filtered out
+ * entirely rather than rendered as disabled — once a scaffolder lands and the
+ * literal flips, they appear automatically via `listReadyFrameworkAdapters`.
  */
 export function FrameworkPicker() {
     const { framework, setFramework, isMultiFrameworkEnabled } = useProjectCreation();

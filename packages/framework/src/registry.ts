@@ -12,8 +12,8 @@ import { viteReactAdapter } from './adapters/vite-react';
  *
  * Order matters for UI listings — the framework picker renders in this
  * order, with `nextjsAdapter` first as the default. Adapters whose
- * `template.codesandboxId` is still a TODO_* placeholder are present so the
- * abstraction is exercised, but the picker UI gates them behind the
+ * `template.vercelScaffold` is `'pending'` are present so the abstraction is
+ * exercised, but the picker UI gates them out via `isFrameworkReady` and the
  * `NEXT_PUBLIC_MULTI_FRAMEWORK_ENABLED` feature flag (see
  * `apps/web/client/src/env.ts`).
  */
@@ -64,15 +64,15 @@ export function hasMultipleFrameworks(): boolean {
 }
 
 /**
- * True if the adapter is "production-ready" — its CodeSandbox template id
- * is real, not a placeholder. The picker uses this to hide adapters that
+ * True if the adapter is "production-ready" — a Vercel Sandbox scaffolder
+ * has landed for this framework. The picker uses this to hide adapters that
  * are wired up in code but haven't been finished operationally.
  */
 export function isFrameworkReady(adapter: FrameworkAdapter): boolean {
-    return !adapter.template.codesandboxId.startsWith('TODO_');
+    return adapter.template.vercelScaffold !== 'pending';
 }
 
-/** Convenience: all adapters whose CodeSandbox template is real. */
+/** Convenience: all adapters whose Vercel scaffolder is implemented. */
 export function listReadyFrameworkAdapters(): ReadonlyArray<FrameworkAdapter> {
     return ADAPTERS.filter(isFrameworkReady);
 }

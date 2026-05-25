@@ -5,6 +5,14 @@ import type { Branch } from '@weblab/models';
 import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
 import { toast } from '@weblab/ui/sonner';
 
+import type { ErrorManager } from '../error';
+import type { CLISession, TerminalSession } from './terminal';
+import { isOnline } from '@/services/offline/online-status';
+import { isSandboxGoneError, isShellStartupError } from './errors';
+import { OfflineProvider } from './offline-provider';
+import { CLISessionImpl, CLISessionType } from './terminal';
+import { VercelBrowserProvider } from './vercel-browser-provider';
+
 // Friendly error surfaced when an editor session targets an archived
 // CodeSandbox-backed project. CodeSandbox was removed 2026-05-24 — these
 // projects need to be re-imported into Vercel before the editor can open
@@ -14,13 +22,19 @@ const CODESANDBOX_ARCHIVED_MESSAGE =
     'Vercel is now the only sandbox runtime. Re-import the project (or ' +
     'create a new blank project) to migrate it to Vercel Sandbox.';
 
-import type { ErrorManager } from '../error';
-import type { CLISession, TerminalSession } from './terminal';
-import { isOnline } from '@/services/offline/online-status';
-import { isSandboxGoneError, isShellStartupError } from './errors';
-import { OfflineProvider } from './offline-provider';
-import { CLISessionImpl, CLISessionType } from './terminal';
-import { VercelBrowserProvider } from './vercel-browser-provider';
+/**
+ * Thrown when the editor tries to open a legacy CodeSandbox-backed project.
+ * Marked separately from generic connection errors so the retry loop in
+ * `SessionManager.connect` can short-circuit instead of wasting the next
+ * two retries (6s of additional spinner + three toasts) on an error no
+ * amount of retrying can fix — the user must re-import the project.
+ */
+export class ArchivedRuntimeError extends Error {
+    constructor(message: string = CODESANDBOX_ARCHIVED_MESSAGE) {
+        super(message);
+        this.name = 'ArchivedRuntimeError';
+    }
+}
 
 export class SessionManager {
     provider: Provider | null = null;
@@ -111,7 +125,19 @@ export class SessionManager {
                 this.activeSandboxId = activeSandboxId;
             });
 
-            const provider =
+            // Any non-Vercel cloud provider is a legacy CodeSandbox row
+            // from before the 2026-05-24 archive. We can't connect to
+            // those sandboxes anymore — throw `ArchivedRuntimeError` so
+            // the outer retry loop short-circuits instead of looping
+            // three times on a permanent failure.
+            if (
+                this.branch.runtime.type !== 'local' &&
+                this.branch.runtime.cloud?.provider !== 'vercel_sandbox'
+            ) {
+                throw new ArchivedRuntimeError();
+            }
+
+            const provider: Provider =
                 this.branch.runtime.type === 'local'
                     ? await createCodeProviderClient(CodeProvider.NodeFs, {
                           providerOptions: {
@@ -122,16 +148,7 @@ export class SessionManager {
                               },
                           },
                       })
-                    : this.branch.runtime.cloud?.provider === 'vercel_sandbox'
-                      ? new VercelBrowserProvider({ sandboxId: activeSandboxId })
-                      : (() => {
-                            // Any non-Vercel cloud provider is a legacy
-                            // CodeSandbox row from before the 2026-05-24
-                            // archive. We can't connect to those sandboxes
-                            // anymore — surface a clear message instead of
-                            // a silent "isOffline" stall.
-                            throw new Error(CODESANDBOX_ARCHIVED_MESSAGE);
-                        })();
+                    : new VercelBrowserProvider({ sandboxId: activeSandboxId });
 
             runInAction(() => {
                 this.provider = provider;
@@ -151,6 +168,20 @@ export class SessionManager {
                 return;
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
+
+                // Legacy CodeSandbox-backed project. Retrying can't make a
+                // re-import happen — surface the message immediately so
+                // the user sees the action they need to take, not three
+                // 2s "Retrying..." toasts.
+                if (lastError instanceof ArchivedRuntimeError) {
+                    runInAction(() => {
+                        this.provider = null;
+                        this.isConnecting = false;
+                        this.connectionError = lastError?.message ?? null;
+                    });
+                    toast.error(lastError.message);
+                    return;
+                }
 
                 // Sandbox has been reclaimed by Vercel (410 Gone). No
                 // amount of retrying will bring it back — the snapshot

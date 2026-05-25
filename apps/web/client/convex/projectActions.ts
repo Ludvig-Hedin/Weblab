@@ -1,6 +1,9 @@
 'use node';
 
+import { Sandbox } from '@vercel/sandbox';
 import { v } from 'convex/values';
+
+import { VercelSandboxProvider } from '@weblab/code-provider/providers/vercel-sandbox';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
@@ -233,9 +236,6 @@ export const createBlank = action({
             // Provision sandbox via the Vercel provider's per-framework
             // scaffolder. Returns a fully scaffolded, post-`npm install`,
             // snapshotted-and-resumed sandbox ready for the editor.
-            const { VercelSandboxProvider } = await import(
-                '@weblab/code-provider/providers/vercel-sandbox'
-            );
             const result = await VercelSandboxProvider.createProject({
                 source: 'template',
                 id: framework,
@@ -291,7 +291,6 @@ export const createBlank = action({
                 // so explicit cleanup is best-effort: prevents paid VM-hours
                 // burning while the sandbox waits to time out.
                 try {
-                    const { Sandbox } = await import('@vercel/sandbox');
                     const credentials = {
                         teamId: process.env.VERCEL_TEAM_ID ?? '',
                         projectId: process.env.VERCEL_PROJECT_ID ?? '',

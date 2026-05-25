@@ -50,11 +50,20 @@ export interface ValidationFail {
 export type ValidationResult = ValidationOk | ValidationFail;
 
 export interface FrameworkTemplate {
-    /** CodeSandbox template id this framework forks from for a new project. */
-    codesandboxId: string;
-    /** Port the framework's dev server listens on inside CodeSandbox. */
+    /**
+     * Vercel Sandbox scaffolder identifier this framework provisions with.
+     * `'pending'` means no scaffolder has been implemented yet — the framework
+     * is registered for type-system completeness but is gated out of project
+     * creation by `isFrameworkReady`. CodeSandbox template ids were retired
+     * 2026-05-24; see docs/notes/2026-05-13-vercel-sandbox-provider.md.
+     */
+    vercelScaffold: 'nextjs' | 'static-html' | 'pending';
+    /** Port the framework's dev server listens on inside the sandbox. */
     port: number;
-    /** Task name registered in the CodeSandbox sandbox that starts the dev server. */
+    /**
+     * Task name registered with the runtime that starts the dev server.
+     * For Vercel sandboxes this is the script key in package.json (`'dev'`).
+     */
     devTask: string;
     /**
      * True if the framework serves a pre-built static bundle rather than a

@@ -22,16 +22,17 @@ function readPackageJson(files: ProjectFiles): PackageJsonShape | null {
  * dependency and either the file-based router root (`src/routes/`) or
  * `app/routes/`.
  *
- * NOTE: `template.codesandboxId` is a placeholder. Author a CodeSandbox
- * template "Empty TanStack Start" with a `dev` task on port 3000 and
- * replace the id below.
+ * NOTE: `template.vercelScaffold` is `'pending'` — no Vercel Sandbox
+ * scaffolder exists for TanStack Start yet. Add
+ * `scaffoldTanstackStartProject` to the Vercel provider and flip this
+ * literal to activate.
  */
 export const tanstackStartAdapter: FrameworkAdapter = {
     id: 'tanstack-start',
     displayName: 'TanStack Start',
     template: {
-        // TODO(framework): replace with real TanStack Start CodeSandbox template id
-        codesandboxId: 'TODO_TANSTACK_START_TEMPLATE_ID',
+        // TODO(sandbox-fork): add a TanStack Start Vercel scaffolder.
+        vercelScaffold: 'pending',
         port: 3000,
         devTask: 'dev',
     },

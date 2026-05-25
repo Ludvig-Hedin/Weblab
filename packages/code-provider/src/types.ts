@@ -160,6 +160,16 @@ export interface InitializeOutput {}
 export interface SetupInput {}
 export interface SetupOutput {}
 
+/**
+ * Framework scaffold ids that a provider can dispatch over when provisioning
+ * a fresh VM. Today only the Vercel Sandbox provider honors this — others
+ * (NodeFs) ignore it. Keep the union narrow so new callers can't pass an
+ * arbitrary string and silently fall through to the "Next.js" default;
+ * extending the union forces the provider's `scaffoldByFramework` switch to
+ * stay exhaustive.
+ */
+export type ScaffoldFramework = 'nextjs' | 'static-html';
+
 export interface CreateProjectInput {
     source: string;
     id: string;
@@ -174,9 +184,8 @@ export interface CreateProjectInput {
      * Which framework scaffold to apply when the provider provisions a
      * fresh VM. Currently honored by the Vercel Sandbox provider; legacy
      * providers ignore it and use their template-id-based dispatch.
-     * Vercel-supported values today: `'nextjs'`, `'static-html'`.
      */
-    framework?: string;
+    framework?: ScaffoldFramework;
 }
 export interface CreateProjectOutput {
     id: string;

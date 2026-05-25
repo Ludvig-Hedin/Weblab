@@ -1,4 +1,3 @@
-import { DEFAULT_NEW_PROJECT_TEMPLATE } from '@weblab/constants';
 import { RouterType } from '@weblab/models';
 
 import type { FrameworkAdapter, ProjectFiles, ValidationResult } from '../types';
@@ -67,15 +66,12 @@ export const nextjsAdapter: FrameworkAdapter = {
     id: 'nextjs',
     displayName: 'Next.js',
     template: {
-        // Pull the BLANK CSB template id from constants so the adapter and the
-        // server-side default stay in sync. Hardcoding here once silently
-        // diverged: the constant moved to `pf2nqh` (a working Next.js
-        // scaffold) while this file still pointed at the broken `xzsy8c`,
-        // causing `api.sandbox.fork` to reject every new-project request
-        // with "Sandbox not found" because that id was no longer in the
-        // public-template allowlist.
-        codesandboxId: DEFAULT_NEW_PROJECT_TEMPLATE.id,
-        port: DEFAULT_NEW_PROJECT_TEMPLATE.port,
+        // Provisioned via `VercelSandboxProvider.createProject({ framework:
+        // 'nextjs' })` — the per-framework scaffolder writes package.json +
+        // src/app/page.tsx + tsconfig.json + tailwind globals, runs
+        // `npm install`, snapshots, and resumes the sandbox.
+        vercelScaffold: 'nextjs',
+        port: 3000,
         devTask: 'dev',
     },
     pipelines: ['jsx'],

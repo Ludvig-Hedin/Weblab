@@ -1,5 +1,3 @@
-import { STATIC_HTML_SANDBOX_ID } from '@weblab/constants';
-
 import type { FrameworkAdapter, ProjectFiles, ValidationResult } from '../types';
 
 /**
@@ -15,8 +13,12 @@ export const staticHtmlAdapter: FrameworkAdapter = {
     id: 'static-html',
     displayName: 'Static HTML',
     template: {
-        codesandboxId: STATIC_HTML_SANDBOX_ID,
-        port: 3000,
+        // Provisioned via `VercelSandboxProvider.createProject({ framework:
+        // 'static-html' })` — writes a single index.html + tiny package.json
+        // with `serve` and runs `npm run dev` (which binds serve to
+        // 0.0.0.0:8080). Port matches `STATIC_HTML_PORT` in vercel-sandbox.
+        vercelScaffold: 'static-html',
+        port: 8080,
         devTask: 'dev',
         staticHosting: true,
     },

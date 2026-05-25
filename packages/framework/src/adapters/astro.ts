@@ -25,15 +25,16 @@ function readPackageJson(files: ProjectFiles): PackageJsonShape | null {
  * projects can be validated and previewed but not visually edited inside
  * `.astro` template bodies.
  *
- * NOTE: `template.codesandboxId` is a placeholder. Author a CodeSandbox
- * template "Empty Astro" with a `dev` task on port 4321 and replace below.
+ * NOTE: `template.vercelScaffold` is `'pending'` — no Vercel Sandbox
+ * scaffolder exists for Astro yet. Add `scaffoldAstroProject` to the Vercel
+ * provider and flip this literal to activate.
  */
 export const astroAdapter: FrameworkAdapter = {
     id: 'astro',
     displayName: 'Astro',
     template: {
-        // TODO(framework): replace with real Astro CodeSandbox template id
-        codesandboxId: 'TODO_ASTRO_TEMPLATE_ID',
+        // TODO(sandbox-fork): add an Astro Vercel scaffolder.
+        vercelScaffold: 'pending',
         port: 4321,
         devTask: 'dev',
     },

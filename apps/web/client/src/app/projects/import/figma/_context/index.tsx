@@ -8,15 +8,12 @@ import { useAction, useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
 import type { FigmaTopLevelFrame } from '@weblab/figma';
-import { CodeProvider, createCodeProviderClient } from '@weblab/code-provider';
-import { SandboxTemplates, Templates } from '@weblab/constants';
 import { scaffoldAppPage, scaffoldFrameComponent, toComponentName } from '@weblab/figma';
 
 import type { ProcessedFile } from '@/app/projects/types';
 import type { Id } from '@convex/_generated/dataModel';
 import { ProcessedFileType } from '@/app/projects/types';
 import { Routes } from '@/utils/constants';
-import { uploadToSandbox } from '../../local/_context';
 
 export type FigmaImportStep = 0 | 1 | 2; // credentials | selectFrames | finalizing
 
@@ -192,10 +189,12 @@ export const FigmaImportProvider = ({ children }: { children: ReactNode }) => {
         });
         setFinalizeError(null);
         try {
-            const template = SandboxTemplates[Templates.BLANK];
+            // Figma import is stubbed (server-side route not yet ported to
+            // Vercel) — `forkSandbox` throws "Figma import is temporarily
+            // unavailable.". When the real route lands it will provision a
+            // Next.js scaffold via the Vercel provider; no CSB template id
+            // needed.
             const forkedSandbox = await forkSandbox({
-                sandbox: template,
-                // No hardcoded provider — server uses configured WEBLAB_CLOUD_PROVIDER.
                 config: {
                     title: `Figma import – ${fileName}`,
                     tags: ['figma', 'imported', user._id],

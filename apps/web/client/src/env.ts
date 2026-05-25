@@ -17,9 +17,13 @@ export const env = createEnv({
         // never use it; the variable is scheduled for removal once all live
         // projects have been forked into Vercel sandboxes.
         CSB_API_KEY: z.string().optional(),
-        // Phase 1 of the CSB removal flips this default to vercel_sandbox.
-        // The literal is retained in the enum to keep existing project rows
-        // readable until the union is collapsed in Phase 2.
+        // DEAD — retained only so existing `.env.local` files setting this
+        // value don't trip the env validator. The 2026-05-24 CodeSandbox
+        // archive made Vercel the only runtime; no code in the app reads
+        // this variable anymore. Safe to remove from `.env.local`. Will
+        // be deleted from this schema once all legacy CSB-backed DB rows
+        // have been migrated and the literal `'code_sandbox'` is dropped
+        // from `projects.sandboxRuntime.provider`.
         WEBLAB_CLOUD_PROVIDER: z
             .enum(['code_sandbox', 'vercel_sandbox'])
             .default('vercel_sandbox'),

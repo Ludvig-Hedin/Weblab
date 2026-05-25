@@ -7,9 +7,7 @@ import { api as convexApi } from '@convex/_generated/api';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 
-import type { Provider } from '@weblab/code-provider';
 import type { FrameworkId, ProjectFile } from '@weblab/framework';
-import { SandboxTemplates, Templates } from '@weblab/constants';
 import { detectFrameworkFromFiles, getFrameworkAdapter } from '@weblab/framework';
 
 import type { NextJsProjectValidation, ProcessedFile } from '@/app/projects/types';
@@ -217,13 +215,13 @@ export const ProjectCreationProvider = ({ children, totalSteps }: ProjectCreatio
             );
 
             checkAborted();
-            const template = SandboxTemplates[Templates.BLANK];
+            // Local import is stubbed (server-side route not yet ported to
+            // Vercel) — `forkSandbox` throws "Local import is temporarily
+            // unavailable.". The detected port is preserved for when the
+            // real route lands; framework comes from package.json detection
+            // upstream, not from a CSB template id.
             const forkedSandbox = await forkSandbox({
-                sandbox: {
-                    id: template.id,
-                    port: detectPortFromPackageJson(packageJsonFile),
-                },
-                // No hardcoded provider — server uses configured WEBLAB_CLOUD_PROVIDER.
+                port: detectPortFromPackageJson(packageJsonFile),
                 config: {
                     title: `Imported project - ${user._id}`,
                     tags: ['imported', 'local', user._id],
@@ -492,68 +490,4 @@ export const useProjectCreation = (): ProjectCreationContextValue => {
         throw new Error('useProjectCreation must be used within a ProjectCreationProvider');
     }
     return context;
-};
-
-export const uploadToSandbox = async (
-    files: ProcessedFile[],
-    provider: Provider,
-    options?: {
-        concurrency?: number;
-        onProgress?: (progress: { uploaded: number; total: number }) => void;
-    },
-) => {
-    const concurrency = Math.max(1, options?.concurrency ?? 8);
-    let nextIndex = 0;
-    let uploaded = 0;
-    const total = files.length;
-    options?.onProgress?.({ uploaded, total });
-
-    const uploadOne = async (file: ProcessedFile) => {
-        try {
-            if (file.type === ProcessedFileType.BINARY) {
-                const uint8Array = new Uint8Array(file.content);
-                const result = await provider.writeFile({
-                    args: {
-                        path: file.path,
-                        content: uint8Array,
-                        overwrite: true,
-                    },
-                });
-                if (!result.success) {
-                    throw new Error('Provider rejected the file write');
-                }
-            } else {
-                const result = await provider.writeFile({
-                    args: {
-                        path: file.path,
-                        content: file.content,
-                        overwrite: true,
-                    },
-                });
-                if (!result.success) {
-                    throw new Error('Provider rejected the file write');
-                }
-            }
-        } catch (fileError: unknown) {
-            console.error(`Error uploading file ${file.path}:`, fileError);
-            throw new Error(
-                `Failed to upload file: ${file.path} - ${fileError instanceof Error ? fileError.message : 'Unknown error'}`,
-            );
-        }
-    };
-
-    const workers = Array.from({ length: Math.min(concurrency, total) }, async () => {
-        while (nextIndex < total) {
-            const file = files[nextIndex];
-            nextIndex += 1;
-            if (!file) {
-                continue;
-            }
-            await uploadOne(file);
-            uploaded += 1;
-            options?.onProgress?.({ uploaded, total });
-        }
-    });
-
-    await Promise.all(workers);
 };

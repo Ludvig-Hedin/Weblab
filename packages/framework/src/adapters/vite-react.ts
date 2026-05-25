@@ -20,16 +20,20 @@ function readPackageJson(files: ProjectFiles): PackageJsonShape | null {
  * React, and an `index.html` entrypoint at the project root (Vite's
  * convention for the host page).
  *
- * NOTE: `template.codesandboxId` is a placeholder. To activate Vite project
- * creation in production, author a CodeSandbox template "Empty Vite + React
- * + Tailwind" with a `dev` task on port 5173 and replace the id below.
+ * NOTE: `template.vercelScaffold` is `'pending'` — no Vercel Sandbox
+ * scaffolder exists for Vite + React yet. To activate Vite project creation,
+ * add `scaffoldViteReactProject` to
+ * `packages/code-provider/src/providers/vercel-sandbox/index.ts`, extend the
+ * `VercelScaffoldFramework` union, and flip `vercelScaffold` to
+ * `'vite-react'` (or whichever literal the new scaffolder dispatches on).
  */
 export const viteReactAdapter: FrameworkAdapter = {
     id: 'vite-react',
     displayName: 'Vite + React',
     template: {
-        // TODO(framework): replace with real Vite+React CodeSandbox template id
-        codesandboxId: 'TODO_VITE_REACT_TEMPLATE_ID',
+        // TODO(sandbox-fork): add a Vite + React Vercel scaffolder, then
+        // flip this to the new union literal.
+        vercelScaffold: 'pending',
         port: 5173,
         devTask: 'dev',
     },

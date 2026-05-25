@@ -32,16 +32,16 @@ function hasReactRouterV7(deps: Record<string, string> | undefined): boolean {
  * into React Router v7, so this single adapter handles both: it validates
  * either an `@remix-run/*` dependency or `react-router` >= 7.
  *
- * NOTE: `template.codesandboxId` is a placeholder. Author a CodeSandbox
- * template "Empty Remix" (or "Empty React Router v7") with a `dev` task on
- * port 3000 and replace the id below.
+ * NOTE: `template.vercelScaffold` is `'pending'` — no Vercel Sandbox
+ * scaffolder exists for Remix yet. Add `scaffoldRemixProject` to the Vercel
+ * provider and flip this literal to activate.
  */
 export const remixAdapter: FrameworkAdapter = {
     id: 'remix',
     displayName: 'Remix / React Router v7',
     template: {
-        // TODO(framework): replace with real Remix CodeSandbox template id
-        codesandboxId: 'TODO_REMIX_TEMPLATE_ID',
+        // TODO(sandbox-fork): add a Remix Vercel scaffolder.
+        vercelScaffold: 'pending',
         port: 3000,
         devTask: 'dev',
     },

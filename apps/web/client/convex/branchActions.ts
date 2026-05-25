@@ -1,6 +1,9 @@
 'use node';
 
+import { Sandbox } from '@vercel/sandbox';
 import { v } from 'convex/values';
+
+import { VercelSandboxProvider } from '@weblab/code-provider/providers/vercel-sandbox';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
@@ -44,25 +47,12 @@ function generateUniqueBranchName(base: string, existing: string[]): string {
  */
 export const fork = action({
     args: { branchId: v.id('branches') },
-    handler: async (ctx, { branchId }): Promise<unknown> => {
-        const me: any = await ctx.runQuery(api.users.me, {});
-        if (!me) throw new Error('UNAUTHORIZED');
-
-        const branchData: any = await ctx.runQuery(internal.branches._getBranchWithFrames, {
-            branchId,
-        });
-        if (!branchData) throw new Error('NOT_FOUND: Source branch not found');
-        const { branch: sourceBranch } = branchData;
-
-        // Authorization: forking writes a new branch + frames into
-        // sourceBranch.projectId and provisions a paid Vercel sandbox.
-        // Require project.update on the source branch's project before the
-        // sandbox call so an unauthorized caller can't burn quota or pollute
-        // the project.
-        await ctx.runQuery(internal.branches._requireProjectUpdateCap, {
-            projectId: sourceBranch.projectId,
-        });
-
+    handler: async (_ctx, _args): Promise<unknown> => {
+        // Fail fast before any RPC — the action is a stub until
+        // TODO(sandbox-fork) lands. Running the user / branch / auth
+        // queries first would burn three Convex round-trips on every
+        // doomed call. Auth re-gate happens for free when the real
+        // implementation ships (it'll need the same auth check upfront).
         throw new Error(
             'Branch fork is temporarily unavailable. ' +
                 'CodeSandbox was archived 2026-05-24; the Vercel Sandbox snapshot-based ' +
@@ -109,13 +99,37 @@ export const createBlank = action({
             projectId: args.projectId,
         });
 
-        if (!process.env.VERCEL_TOKEN) {
+        // Validate the full Vercel credential triple here — provider's
+        // getCredentials() throws the same way mid-flight, but failing fast
+        // with a single friendly message beats a vague SDK error after the
+        // auth gate + name dedupe queries already ran.
+        if (
+            !process.env.VERCEL_TOKEN ||
+            !process.env.VERCEL_TEAM_ID ||
+            !process.env.VERCEL_PROJECT_ID
+        ) {
             throw new Error(
-                'VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; ' +
-                    'set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN ' +
-                    '(see apps/web/client/.env.example).',
+                'Vercel Sandbox credentials missing. Set VERCEL_TEAM_ID, ' +
+                    'VERCEL_PROJECT_ID, and VERCEL_TOKEN (see ' +
+                    'apps/web/client/.env.example).',
             );
         }
+
+        // Derive the branch framework from the parent project. Without this
+        // a new branch in a static-html project would silently scaffold Next
+        // and surface a permanent preview 502 — see review finding F1.
+        const project: any = await ctx.runQuery(api.projects.get, {
+            projectId: args.projectId,
+        });
+        if (!project) throw new Error('NOT_FOUND: project');
+        const projectFramework: string = project.runtimeMetadata?.framework ?? 'nextjs';
+        if (projectFramework !== 'nextjs' && projectFramework !== 'static-html') {
+            throw new Error(
+                `Framework "${projectFramework}" is not yet supported on Vercel Sandbox. ` +
+                    `Branches can only be created for Next.js or static-HTML projects.`,
+            );
+        }
+        const branchFramework: 'nextjs' | 'static-html' = projectFramework;
 
         const existingNames: string[] = await ctx.runMutation(
             internal.branches._listBranchNamesForProject,
@@ -125,28 +139,22 @@ export const createBlank = action({
 
         let provisionedSandboxId: string | null = null;
         try {
-            const { VercelSandboxProvider } = await import(
-                '@weblab/code-provider/providers/vercel-sandbox'
-            );
-            // Branches currently default to Next.js. When a per-branch
-            // framework lands, plumb it through here the same way
-            // projectActions.createBlank does.
-            const project = await VercelSandboxProvider.createProject({
+            const sandboxProject = await VercelSandboxProvider.createProject({
                 source: 'template',
-                id: 'nextjs',
-                framework: 'nextjs',
+                id: branchFramework,
+                framework: branchFramework,
                 title: branchName,
                 tags: ['blank'],
                 privacy: 'private',
             });
-            provisionedSandboxId = project.id;
-            const previewUrl = project.previewUrl ?? '';
+            provisionedSandboxId = sandboxProject.id;
+            const previewUrl = sandboxProject.previewUrl ?? '';
 
             const result: any = await ctx.runMutation(internal.branches._insertBranchWithFrames, {
                 projectId: args.projectId,
                 userId: me._id,
                 name: branchName,
-                sandboxId: project.id,
+                sandboxId: sandboxProject.id,
                 previewUrl,
                 framePosition: args.framePosition,
             });
@@ -155,7 +163,6 @@ export const createBlank = action({
         } catch (error) {
             if (provisionedSandboxId) {
                 try {
-                    const { Sandbox } = await import('@vercel/sandbox');
                     const credentials = {
                         teamId: process.env.VERCEL_TEAM_ID ?? '',
                         projectId: process.env.VERCEL_PROJECT_ID ?? '',

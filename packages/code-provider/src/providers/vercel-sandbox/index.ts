@@ -35,6 +35,7 @@ import type {
     ReadFileOutput,
     RenameFileInput,
     RenameFileOutput,
+    ScaffoldFramework,
     SetupInput,
     SetupOutput,
     StatFileInput,
@@ -89,8 +90,12 @@ const STATIC_HTML_PORT = 8080;
  * are gated upstream by `@weblab/framework` registry — adding them
  * here means writing a matching scaffolder and adding the case to
  * `scaffoldByFramework` below.
+ *
+ * Re-exports `ScaffoldFramework` from `../../types` so callers can keep
+ * importing the type from the provider barrel; the canonical definition
+ * lives in `types.ts` because `CreateProjectInput.framework` consumes it.
  */
-export type VercelScaffoldFramework = 'nextjs' | 'static-html';
+export type VercelScaffoldFramework = ScaffoldFramework;
 
 interface FrameworkRuntime {
     port: number;
@@ -180,22 +185,37 @@ function splitShellCommand(command: string) {
     };
 }
 
-// Process pattern that matches any dev server we spawn — Next.js (`next dev`
-// or the post-compile `next-server` worker) OR the static-html `serve` CLI.
-// Using a single regex keeps `isDevServerRunning` / `stopDevServers` framework
-// agnostic, so resuming a snapshot doesn't accidentally spawn a duplicate
-// process and fight over the host port.
-const DEV_SERVER_PATTERN = '[n]ext-server|[n]ext dev --hostname 0.0.0.0|node .*[/]serve[/]';
+// Process patterns that match the dev servers we spawn — Next.js (`next dev`
+// or the post-compile `next-server` worker) and the static-html `serve` CLI.
+// Kept as a list rather than one piped regex because `pgrep` BRE handling of
+// `|` alternation varies across procps builds; running each pattern through
+// `-f` and OR-ing the exit codes is portable. The `serve` pattern is anchored
+// to `node_modules/serve` to avoid matching unrelated processes like
+// `observe` or a user-installed binary that happens to contain the substring.
+const DEV_SERVER_PATTERNS = [
+    '[n]ext-server',
+    '[n]ext dev --hostname 0.0.0.0',
+    'node .*/node_modules/serve/',
+];
 
 async function isDevServerRunning(sandbox: Sandbox): Promise<boolean> {
-    const result = await sandbox.runCommand(
-        splitShellCommand(`pgrep -f "${DEV_SERVER_PATTERN}" >/dev/null`),
+    // Run all checks in parallel; any match means a dev server is up.
+    const results = await Promise.all(
+        DEV_SERVER_PATTERNS.map((pattern) =>
+            sandbox.runCommand(splitShellCommand(`pgrep -f "${pattern}" >/dev/null`)),
+        ),
     );
-    return result.exitCode === 0;
+    return results.some((r) => r.exitCode === 0);
 }
 
 async function stopDevServers(sandbox: Sandbox): Promise<void> {
-    await sandbox.runCommand(splitShellCommand(`pkill -f "${DEV_SERVER_PATTERN}" || true`));
+    // `|| true` so a no-match pkill (exit 1) doesn't trip the outer
+    // shell strict mode that `splitShellCommand` enables via `bash -lc`.
+    await Promise.all(
+        DEV_SERVER_PATTERNS.map((pattern) =>
+            sandbox.runCommand(splitShellCommand(`pkill -f "${pattern}" || true`)),
+        ),
+    );
 }
 
 function createOutput(
@@ -464,9 +484,7 @@ export class VercelSandboxProvider extends Provider {
         return this.sandbox;
     }
 
-    static async createProject(
-        input: CreateProjectInput & { framework?: VercelScaffoldFramework },
-    ): Promise<CreateProjectOutput> {
+    static async createProject(input: CreateProjectInput): Promise<CreateProjectOutput> {
         // Default to Next.js for back-compat — earlier call sites that
         // never passed `framework` were always provisioning Next.
         const framework: VercelScaffoldFramework = input.framework ?? 'nextjs';
