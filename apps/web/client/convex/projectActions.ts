@@ -3,7 +3,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import { v } from 'convex/values';
 
-import { VercelSandboxProvider } from '@weblab/code-provider/providers/vercel-sandbox';
+import { VercelSandboxProvider } from '@weblab/code-provider';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
@@ -281,6 +281,17 @@ export const createBlank = action({
                 sandboxUrl: previewUrl,
                 cloudProvider: 'vercel_sandbox',
                 port,
+                // Persist the snapshotId so cold-resume reuses the post-
+                // `npm install` checkpoint instead of re-scaffolding +
+                // re-installing on every wake. Persist devCommand so
+                // `VercelSandboxProvider.setup()` re-spawns the correct
+                // dev server on resume — without this, static-HTML
+                // sandboxes silently fall back to Next.js's
+                // DEFAULT_DEV_COMMAND and the preview breaks after the
+                // first wake.
+                snapshotId: result.snapshotId,
+                devCommand: result.devCommand,
+                runtime: result.runtime,
             });
 
             provisionedSandboxId = null;

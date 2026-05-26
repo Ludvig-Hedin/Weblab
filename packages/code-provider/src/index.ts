@@ -9,6 +9,13 @@ import { NodeFsProvider } from './providers/nodefs';
 export * from './providers';
 export { CodesandboxProvider } from './providers/codesandbox';
 export { NodeFsProvider } from './providers/nodefs';
+// Server-side consumers (Convex actions with `'use node';`) import the
+// Vercel provider class directly to avoid relying on subpath export
+// resolution at deploy time. The browser barrel intentionally omits this
+// export — the class transitively imports `@vercel/sandbox` which is
+// Node-only. The `exports.browser` field in package.json routes browser
+// builds to `index.browser.ts`, which never sees this line.
+export { VercelSandboxProvider } from './providers/vercel-sandbox';
 export type { VercelSandboxProviderOptions } from './providers/vercel-sandbox';
 export * from './types';
 

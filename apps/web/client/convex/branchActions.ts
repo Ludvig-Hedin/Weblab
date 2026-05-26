@@ -3,7 +3,7 @@
 import { Sandbox } from '@vercel/sandbox';
 import { v } from 'convex/values';
 
-import { VercelSandboxProvider } from '@weblab/code-provider/providers/vercel-sandbox';
+import { VercelSandboxProvider } from '@weblab/code-provider';
 
 import { api, internal } from './_generated/api';
 import { action } from './_generated/server';
@@ -157,6 +157,18 @@ export const createBlank = action({
                 sandboxId: sandboxProject.id,
                 previewUrl,
                 framePosition: args.framePosition,
+                // Persist the full sandbox runtime so the editor session can
+                // dispatch to `VercelBrowserProvider`. Without this the branch
+                // row ends up with `runtimeMetadata.cloud === undefined` and
+                // `SessionManager.connect` throws `ArchivedRuntimeError` on
+                // the first open of a brand-new branch.
+                sandboxRuntime: {
+                    provider: 'vercel_sandbox',
+                    snapshotId: sandboxProject.snapshotId,
+                    port: sandboxProject.port,
+                    devCommand: sandboxProject.devCommand,
+                    runtime: sandboxProject.runtime,
+                },
             });
             provisionedSandboxId = null;
             return result;

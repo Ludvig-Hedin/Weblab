@@ -202,6 +202,24 @@ export const _insertBranchWithFrames = internalMutation({
                 height: v.number(),
             }),
         ),
+        // Sandbox runtime metadata returned by the provider. Persisted into
+        // `runtimeMetadata.cloud` so `fromConvexBranch` can hydrate the
+        // editor's `branch.runtime.cloud` shape — without these fields
+        // populated, `SessionManager.connect` reads `cloud.provider ===
+        // undefined` and throws `ArchivedRuntimeError` against a freshly
+        // provisioned Vercel sandbox.
+        sandboxRuntime: v.optional(
+            v.object({
+                provider: v.union(
+                    v.literal('code_sandbox'),
+                    v.literal('vercel_sandbox'),
+                ),
+                snapshotId: v.optional(v.string()),
+                port: v.optional(v.number()),
+                devCommand: v.optional(v.string()),
+                runtime: v.optional(v.string()),
+            }),
+        ),
     },
     handler: async (ctx, args) => {
         // Defense-in-depth: the action layer (branchActions.fork / createBlank)
@@ -220,7 +238,19 @@ export const _insertBranchWithFrames = internalMutation({
             updatedAt: now,
             sandboxId: args.sandboxId,
             runtimeType: 'cloud',
-            runtimeMetadata: {},
+            runtimeMetadata: args.sandboxRuntime
+                ? {
+                      cloud: {
+                          provider: args.sandboxRuntime.provider,
+                          sandboxId: args.sandboxId,
+                          previewUrl: args.previewUrl,
+                          snapshotId: args.sandboxRuntime.snapshotId,
+                          port: args.sandboxRuntime.port,
+                          devCommand: args.sandboxRuntime.devCommand,
+                          runtime: args.sandboxRuntime.runtime,
+                      },
+                  }
+                : {},
         });
 
         const createdFrameIds: Id<'frames'>[] = [];
