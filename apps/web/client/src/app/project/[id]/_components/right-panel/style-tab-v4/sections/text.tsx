@@ -329,6 +329,7 @@ export const TextSection = observer(function TextSection() {
                         pickerContent={
                             <ColorField value={color.value} onCommit={colorSetter.set} />
                         }
+                        mixed={color.mixed}
                     />
                 </GroupShell>
 
@@ -360,6 +361,7 @@ export const TextSection = observer(function TextSection() {
                             value={fontWeight.value}
                             options={FONT_WEIGHT_OPTIONS}
                             onCommit={fontWeightSetter.set}
+                            mixed={fontWeight.mixed}
                         />
                         <IconNumberInput
                             glyph={<IconTypeT size={13} />}
@@ -368,6 +370,7 @@ export const TextSection = observer(function TextSection() {
                             units={['px', 'rem', 'em']}
                             defaultUnit="px"
                             aria-label="Font size"
+                            mixed={fontSize.mixed}
                         />
                     </PairRow>
 
@@ -380,6 +383,7 @@ export const TextSection = observer(function TextSection() {
                             units={['', 'px', 'rem', 'em', '%']}
                             defaultUnit=""
                             aria-label="Line height"
+                            mixed={lineHeight.mixed}
                         />
                         <IconNumberInput
                             glyph={<IconLetterSpacing size={13} />}
@@ -388,6 +392,7 @@ export const TextSection = observer(function TextSection() {
                             units={['em', 'rem', 'px']}
                             defaultUnit="em"
                             aria-label="Letter spacing"
+                            mixed={letterSpacing.mixed}
                         />
                     </PairRow>
                 </GroupShell>
@@ -410,12 +415,14 @@ export const TextSection = observer(function TextSection() {
                             value={textTransform.value}
                             options={TEXT_TRANSFORM_OPTIONS}
                             onCommit={textTransformSetter.set}
+                            mixed={textTransform.mixed}
                         />
                         <LabeledSelectInput
                             label="Decor"
                             value={textDecoration.value}
                             options={TEXT_DECORATION_OPTIONS}
                             onCommit={textDecorationSetter.set}
+                            mixed={textDecoration.mixed}
                         />
                     </PairRow>
                 </GroupShell>
@@ -427,6 +434,7 @@ export const TextSection = observer(function TextSection() {
                         onCommit={textShadowSetter.set}
                         placeholder="0 1px 2px rgba(0,0,0,0.2)"
                         aria-label="Text shadow"
+                        mixed={textShadow.mixed}
                     />
                 </GroupShell>
             </div>

@@ -47,12 +47,14 @@ export const AdvancedSection = observer(function AdvancedSection() {
     const [layoutOpen, setLayoutOpen] = useState(layoutAnySet);
     const [draftRow, setDraftRow] = useState(false);
 
-    // Auto-open when switching to an element that already has these properties set.
+    // Auto-open/close when switching elements.
     useEffect(() => {
         if (customRows.length > 0) setVariablesOpen(true);
+        else setVariablesOpen(false);
     }, [customRows.length]);
     useEffect(() => {
         if (layoutAnySet) setLayoutOpen(true);
+        else setLayoutOpen(false);
     }, [layoutAnySet]);
 
     return (

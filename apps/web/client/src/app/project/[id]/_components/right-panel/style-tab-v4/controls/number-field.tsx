@@ -28,6 +28,8 @@ export interface NumberFieldProps {
     /** When true, accepts non-numeric values like `auto`, `none`. */
     allowKeywords?: boolean;
     placeholder?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     className?: string;
     'aria-label'?: string;
 }
@@ -77,6 +79,7 @@ export function NumberField({
     defaultUnit = 'px',
     allowKeywords = true,
     placeholder,
+    mixed,
     className,
     'aria-label': ariaLabel,
 }: NumberFieldProps) {
@@ -187,13 +190,16 @@ export function NumberField({
                     inputMode="decimal"
                     spellCheck={false}
                     value={draft}
-                    placeholder={placeholder}
+                    placeholder={mixed ? 'Mixed' : placeholder}
                     aria-label={ariaLabel}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onBlur={(e) => commit(e.currentTarget.value)}
                     // Normal text cursor — never a resize cursor on the value input.
-                    className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none"
+                    className={cn(
+                        'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none',
+                        mixed && 'placeholder:italic placeholder:text-foreground-tertiary/70',
+                    )}
                 />
             </div>
             {showPill && (

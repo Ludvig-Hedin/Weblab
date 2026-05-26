@@ -10,6 +10,8 @@ export interface TextFieldProps {
     value: string;
     onCommit: (value: string) => void;
     placeholder?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     className?: string;
 }
 
@@ -25,7 +27,7 @@ export interface TextFieldProps {
  *
  * Commits on blur or Enter; resets on Escape.
  */
-export function TextField({ value, onCommit, placeholder, className }: TextFieldProps) {
+export function TextField({ value, onCommit, placeholder, mixed, className }: TextFieldProps) {
     const [draft, setDraft] = useState(value);
     const lastValueRef = useRef(value);
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -42,7 +44,6 @@ export function TextField({ value, onCommit, placeholder, className }: TextField
             ref={inputRef}
             type="text"
             value={draft}
-            placeholder={placeholder}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={() => {
                 if (skipBlurCommitRef.current) {
@@ -64,7 +65,13 @@ export function TextField({ value, onCommit, placeholder, className }: TextField
                     e.currentTarget.blur();
                 }
             }}
-            className={cn(FIELD_BASE_CLASSES, 'min-w-0', className)}
+            placeholder={mixed ? 'Mixed' : placeholder}
+            className={cn(
+                FIELD_BASE_CLASSES,
+                'min-w-0',
+                mixed && 'placeholder:italic placeholder:text-foreground-tertiary/70',
+                className,
+            )}
         />
     );
 }

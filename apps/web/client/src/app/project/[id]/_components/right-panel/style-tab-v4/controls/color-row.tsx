@@ -24,6 +24,8 @@ export interface ColorRowProps {
     onConnect?: () => void;
     /** Optional eyedropper handler. */
     onEyedropper?: () => void;
+    /** When true, multiple selected elements have different color values. */
+    mixed?: boolean;
     className?: string;
 }
 
@@ -134,6 +136,7 @@ export function ColorRow({
     pickerContent,
     onConnect,
     onEyedropper,
+    mixed,
     className,
 }: ColorRowProps) {
     const { hex, alpha, raw } = parseHex(value);
@@ -187,6 +190,13 @@ export function ColorRow({
                         title="Open color picker"
                         className="border-foreground/10 focus-visible:ring-foreground-brand/40 ml-[2px] h-[20px] w-[20px] shrink-0 cursor-pointer rounded-xs border outline-none focus-visible:ring-[3px]"
                         style={(() => {
+                            // Mixed → checkerboard-style diagonal stripe to indicate divergent values.
+                            if (mixed)
+                                return {
+                                    backgroundImage:
+                                        'linear-gradient(45deg, hsl(var(--foreground)/0.15) 25%, transparent 25%, transparent 50%, hsl(var(--foreground)/0.15) 50%, hsl(var(--foreground)/0.15) 75%, transparent 75%, transparent)',
+                                    backgroundSize: '6px 6px',
+                                };
                             // Hex value rendered as-is. Raw CSS value (var, named, hsl)
                             // gets passed straight through so the swatch shows the
                             // real colour. Empty value → diagonal red-hatch pattern.
@@ -213,6 +223,7 @@ export function ColorRow({
                 type="text"
                 value={hexDraft}
                 spellCheck={false}
+                placeholder={mixed ? 'Mixed' : undefined}
                 onChange={(e) => setHexDraft(e.target.value.replace(/^#/, '').toUpperCase())}
                 onBlur={() => commitHex(hexDraft)}
                 onKeyDown={(e) => {
@@ -227,7 +238,11 @@ export function ColorRow({
                     }
                 }}
                 aria-label="Hex value"
-                className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none"
+                className={cn(
+                    'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent uppercase tabular-nums outline-none',
+                    mixed &&
+                        'placeholder:text-foreground-tertiary/70 placeholder:normal-case placeholder:italic',
+                )}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
             />
 

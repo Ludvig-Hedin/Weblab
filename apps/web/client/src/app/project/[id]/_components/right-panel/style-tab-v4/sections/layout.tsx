@@ -190,6 +190,7 @@ export const LayoutSection = observer(function LayoutSection() {
                                 units={PAD_UNITS}
                                 defaultUnit="px"
                                 aria-label="Gap"
+                                mixed={gap.mixed}
                             />
                         </GroupShell>
                     </div>
@@ -229,6 +230,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             units={PAD_UNITS}
                             defaultUnit="px"
                             aria-label="Horizontal padding"
+                            mixed={padLeft.mixed}
                         />
                         <IconNumberInput
                             glyph={<IconPadV />}
@@ -237,6 +239,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             units={PAD_UNITS}
                             defaultUnit="px"
                             aria-label="Vertical padding"
+                            mixed={padTop.mixed}
                         />
                     </div>
                 </GroupShell>
@@ -277,6 +280,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             keywords={['auto']}
                             defaultUnit="px"
                             aria-label="Horizontal margin"
+                            mixed={marginLeft.mixed}
                         />
                         <IconNumberInput
                             glyph={<IconMarginV />}
@@ -286,6 +290,7 @@ export const LayoutSection = observer(function LayoutSection() {
                             keywords={['auto']}
                             defaultUnit="px"
                             aria-label="Vertical margin"
+                            mixed={marginTop.mixed}
                         />
                     </div>
                 </GroupShell>

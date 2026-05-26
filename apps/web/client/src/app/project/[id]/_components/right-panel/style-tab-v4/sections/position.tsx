@@ -114,14 +114,19 @@ export const PositionSection = observer(function PositionSection() {
         <Section id="position" title="Position">
             <div className="flex flex-col gap-3 px-3 pt-1 pb-3">
                 {isStatic ? (
-                    <GroupShell>
-                        <LabeledSelectInput
-                            label="Type"
-                            value={positionValue}
-                            options={POSITION_OPTIONS}
-                            onCommit={positionSetter.set}
-                        />
-                    </GroupShell>
+                    <>
+                        <GroupShell>
+                            <LabeledSelectInput
+                                label="Type"
+                                value={positionValue}
+                                options={POSITION_OPTIONS}
+                                onCommit={positionSetter.set}
+                            />
+                        </GroupShell>
+                        <p className="text-foreground-tertiary text-mini px-0.5">
+                            Change type to Relative, Absolute, Fixed, or Sticky to set offsets.
+                        </p>
+                    </>
                 ) : (
                     <>
                         {/* Pin-pad offsets */}

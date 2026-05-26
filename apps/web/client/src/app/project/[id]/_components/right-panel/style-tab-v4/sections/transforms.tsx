@@ -46,6 +46,11 @@ export const TransformsSection = observer(function TransformsSection() {
         if (advancedSetCount > 0) setCustomOpen(true);
     }, [advancedSetCount]);
 
+    // Auto-close when switching to an element with no transforms set.
+    useEffect(() => {
+        if (advancedSetCount === 0) setCustomOpen(false);
+    }, [advancedSetCount]);
+
     return (
         <Section id="transforms" title="Transforms">
             <div className="flex flex-col gap-3 px-3 pb-3">

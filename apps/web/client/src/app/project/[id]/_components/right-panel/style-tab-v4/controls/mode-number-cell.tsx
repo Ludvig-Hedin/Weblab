@@ -25,6 +25,8 @@ export interface ModeNumberCellProps {
     defaultUnit?: string;
     /** Aria label for the input. */
     ariaLabel?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     className?: string;
 }
 
@@ -85,6 +87,7 @@ export function ModeNumberCell({
     units = NUMERIC_UNITS,
     defaultUnit = 'px',
     ariaLabel,
+    mixed,
     className,
 }: ModeNumberCellProps) {
     const [draft, setDraft] = React.useState(value);
@@ -200,11 +203,15 @@ export function ModeNumberCell({
                     inputMode="decimal"
                     spellCheck={false}
                     value={isKeyword ? '' : draft}
+                    placeholder={mixed ? 'Mixed' : undefined}
                     aria-label={ariaLabel}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onBlur={(e) => commit(e.currentTarget.value)}
-                    className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 cursor-text bg-transparent px-[10px] tabular-nums outline-none"
+                    className={cn(
+                        'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 cursor-text bg-transparent px-[10px] tabular-nums outline-none',
+                        mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
+                    )}
                     style={{ fontVariantNumeric: 'tabular-nums' }}
                 />
             )}

@@ -221,6 +221,7 @@ export const SizeSection = observer(function SizeSection() {
                             units={DIMENSION_UNITS}
                             defaultUnit="px"
                             ariaLabel="Width"
+                            mixed={width.mixed}
                         />
                         <LinkAspectButton locked={aspectLocked} onToggle={handleToggleAspectLock} />
                         <ModeNumberCell
@@ -231,6 +232,7 @@ export const SizeSection = observer(function SizeSection() {
                             units={DIMENSION_UNITS}
                             defaultUnit="px"
                             ariaLabel="Height"
+                            mixed={height.mixed}
                         />
                     </div>
                 </GroupShell>
@@ -255,6 +257,7 @@ export const SizeSection = observer(function SizeSection() {
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
                             aria-label="Min width"
+                            mixed={minWidth.mixed}
                         />
                         <LabeledNumberInput
                             label="Min H"
@@ -263,6 +266,7 @@ export const SizeSection = observer(function SizeSection() {
                             units={CONSTRAINT_UNITS}
                             defaultUnit="px"
                             aria-label="Min height"
+                            mixed={minHeight.mixed}
                         />
                     </div>
                     <div className="mt-1.5 grid grid-cols-2 gap-1.5">
@@ -274,6 +278,7 @@ export const SizeSection = observer(function SizeSection() {
                             defaultUnit="px"
                             placeholder="∞"
                             aria-label="Max width"
+                            mixed={maxWidth.mixed}
                         />
                         <LabeledNumberInput
                             label="Max H"
@@ -283,6 +288,7 @@ export const SizeSection = observer(function SizeSection() {
                             defaultUnit="px"
                             placeholder="∞"
                             aria-label="Max height"
+                            mixed={maxHeight.mixed}
                         />
                     </div>
                 </GroupShell>
@@ -313,12 +319,14 @@ export const SizeSection = observer(function SizeSection() {
                             placeholder="e.g. 16 / 9"
                             aria-label="Aspect ratio"
                             hidePill
+                            mixed={aspectRatio.mixed}
                         />
                         <LabeledSelectInput
                             label="Fit"
                             value={objectFit.value}
                             options={FIT_OPTIONS}
                             onCommit={objectFitSetter.set}
+                            mixed={objectFit.mixed}
                         />
                     </div>
                 </GroupShell>
@@ -335,12 +343,14 @@ export const SizeSection = observer(function SizeSection() {
                             defaultUnit=""
                             placeholder="0"
                             aria-label="Flex grow"
+                            mixed={flexGrow.mixed}
                         />
                         <LabeledSelectInput
                             label="Overflow"
                             value={overflowValue}
                             options={OVERFLOW_OPTIONS}
                             onCommit={overflowSetter.set}
+                            mixed={overflow.mixed}
                         />
                     </div>
                 </GroupShell>

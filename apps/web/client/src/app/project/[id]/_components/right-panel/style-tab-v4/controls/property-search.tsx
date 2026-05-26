@@ -195,6 +195,21 @@ const PROPERTY_REGISTRY: PropertyRegistryEntry[] = [
 
 const MAX_RESULTS = 8;
 
+const SECTION_LABELS: Record<string, string> = {
+    layout: 'Layout',
+    position: 'Position',
+    size: 'Size',
+    text: 'Text',
+    styles: 'Styles',
+    background: 'Background',
+    border: 'Border',
+    effects: 'Effects',
+    transforms: 'Transforms',
+    transitions: 'Transitions',
+    advanced: 'Advanced',
+    cursor: 'Cursor',
+};
+
 /** Case-insensitive substring match against both the label and the CSS name. */
 function matchEntries(query: string): PropertyRegistryEntry[] {
     const q = query.trim().toLowerCase();
@@ -262,6 +277,28 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
     const blurCloseTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const results = React.useMemo(() => matchEntries(query), [query]);
+
+    // Group results by section for display, keeping flat indices for keyboard nav.
+    const groupedResults = React.useMemo(() => {
+        const groups: Array<{
+            sectionId: string;
+            label: string;
+            items: Array<{ entry: PropertyRegistryEntry; flatIndex: number }>;
+        }> = [];
+        results.forEach((entry, flatIndex) => {
+            const last = groups[groups.length - 1];
+            if (last && last.sectionId === entry.sectionId) {
+                last.items.push({ entry, flatIndex });
+            } else {
+                groups.push({
+                    sectionId: entry.sectionId,
+                    label: SECTION_LABELS[entry.sectionId] ?? entry.sectionId,
+                    items: [{ entry, flatIndex }],
+                });
+            }
+        });
+        return groups;
+    }, [results]);
 
     // Clear any pending blur-close timer on unmount.
     React.useEffect(() => {
@@ -412,30 +449,40 @@ export function PropertySearch({ onNavigate, className }: PropertySearchProps) {
                             No matching property
                         </li>
                     )}
-                    {results.map((entry, index) => (
-                        <li
-                            key={entry.property}
-                            role="option"
-                            aria-selected={index === activeIndex}
-                            // Use pointerdown (not click) so selection fires
-                            // before the input's blur tears the list down.
-                            onPointerDown={(event) => {
-                                event.preventDefault();
-                                select(entry);
-                            }}
-                            onMouseEnter={() => setActiveIndex(index)}
-                            className={cn(
-                                'flex cursor-pointer items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 transition-colors',
-                                index === activeIndex
-                                    ? 'bg-foreground-brand/15 text-foreground-primary'
-                                    : 'text-foreground-secondary hover:bg-foreground/5',
-                            )}
-                        >
-                            <span className="text-mini truncate">{entry.label}</span>
-                            <span className="text-foreground-tertiary text-[10px]">
-                                {entry.property}
-                            </span>
-                        </li>
+                    {groupedResults.map((group) => (
+                        <React.Fragment key={group.sectionId}>
+                            <li
+                                role="presentation"
+                                className="text-foreground-tertiary px-2 pt-2 pb-0.5 text-[10px] select-none first:pt-1"
+                            >
+                                {group.label}
+                            </li>
+                            {group.items.map(({ entry, flatIndex }) => (
+                                <li
+                                    key={entry.property}
+                                    role="option"
+                                    aria-selected={flatIndex === activeIndex}
+                                    // Use pointerdown (not click) so selection fires
+                                    // before the input's blur tears the list down.
+                                    onPointerDown={(event) => {
+                                        event.preventDefault();
+                                        select(entry);
+                                    }}
+                                    onMouseEnter={() => setActiveIndex(flatIndex)}
+                                    className={cn(
+                                        'flex cursor-pointer items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 transition-colors',
+                                        flatIndex === activeIndex
+                                            ? 'bg-foreground-brand/15 text-foreground-primary'
+                                            : 'text-foreground-secondary hover:bg-foreground/5',
+                                    )}
+                                >
+                                    <span className="text-mini truncate">{entry.label}</span>
+                                    <span className="text-foreground-tertiary text-[10px]">
+                                        {entry.property}
+                                    </span>
+                                </li>
+                            ))}
+                        </React.Fragment>
                     ))}
                 </ul>
             )}

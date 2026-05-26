@@ -30,6 +30,8 @@ export interface IconNumberInputProps {
     allowKeywords?: boolean;
     /** Placeholder shown when the value is empty. */
     placeholder?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     /** Aria label for the underlying input. */
     'aria-label'?: string;
     /** Extra class on the outer wrapper. */
@@ -91,6 +93,7 @@ export function IconNumberInput({
     defaultUnit = 'px',
     allowKeywords = true,
     placeholder,
+    mixed,
     'aria-label': ariaLabel,
     className,
     hidePill = false,
@@ -284,12 +287,15 @@ export function IconNumberInput({
                     inputMode="decimal"
                     spellCheck={false}
                     value={numDraft}
-                    placeholder={placeholder}
+                    placeholder={mixed ? 'Mixed' : placeholder}
                     aria-label={ariaLabel}
                     onChange={(e) => handleInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onBlur={() => commit()}
-                    className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent tabular-nums outline-none"
+                    className={cn(
+                        'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent tabular-nums outline-none',
+                        mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
+                    )}
                     style={{ fontVariantNumeric: 'tabular-nums' }}
                 />
             )}

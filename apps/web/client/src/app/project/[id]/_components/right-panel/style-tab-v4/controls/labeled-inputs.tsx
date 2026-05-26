@@ -29,6 +29,8 @@ export interface LabeledNumberInputProps {
     value: string;
     onCommit: (value: string) => void;
     placeholder?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     unit?: string;
     /** Optional units the unit-pill cycles between (when more than one). */
     units?: readonly string[];
@@ -80,6 +82,7 @@ export function LabeledNumberInput({
     value,
     onCommit,
     placeholder,
+    mixed,
     unit: _unit,
     units: _units,
     keywords: _keywords = [],
@@ -166,12 +169,15 @@ export function LabeledNumberInput({
                 inputMode={isKeyword ? 'text' : 'decimal'}
                 spellCheck={false}
                 value={displayValue}
-                placeholder={placeholder}
+                placeholder={mixed ? 'Mixed' : placeholder}
                 aria-label={ariaLabel ?? label}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={(e) => commit(e.currentTarget.value)}
-                className="text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent text-left tabular-nums outline-none"
+                className={cn(
+                    'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent text-left tabular-nums outline-none',
+                    mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
+                )}
                 style={{ fontVariantNumeric: 'tabular-nums' }}
             />
             {unitLabel && (
@@ -191,6 +197,8 @@ export interface LabeledSelectInputProps {
     value: string;
     options: readonly { value: string; label: string }[];
     onCommit: (value: string) => void;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" text. */
+    mixed?: boolean;
     className?: string;
 }
 
@@ -203,10 +211,11 @@ export function LabeledSelectInput({
     value,
     options,
     onCommit,
+    mixed,
     className,
 }: LabeledSelectInputProps) {
     return (
-        <Select value={value || undefined} onValueChange={onCommit}>
+        <Select value={mixed ? undefined : value || undefined} onValueChange={onCommit}>
             <SelectTrigger
                 className={cn(
                     FIELD_BASE_CLASSES,
@@ -215,8 +224,13 @@ export function LabeledSelectInput({
                 )}
             >
                 <LabelInline>{label}</LabelInline>
-                <span className="text-foreground-primary text-mini ml-auto truncate">
-                    <SelectValue placeholder="—" />
+                <span
+                    className={cn(
+                        'text-mini ml-auto truncate',
+                        mixed ? 'text-foreground-tertiary italic' : 'text-foreground-primary',
+                    )}
+                >
+                    {mixed ? 'Mixed' : <SelectValue placeholder="—" />}
                 </span>
             </SelectTrigger>
             <SelectContent className="max-w-[280px]">
@@ -236,6 +250,8 @@ export interface LabeledTextInputProps {
     value: string;
     onCommit: (value: string) => void;
     placeholder?: string;
+    /** When true, multiple selected elements have different values. Shows italic "Mixed" placeholder. */
+    mixed?: boolean;
     mono?: boolean;
     className?: string;
     'aria-label'?: string;
@@ -252,6 +268,7 @@ export function LabeledTextInput({
     value,
     onCommit,
     placeholder,
+    mixed,
     mono,
     className,
     'aria-label': ariaLabel,
@@ -279,7 +296,7 @@ export function LabeledTextInput({
                 type="text"
                 spellCheck={false}
                 value={draft}
-                placeholder={placeholder}
+                placeholder={mixed ? 'Mixed' : placeholder}
                 aria-label={ariaLabel ?? label}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
@@ -299,6 +316,7 @@ export function LabeledTextInput({
                 className={cn(
                     'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none',
                     mono && 'font-mono text-[12px]',
+                    mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
                 )}
             />
         </div>

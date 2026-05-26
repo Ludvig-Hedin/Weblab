@@ -208,7 +208,7 @@ export function ChipInput({
                     ref={trailingInputRef}
                     type="text"
                     value={draft}
-                    placeholder={chips.length === 0 ? placeholder : ''}
+                    placeholder={placeholder}
                     aria-label={ariaLabel ?? 'Add an item'}
                     onChange={(event) => setDraft(event.target.value)}
                     onKeyDown={(event) => {

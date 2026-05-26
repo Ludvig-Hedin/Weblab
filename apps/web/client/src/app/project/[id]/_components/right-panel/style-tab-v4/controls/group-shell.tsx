@@ -1,6 +1,7 @@
 'use client';
 
 import type { MouseEvent, ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 import { cn } from '@weblab/ui/utils';
 
@@ -62,7 +63,7 @@ export function GroupShell({
     return (
         <div className={cn('flex flex-col', className)} style={{ gap }}>
             {showHead && (
-                <div className="flex items-center justify-between">
+                <div className="group flex items-center justify-between">
                     {onReset ? (
                         <button
                             type="button"
@@ -78,7 +79,23 @@ export function GroupShell({
                     ) : (
                         <span className={GROUP_LABEL_CLASSES}>{label}</span>
                     )}
-                    {actions && <div className="flex items-center gap-1">{actions}</div>}
+                    <div className="flex items-center gap-0.5">
+                        {onReset && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReset();
+                                }}
+                                aria-label="Reset"
+                                title="Reset"
+                                className="text-foreground-tertiary hover:text-foreground-primary flex size-4 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
+                            >
+                                <X className="size-2.5" />
+                            </button>
+                        )}
+                        {actions && <div className="flex items-center gap-1">{actions}</div>}
+                    </div>
                 </div>
             )}
             {children}

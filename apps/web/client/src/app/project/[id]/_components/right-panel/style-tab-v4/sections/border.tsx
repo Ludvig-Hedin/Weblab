@@ -257,6 +257,7 @@ export const BorderSection = observer(function BorderSection() {
                                 onCommit={borderColorSetter.set}
                             />
                         }
+                        mixed={borderColor.mixed}
                     />
 
                     {/* Style + Width pair */}
@@ -266,6 +267,7 @@ export const BorderSection = observer(function BorderSection() {
                             options={BORDER_STYLE_OPTIONS}
                             value={borderStyle.value}
                             onCommit={borderStyleSetter.set}
+                            mixed={borderStyle.mixed}
                         />
                         <IconNumberInput
                             glyph={<IconWeight />}
@@ -274,6 +276,7 @@ export const BorderSection = observer(function BorderSection() {
                             units={STROKE_UNITS}
                             defaultUnit="px"
                             aria-label="Border width"
+                            mixed={borderWidth.mixed}
                         />
                     </div>
                 </GroupShell>
@@ -312,6 +315,7 @@ export const BorderSection = observer(function BorderSection() {
                         units={RADIUS_UNITS}
                         defaultUnit="px"
                         aria-label="Border radius"
+                        mixed={radius.mixed}
                     />
                 </GroupShell>
             </div>

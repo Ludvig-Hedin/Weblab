@@ -3,18 +3,19 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 
+import type { NamedStyleOption } from '../controls/style-chip-picker';
 import {
     ColorField,
+    ColorRow,
     CustomExpander,
     GroupShell,
     LabeledSelectInput,
     NumberField,
-    PropertyLabel,
     ShadowField,
     StyleChipPicker,
     TextField,
 } from '../controls';
-import { useStyleSetter } from '../hooks/use-style-setter';
+import { useStyleBatchSetter, useStyleSetter } from '../hooks/use-style-setter';
 import { useStyleValue } from '../hooks/use-style-value';
 import { Section } from './section';
 
@@ -45,12 +46,88 @@ const OUTLINE_STYLE_OPTIONS = [
     { value: 'double', label: 'Double' },
 ] as const;
 
-/**
- * Effects section — StyleChipPicker CTA at the top (effect-style registry not
- * yet built), then a CustomExpander carrying all the raw effect properties.
- * Ported to v4 grammar: each row inside the expander is a GroupShell wrapping
- * the appropriate v4 primitive; content in `flex flex-col gap-3 px-3 pb-3`.
- */
+// ── Effect presets ─────────────────────────────────────────────────────────────
+
+interface EffectPreset {
+    name: string;
+    label: string;
+    preview: string;
+    styles: Record<string, string>;
+}
+
+const EFFECT_PRESETS: EffectPreset[] = [
+    {
+        name: 'shadow-sm',
+        label: 'Shadow S',
+        preview: '0 1px 2px',
+        styles: { 'box-shadow': '0 1px 2px 0 rgba(0,0,0,0.05)' },
+    },
+    {
+        name: 'shadow-md',
+        label: 'Shadow M',
+        preview: '0 4px 6px',
+        styles: {
+            'box-shadow': '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+        },
+    },
+    {
+        name: 'shadow-lg',
+        label: 'Shadow L',
+        preview: '0 10px 15px',
+        styles: {
+            'box-shadow': '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+        },
+    },
+    {
+        name: 'shadow-xl',
+        label: 'Shadow XL',
+        preview: '0 20px 25px',
+        styles: {
+            'box-shadow': '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+        },
+    },
+    {
+        name: 'blur-sm',
+        label: 'Blur S',
+        preview: 'blur(2px)',
+        styles: { filter: 'blur(2px)' },
+    },
+    {
+        name: 'blur-md',
+        label: 'Blur M',
+        preview: 'blur(4px)',
+        styles: { filter: 'blur(4px)' },
+    },
+    {
+        name: 'blur-lg',
+        label: 'Blur L',
+        preview: 'blur(8px)',
+        styles: { filter: 'blur(8px)' },
+    },
+    {
+        name: 'frosted',
+        label: 'Frosted glass',
+        preview: 'blur(12px)',
+        styles: { 'backdrop-filter': 'blur(12px)' },
+    },
+];
+
+const EFFECT_STYLE_OPTIONS: readonly NamedStyleOption[] = EFFECT_PRESETS.map((p) => ({
+    name: p.name,
+    label: p.label,
+    preview: p.preview,
+}));
+
+function detectAppliedPreset(values: Record<string, string>): string {
+    for (const preset of EFFECT_PRESETS) {
+        const match = Object.entries(preset.styles).every(([key, val]) => values[key] === val);
+        if (match) return preset.name;
+    }
+    return '';
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
+
 export const EffectsSection = observer(function EffectsSection() {
     const blendMode = useStyleValue('mix-blend-mode');
     const outlineStyle = useStyleValue('outline-style');
@@ -70,6 +147,8 @@ export const EffectsSection = observer(function EffectsSection() {
     const filterSetter = useStyleSetter('filter');
     const backdropFilterSetter = useStyleSetter('backdrop-filter');
 
+    const { setMultiple } = useStyleBatchSetter();
+
     const advancedSetCount = [
         blendMode,
         outlineStyle,
@@ -83,29 +162,53 @@ export const EffectsSection = observer(function EffectsSection() {
 
     const [customOpen, setCustomOpen] = useState(advancedSetCount > 0);
 
-    // Auto-open when switching to an element that already has effects set.
-    // useState only initializes once; this keeps the expander in sync across selections.
+    // Auto-open when an element that already has effects is selected.
     useEffect(() => {
         if (advancedSetCount > 0) setCustomOpen(true);
     }, [advancedSetCount]);
 
+    // Auto-close when switching to an element with no effects set.
+    useEffect(() => {
+        if (advancedSetCount === 0) setCustomOpen(false);
+    }, [advancedSetCount]);
+
+    // Detect which preset (if any) matches the current effect values.
+    const appliedPreset = detectAppliedPreset({
+        'box-shadow': boxShadow.value,
+        filter: filter.value,
+        'backdrop-filter': backdropFilter.value,
+    });
+
+    const handleApplyPreset = (name: string) => {
+        const preset = EFFECT_PRESETS.find((p) => p.name === name);
+        if (!preset) return;
+        setMultiple(
+            Object.entries(preset.styles).map(([property, value]) => ({ property, value })),
+        );
+    };
+
+    const handleDetachPreset = () => {
+        const preset = EFFECT_PRESETS.find((p) => p.name === appliedPreset);
+        if (!preset) return;
+        setMultiple(Object.entries(preset.styles).map(([property]) => ({ property, value: '' })));
+    };
+
     return (
         <Section id="effects" title="Effects">
             <div className="flex flex-col gap-3 px-3 pb-3">
-                {/* Style chip — effect-style registry not built yet */}
-                <div className="group/control flex items-center gap-3">
-                    <PropertyLabel label="Style" isSet={false} title="Apply effect style" />
-                    <StyleChipPicker
-                        value=""
-                        options={[]}
-                        kind="Effect"
-                        onApply={() => undefined}
-                        onDetach={() => undefined}
-                        onToggleCustom={() => setCustomOpen((v) => !v)}
-                        customOpen={customOpen}
-                        comingSoon
-                    />
-                </div>
+                <GroupShell label="Style">
+                    <div className="group/control flex items-center">
+                        <StyleChipPicker
+                            value={appliedPreset}
+                            options={EFFECT_STYLE_OPTIONS}
+                            kind="Effect"
+                            onApply={handleApplyPreset}
+                            onDetach={handleDetachPreset}
+                            onToggleCustom={() => setCustomOpen((v) => !v)}
+                            customOpen={customOpen}
+                        />
+                    </div>
+                </GroupShell>
 
                 <CustomExpander
                     open={customOpen}
@@ -158,7 +261,16 @@ export const EffectsSection = observer(function EffectsSection() {
                     </GroupShell>
 
                     <GroupShell label="Outline color" onReset={() => outlineColorSetter.set('')}>
-                        <ColorField value={outlineColor.value} onCommit={outlineColorSetter.set} />
+                        <ColorRow
+                            value={outlineColor.value}
+                            onCommit={outlineColorSetter.set}
+                            pickerContent={
+                                <ColorField
+                                    value={outlineColor.value}
+                                    onCommit={outlineColorSetter.set}
+                                />
+                            }
+                        />
                     </GroupShell>
 
                     <GroupShell label="Outline offset" onReset={() => outlineOffsetSetter.set('')}>
