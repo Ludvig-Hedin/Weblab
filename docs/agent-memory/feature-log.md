@@ -16,8 +16,35 @@ Links: changelog / blog / migration / docs
 
 ---
 
-## 2026-05-24 — CodeSandbox archived; Vercel Sandbox is the sole runtime
+## 2026-05-27 — Documentation refresh for agent context
 Author: Claude Opus 4.7
+Area: `docs/agent-context`, `docs/agent-memory`
+Summary: Rewrote `current-progress.md`, `repo-map.md`, `data-api-architecture.md`, `agent-context/README.md`, and `packages-reference.md` to reflect the Clerk + Convex + Vercel Sandbox reality (prior copies still described Supabase + tRPC + CodeSandbox). Added a one-page `agents-onboarding.md` so fresh sessions can spin up in 5 minutes. Appended catch-up entries here for ships that landed between 2026-05-25 and 2026-05-27 (feature catalog, profile-setup, AI chat optimization scaffolding, properties clipboard, rulers tick step tests).
+Files: `docs/agent-context/current-progress.md`, `docs/agent-context/repo-map.md`, `docs/agent-context/data-api-architecture.md`, `docs/agent-context/README.md`, `docs/agent-context/packages-reference.md`, `docs/agent-context/agents-onboarding.md`, `docs/agent-memory/feature-log.md`, `docs/agent-memory/architecture-decisions.md`
+Links: n/a
+
+## 2026-05-26 — Feature catalog, test plan, backlog, profile-setup layout
+Author: Claude Sonnet 4.6
+Area: `docs/`, `apps/web/client/src/app/profile-setup`
+Summary: Landed the master `docs/feature-catalog.md` (master inventory with stable `F-XXX` IDs and tags `#editor`, `#ai`, `#public`, `#auth-gated`, `#cms`, `#billing`, `#convex`, `#deprecated`, …) and the matching `docs/test-plan.md` (per-feature `T-XXX` test matrix). Added the reusable `docs/prompts/validate-feature.md` orchestration prompt that chains `anthropic-skills:frontend-testing-debugging`, `anthropic-skills:webapp-testing`, and `superpowers:verification-before-completion` against a feature ID / tag / section / branch diff. `BACKLOG.md` consolidated and re-templated. Profile-setup layout refresh on the auth side.
+Files: `docs/feature-catalog.md`, `docs/test-plan.md`, `docs/prompts/validate-feature.md`, `BACKLOG.md`, `apps/web/client/src/app/profile-setup/*`
+Links: n/a
+
+## 2026-05-26 — Tests for rulers tick step + properties clipboard
+Author: Claude Sonnet 4.6
+Area: `apps/web/client/src/components/store/editor`
+Summary: Added unit tests for the canvas rulers tick-step calculation (Figma-style layout guides shipped 2026-05-17) and for the new properties clipboard that copies/pastes style props across a selection. Both modules previously had only happy-path coverage.
+Files: `apps/web/client/src/components/store/editor/style/properties-clipboard.test.ts`, ruler tick-step tests under the canvas store
+Links: commit `89fad709b`
+
+## 2026-05-25 — AI chat optimization scaffolding
+Author: Claude Sonnet 4.6
+Area: `packages/ai`, `apps/web/client/src/app/api/chat`, `apps/web/client/src/app/project/[id]/_hooks/use-chat`
+Summary: Landed the optimization pipeline designed in `docs/notes/2026-05-24-ai-chat-optimization-design.md`. New modules: `packages/ai/src/chat/model-router.ts` (selection rules), `request-builder.ts` (assembles streaming request), `summarizer.ts` + `summarizer-utils.ts` (long-context summarization with cache-aware truncation), `prompt/cache-blocks.ts` (Anthropic cache-block markers), `observability/index.ts` (Langfuse + PostHog event emission). The client `useChat` hook now mounts a `useSummarizer` that triggers Convex `chatActions.summarizeConversation` when token budget reaches threshold. Per-message `applyDiff`, `generateTitle`, `generateSuggestions` endpoints gate on `requireProjectCreateCap` / `requireProjectUpdateCap` to prevent cost amplification.
+Files: `packages/ai/src/chat/model-router.ts` (new), `packages/ai/src/chat/request-builder.ts` (new), `packages/ai/src/chat/summarizer.ts` (new), `packages/ai/src/chat/summarizer-utils.ts` (new), `packages/ai/src/prompt/cache-blocks.ts` (new), `packages/ai/src/observability/index.ts` (new), `apps/web/client/src/app/project/[id]/_hooks/use-chat/use-summarizer.ts` (new), `apps/web/client/src/app/project/[id]/_hooks/use-chat/index.tsx`, `apps/web/client/convex/chatActions.ts`
+Links: design doc `docs/notes/2026-05-24-ai-chat-optimization-design.md`
+
+
 Area: `packages/code-provider`, `packages/constants`, `apps/web/client/convex`, `apps/web/client/src/components/store/editor/sandbox`, `apps/web/client/src/app/projects/import`
 Summary: Two-phase removal of the dual-mode sandbox abstraction. Phase 1 (`5e8dca441`) flipped `WEBLAB_CLOUD_PROVIDER` default to `vercel_sandbox`, made `CSB_API_KEY` optional, added `scaffoldStaticHtmlProject` + framework-aware dispatch to `VercelSandboxProvider.createProject`, and rewrote `convex.projectActions.createBlank` to always provision on Vercel for `framework ∈ {'nextjs', 'static-html'}`. Phase 2 (`de3dc9269`) routed every active CodeSandbox caller away from the SDK — editor session throws `CODESANDBOX_ARCHIVED_MESSAGE` for legacy CSB-backed projects, import flows hard-fail on non-Vercel provisioning, `branchActions.createBlank` ported to Vercel, and `projectActions.fork` / `branchActions.fork` / `publishHelpers.forkBuildSandbox` throw clear errors pointing at `TODO(sandbox-fork)` / `TODO(publish-vercel)`. CodeSandbox provider files and `@codesandbox/sdk` dep retained as `@deprecated` dead code so legacy DB rows still type-check; full deletion gated on row migration. CLAUDE.md gained a "Sandbox runtime — Vercel only" section; an ADR was appended documenting the decision and follow-ups.
 Files: `packages/code-provider/src/providers/vercel-sandbox/index.ts`, `packages/code-provider/src/types.ts`, `packages/code-provider/src/providers/codesandbox/index.ts`, `packages/code-provider/package.json`, `packages/constants/src/csb.ts`, `apps/web/client/src/env.ts`, `apps/web/client/.env.example`, `apps/web/client/convex/projectActions.ts`, `apps/web/client/convex/branchActions.ts`, `apps/web/client/convex/projects.ts`, `apps/web/client/convex/lib/publishHelpers.ts`, `apps/web/client/src/components/store/editor/sandbox/session.ts`, `apps/web/client/src/app/projects/import/local/_context/index.tsx`, `apps/web/client/src/app/projects/import/figma/_context/index.tsx`, `CLAUDE.md`, `docs/agent-memory/architecture-decisions.md`, `docs/notes/2026-05-13-vercel-sandbox-provider.md`

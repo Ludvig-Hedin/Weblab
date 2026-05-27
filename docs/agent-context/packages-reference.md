@@ -1,17 +1,18 @@
 # Packages Reference
 
 Comprehensive reference for every package in `packages/*`. Read the relevant
-section before importing from a package or adding a new one.
+section before importing from a package or adding a new one. Last refreshed:
+2026-05-27.
 
-> **Total: 28 packages** (incl. `@weblab/auth` capability layer). All published
-> under the `@weblab/*` scope. Changes ripple into dependent packages — scope
-> changes narrowly.
+> **Total: 26 packages.** All published under the `@weblab/*` scope.
+> Changes ripple into dependent packages — scope changes narrowly.
+> Verify with `ls packages/`.
 
 ## Quick Index
 
 | Group | Packages |
 |-------|----------|
-| Core / Infra | `constants`, `models`, `types`, `db`, `utility`, `rpc` |
+| Core / Infra | `constants`, `models`, `types`, `db`, `utility`, `rpc`, `auth` |
 | AI & LLM | `ai`, `ai-cli`, `parser` |
 | Framework / Runtime | `framework`, `code-provider`, `file-system`, `mcp` |
 | Integrations | `github`, `figma`, `figma-plugin`, `git`, `stripe`, `email` |
@@ -40,12 +41,22 @@ Prefer importing from here over redeclaring locally.
 
 ### `@weblab/db`
 Drizzle ORM schema, database client, mappers, defaults, seed scripts, and
-migration helpers.
+migration helpers. **Legacy** — live schema is now in
+`apps/web/client/convex/schema.ts`. This package lingers for type sharing,
+seed scripts, and migration archaeology.
 - Schema: `packages/db/src/schema/**`
 - Mappers: `packages/db/src/mappers/**`
 - Defaults: `packages/db/src/defaults/**`
 - Drizzle config: `packages/db/drizzle.config.ts`
-- Migrations live separately in `apps/backend/supabase/migrations/`
+- Legacy migrations archived under `apps/backend/supabase/migrations/` (do
+  not add new ones)
+
+### `@weblab/auth`
+Central authorization layer — capability identifiers, role → capability
+matrices, and a `can()` resolver. Pure types + helpers; no Clerk or Convex
+runtime deps. Used by both the Next.js client (via `convex/lib/permissions.ts`)
+and the Fastify server.
+- Source: `packages/auth/src/`
 
 ### `@weblab/utility`
 General-purpose utility functions (string helpers, math, async helpers, etc.).
@@ -57,9 +68,22 @@ Shared tRPC contract definitions used between client and Fastify server.
 
 ### `@weblab/ai`
 Primary AI SDK / OpenRouter / provider integration and agent orchestration.
-Routes models, manages streaming, handles tool calls, and exposes provider
-abstractions for OpenAI, OpenRouter, Anthropic, Ollama, Firecrawl, Exa, and
-Mem0.
+Routes models, manages streaming, handles tool calls, summarizes long chats,
+and exposes provider abstractions for OpenAI, OpenRouter, Anthropic, Ollama,
+Firecrawl, Exa, and Mem0. Highlights:
+
+- `src/chat/model-router.ts` — model selection rules.
+- `src/chat/request-builder.ts` — assembles the streaming request.
+- `src/chat/providers.ts` — provider clients.
+- `src/chat/summarizer.ts` + `summarizer-utils.ts` — long-context
+  summarization.
+- `src/prompt/cache-blocks.ts` — Anthropic cache-block markers.
+- `src/observability/index.ts` — observability events (Langfuse / PostHog).
+- `src/agents/root.ts` + `inline-edit.ts` — root + inline-edit agents.
+- `src/tools/` — tool surface (file ops, web search, fast-apply via
+  Morph/Relace, Firecrawl screenshot/crawl, Exa search, Mem0 memory).
+- `src/skills/embedded.ts` — embedded skills manifest (regenerated via
+  `bun --filter @weblab/ai regen-skills`).
 
 ### `@weblab/ai-cli`
 CLI adapters that bridge to local AI tools: Codex, Claude Code, Gemini,
@@ -79,8 +103,23 @@ Astro, TanStack Start, and static HTML projects. New: framework auto-detection
 flow used by the project creation dialog and AI system prompts.
 
 ### `@weblab/code-provider`
-Code sandbox provider abstraction. Decouples editor from CodeSandbox, staged
-Vercel Sandbox, local, and future hybrid runtime backends.
+Code sandbox provider abstraction. **Vercel Sandbox is the sole production
+provider** since 2026-05-24; the CodeSandbox provider files
+(`providers/codesandbox/`) and `@codesandbox/sdk` dep are retained as
+`@deprecated` dead code so legacy DB rows still type-check. Do not
+re-introduce CSB or suggest the multi-provider abstraction for new code.
+
+- Active provider: `src/providers/vercel-sandbox/index.ts`. Exports
+  `scaffoldNextProject` (Next.js 15 + Tailwind v4 + Turbopack) and
+  `scaffoldStaticHtmlProject` (single index.html + `serve`). Vite, Remix,
+  Astro, TanStack Start are gated upstream in `@weblab/framework` until
+  their scaffolders land.
+- Required env: `VERCEL_TEAM_ID`, `VERCEL_PROJECT_ID`, `VERCEL_TOKEN`.
+  Optional: `VERCEL_SANDBOX_TIMEOUT_MS`, `VERCEL_BLANK_SNAPSHOT_ID`,
+  `WEBLAB_VERCEL_VCPUS`, `WEBLAB_VERCEL_WARM_POOL_SIZE`.
+- Disabled until snapshot-fork lands: `project.fork`, `branch.fork`,
+  `publish` — track as `TODO(sandbox-fork)` / `TODO(publish-vercel)`. See
+  `docs/notes/2026-05-13-vercel-sandbox-provider.md` and ADR `2026-05-24`.
 
 ### `@weblab/file-system`
 Browser-compatible file-system abstraction used by editor providers and

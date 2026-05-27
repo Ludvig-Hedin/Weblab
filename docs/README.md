@@ -4,7 +4,7 @@ This is the documentation hub for Weblab — for both **humans** and **coding ag
 
 > **Audience legend:** 🤖 agent · 👤 human · 🤝 both
 
-If you are an **agent**, your mandatory entry points are [`/CLAUDE.md`](../CLAUDE.md) and [`/AGENTS.md`](../AGENTS.md), then [`agent-memory/user-preferences.md`](./agent-memory/user-preferences.md) every session.
+If you are an **agent**, your mandatory entry points are [`/CLAUDE.md`](../CLAUDE.md) and [`/AGENTS.md`](../AGENTS.md), then [`agent-memory/user-preferences.md`](./agent-memory/user-preferences.md) every session. For a 5-minute "everything you need to know" digest before planning work, read [`agent-context/agents-onboarding.md`](./agent-context/agents-onboarding.md).
 
 If you are a **human**, start with the [project README](../README.md), then [`guides/`](./guides) for how-tos. The **published documentation site** (docs.weblab.build) is built from [`apps/docs`](../apps/docs).
 
@@ -14,7 +14,7 @@ If you are a **human**, start with the [project README](../README.md), then [`gu
 
 | Audience | First read |
 |---|---|
-| 🤖 Agent | [`/CLAUDE.md`](../CLAUDE.md) · [`/AGENTS.md`](../AGENTS.md) · [`agent-memory/user-preferences.md`](./agent-memory/user-preferences.md) |
+| 🤖 Agent | [`/CLAUDE.md`](../CLAUDE.md) · [`/AGENTS.md`](../AGENTS.md) · [`agent-memory/user-preferences.md`](./agent-memory/user-preferences.md) · [`agent-context/agents-onboarding.md`](./agent-context/agents-onboarding.md) (5-min digest) |
 | 👤 Human (contributor) | [`/README.md`](../README.md) · [`/CONTRIBUTING.md`](../CONTRIBUTING.md) · [`guides/`](./guides) |
 | 👤 Human (end-user) | The published site at [docs.weblab.build](https://docs.weblab.build) (source in [`apps/docs/content/docs/`](../apps/docs/content/docs)) |
 
@@ -45,13 +45,14 @@ If you are a **human**, start with the [project README](../README.md), then [`gu
 
 Read [`agent-context/README.md`](./agent-context/README.md) for the recommended read order. Highlights:
 
+- [`agents-onboarding.md`](./agent-context/agents-onboarding.md) — **5-minute "everything you need" digest**
 - [`current-progress.md`](./agent-context/current-progress.md) — what's in-flight
 - [`repo-map.md`](./agent-context/repo-map.md) — where everything lives
 - [`development-setup.md`](./agent-context/development-setup.md) — commands, env, validation
 - [`packages-reference.md`](./agent-context/packages-reference.md) — all `packages/*`
-- [`trpc-routers-reference.md`](./agent-context/trpc-routers-reference.md) — all routers
 - [`routes-reference.md`](./agent-context/routes-reference.md) — all Next.js routes
-- Deep dives: [`editor-architecture.md`](./agent-context/editor-architecture.md), [`ai-chat-architecture.md`](./agent-context/ai-chat-architecture.md), [`data-api-architecture.md`](./agent-context/data-api-architecture.md), [`cms-architecture.md`](./agent-context/cms-architecture.md), [`breakpoints-architecture.md`](./agent-context/breakpoints-architecture.md), [`design-product-context.md`](./agent-context/design-product-context.md)
+- [`trpc-routers-reference.md`](./agent-context/trpc-routers-reference.md) — stale; retained for history (see [`feature-catalog.md`](./feature-catalog.md) sections 22–26 for the current API surface)
+- Deep dives: [`editor-architecture.md`](./agent-context/editor-architecture.md), [`ai-chat-architecture.md`](./agent-context/ai-chat-architecture.md), [`data-api-architecture.md`](./agent-context/data-api-architecture.md) (Clerk + Convex), [`cms-architecture.md`](./agent-context/cms-architecture.md), [`breakpoints-architecture.md`](./agent-context/breakpoints-architecture.md), [`design-product-context.md`](./agent-context/design-product-context.md)
 - UI enforcement: [`button-enforcement.md`](./agent-context/button-enforcement.md), [`audit-dropdowns-popovers-menus.md`](./agent-context/audit-dropdowns-popovers-menus.md), [`audit-inputs-forms.md`](./agent-context/audit-inputs-forms.md)
 
 ### Persistent memory — `agent-memory/` 🤖

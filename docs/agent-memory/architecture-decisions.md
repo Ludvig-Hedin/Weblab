@@ -18,6 +18,63 @@ Keep entries terse. Add cross-links to relevant code or docs.
 
 ---
 
+## 2026-05-24 — Clerk + Convex as the primary auth + backend (Supabase + tRPC retired)
+
+Decision: All new backend code lives in Convex (`apps/web/client/convex/`).
+Auth is Clerk, verified by Convex via the JWT template named `convex`. The
+client-side tRPC tree at `apps/web/client/src/server/api/` is removed.
+Only two tRPC routers survive at `apps/web/server/src/router/` (`sandbox`,
+`components`) — they back the editor → Fastify sandbox lifecycle and are
+not extended.
+
+Context: The original stack was Supabase (auth + Postgres) + Drizzle ORM +
+tRPC (21 routers). Three problems pushed migration:
+- Auth UX was inconsistent — Supabase Auth lacked first-class enterprise
+  features (orgs, JWT templates, native OAuth + magic-link), and we kept
+  hand-rolling around it. Clerk solves that wholesale.
+- tRPC + Drizzle + RLS triple-bookkeeping made every schema change cost
+  3× the work and produced subtle drift (Drizzle selecting columns RLS
+  policies didn't allow, RLS allowing fields the router didn't validate,
+  etc.).
+- Convex collapses the data + functions + realtime layers into one
+  primitive with a single source of truth (`schema.ts`) and built-in
+  identity, scheduling, and HTTP actions.
+
+Alternatives considered:
+- Keep Supabase + tRPC, add organizations via custom RLS. Rejected — the
+  triple-bookkeeping problem doesn't go away and Clerk is faster to ship.
+- Stay on Drizzle but migrate auth-only to Clerk. Rejected — partial moves
+  preserve every existing schema-drift bug.
+- Move to Drizzle + PlanetScale + Better Auth. Rejected — still requires
+  hand-built realtime + scheduling; Convex bundles both.
+
+Rationale: One source of truth (`convex/schema.ts`), one identity layer
+(Clerk), one place to put backend logic (Convex queries / mutations /
+actions). Capability checks centralize in `convex/lib/permissions.ts`
+(`requireCap`, `requireProjectCreateCap`, `requireProjectUpdateCap`,
+`getUserByClerkIdSafe`), gated **before** any side effect or paid
+external call. Three audit passes (see
+`docs/agent-memory/backend-migration-audit.md`) hardened the result.
+
+Follow-ups still open:
+- Delete the Supabase stub clients in `apps/web/client/src/utils/supabase/`
+  once all callers are migrated (low priority; type-only).
+- Delete `@weblab/db` (Drizzle) once no consumer imports remain. Currently
+  used for legacy types + seed scripts.
+- Remove `apps/backend/supabase/` once the migration archive is no longer
+  referenced for archaeology.
+
+Reject: Do not add new tRPC routers to either the client or server tree.
+Do not write new SQL migrations under `apps/backend/supabase/`. Do not
+import `@supabase/supabase-js` in new code — use the Clerk + Convex
+clients.
+
+Status: Active. See `docs/agent-memory/backend-migration-audit.md` for the
+audit trail and `docs/agent-context/data-api-architecture.md` for the
+runtime contract.
+
+---
+
 ## 2026-05-24 — CodeSandbox archived; Vercel Sandbox is the sole runtime
 
 Decision: All new sandbox provisioning routes through Vercel Sandbox. The
