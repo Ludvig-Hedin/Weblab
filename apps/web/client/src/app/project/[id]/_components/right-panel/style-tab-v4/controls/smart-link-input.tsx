@@ -247,6 +247,12 @@ export function SmartLinkInput({
                                 }
                             }}
                             onBlur={(e) => {
+                                // TODO(bug-hunt): `open` is captured by closure at blur time.
+                                // At blur, `open` is always `true` (user was typing in the
+                                // popover-open input), so `if (!open)` never fires and free-typed
+                                // text typed-then-blurred is silently discarded. Suggested fix:
+                                // use a ref (openRef.current) or check whether the focus moved
+                                // to a popover item (e.relatedTarget) before deciding to commit.
                                 // Defer to allow click on popover item to fire first.
                                 window.setTimeout(() => {
                                     if (!open) commitFreeText();

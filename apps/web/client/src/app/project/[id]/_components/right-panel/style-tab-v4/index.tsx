@@ -17,6 +17,7 @@ import { BorderSection } from './sections/border';
 import { CursorSection } from './sections/cursor';
 import { EffectsSection } from './sections/effects';
 import { ElementSection } from './sections/element';
+import { FrameSettingsPanel } from './sections/frame-settings';
 import { LayoutSection } from './sections/layout';
 import { PositionSection } from './sections/position';
 import { SizeSection } from './sections/size';
@@ -69,8 +70,17 @@ const StyleTabV4Empty = () => {
 export const StyleTabV4 = observer(function StyleTabV4() {
     const editorEngine = useEditorEngine();
     const selected = editorEngine.elements.selected[0];
+    const selectedFrame = editorEngine.frames.selected[0];
     const { open, setOpen } = useSectionState(DEFAULT_OPEN_SECTIONS);
     useResetHotkey();
+
+    // Frame selected (no element) → show the frame-level settings view that
+    // hosts Layout guide controls. Mirrors Figma: selecting a frame swaps the
+    // right panel from element-style to frame-style without unmounting the
+    // whole tab.
+    if (!selected && selectedFrame) {
+        return <FrameSettingsPanel frame={selectedFrame.frame} />;
+    }
 
     if (!selected) return <StyleTabV4Empty />;
 

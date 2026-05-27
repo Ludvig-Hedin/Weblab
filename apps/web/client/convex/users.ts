@@ -68,6 +68,10 @@ export const updateProfile = mutation({
     },
     handler: async (ctx, args) => {
         const user = await requireUserJIT(ctx);
+        // TODO(bug-hunt): args.firstName ?? user.firstName means clients cannot clear a
+        // name once set — absent and null both fall back to the current value, and the
+        // validator forbids null. To support unsetting, widen the validators to
+        // v.union(v.string(), v.null()) and treat null as patch({ field: undefined }).
         await ctx.db.patch(user._id, {
             firstName: args.firstName ?? user.firstName,
             lastName: args.lastName ?? user.lastName,
@@ -524,8 +528,13 @@ export const upsertCanvasView = mutation({
         scale: v.number(),
         x: v.number(),
         y: v.number(),
+        // Per-user UI toggles for canvas chrome — rulers + layout guides.
+        // Optional so existing callers that don't pass them keep working;
+        // when omitted on an existing row, the column is left as-is.
+        showRulers: v.optional(v.boolean()),
+        showLayoutGuides: v.optional(v.boolean()),
     },
-    handler: async (ctx, { canvasId, scale, x, y }) => {
+    handler: async (ctx, { canvasId, scale, x, y, showRulers, showLayoutGuides }) => {
         // SECURITY: gate the write by `project.view` on the canvas's project.
         // Without this, any signed-in caller could write `userCanvases` rows
         // tied to (callerUserId, foreignCanvasId) for arbitrary canvases —
@@ -540,8 +549,14 @@ export const upsertCanvasView = mutation({
             .query('userCanvases')
             .withIndex('by_user_canvas', (q) => q.eq('userId', user._id).eq('canvasId', canvasId))
             .unique();
+        // Build the patch lazily so callers that omit a toggle don't
+        // overwrite the stored value with `undefined`.
+        const togglePatch: { showRulers?: boolean; showLayoutGuides?: boolean } = {};
+        if (showRulers !== undefined) togglePatch.showRulers = showRulers;
+        if (showLayoutGuides !== undefined) togglePatch.showLayoutGuides = showLayoutGuides;
+
         if (existing) {
-            await ctx.db.patch(existing._id, { scale, x, y });
+            await ctx.db.patch(existing._id, { scale, x, y, ...togglePatch });
             return (await ctx.db.get(existing._id))!;
         }
         const id = await ctx.db.insert('userCanvases', {
@@ -550,6 +565,7 @@ export const upsertCanvasView = mutation({
             scale,
             x,
             y,
+            ...togglePatch,
         });
         return (await ctx.db.get(id))!;
     },

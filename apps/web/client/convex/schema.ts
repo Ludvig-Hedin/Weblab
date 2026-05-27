@@ -75,6 +75,37 @@ import {
 //     migration; everything reads `projectMembers` now.
 // =============================================================================
 
+// -----------------------------------------------------------------------------
+// Layout guide validator (shared between `frames.layoutGuides` and
+// `layoutGuideStyles.config`). Mirrors the `LayoutGuideConfig` interface in
+// `packages/models/src/project/frame.ts` — keep them in sync.
+//
+// `width` is `v.union(v.number(), v.null())` because Figma encodes "Auto"
+// as a literal null (not undefined) and we round-trip it through the form.
+// -----------------------------------------------------------------------------
+const layoutGuideValidator = v.object({
+    id: v.string(),
+    type: v.union(v.literal('grid'), v.literal('columns'), v.literal('rows')),
+    visible: v.boolean(),
+    color: v.string(),
+    size: v.optional(v.number()),
+    count: v.optional(v.number()),
+    alignment: v.optional(
+        v.union(
+            v.literal('stretch'),
+            v.literal('left'),
+            v.literal('center'),
+            v.literal('right'),
+            v.literal('top'),
+            v.literal('bottom'),
+        ),
+    ),
+    width: v.optional(v.union(v.number(), v.null())),
+    margin: v.optional(v.number()),
+    gutter: v.optional(v.number()),
+    styleId: v.optional(v.union(v.id('layoutGuideStyles'), v.null())),
+});
+
 export default defineSchema({
     // -------------------------------------------------------------------------
     // Users + settings + auth-derived data
@@ -141,6 +172,11 @@ export default defineSchema({
         scale: v.number(),
         x: v.number(),
         y: v.number(),
+        // Per-user canvas UI toggles, persisted alongside scale/pan.
+        // Optional so legacy rows (which predate these columns) keep
+        // loading — readers fall back to `false` / `true` respectively.
+        showRulers: v.optional(v.boolean()),
+        showLayoutGuides: v.optional(v.boolean()),
     })
         .index('by_user_canvas', ['userId', 'canvasId'])
         // Lets cascade deletes target a canvas's rows directly instead of
@@ -346,11 +382,30 @@ export default defineSchema({
         breakpointName: v.optional(v.string()),
         breakpointOrder: v.optional(v.number()),
 
+        // Figma-style per-frame layout guides (Grid / Columns / Rows).
+        // Optional — most frames have 0 or 1; the array shape lets a single
+        // frame stack multiple guides (e.g. column grid + row baseline) like
+        // Figma. See `layoutGuideValidator` above for the field-by-field
+        // contract; mirrors `LayoutGuideConfig` in packages/models.
+        layoutGuides: v.optional(v.array(layoutGuideValidator)),
+
         // deprecated — kept for back-compat
         type: v.optional(v.string()),
     })
         .index('by_canvas', ['canvasId'])
         .index('by_branch', ['branchId']),
+
+    // Project-level saved layout guide styles — Figma's "Layout grid styles".
+    // Users build a guide on one frame, save it as a named style, then apply
+    // it to other frames. `config` reuses the same validator as the per-frame
+    // guides; the `id` and `styleId` fields inside it are ignored when saving
+    // as a style (style is the source of truth, not the linker).
+    layoutGuideStyles: defineTable({
+        projectId: v.id('projects'),
+        name: v.string(),
+        config: layoutGuideValidator,
+        updatedAt: v.number(),
+    }).index('by_project', ['projectId']),
 
     // -------------------------------------------------------------------------
     // Chat

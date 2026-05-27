@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 
@@ -13,11 +14,10 @@ import { cn } from '@weblab/ui/utils';
 
 import type { SandboxLivenessState } from './use-sandbox-liveness';
 import type { IFrameView } from './view';
+import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 import { PreloadScriptState } from '@/components/store/editor/sandbox';
 import { installCodeSandboxNoiseSuppression } from '@/components/store/editor/sandbox/global-error-suppress';
-import { api } from '@convex/_generated/api';
-import type { Id } from '@convex/_generated/dataModel';
 import { RightClickMenu } from '../../right-click-menu';
 import { FIX_ERRORS_EVENT } from '../../right-panel/chat-tab/error';
 import { isCodeSandboxPreviewUrl } from './codesandbox-preview';
@@ -477,16 +477,28 @@ export const FrameView = observer(
 
         const handleRestartSandbox = async () => {
             if (isRestarting) return;
+            // activeBranch getter throws synchronously when no branch is loaded;
+            // gate via hasActiveBranch first so the user gets a clean toast
+            // instead of an uncaught rejection from `void handleRestartSandbox()`.
+            if (!editorEngine.branches.hasActiveBranch) {
+                toast.error('Sandbox session not available');
+                return;
+            }
             const branch = editorEngine.branches.activeBranch;
-            const sandbox = branch ? editorEngine.branches.getSandboxById(branch.id) : null;
+            const sandbox = editorEngine.branches.getSandboxById(branch.id);
             if (!sandbox?.session) {
+                toast.error('Sandbox session not available');
+                return;
+            }
+            const sandboxId = branch.sandbox?.id;
+            if (!sandboxId) {
                 toast.error('Sandbox session not available');
                 return;
             }
             setIsRestarting(true);
             try {
                 if (!sandbox.session.provider) {
-                    await sandbox.session.start(branch.sandbox.id);
+                    await sandbox.session.start(sandboxId);
                 }
                 const success = await sandbox.session.restartDevServer();
                 if (!success) {
@@ -525,7 +537,6 @@ export const FrameView = observer(
             if (autoRestoreFiredRef.current) return;
             autoRestoreFiredRef.current = true;
             void handleRestoreSandbox({ silent: true });
-            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [livenessState]);
 
         // Auto-recovery on cold-boot transition: when the URL flips from

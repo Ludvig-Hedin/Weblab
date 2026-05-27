@@ -191,247 +191,297 @@ export const TopBar = observer(
         // selection is still legible without the previous translucent blue tint.
         return (
             <>
-            <div
-                ref={topBarRef}
-                className={cn(
-                    'bg-background-chrome border-border-bar text-foreground-secondary group-hover:text-foreground relative m-auto flex cursor-grab flex-row items-center overflow-hidden border shadow-sm hover:shadow active:cursor-grabbing',
-                    isSelected && 'bg-background-bar-active text-foreground-primary',
-                    !isSelected &&
-                        isInDragSelection &&
-                        'fill-foreground-brand text-foreground-brand',
-                )}
-                style={{
-                    height: `${28 / editorEngine.canvas.scale}px`,
-                    width: `${frame.dimension.width}px`,
-                    marginBottom: `${8 / editorEngine.canvas.scale}px`,
-                    borderRadius: `${6 / editorEngine.canvas.scale}px`,
-                    paddingTop: `${16 / editorEngine.canvas.scale}px`,
-                    paddingBottom: `${16 / editorEngine.canvas.scale}px`,
-                    paddingLeft: `${4 / editorEngine.canvas.scale}px`,
-                    paddingRight: `${4 / editorEngine.canvas.scale}px`,
-                }}
-                onMouseDown={handleMouseDown}
-                onClick={handleClick}
-            >
                 <div
-                    className="flex flex-row items-center"
+                    ref={topBarRef}
+                    className={cn(
+                        'bg-background-chrome border-border-bar text-foreground-secondary group-hover:text-foreground relative m-auto flex cursor-grab flex-row items-center overflow-hidden border shadow-sm hover:shadow active:cursor-grabbing',
+                        isSelected && 'bg-background-bar-active text-foreground-primary',
+                        !isSelected &&
+                            isInDragSelection &&
+                            'fill-foreground-brand text-foreground-brand',
+                    )}
                     style={{
-                        transform: `scale(${1 / editorEngine.canvas.scale})`,
-                        transformOrigin: 'left center',
+                        height: `${28 / editorEngine.canvas.scale}px`,
+                        width: `${frame.dimension.width}px`,
+                        marginBottom: `${8 / editorEngine.canvas.scale}px`,
+                        borderRadius: `${6 / editorEngine.canvas.scale}px`,
+                        paddingTop: `${16 / editorEngine.canvas.scale}px`,
+                        paddingBottom: `${16 / editorEngine.canvas.scale}px`,
+                        paddingLeft: `${4 / editorEngine.canvas.scale}px`,
+                        paddingRight: `${4 / editorEngine.canvas.scale}px`,
                     }}
-                    ref={toolBarRef}
+                    onMouseDown={handleMouseDown}
+                    onClick={handleClick}
                 >
-                    <HoverOnlyTooltip content="Go back" side="top" className="mb-1" hideArrow>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                !editorEngine.frames.navigation.canGoBack(frame.id) &&
-                                    'pointer-events-none opacity-30',
-                                !isSelected && 'hidden',
-                            )}
-                            onClick={handleGoBack}
-                            disabled={!editorEngine.frames.navigation.canGoBack(frame.id)}
-                        >
-                            <Icons.ArrowLeft />
-                        </Button>
-                    </HoverOnlyTooltip>
-                    <HoverOnlyTooltip content="Go forward" side="top" className="mb-1" hideArrow>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
-                                !editorEngine.frames.navigation.canGoForward(frame.id) &&
-                                    'pointer-events-none opacity-30',
-                                !isSelected && 'hidden',
-                            )}
-                            onClick={handleGoForward}
-                            disabled={!editorEngine.frames.navigation.canGoForward(frame.id)}
-                        >
-                            <Icons.ArrowRight />
-                        </Button>
-                    </HoverOnlyTooltip>
-                    <HoverOnlyTooltip content="Refresh Page" side="top" className="mb-2" hideArrow>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md',
-                                !isSelected && 'hidden',
-                            )}
-                            onClick={handleReload}
-                        >
-                            <Icons.Reload />
-                        </Button>
-                    </HoverOnlyTooltip>
-                    <BranchDisplay frame={frame} />
-                    <span
-                        className={cn(
-                            'mb-0.5 ml-1.25',
-                            isSelected
-                                ? 'text-foreground-secondary'
-                                : 'text-foreground-secondary/50',
-                        )}
+                    <div
+                        className="flex flex-row items-center"
+                        style={{
+                            transform: `scale(${1 / editorEngine.canvas.scale})`,
+                            transformOrigin: 'left center',
+                        }}
+                        ref={toolBarRef}
                     >
-                        ·
-                    </span>
-                    <PageSelector frame={frame} />
-                    <span
-                        className={cn(
-                            'mx-1.5',
-                            isSelected
-                                ? 'text-foreground-secondary'
-                                : 'text-foreground-secondary/50',
-                        )}
-                    >
-                        ·
-                    </span>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <HoverOnlyTooltip content="Go back" side="top" className="mb-1" hideArrow>
                             <Button
                                 variant="ghost"
-                                size="compact"
+                                size="sm"
                                 className={cn(
-                                    'gap-1 rounded-md text-xs',
-                                    isSelected
-                                        ? 'text-foreground-primary'
-                                        : 'text-foreground-secondary',
+                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
+                                    !editorEngine.frames.navigation.canGoBack(frame.id) &&
+                                        'pointer-events-none opacity-30',
+                                    !isSelected && 'hidden',
                                 )}
-                                title={
-                                    driftedFromPreset
-                                        ? `Drifted from ${frame.breakpoint?.name} preset (${presetWidth}px)`
-                                        : `${frame.breakpoint?.name} breakpoint`
-                                }
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={handleGoBack}
+                                disabled={!editorEngine.frames.navigation.canGoBack(frame.id)}
                             >
-                                <span className="font-medium">
-                                    {frame.breakpoint?.name ?? 'Frame'}
-                                </span>
-                                <span className="text-foreground-tertiary">
-                                    {frame.breakpoint?.width ?? frame.dimension.width}
-                                </span>
-                                {driftedFromPreset && (
-                                    <span
-                                        className="bg-foreground-warning/80 inline-block h-1.5 w-1.5 rounded-full"
-                                        title={`Drifted from ${presetWidth}px`}
-                                    />
-                                )}
+                                <Icons.ArrowLeft />
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="start"
-                            className="min-w-44"
-                            onClick={(e) => e.stopPropagation()}
+                        </HoverOnlyTooltip>
+                        <HoverOnlyTooltip
+                            content="Go forward"
+                            side="top"
+                            className="mb-1"
+                            hideArrow
                         >
-                            <DropdownMenuLabel>Breakpoint</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {driftedFromPreset && (
-                                <DropdownMenuItem onSelect={handleRestorePreset}>
-                                    Restore preset ({presetWidth}px)
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                                onSelect={handleDeleteBreakpoint}
-                                disabled={groupSiblings.length <= 1}
-                                className="text-destructive"
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md px-1 py-1',
+                                    !editorEngine.frames.navigation.canGoForward(frame.id) &&
+                                        'pointer-events-none opacity-30',
+                                    !isSelected && 'hidden',
+                                )}
+                                onClick={handleGoForward}
+                                disabled={!editorEngine.frames.navigation.canGoForward(frame.id)}
                             >
-                                Remove from group
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    {isRightmostInGroup && isSelected && (
-                        <DropdownMenu
-                            open={addBreakpointMenuOpen}
-                            onOpenChange={(open) => {
-                                setAddBreakpointMenuOpen(open);
-                                if (!open) setCustomWidthInput('');
-                            }}
+                                <Icons.ArrowRight />
+                            </Button>
+                        </HoverOnlyTooltip>
+                        <HoverOnlyTooltip
+                            content="Refresh Page"
+                            side="top"
+                            className="mb-2"
+                            hideArrow
                         >
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    'text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active h-auto cursor-pointer rounded-md',
+                                    !isSelected && 'hidden',
+                                )}
+                                onClick={handleReload}
+                            >
+                                <Icons.Reload />
+                            </Button>
+                        </HoverOnlyTooltip>
+                        <BranchDisplay frame={frame} />
+                        <span
+                            className={cn(
+                                'mb-0.5 ml-1.25',
+                                isSelected
+                                    ? 'text-foreground-secondary'
+                                    : 'text-foreground-secondary/50',
+                            )}
+                        >
+                            ·
+                        </span>
+                        <PageSelector frame={frame} />
+                        <span
+                            className={cn(
+                                'mx-1.5',
+                                isSelected
+                                    ? 'text-foreground-secondary'
+                                    : 'text-foreground-secondary/50',
+                            )}
+                        >
+                            ·
+                        </span>
+                        <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    size="icon"
-                                    className="text-foreground-tertiary hover:text-foreground-primary ml-1 h-6 w-6 rounded-md"
-                                    title="Add breakpoint"
+                                    size="compact"
+                                    className={cn(
+                                        'gap-1 rounded-md text-xs',
+                                        isSelected
+                                            ? 'text-foreground-primary'
+                                            : 'text-foreground-secondary',
+                                    )}
+                                    title={
+                                        driftedFromPreset
+                                            ? `Drifted from ${frame.breakpoint?.name} preset (${presetWidth}px)`
+                                            : `${frame.breakpoint?.name} breakpoint`
+                                    }
                                     onClick={(e) => e.stopPropagation()}
-                                    onMouseDown={(e) => e.stopPropagation()}
                                 >
-                                    <Icons.Plus className="h-3.5 w-3.5" />
+                                    <span className="font-medium">
+                                        {frame.breakpoint?.name ?? 'Frame'}
+                                    </span>
+                                    <span className="text-foreground-tertiary">
+                                        {frame.breakpoint?.width ?? frame.dimension.width}
+                                    </span>
+                                    {driftedFromPreset && (
+                                        <span
+                                            className="bg-foreground-warning/80 inline-block h-1.5 w-1.5 rounded-full"
+                                            title={`Drifted from ${presetWidth}px`}
+                                        />
+                                    )}
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
-                                align="end"
-                                className="min-w-52"
+                                align="start"
+                                className="min-w-44"
                                 onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
                             >
-                                <DropdownMenuLabel>Add breakpoint</DropdownMenuLabel>
+                                <DropdownMenuLabel>Breakpoint</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                {[
-                                    {
-                                        id: 'phone-landscape',
-                                        name: 'Phone Landscape',
-                                        width: 844,
-                                    },
-                                    {
-                                        id: 'tablet-landscape',
-                                        name: 'Tablet Landscape',
-                                        width: 1024,
-                                    },
-                                    { id: 'wide', name: 'Wide', width: 1440 },
-                                    { id: 'ultra-wide', name: 'Ultra Wide', width: 1920 },
-                                ].map((preset) => (
-                                    <DropdownMenuItem
-                                        key={preset.id}
-                                        onSelect={() => {
-                                            handleAddBreakpoint(preset);
-                                            setAddBreakpointMenuOpen(false);
+                                {driftedFromPreset && (
+                                    <DropdownMenuItem onSelect={handleRestorePreset}>
+                                        Restore preset ({presetWidth}px)
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onSelect={handleDeleteBreakpoint}
+                                    disabled={groupSiblings.length <= 1}
+                                    className="text-destructive"
+                                >
+                                    Remove from group
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        {isRightmostInGroup && isSelected && (
+                            <DropdownMenu
+                                open={addBreakpointMenuOpen}
+                                onOpenChange={(open) => {
+                                    setAddBreakpointMenuOpen(open);
+                                    if (!open) setCustomWidthInput('');
+                                }}
+                            >
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-foreground-tertiary hover:text-foreground-primary ml-1 h-6 w-6 rounded-md"
+                                        title="Add breakpoint"
+                                        onClick={(e) => e.stopPropagation()}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                        <Icons.Plus className="h-3.5 w-3.5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="min-w-52"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                >
+                                    <DropdownMenuLabel>Add breakpoint</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {[
+                                        {
+                                            id: 'phone-landscape',
+                                            name: 'Phone Landscape',
+                                            width: 844,
+                                        },
+                                        {
+                                            id: 'tablet-landscape',
+                                            name: 'Tablet Landscape',
+                                            width: 1024,
+                                        },
+                                        { id: 'wide', name: 'Wide', width: 1440 },
+                                        { id: 'ultra-wide', name: 'Ultra Wide', width: 1920 },
+                                    ].map((preset) => (
+                                        <DropdownMenuItem
+                                            key={preset.id}
+                                            onSelect={() => {
+                                                handleAddBreakpoint(preset);
+                                                setAddBreakpointMenuOpen(false);
+                                            }}
+                                        >
+                                            <div className="flex w-full items-center justify-between">
+                                                <span>{preset.name}</span>
+                                                <span className="text-foreground-tertiary text-xs">
+                                                    {preset.width}px
+                                                </span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    ))}
+                                    <DropdownMenuSeparator />
+                                    {/* Custom-width inline input. Using a plain row instead of
+                                     * DropdownMenuItem so keyboard events (digits, arrows) don't
+                                     * trigger menu navigation, and Radix doesn't auto-close while
+                                     * the user is typing. Enter or the Add button commits. */}
+                                    <div
+                                        className="flex items-center gap-2 px-2 py-1.5"
+                                        onKeyDown={(e) => {
+                                            // Stop arrow keys from moving menu focus away from the input.
+                                            if (
+                                                e.key === 'ArrowUp' ||
+                                                e.key === 'ArrowDown' ||
+                                                e.key === 'ArrowLeft' ||
+                                                e.key === 'ArrowRight'
+                                            ) {
+                                                e.stopPropagation();
+                                            }
                                         }}
                                     >
-                                        <div className="flex w-full items-center justify-between">
-                                            <span>{preset.name}</span>
-                                            <span className="text-foreground-tertiary text-xs">
-                                                {preset.width}px
-                                            </span>
-                                        </div>
-                                    </DropdownMenuItem>
-                                ))}
-                                <DropdownMenuSeparator />
-                                {/* Custom-width inline input. Using a plain row instead of
-                                 * DropdownMenuItem so keyboard events (digits, arrows) don't
-                                 * trigger menu navigation, and Radix doesn't auto-close while
-                                 * the user is typing. Enter or the Add button commits. */}
-                                <div
-                                    className="flex items-center gap-2 px-2 py-1.5"
-                                    onKeyDown={(e) => {
-                                        // Stop arrow keys from moving menu focus away from the input.
-                                        if (
-                                            e.key === 'ArrowUp' ||
-                                            e.key === 'ArrowDown' ||
-                                            e.key === 'ArrowLeft' ||
-                                            e.key === 'ArrowRight'
-                                        ) {
-                                            e.stopPropagation();
-                                        }
-                                    }}
-                                >
-                                    <span className="text-foreground-secondary text-xs">
-                                        Custom
-                                    </span>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        min={100}
-                                        max={4000}
-                                        step={1}
-                                        placeholder="900"
-                                        value={customWidthInput}
-                                        onChange={(e) => setCustomWidthInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
+                                        <span className="text-foreground-secondary text-xs">
+                                            Custom
+                                        </span>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={100}
+                                            max={4000}
+                                            step={1}
+                                            placeholder="900"
+                                            value={customWidthInput}
+                                            onChange={(e) => setCustomWidthInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const width = Number(customWidthInput);
+                                                    if (
+                                                        !Number.isFinite(width) ||
+                                                        width < 100 ||
+                                                        width > 4000
+                                                    )
+                                                        return;
+                                                    handleAddBreakpoint({
+                                                        id: `custom-${width}-${Date.now()}`,
+                                                        name: `Custom ${width}`,
+                                                        width,
+                                                    });
+                                                    setCustomWidthInput('');
+                                                    setAddBreakpointMenuOpen(false);
+                                                } else if (e.key === 'Escape') {
+                                                    setAddBreakpointMenuOpen(false);
+                                                }
+                                            }}
+                                            autoFocus
+                                            className="bg-background-tertiary/60 text-foreground text-mini focus:ring-foreground-brand w-20 rounded-md px-2 py-1 focus:ring-1 focus:outline-none"
+                                        />
+                                        <span className="text-foreground-tertiary text-mini">
+                                            px
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="ml-auto h-6 px-2 text-xs"
+                                            disabled={(() => {
+                                                const w = Number(customWidthInput);
+                                                return (
+                                                    !customWidthInput ||
+                                                    !Number.isFinite(w) ||
+                                                    w < 100 ||
+                                                    w > 4000
+                                                );
+                                            })()}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 const width = Number(customWidthInput);
                                                 if (
                                                     !Number.isFinite(width) ||
@@ -446,103 +496,65 @@ export const TopBar = observer(
                                                 });
                                                 setCustomWidthInput('');
                                                 setAddBreakpointMenuOpen(false);
-                                            } else if (e.key === 'Escape') {
-                                                setAddBreakpointMenuOpen(false);
-                                            }
-                                        }}
-                                        autoFocus
-                                        className="bg-background-tertiary/60 text-foreground text-mini focus:ring-foreground-brand w-20 rounded-md px-2 py-1 focus:ring-1 focus:outline-none"
-                                    />
-                                    <span className="text-foreground-tertiary text-mini">px</span>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="ml-auto h-6 px-2 text-xs"
-                                        disabled={(() => {
-                                            const w = Number(customWidthInput);
-                                            return (
-                                                !customWidthInput ||
-                                                !Number.isFinite(w) ||
-                                                w < 100 ||
-                                                w > 4000
-                                            );
-                                        })()}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const width = Number(customWidthInput);
-                                            if (
-                                                !Number.isFinite(width) ||
-                                                width < 100 ||
-                                                width > 4000
-                                            )
-                                                return;
-                                            handleAddBreakpoint({
-                                                id: `custom-${width}-${Date.now()}`,
-                                                name: `Custom ${width}`,
-                                                width,
-                                            });
-                                            setCustomWidthInput('');
-                                            setAddBreakpointMenuOpen(false);
-                                        }}
-                                    >
-                                        Add
-                                    </Button>
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-                </div>
-                <HoverOnlyTooltip
-                    content="Preview in new tab"
-                    side="top"
-                    hideArrow
-                    className="mb-0"
-                >
-                    <Link
-                        className={cn(
-                            'absolute top-1/2 right-1 -translate-y-1/2 transition-opacity duration-300',
+                                            }}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         )}
-                        href={frame.url.replace(/\[([^\]]+)\]/g, 'temp-$1')} // Dynamic routes are not supported so we replace them with a temporary value
-                        target="_blank"
-                        style={{
-                            transform: `scale(${1 / editorEngine.canvas.scale})`,
-                            transformOrigin: 'right center',
-                            opacity: shouldShowExternalLink ? 1 : 0,
-                            pointerEvents: shouldShowExternalLink ? 'auto' : 'none',
-                        }}
+                    </div>
+                    <HoverOnlyTooltip
+                        content="Preview in new tab"
+                        side="top"
+                        hideArrow
+                        className="mb-0"
                     >
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active rounded-md"
+                        <Link
+                            className={cn(
+                                'absolute top-1/2 right-1 -translate-y-1/2 transition-opacity duration-300',
+                            )}
+                            href={frame.url.replace(/\[([^\]]+)\]/g, 'temp-$1')} // Dynamic routes are not supported so we replace them with a temporary value
+                            target="_blank"
+                            style={{
+                                transform: `scale(${1 / editorEngine.canvas.scale})`,
+                                transformOrigin: 'right center',
+                                opacity: shouldShowExternalLink ? 1 : 0,
+                                pointerEvents: shouldShowExternalLink ? 'auto' : 'none',
+                            }}
                         >
-                            <Icons.ExternalLink />
-                        </Button>
-                    </Link>
-                </HoverOnlyTooltip>
-            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-foreground-tertiary hover:text-foreground-primary hover:bg-background-bar-active rounded-md"
+                            >
+                                <Icons.ExternalLink />
+                            </Button>
+                        </Link>
+                    </HoverOnlyTooltip>
+                </div>
 
-            <AlertDialog
-                open={deleteBreakpointDialogOpen}
-                onOpenChange={setDeleteBreakpointDialogOpen}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Remove breakpoint</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Remove &ldquo;{frame.breakpoint?.name ?? 'this breakpoint'}&rdquo; from
-                            the group?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteBreakpoint}>
-                            Remove
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                <AlertDialog
+                    open={deleteBreakpointDialogOpen}
+                    onOpenChange={setDeleteBreakpointDialogOpen}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Remove breakpoint</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Remove &ldquo;{frame.breakpoint?.name ?? 'this breakpoint'}&rdquo;
+                                from the group?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeleteBreakpoint}>
+                                Remove
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </>
         );
     },

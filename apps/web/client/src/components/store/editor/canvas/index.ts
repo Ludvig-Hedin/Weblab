@@ -1,4 +1,5 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { debounce } from 'lodash';
 import { makeAutoObservable } from 'mobx';
 
@@ -8,13 +9,18 @@ import { DefaultDesktopFrame } from '@weblab/db';
 
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 
 export class CanvasManager {
     private _id = '';
     private _scale: number = DefaultSettings.SCALE;
     private _position: RectPosition = DefaultSettings.PAN_POSITION;
+    // Per-user canvas chrome toggles. Default: rulers off, guides on. The
+    // defaults match how Figma ships — rulers are off until you ask for
+    // them (Shift+R), but if you've configured a layout guide on a frame
+    // it should render unless you've explicitly hidden them (Shift+G).
+    private _showRulers = false;
+    private _showLayoutGuides = true;
     private convex: ConvexHttpClient = getConvexHttpClient();
 
     constructor(private readonly editorEngine: EditorEngine) {
@@ -26,6 +32,11 @@ export class CanvasManager {
         this.id = canvas.id;
         this.scale = canvas.scale ?? DefaultSettings.SCALE;
         this.position = canvas.position ?? this.getDefaultPanPosition();
+        // Toggle bootstrap. Legacy `userCanvases` rows don't carry these
+        // columns (they were added with the rulers/layout-guides feature),
+        // so we keep the constructor defaults when the field is missing.
+        if (canvas.showRulers !== undefined) this._showRulers = canvas.showRulers;
+        if (canvas.showLayoutGuides !== undefined) this._showLayoutGuides = canvas.showLayoutGuides;
     }
 
     getDefaultPanPosition(): RectPosition {
@@ -66,6 +77,37 @@ export class CanvasManager {
         this.saveCanvas();
     }
 
+    // ── Per-user canvas chrome toggles ────────────────────────────────────
+    // Persisted on the same `userCanvases` row as scale/pan so they roam
+    // across devices. The hotkeys in canvas/hotkeys/index.tsx call the
+    // toggle helpers; the right-panel controls flip the setters directly.
+
+    get showRulers() {
+        return this._showRulers;
+    }
+
+    set showRulers(value: boolean) {
+        this._showRulers = value;
+        this.saveCanvas();
+    }
+
+    toggleRulers() {
+        this.showRulers = !this._showRulers;
+    }
+
+    get showLayoutGuides() {
+        return this._showLayoutGuides;
+    }
+
+    set showLayoutGuides(value: boolean) {
+        this._showLayoutGuides = value;
+        this.saveCanvas();
+    }
+
+    toggleLayoutGuides() {
+        this.showLayoutGuides = !this._showLayoutGuides;
+    }
+
     // 5 second debounce. Database is used to save working state per user, so we don't need to save too often.
     saveCanvas = debounce(this.undebouncedSaveCanvas, 5000);
 
@@ -86,6 +128,8 @@ export class CanvasManager {
                 scale: this.scale,
                 x: this.position.x,
                 y: this.position.y,
+                showRulers: this._showRulers,
+                showLayoutGuides: this._showLayoutGuides,
             });
 
         try {
@@ -110,5 +154,9 @@ export class CanvasManager {
     clear() {
         this._scale = DefaultSettings.SCALE;
         this._position = DefaultSettings.PAN_POSITION;
+        // Reset toggles to construction defaults so a project switch
+        // doesn't carry the previous project's UI state forward.
+        this._showRulers = false;
+        this._showLayoutGuides = true;
     }
 }

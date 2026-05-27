@@ -198,7 +198,7 @@ export function NumberField({
                     // Normal text cursor — never a resize cursor on the value input.
                     className={cn(
                         'text-foreground-primary placeholder:text-muted-foreground text-mini min-w-0 flex-1 cursor-text bg-transparent outline-none',
-                        mixed && 'placeholder:italic placeholder:text-foreground-tertiary/70',
+                        mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
                     )}
                 />
             </div>

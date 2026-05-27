@@ -1,15 +1,15 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { makeAutoObservable } from 'mobx';
 import { v4 as uuid } from 'uuid';
 
 import { DEFAULT_BREAKPOINT_PRESETS, GROUP_GUTTER } from '@weblab/db';
-import { type Frame, type FrameBreakpoint } from '@weblab/models';
+import { type Frame, type FrameBreakpoint, type LayoutGuideConfig } from '@weblab/models';
 import { calculateNonOverlappingPosition } from '@weblab/utility';
 
 import type { EditorEngine } from '../engine';
 import type { IFrameView } from '@/app/project/[id]/_components/canvas/frame/view';
 import type { Id } from '@convex/_generated/dataModel';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { roundDimensions } from './dimension';
 import { FrameNavigationManager } from './navigation';
@@ -57,6 +57,7 @@ function toConvexPartialFrame(partial: Partial<Frame>): {
     breakpointName?: string;
     breakpointOrder?: number;
     branchId?: Id<'branches'>;
+    layoutGuides?: LayoutGuideConfig[] | null;
 } {
     const out: ReturnType<typeof toConvexPartialFrame> = {};
     if (partial.url !== undefined) out.url = partial.url;
@@ -75,6 +76,9 @@ function toConvexPartialFrame(partial: Partial<Frame>): {
         out.breakpointOrder = partial.breakpoint.order;
     }
     if (partial.branchId !== undefined) out.branchId = partial.branchId as Id<'branches'>;
+    // Pass-through: empty array (clear all) vs absent (no change). Treat
+    // both `[]` and a populated array as a write; `undefined` skips.
+    if (partial.layoutGuides !== undefined) out.layoutGuides = partial.layoutGuides;
     return out;
 }
 
@@ -511,6 +515,16 @@ export class FramesManager {
         await this.saveToStorage(frameId, frame);
     }
 
+    /**
+     * Replace the layout-guides array on a frame and persist it. Thin wrapper
+     * over `updateAndSaveToStorage` — exists as a named helper so consumers
+     * (right-panel popover, layout-guide-styles apply) don't have to know
+     * about the whole-array-replace semantics. Pass `[]` to clear all guides.
+     */
+    async updateLayoutGuides(frameId: string, layoutGuides: LayoutGuideConfig[]) {
+        await this.updateAndSaveToStorage(frameId, { layoutGuides });
+    }
+
     // Per-frame debounced persist. A single shared debounce would collapse
     // rapid successive calls into ONE trailing call carrying only the LAST
     // frame's args, so multi-frame writes (repackGroup / navigateToPath /
@@ -537,10 +551,16 @@ export class FramesManager {
 
     async undebouncedSaveToStorage(frameId: string, frame: Partial<Frame>) {
         try {
-            await this.convex.mutation(convexApi.frames.update, {
+            // Cast through `unknown` at the boundary: the model's
+            // `LayoutGuideConfig.styleId` is `string | null` while the
+            // Convex mutation arg uses the branded `Id<'layoutGuideStyles'>`.
+            // The wire shape is identical (Convex `Id` is a compile-time
+            // brand only), so the runtime payload is safe.
+            const args = {
                 frameId: frameId as Id<'frames'>,
                 ...toConvexPartialFrame(frame),
-            });
+            } as unknown as Parameters<typeof this.convex.mutation>[1];
+            await this.convex.mutation(convexApi.frames.update, args);
         } catch (error) {
             console.error('Failed to update frame', error);
         }

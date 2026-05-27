@@ -32,6 +32,10 @@ export function TextField({ value, onCommit, placeholder, mixed, className }: Te
     const lastValueRef = useRef(value);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const skipBlurCommitRef = useRef(false);
+    // True once the user has typed in this focus session. Without it, a focus
+    // that spans an external value change (undo, sibling commit) would commit
+    // the now-stale draft on blur and silently revert the external value.
+    const userTouchedRef = useRef(false);
 
     useEffect(() => {
         if (value === lastValueRef.current) return;
@@ -44,24 +48,40 @@ export function TextField({ value, onCommit, placeholder, mixed, className }: Te
             ref={inputRef}
             type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => {
+                userTouchedRef.current = false;
+            }}
+            onChange={(e) => {
+                userTouchedRef.current = true;
+                setDraft(e.target.value);
+            }}
             onBlur={() => {
                 if (skipBlurCommitRef.current) {
                     skipBlurCommitRef.current = false;
+                    userTouchedRef.current = false;
                     return;
                 }
+                if (!userTouchedRef.current) {
+                    // No user input during focus — resync the draft to the
+                    // current value so the next focus shows fresh state.
+                    if (draft !== value) setDraft(value);
+                    return;
+                }
+                userTouchedRef.current = false;
                 if (draft !== value) onCommit(draft);
             }}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    if (draft !== value) onCommit(draft);
+                    if (userTouchedRef.current && draft !== value) onCommit(draft);
                     skipBlurCommitRef.current = true;
+                    userTouchedRef.current = false;
                     e.currentTarget.blur();
                 } else if (e.key === 'Escape') {
                     e.preventDefault();
                     setDraft(value);
                     skipBlurCommitRef.current = true;
+                    userTouchedRef.current = false;
                     e.currentTarget.blur();
                 }
             }}
@@ -69,7 +89,7 @@ export function TextField({ value, onCommit, placeholder, mixed, className }: Te
             className={cn(
                 FIELD_BASE_CLASSES,
                 'min-w-0',
-                mixed && 'placeholder:italic placeholder:text-foreground-tertiary/70',
+                mixed && 'placeholder:text-foreground-tertiary/70 placeholder:italic',
                 className,
             )}
         />

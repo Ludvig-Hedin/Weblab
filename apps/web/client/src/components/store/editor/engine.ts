@@ -34,6 +34,7 @@ import { SnapManager } from './snap';
 import { StateManager } from './state';
 import { StyleManager } from './style';
 import { StylePreferencesStore } from './style/preferences';
+import { PropertiesClipboardManager } from './style/properties-clipboard';
 import { TextEditingManager } from './text';
 import { ThemeManager } from './theme';
 import { TokensManager } from './tokens';
@@ -77,6 +78,7 @@ export class EditorEngine {
     readonly action: ActionManager = new ActionManager(this);
     readonly style: StyleManager = new StyleManager(this);
     readonly stylePreferences: StylePreferencesStore = new StylePreferencesStore(this);
+    readonly propertiesClipboard: PropertiesClipboardManager = new PropertiesClipboardManager(this);
     readonly code: CodeManager = new CodeManager(this);
     readonly chat: ChatManager = new ChatManager(this);
     readonly interactions: InteractionsManager = new InteractionsManager(this);
@@ -135,6 +137,7 @@ export class EditorEngine {
         this.move.clear();
         this.style.clear();
         this.stylePreferences.clear();
+        this.propertiesClipboard.clear();
         this.copy.clear();
         this.group.clear();
         this.canvas.clear();

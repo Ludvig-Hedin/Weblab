@@ -4,6 +4,33 @@ import type { Doc } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { requireCap } from './lib/permissions';
 
+// Shared validator for the layout-guide object — duplicated here from
+// schema.ts because Convex mutation args can't reuse the schema's inline
+// validators directly. Keep these in sync: a field added in schema.ts must
+// also be added here and in `packages/models/src/project/frame.ts`.
+const layoutGuideArg = v.object({
+    id: v.string(),
+    type: v.union(v.literal('grid'), v.literal('columns'), v.literal('rows')),
+    visible: v.boolean(),
+    color: v.string(),
+    size: v.optional(v.number()),
+    count: v.optional(v.number()),
+    alignment: v.optional(
+        v.union(
+            v.literal('stretch'),
+            v.literal('left'),
+            v.literal('center'),
+            v.literal('right'),
+            v.literal('top'),
+            v.literal('bottom'),
+        ),
+    ),
+    width: v.optional(v.union(v.number(), v.null())),
+    margin: v.optional(v.number()),
+    gutter: v.optional(v.number()),
+    styleId: v.optional(v.union(v.id('layoutGuideStyles'), v.null())),
+});
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 /**
@@ -95,6 +122,10 @@ export const update = mutation({
         breakpointOrder: v.optional(v.union(v.number(), v.null())),
         type: v.optional(v.union(v.string(), v.null())),
         branchId: v.optional(v.union(v.id('branches'), v.null())),
+        // Whole-array replace — every guide edit on the client builds a fresh
+        // array and ships it as one unit. Passing `[]` clears all guides;
+        // `null` clears the column (same effect, different on-disk shape).
+        layoutGuides: v.optional(v.union(v.array(layoutGuideArg), v.null())),
     },
     handler: async (ctx, { frameId, ...rest }) => {
         const existing = await ctx.db.get(frameId);

@@ -75,6 +75,30 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         [getKey('ZOOM_OUT')],
     );
 
+    // Canvas chrome — Figma parity. Both stay active even while a panel
+    // input owns focus (enableOnFormTags) so the user doesn't have to
+    // click out of the right panel to toggle rulers/guides.
+    useHotkeys(
+        getKey('TOGGLE_RULERS'),
+        () => editorEngine.canvas.toggleRulers(),
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [getKey('TOGGLE_RULERS')],
+    );
+    useHotkeys(
+        getKey('TOGGLE_LAYOUT_GUIDES'),
+        () => editorEngine.canvas.toggleLayoutGuides(),
+        {
+            preventDefault: true,
+            enableOnFormTags: true,
+            enableOnContentEditable: true,
+        },
+        [getKey('TOGGLE_LAYOUT_GUIDES')],
+    );
+
     // Modes
     useHotkeys(
         getKey('SELECT'),
@@ -367,9 +391,14 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         undefined,
         [getKey('INSERT_TEXT')],
     );
-    useHotkeys('space', () => editorEngine.state.setEditorMode(EditorMode.PAN), {
-        keydown: true,
-    });
+    useHotkeys(
+        'space',
+        () => {
+            if (editorEngine.state.editorMode === EditorMode.PAN) return;
+            editorEngine.state.setEditorMode(EditorMode.PAN);
+        },
+        { keydown: true },
+    );
     // Releasing space mid-pan flipped the editor straight back to DESIGN even
     // when an active middle-mouse / space-drag pan was in flight, breaking the
     // gesture. Skip the flip while a canvas pan is active — the pan-end
@@ -542,6 +571,37 @@ export const HotkeysArea = observer(({ children }: { children: ReactNode }) => {
         },
         { enableOnFormTags: true, enableOnContentEditable: true },
         [getKey('DUPLICATE')],
+    );
+
+    // Copy Properties / Paste Properties (Cmd/Ctrl + Alt + C / V).
+    //
+    // These follow the same canvas-ownership pattern as COPY/PASTE above:
+    // only preventDefault when an element on the canvas is selected, so a
+    // user typing in chat / a panel input never has their native shortcut
+    // hijacked. The toast + manager handle the rest of the UX.
+    useHotkeys(
+        getKey('COPY_STYLES'),
+        (e) => {
+            if (editorEngine.elements.selected.length === 0) {
+                return;
+            }
+            e.preventDefault();
+            void editorEngine.propertiesClipboard.copyFromSelected();
+        },
+        { enableOnFormTags: true, enableOnContentEditable: true },
+        [getKey('COPY_STYLES')],
+    );
+    useHotkeys(
+        getKey('PASTE_STYLES'),
+        (e) => {
+            if (editorEngine.elements.selected.length === 0) {
+                return;
+            }
+            e.preventDefault();
+            void editorEngine.propertiesClipboard.pasteToSelected();
+        },
+        { enableOnFormTags: true, enableOnContentEditable: true },
+        [getKey('PASTE_STYLES')],
     );
 
     // AI

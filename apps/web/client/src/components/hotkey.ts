@@ -51,6 +51,11 @@ export class Hotkey {
     // Toggles
     static readonly TOGGLE_TERMINAL = new Hotkey('mod+`', 'Toggle Terminal');
     static readonly OPEN_MODEL_PICKER = new Hotkey('mod+shift+m', 'Open Model Picker');
+    // Canvas chrome — Figma parity. `shift+r` toggles canvas rulers,
+    // `shift+g` toggles per-frame layout guides globally (the per-guide
+    // visibility eye in the right panel is independent).
+    static readonly TOGGLE_RULERS = new Hotkey('shift+r', 'Toggle Rulers');
+    static readonly TOGGLE_LAYOUT_GUIDES = new Hotkey('shift+g', 'Toggle Layout Guides');
 
     // Zoom
     static readonly ZOOM_FIT = new Hotkey('mod+0', 'Zoom Fit');
@@ -99,6 +104,11 @@ export class Hotkey {
     static readonly PASTE = new Hotkey('mod+v', 'Paste');
     static readonly CUT = new Hotkey('mod+x', 'Cut');
     static readonly DUPLICATE = new Hotkey('mod+d', 'Duplicate');
+    // Figma/Framer parity: option (alt) modifier scopes copy/paste to the
+    // element's styling rather than the element itself, so the user can
+    // round-trip just the look across selections without duplicating nodes.
+    static readonly COPY_STYLES = new Hotkey('mod+alt+c', 'Copy Properties');
+    static readonly PASTE_STYLES = new Hotkey('mod+alt+v', 'Paste Properties');
 
     // Delete
     static readonly BACKSPACE = new Hotkey('backspace', 'Delete');
