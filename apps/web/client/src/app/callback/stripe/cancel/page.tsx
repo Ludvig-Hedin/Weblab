@@ -7,7 +7,7 @@ export default function Cancel() {
         <MessageScreen
             title="Subscription Canceled"
             message="Your subscription to Weblab has been canceled. You can now close this page."
-            icon={<Icons.CheckCircled className="text-foreground-success size-10" />}
+            icon={<Icons.CrossCircled className="text-foreground-secondary size-10" />}
         />
     );
 }
