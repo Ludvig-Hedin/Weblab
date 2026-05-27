@@ -163,9 +163,63 @@ export function ClerkAuthForm({
     const showVercel = true;
     const hasOAuthProvider = showGithub || showGoogle || showVercel;
 
+    // Desktop bridge surface — only present when running inside the Electron
+    // shell (preload.js exposes `window.weblabNative`). Used to detect "are
+    // we in desktop?" and to hand OAuth flows off to the OS browser, since
+    // Google blocks OAuth inside embedded Chromium and the other providers
+    // mis-configure the OAuth `client_id` when not in a real browser
+    // context. The result is the user seeing "Access blocked: Authorization
+    // Error — Missing required parameter: client_id" the moment any
+    // provider page loads inside Electron.
+    type WeblabNativeBridge = {
+        target?: string;
+        openExternal?: (url: string) => Promise<boolean | undefined>;
+    };
+    function getDesktopBridge(): WeblabNativeBridge | null {
+        if (typeof window === 'undefined') return null;
+        const w = window as unknown as { weblabNative?: WeblabNativeBridge };
+        return w.weblabNative?.target === 'desktop' ? w.weblabNative : null;
+    }
+
     async function handleOAuth(provider: ClerkOAuthProvider) {
         if (!isLoaded || !signIn) return;
         setOauthError(null);
+
+        // Desktop path: open the system browser at `/sign-in/desktop-handoff`
+        // and let the user sign in there. The handoff page mints a Clerk
+        // sign-in token, fires `weblab://auth/handoff?ticket=…`, and the
+        // desktop shell finishes the flow at `/sign-in/redeem`. No
+        // `authenticateWithRedirect` call here — that would either run
+        // inside Electron's `persist:weblab` partition (Google blocks it)
+        // or open a custom auth window (previous approach: client_id was
+        // missing or the third-party cookie checks rejected it).
+        const desktop = getDesktopBridge();
+        if (desktop?.openExternal) {
+            try {
+                const handoffUrl = new URL('/sign-in/desktop-handoff', window.location.origin);
+                // Forward a hint about which provider the user picked. The
+                // handoff page itself doesn't need it (Clerk's signed-in
+                // check handles the routing), but it lets the in-browser
+                // sign-in page pre-trigger the same OAuth provider on
+                // arrival in a future iteration.
+                handoffUrl.searchParams.set('provider', provider);
+                if (returnUrl && returnUrl.length > 0) {
+                    handoffUrl.searchParams.set('returnUrl', returnUrl);
+                }
+                const handed = await desktop.openExternal(handoffUrl.toString());
+                if (handed === false) {
+                    setOauthError(
+                        'Could not open your default browser. Check that one is set as default.',
+                    );
+                }
+            } catch (err) {
+                if (env.NODE_ENV !== 'production') {
+                    console.error('[clerk-auth-form] desktop OAuth handoff failed', err);
+                }
+                setOauthError('Could not open your default browser. Please try again.');
+            }
+            return;
+        }
 
         const signInResource = signIn;
         async function startOAuth() {

@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
 import { useSignIn } from '@clerk/nextjs/legacy';
 
-import { Button } from '@weblab/ui/button';
 import { BrandLogo } from '@weblab/ui/brand';
+import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+
+import { env } from '@/env';
 
 interface RedeemClientProps {
     ticket: string | null;
@@ -59,7 +61,7 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
         }
         consumedRef.current = true;
 
-        (async () => {
+        void (async () => {
             setState({ status: 'redeeming' });
             try {
                 // Clear any leftover session in this partition first. Clerk
@@ -97,11 +99,15 @@ export function RedeemClient({ ticket }: RedeemClientProps) {
                 const first = apiErr?.errors?.[0];
                 const fromApi = first?.longMessage ?? first?.message;
                 const fromErr = err instanceof Error ? err.message : null;
-                const message =
-                    (fromApi && fromApi.length > 0 && fromApi) ||
-                    (fromErr && fromErr.length > 0 && fromErr) ||
-                    'Could not finish sign-in. Please try again.';
-                if (process.env.NODE_ENV !== 'production') {
+                // Plain `??` would prefer an empty-string Clerk message over
+                // a populated `Error.message`; explicit non-empty check
+                // selects the first useful candidate.
+                const candidates = [fromApi, fromErr];
+                const picked = candidates.find(
+                    (c): c is string => typeof c === 'string' && c.length > 0,
+                );
+                const message = picked ?? 'Could not finish sign-in. Please try again.';
+                if (env.NODE_ENV !== 'production') {
                     console.error('[redeem] ticket exchange failed', err);
                 }
                 setState({ status: 'error', message });

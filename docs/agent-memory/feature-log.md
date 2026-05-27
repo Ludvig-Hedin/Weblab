@@ -16,6 +16,15 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — Desktop OAuth handoff: wire renderer + polish (follow-up to 38b95dcf2)
+Author: Claude Opus 4.7
+Area: `apps/web/client/src/app/sign-in`
+Summary: Commit `38b95dcf2` (Sonnet 4.6, parallel session) landed the system-browser + Clerk ticket handoff infrastructure — new `/sign-in/desktop-handoff` and `/sign-in/redeem` pages, `openExternal` IPC, and the `weblab://auth/handoff?ticket=…` deep-link route. It did NOT touch `clerk-auth-form.tsx`, so the renderer's `handleOAuth` was still calling `signIn.authenticateWithRedirect` even in the desktop shell — meaning the new infrastructure had no caller. This change wires the renderer side: detect `window.weblabNative.target === 'desktop'` in `handleOAuth`, and route OAuth clicks through `weblabNative.openExternal('/sign-in/desktop-handoff?provider=…')` instead of triggering an in-window Clerk redirect. Web path (browser) is unchanged.
+
+Also polished `redeem-client.tsx` (use `env` instead of `process.env`, `void` the IIFE for the floating-promise rule, cleaner non-empty selector for the Clerk error message) and a prettier nit in `handoff-client.tsx`.
+Files: `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`, `apps/web/client/src/app/sign-in/desktop-handoff/handoff-client.tsx`, `apps/web/client/src/app/sign-in/redeem/redeem-client.tsx`
+Links: n/a
+
 ## 2026-05-28 — Desktop auth: fix dead launch URL + OAuth stale-session recovery
 Author: Claude Opus 4.7
 Area: `apps/desktop`, `apps/web/client/src/app/sign-in`

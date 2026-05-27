@@ -55,7 +55,7 @@ export function DesktopHandoffClient({ ticket }: DesktopHandoffClientProps) {
                 <button
                     type="button"
                     onClick={manualRetry}
-                    className="text-foreground-primary underline-offset-4 text-small underline transition-opacity hover:opacity-80"
+                    className="text-foreground-primary text-small underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
                     {retried ? 'Open Weblab again' : 'Open Weblab'}
                 </button>
