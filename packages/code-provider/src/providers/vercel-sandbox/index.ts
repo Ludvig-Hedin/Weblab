@@ -290,7 +290,7 @@ async function scaffoldNextProject(sandbox: Sandbox) {
         {
             path: 'src/app/page.tsx',
             content:
-                'export default function Page() {\n  return <main className="min-h-screen p-10">New Weblab project</main>;\n}\n',
+                'export default function Page() {\n  return <main className="min-h-screen" />;\n}\n',
         },
         {
             path: 'src/app/layout.tsx',
@@ -299,7 +299,7 @@ async function scaffoldNextProject(sandbox: Sandbox) {
         },
         {
             path: 'src/app/globals.css',
-            content: "@import 'tailwindcss';\n",
+            content: "@import 'tailwindcss';\n\nbody {\n  font-family: system-ui, sans-serif;\n}\n",
         },
         {
             path: 'public/_weblab/interactions.json',
@@ -383,21 +383,15 @@ async function scaffoldStaticHtmlProject(sandbox: Sandbox) {
                 '    <link rel="stylesheet" href="./styles.css" />\n' +
                 '  </head>\n' +
                 '  <body>\n' +
-                '    <main>\n' +
-                '      <h1>New Weblab project</h1>\n' +
-                '      <p>Edit <code>index.html</code> to get started.</p>\n' +
-                '    </main>\n' +
+                '    <main></main>\n' +
                 '  </body>\n' +
                 '</html>\n',
         },
         {
             path: 'styles.css',
             content:
-                ':root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }\n' +
-                'body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2.5rem; }\n' +
-                'main { max-width: 32rem; }\n' +
-                'h1 { font-size: 1.5rem; margin: 0 0 0.5rem; }\n' +
-                'code { background: rgba(127,127,127,0.18); padding: 0.125rem 0.375rem; border-radius: 4px; }\n',
+                ':root { color-scheme: light dark; font-family: system-ui, sans-serif; }\n' +
+                'body { margin: 0; min-height: 100vh; }\n',
         },
         {
             path: 'public/_weblab/interactions.json',
