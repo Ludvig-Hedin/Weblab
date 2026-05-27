@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
@@ -9,9 +10,8 @@ import { Icons } from '@weblab/ui/icons';
 import { Input } from '@weblab/ui/input';
 import { timeAgo } from '@weblab/utility/src/time';
 
-import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { useEditorEngine } from '@/components/store/editor';
 
 interface BranchManagementProps {
     branch: Branch;
@@ -74,32 +74,38 @@ export const BranchManagement = observer(({ branch }: BranchManagementProps) => 
     const handleDelete = async () => {
         if (isDeleting) return;
 
+        // Pre-compute the switch target (if needed) but don't actually switch
+        // until after the delete succeeds — switching first leaves the user on
+        // a different branch when the mutation throws and the source branch
+        // was never deleted.
+        let switchTargetId: string | null = null;
+        if (isActiveBranch) {
+            const allBranches = editorEngine.branches.allBranches;
+            const otherBranches = allBranches.filter((b) => b.id !== branch.id);
+
+            if (otherBranches.length === 0) {
+                toast.error('Cannot delete the last remaining branch');
+                return;
+            }
+
+            const targetBranch = otherBranches.find((b) => b.isDefault) || otherBranches[0];
+            if (!targetBranch) {
+                toast.error('No target branch available for switching');
+                return;
+            }
+            switchTargetId = targetBranch.id;
+        }
+
         try {
             setIsDeleting(true);
-
-            // If this is the active branch, switch to a different one first
-            if (isActiveBranch) {
-                const allBranches = editorEngine.branches.allBranches;
-                const otherBranches = allBranches.filter((b) => b.id !== branch.id);
-
-                if (otherBranches.length === 0) {
-                    throw new Error('Cannot delete the last remaining branch');
-                }
-
-                // Find the default branch, or use the first available branch
-                const targetBranch = otherBranches.find((b) => b.isDefault) || otherBranches[0];
-
-                if (!targetBranch) {
-                    throw new Error('No target branch available for switching');
-                }
-
-                // Switch to the target branch first
-                await editorEngine.branches.switchToBranch(targetBranch.id);
-            }
 
             await removeBranchMutation({
                 branchId: branch.id as Id<'branches'>,
             });
+
+            if (switchTargetId) {
+                await editorEngine.branches.switchToBranch(switchTargetId);
+            }
 
             editorEngine.branches.removeBranch(branch.id);
             toast.success('Branch deleted successfully');

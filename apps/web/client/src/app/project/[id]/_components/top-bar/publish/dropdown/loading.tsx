@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { DeploymentType } from '@weblab/models/hosting';
+import { DeploymentType } from '@weblab/models/hosting';
 import { Button } from '@weblab/ui/button';
 import { Progress } from '@weblab/ui/progress';
 
@@ -19,7 +19,7 @@ export const LoadingState = ({ type }: { type: DeploymentType }) => {
     return (
         <div className="flex flex-col gap-2 p-3">
             <p className="text-foreground-tertiary text-mini font-medium">
-                {type === 'preview' ? 'Base' : 'Custom'} Domain
+                {type === DeploymentType.PREVIEW ? 'Base' : 'Custom'} Domain
             </p>
             <p className="text-foreground-secondary">{deployment?.message}</p>
             <Progress value={deployment?.progress ?? 0} className="w-full" />

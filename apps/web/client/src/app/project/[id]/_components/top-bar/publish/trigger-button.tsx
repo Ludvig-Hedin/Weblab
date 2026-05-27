@@ -34,6 +34,12 @@ export const TriggerButton = observer(() => {
     if (isCompleted) {
         colorClasses =
             'border-foreground-brand/60 bg-foreground-brand/90 hover:bg-foreground-brand text-white hover:text-background';
+        // TODO(bug-hunt): `history.length` is the editor's undo stack size, not
+        // a "changes since last deploy" counter. Any edit pushes history; undo
+        // doesn't reset. After publishing then editing once, this stays >0
+        // forever for the session, so "Live" effectively only renders right
+        // after a fresh publish. Track changes-since-deploy on the deployment
+        // itself (e.g. compare HEAD vs deployment.commitSha) for accuracy.
         text = editorEngine.history.length > 0 ? 'Update' : 'Live';
         icon = <Icons.Globe className="mr-1 h-4 w-4" />;
     } else if (isDeploying) {

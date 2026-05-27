@@ -58,11 +58,7 @@ export const CommentPopover = observer(() => {
     // hydrate at all). Coerce to [] so the `.find` on line 111 doesn't
     // detonate when an inbound `activeCommentId` race-arrives before the
     // comments list does.
-    const {
-        activeCommentId,
-        pendingPlacement,
-        comments: commentsRaw,
-    } = editorEngine.comment;
+    const { activeCommentId, pendingPlacement, comments: commentsRaw } = editorEngine.comment;
     const comments = commentsRaw ?? [];
 
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -290,11 +286,16 @@ export const CommentPopover = observer(() => {
                             <div className="mt-2 flex items-center gap-1.5">
                                 <button
                                     onClick={() => {
-                                        if (activeComment.resolvedAt) {
-                                            editorEngine.comment.unresolveComment(activeComment.id);
-                                        } else {
-                                            editorEngine.comment.resolveComment(activeComment.id);
-                                        }
+                                        const action = activeComment.resolvedAt
+                                            ? editorEngine.comment.unresolveComment(activeComment.id)
+                                            : editorEngine.comment.resolveComment(activeComment.id);
+                                        action.catch(() => {
+                                            toast.error(
+                                                activeComment.resolvedAt
+                                                    ? 'Failed to unresolve comment'
+                                                    : 'Failed to resolve comment',
+                                            );
+                                        });
                                     }}
                                     className={cn(
                                         'flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors',

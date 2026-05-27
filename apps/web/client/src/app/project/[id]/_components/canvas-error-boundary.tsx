@@ -1,6 +1,7 @@
 'use client';
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+import { Component } from 'react';
 
 // Scoped error boundary that swallows render-time crashes inside the canvas
 // subtree (frames, overlays, comment pins, remote cursors). Without it, a
@@ -48,7 +49,7 @@ export class CanvasErrorBoundary extends Component<Props, State> {
             return (
                 <div className="bg-background-canvas flex h-full w-full items-center justify-center">
                     <div className="border-border max-w-md rounded-lg border p-6 text-center">
-                        <p className="text-foreground-tertiary text-xs uppercase tracking-wide">
+                        <p className="text-foreground-tertiary text-xs tracking-wide uppercase">
                             {this.props.label ?? 'Canvas'} unavailable
                         </p>
                         <h2 className="text-foreground mt-2 text-lg font-medium">

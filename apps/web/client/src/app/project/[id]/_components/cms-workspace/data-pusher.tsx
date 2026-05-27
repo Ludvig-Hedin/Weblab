@@ -1,13 +1,12 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { observer } from 'mobx-react-lite';
-
+import { api } from '@convex/_generated/api';
 import { useQuery } from 'convex/react';
+import { observer } from 'mobx-react-lite';
 
 import type { CmsBindingPayload } from '@weblab/models';
 
-import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
 import { useEditorEngine } from '@/components/store/editor';
 

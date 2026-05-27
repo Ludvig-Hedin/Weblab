@@ -16,8 +16,10 @@ import { Frames } from './frames';
 import { HotkeysArea } from './hotkeys';
 import { Overlay } from './overlay';
 import { DragSelectOverlay } from './overlay/drag-select';
+import { LayoutGuideOverlay } from './overlay/layout-guide';
 import { PanOverlay } from './overlay/pan';
 import { RecenterCanvasButton } from './recenter-canvas-button';
+import { Rulers } from './rulers';
 import { getFramesInSelection, getSelectedFrameData } from './selection-utils';
 
 const ZOOM_SENSITIVITY = 0.006;
@@ -160,11 +162,16 @@ export const Canvas = observer(() => {
             // Add slight Y offset to compensate for drift
             const yOffset = zoomFactor * -32; // TODO: Debug where this offset is coming from
 
-            editorEngine.canvas.scale = lintedScale;
-
-            if (newScale < MIN_ZOOM || newScale > MAX_ZOOM) {
+            // Skip when the next scale would be out of range AND we're already at the bound —
+            // avoids drift where scale is set but position is not.
+            if (
+                (newScale < MIN_ZOOM && scale <= MIN_ZOOM) ||
+                (newScale > MAX_ZOOM && scale >= MAX_ZOOM)
+            ) {
                 return;
             }
+            editorEngine.canvas.scale = lintedScale;
+
             const newPosition = clampPosition(
                 {
                     x: position.x - deltaX,
@@ -453,6 +460,10 @@ export const Canvas = observer(() => {
                     <Frames framesInDragSelection={framesInSelection} />
                 </div>
                 <RecenterCanvasButton />
+                {/* Per-frame layout guide overlay — independent of the rulers
+                    flag. Visibility is gated inside the component on
+                    `canvas.showLayoutGuides` AND per-guide `visible`. */}
+                <LayoutGuideOverlay />
                 <DragSelectOverlay
                     startX={dragSelectStart.x}
                     startY={dragSelectStart.y}
@@ -461,6 +472,12 @@ export const Canvas = observer(() => {
                     isSelecting={isDragSelecting}
                 />
                 <Overlay />
+                {/* Canvas rulers — overlay on top of the canvas content (no
+                    padding nudge) so the existing zoom-to-cursor math in
+                    handleZoom keeps working unchanged. Rulers cover the
+                    first 24px of each axis; pointer-events: none lets
+                    canvas interactions reach the content underneath. */}
+                {editorEngine.canvas.showRulers && <Rulers />}
                 <PanOverlay
                     clampPosition={(position: { x: number; y: number }) =>
                         clampPosition(position, scale)

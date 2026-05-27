@@ -21,7 +21,17 @@ export const FileTab = ({ file, isActive, onClick, onClose, dataActive }: FileTa
     const filename = file.path.split('/').pop() || '';
 
     useEffect(() => {
-        isDirty(file).then(setIsFileDirty);
+        // `isDirty` is async (hashes file content). If the file changes
+        // rapidly, an older Promise can resolve after a newer one and stomp
+        // the correct state. Guard with a cancellation flag so only the most
+        // recent run can call `setIsFileDirty`.
+        let cancelled = false;
+        void isDirty(file).then((next) => {
+            if (!cancelled) setIsFileDirty(next);
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [file.path, file.content, file.type, file.originalHash]);
 
     return (

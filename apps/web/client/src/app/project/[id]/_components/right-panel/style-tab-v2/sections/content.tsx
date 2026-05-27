@@ -30,6 +30,9 @@ import { Section } from './section';
  * Returns null when the section is not applicable, so the accordion doesn't
  * render an empty slot.
  */
+// Radix `<Select.Item value="">` throws at runtime — use a sentinel for "no sort".
+const SORT_NONE = '__none__';
+
 export const ContentSection = observer(function ContentSection() {
     const editorEngine = useEditorEngine();
     const projectId = editorEngine.projectId;
@@ -69,15 +72,11 @@ export const ContentSection = observer(function ContentSection() {
     // ref triggers `Could not find public function for 'skip'` and detonates.
     const collections = useQuery(
         api.cmsCollections.list,
-        enableCmsQueries
-            ? { projectId: projectId as Id<'projects'> }
-            : 'skip',
+        enableCmsQueries ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
     const bindings = useQuery(
         api.cmsBindings.listForProject,
-        enableCmsQueries
-            ? { projectId: projectId as Id<'projects'> }
-            : 'skip',
+        enableCmsQueries ? { projectId: projectId as Id<'projects'> } : 'skip',
     );
 
     const oid = selected?.oid ?? null;
@@ -181,7 +180,14 @@ export const ContentSection = observer(function ContentSection() {
                     </Label>
                     <Select
                         value={collectionId}
-                        onValueChange={(v) => void update({ collectionId: v })}
+                        onValueChange={(v) =>
+                            void update({
+                                collectionId: v,
+                                sort: null,
+                                filters: null,
+                                filterMode: null,
+                            })
+                        }
                         disabled={isSaving}
                     >
                         <SelectTrigger id="list-content-collection" className="text-mini h-7">
@@ -211,15 +217,16 @@ export const ContentSection = observer(function ContentSection() {
                         {t(transKeys.cms.bind.repeat.sortField)}
                     </Label>
                     <Select
-                        value={repeatBinding?.sort?.fieldKey ?? ''}
+                        value={repeatBinding?.sort?.fieldKey ?? SORT_NONE}
                         onValueChange={(v) =>
                             void update({
-                                sort: v
-                                    ? {
-                                          fieldKey: v,
-                                          direction: repeatBinding?.sort?.direction ?? 'asc',
-                                      }
-                                    : null,
+                                sort:
+                                    v && v !== SORT_NONE
+                                        ? {
+                                              fieldKey: v,
+                                              direction: repeatBinding?.sort?.direction ?? 'asc',
+                                          }
+                                        : null,
                             })
                         }
                         disabled={!collectionId || fieldList.length === 0 || isSaving}
@@ -228,7 +235,7 @@ export const ContentSection = observer(function ContentSection() {
                             <SelectValue placeholder={t(transKeys.cms.bind.repeat.sortNone)} />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">
+                            <SelectItem value={SORT_NONE}>
                                 {t(transKeys.cms.bind.repeat.sortNone)}
                             </SelectItem>
                             {fieldList.map((f) => (
@@ -476,7 +483,7 @@ function FilterEditor({
                                     </SelectTrigger>
                                     <SelectContent>
                                         {fields.map((f) => (
-                                            <SelectItem key={f.id} value={f.key}>
+                                            <SelectItem key={f.key} value={f.key}>
                                                 {f.name}
                                             </SelectItem>
                                         ))}
@@ -651,24 +658,17 @@ function FilterValueInput({
 
     if (field?.type === CmsFieldType.BOOLEAN && (clause.op === 'eq' || clause.op === 'neq')) {
         return (
-            <Select
-                value={draft || 'true'}
-                onValueChange={(v) => {
+            <BooleanFilterValue
+                draft={draft}
+                onCommit={(v) => {
                     setDraft(v);
                     onBlur(v);
                 }}
-            >
-                <SelectTrigger className="text-mini h-7 flex-1">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="true">true</SelectItem>
-                    <SelectItem value="false">false</SelectItem>
-                </SelectContent>
-            </Select>
+            />
         );
     }
 
+    // Helper component declared below FilterValueInput.
     if (field?.type === CmsFieldType.OPTION) {
         const config = (field as { config?: Record<string, unknown> }).config ?? {};
         const options = readOptionList(config);
@@ -704,6 +704,35 @@ function FilterValueInput({
             onBlur={() => onBlur(draft)}
             className="text-mini h-7 flex-1"
         />
+    );
+}
+
+function BooleanFilterValue({
+    draft,
+    onCommit,
+}: {
+    draft: string;
+    onCommit: (value: string) => void;
+}) {
+    // Seed an empty boolean filter with `true` so the persisted clause matches
+    // what the user sees — without this the UI shows "true" but the binding
+    // saves `value: ""`, and the filter never matches.
+    const normalized = draft === 'true' || draft === 'false' ? draft : 'true';
+    useEffect(() => {
+        if (draft !== normalized) onCommit(normalized);
+        // Only act on mount; we don't want to clobber later user edits.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return (
+        <Select value={normalized} onValueChange={onCommit}>
+            <SelectTrigger className="text-mini h-7 flex-1">
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="true">true</SelectItem>
+                <SelectItem value="false">false</SelectItem>
+            </SelectContent>
+        </Select>
     );
 }
 

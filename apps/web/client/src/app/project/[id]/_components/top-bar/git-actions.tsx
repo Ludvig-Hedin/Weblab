@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@convex/_generated/api';
 import { useAction } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { toast } from 'sonner';
@@ -28,7 +29,6 @@ import { Textarea } from '@weblab/ui/textarea';
 import { cn } from '@weblab/ui/utils';
 
 import { useEditorEngine } from '@/components/store/editor';
-import { api } from '@convex/_generated/api';
 
 type CommitAction = 'commit' | 'commit-push' | 'commit-pr';
 
@@ -154,6 +154,11 @@ const CommitModal = observer(({ open, onOpenChange, initialAction }: CommitModal
                     return;
                 }
                 await gitManager.ensureGitConfig();
+                // TODO(bug-hunt): Default-message divergence with the unstaged branch
+                // above. createCommit() auto-generates a message when undefined;
+                // commit() falls back to the placeholder 'New Weblab backup'.
+                // Either pass `undefined` and let commit() generate, or have
+                // createCommit() use the same placeholder for parity.
                 commitResult = await gitManager.commit(message ?? 'New Weblab backup');
             }
 

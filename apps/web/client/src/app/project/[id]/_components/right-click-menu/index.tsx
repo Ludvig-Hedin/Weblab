@@ -112,6 +112,27 @@ export const RightClickMenu = observer(({ children }: RightClickMenuProps) => {
             hotkey: Hotkey.PASTE,
         },
         {
+            label: 'Copy Properties',
+            action: () => editorEngine.propertiesClipboard.copyFromSelected(),
+            icon: <Icons.Styles className="mr-2 h-4 w-4" />,
+            hotkey: Hotkey.COPY_STYLES,
+            disabled: editorEngine.elements.selected.length === 0,
+        },
+        {
+            // Stays enabled whenever an element is selected — the system
+            // clipboard might still hold a properties envelope from a prior
+            // session even when the in-memory `canPaste` is false, and we
+            // can't probe `navigator.clipboard.readText()` synchronously
+            // for a disabled-state check. The handler surfaces an "info"
+            // toast if there's nothing to paste, which is friendlier than
+            // a permanently-disabled row after reload.
+            label: 'Paste Properties',
+            action: () => editorEngine.propertiesClipboard.pasteToSelected(),
+            icon: <Icons.Styles className="mr-2 h-4 w-4" />,
+            hotkey: Hotkey.PASTE_STYLES,
+            disabled: editorEngine.elements.selected.length === 0,
+        },
+        {
             label: 'Cut',
             action: () => editorEngine.copy.cut(),
             icon: <Icons.Scissors className="mr-2 h-4 w-4" />,

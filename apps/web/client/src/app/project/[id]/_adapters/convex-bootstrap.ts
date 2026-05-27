@@ -5,7 +5,15 @@
 // and `number` epoch milliseconds. Keeps the conversion in one place so the
 // stores don't need to learn about both shapes.
 
-import type { Branch, Canvas, ChatConversation, ChatMessage, Frame, Project } from '@weblab/models';
+import type {
+    Branch,
+    Canvas,
+    ChatConversation,
+    ChatMessage,
+    Frame,
+    LayoutGuideConfig,
+    Project,
+} from '@weblab/models';
 import { DefaultSettings } from '@weblab/constants';
 import { AgentType } from '@weblab/models';
 
@@ -137,6 +145,10 @@ type ConvexUserCanvasDoc = {
     scale: number;
     x: number;
     y: number;
+    // Per-user canvas chrome toggles. Optional because legacy rows predate
+    // the columns; readers default to false (rulers) / true (guides).
+    showRulers?: boolean;
+    showLayoutGuides?: boolean;
 };
 
 type ConvexCanvasDoc = { _id: string; projectId: string };
@@ -154,6 +166,10 @@ type ConvexFrameDoc = {
     breakpointId?: string;
     breakpointName?: string;
     breakpointOrder?: number;
+    // Optional Figma-style layout guides stored as a flat array on the frame
+    // row. The Convex validator (schema.ts) keeps these in lock-step with
+    // `LayoutGuideConfig` in @weblab/models.
+    layoutGuides?: LayoutGuideConfig[];
 };
 
 type ConvexMessageDoc = {
@@ -196,6 +212,11 @@ export function fromConvexCanvas(
         position: userCanvas
             ? { x: userCanvas.x, y: userCanvas.y }
             : { ...DefaultSettings.PAN_POSITION },
+        // Per-user canvas chrome toggles. Forward only when the column
+        // exists on the row — the CanvasManager keeps its defaults
+        // (rulers off / guides on) when these are undefined.
+        showRulers: userCanvas?.showRulers,
+        showLayoutGuides: userCanvas?.showLayoutGuides,
     };
 }
 
@@ -218,6 +239,10 @@ export function fromConvexFrame(doc: ConvexFrameDoc): Frame {
         position: { x: doc.x, y: doc.y },
         dimension: { width: doc.width, height: doc.height },
         url: doc.url,
+        // Forward layout guides as-is. Convex validators already shape the
+        // array to match `LayoutGuideConfig`; legacy rows lacking the column
+        // come through as `undefined` and the overlay treats them as empty.
+        layoutGuides: doc.layoutGuides,
     };
 }
 

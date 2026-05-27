@@ -78,7 +78,7 @@ export const PreviewDomainSection = observer(() => {
             console.error(`No preview domain info found`);
             return;
         }
-        publish();
+        void publish();
     };
 
     const renderDomain = () => {

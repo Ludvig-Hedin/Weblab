@@ -57,6 +57,10 @@ function fileLineCounts(diff: FileDiff): { added: number; removed: number } {
 export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
     const editorEngine = useEditorEngine();
     const gitManager = editorEngine.activeSandbox?.gitManager;
+    // TODO(bug-hunt): When gitManager is undefined (sandbox not ready), diffs
+    // falls back to [] and isLoading to false → the modal shows "All changes
+    // saved" which is misleading. Distinguish "sandbox not ready" from "no
+    // changes" and render an explicit waiting/unavailable state.
     const diffs = gitManager?.diffs ?? [];
     const isLoading = gitManager?.isLoadingDiffs ?? false;
 

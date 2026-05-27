@@ -25,6 +25,9 @@ export const BranchDisplay = observer(() => {
             await editorEngine.branches.switchToBranch(branchId);
             setIsOpen(false);
         } catch (error) {
+            // TODO(bug-hunt): Silent failure — user clicks branch, nothing happens.
+            // Surface a toast.error('Failed to switch branch') so the user knows
+            // why the dropdown stayed open instead of reloading the editor.
             console.error('Failed to switch branch:', error);
         }
     };
