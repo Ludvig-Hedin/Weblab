@@ -166,8 +166,10 @@ export function ClerkAuthForm({
     async function handleOAuth(provider: ClerkOAuthProvider) {
         if (!isLoaded || !signIn) return;
         setOauthError(null);
-        try {
-            await signIn.authenticateWithRedirect({
+
+        const signInResource = signIn;
+        async function startOAuth() {
+            await signInResource.authenticateWithRedirect({
                 strategy: OAUTH_STRATEGIES[provider],
                 // Clerk needs an in-app callback to finalize the session it
                 // built from the OAuth provider redirect. /sign-in/sso-callback
@@ -178,12 +180,56 @@ export function ClerkAuthForm({
                 // to /projects — guard with the explicit ternary instead.
                 redirectUrlComplete: returnUrl && returnUrl.length > 0 ? returnUrl : '/projects',
             });
+        }
+
+        try {
+            await startOAuth();
         } catch (err) {
-            if (env.NODE_ENV !== 'production') {
-                console.error('[clerk-auth-form] OAuth failed', err);
+            let flowError = err;
+            // Mirror the email/OTP path: when the persisted Clerk session is
+            // stale (page rendered signed-out but the client still has a
+            // leftover session — common in the Electron shell, where the
+            // `persist:weblab` cookie jar outlives a logout), authenticate-
+            // WithRedirect throws "you're already signed in". Clear the
+            // stale session client-side and retry once before surfacing the
+            // error. Without this, desktop users with a leftover session
+            // see the OAuth buttons do nothing (Clerk surfaces an empty /
+            // generic message that renders as a blank error line).
+            if (isAlreadySignedInError(err)) {
+                try {
+                    await signOut();
+                    await startOAuth();
+                    return;
+                } catch (retryError) {
+                    flowError = retryError;
+                }
             }
-            const message = err instanceof Error ? err.message : 'Please try again.';
-            setOauthError(message);
+            if (env.NODE_ENV !== 'production') {
+                console.error('[clerk-auth-form] OAuth failed', flowError);
+            }
+            // Prefer Clerk's structured error fields over the generic
+            // `Error.message` — `ClerkAPIResponseError.message` is often a
+            // short summary like "Failed to authenticate", while the
+            // user-facing text lives at `errors[0].longMessage`.
+            type ClerkAPIErrorLike = {
+                errors?: Array<{ message?: string; longMessage?: string }>;
+            };
+            const apiErr = flowError as ClerkAPIErrorLike;
+            const first = apiErr?.errors?.[0];
+            const fallback = 'Please try again.';
+            // Pick the first non-empty candidate. Plain `??` would accept an
+            // empty-string `longMessage` over a populated `message`, which
+            // some Clerk error shapes surface; explicit length-check is the
+            // safest selector.
+            const candidates = [
+                first?.longMessage,
+                first?.message,
+                flowError instanceof Error ? flowError.message : undefined,
+            ];
+            const picked = candidates.find(
+                (c): c is string => typeof c === 'string' && c.length > 0,
+            );
+            setOauthError(picked ?? fallback);
         }
     }
 

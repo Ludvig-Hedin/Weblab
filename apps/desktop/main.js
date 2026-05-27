@@ -9,12 +9,16 @@ const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || `https://${APP_DOMAIN}`;
 const APP_ORIGIN = new URL(APP_URL).origin;
 
 // Boot the desktop shell straight into the auth flow instead of the marketing
-// landing. /login server-redirects already-signed-in users to /projects, so a
-// single load handles both cases. `?native=1` mirrors the flag main.js already
-// stamps on deep-link callbacks (see handleDeepLink) so the web side can show
-// desktop-specific UI without UA sniffing.
+// landing. /sign-in server-redirects already-signed-in users to /projects, so
+// a single load handles both cases. `?native=1` mirrors the flag main.js
+// already stamps on deep-link callbacks (see handleDeepLink) so the web side
+// can show desktop-specific UI without UA sniffing.
+//
+// /login was the pre-migration entry; it was deleted in the Supabase → Clerk
+// cut (commit 944b1e7ac). Middleware only redirects `/` → `/sign-in` for the
+// WeblabDesktop UA, so `/login?native=1` would 404. Use the canonical route.
 const DEFAULT_LAUNCH_URL = (() => {
-    const u = new URL('/login', APP_URL);
+    const u = new URL('/sign-in', APP_URL);
     u.searchParams.set('native', '1');
     return u.toString();
 })();

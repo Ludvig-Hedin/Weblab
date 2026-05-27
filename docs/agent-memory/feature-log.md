@@ -16,6 +16,16 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — Desktop auth: fix dead launch URL + OAuth stale-session recovery
+Author: Claude Opus 4.7
+Area: `apps/desktop`, `apps/web/client/src/app/sign-in`
+Summary: Three bugs fixed in the desktop sign-in flow.
+(1) `DEFAULT_LAUNCH_URL` in `apps/desktop/main.js` still pointed at the legacy `/login?native=1` route deleted in the Supabase → Clerk migration (commit `944b1e7ac`). Middleware only redirects `/` → `/sign-in` for the WeblabDesktop UA, so `/login` 404'd. Switched to `/sign-in?native=1`.
+(2) `handleOAuth` in `clerk-auth-form.tsx` had no stale-session recovery (commit `f04415447` only fixed the email/OTP path). When the `persist:weblab` Electron cookie jar carried a leftover Clerk session, `signIn.authenticateWithRedirect` short-circuited and the user saw nothing happen on OAuth button clicks. Mirrored the `startOtpFlow` pattern: catch `isAlreadySignedInError`, `signOut`, retry once.
+(3) Improved OAuth error extraction — `ClerkAPIResponseError.message` is often a generic short string while the user-facing text lives at `errors[0].longMessage`. Picks the first non-empty candidate across `longMessage` → `message` → `Error.message` → fallback.
+Files: `apps/desktop/main.js`, `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`
+Links: n/a
+
 ## 2026-05-27 — Documentation refresh for agent context
 Author: Claude Opus 4.7
 Area: `docs/agent-context`, `docs/agent-memory`
