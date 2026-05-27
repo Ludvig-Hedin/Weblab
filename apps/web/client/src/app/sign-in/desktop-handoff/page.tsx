@@ -42,15 +42,41 @@ async function createTicketFor(userId: string): Promise<string> {
     return token.token;
 }
 
-export default async function DesktopHandoffPage() {
+interface DesktopHandoffPageProps {
+    // Both forwarded by the Electron renderer when the user clicked an OAuth
+    // or email button. `email` prefills the sign-in form so the user doesn't
+    // have to retype it after the OS browser opens. `provider` is currently
+    // informational only — kept so a future iteration can deep-link straight
+    // into a specific OAuth provider from the sign-in form.
+    searchParams: Promise<{ email?: string; provider?: string }>;
+}
+
+export default async function DesktopHandoffPage({ searchParams }: DesktopHandoffPageProps) {
+    const params = await searchParams;
     const { userId } = await clerkAuth();
 
     // Not signed in: send to the normal sign-in form, then bounce back here
     // once a session exists. Encoding the path keeps `sanitizeReturnUrl`
     // happy (same-origin, no scheme).
     if (!userId) {
-        const returnUrl = '/sign-in/desktop-handoff';
-        redirect(`/sign-in?returnUrl=${encodeURIComponent(returnUrl)}`);
+        // Preserve email + provider hints on the returnUrl so they survive
+        // the round-trip: after the user signs in, /sign-in redirects back
+        // to /sign-in/desktop-handoff?email=…&provider=… (this same page),
+        // which then mints the ticket. Forwarding `email` on the OUTER
+        // /sign-in URL also lets the form prefill the input immediately.
+        const handoffBack = new URLSearchParams();
+        if (params.email) handoffBack.set('email', params.email);
+        if (params.provider) handoffBack.set('provider', params.provider);
+        const handoffQuery = handoffBack.toString();
+        const returnUrl =
+            handoffQuery.length > 0
+                ? `/sign-in/desktop-handoff?${handoffQuery}`
+                : '/sign-in/desktop-handoff';
+
+        const signInQuery = new URLSearchParams();
+        signInQuery.set('returnUrl', returnUrl);
+        if (params.email) signInQuery.set('email', params.email);
+        redirect(`/sign-in?${signInQuery.toString()}`);
     }
 
     const ticket = await createTicketFor(userId);

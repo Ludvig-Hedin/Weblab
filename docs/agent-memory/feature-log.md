@@ -16,6 +16,21 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — Desktop auth: route email through handoff + CAPTCHA mount + prefill
+Author: Claude Opus 4.7
+Area: `apps/web/client/src/app/sign-in`
+Summary: Desktop email/OTP was still failing end-to-end after the OAuth handoff landed because Cloudflare Turnstile (Clerk's bot-protection CAPTCHA, required for the sign-up branch of the email flow) raises `Error: 600010` inside Electron — embedded Chromium fails Turnstile's environment checks. UI showed "The CAPTCHA failed to load…" and stuck on "Sending…". Three changes:
+
+(1) `handleSendCode` in `clerk-auth-form.tsx` now mirrors `handleOAuth`'s desktop branch: when `window.weblabNative.target === 'desktop'`, route through `weblabNative.openExternal('/sign-in/desktop-handoff?email=…')` instead of calling `signIn.create` in the embedded Chromium. The email completes in the user's real default browser where Turnstile passes.
+
+(2) Added the `<div id="clerk-captcha" />` mount point at the bottom of the form. Without it, Clerk logged "Cannot initialize Smart CAPTCHA widget" and fell back to Invisible Turnstile (the harder-to-pass variant and the source of the 600010 errors). With it, browser-side Clerk mounts the visible widget on demand only.
+
+(3) Plumbed an `email` query param through `/sign-in/desktop-handoff` → `/sign-in?email=…&returnUrl=/sign-in/desktop-handoff?email=…` so the email the user typed in the Electron shell prefills the browser sign-in form (no double-typing across the OS-protocol handoff). Server-side sanitizer at the `/sign-in` entry rejects anything that isn't a plausible email so an attacker can't echo HTML / control chars into the form via `?email=`.
+
+Verified end-to-end in the preview browser by injecting a fake `window.weblabNative` and observing every button (Email, Google, GitHub, Vercel) captures the correct handoff URL with the right query params, and that `/sign-in/desktop-handoff?email=…&provider=…` redirects to `/sign-in?email=…&returnUrl=…` with email prefilled. The final OS-protocol → desktop redeem step (`weblab://auth/handoff?ticket=…` → `/sign-in/redeem`) requires the actual Electron shell to test and is unchanged from `38b95dcf2`.
+Files: `apps/web/client/src/app/sign-in/_components/clerk-auth-form.tsx`, `apps/web/client/src/app/sign-in/[[...rest]]/page.tsx`, `apps/web/client/src/app/sign-in/[[...rest]]/sign-in-client.tsx`, `apps/web/client/src/app/sign-in/desktop-handoff/page.tsx`
+Links: n/a
+
 ## 2026-05-28 — CMS workspace bug-hunt sweep (F-380..F-392)
 Author: Claude Opus 4.7
 Area: `apps/web/client/src/app/project/[id]/_components/cms-workspace`

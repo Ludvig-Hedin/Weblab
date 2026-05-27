@@ -19,16 +19,31 @@ import { SignInClient } from './sign-in-client';
 // sign-in entry instead of 404'ing.
 
 interface SignInPageProps {
-    searchParams: Promise<{ returnUrl?: string }>;
+    searchParams: Promise<{ returnUrl?: string; email?: string }>;
+}
+
+// Loose RFC-5321-ish email shape used only for prefill sanitization. We never
+// trust this value as an identifier — it's just echoed into the input field,
+// and Clerk re-validates on submit. Anything not matching this pattern is
+// dropped so an attacker can't put markup or control characters into the
+// initial input value via `?email=`.
+const EMAIL_PREFILL_RE = /^[^\s<>"'`]{1,254}@[^\s<>"'`]{1,253}$/;
+function sanitizeEmailPrefill(raw: string | undefined): string | null {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (trimmed.length === 0 || trimmed.length > 254) return null;
+    if (!EMAIL_PREFILL_RE.test(trimmed)) return null;
+    return trimmed.toLowerCase();
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-    const { returnUrl } = await searchParams;
+    const { returnUrl, email } = await searchParams;
     // Pre-default form: pass through `null` when the input was unsafe or
     // absent so the client knows there's no real returnUrl to thread through
     // OAuth + OTP flows. Comparing against '/projects' as a sentinel would
     // silently break if sanitizeReturnUrl's default ever changed.
     const sanitized = sanitizeReturnUrl(returnUrl);
+    const initialEmail = sanitizeEmailPrefill(email);
 
     // Supabase rollback lever. The legacy `/login` surface was deleted in the
     // migration, so there is no alternate auth UI to fall back to — and
@@ -36,7 +51,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     // fate is decided, render the Clerk form (the only working auth) instead of
     // looping. (Fixes the CR-2026-05-... dormant redirect-loop.)
     if (env.WEBLAB_AUTH_PROVIDER !== 'clerk') {
-        return <SignInClient returnUrl={sanitized ?? null} />;
+        return <SignInClient returnUrl={sanitized ?? null} initialEmail={initialEmail} />;
     }
 
     // Already authenticated visitors should never see the sign-in form.
@@ -47,5 +62,5 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         redirect(sanitized ?? Routes.PROJECTS);
     }
 
-    return <SignInClient returnUrl={sanitized ?? null} />;
+    return <SignInClient returnUrl={sanitized ?? null} initialEmail={initialEmail} />;
 }

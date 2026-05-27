@@ -18,6 +18,7 @@ interface WeblabDesktopBridge {
 
 interface SignInClientProps {
     returnUrl: string | null;
+    initialEmail?: string | null;
 }
 
 /**
@@ -26,7 +27,7 @@ interface SignInClientProps {
  * driven by Clerk's `useSignIn` hook (see <ClerkAuthForm />); there is no
  * Clerk-branded UI on the page.
  */
-export function SignInClient({ returnUrl }: SignInClientProps) {
+export function SignInClient({ returnUrl, initialEmail = null }: SignInClientProps) {
     const t = useTranslations();
 
     // Same desktop-bridge handling as /login so the in-app build hides the
@@ -70,7 +71,7 @@ export function SignInClient({ returnUrl }: SignInClientProps) {
                             {t(transKeys.welcome.description)}
                         </p>
                     </div>
-                    <ClerkAuthForm returnUrl={returnUrl} />
+                    <ClerkAuthForm returnUrl={returnUrl} initialEmail={initialEmail} />
                 </div>
                 {/* Footer row: version label on the left, terms on the right,
                     both rendered in the same muted tertiary color so they

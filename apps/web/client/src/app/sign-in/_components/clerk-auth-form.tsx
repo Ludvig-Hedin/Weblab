@@ -53,6 +53,13 @@ interface ClerkAuthFormProps {
     returnUrl?: string | null;
     /** Optional initial email error (e.g. when redirected back with `missing=email`). */
     initialEmailError?: string | null;
+    /**
+     * Optional initial email value. Used by the desktop-handoff bounce so
+     * the email the user typed in the Electron shell is prefilled in the
+     * browser sign-in form (avoiding having to re-type it after the
+     * `weblab://` → handoff round-trip).
+     */
+    initialEmail?: string | null;
     providerButtonClassName?: string;
 }
 
@@ -105,6 +112,7 @@ function isAlreadySignedInError(err: unknown) {
 export function ClerkAuthForm({
     returnUrl = null,
     initialEmailError = null,
+    initialEmail = null,
     providerButtonClassName,
 }: ClerkAuthFormProps) {
     const t = useTranslations();
@@ -114,7 +122,7 @@ export function ClerkAuthForm({
     const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
     const isLoaded = isSignInLoaded && isSignUpLoaded;
 
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(initialEmail ?? '');
     const [isEmailLoading, setIsEmailLoading] = useState(false);
     const [emailError, setEmailError] = useState<string | null>(initialEmailError);
     const [cooldownSecondsRemaining, setCooldownSecondsRemaining] = useState(0);
@@ -292,6 +300,42 @@ export function ClerkAuthForm({
         if (!isLoaded || !signIn || !signUp) return;
         const normalizedEmail = email.trim().toLowerCase();
         if (!normalizedEmail) return;
+
+        // Desktop path: same handoff as OAuth. Cloudflare Turnstile (Clerk's
+        // bot-protection CAPTCHA, required for the sign-up branch of the
+        // email/OTP flow) fails to initialize inside Electron's embedded
+        // Chromium — "Error: 600010" — because the headless / non-default
+        // browser fingerprint trips Turnstile's environment checks. Routing
+        // through the user's real default browser sidesteps the entire
+        // CAPTCHA problem. The email is forwarded as a hint so the browser
+        // sign-in page can prefill the input.
+        const desktop = getDesktopBridge();
+        if (desktop?.openExternal) {
+            setIsEmailLoading(true);
+            setEmailError(null);
+            try {
+                const handoffUrl = new URL('/sign-in/desktop-handoff', window.location.origin);
+                handoffUrl.searchParams.set('email', normalizedEmail);
+                if (returnUrl && returnUrl.length > 0) {
+                    handoffUrl.searchParams.set('returnUrl', returnUrl);
+                }
+                const handed = await desktop.openExternal(handoffUrl.toString());
+                if (handed === false) {
+                    setEmailError(
+                        'Could not open your default browser. Check that one is set as default.',
+                    );
+                }
+            } catch (err) {
+                if (env.NODE_ENV !== 'production') {
+                    console.error('[clerk-auth-form] desktop email handoff failed', err);
+                }
+                setEmailError('Could not open your default browser. Please try again.');
+            } finally {
+                setIsEmailLoading(false);
+            }
+            return;
+        }
+
         setIsEmailLoading(true);
         setEmailError(null);
 
@@ -535,6 +579,15 @@ export function ClerkAuthForm({
                     </Link>
                 </p>
             </form>
+            {/* Mount point for Clerk's Smart CAPTCHA widget (Cloudflare
+                Turnstile). Without this element, Clerk logs "Cannot
+                initialize Smart CAPTCHA widget because the `clerk-captcha`
+                DOM element was not found" and falls back to Invisible
+                Turnstile, which is the harder-to-pass variant and is the
+                source of the 600010 errors we hit in the Electron shell.
+                The visible widget renders on-demand only (when Clerk needs
+                a bot challenge), so it's invisible in the common case. */}
+            <div id="clerk-captcha" className="w-full" />
         </div>
     );
 }
