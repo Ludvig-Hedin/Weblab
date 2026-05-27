@@ -329,8 +329,11 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
     };
 
     try {
-        const lastUserMessage = messages.findLast((message) => message.role === 'user');
-        const traceId = lastUserMessage?.id ?? uuidv4();
+        // traceId is server-generated only. Earlier this derived from
+        // lastUserMessage.id, but that's client-controlled and flows into
+        // langfuseTraceId + usage-event correlation — clients could collide
+        // trace IDs across users and poison telemetry.
+        const traceId = uuidv4();
 
         if (chatType === ChatType.EDIT && !isLocalModel) {
             const incrementResult = await incrementUsage(req, traceId);
@@ -455,6 +458,8 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
             );
         };
 
+        const messageCreatedAt = new Date();
+
         return built.stream.toUIMessageStreamResponse<ChatMessage>({
             originalMessages: messages,
             generateMessageId: () => uuidv4(),
@@ -469,25 +474,28 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                         ? (part.providerMetadata as ChatProviderMetadata | undefined)
                         : undefined;
                 return {
-                    createdAt: new Date(),
+                    createdAt: messageCreatedAt,
                     conversationId,
                     context: [],
                     checkpoints: [],
                     finishReason: part.type === 'finish-step' ? part.finishReason : undefined,
                     usage: part.type === 'finish-step' ? part.usage : undefined,
-                    providerMetadata:
-                        part.type === 'finish-step' ? providerMetadata : undefined,
+                    providerMetadata: part.type === 'finish-step' ? providerMetadata : undefined,
                     resolvedModel: built.resolvedModel,
                     resolvedFromAuto: built.resolvedFromAuto,
                 } satisfies ChatMetadata & { providerMetadata?: ChatProviderMetadata };
             },
             onFinish: async ({ messages: finalMessages, isAborted, responseMessage }) => {
+                // Excludes tool-*-error variants (e.g. `tool-input-error`,
+                // `tool-output-error`) — a stream that produced only an errored
+                // tool call would otherwise count as "content" and skip the
+                // refund, burning a paid credit.
                 const responseHasContent =
                     Array.isArray(responseMessage?.parts) &&
                     responseMessage.parts.some(
                         (p) =>
                             (p.type === 'text' && p.text.length > 0) ||
-                            p.type.startsWith('tool-') ||
+                            (p.type.startsWith('tool-') && !p.type.endsWith('-error')) ||
                             p.type === 'reasoning' ||
                             p.type === 'file',
                     );
@@ -516,7 +524,7 @@ export const streamResponse = async (req: NextRequest, userId: string) => {
                 const toolCallCount = (responseMessage?.parts ?? []).filter((p) =>
                     p.type?.startsWith('tool-'),
                 ).length;
-                void built.finalizeUsage({
+                await built.finalizeUsage({
                     usage: responseMetadata?.usage,
                     providerMetadata: responseMetadata?.providerMetadata,
                     toolCallCount,

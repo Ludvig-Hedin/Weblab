@@ -175,10 +175,7 @@ export function resolveAutoModel(input: ResolveAutoModelInput): Models {
     // Final safety net: if a config function ever returns a premium model
     // for a non-(pro,small) combination, downgrade. Defence in depth — keeps
     // the "no Opus surprise bills" invariant even if config edits go wrong.
-    if (
-        PREMIUM_MODELS.has(resolved) &&
-        !(input.tier === 'pro' && size === 'small')
-    ) {
+    if (PREMIUM_MODELS.has(resolved) && !(input.tier === 'pro' && size === 'small')) {
         return MODEL_ROUTER_CONFIG.defaultFor(input.chatType);
     }
     return resolved;

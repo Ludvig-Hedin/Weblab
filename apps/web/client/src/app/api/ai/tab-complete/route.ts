@@ -5,8 +5,8 @@ import { fetchQuery } from 'convex/nextjs';
 import { z } from 'zod';
 
 import type { ChatModel } from '@weblab/models';
-import { AUTO_MODEL_ID, DEFAULT_TAB_COMPLETE_MODEL } from '@weblab/models';
 import { generateTabCompletion, inferProviderFromModelId } from '@weblab/ai';
+import { AUTO_MODEL_ID, DEFAULT_TAB_COMPLETE_MODEL } from '@weblab/models';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { checkMessageLimit, getSupabaseUser, incrementUsage } from '../../chat/helpers';
@@ -145,8 +145,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    const completionModel =
-        body.model === AUTO_MODEL_ID ? DEFAULT_TAB_COMPLETE_MODEL : body.model;
+    const completionModel = body.model === AUTO_MODEL_ID ? DEFAULT_TAB_COMPLETE_MODEL : body.model;
 
     if (completionModel) {
         const provider = inferProviderFromModelId(completionModel);

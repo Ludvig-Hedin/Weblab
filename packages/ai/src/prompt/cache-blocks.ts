@@ -161,9 +161,7 @@ export interface AnthropicSystemContentBlock {
     };
 }
 
-export function toAnthropicSystemBlocks(
-    blocks: CachedSystemBlocks,
-): AnthropicSystemContentBlock[] {
+export function toAnthropicSystemBlocks(blocks: CachedSystemBlocks): AnthropicSystemContentBlock[] {
     const out: AnthropicSystemContentBlock[] = [
         {
             type: 'text',

@@ -19,33 +19,24 @@ import type {
     OPENROUTER_MODELS as Models,
     ReasoningEffort,
 } from '@weblab/models';
-import { ChatType } from '@weblab/models';
+import { ChatType, LLMProvider } from '@weblab/models';
 
-import type { AIUsageEvent } from '../observability';
 import type { MemorySearchResult } from '../memory/types';
+import type { AIUsageEvent } from '../observability';
 import type { SkillSummary } from '../skills/types';
 import type { ServerToolContext } from '../tools/server-context';
-import {
-    buildUsageEvent,
-    measureStreamTiming,
-    trackAIUsage,
-} from '../observability';
+import type { UserTier } from './model-router';
 import { createRootAgentStream } from '../agents/root';
-import {
-    getCachedSystemBlocks,
-    toAnthropicSystemBlocks,
-} from '../prompt/cache-blocks';
-import {
-    CREATE_NEW_PAGE_SYSTEM_PROMPT,
-} from '../prompt/constants';
+import { buildUsageEvent, measureStreamTiming, trackAIUsage } from '../observability';
+import { getCachedSystemBlocks, toAnthropicSystemBlocks } from '../prompt/cache-blocks';
+import { CREATE_NEW_PAGE_SYSTEM_PROMPT } from '../prompt/constants';
 import { wrapXml } from '../prompt/helpers';
-import { getAskModeSystemPrompt } from '../prompt/provider';
 import { getPlanModeSystemPrompt } from '../prompt/plan';
+import { getAskModeSystemPrompt } from '../prompt/provider';
 import { countTokensWithRoles } from '../tokens';
-import { applySummaryToMessages } from './summarizer-utils';
-import { AUTO_MODEL_ID, resolveAutoModel, type UserTier } from './model-router';
+import { AUTO_MODEL_ID, resolveAutoModel } from './model-router';
 import { resolveProviderForModel } from './providers';
-import { LLMProvider } from '@weblab/models';
+import { applySummaryToMessages } from './summarizer-utils';
 
 /**
  * Inputs the route handler gathers and hands to the orchestrator. Everything

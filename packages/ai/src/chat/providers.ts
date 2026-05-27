@@ -57,9 +57,7 @@ function canUseDirectAnthropic(model: string): boolean {
  * Public helper for callers (request-builder, telemetry) that need to know
  * what wire the call will actually go over without instantiating the model.
  */
-export function resolveProviderForModel(
-    payload: InitialModelPayload,
-): ResolvedProvider {
+export function resolveProviderForModel(payload: InitialModelPayload): ResolvedProvider {
     if (payload.provider === LLMProvider.OLLAMA) return 'ollama';
     if (canUseDirectAnthropic(payload.model)) return 'anthropic-direct';
     return 'openrouter';

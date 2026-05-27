@@ -7,8 +7,8 @@
  * Pricing reflects late-2025 list rates for OpenRouter/direct providers and is
  * intentionally a single editable table — when prices move, change one place.
  */
-import { OPENROUTER_MODELS } from '@weblab/models';
 import type { ChatModel } from '@weblab/models';
+import { OPENROUTER_MODELS } from '@weblab/models';
 
 /**
  * Price per 1M tokens in USD. Cache reads/writes use Anthropic's cache pricing

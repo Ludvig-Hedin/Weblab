@@ -114,10 +114,13 @@ export async function POST(req: NextRequest) {
         body = InlineEditBodySchema.parse(await req.json()) as InlineEditBody;
     } catch (error) {
         const message = error instanceof z.ZodError ? error.issues[0]?.message : 'Invalid JSON';
-        return new Response(JSON.stringify({ error: message ?? 'Invalid request body', code: 400 }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+            JSON.stringify({ error: message ?? 'Invalid request body', code: 400 }),
+            {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            },
+        );
     }
 
     if (!body.instruction?.trim() || !body.selection?.trim()) {
