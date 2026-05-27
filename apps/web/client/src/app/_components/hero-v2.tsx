@@ -110,8 +110,8 @@ export function HeroV2() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
                     >
-                        Use your own codebase or build in the cloud. Import your design
-                        system, work locally, or start from scratch.
+                        Use your own codebase or build in the cloud. Import your design system, work
+                        locally, or start from scratch.
                     </motion.p>
                 </div>
 
@@ -170,33 +170,32 @@ export function HeroV2() {
                 44px top + side padding, no bottom so card sits flush.
                 pr-0 below 640px so mockup scales bigger on phones. */}
             <div className="w-full px-4 sm:px-6 md:px-8">
-            <motion.div
-                className="relative mx-auto w-full max-w-[1400px] rounded-[12px] bg-[url('/assets/landing/feature-backdrops/ivory.webp')] bg-cover bg-center bg-no-repeat px-11 pt-11 max-[640px]:pr-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
-            >
-                {/* @container + cqw — mockup renders at native 1280px and
+                <motion.div
+                    className="relative mx-auto w-full max-w-[1400px] rounded-[12px] bg-[url('/assets/landing/feature-backdrops/ivory.webp')] bg-cover bg-center bg-no-repeat px-11 pt-11 max-[640px]:pr-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+                >
+                    {/* @container + cqw — mockup renders at native 1280px and
                     scales DOWN to fit container width. `max-w-[1280px]`
                     caps the container so when scale=1 (wide viewports) the
                     aspect-ratio height matches the mockup exactly — no
                     phantom gap below the card. */}
-                <div className="@container relative mx-auto aspect-[16/10] w-full max-w-[1280px]">
-                    <div className="flex h-full w-full justify-center">
-                        <div
-                            className="shrink-0"
-                            style={{
-                                width: '1280px',
-                                transformOrigin: 'top center',
-                                transform:
-                                    'scale(min(1, calc(100cqw / 1280px)))',
-                            }}
-                        >
-                            <WeblabInterfaceMockup />
+                    <div className="@container relative mx-auto aspect-[16/10] w-full max-w-[1280px]">
+                        <div className="flex h-full w-full justify-center">
+                            <div
+                                className="shrink-0"
+                                style={{
+                                    width: '1280px',
+                                    transformOrigin: 'top center',
+                                    transform: 'scale(min(1, calc(100cqw / 1280px)))',
+                                }}
+                            >
+                                <WeblabInterfaceMockup />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </motion.div>
+                </motion.div>
             </div>
         </motion.div>
     );

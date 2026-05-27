@@ -120,24 +120,21 @@ export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
                 <div
                     className="pointer-events-none absolute inset-0 opacity-[0.04]"
                     style={{
-                        backgroundImage:
-                            'radial-gradient(circle, #000 0.8px, transparent 0.8px)',
+                        backgroundImage: 'radial-gradient(circle, #000 0.8px, transparent 0.8px)',
                         backgroundSize: '14px 14px',
                     }}
                 />
                 <h1
                     className={cn(
                         'relative mb-2.5 text-center font-semibold tracking-[-0.028em] text-neutral-900 transition-all duration-500',
-                        heroLarge
-                            ? 'text-[38px] leading-[0.92]'
-                            : 'text-[28px] leading-[1.02]',
+                        heroLarge ? 'text-[38px] leading-[0.92]' : 'text-[28px] leading-[1.02]',
                     )}
                 >
                     The lair builder
                     <br />
                     <span
                         className={cn(
-                            'font-normal italic text-neutral-700',
+                            'font-normal text-neutral-700 italic',
                             vujahdayScript.className,
                         )}
                     >
@@ -275,9 +272,7 @@ export function DesignMockup({ step = null, accent }: DesignMockupProps = {}) {
                                     >
                                         <span
                                             className={cn(
-                                                t.featured
-                                                    ? 'text-amber-400'
-                                                    : 'text-neutral-400',
+                                                t.featured ? 'text-amber-400' : 'text-neutral-400',
                                             )}
                                         >
                                             ✓
@@ -330,7 +325,7 @@ export function DesignMockupMobile() {
                     <br />
                     <span
                         className={cn(
-                            'font-normal italic text-neutral-700',
+                            'font-normal text-neutral-700 italic',
                             vujahdayScript.className,
                         )}
                     >

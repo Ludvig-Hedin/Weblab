@@ -42,7 +42,7 @@ export function FeatureBackdrop({
                 aria-hidden
             />
             <div
-                className="bg-white/50 dark:bg-background/10 pointer-events-none absolute inset-0"
+                className="dark:bg-background/10 pointer-events-none absolute inset-0 bg-white/50"
                 aria-hidden
             />
             <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">

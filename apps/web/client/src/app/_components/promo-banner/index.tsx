@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@convex/_generated/api';
+import { useAction } from 'convex/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -9,9 +11,6 @@ import { toast } from 'sonner';
 import { Icons } from '@weblab/ui/icons';
 import { cn } from '@weblab/ui/utils';
 
-import { useAction } from 'convex/react';
-
-import { api } from '@convex/_generated/api';
 import type { PromoBanner as PromoBannerConfig } from '@/lib/promo-banners';
 import { getActiveBanner, PROMO_BANNER_DISMISSED_STORAGE_PREFIX } from '@/lib/promo-banners';
 import { getSignInUrlClient } from '@/utils/auth/sign-in-url';
@@ -72,7 +71,7 @@ export function PromoBanner({ locale, bannerOverride, forceShow }: PromoBannerPr
     const isVisible = Boolean(
         mounted &&
         banner &&
-        (banner.locales ? banner.locales.includes(locale ?? 'en') : true) &&
+        (banner.locales ? banner.locales.includes(locale || 'en') : true) &&
         !dismissed,
     );
 

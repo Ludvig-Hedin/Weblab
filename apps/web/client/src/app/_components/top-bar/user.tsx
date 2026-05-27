@@ -54,7 +54,12 @@ export const AuthButton = () => {
                 <div className="h-8 w-[7.5rem]" aria-hidden />
             ) : isSignedIn ? (
                 <>
-                    <Button variant="secondary" size="sm" asChild className="cursor-pointer rounded-full">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        asChild
+                        className="cursor-pointer rounded-full"
+                    >
                         <Link href={Routes.PROJECTS}>{t('projects')}</Link>
                     </Button>
                     <CurrentUserAvatar className="cursor-pointer hover:opacity-80" />
