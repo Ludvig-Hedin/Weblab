@@ -23,6 +23,13 @@ jobs:
         with:
           bun-version: latest
 
+      # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
+      # native deps like better-sqlite3) still imports it. Pin to 3.11 so
+      # the native build for the Electron app succeeds on macOS/Windows.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install desktop dependencies
         working-directory: apps/desktop
         run: bun install
@@ -56,6 +63,13 @@ jobs:
         with:
           bun-version: latest
 
+      # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
+      # native deps like better-sqlite3) still imports it. Pin to 3.11 so
+      # the native build for the Electron app succeeds on macOS/Windows.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install desktop dependencies
         working-directory: apps/desktop
         run: bun install
@@ -85,6 +99,13 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      # Python 3.12 removed `distutils` from stdlib but node-gyp (used by
+      # native deps like better-sqlite3) still imports it. Pin to 3.11 so
+      # the native build for the Electron app succeeds on macOS/Windows.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Install desktop dependencies
         working-directory: apps/desktop
