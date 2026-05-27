@@ -943,3 +943,314 @@ Files scanned: `import/local/_components/select-folder.tsx`, `_context/index.tsx
   to the editor's code-write pipeline — confirm there is a try/catch at the call site
   that surfaces this as a user-visible error message rather than a console crash.
   - Risk: medium — if uncaught, silently fails or crashes the editor action dispatcher.
+
+## Bug Hunt — 2026-05-26 (F-170..F-779 scope, 88 changed source files)
+
+Range F-1182 in goal does not exist; catalog max is F-779. Scoped to intersection
+of "changed files" + range = 88 .ts/.tsx files. Four parallel scanners.
+
+### Auto-fixed (committed in this pass)
+
+- `apps/web/client/src/app/api/chat/route.ts:458-481` — `messageMetadata` callback set
+  `createdAt: new Date()` on every emitted UI part. Persisted message `createdAt`
+  became the LAST delta's timestamp, not message start. **Fix:** hoist `messageCreatedAt`
+  outside the callback.
+- `apps/web/client/src/app/api/chat/route.ts:518` — `void built.finalizeUsage(...)` inside
+  `onFinish` — Next.js Node runtime can freeze the request once the stream closes, dropping
+  the Convex `aiUsageEvents.insert` silently. **Fix:** changed to `await`.
+- `apps/web/client/src/app/project/[id]/_components/canvas/index.tsx:165-169` — Zoom drift:
+  scale was assigned to clamped value BEFORE the out-of-range early return, so position
+  failed to track. **Fix:** allow scale update unless already at the boundary; tightened
+  condition.
+- `apps/web/client/src/components/store/editor/comment/index.ts:343, 358, 390, 403, 417, 430`
+  — `createComment`, `updateComment`, `resolveComment`, `unresolveComment`, `createReply`,
+  `deleteReply` swallowed errors with only `console.error`, letting the popover show
+  success when the mutation actually failed. **Fix:** rethrow inside catch blocks.
+- `apps/web/client/src/app/project/[id]/_components/canvas/overlay/comment-popover.tsx:288-303`
+  — `unresolveComment` / `resolveComment` were called without `void` or `.catch`,
+  becoming unhandled rejections once the store rethrows. **Fix:** chained `.catch` with
+  toast error.
+- `apps/web/client/src/app/project/[id]/_components/canvas/hotkeys/index.tsx:394-401` —
+  Space-key PAN re-fired `setEditorMode(PAN)` on every keyboard-repeat tick while held,
+  causing needless MobX re-renders. **Fix:** guard `if (editorMode === PAN) return`.
+- `apps/web/client/src/app/_components/promo-banner/index.tsx:74` — `locale ?? 'en'`
+  did not fall through for empty-string locales. **Fix:** `locale || 'en'`.
+- `apps/web/client/src/components/ui/settings-modal/versions/version-row.tsx:107-112` —
+  `finishRenaming()` dropped the async return of `updateCommitDisplayName(...)`. Errors
+  escaped as unhandled rejections. **Fix:** `void ... .catch(console.error)`.
+- `apps/web/client/src/app/projects/_components/settings/delete-project.tsx:30-46` —
+  No double-click guard on destructive action. **Fix:** `isDeleting` state +
+  `disabled` on Button.
+- `apps/web/client/src/app/projects/_components/settings/create-template.tsx:14-40` —
+  Same double-click hazard on the template toggle. **Fix:** `isPending` state +
+  `disabled` on `DropdownMenuItem`.
+- `apps/web/client/src/app/projects/import/local/_components/verify-project.tsx:22-32`
+  — Unguarded async setState race: rapid `projectData` updates could let stale
+  validation overwrite fresh result; also `setState` after unmount. **Fix:** `cancelled`
+  flag in useEffect with cleanup.
+- `apps/web/client/src/components/store/editor/chat/conversation.ts:204-234` — `generateTitle`
+  did not wrap the Convex action in try/catch; thrown action errors became unhandled
+  rejections from `void` callers. **Fix:** try/catch around the action call.
+
+### Second-pass FIXED (verify-each + bounded fix loop)
+
+- `apps/web/client/src/app/api/chat/route.ts:333` — **Client-controlled traceId.**
+  Switched to always server-generated `uuidv4()`. Removes the cross-tenant trace-id
+  collision risk in Langfuse + Convex usage events.
+- `apps/web/client/src/app/api/chat/route.ts:483-497` — **`responseHasContent`
+  mis-detected tool errors as content.** Tightened to
+  `p.type.startsWith('tool-') && !p.type.endsWith('-error')` so error-only streams
+  refund correctly.
+- `apps/web/client/src/app/project/[id]/_components/canvas/frame/index.tsx:478-490`
+  — **`activeBranch` getter could throw uncaught.** Added `hasActiveBranch` guard +
+  toast; switched to local `sandboxId` capture + optional chain for legacy data.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/branches-tab/branch-management.tsx:74-117`
+  — **switch-then-delete had no rollback.** Reordered to delete first; switch only on
+  success. Pre-computed switch target before mutating any state.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/text-field.tsx:30-95`
+  — **Blur stomped external value when user didn't type.** Added `userTouchedRef`
+  toggled on focus/onChange — onBlur only commits when the user actually edited;
+  otherwise resyncs draft to current `value`. Same gate on Enter.
+
+### Verified NOT bugs (skipped after read-through)
+
+- `apps/web/client/src/app/_components/hero-v2.tsx:191` — `calc(100cqw / 1280px)` is
+  valid CSS (length / length → unitless number per CSS Values 4 + container queries).
+  Works in modern browsers.
+- `apps/web/client/src/app/_components/landing-page/design-mockup/design-mockup.tsx:220-222`
+  — Outer parent (line 217) carries `border` width class; accent branch only adds
+  color. Not missing.
+- `apps/web/client/src/app/pricing/page.tsx:99-101` — All 9 `HIGHLIGHTED_FEATURES.icon`
+  keys exist in `Icons`. Type-cast is permissive but runtime crash impossible today.
+- `apps/web/client/src/components/ui/button.tsx:63` — `Slot.Root` from `radix-ui`
+  umbrella works (dep installed; same API as `@radix-ui/react-slot` Slot). Style drift
+  vs canonical, not bug.
+- `packages/ui/src/components/select.tsx:71` — Standard shadcn Viewport pattern;
+  Content's `max-h-(--radix-select-content-available-height) overflow-y-auto`
+  handles scroll. Not a bug.
+- `packages/parser/src/code-edit/helpers.ts:8-23` — `getOidFromJsxElement` only sees
+  StringLiteral form because the editor never emits the JSXExpressionContainer
+  variant. Latent, not reachable.
+- `apps/web/client/src/components/clerk-convex-providers.tsx:48` — Module-level
+  singleton is intentional per the file's own comment; `useMemo` was explicitly
+  rejected. HMR concern is dev-only theoretical.
+- `apps/web/client/src/lib/sandbox-server-client.ts:67-69` — Server has no transformer
+  configured (sandbox router uses plain z.string passthrough); `transformer: undefined`
+  is correct for the current wire format.
+
+### Remaining backlog (architectural / latent — NOT user-blocking)
+
+- `apps/web/client/convex/users.ts:69-79` — `updateProfile` cannot clear a name once
+  set (validator forbids null, `??` keeps stale). Requires schema-validator widen.
+  TODO comment inline.
+- `apps/web/client/src/components/store/editor/branch/manager.ts:62-67` — `void
+  codeEditor.cleanup()` fire-and-forget can race a fresh `init()` on the same ZenFS
+  path. Architectural — would need cleanup serialization.
+- `apps/web/client/src/components/store/editor/branch/manager.ts:373-407` — `removeBranch`
+  silently aborts mid-teardown if any inner mutation throws; branchMap stays
+  inconsistent. Refactor to wrap teardown in try/finally.
+- `apps/web/client/src/app/project/[id]/_components/canvas/index.tsx:281-312` —
+  `handleGlobalMouseUp` re-registers on every `dragSelectEnd` tick (~60Hz). Perf —
+  refactor to read via ref.
+- `apps/web/client/src/app/project/[id]/_components/canvas/index.tsx:112-138` —
+  `useCallback(throttle(...), deps)` creates a fresh `throttle` per dep change;
+  previous trailing-call escapes the cleanup. Theoretical race.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/number-field.tsx:111-127`
+  — `nudge` reads `draft` from closure; rapid ArrowUp under React batching could
+  compute from stale draft. Theoretical — browsers throttle key-repeat to ~30-50ms.
+- `apps/web/client/src/app/project/[id]/_components/top-bar/publish/deploy-history-dialog.tsx:71-88`
+  — `handleRedeploy` chains two actions; second-action failure leaves the row in
+  PENDING with no rollback. Recovery path needed.
+- `packages/ai/src/agents/root.ts:99-111` — `system: systemPromptFromArgs as unknown
+  as string` — legacy `AnthropicSystemContentBlock[]` callers risk `"[object Object]"`
+  coercion. Production path passes a string so prod is safe.
+- `packages/ai/src/observability/index.ts:165-169` — `cacheHitRatio` denominator is
+  `read + create + input`; canonical Anthropic ratio is `read / (read + input)`.
+  Analytics-only.
+- `packages/ai/src/chat/model-router.ts:178` — Premium safety-net downgrade returns
+  `defaultFor(chatType)` without re-checking premium guard; latent regression if a
+  future `DEFAULTS` row maps a chat type to a premium model.
+- `apps/web/client/src/components/store/editor/comment/index.ts:117-119` —
+  `isConvexPermissionError` matches `\b(UNAUTHORIZED|FORBIDDEN)\b` against arbitrary
+  message text; legitimate user content mentioning those words could disable polling.
+  Low-risk.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/data-pusher.tsx:174-187`
+  — Identical-deps useEffect pair tears down + recreates the 2s pusher interval on
+  every snapshot/page change. Perf, not correctness.
+
+## 2026-05-26 — F-080 … F-093 validation pass (Auth, Onboarding & Callbacks)
+
+Surface: `docs/feature-catalog.md` Section 3. Goal: validate all 14 rows via
+`docs/prompts/validate-feature.md`. Code-level (typecheck + lint) and frontend
+(preview snapshots / network / console) ran against an unauth session. Three
+issues fixed inline (F-088, F-089, F-091) plus a server-side gate added for
+F-087 — see commits. Below are issues that are too large or out-of-scope to
+fix in the same pass.
+
+### Remaining backlog (validation pass)
+
+- **Dual `sanitizeReturnUrl` implementations across the repo.** Two functions,
+  same name, different semantics:
+  - `apps/web/client/src/utils/auth/sanitize-return-url.ts` — returns
+    `string | null` (null on unsafe). Used by `/sign-in` page + `getCurrentUser`.
+  - `apps/web/client/src/utils/url/index.ts` — returns `string` (never null;
+    falls back to `Routes.HOME`). Used by `/sign-in/verify`,
+    `/profile-setup`, `/auth/redirect`.
+  Every caller handles the right shape today, but the parallel APIs are a
+  footgun: a future caller can easily import the wrong one and silently get
+  `Routes.HOME` when expecting `null`. Consolidate behind a single helper
+  with explicit `{ defaultTo: 'home' | null }`. Touches ~6 files including
+  callers; needs careful test pass per call site.
+- **T-080 … T-090 automated coverage gap.** All 14 features in catalog
+  section 3 have `[ ]` (unimplemented) test rows in `docs/test-plan.md`. No
+  Bun/Playwright tests exist for any of: returnUrl sanitization
+  (cross-implementation), Clerk OTP send/verify, SSO callback,
+  `/sign-up → /sign-in` redirect, `/auth/redirect` open-redirect rejection,
+  `/auth/auth-code-error` reason-key resolution, profile-setup
+  `deriveNameFromEmail` + display-name-equals-email sentinel, Stripe
+  success/cancel screens, invitation accept/decline. Estimated: 4–6 unit
+  tests (pure helpers) + ~6 Playwright/Vitest E2E once an auth fixture
+  exists. Out-of-scope for one validation pass; track as its own initiative.
+- **No seeded auth fixture for E2E.** Phase 3 frontend validation could only
+  exercise unauthenticated branches of F-087 (now redirects to /sign-in),
+  F-088 (always error), F-089 (success path), F-092 + F-093
+  (accept-invitation paths). The success branches need a signed-in browser
+  session with Clerk + Convex auth. Add a Playwright fixture that seeds a
+  test Clerk user + Convex `users` row, then re-validate.
+- **`#auth-gated` semantics across the catalog.** The tag previously read as
+  "middleware-gated" but several rows (F-087, F-100, etc.) are gated only
+  via layout-level `getCurrentUser()` or Convex query null-checks. Worth a
+  taxonomy pass: introduce `#auth-required` (middleware-protected) vs
+  `#auth-aware` (page reads identity but renders for both) so future
+  validation runs don't surface false positives. Doc-only change.
+
+<!-- Stale "Reported" sub-section consolidated into the verdicts above
+(Second-pass FIXED / Verified NOT bugs / Remaining backlog) on 2026-05-26. -->
+
+---
+
+## Bug Hunt — 2026-05-26 (F-200..F-209 Editor Top Bar)
+
+Scope: 10 features in catalog section 8 (Editor Top Bar). Code-level pass
+clean (typecheck ✓, lint = 0 errors / baseline warnings unchanged). Frontend
+phase blocked at sign-in — see Manual steps below.
+
+### Auto-fixed (2)
+
+- `apps/web/client/src/app/project/[id]/_components/top-bar/publish/dropdown/preview-domain-section.tsx:81`
+  — `publish()` floating promise in `retry()`. Rejection silently dropped.
+  Fix: `void publish();` (matches the existing `void publish()` call at :176).
+- `apps/web/client/src/app/project/[id]/_components/top-bar/publish/dropdown/loading.tsx:22`
+  — Enum compared to string literal: `type === 'preview'`. `type` is
+  `DeploymentType` enum; literal compare drifts if the enum value changes.
+  Fix: import `DeploymentType` as value (was type-only) and compare against
+  `DeploymentType.PREVIEW`.
+
+### Flagged with TODO(bug-hunt) — needs human review (5)
+
+- `branch.tsx:27` — `handleBranchSwitch` swallows error to `console.error`.
+  User sees no feedback when branch switch fails. Add `toast.error`.
+- `git-actions.tsx:158` — Default-message divergence. The `includeUnstaged`
+  branch calls `gitManager.createCommit(message)` (auto-generates when
+  undefined); the staged-only branch calls `commit(message ?? 'New Weblab
+  backup')` (placeholder string). Pick one source-of-truth for the default.
+- `publish/trigger-button.tsx:37` — `text = history.length > 0 ? 'Update' :
+  'Live'`. `history` is the editor undo stack; it stays >0 after any edit
+  for the rest of the session, so "Live" is effectively unreachable after
+  the first edit post-deploy. Compare deployment commit/sha to HEAD instead.
+- `diff/diff-modal.tsx:62` — When `gitManager` is undefined (sandbox not
+  ready), `diffs=[]` and `isLoading=false` → modal renders "All changes
+  saved" which is misleading. Render an explicit "sandbox initializing"
+  state.
+- `publish/deploy-history-dialog.tsx:108` — `STATUS_PILL[deployment.status as
+  DeploymentStatus]` is unguarded. If backend ever ships a status outside
+  the local enum, `status` is `undefined` and `status.label` crashes the
+  dialog. Add `?? STATUS_PILL[DeploymentStatus.PENDING]` (or a neutral
+  fallback).
+
+### Coverage gaps (8 of 10 features have no `T-XXX` row)
+
+Catalog rows missing test-plan coverage:
+F-200 (top bar shell), F-203 (connection chip), F-206 (new project menu),
+F-207 (recent projects). And the existing rows (T-200..T-206) are still
+unchecked (`[ ]`) — no run history. Add unit + Playwright rows per the
+catalog Change Protocol.
+
+### Manual steps required
+
+```
+Command : Phase 3 frontend validation (preview_click on top-bar elements)
+Reason  : Editor route /project/[id] is auth-gated by Clerk. Local preview
+          is signed out; OAuth providers (GitHub / Google / Vercel) and the
+          email-code flow cannot be automated. No seeded test-user fixture
+          exists in this repo.
+Impact  : Sub-features F-200..F-209 not driven in a real browser this run.
+          Code-level analysis stands; visual / interaction confirmation
+          deferred.
+Fix     : Either add a Playwright fixture that signs in a seeded Clerk user
+          and a matching Convex `users` row, or supply test creds for the
+          validator to use. Same blocker as the F-087..F-093 entry above.
+```
+
+## Bug Hunt — 2026-05-26 — F-220..F-291
+
+Scope: 312 .ts/.tsx files under
+`apps/web/client/src/app/project/[id]/_components/left-panel/`,
+`apps/web/client/src/app/project/[id]/_components/right-panel/`,
+`apps/web/client/src/components/ai-prompt-composer/`. Skipped tests / .d.ts /
+node_modules. Re-fixes from the prior style-tab-v2 review (Radix
+`SelectItem value=""`, collection-switch stale sort/filters,
+`FilterEditor key={f.id}`, boolean filter draft seed) were not re-flagged.
+
+### Auto-fixed (1 issue)
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-tabs/file-tab.tsx:23` —
+  Stale-Promise race in dirty-state effect: `isDirty(file)` is async (it
+  hashes content). When file content changes rapidly, an older Promise can
+  resolve after a newer one and stomp the correct dirty state. Wrapped the
+  `.then(setIsFileDirty)` with a `cancelled` flag so only the most recent
+  invocation can call `setIsFileDirty`. Cleanup returns `() => { cancelled
+  = true }` so prior runs no-op once a new effect kicks in.
+
+### Needs human review (1 issue)
+
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/smart-link-input.tsx:249-260` —
+  `onBlur` captures `open` by closure at blur time. Because the user was
+  typing in the popover-open input, `open` is always `true` at the moment
+  of blur, so the deferred `if (!open) commitFreeText()` never fires.
+  Effect: when the user types free text (e.g. a bare URL) and then blurs
+  by clicking outside the popover (not on a suggestion), their typed text
+  is silently discarded — the input visually reverts to the previous
+  committed value. `commitFreeText` was meant to normalize and commit the
+  typed value (`https://` prefix, `mailto:` / `tel:`).
+  Suggested fix: replace the `open` closure read with a ref
+  (`openRef.current` updated in `setOpen`), or check `e.relatedTarget`
+  inside `onBlur` to see whether focus moved to a popover item before
+  deciding to commit.
+  TODO comment inserted in source.
+
+### Observations (not flagged — listed for context, not action)
+
+These are minor quality issues I noticed while scanning the same files but
+did not promote to backlog entries because they are not load-bearing bugs:
+
+- A handful of async `onClick` handlers (assistant-message `handleRegenerate`,
+  upload modals, brand-tab token form `submit`) use `try {…} finally {…}`
+  without `catch`. Errors propagate as unhandled rejections (console-only,
+  no user toast). Not crashes; not promoted.
+- `useCodeNavigation` runs an async MobX reaction whose await can race
+  against rapid selection swaps. The `isNavigationTargetEqual` short-circuit
+  mostly absorbs stale resolves; an explicit `cancelled` flag would be
+  cleaner.
+- `chat-input/index.legacy.tsx` retains the swallowed-`catch` bug that
+  `index.tsx` already fixed (signature ref never cleared on failure).
+  Confirmed dead code — file is not imported anywhere — so left alone.
+
+### Validation
+
+- `bun typecheck` → exit 0.
+- `bun lint` skipped per scope instructions (already validated clean
+  prior to this run).
+
+
+

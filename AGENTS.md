@@ -54,7 +54,7 @@ Read order for most tasks:
 Reference (read for the area you're touching):
 
 - `packages-reference.md` — every package in `packages/*` (25 total).
-- `trpc-routers-reference.md` — every tRPC router (21 total).
+- `trpc-routers-reference.md` — **STALE post-Convex migration.** Treat [`docs/feature-catalog.md`](docs/feature-catalog.md) sections 24–25 as source of truth.
 - `routes-reference.md` — every Next.js App Router route.
 
 Deep dives:
@@ -70,14 +70,15 @@ Deep dives:
 
 - Monorepo managed by Bun workspaces (see root `package.json`).
 - App: `apps/web/client` (Next.js App Router + TailwindCSS).
-- API routes: `apps/web/client/src/server/api/routers/*`, aggregated in
-  `apps/web/client/src/server/api/root.ts`.
+- Backend: **Convex** at [apps/web/client/convex/](apps/web/client/convex/) (queries, mutations, actions). Full enumeration in [docs/feature-catalog.md](docs/feature-catalog.md) sections 25–26.
+- REST route handlers: [apps/web/client/src/app/api/](apps/web/client/src/app/api/) — chat / inline-edit / transcribe / etc.
+- Vestigial tRPC: only `sandbox` and `components` routers in [apps/web/server/src/router/](apps/web/server/src/router/) — do **not** add new routers there.
 - Shared utilities: `packages/*` (e.g., `packages/utility`).
 
 ### Stack & Runtimes
 
 - UI: Next.js App Router, TailwindCSS.
-- API: tRPC + Zod (`apps/web/client/src/server/api/*`).
+- API: **Convex** ([apps/web/client/convex/](apps/web/client/convex/)) + Next.js route handlers + vestigial tRPC ([apps/web/server/src/router/](apps/web/server/src/router/)).
 - Package manager: Bun only — use Bun for all installs and scripts; do not use
   npm, yarn, or pnpm.
 - Deployment: `apps/web/client` is deployed on **Railway** (not Vercel). Do not
@@ -146,28 +147,60 @@ what to run, why you couldn't, what breaks if skipped.
 
 Documentation is part of "done" — not optional polish.
 
+#### Backlog — read at session start, append on every deferred bug/TODO
+
+The repo-root [`BACKLOG.md`](BACKLOG.md) is the canonical list of known bugs,
+follow-ups, and deferred TODOs.
+
+- **Read it once at the start of any non-trivial session.** If an entry there
+  intersects the task you were given, fix it as part of the work instead of
+  duplicating the entry.
+- **Append to it whenever you defer a bug or TODO.** If you discover a real
+  defect, latent issue, or follow-up that you cannot fix in the current
+  change — log it in `BACKLOG.md` (entry template is in the file). Do not
+  leave it buried in a chat transcript, code comment, or PR description.
+- Move closed items to the **Resolved** section with the resolution date and
+  PR/commit, rather than deleting them.
+
+#### Feature Catalog & Test Plan — read + update every feature task
+
+The master inventory of every feature is **[`docs/feature-catalog.md`](docs/feature-catalog.md)**. Each entry has a stable `F-XXX` ID, tags (`#editor`, `#ai`, `#public`, `#auth-gated`, `#cms`, `#billing`, `#admin`, `#api`, `#integration`, `#convex`, `#deprecated`, …), path, sub-features, and "Used when". The matching test matrix is **[`docs/test-plan.md`](docs/test-plan.md)** — every catalog row maps to at least one `T-XXX` test row.
+
+**Reusable validation prompt:** [`docs/prompts/validate-feature.md`](docs/prompts/validate-feature.md) — chains the right skills (`anthropic-skills:frontend-testing-debugging`, `anthropic-skills:webapp-testing`, `superpowers:verification-before-completion`) to validate a single feature, tag, section, or branch diff. Code-level + frontend-level in one pass.
+
+**Always:**
+
+1. **Read [`docs/feature-catalog.md`](docs/feature-catalog.md) before** answering "where does X live", planning a feature, writing tests, or doing any cross-cutting audit. Grep by tag (`#ai`) or feature ID (`F-280`) to find every relevant entry.
+2. **Update [`docs/feature-catalog.md`](docs/feature-catalog.md) after** adding or renaming any of: a top-level route, an editor modal/panel/tab, a Convex module or table, a `@weblab/*` package, a `/api/*` route handler, or a webhook. Follow the [Change Protocol](docs/feature-catalog.md#change-protocol). Append to the Change Log.
+3. **Pair every catalog change with [`docs/test-plan.md`](docs/test-plan.md)** — add at least one `T-XXX` row referencing the new `F-XXX` ID.
+4. **Never reuse IDs.** Deleting a feature → strike its row, don't remove it.
+
+> Treat the feature catalog as the **source of truth** when the older `docs/agent-context/*-reference.md` files conflict (`trpc-routers-reference.md` is stale post-Convex migration — see catalog section 24).
+
 **Before a big edit / refactor / feature addition:**
 
 1. Read `docs/agent-memory/user-preferences.md`.
 2. Read `docs/agent-context/current-progress.md`.
-3. Read the relevant `docs/agent-context/*.md` for the area you're touching.
-4. Scan recent context if needed: `git log --oneline -30` and
+3. **Read [`docs/feature-catalog.md`](docs/feature-catalog.md)** — at minimum scan the section(s) matching the area you're touching.
+4. Read the relevant `docs/agent-context/*.md` for the area you're touching.
+5. Scan recent context if needed: `git log --oneline -30` and
    `docs/agent-memory/feature-log.md`.
 
 **After a significant ship:**
 
-1. Update affected `docs/agent-context/*.md` if architecture/contracts
+1. **Update [`docs/feature-catalog.md`](docs/feature-catalog.md)** and **[`docs/test-plan.md`](docs/test-plan.md)** per the Change Protocol above.
+2. Update affected `docs/agent-context/*.md` if architecture/contracts
    changed.
-2. Append to `docs/agent-memory/feature-log.md` (qualifies = new feature, new
+3. Append to `docs/agent-memory/feature-log.md` (qualifies = new feature, new
    router, new package, schema-shape change, significant refactor).
-3. If a pattern is established or rejected, append to
+4. If a pattern is established or rejected, append to
    `docs/agent-memory/architecture-decisions.md`.
-4. User-facing → add a changelog entry (and blog post if "very major").
-5. Update `docs/agent-context/current-progress.md` if worktree state shifted.
+5. User-facing → add a changelog entry (and blog post if "very major").
+6. Update `docs/agent-context/current-progress.md` if worktree state shifted.
 
 **For new packages, routers, or top-level routes:** also update the matching
 reference doc (`packages-reference.md`, `trpc-routers-reference.md`,
-`routes-reference.md`).
+`routes-reference.md`) — *and* the feature catalog row.
 
 ### Changelog & Blog — Shipping Announcements
 
@@ -228,15 +261,13 @@ SVG from that directory if creating a new image would be complex.
 - Components using `mobx-react-lite`'s `observer` must be client components
   (include `use client`).
 
-### tRPC API
+### API Layer (Convex primary; tRPC vestigial)
 
-- Routers live in `apps/web/client/src/server/api/routers/**` and must be
-  exported from `apps/web/client/src/server/api/root.ts`.
-- Use `publicProcedure`/`protectedProcedure` from
-  `apps/web/client/src/server/api/trpc.ts`; validate inputs with Zod.
-- Serialization handled by SuperJSON; return plain objects/arrays.
-- Client usage via `apps/web/client/src/trpc/react.tsx` (React Query + tRPC
-  links).
+- **Convex is the primary backend** at [apps/web/client/convex/](apps/web/client/convex/). Functions are `query` / `mutation` / `action` per-domain module (e.g. `projects.ts`, `chatActions.ts`, `cmsBindings.ts`). Auth wired via [convex/auth.config.ts](apps/web/client/convex/auth.config.ts) (Clerk JWT issuer).
+- REST route handlers under [apps/web/client/src/app/api/](apps/web/client/src/app/api/) — chat / inline-edit / tab-complete / transcribe / etc. Each calls Convex via the server client.
+- Vestigial tRPC routers (`sandbox`, `components`) live at [apps/web/server/src/router/](apps/web/server/src/router/). Editor → Fastify sandbox lifecycle only. Do **not** add new logic to a non-existent `apps/web/client/src/server/api/` tree.
+- Validate inputs with Zod (REST routes / tRPC) or `v` validators (Convex schema).
+- Full enumeration: [docs/feature-catalog.md](docs/feature-catalog.md) sections 22–26.
 
 ### Auth & Supabase
 
@@ -311,7 +342,7 @@ The living design system lives at **`/design-system`** (source: `apps/web/client
 
 - Missing `use client` where needed (events/browser APIs) causes unbound events;
   a single boundary at the feature root is sufficient.
-- New tRPC routers not exported in `src/server/api/root.ts` (endpoints
+- Adding API logic to a `src/server/api/*` tree — that directory no longer exists; new backend code goes in [convex/](apps/web/client/convex/) (endpoints
   unreachable).
 - Env vars not typed/exposed in `src/env.ts` cause runtime/edge failures. Prefer
   `env`; avoid new `process.env` reads in client code.

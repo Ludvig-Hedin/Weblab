@@ -28,6 +28,9 @@ If you are a **human**, start with the [project README](../README.md), then [`gu
 | [`agent-memory/`](./agent-memory) | 🤖 | Persistent agent memory: user preferences, feature log, architecture decisions, performance/tool audits |
 | [`guides/`](./guides) | 👤 | Human how-tos (deployment, etc.) |
 | [`audits/`](./audits) | 🤝 | Audits & reports (website-product, SEO action plan, full audit report) |
+| [`feature-catalog.md`](./feature-catalog.md) | 🤝 | Master inventory of every user-facing + internal feature with paths and purposes |
+| [`test-plan.md`](./test-plan.md) | 🤝 | Per-feature test matrix (unit / integration / E2E / manual) mapped to the catalog |
+| [`prompts/`](./prompts) | 🤖 | Reusable prompts — currently `validate-feature.md` for end-to-end feature validation (code + frontend) |
 | [`notes/`](./notes) | 🤖 | Dated working notes — fast running journal, format `YYYY-MM-DD-<topic>.md` |
 | [`product/`](./product) | 👤 | Product planning & marketing (product-video plan/notes, marketing calendar, launches) |
 | [`superpowers/`](./superpowers) | 🤝 | Feature plans (`plans/`) and design specs (`specs/`) |
@@ -79,6 +82,16 @@ Dated journal of in-flight work. Naming: `YYYY-MM-DD-<kebab-topic>.md`. See [`no
 - [`seo/full-audit-report.md`](./audits/seo/full-audit-report.md) — Full SEO audit + evidence
 
 Lifecycle and re-run cadence: [`audits/README.md`](./audits/README.md).
+
+---
+
+## Feature catalog & test plan 🤝
+
+- [`feature-catalog.md`](./feature-catalog.md) — comprehensive inventory of every public route, editor surface, store manager, tRPC router, package, and integration with paths and purposes. Master reference for QA, onboarding, and audits.
+- [`test-plan.md`](./test-plan.md) — per-feature test matrix (unit / integration / E2E / manual) mapped 1:1 to the catalog. Includes phased execution plan and open questions before automation.
+- [`prompts/validate-feature.md`](./prompts/validate-feature.md) — reusable prompt to run end-to-end validation (code + frontend) for any feature ID, tag, section, or branch diff. Chains the relevant Claude skills.
+
+Update both catalog + test plan whenever a new top-level feature ships.
 
 ---
 

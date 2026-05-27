@@ -161,29 +161,61 @@ Never bury this in a paragraph. Never say "you may want to run…". Be direct: w
 
 Documentation is part of "done" — not optional polish.
 
-**Before a big edit / refactor / feature addition:**
+### Backlog — read at session start, append on every deferred bug/TODO
+
+The repo-root [`BACKLOG.md`](BACKLOG.md) is the canonical list of known bugs,
+follow-ups, and deferred TODOs.
+
+- **Read it once at the start of any non-trivial session.** If an entry below
+  intersects the task you were given, fix it as part of the work instead of
+  duplicating the entry.
+- **Append to it whenever you defer a bug or TODO.** If you discover a real
+  defect, latent issue, or follow-up that you cannot fix in the current
+  change — log it in `BACKLOG.md` (entry template is in the file). Do not
+  leave it buried in a chat transcript, code comment, or PR description.
+- Move closed items to the **Resolved** section with the resolution date and
+  PR/commit, rather than deleting them.
+
+### Feature Catalog & Test Plan — read + update **every** feature task
+
+The master inventory of every feature is **[`docs/feature-catalog.md`](docs/feature-catalog.md)**. Each entry has a stable `F-XXX` ID, tags (`#editor`, `#ai`, `#public`, `#auth-gated`, `#cms`, `#billing`, `#admin`, `#api`, `#integration`, `#convex`, `#deprecated`, …), path, sub-features, and "Used when". The matching test matrix is **[`docs/test-plan.md`](docs/test-plan.md)** — every catalog row has at least one `T-XXX` test row.
+
+**Reusable validation prompt:** [`docs/prompts/validate-feature.md`](docs/prompts/validate-feature.md) — chains the right skills (`anthropic-skills:frontend-testing-debugging`, `anthropic-skills:webapp-testing`, `superpowers:verification-before-completion`, etc.) to validate a single feature, tag, section, or branch diff. Both code-level (typecheck / lint / scoped tests / `local-review`) **and** frontend-level (preview_* browser loop). Use it for pre-merge gates and pre-release sweeps.
+
+**Always:**
+
+1. **Read [`docs/feature-catalog.md`](docs/feature-catalog.md) before** answering "where does X live", planning a feature, writing tests, or doing any cross-cutting audit. Grep by tag (`#ai`) or feature ID (`F-280`) to find every relevant entry.
+2. **Update [`docs/feature-catalog.md`](docs/feature-catalog.md) after** adding or renaming any of: a top-level route, an editor modal/panel/tab, a Convex module or table, a `@weblab/*` package, a `/api/*` route handler, or a webhook. Follow the [Change Protocol](docs/feature-catalog.md#change-protocol) at the bottom of the file. Append to the Change Log.
+3. **Pair every catalog change with [`docs/test-plan.md`](docs/test-plan.md)** — add at least one `T-XXX` row referencing the new `F-XXX` ID.
+4. **Never reuse IDs.** Deleting a feature → strike its row, don't remove it.
+
+> Treat the feature catalog as the **source of truth** when the older `docs/agent-context/*-reference.md` files conflict (in particular, `trpc-routers-reference.md` is stale post-Convex-migration — see catalog section 24).
+
+### Before a big edit / refactor / feature addition
 
 1. Read `docs/agent-memory/user-preferences.md`.
 2. Read `docs/agent-context/current-progress.md` to know what's in flight.
-3. Read the relevant `docs/agent-context/*.md` for the area you're touching
-   (packages, routers, routes, editor, AI chat, CMS, breakpoints, data/API).
-4. If recent changes might be relevant, scan `git log --oneline -30` and
+3. **Read [`docs/feature-catalog.md`](docs/feature-catalog.md)** — at minimum scan the section(s) matching the area you're touching.
+4. Read the relevant `docs/agent-context/*.md` for the area you're touching
+   (packages, routes, editor, AI chat, CMS, breakpoints, data/API).
+5. If recent changes might be relevant, scan `git log --oneline -30` and
    `docs/agent-memory/feature-log.md`.
 
-**After a significant ship:**
+### After a significant ship
 
-1. Update the affected `docs/agent-context/*.md` if the change alters
+1. **Update [`docs/feature-catalog.md`](docs/feature-catalog.md)** and **[`docs/test-plan.md`](docs/test-plan.md)** per the Change Protocol above.
+2. Update the affected `docs/agent-context/*.md` if the change alters
    architecture, contracts, or how an area works.
-2. Append an entry to `docs/agent-memory/feature-log.md` (see its README for
+3. Append an entry to `docs/agent-memory/feature-log.md` (see its README for
    what qualifies).
-3. If the change establishes or rejects a pattern other agents should follow,
+4. If the change establishes or rejects a pattern other agents should follow,
    append to `docs/agent-memory/architecture-decisions.md`.
-4. If the change is user-facing, add a changelog entry (and blog post if it
+5. If the change is user-facing, add a changelog entry (and blog post if it
    meets the "very major" bar — see below).
-5. Update `docs/agent-context/current-progress.md` if the worktree state
+6. Update `docs/agent-context/current-progress.md` if the worktree state
    has shifted meaningfully.
 
-**For new packages, routers, or top-level routes:**
+### For new packages, routers, or top-level routes
 
 Also update the matching reference:
 `packages-reference.md`, `trpc-routers-reference.md`, `routes-reference.md`.
@@ -263,7 +295,7 @@ Bun workspaces monorepo with four workspace directories:
 - **@weblab/mcp** — Model Context Protocol server (file/bash/project tools for AI)
 - **@weblab/rpc** / **@weblab/penpal** — tRPC contracts + cross-frame/iframe RPC
 
-Full catalog (25 packages): `docs/agent-context/packages-reference.md`. Changes to a package ripple into dependents — scope changes narrowly.
+Full catalog (28 packages): [docs/feature-catalog.md](docs/feature-catalog.md) section 28 (`docs/agent-context/packages-reference.md` is the older long-form reference but may lag). Changes to a package ripple into dependents — scope changes narrowly.
 
 ## App Router Rules (`apps/web/client`)
 
@@ -272,12 +304,13 @@ Full catalog (25 packages): `docs/agent-context/packages-reference.md`. Changes 
 - Client providers live behind a client boundary (e.g., `src/trpc/react.tsx`).
 - `observer` components from `mobx-react-lite` must be client components (add `use client`). Place one client boundary at the feature entry; child observers don't need `use client`.
 
-## tRPC API
+## API Layer (Convex primary; tRPC vestigial)
 
-- Routers live in `src/server/api/routers/**` and must be exported from `src/server/api/root.ts`.
-- Use `publicProcedure`/`protectedProcedure` from `src/server/api/trpc.ts`; validate inputs with Zod.
-- Serialization handled by SuperJSON; return plain objects/arrays.
-- Client usage via `src/trpc/react.tsx` (React Query + tRPC links).
+- **Primary backend: Convex** at [apps/web/client/convex/](apps/web/client/convex/). Functions are `query` / `mutation` / `action` exported from per-domain modules (e.g. `projects.ts`, `chatActions.ts`, `cmsBindings.ts`). Auth wired via [convex/auth.config.ts](apps/web/client/convex/auth.config.ts) (Clerk JWT issuer). Full enumeration: [docs/feature-catalog.md](docs/feature-catalog.md) sections 25–26.
+- **REST route handlers** live under [apps/web/client/src/app/api/](apps/web/client/src/app/api/) — chat / inline-edit / tab-complete / transcribe / etc. Each calls Convex via the server client. Enumerated in catalog section 22 (F-470…F-479).
+- **Vestigial tRPC** — only `sandbox` and `components` routers remain, in [apps/web/server/src/router/](apps/web/server/src/router/). Used by the editor → Fastify sandbox lifecycle. Catalog section 24 (F-500, F-501).
+- **Do not** add new routers to a `src/server/api/` tree on the client — that path no longer exists. New backend work goes into Convex.
+- Validate inputs with Zod (Convex) or `v` validators (Convex schema).
 
 ## Auth & Supabase
 
@@ -334,7 +367,7 @@ The living design system lives at **`/design-system`** (source: `apps/web/client
 ## Common Pitfalls
 
 - Missing `use client` where needed (events/browser APIs) causes unbound events.
-- New tRPC routers not exported in `src/server/api/root.ts` → endpoints unreachable.
+- Adding API logic to a `src/server/api/*` tree — that directory no longer exists. New backend code goes in [convex/](apps/web/client/convex/); see CLAUDE.md "API Layer".
 - Env vars not typed in `src/env.ts` cause runtime/edge failures.
 - Importing server-only code into client components causes bundling errors.
 - Bypassing i18n by hardcoding strings.
