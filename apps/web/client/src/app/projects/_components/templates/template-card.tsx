@@ -55,7 +55,7 @@ export function TemplateCard({
                     )}
 
                     {isNew && (
-                        <div className="absolute top-2 left-2 z-10 rounded-full bg-foreground-brand px-2 py-1 text-mini font-medium text-background">
+                        <div className="bg-foreground-brand text-mini text-background absolute top-2 left-2 z-10 rounded-full px-2 py-1 font-medium">
                             New
                         </div>
                     )}

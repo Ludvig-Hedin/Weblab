@@ -48,7 +48,7 @@ export default function InvitationsPage() {
         <div className="flex max-w-2xl flex-col gap-6">
             <header>
                 <h1 className="text-foreground text-title3 font-medium">Invitations</h1>
-                <p className="text-foreground-tertiary mt-1 text-small">
+                <p className="text-foreground-tertiary text-small mt-1">
                     Pending and historical invites for {workspace.name}.
                 </p>
             </header>

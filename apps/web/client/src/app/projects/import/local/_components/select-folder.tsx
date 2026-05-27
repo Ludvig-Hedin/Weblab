@@ -188,8 +188,7 @@ export const NewSelectFolder = () => {
             // Fall back to the folder name for projects without package.json
             // (e.g. static HTML) so they aren't rejected before framework
             // detection even runs.
-            const projectName =
-                extractProjectName(processedFiles) ?? folderPath ?? 'New Project';
+            const projectName = extractProjectName(processedFiles) ?? folderPath ?? 'New Project';
 
             // Auto-detect framework BEFORE validating so the validator runs
             // against the right adapter (e.g. an HTML folder validates via
@@ -534,7 +533,7 @@ export const NewSelectFolder = () => {
                     </Button>
                 </motion.div>
                 {error && (
-                    <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-small text-destructive">
+                    <div className="border-destructive/40 bg-destructive/10 text-small text-destructive rounded-md border px-3 py-2">
                         {error}
                     </div>
                 )}

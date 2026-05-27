@@ -91,7 +91,7 @@ export default function WorkspaceGeneralPage() {
         <div className="flex max-w-xl flex-col gap-8">
             <header>
                 <h1 className="text-foreground text-title3 font-medium">General settings</h1>
-                <p className="text-foreground-tertiary mt-1 text-small">
+                <p className="text-foreground-tertiary text-small mt-1">
                     Manage how {workspace.name} appears across the dashboard.
                 </p>
             </header>
@@ -125,7 +125,7 @@ export default function WorkspaceGeneralPage() {
                 <section className="border-border bg-background-secondary/40 flex flex-col gap-3 rounded-md border p-4">
                     <div>
                         <h2 className="text-foreground text-smallPlus">Leave workspace</h2>
-                        <p className="text-foreground-tertiary mt-1 text-mini">
+                        <p className="text-foreground-tertiary text-mini mt-1">
                             Remove yourself from {workspace.name}. If you are the only owner,
                             transfer ownership first.
                         </p>
@@ -147,7 +147,7 @@ export default function WorkspaceGeneralPage() {
                 <section className="border-destructive/40 flex flex-col gap-3 rounded-md border p-4">
                     <div>
                         <h2 className="text-destructive text-smallPlus">Delete workspace</h2>
-                        <p className="text-foreground-tertiary mt-1 text-mini">
+                        <p className="text-foreground-tertiary text-mini mt-1">
                             This permanently removes the workspace, its members, and pending
                             invites. Projects must be moved or deleted first.
                         </p>

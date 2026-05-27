@@ -161,7 +161,7 @@ export function TemplateModal({
                             />
 
                             {isNew && (
-                                <div className="absolute top-4 left-4 rounded-full bg-foreground-brand px-2 py-1 text-mini font-medium text-background">
+                                <div className="bg-foreground-brand text-mini text-background absolute top-4 left-4 rounded-full px-2 py-1 font-medium">
                                     New
                                 </div>
                             )}

@@ -1,4 +1,9 @@
-import type { PreviewImg, Project, ProjectRuntimeMetadata, ProjectStorageMode } from '@weblab/models';
+import type {
+    PreviewImg,
+    Project,
+    ProjectRuntimeMetadata,
+    ProjectStorageMode,
+} from '@weblab/models';
 import { STORAGE_BUCKETS } from '@weblab/constants';
 
 import { getFileUrlFromStorage } from '@/utils/supabase/client';

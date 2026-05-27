@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
@@ -18,16 +19,18 @@ import { Button } from '@weblab/ui/button';
 import { DropdownMenuItem } from '@weblab/ui/dropdown-menu';
 import { Icons } from '@weblab/ui/icons';
 
-import { transKeys } from '@/i18n/keys';
-import { api } from '@convex/_generated/api';
 import type { Id } from '@convex/_generated/dataModel';
+import { transKeys } from '@/i18n/keys';
 
 export function DeleteProject({ project, refetch }: { project: Project; refetch: () => void }) {
     const t = useTranslations();
     const deleteProject = useMutation(api.projects.remove);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDeleteProject = async () => {
+        if (isDeleting) return;
+        setIsDeleting(true);
         try {
             await deleteProject({ projectId: project.id as Id<'projects'> });
             setShowDeleteDialog(false);
@@ -37,6 +40,8 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
             toast.error('Failed to delete project', {
                 description: error instanceof Error ? error.message : 'Unknown error',
             });
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -69,6 +74,7 @@ export function DeleteProject({ project, refetch }: { project: Project; refetch:
                         <Button
                             variant={'destructive'}
                             className="rounded-md text-sm"
+                            disabled={isDeleting}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 void handleDeleteProject();

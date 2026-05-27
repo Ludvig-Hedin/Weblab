@@ -148,7 +148,7 @@ export function Carousel({
             <div
                 ref={scrollRef}
                 className={cn(
-                    'flex overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none]',
+                    'flex [scrollbar-width:none] overflow-x-auto [-ms-overflow-style:none]',
                     gap,
                     className,
                 )}

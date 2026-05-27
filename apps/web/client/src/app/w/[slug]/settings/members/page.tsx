@@ -102,7 +102,7 @@ export default function MembersPage() {
         <div className="flex max-w-2xl flex-col gap-8">
             <header>
                 <h1 className="text-foreground text-title3 font-medium">Members</h1>
-                <p className="text-foreground-tertiary mt-1 text-small">
+                <p className="text-foreground-tertiary text-small mt-1">
                     People in {workspace.name}.
                 </p>
             </header>
@@ -128,7 +128,7 @@ export default function MembersPage() {
                         <h2 className="text-foreground text-smallPlus">
                             Invite to workspace: {workspace.name}
                         </h2>
-                        <p className="text-foreground-tertiary mt-1 text-mini">
+                        <p className="text-foreground-tertiary text-mini mt-1">
                             This person will become a workspace member. They may access
                             workspace-visible projects based on their role.
                         </p>
@@ -260,12 +260,7 @@ function TransferOwnerButton({
     const [open, setOpen] = useState(false);
     return (
         <>
-            <Button
-                variant="ghost"
-                size="compact"
-                disabled={pending}
-                onClick={() => setOpen(true)}
-            >
+            <Button variant="ghost" size="compact" disabled={pending} onClick={() => setOpen(true)}>
                 Make owner
             </Button>
             <AlertDialog open={open} onOpenChange={setOpen}>

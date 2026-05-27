@@ -20,16 +20,21 @@ export const VerifyProject = () => {
     const frameworkName = getFrameworkAdapter(framework).displayName;
 
     useEffect(() => {
-        void validateProject();
+        let cancelled = false;
+        const run = async () => {
+            if (!projectData.files) return;
+            const result = await validateNextJsProject(projectData.files);
+            if (!cancelled) {
+                setValidation(result);
+            }
+        };
+        void run();
+        return () => {
+            cancelled = true;
+        };
+        // validateNextJsProject is stable across renders from the project-creation context.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectData]);
-
-    const validateProject = async () => {
-        if (!projectData.files) {
-            return;
-        }
-        const validation = await validateNextJsProject(projectData.files);
-        setValidation(validation);
-    };
 
     const validProject = () => (
         <motion.div
@@ -119,7 +124,11 @@ export const VerifyProject = () => {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className="w-full"
                 >
-                    {validation === null ? null : validation.isValid ? validProject() : invalidProject()}
+                    {validation === null
+                        ? null
+                        : validation.isValid
+                          ? validProject()
+                          : invalidProject()}
                 </motion.div>
             </StepContent>
             <StepFooter>
