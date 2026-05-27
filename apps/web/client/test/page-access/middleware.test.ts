@@ -4,11 +4,8 @@ import {
     ACCESS_MIDDLEWARE_MARKER,
     generateAccessMiddleware,
     isWeblabGeneratedMiddleware,
-} from '../../src/server/api/routers/publish/helpers/access-middleware';
-import {
-    hashPassword,
-    verifyPassword,
-} from '../../src/server/api/routers/page-access/hash';
+} from '../../convex/lib/publishHelpers';
+import { hashPassword, verifyPassword } from '../../convex/lib/passwordHash';
 
 describe('generateAccessMiddleware', () => {
     test('returns null when there are no protected pages', () => {
