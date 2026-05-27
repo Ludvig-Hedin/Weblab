@@ -17,6 +17,7 @@ import { AppearanceProvider } from '@/components/ui/appearance-provider';
 import { env } from '@/env';
 import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
 import { CookieConsent } from './_components/cookie-consent';
+import { DesktopChrome } from './_components/desktop-chrome';
 import { SWRegister } from './_components/sw-register';
 import { ThemeProvider } from './_components/theme';
 import { ViewTransitionNoiseSuppress } from './_components/view-transition-noise-suppress';
@@ -159,7 +160,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     `no-drag` so clicks still land. */}
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;function addStrip(){if(!document.body||document.getElementById('weblab-desktop-drag-fallback'))return;var s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.className='desktop-drag-region';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;';document.body.appendChild(s);}function schedule(){setTimeout(addStrip,0);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}})();`,
+                        __html: `(function(){var b=window.weblabDesktop;if(!b||b.target!=='desktop')return;var r=document.documentElement;r.dataset.desktop='true';if(b.platform)r.dataset.desktopPlatform=b.platform;function addStrip(){if(!document.body||document.getElementById('weblab-desktop-drag-fallback'))return;var s=document.createElement('div');s.id='weblab-desktop-drag-fallback';s.className='desktop-drag-region';s.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;z-index:2147483646;pointer-events:none;-webkit-app-region:drag;app-region:drag;';document.body.appendChild(s);}function schedule(){setTimeout(addStrip,0);}if(document.readyState==='complete'){schedule();}else{window.addEventListener('load',schedule);}})();`,
                     }}
                 />
                 <style
@@ -210,6 +211,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body>
                 {isProduction && <RB2BLoader />}
                 <SWRegister />
+                <DesktopChrome />
                 <ViewTransitionNoiseSuppress />
                 <ClerkConvexProviders>
                     <AppQueryClientProvider>
