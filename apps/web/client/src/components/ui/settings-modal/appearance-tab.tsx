@@ -6,6 +6,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from 'next-themes';
 
+import { toast } from '@weblab/ui/sonner';
 import { cn } from '@weblab/ui/utils';
 
 type ThemeOption = 'light' | 'dark' | 'system';
@@ -96,7 +97,10 @@ export const AppearanceTab = observer(() => {
             try {
                 await updateSettingsMutation(patch as Parameters<typeof updateSettingsMutation>[0]);
             } catch (error) {
+                // Optimistic DOM mutation already applied above — surface the
+                // failure to the user so they know the change won't persist.
                 console.error('Failed to update settings', error);
+                toast.error('Failed to save appearance setting');
             }
         },
         [updateSettingsMutation, setTheme],

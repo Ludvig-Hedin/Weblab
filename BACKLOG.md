@@ -38,6 +38,151 @@ later without re-discovering the context.
 
 ## Open
 
+### F-330..F-335 — Bottom-bar unguarded null/undefined access risks runtime crash
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-420..F-439 run)
+- **Where:**
+  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:55](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L55) — `branches.activeBranch.id` accessed inside try/catch (caught) but only by accident.
+  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx:83](apps/web/client/src/app/project/[id]/_components/bottom-bar/terminal-area.tsx#L83) — `sandbox.session.activeTerminalSessionId =` assigns into possibly-undefined `.session`; only `sandbox` itself is null-checked.
+  - [apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx:178](apps/web/client/src/app/project/[id]/_components/bottom-bar/restart-sandbox-button.tsx#L178) — `activeBranch.sandbox.id` dereferences a sub-field that may be undefined depending on Branch shape.
+- **Symptom:** if a branch is mid-init (no session yet) or has no `sandbox` sub-record, the terminal-switch / restart paths throw `Cannot read properties of undefined`.
+- **Root cause:** missing optional-chain / explicit guards on intermediate fields.
+- **Next step:** add `if (!sandbox?.session) return;` guards before writes, and `?.` on `activeBranch.sandbox?.id`. Verify Branch.sandbox type in [@weblab/models](packages/models) before deciding which is nullable.
+- **Risk if ignored:** terminal cycle hotkey and Restart Sandbox button can crash the editor during sandbox cold-boot.
+- **Tags:** `#bug` `#editor`
+
+### F-422 — Account-tab accepts unvalidated first/last name input
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/account-tab.tsx:48-57](apps/web/client/src/components/ui/settings-modal/account-tab.tsx#L48-L57)
+- **Symptom:** any length / character sequence accepted; no trim, no max length, no script-tag stripping before save.
+- **Next step:** zod-validate `firstName`/`lastName` (1..64 chars, trimmed) on submit; toast on invalid; mirror Convex `users.update` validator.
+- **Tags:** `#flag` `#validation`
+
+### F-424 — Appearance-tab still leaves DOM out of sync on save failure
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/appearance-tab.tsx:85-103](apps/web/client/src/components/ui/settings-modal/appearance-tab.tsx#L85-L103)
+- **Symptom:** optimistic `data-accent` / `data-density` / `data-font-size` mutations are not reverted on `updateSettingsMutation` failure. User now sees a toast (fix applied), but visually the change "stuck" until reload.
+- **Next step:** snapshot prior attr values before mutation, restore in `catch`.
+- **Tags:** `#flag` `#ux`
+
+### F-427 — GitHub-tab silently clears repo list on fetch failure (no toast / retry)
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/github-tab.tsx:83-87](apps/web/client/src/components/ui/settings-modal/github-tab.tsx#L83-L87)
+- **Symptom:** on `getOrgs` / `getReposWithApp` rejection, `orgs` and `repos` are set to `[]` with no user feedback — looks identical to "GitHub App has no repos".
+- **Next step:** preserve error, show inline retry surface (similar to installation-check retry at line 168-180).
+- **Tags:** `#flag` `#integration` `#ux`
+
+### F-431 — Subscription-tab uses unsafe `(response as { url?: string })` cast
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx:40](apps/web/client/src/components/ui/settings-modal/subscription-tab.tsx#L40)
+- **Symptom:** Convex action result is cast without runtime check; if shape ever changes, redirect will navigate to `undefined`.
+- **Next step:** validate shape with `if (!result?.url) throw new Error(...)` before redirect.
+- **Tags:** `#flag` `#billing`
+
+### F-435 — Account deletion UI calls a not-yet-implemented Convex mutation (always toasts "unavailable")
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/user-delete-section.tsx:45-56](apps/web/client/src/components/ui/settings-modal/user-delete-section.tsx#L45-L56)
+- **Symptom:** the destructive flow ends with `toast.error('Account deletion is temporarily unavailable...')`. UI implies deletion succeeded after the second-confirm step, but nothing happens.
+- **Next step:** either gate the Delete button behind a "coming soon" disabled state OR ship the `users.delete` Convex mutation (server-side cleanup of projects, conversations, storage, subscriptions). The `// TODO(convex):` comment already flags this in code.
+- **Risk if ignored:** users will repeatedly try, file support tickets, and assume their data is being deleted when it isn't.
+- **Tags:** `#bug` `#user-trust`
+
+### F-427 — `disconnectGitHub` button shows confirm dialog then no-ops
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 run)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/github-tab.tsx:123-133](apps/web/client/src/components/ui/settings-modal/github-tab.tsx#L123-L133)
+- **Symptom:** Disconnect → Confirm → toast "Disconnect is temporarily unavailable". User cannot actually revoke connection from the app.
+- **Next step:** implement `users.disconnectGitHub` Convex mutation that revokes the GitHub App installation and clears `providerConnections` row; until then disable the button instead of pretending it works.
+- **Tags:** `#bug` `#integration`
+
+### F-491 — Stripe webhook accepts only one `v1=` signature; rotation will reject valid requests
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Where:** [apps/web/client/convex/http.ts:112-117](apps/web/client/convex/http.ts#L112-L117) — `verifyStripeSignature`
+- **Symptom:** during a Stripe webhook signing-secret rotation Stripe sends
+  `Stripe-Signature: t=…,v1=oldSig,v1=newSig`. The current parser builds
+  `Object.fromEntries(...)` so only the LAST `v1` survives. If our held
+  secret signs the FIRST entry, verification fails and Stripe retries until
+  rotation finishes.
+- **Root cause:** `Object.fromEntries` collapses duplicate keys.
+- **Next step:** split header → keep an array of `v1` values; HMAC the
+  payload once → return true if any candidate matches via constant-time
+  compare. Add a test that feeds two `v1=` entries.
+- **Risk if ignored:** ~5-minute window of dropped events on every rotation,
+  silent until alerted by Stripe dashboard.
+- **Tags:** `#bug` `#billing` `#webhook`
+
+### F-491 — Stripe webhook lacks `evt.id` idempotency; replays grant duplicate credits
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Where:** [apps/web/client/convex/http.ts:235-270](apps/web/client/convex/http.ts#L235-L270) +
+  [apps/web/client/convex/lib/stripeWebhook.ts:220-401](apps/web/client/convex/lib/stripeWebhook.ts#L220-L401)
+- **Symptom:** `customer.subscription.updated` pro-rated upgrade branch
+  (`stripeWebhook.ts:268`) and renewal branch (`handleSubscriptionRenewed`,
+  `stripeWebhook.ts:379`) both `ctx.db.insert('rateLimits', …)`. Stripe
+  retries 5xx for up to 3 days and can double-deliver even on 2xx
+  (documented behavior). Each replay inserts another full-quota rateLimits
+  row → user receives N× credits.
+- **Root cause:** no event-id dedupe at the webhook entry point.
+  `_handleSubCreated` is idempotent (item-id upsert) but the `Updated`
+  paths are not.
+- **Next step:** introduce a `stripeEventLog` table indexed by
+  `stripeEventId` (= `evt.id` from raw payload). In the webhook handler,
+  attempt an insert before dispatch; on uniqueness conflict, return 200
+  early.
+- **Risk if ignored:** duplicate credits granted on every Stripe retry,
+  inflated `rateLimits.left` for affected users, silent revenue leak.
+- **Tags:** `#bug` `#billing` `#webhook` `#idempotency`
+
+### F-492 — catalog row claims GitHub webhook but no HTTP handler exists
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Where:** [docs/feature-catalog.md:531](docs/feature-catalog.md#L531) +
+  [docs/test-plan.md:383](docs/test-plan.md#L383) (T-492) vs
+  [apps/web/client/convex/http.ts](apps/web/client/convex/http.ts) (only
+  `/clerk-webhook` and `/webhooks/stripe` exist) and
+  [apps/web/client/convex/githubActions.ts](apps/web/client/convex/githubActions.ts)
+  (OAuth + installation callback + PR create actions only).
+- **Symptom:** F-492 is unreachable. T-492 ("Replay GitHub event → Convex
+  action invoked") cannot execute — no `/github-webhook` route is mounted
+  anywhere in the repo.
+- **Root cause:** either (a) GitHub webhook was never ported, or (b) the
+  catalog row is mis-tagged and should describe the OAuth/installation
+  actions, not a webhook.
+- **Next step:** decide intent. If a webhook IS planned, scaffold a
+  `/webhooks/github` httpAction that verifies the `X-Hub-Signature-256`
+  HMAC and dispatches at minimum `installation.created` / `installation.deleted`.
+  Otherwise rewrite the catalog row + T-492 to describe the existing
+  OAuth/install/PR actions and drop the `#webhook` tag.
+- **Risk if ignored:** misleading inventory — agents and humans assume
+  GitHub event sync exists when it doesn't.
+- **Tags:** `#docs` `#bug` `#integration`
+
+### F-500 — tRPC `sandbox` router is a hello-world stub; no production caller
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 run)
+- **Where:** [apps/web/server/src/router/routes/sandbox.ts](apps/web/server/src/router/routes/sandbox.ts) +
+  mount [apps/web/server/src/router/index.ts:6](apps/web/server/src/router/index.ts#L6)
+- **Symptom:** `create`, `start`, `stop`, `status` return `"hi <input>"`
+  or canned objects. Every `sandbox.*` reference in
+  `apps/web/client/**/sandbox/**` targets `api.sandbox.*` (Convex
+  namespace, not yet ported — search `TODO(sandbox-port)`). The Fastify
+  tRPC sandbox router is mounted but not called from any production code
+  path.
+- **Root cause:** placeholder left after the CodeSandbox → Vercel +
+  Convex migration; never wired to a real lifecycle.
+- **Next step:** either delete the router (and the F-500 catalog row), or
+  ship a real implementation that calls the Vercel Sandbox provider in
+  [packages/code-provider](packages/code-provider/src/providers/vercel-sandbox/index.ts).
+- **Risk if ignored:** dead code in the tRPC surface; agents wire new
+  features to a stub thinking it works; bloats `AppRouter` type.
+- **Tags:** `#tech-debt` `#sandbox`
+
 ### F-131 — invalid project ID maps to "unknown" variant instead of "invalid-id"
 
 - **Discovered:** 2026-05-26 (validate-feature F-120..F-135 run)

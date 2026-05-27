@@ -57,7 +57,9 @@ export const EditorTab = observer(() => {
         [updateSettingsMutation],
     );
 
-    useEffect(() => () => debouncedSave.cancel(), [debouncedSave]);
+    // On unmount, flush any pending debounced save so edits made
+    // immediately before closing the modal aren't silently dropped.
+    useEffect(() => () => void debouncedSave.flush(), [debouncedSave]);
 
     const patch = (changes: PendingChanges) => {
         pendingChanges.current = { ...pendingChanges.current, ...changes };
