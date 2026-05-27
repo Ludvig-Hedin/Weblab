@@ -81,6 +81,14 @@ export function SmartLinkInput({
     const [draft, setDraft] = React.useState(value);
     const [open, setOpen] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement | null>(null);
+    // Mirror `open` into a ref so the deferred blur handler reads the
+    // current value instead of the stale closure capture (which was always
+    // `true` because the user was typing in the open popover at blur time
+    // → free-typed text was silently discarded on blur).
+    const openRef = React.useRef(open);
+    React.useEffect(() => {
+        openRef.current = open;
+    }, [open]);
 
     React.useEffect(() => {
         if (document.activeElement !== inputRef.current) setDraft(value);
@@ -247,15 +255,13 @@ export function SmartLinkInput({
                                 }
                             }}
                             onBlur={(e) => {
-                                // TODO(bug-hunt): `open` is captured by closure at blur time.
-                                // At blur, `open` is always `true` (user was typing in the
-                                // popover-open input), so `if (!open)` never fires and free-typed
-                                // text typed-then-blurred is silently discarded. Suggested fix:
-                                // use a ref (openRef.current) or check whether the focus moved
-                                // to a popover item (e.relatedTarget) before deciding to commit.
-                                // Defer to allow click on popover item to fire first.
+                                // Defer to allow click on a popover item (which calls
+                                // commitSuggestion → setOpen(false)) to fire first. Read
+                                // openRef.current — not the closure-captured `open` —
+                                // because `open` is always `true` at blur time when the
+                                // user was typing in the popover-open input.
                                 window.setTimeout(() => {
-                                    if (!open) commitFreeText();
+                                    if (!openRef.current) commitFreeText();
                                 }, 100);
                                 void e;
                             }}

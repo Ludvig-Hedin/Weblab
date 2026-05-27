@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import type { Doc } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import {
     getCapabilities,
@@ -61,24 +62,26 @@ export const ensureCurrent = mutation({
 
 export const updateProfile = mutation({
     args: {
-        firstName: v.optional(v.string()),
-        lastName: v.optional(v.string()),
-        displayName: v.optional(v.string()),
-        avatarUrl: v.optional(v.string()),
+        // Each field is tri-state:
+        //   absent    → don't touch
+        //   string    → write
+        //   null      → clear (patch with undefined)
+        // Matches the workspaces.update / hostingConnections.update pattern.
+        firstName: v.optional(v.union(v.string(), v.null())),
+        lastName: v.optional(v.union(v.string(), v.null())),
+        displayName: v.optional(v.union(v.string(), v.null())),
+        avatarUrl: v.optional(v.union(v.string(), v.null())),
     },
     handler: async (ctx, args) => {
         const user = await requireUserJIT(ctx);
-        // TODO(bug-hunt): args.firstName ?? user.firstName means clients cannot clear a
-        // name once set — absent and null both fall back to the current value, and the
-        // validator forbids null. To support unsetting, widen the validators to
-        // v.union(v.string(), v.null()) and treat null as patch({ field: undefined }).
-        await ctx.db.patch(user._id, {
-            firstName: args.firstName ?? user.firstName,
-            lastName: args.lastName ?? user.lastName,
-            displayName: args.displayName ?? user.displayName,
-            avatarUrl: args.avatarUrl ?? user.avatarUrl,
+        const patch: Partial<Doc<'users'>> & { updatedAt: number } = {
             updatedAt: Date.now(),
-        });
+        };
+        if (args.firstName !== undefined) patch.firstName = args.firstName ?? undefined;
+        if (args.lastName !== undefined) patch.lastName = args.lastName ?? undefined;
+        if (args.displayName !== undefined) patch.displayName = args.displayName ?? undefined;
+        if (args.avatarUrl !== undefined) patch.avatarUrl = args.avatarUrl ?? undefined;
+        await ctx.db.patch(user._id, patch);
         return (await ctx.db.get(user._id))!;
     },
 });
