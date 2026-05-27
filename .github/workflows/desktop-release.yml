@@ -19,6 +19,10 @@ jobs:
         with:
           node-version: 20
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install desktop dependencies
         working-directory: apps/desktop
         run: bun install
@@ -48,6 +52,10 @@ jobs:
         with:
           node-version: 20
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install desktop dependencies
         working-directory: apps/desktop
         run: bun install
@@ -73,6 +81,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install desktop dependencies
         working-directory: apps/desktop
