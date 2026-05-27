@@ -6,6 +6,7 @@ import { observer } from 'mobx-react-lite';
 import { Button } from '@weblab/ui/button';
 import { Input } from '@weblab/ui/input';
 import { Label } from '@weblab/ui/label';
+import { toast } from '@weblab/ui/sonner';
 
 import type { TokenSectionId } from '../lib/group-tokens';
 import { useEditorEngine } from '@/components/store/editor';
@@ -66,6 +67,9 @@ export const AddTokenForm = observer(function AddTokenForm({
                 });
             }
             onClose();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to add token';
+            toast.error(message);
         } finally {
             setBusy(false);
         }

@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import type { ChatMessage } from '@weblab/models';
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 
 import { MessageContent } from './message-content';
@@ -34,6 +35,9 @@ const AssistantMessageComponent = ({
         try {
             setIsRegenerating(true);
             await onRegenerate();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to regenerate response';
+            toast.error(message);
         } finally {
             setIsRegenerating(false);
         }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { Button } from '@weblab/ui/button';
 import { Icons } from '@weblab/ui/icons';
+import { toast } from '@weblab/ui/sonner';
 
 interface UnsavedChangesDialogProps {
     onSave: () => Promise<void>;
@@ -23,6 +24,9 @@ export function UnsavedChangesDialog({
         setIsSaving(true);
         try {
             await onSave();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save changes';
+            toast.error(message);
         } finally {
             setIsSaving(false);
         }

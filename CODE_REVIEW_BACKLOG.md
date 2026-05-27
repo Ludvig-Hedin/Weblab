@@ -1,5 +1,52 @@
 # Code Review Backlog
 
+## User-Flow Hardening — 2026-05-27 — F-220..F-291 follow-up
+
+Targeted fixes for silent async-onClick handlers flagged in the F-220..F-291
+Bug Hunt "Observations" section. These were not pure crashes, but each path
+broke a real user flow silently (no toast, no recovery affordance) when the
+underlying call rejected. `bun typecheck` exit 0; reviewer `{"issues":[]}`
+after fixes.
+
+### Auto-fixed (5 silent-handler bugs)
+
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/assistant-message.tsx:34` —
+  `handleRegenerate`'s `try {…} finally {…}` swallowed `onRegenerate` rejections
+  → user clicked "regenerate" and saw nothing (no toast, spinner reset). Added
+  `catch` with `toast.error(err.message)`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/brand-tab/editors/add-token-form.tsx:53` —
+  `submit` swallowed `tokens.addVariable` / `addTextStyle` rejections → form
+  stayed open with `busy=false` and no error toast. Added `catch` with
+  `toast.error(err.message)`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/file-content/unsaved-changes-dialog.tsx:22` —
+  `handleSave` swallowed `onSave` rejections → user clicked "Save" before
+  closing, save failed silently, dialog closed and unsaved work was lost
+  without warning. Added `catch` with `toast.error(err.message)`.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/user-message.tsx:155` —
+  `performRestore` swallowed `restoreCheckpoint` rejections → checkpoint
+  restore could silently no-op, leaving the user thinking it restored when
+  it didn't. Added `catch` with `toast.error(err.message)`.
+- `apps/web/client/src/components/ai-prompt-composer/model-picker/pull-model-dialog.tsx:90` —
+  `pull` only set `setError` on `result.ok === false`; a thrown rejection
+  from `bridge.ollamaPullModel` (network drop, IPC failure) was unhandled
+  and the dialog reset with no error feedback. Added `catch` setting
+  `error` to the thrown message.
+
+### Validation
+
+- `bun typecheck` → exit 0.
+- `claude-review files [5 files] --json` → `{"issues":[]}`.
+
+### Not addressed in this pass (deferred)
+
+- `plan-approval-card.tsx:27` — `handleBuildNow` calls a sync `onBuildNow()`
+  in `try {…} finally {…}`. Sync error would propagate to React's error
+  boundary anyway; the `try` here only guards the 800ms spinner reset
+  fallback. Lower priority — not user-silent.
+- `compress-asset.ts:57` — pure utility with `URL.createObjectURL` cleanup;
+  caller (`asset-tab`) already handles errors with a toast. No fix needed.
+- `chat-input/index.legacy.tsx:118` — confirmed dead code (no importers).
+
 ## Backlog Triage — 2026-05-24 (verify-each-before-edit pass)
 
 Re-verified every previously-`open` / `needs-human-review` item against the
@@ -1146,27 +1193,27 @@ phase blocked at sign-in — see Manual steps below.
   Fix: import `DeploymentType` as value (was type-only) and compare against
   `DeploymentType.PREVIEW`.
 
-### Flagged with TODO(bug-hunt) — needs human review (5)
+### FIXED in follow-up pass — 2026-05-27 (flow-breakers)
 
-- `branch.tsx:27` — `handleBranchSwitch` swallows error to `console.error`.
-  User sees no feedback when branch switch fails. Add `toast.error`.
-- `git-actions.tsx:158` — Default-message divergence. The `includeUnstaged`
-  branch calls `gitManager.createCommit(message)` (auto-generates when
-  undefined); the staged-only branch calls `commit(message ?? 'New Weblab
-  backup')` (placeholder string). Pick one source-of-truth for the default.
+- `branch.tsx:27` — Added `toast.error('Failed to switch branch', { description })`
+  alongside the `console.error`, so a failed branch switch surfaces to the
+  user instead of silently leaving the dropdown open.
+- `diff/diff-modal.tsx:62` — Introduced `sandboxReady = gitManager !== undefined`
+  and a new `Waiting for sandbox…` branch above the existing empty/loading
+  branches. Pre-sandbox-ready state no longer falsely reads "All changes
+  saved".
+- `publish/deploy-history-dialog.tsx:108` — Added `UNKNOWN_STATUS_PILL`
+  neutral fallback; `STATUS_PILL[...] ?? UNKNOWN_STATUS_PILL` prevents the
+  dialog crash if backend ever returns a status outside the local enum.
+
+### Still flagged (TODO retained — not flow-breaking)
+
+- `git-actions.tsx:158` — Default-message divergence between unstaged and
+  staged-only commit paths. Both work; needs a product decision on the
+  preferred default before changing.
 - `publish/trigger-button.tsx:37` — `text = history.length > 0 ? 'Update' :
-  'Live'`. `history` is the editor undo stack; it stays >0 after any edit
-  for the rest of the session, so "Live" is effectively unreachable after
-  the first edit post-deploy. Compare deployment commit/sha to HEAD instead.
-- `diff/diff-modal.tsx:62` — When `gitManager` is undefined (sandbox not
-  ready), `diffs=[]` and `isLoading=false` → modal renders "All changes
-  saved" which is misleading. Render an explicit "sandbox initializing"
-  state.
-- `publish/deploy-history-dialog.tsx:108` — `STATUS_PILL[deployment.status as
-  DeploymentStatus]` is unguarded. If backend ever ships a status outside
-  the local enum, `status` is `undefined` and `status.label` crashes the
-  dialog. Add `?? STATUS_PILL[DeploymentStatus.PENDING]` (or a neutral
-  fallback).
+  'Live'`. Label-only mismatch (button still works). Proper fix requires
+  tracking changes-since-deploy on the deployment record.
 
 ### Coverage gaps (8 of 10 features have no `T-XXX` row)
 
@@ -1251,6 +1298,92 @@ did not promote to backlog entries because they are not load-bearing bugs:
 - `bun typecheck` → exit 0.
 - `bun lint` skipped per scope instructions (already validated clean
   prior to this run).
+
+## 2026-05-27 — Bug hunt across core user flows (post-validation pass)
+
+Triggered by `find-bugs-that-will-break-core-user-flows` skill after the
+F-080..F-093 validation. Eight candidate findings; every single one is
+either an explicitly documented disabled feature (sandbox-port / sandbox-fork /
+publish-vercel) or a latent edge case behind a low-probability window.
+**No inline fixes applied** — each is verified-real but falls outside the
+"unblock a working user flow" bar:
+
+- `manager.ts startCreate` always throws `UNAVAILABLE_MESSAGE` —
+  `apps/web/client/src/components/store/create/manager.ts:117-131`. Hero AI
+  prompt + `/projects/plan/page.tsx:56` both call it. **Critical user-flow
+  gap, but a feature build, not a fix.** Comment cites `TODO(sandbox-port)`.
+  Requires a new `api.projectActions.createFromPrompt` Convex action that
+  scaffolds via `VercelSandboxProvider.createProject({ source: 'template' })`,
+  persists prompt + images in `projectCreateRequests`, and lets the editor's
+  `useStartProject.resumeCreate` drain it. **Workaround today:** "Start
+  blank" CTA on hero + dashboard (`hooks/use-create-blank-project.ts` →
+  `api.projectActions.createBlank`) is working and shipped, so users CAN
+  create. CLAUDE.md should be amended to mention prompt-create is
+  temporarily disabled alongside fork/publish.
+- `manager.ts startPublicGitHubTemplate` / `startGitHubTemplate` /
+  `createSandboxFromGithub` — same `TODO(sandbox-port)`; throws on every
+  template-card click in marketplace. **Until fix lands, hide marketplace
+  + template cards from the dashboard** so users don't hit a dead funnel.
+  Touched by `apps/web/client/src/components/store/create/manager.ts:142-218`,
+  `apps/web/client/src/app/projects/creating/page.tsx`.
+- `convex/lib/publishHelpers.ts:51-61 forkBuildSandbox` — already documented
+  per CLAUDE.md "What's temporarily disabled on Vercel until snapshot-based
+  fork lands". Every publish + custom-domain rollout (F-617, F-693) errors
+  with clear message. Tracked as `TODO(publish-vercel)`.
+- `convex/branchActions.ts:48-63 fork` — same; `TODO(sandbox-fork)`. UI
+  should hide the "Fork branch" CTA in the branches tab until the snapshot
+  fork lands. "Create blank branch" works.
+- `_adapters/convex-bootstrap.ts:71` — `runtimeMetadata: doc.runtimeMetadata
+  ?? { framework: 'nextjs' }` only defaults when the field is missing
+  entirely. For projects with `runtimeMetadata = {}` (legacy rows before
+  commit 7e80d3eb8 "persist sandbox runtime metadata"), `framework` reads
+  as undefined → downstream `framework ?? 'nextjs'` paths misclassify
+  static-html sandboxes as Next. **Surface limited to a small pre-fix
+  cohort.** Fix is a one-shot Convex migration that infers framework from
+  `devCommand` (`'serve …' → 'static-html'`, else `'nextjs'`). Use
+  `@convex-dev/migrations`.
+- `utils/auth/clerk-bridge.ts:26-41` — `getToken({ template: 'convex' })`
+  null path. Loud server log explains the misconfig, but the client just
+  sees a 401 / redirect-loop. UX improvement: distinguish 401
+  (`unauthenticated`) from 503 (`auth_template_missing`) so the
+  `/sign-in?reason=...` page can show a config banner instead of the
+  generic auth screen. No impact when the dashboard JWT template is set
+  correctly.
+- `utils/auth/clerk-bridge.ts:49-56` — `ensureCurrent` race against the
+  Clerk → Convex `user.created` webhook. Theoretical concurrent insert
+  window if a fresh sign-up POSTs `/api/chat` before the webhook commits.
+  Long-term fix: enforce single-row invariant on `clerkUserId` inside
+  `requireUserJIT` with a transactional dedupe. Today's `getUserByClerkIdSafe`
+  helper already dedupes reads; the risk is at insert time only.
+- `api/ai/tab-complete/route.ts:177-179` — `void incrementUsage(req).catch(...)`
+  fire-and-forget. `incrementUsage` returns `{ limitReached: true }` (not
+  throw) when PRO quota hits zero — the `.catch` doesn't fire, the
+  `void` discards. Server keeps streaming completions for over-quota
+  users. The up-front `checkMessageLimit` gate (line 84) handles the
+  common path; this is the TOCTOU window for ~5 concurrent typing
+  completions during the overage moment. Symmetric with the chat /
+  inline-edit gates already hardened by CR-2026-05-24-003. Fix is to
+  `await` the increment (sub-50ms latency).
+
+**Net actionable items added to backlog (priority order):**
+
+1. Implement Convex `projectActions.createFromPrompt` + wire `manager.startCreate`. **(blocks landing hero CTA)**
+2. Implement Convex `projectActions.createFromGitHubTemplate` + wire template paths. **(blocks marketplace)**
+3. UI: hide template + fork + publish CTAs while the underlying features remain disabled.
+4. One-shot Convex migration: backfill `runtimeMetadata.framework` on legacy projects.
+5. Distinguish 401 vs 503 in the Clerk JWT-template misconfig branch.
+6. Strengthen `requireUserJIT` dedupe to close the webhook race.
+7. `await incrementUsage` in tab-complete route.
+
+### Validation (this pass)
+
+- Each finding traced to the actual code with `grep` + `Read`. No fixes
+  applied — every one is either a feature gap or a low-probability latent
+  issue.
+- Confirmed working user flows: `Start blank` CTA (`useCreateBlankProject` →
+  `projectActions.createBlank`), `/sign-in`/`/sign-up`/OTP/SSO (F-080..F-086),
+  `/profile-setup` (F-087 with new layout gate), invitation accept screens
+  (F-092 + F-093 unauth gate), Stripe success/cancel pages (F-090, F-091).
 
 
 

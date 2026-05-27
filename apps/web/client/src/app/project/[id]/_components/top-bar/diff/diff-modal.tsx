@@ -57,10 +57,7 @@ function fileLineCounts(diff: FileDiff): { added: number; removed: number } {
 export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
     const editorEngine = useEditorEngine();
     const gitManager = editorEngine.activeSandbox?.gitManager;
-    // TODO(bug-hunt): When gitManager is undefined (sandbox not ready), diffs
-    // falls back to [] and isLoading to false → the modal shows "All changes
-    // saved" which is misleading. Distinguish "sandbox not ready" from "no
-    // changes" and render an explicit waiting/unavailable state.
+    const sandboxReady = gitManager !== undefined;
     const diffs = gitManager?.diffs ?? [];
     const isLoading = gitManager?.isLoadingDiffs ?? false;
 
@@ -83,7 +80,12 @@ export const DiffModal = observer(({ open, onOpenChange }: DiffModalProps) => {
                 </DialogHeader>
 
                 <ScrollArea className="max-h-[70vh]">
-                    {isLoading ? (
+                    {!sandboxReady ? (
+                        <div className="text-foreground-secondary flex items-center justify-center py-16">
+                            <Icons.LoadingSpinner className="mr-2 h-5 w-5 animate-spin" />
+                            Waiting for sandbox…
+                        </div>
+                    ) : isLoading ? (
                         <div className="text-foreground-secondary flex items-center justify-center py-16">
                             <Icons.LoadingSpinner className="mr-2 h-5 w-5 animate-spin" />
                             Loading changes…

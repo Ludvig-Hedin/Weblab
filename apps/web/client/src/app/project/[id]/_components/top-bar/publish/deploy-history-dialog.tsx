@@ -52,6 +52,11 @@ const STATUS_PILL: Record<DeploymentStatus, { label: string; className: string }
     },
 };
 
+const UNKNOWN_STATUS_PILL = {
+    label: 'Unknown',
+    className: 'bg-foreground/10 text-foreground-secondary',
+};
+
 export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
     const editorEngine = useEditorEngine();
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -104,12 +109,13 @@ export const DeployHistoryDialog = observer(({ open, onOpenChange }: Props) => {
                         <p className="text-mini p-4">No deployments yet.</p>
                     )}
                     {data?.map((deployment) => {
-                        // TODO(bug-hunt): STATUS_PILL lookup is unguarded — if the
-                        // backend ever returns a status not in the local enum
-                        // (e.g. a new value added server-side first), `status`
-                        // is `undefined` and `status.label` below crashes the
-                        // dialog. Fall back to a neutral pill when missing.
-                        const status = STATUS_PILL[deployment.status as DeploymentStatus];
+                        // Guard against backend statuses the client enum
+                        // doesn't yet know about — without this fallback,
+                        // `status.label` below crashes the dialog and the
+                        // user loses the whole publish history.
+                        const status =
+                            STATUS_PILL[deployment.status as DeploymentStatus] ??
+                            UNKNOWN_STATUS_PILL;
                         const isExpanded = expandedId === deployment._id;
                         const parsedError = deployment.error
                             ? parseDeploymentError(deployment.error)

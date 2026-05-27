@@ -156,6 +156,9 @@ const UserMessageComponent = ({ onEditMessage, message }: UserMessageProps) => {
         setIsRestoring(true);
         try {
             await restoreCheckpoint(checkpoint, editorEngine);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to restore checkpoint';
+            toast.error(message);
         } finally {
             setIsRestoring(false);
         }

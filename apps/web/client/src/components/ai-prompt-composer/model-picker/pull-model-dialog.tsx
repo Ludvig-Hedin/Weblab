@@ -96,6 +96,9 @@ export function PullModelDialog({
                 onPulled?.();
                 onOpenChange(false);
             }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Pull failed.';
+            setError(message);
         } finally {
             pullIdRef.current = null;
             setPulling(null);
