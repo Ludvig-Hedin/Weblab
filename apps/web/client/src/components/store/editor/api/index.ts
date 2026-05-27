@@ -1,10 +1,10 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { makeAutoObservable } from 'mobx';
 
 import type { ChatMessage } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 
 // ConvexHttpClient comes from the shared singleton — its Clerk auth token is

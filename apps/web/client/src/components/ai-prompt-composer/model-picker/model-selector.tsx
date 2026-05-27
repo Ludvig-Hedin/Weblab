@@ -100,9 +100,7 @@ const ModelSelectorLegacy = ({
                             )}
                         >
                             <span className="text-mini flex items-center gap-1.5 font-medium">
-                                {isAuto && (
-                                    <Icons.MagicWand className="h-3 w-3 text-violet-400" />
-                                )}
+                                {isAuto && <Icons.MagicWand className="h-3 w-3 text-violet-400" />}
                                 {option.label}
                             </span>
                             <span className="text-foreground-tertiary text-mini">{sub}</span>

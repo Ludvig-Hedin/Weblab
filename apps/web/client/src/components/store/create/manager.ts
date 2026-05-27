@@ -1,11 +1,11 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { makeAutoObservable, runInAction } from 'mobx';
 
 import type { FrameworkId } from '@weblab/framework';
 import { type ImageMessageContext } from '@weblab/models/chat';
 
 import { ACTIVE_WORKSPACE_STORAGE_KEY } from '@/app/w/[slug]/_components/workspace-context';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { parseRepoUrl } from './parse-repo-url';
 
@@ -95,12 +95,9 @@ export class CreateManager {
 
     async generateProjectName(prompt: string): Promise<string> {
         try {
-            const generatedName = (await this.convex.action(
-                convexApi.projectActions.generateName,
-                {
-                    prompt,
-                },
-            )) as string;
+            const generatedName = await this.convex.action(convexApi.projectActions.generateName, {
+                prompt,
+            });
             return generatedName;
         } catch (error: unknown) {
             console.error('Error generating project name:', error);

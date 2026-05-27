@@ -7,7 +7,6 @@ import { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 
 import { env } from '@/env';
-
 import { ConvexAuthBridge } from './convex-auth-bridge';
 import { SandboxServerAuthBridge } from './sandbox-server-auth-bridge';
 

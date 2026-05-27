@@ -1,9 +1,9 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 
 // Convex stores comments/replies with `_id` + numeric epoch timestamps; the
@@ -341,6 +341,7 @@ export class CommentManager {
             });
         } catch (error) {
             console.error('Failed to create comment:', error);
+            throw error;
         }
     }
 
@@ -355,6 +356,7 @@ export class CommentManager {
             }
         } catch (error) {
             console.error('Failed to update comment:', error);
+            throw error;
         }
     }
 
@@ -387,6 +389,7 @@ export class CommentManager {
             }
         } catch (error) {
             console.error('Failed to resolve comment:', error);
+            throw error;
         }
     }
 
@@ -400,6 +403,7 @@ export class CommentManager {
             }
         } catch (error) {
             console.error('Failed to unresolve comment:', error);
+            throw error;
         }
     }
 
@@ -414,6 +418,7 @@ export class CommentManager {
             }
         } catch (error) {
             console.error('Failed to create reply:', error);
+            throw error;
         }
     }
 
@@ -427,6 +432,7 @@ export class CommentManager {
             }
         } catch (error) {
             console.error('Failed to delete reply:', error);
+            throw error;
         }
     }
 

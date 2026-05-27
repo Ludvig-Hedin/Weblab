@@ -10,8 +10,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@weblab/ui/tooltip';
 import { cn } from '@weblab/ui/utils';
 import { formatCommitDate, timeAgo } from '@weblab/utility';
 
-import { useEditorEngine } from '@/components/store/editor';
 import type { GitCommit } from '@/components/store/editor/git';
+import { useEditorEngine } from '@/components/store/editor';
 import { restoreCheckpoint } from '@/components/store/editor/git';
 import { useStateManager } from '@/components/store/state';
 
@@ -105,7 +105,9 @@ export const VersionRow = observer(
         };
 
         const finishRenaming = () => {
-            updateCommitDisplayName(commitDisplayName);
+            void updateCommitDisplayName(commitDisplayName).catch((error) => {
+                console.error('Failed to rename backup:', error);
+            });
             setIsRenaming(false);
             onRename?.();
         };

@@ -29,9 +29,7 @@ let cachedTokenFetcher: (() => Promise<string | null>) | null = null;
  * Register a Clerk JWT fetcher so the WS connection carries auth. Called by
  * `<SandboxServerAuthBridge>` (mounted under ClerkProvider) on session change.
  */
-export function setSandboxServerAuthFetcher(
-    fetcher: (() => Promise<string | null>) | null,
-): void {
+export function setSandboxServerAuthFetcher(fetcher: (() => Promise<string | null>) | null): void {
     cachedTokenFetcher = fetcher;
 }
 

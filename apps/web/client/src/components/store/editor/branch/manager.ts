@@ -1,4 +1,5 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import { makeAutoObservable, reaction } from 'mobx';
 
 import type { Branch, Frame, RouterType } from '@weblab/models';
@@ -9,7 +10,6 @@ import { toast } from '@weblab/ui/sonner';
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
 import { fromConvexBranch } from '@/app/project/[id]/_adapters/convex-bootstrap';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { ErrorManager } from '../error';
 import { HistoryManager } from '../history';

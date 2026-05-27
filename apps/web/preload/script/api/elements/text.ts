@@ -125,9 +125,7 @@ function extractTextContent(el: HTMLElement): string {
     // `<p>Hello</p>` returns "Hello", not "Hello\n". Leading whitespace is
     // similarly meaningless for edit-roundtrip and would create phantom
     // diffs against the source.
-    return textArea.value
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/^\s+|\s+$/g, '');
+    return textArea.value.replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/g, '');
 }
 
 export function isChildTextEditable(oid: string): boolean | null {

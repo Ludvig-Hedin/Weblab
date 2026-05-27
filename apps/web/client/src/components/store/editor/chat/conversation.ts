@@ -1,14 +1,15 @@
 import type { ConvexHttpClient } from 'convex/browser';
+import { api as convexApi } from '@convex/_generated/api';
 import localforage from 'localforage';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { toast } from 'sonner';
 
-import { AgentType, type ChatConversation } from '@weblab/models';
+import type { ChatConversation } from '@weblab/models';
+import { AgentType } from '@weblab/models';
 
 import type { EditorEngine } from '../engine';
 import type { Id } from '@convex/_generated/dataModel';
 import { clearQueue } from '@/app/project/[id]/_hooks/use-chat/queue-storage';
-import { api as convexApi } from '@convex/_generated/api';
 import { getConvexHttpClient } from '@/components/store/lib/convex-http-client';
 import { lastActiveConversationKey } from '@/utils/constants';
 
@@ -206,10 +207,16 @@ export class ConversationManager {
             return;
         }
         const conversationId = this.current.id as Id<'conversations'>;
-        const title = (await this.convex.action(convexApi.chatActions.generateTitle, {
-            conversationId,
-            content,
-        })) as string | null;
+        let title: string | null = null;
+        try {
+            title = await this.convex.action(convexApi.chatActions.generateTitle, {
+                conversationId,
+                content,
+            });
+        } catch (error) {
+            console.error('Error generating conversation title:', error);
+            return;
+        }
         if (!title) {
             console.error('Error generating conversation title. No title returned.');
             return;

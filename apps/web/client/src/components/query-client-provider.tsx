@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // React Query provider. Post-migration: most network requests go through
