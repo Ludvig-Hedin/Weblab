@@ -91,18 +91,14 @@ export function getIxIdFromJsxElement(element: T.JSXOpeningElement): string | nu
     return null;
 }
 
-export function ensureIxIdOnElement(
-    element: T.JSXElement | T.JSXFragment,
-    ixId: string,
-): void {
+export function ensureIxIdOnElement(element: T.JSXElement | T.JSXFragment, ixId: string): void {
     if (!t.isJSXElement(element)) {
         return;
     }
 
     const attributes = element.openingElement.attributes;
     const existingIndex = attributes.findIndex(
-        (attr) =>
-            t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_IX_ID,
+        (attr) => t.isJSXAttribute(attr) && attr.name.name === EditorAttributes.DATA_WEBLAB_IX_ID,
     );
 
     const newAttr = t.jsxAttribute(

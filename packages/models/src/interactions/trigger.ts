@@ -2,9 +2,7 @@ import type { BreakpointId } from '../project/frame';
 
 export type { BreakpointId };
 
-export interface BreakpointFlags {
-    [bpId: string]: boolean;
-}
+export type BreakpointFlags = Record<string, boolean>;
 
 export type TriggerKind =
     | 'mouse-click'

@@ -14,8 +14,8 @@ const inputVariants = cva(
              * - `ghost` — transparent bg, just a border; use for search/filter fields.
              */
             variant: {
-                primary: 'bg-white border-[#e0e0e0] dark:bg-[#232323] dark:border-[#2d2d2d]',
-                ghost: 'bg-transparent border-[#e0e0e0] dark:bg-transparent dark:border-[#232323]',
+                primary: 'border-[#e0e0e0] bg-white dark:border-[#2d2d2d] dark:bg-[#232323]',
+                ghost: 'border-[#e0e0e0] bg-transparent dark:border-[#232323] dark:bg-transparent',
             },
             size: {
                 xs: 'text-mini file:text-mini h-7 px-4 py-1 file:h-5',

@@ -33,9 +33,7 @@ export const WEBLAB_IX_RUNTIME_FILE = 'weblab-ix-runtime.js';
 export const WEBLAB_DEV_IX_RUNTIME_SRC = `/${WEBLAB_IX_RUNTIME_FILE}`;
 export const WEBLAB_DEV_IX_RUNTIME_PATH = `public/${WEBLAB_IX_RUNTIME_FILE}`;
 const WEBLAB_PROD_IX_RUNTIME_SRC = `/${WEBLAB_IX_RUNTIME_FILE}`;
-export const WEBLAB_IX_RUNTIME_SRC = isDev
-    ? WEBLAB_DEV_IX_RUNTIME_SRC
-    : WEBLAB_PROD_IX_RUNTIME_SRC;
+export const WEBLAB_IX_RUNTIME_SRC = isDev ? WEBLAB_DEV_IX_RUNTIME_SRC : WEBLAB_PROD_IX_RUNTIME_SRC;
 export const DEPRECATED_IX_RUNTIME_SRCS: string[] = [];
 
 // Interactions config — source of truth in `.weblab/interactions.json`, mirrored

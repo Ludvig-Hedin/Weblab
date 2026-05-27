@@ -95,9 +95,7 @@ export function updateNodeProp(
             existingAttr.value = t.jsxExpressionContainer(t.numericLiteral(value));
         } else {
             // Fallback: JSON.stringify prevents [object Object] from corrupting JSX output
-            existingAttr.value = t.jsxExpressionContainer(
-                t.stringLiteral(JSON.stringify(value)),
-            );
+            existingAttr.value = t.jsxExpressionContainer(t.stringLiteral(JSON.stringify(value)));
         }
     } else {
         let newAttr: T.JSXAttribute;

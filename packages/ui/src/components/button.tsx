@@ -69,7 +69,7 @@ const buttonVariants = cva(BUTTON_BASE, {
             destructive:
                 'bg-[#FDEBEB] text-[#C23730] hover:bg-[#FBD9D9] dark:bg-[#321F20] dark:text-[#FF595D] dark:hover:bg-[#3a2326]',
             outline:
-                'border-border-secondary dark:border-[#3a3a3a] text-foreground hover:bg-background-secondary border bg-transparent',
+                'border-border-secondary text-foreground hover:bg-background-secondary border bg-transparent dark:border-[#3a3a3a]',
             secondary:
                 'bg-secondary text-secondary-foreground hover:bg-background-tertiary border-border-secondary border',
             muted: 'bg-[#F3F3F3] text-[#0E0E0E] hover:bg-[#E8E8E8] dark:bg-[#242424] dark:text-[#DEDEDE] dark:hover:bg-[#2a2a2a]',
@@ -99,7 +99,8 @@ const buttonVariants = cva(BUTTON_BASE, {
             toolbar:
                 "text-mini h-7 min-w-[28px] px-1.5 py-1.5 [&_svg:not([class*='size-'])]:size-3.5",
             // Inline compact rows / chips — 24px tall. rounded-sm overrides base rounded-md (12px on 24px = pill).
-            compact: "text-mini h-6 px-2 rounded-sm has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+            compact:
+                "text-mini h-6 rounded-sm px-2 has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
         },
     },
     defaultVariants: {

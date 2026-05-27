@@ -1,13 +1,7 @@
 import type { EasingSpec } from './easing';
 import type { Target } from './target';
 
-export type ActionStepKind =
-    | 'move'
-    | 'scale'
-    | 'rotate'
-    | 'opacity'
-    | 'size'
-    | 'bg-color';
+export type ActionStepKind = 'move' | 'scale' | 'rotate' | 'opacity' | 'size' | 'bg-color';
 
 export type NumericUnit = 'px' | '%' | 'rem' | 'em' | 'deg' | 'rad' | 'turn' | 'none';
 

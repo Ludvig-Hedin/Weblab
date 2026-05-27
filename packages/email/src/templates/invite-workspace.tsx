@@ -50,8 +50,8 @@ export const InviteWorkspaceEmail = ({
                             >
                                 <strong>{invitedByName ?? invitedByEmail}</strong>
                             </Link>
-                            has invited you to join the workspace{' '}
-                            <strong>{workspaceName}</strong> on {APP_NAME}.
+                            has invited you to join the workspace <strong>{workspaceName}</strong>{' '}
+                            on {APP_NAME}.
                         </Text>
                         <Text className="text-[14px] leading-[24px] text-black">
                             As a workspace member you will see projects shared with the workspace.
