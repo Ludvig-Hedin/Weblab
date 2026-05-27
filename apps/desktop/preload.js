@@ -78,11 +78,20 @@ const bridge = {
     target: 'desktop',
     version: ipcRenderer.sendSync('weblab:get-version'),
     /**
-     * Open an OAuth URL in the desktop auth window. It shares the app's
-     * persistent cookie partition, then the main process closes it when a
-     * Weblab callback URL is reached and finishes sign-in in the main window.
+     * Open a URL in the user's default OS browser. Used by the renderer to
+     * hand off OAuth flows to a real browser (provider WebViews — like
+     * Google's accounts.google.com — actively block embedded Chromium and
+     * require sign-in through the system browser). The OAuth flow completes
+     * in the browser, then redirects back into the desktop shell via the
+     * `weblab://auth/handoff?ticket=...` deep link (see main.js).
      */
-    openOAuth: (url) => ipcRenderer.invoke('weblab:open-oauth', url),
+    openExternal: (url) => ipcRenderer.invoke('weblab:open-external', url),
+    /**
+     * Legacy alias kept so any in-flight renderer code that still calls
+     * `weblabNative.openOAuth(url)` keeps working — the main-process handler
+     * now also routes through `shell.openExternal`, so the behavior matches.
+     */
+    openOAuth: (url) => ipcRenderer.invoke('weblab:open-external', url),
     cli: cliBridge,
 };
 

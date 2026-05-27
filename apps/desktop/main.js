@@ -40,10 +40,18 @@ const ALLOWED_IPC_ORIGINS = new Set([
 // Custom URL scheme used for OAuth deep-link callbacks: weblab://auth/callback?code=...
 const PROTOCOL = 'weblab';
 
-// OAuth provider hosts that should leave the main app window. They are opened
-// in a small first-party auth BrowserWindow that shares the app's persistent
-// cookie partition, then the final Weblab callback is handed back to the main
-// window.
+// OAuth provider hosts that must NOT render inside any BrowserWindow we
+// control. Google's `accounts.google.com` actively blocks sign-in from
+// embedded Chromium, GitHub/Vercel/Clerk-FAPI all behave subtly differently
+// from a real browser inside Electron (third-party cookie handling, browser
+// fingerprinting, the way some providers validate the OAuth `client_id`),
+// and splitting a flow across multiple cookie jars breaks PKCE.
+//
+// The renderer now drives OAuth through `weblabNative.openExternal(url)` →
+// the user's real default browser. This set is the defense-in-depth net:
+// if anything still tries to navigate or 302-redirect the main window onto
+// a provider host, bounce it to `shell.openExternal` instead of letting it
+// render in-window.
 const BLOCKED_OAUTH_HOSTS = new Set([
     'accounts.google.com',
     'appleid.apple.com',
@@ -57,7 +65,6 @@ const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
 
 let mainWindow;
-let authWindow;
 
 ipcMain.on('weblab:get-version', (event) => {
     event.returnValue = app.getVersion();
@@ -70,113 +77,38 @@ function isOAuthHost(hostname) {
     return hostname.endsWith('.clerk.accounts.dev');
 }
 
-function isAppUrl(url) {
-    try {
-        return new URL(url).origin === APP_ORIGIN;
-    } catch {
-        return false;
-    }
-}
-
-function completeAuthInMainWindow(url) {
-    if (!mainWindow || mainWindow.isDestroyed()) {
-        createWindow(url);
-        return;
-    }
-    mainWindow.loadURL(url);
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-}
-
-function openAuthWindow(url) {
-    let parsed;
-    try {
-        parsed = new URL(url);
-    } catch {
-        return false;
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-
-    if (authWindow && !authWindow.isDestroyed()) {
-        authWindow.loadURL(url);
-        authWindow.focus();
-        return true;
-    }
-
-    authWindow = new BrowserWindow({
-        width: 520,
-        height: 720,
-        minWidth: 420,
-        minHeight: 560,
-        title: `${APP_NAME} Sign In`,
-        parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
-        modal: false,
-        backgroundColor: '#ffffff',
-        autoHideMenuBar: true,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            partition: 'persist:weblab',
-        },
-        show: false,
-    });
-
-    authWindow.once('ready-to-show', () => {
-        if (authWindow && !authWindow.isDestroyed()) authWindow.show();
-    });
-
-    authWindow.on('closed', () => {
-        authWindow = null;
-    });
-
-    const finishIfAppUrl = (event, nextUrl) => {
-        if (!isAppUrl(nextUrl)) return false;
-        event.preventDefault();
-        completeAuthInMainWindow(nextUrl);
-        if (authWindow && !authWindow.isDestroyed()) authWindow.close();
-        return true;
-    };
-
-    authWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
-        if (isAppUrl(nextUrl)) {
-            completeAuthInMainWindow(nextUrl);
-            if (authWindow && !authWindow.isDestroyed()) authWindow.close();
-            return { action: 'deny' };
-        }
-        try {
-            const parsedNext = new URL(nextUrl);
-            if (parsedNext.protocol === 'http:' || parsedNext.protocol === 'https:') {
-                authWindow.loadURL(nextUrl);
-            } else {
-                shell.openExternal(nextUrl);
-            }
-        } catch {
-            // Invalid target — keep it out of the auth window.
-        }
-        return { action: 'deny' };
-    });
-
-    authWindow.webContents.on('will-navigate', (event, nextUrl) => {
-        finishIfAppUrl(event, nextUrl);
-    });
-
-    authWindow.webContents.on('will-redirect', (event, nextUrl) => {
-        finishIfAppUrl(event, nextUrl);
-    });
-
-    authWindow.loadURL(url);
-    return true;
-}
-
-// Renderer can ask the main process to open an OAuth URL in the native auth window.
-ipcMain.handle('weblab:open-oauth', async (_event, url) => {
+// Open `url` in the user's default OS browser. OAuth flows now run in the
+// real browser because Google blocks embedded Chromium outright, GitHub /
+// Vercel / Clerk OAuth construction behaves subtly differently inside the
+// app shell, and splitting a flow across multiple cookie jars breaks PKCE.
+// The browser-side flow finishes via a `weblab://auth/handoff?ticket=...`
+// deep link that hands a Clerk sign-in token to the desktop session (see
+// `handleDeepLink`). Returns true if Electron handed the URL off to the OS.
+function openInExternalBrowser(url) {
     try {
         const parsed = new URL(url);
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-        return openAuthWindow(url);
     } catch {
         return false;
     }
+    // `shell.openExternal` resolves true on macOS / Windows when the URL was
+    // handed off to the OS, even before the browser actually paints — that's
+    // the right signal: the desktop's job is done once the URL is dispatched.
+    shell.openExternal(url).catch(() => {
+        // Errors from `openExternal` mean no default handler is registered or
+        // the OS refused to launch it. Non-fatal here — the renderer already
+        // shows a "Continue in browser" UI; the user can retry.
+    });
+    return true;
+}
+
+// Renderer-side bridge: `window.weblabNative.openExternal(url)` →
+// `weblab:open-external`. The legacy `weblab:open-oauth` channel is aliased
+// to the same handler in `preload.js` so any in-flight code that still
+// references it keeps working.
+ipcMain.handle('weblab:open-external', async (_event, url) => {
+    if (typeof url !== 'string') return false;
+    return openInExternalBrowser(url);
 });
 
 registerCliIpc({
@@ -218,12 +150,22 @@ app.on('open-url', (event, url) => {
 });
 
 /**
- * Convert `weblab://auth/callback?code=...` into
- * `https://weblab.build/auth/callback?code=...&native=1` and load it inside
- * the BrowserWindow. The existing server-side `/auth/callback` handler then
- * exchanges the code for a session — using the PKCE code_verifier cookie that
- * is already in this WebContents' cookie jar — and sets the session cookies
- * here, where they persist.
+ * Translate `weblab://…` deep links into in-app URLs and load them.
+ *
+ * Two recognized shapes:
+ *
+ *  - `weblab://auth/handoff?ticket=…` — the browser-side OAuth flow finished
+ *    and minted a one-time Clerk sign-in token for this desktop session.
+ *    Route to `/sign-in/redeem?ticket=…`, where the renderer redeems the
+ *    ticket via `signIn.create({ strategy: 'ticket', ticket })` and lands
+ *    on `/projects`. This is the new browser-handoff OAuth path.
+ *
+ *  - Legacy `weblab://<path>?…` — fall back to the original behavior of
+ *    rewriting `host + pathname` into a same-origin URL on `APP_URL` and
+ *    loading it. Kept so any older deep-link sender (e.g. the previous
+ *    Supabase `/auth/callback?code=…` flow) still works during the
+ *    transition. `?native=1` is stamped on so the web side can show
+ *    desktop-specific UI.
  */
 function handleDeepLink(rawUrl) {
     let parsed;
@@ -234,9 +176,31 @@ function handleDeepLink(rawUrl) {
     }
     if (parsed.protocol !== `${PROTOCOL}:`) return;
 
-    // weblab://auth/callback → /auth/callback
-    // For weblab:// URLs, the "host" is actually the first path segment.
+    // weblab://<host>/<path?> — the "host" is actually the first path segment
+    // because there's no real host in a custom-protocol URL.
     const pathname = `/${parsed.host}${parsed.pathname}`.replace(/\/+/g, '/');
+
+    // New: browser handoff with a Clerk sign-in ticket.
+    if (pathname === '/auth/handoff') {
+        const ticket = parsed.searchParams.get('ticket');
+        // Drop malformed deep-link launches outright — we never want the
+        // desktop to navigate to a redeem URL with an empty / non-string
+        // ticket (Clerk would surface a noisy error in the renderer).
+        if (!ticket || typeof ticket !== 'string') return;
+        const target = new URL('/sign-in/redeem', APP_URL);
+        target.searchParams.set('ticket', ticket);
+        target.searchParams.set('native', '1');
+        if (!mainWindow) {
+            createWindow(target.toString());
+        } else {
+            mainWindow.loadURL(target.toString());
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+        return;
+    }
+
+    // Legacy: rewrite to same-origin URL on APP_URL and load.
     const target = new URL(pathname, APP_URL);
     parsed.searchParams.forEach((value, key) => {
         target.searchParams.set(key, value);
@@ -326,8 +290,10 @@ function createWindow(initialURL) {
     });
 
     // Open external links in the system browser. Also: if the WebContents
-    // tries to navigate to a known OAuth provider, route through the native
-    // auth window so sign-in doesn't involve the user's default browser.
+    // tries to navigate to a known OAuth provider, hand the URL to the OS
+    // browser instead — provider sign-in pages refuse to run inside the
+    // embedded Chromium (Google blocks it outright, others mis-construct the
+    // OAuth `client_id` when not in a real browser context).
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         try {
             const parsed = new URL(url);
@@ -335,7 +301,7 @@ function createWindow(initialURL) {
                 return { action: 'allow' };
             }
             if (isOAuthHost(parsed.hostname)) {
-                openAuthWindow(url);
+                openInExternalBrowser(url);
                 return { action: 'deny' };
             }
         } catch {
@@ -350,24 +316,23 @@ function createWindow(initialURL) {
             const parsed = new URL(url);
             if (isOAuthHost(parsed.hostname)) {
                 event.preventDefault();
-                openAuthWindow(url);
+                openInExternalBrowser(url);
             }
         } catch {
             // ignore
         }
     });
 
-    // HTTP redirects (e.g. Supabase's /auth/v1/authorize → accounts.google.com)
-    // do NOT fire `will-navigate` — Electron fires `will-redirect` instead.
-    // Without this listener a provider reached via a 302 in the redirect chain
-    // would render inside the BrowserWindow, splitting the OAuth flow across
-    // two cookie jars and breaking PKCE.
+    // HTTP redirects (e.g. a 302 from the in-app callback into an OAuth
+    // provider) do NOT fire `will-navigate` — Electron fires `will-redirect`
+    // instead. Without this listener a provider reached via a redirect would
+    // render inside the BrowserWindow and the provider would reject it.
     mainWindow.webContents.on('will-redirect', (event, url) => {
         try {
             const parsed = new URL(url);
             if (isOAuthHost(parsed.hostname)) {
                 event.preventDefault();
-                openAuthWindow(url);
+                openInExternalBrowser(url);
             }
         } catch {
             // ignore
@@ -396,6 +361,34 @@ function createWindow(initialURL) {
     let didFailLoadRetried = false;
     mainWindow.webContents.on('did-finish-load', () => {
         didFailLoadRetried = false;
+
+        // Stamp data-desktop and inject drag CSS from the main process.
+        // This is authoritative — it works regardless of whether the web
+        // app's inline <head> script or DesktopChrome component has run,
+        // and is immune to Tailwind's Lightning CSS pipeline stripping
+        // -webkit-app-region from globals.css.
+        const plt = JSON.stringify(process.platform);
+        mainWindow.webContents
+            .executeJavaScript(
+                `(function(){` +
+                    `var r=document.documentElement;` +
+                    `r.setAttribute('data-desktop','true');` +
+                    `r.setAttribute('data-desktop-platform',${plt});` +
+                `})();`,
+            )
+            .catch(() => {});
+        mainWindow.webContents
+            .insertCSS(
+                `[data-desktop="true"] :is(.top-bar,.desktop-drag-region),` +
+                `[data-desktop="true"] :is(.top-bar,.desktop-drag-region)` +
+                    ` :is(div,span,h1,h2,h3,h4,h5,h6,p,section,header,nav,img,svg,ul,ol,li)` +
+                    `{-webkit-app-region:drag;}` +
+                `[data-desktop="true"] .desktop-drag-region{pointer-events:auto;}` +
+                `[data-desktop="true"] :is(.top-bar,.desktop-drag-region)` +
+                    ` :is(a,button,[role="button"],[role="menuitem"],[role="tab"],[role="switch"],[role="link"],[role="combobox"],input,select,textarea,[contenteditable="true"],[contenteditable=""]),` +
+                `[data-desktop="true"] .desktop-no-drag{-webkit-app-region:no-drag;}`,
+            )
+            .catch(() => {});
     });
     mainWindow.webContents.on(
         'did-fail-load',
