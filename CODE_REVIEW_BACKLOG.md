@@ -1,5 +1,67 @@
 # Code Review Backlog
 
+## Bug Hunt — 2026-05-28 — F-380..F-392 (CMS workspace)
+
+Scoped `/bug-hunt` sweep over `apps/web/client/src/app/project/[id]/_components/cms-workspace/` (13 files, F-380..F-392). `bun typecheck` exit 0; `bunx eslint --max-warnings 0` exit 0 both before and after fixes.
+
+### Auto-fixed (3 issues)
+
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/edit-source-dialog.tsx:80` —
+  `source!.type` non-null assertion would throw a `TypeError` if the user
+  clicked "Test connection" while `useQuery(api.cmsSources.get, …)` was
+  still loading (the dialog opens as soon as `sourceId` is truthy; the
+  Test button is not gated on `source`). Added an early-return guard +
+  removed the assertion: when rotating creds without a loaded source, we
+  surface "Source not loaded yet" instead of detonating the dialog.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/edit-source-dialog.tsx:61` —
+  Seed effect re-ran whenever Convex returned a new `source` reference
+  (realtime collab update or window-focus refetch), silently overwriting
+  the user's in-progress name edit. Added the `initializedRef` +
+  `lastSourceIdRef` lock-on-first-fill pattern that bind-dialog.tsx and
+  routing-dialog.tsx already use — seed only on first arrival per
+  (open × sourceId).
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/data-pusher.tsx:208` —
+  `matchSegment` called `decodeURIComponent(p)` unguarded; a preview URL
+  with malformed percent-encoding (e.g. `/blog/%G1`) raised `URIError`,
+  which bubbled up through the 2-second `pushAll` interval into the
+  Convex hook boundary and spammed unhandled-error logs. Wrapped the
+  decode in a try/catch and returned `null` (treat as non-match), so
+  CMS data continues pushing to other frames.
+
+### Needs human review (4 issues, flagged with TODO(bug-hunt) comments)
+
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/sources-tab.tsx:43` —
+  `syncingId` / `testingId` track a single in-flight id. Clicking Sync
+  (or Test) on row A then row B before A completes causes A's `finally`
+  to clear state while B is still pending, so B's button flips back to
+  "Refresh" and the user can re-fire it. Fix: switch to `Set<string>`
+  (add/delete by source id) so concurrent in-flight calls each own their
+  pill state.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/item-editor.tsx:112` —
+  Seed effect overwrites the user's unsaved edits when a collaborator
+  updates the item on the backend mid-edit (Convex realtime fires →
+  `item` identity changes → setValues/setSlug/setStatus replace local
+  state AND `initialSnapshotRef` updates so isDirty=false). Worst case:
+  silent data loss. Fix: either lock-on-first-fill (matches the other
+  dialogs but blocks live updates) or detect the conflict and prompt the
+  user before overwriting (preferred for collab UX). Lower priority than
+  edit-source-dialog because the editor stays open and the user usually
+  notices the diff visually, but still a real loss-of-edits path.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/items-table.tsx:144` —
+  `handleBulkDelete` resets `selectedIds` to empty on partial failure,
+  stripping the failed ids from the selection so the user can't retry
+  without re-checking rows. Failure messages are also discarded — only
+  the count surfaces. Fix: rebuild `selectedIds` from the failure list
+  (`setSelectedIds(new Set(failedIds))`) and include the first error's
+  message in the toast.
+- `apps/web/client/src/app/project/[id]/_components/cms-workspace/fields-tab.tsx:102` —
+  `moveField` reads `fieldsData` from the cached query and computes its
+  splice synchronously. Two fast clicks on Up/Down race — the second
+  click splices the pre-move list and sends an `orderedFieldIds` that
+  reverses the first move. Fix: gate via an `isReorderingRef` (reject
+  the second click until the mutation settles) or coalesce rapid clicks
+  into a single reorder mutation.
+
 ## User-Flow Hardening — 2026-05-27 — F-220..F-291 follow-up
 
 Targeted fixes for silent async-onClick handlers flagged in the F-220..F-291

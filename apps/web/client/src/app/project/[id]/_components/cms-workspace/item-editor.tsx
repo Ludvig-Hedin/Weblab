@@ -109,6 +109,14 @@ export const ItemEditor = ({ projectId, collection, fields, itemId, onClose }: P
         snapshotKey({ slug: '', status: CmsItemStatus.DRAFT, values: {} }),
     );
 
+    // TODO(bug-hunt): seeding re-runs whenever Convex returns a new `item`
+    // identity (realtime collab edit, refetch on focus). If the user is
+    // mid-edit when an external write lands, setValues/setSlug/setStatus
+    // silently overwrite their in-progress changes AND the snapshot ref
+    // updates, so isDirty resets to false — edits are lost without a
+    // prompt. Mirror the bind-dialog `preFillRef` / routing-dialog
+    // `initializedRef` lock-on-first-fill pattern, or detect the conflict
+    // and prompt the user before overwriting (preferred for collab UX).
     useEffect(() => {
         if (!itemId) {
             // Create mode: seed defaults.

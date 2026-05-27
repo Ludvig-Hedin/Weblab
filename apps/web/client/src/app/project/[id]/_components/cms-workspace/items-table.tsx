@@ -141,6 +141,13 @@ export const ItemsTable = observer(({ projectId, collection, onEditFields }: Pro
         }
     };
 
+    // TODO(bug-hunt): partial-failure handling drops the failed ids from
+    // `selectedIds` (line: `setSelectedIds(new Set())`) so the user can't
+    // re-attempt the failures without re-selecting from the table. Also,
+    // failures only surface as a count — first error message gets logged
+    // but never shown. Keep failed ids selected (`setSelectedIds(new
+    // Set(failedIds))`) and surface the first failure's message in the
+    // toast so the user has something to act on.
     const handleBulkDelete = async () => {
         if (selectedIds.size === 0) return;
         const ok = await confirm({

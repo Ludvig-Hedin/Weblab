@@ -205,7 +205,14 @@ function matchSegment(template: string, pathname: string): string | null {
         const p = pParts[i]!;
         if (t.startsWith('[') && t.endsWith(']')) {
             if (dynamic !== null) return null; // multiple dynamic segments unsupported
-            dynamic = decodeURIComponent(p);
+            // Malformed percent-encoding (e.g. `/blog/%G1`) throws URIError —
+            // would propagate up through pushAll's interval and surface as
+            // noisy unhandled-error logs. Treat as a non-match.
+            try {
+                dynamic = decodeURIComponent(p);
+            } catch {
+                return null;
+            }
         } else if (t !== p) {
             return null;
         }

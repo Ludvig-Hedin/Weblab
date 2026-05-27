@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useAction, useMutation, useQuery } from 'convex/react';
 
@@ -58,26 +58,51 @@ export const EditSourceDialog = ({ projectId, sourceId, onClose }: Props) => {
         { ok: true } | { ok: false; reason: string } | null
     >(null);
 
+    // Seed once per (open × sourceId). After init, a background refetch
+    // (Convex realtime / window focus) must NOT overwrite the user's
+    // in-progress edits — otherwise typing into "name" would silently
+    // revert when another client updates the source. Mirrors the pattern
+    // in bind-dialog.tsx and routing-dialog.tsx.
+    const initializedRef = useRef(false);
+    const lastSourceIdRef = useRef<string | null>(null);
     useEffect(() => {
-        if (!open || !source) return;
+        if (!open) {
+            initializedRef.current = false;
+            lastSourceIdRef.current = null;
+            return;
+        }
+        if (lastSourceIdRef.current !== sourceId) {
+            initializedRef.current = false;
+            lastSourceIdRef.current = sourceId;
+        }
+        if (initializedRef.current) return;
+        if (!source) return;
+        initializedRef.current = true;
         setName(source.name);
         setRotate(false);
         setCreds({});
         setTestStatus(null);
-    }, [open, source]);
+    }, [open, source, sourceId]);
 
     const handleTest = async () => {
         if (!sourceId) return;
+        // Guard against the user clicking Test before the source query has
+        // resolved — accessing `source.type` via non-null assertion in that
+        // window would throw a TypeError and tear down the dialog.
+        if (rotate && Object.keys(creds).length > 0 && !source) {
+            toast.error('Source not loaded yet — try again in a moment');
+            return;
+        }
         setTestStatus(null);
         setIsTesting(true);
         try {
             // Rotating creds → test the new ones before persisting. Otherwise
             // re-test the stored creds.
             const result =
-                rotate && Object.keys(creds).length > 0
+                rotate && Object.keys(creds).length > 0 && source
                     ? await testNewAction({
                           projectId: projectId as Id<'projects'>,
-                          type: source!.type as Exclude<CmsSourceType, CmsSourceType.WEBLAB>,
+                          type: source.type as Exclude<CmsSourceType, CmsSourceType.WEBLAB>,
                           credentials: Object.fromEntries(
                               Object.entries(creds).filter(([, v]) => v && v.trim() !== ''),
                           ),

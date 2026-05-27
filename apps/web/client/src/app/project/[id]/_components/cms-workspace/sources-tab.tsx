@@ -40,6 +40,13 @@ export const SourcesTab = observer(() => {
 
     const [connectOpen, setConnectOpen] = useState(false);
     const [mappingSourceId, setMappingSourceId] = useState<string | null>(null);
+    // TODO(bug-hunt): syncingId/testingId track a single id — clicking Sync
+    // on row A then row B before A completes causes A's finally to clear
+    // the in-flight state for B, so B's "Refreshing…" pill flips back to
+    // "Refresh" while the request is still pending. User can double-fire
+    // sync on B. Switch to `Set<string>` (add/delete per source id) to
+    // preserve per-row state across concurrent in-flight calls. Same
+    // pattern applies to `testingId` below.
     const [syncingId, setSyncingId] = useState<string | null>(null);
 
     const sourcesData = useQuery(

@@ -99,6 +99,12 @@ export const FieldsTab = observer(() => {
         }
     }, [editing]);
 
+    // TODO(bug-hunt): two fast clicks on Move Up/Down race — the second
+    // click reads `fieldsData` before Convex has re-emitted the post-
+    // mutation list, so it computes its splice against the pre-move order
+    // and sends an `orderedFieldIds` that effectively undoes the first
+    // move. Guard with an in-flight ref (reject second click while a
+    // mutation is pending) or coalesce rapid clicks into a single reorder.
     const moveField = async (fieldId: string, direction: -1 | 1) => {
         if (!collectionId) return;
         // Use the displayed list (cached query data), not a fresh fetch —

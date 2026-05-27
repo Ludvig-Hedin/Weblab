@@ -16,6 +16,13 @@ Links: changelog / blog / migration / docs
 
 ---
 
+## 2026-05-28 — CMS workspace bug-hunt sweep (F-380..F-392)
+Author: Claude Opus 4.7
+Area: `apps/web/client/src/app/project/[id]/_components/cms-workspace`
+Summary: Scoped `/bug-hunt` over the 13 catalog rows F-380..F-392 (CMS shell, tabs, table, item editor, dialogs, data pusher). Three auto-fixes: (a) `edit-source-dialog.tsx` `source!.type` non-null assertion could TypeError if the user clicked Test before the source query resolved — added an early-return guard; (b) same file, seed effect overwrote the user's in-progress name edit when a Convex realtime refetch fired — added the `initializedRef` + `lastSourceIdRef` lock-on-first-fill pattern that bind-dialog and routing-dialog already use; (c) `data-pusher.tsx` `matchSegment` called `decodeURIComponent` unguarded — a preview URL with malformed percent-encoding (e.g. `/blog/%G1`) raised URIError that bubbled up through the 2s push interval and spammed unhandled-error logs. Wrapped in try/catch, returns null (non-match). Four report-only TODO(bug-hunt) comments + a CODE_REVIEW_BACKLOG entry for: sources-tab syncingId/testingId concurrent-row race (need `Set<string>`), item-editor unsaved-edit overwrite on collab refetch, items-table bulk-delete dropping failed ids from selection, fields-tab moveField double-click race. `bun typecheck` exit 0; touched-file lint clean.
+Files: `apps/web/client/src/app/project/[id]/_components/cms-workspace/{edit-source-dialog,data-pusher,sources-tab,item-editor,items-table,fields-tab}.tsx`, `CODE_REVIEW_BACKLOG.md`
+Links: n/a
+
 ## 2026-05-28 — Desktop OAuth handoff: wire renderer + polish (follow-up to 38b95dcf2)
 Author: Claude Opus 4.7
 Area: `apps/web/client/src/app/sign-in`
