@@ -42,10 +42,55 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 python3-setuptools make g++ \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Cache-efficient install ────────────────────────────────────────────────────
+# Copy only the files bun needs to resolve + install the workspace. These change
+# far less often than source files, so the bun install layer stays warm across
+# the vast majority of deploys (i.e. anything that isn't a dep bump).
+COPY bun.lockb package.json bunfig.toml ./
+
+COPY packages/ai/package.json              ./packages/ai/
+COPY packages/ai-cli/package.json          ./packages/ai-cli/
+COPY packages/auth/package.json            ./packages/auth/
+COPY packages/code-provider/package.json   ./packages/code-provider/
+COPY packages/constants/package.json       ./packages/constants/
+COPY packages/db/package.json              ./packages/db/
+COPY packages/email/package.json           ./packages/email/
+COPY packages/figma/package.json           ./packages/figma/
+COPY packages/figma-plugin/package.json    ./packages/figma-plugin/
+COPY packages/file-system/package.json     ./packages/file-system/
+COPY packages/fonts/package.json           ./packages/fonts/
+COPY packages/framework/package.json       ./packages/framework/
+COPY packages/git/package.json             ./packages/git/
+COPY packages/github/package.json          ./packages/github/
+COPY packages/growth/package.json          ./packages/growth/
+COPY packages/image-server/package.json    ./packages/image-server/
+COPY packages/mcp/package.json             ./packages/mcp/
+COPY packages/models/package.json          ./packages/models/
+COPY packages/parser/package.json          ./packages/parser/
+COPY packages/penpal/package.json          ./packages/penpal/
+COPY packages/rpc/package.json             ./packages/rpc/
+COPY packages/scripts/package.json         ./packages/scripts/
+COPY packages/stripe/package.json          ./packages/stripe/
+COPY packages/types/package.json           ./packages/types/
+COPY packages/ui/package.json              ./packages/ui/
+COPY packages/utility/package.json         ./packages/utility/
+
+COPY apps/web/package.json                 ./apps/web/
+COPY apps/web/client/package.json          ./apps/web/client/
+COPY apps/web/server/package.json          ./apps/web/server/
+COPY apps/web/preload/package.json         ./apps/web/preload/
+
+COPY tooling/eslint/package.json           ./tooling/eslint/
+COPY tooling/prettier/package.json         ./tooling/prettier/
+COPY tooling/typescript/package.json       ./tooling/typescript/
+
+RUN bun install --frozen-lockfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Copy full source (only invalidates the build step, not install)
 COPY . .
 
-RUN bun install --frozen-lockfile \
-    && cd apps/web/client \
+RUN cd apps/web/client \
     && bun run build
 
 EXPOSE 3000
