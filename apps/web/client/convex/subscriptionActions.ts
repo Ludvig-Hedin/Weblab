@@ -6,7 +6,6 @@ import Stripe from 'stripe';
 import type { Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { action } from './_generated/server';
-import { vPriceKey } from './lib/enums';
 
 // Convex billing actions. `"use node"` so we can call the Stripe SDK
 // (Stripe-node depends on Node built-ins). Each action:
@@ -183,9 +182,7 @@ export const update = action({
         // bottom of this file.
         if (owned.stripeSubscriptionScheduleId) {
             try {
-                await stripe.subscriptionSchedules.release(
-                    owned.stripeSubscriptionScheduleId,
-                );
+                await stripe.subscriptionSchedules.release(owned.stripeSubscriptionScheduleId);
             } catch (err) {
                 const code = (err as { code?: string } | null)?.code;
                 if (code !== 'invalid_request_error') throw err;
@@ -216,10 +213,10 @@ export const update = action({
         if (!currentPhase) throw new Error('No current phase found');
         const currentItem = currentPhase.items[0];
         if (!currentItem) throw new Error('No current item found');
+        // currentItem.price is string | Stripe.Price depending on expand opts.
+        // When it's a Price object, .id is the stable price ID string.
         const currentStripePrice =
-            typeof currentItem.price === 'string'
-                ? currentItem.price
-                : currentItem.price.toString();
+            typeof currentItem.price === 'string' ? currentItem.price : currentItem.price.id;
 
         const updatedSchedule = await stripe.subscriptionSchedules.update(schedule.id, {
             phases: [

@@ -121,9 +121,9 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
                 >
                     <PageTriggerSection
                         interactions={pageInteractions}
-                        onAddTrigger={addPageTrigger}
+                        onAddTrigger={(kind) => void addPageTrigger(kind)}
                         onOpenInteraction={onOpenInteraction}
-                        onDeleteInteraction={deleteInteraction}
+                        onDeleteInteraction={(id) => void deleteInteraction(id)}
                     />
                 </Accordion>
             </ScrollArea>
@@ -141,15 +141,15 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
             >
                 <ElementTriggerSection
                     interactions={elementInteractions}
-                    onAddTrigger={addElementTrigger}
+                    onAddTrigger={(kind) => void addElementTrigger(kind)}
                     onOpenInteraction={onOpenInteraction}
-                    onDeleteInteraction={deleteInteraction}
+                    onDeleteInteraction={(id) => void deleteInteraction(id)}
                 />
                 <PageTriggerSection
                     interactions={pageInteractions}
-                    onAddTrigger={addPageTrigger}
+                    onAddTrigger={(kind) => void addPageTrigger(kind)}
                     onOpenInteraction={onOpenInteraction}
-                    onDeleteInteraction={deleteInteraction}
+                    onDeleteInteraction={(id) => void deleteInteraction(id)}
                 />
             </Accordion>
         </ScrollArea>
