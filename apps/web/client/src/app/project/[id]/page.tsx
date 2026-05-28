@@ -7,6 +7,7 @@ import { APP_NAME } from '@weblab/constants';
 
 import type { Id } from '@convex/_generated/dataModel';
 import { env } from '@/env';
+import { classifyProjectLoadError } from './_adapters/classify-load-error';
 import {
     fromConvexBootstrap,
     fromConvexBranch,
@@ -113,7 +114,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     } catch (error) {
         console.error('Failed to load project data:', error);
         const message = error instanceof Error ? error.message : 'Unknown error';
-        const lower = message.toLowerCase();
+        const variant = classifyProjectLoadError(message);
+
+        // A malformed Convex document id (typo'd / stale share link / bad
+        // bookmark) can never have an offline cache entry, so short-circuit
+        // straight to the dedicated "invalid link" screen instead of (a) doing
+        // a pointless IndexedDB lookup via OfflineEditorBootstrap and (b)
+        // leaking the raw validator string to the user through the generic
+        // 'unknown' fallback's <pre> block. (F-131)
+        if (variant === 'invalid-id') {
+            return <ProjectLoadError variant="invalid-id" />;
+        }
 
         // Always offer the offline-cache fallback — the client component
         // checks IndexedDB and falls through to ProjectLoadError if there's
@@ -124,25 +135,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         //   3. transient backend outage
         // The previous string-match-based gate sent (2) and (3) straight to
         // an error page, stranding users with valid offline edits.
-        //
-        // FORBIDDEN is split from the unauthorized/session bucket: a signed-in
-        // user with no access should not be told "session expired" and given a
-        // sign-in CTA — that loops them right back here. They get the dedicated
-        // "no access" variant instead.
-        const fallbackHint: 'unauthorized' | 'forbidden' | 'not-found' | 'unknown' = lower.includes(
-            'forbidden',
-        )
-            ? 'forbidden'
-            : lower.includes('unauth') || lower.includes('session')
-              ? 'unauthorized'
-              : lower.includes('not found') || lower.includes('not_found')
-                ? 'not-found'
-                : 'unknown';
         return (
             <OfflineEditorBootstrap
                 projectId={projectId}
                 reason={message}
-                fallbackVariant={fallbackHint}
+                fallbackVariant={variant}
             />
         );
     }
