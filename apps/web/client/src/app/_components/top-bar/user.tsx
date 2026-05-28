@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -29,11 +30,20 @@ export const AuthButton = () => {
     const clerk = useSafeClerkAuth();
     const hasAuthCookie = useHasAuthCookie();
     const clerkActive = isClerkMode();
-    const isSignedIn = clerkActive
+    // SSR-safe gate. Clerk exposes the session during SSR, so the server can
+    // render the resolved "Projects + avatar" markup while the client's FIRST
+    // paint — before Clerk JS hydrates (`isLoaded: false`) — renders the
+    // spacer, producing a hydration mismatch (React #418). Forcing the neutral
+    // (`null`) state until after mount guarantees the server HTML and the first
+    // client render are byte-identical; the real state resolves one tick later.
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    const resolvedSignedIn = clerkActive
         ? clerk.isLoaded
             ? Boolean(clerk.isSignedIn)
             : null
         : hasAuthCookie;
+    const isSignedIn = mounted ? resolvedSignedIn : null;
     const t = useTranslations('nav.user');
     return (
         <div className="mt-0 flex items-center gap-3">
