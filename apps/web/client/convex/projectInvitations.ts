@@ -12,7 +12,7 @@ const REVOKED = 'revoked' as const;
 const EXPIRED = 'expired' as const;
 
 const isEmailMatch = (a: string | undefined, b: string | undefined | null): boolean =>
-    !!a && !!b && a.toLowerCase() === b.toLowerCase();
+    !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
@@ -413,9 +413,11 @@ export const _validateAndInsert = internalMutation({
         }
 
         // Canonical-form email — all comparisons + the persisted row use
-        // lowercase so casing variants (`Foo@bar.com` vs `foo@bar.com`)
-        // can't bypass the dedupe guards below.
-        const lcEmail = args.inviteeEmail.toLowerCase();
+        // trimmed lowercase so casing variants (`Foo@bar.com` vs `foo@bar.com`)
+        // and stray whitespace (`"  foo@bar.com  "` pasted from another app)
+        // can't bypass the dedupe guards below or break invite-accept lookup.
+        const trimmedEmail = args.inviteeEmail.trim();
+        const lcEmail = trimmedEmail.toLowerCase();
 
         // Conflict guard: already a member. Use the `by_email` index instead
         // of scanning all users — Convex's 16k document read limit per
@@ -429,11 +431,11 @@ export const _validateAndInsert = internalMutation({
             .first();
         const existingUser =
             lcMatch ??
-            (lcEmail === args.inviteeEmail
+            (lcEmail === trimmedEmail
                 ? null
                 : await ctx.db
                       .query('users')
-                      .withIndex('by_email', (q) => q.eq('email', args.inviteeEmail))
+                      .withIndex('by_email', (q) => q.eq('email', trimmedEmail))
                       .first());
         if (existingUser) {
             const existingMember = await ctx.db

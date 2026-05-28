@@ -29,12 +29,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Apps not part of the web client build
-apps/desktop
-apps/backend
-apps/docs
-apps/video
-apps/web/product-video
+# Sibling apps aren't built in this image, but bun needs every workspace
+# member's package.json to satisfy the frozen lockfile graph, and apps/docs
+# additionally needs its source for the fumadocs-mdx postinstall that bun runs
+# during `bun install`. So exclude only the heavy render outputs, not the apps
+# themselves. (apps/desktop/dist is already covered by the global `dist` rule.)
+apps/video/out
+apps/web/product-video/out
+apps/web/product-video/snapshots
+apps/web/product-video/assets
 
 # Docs + archive (not code dependencies)
 docs

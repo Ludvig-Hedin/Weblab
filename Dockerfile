@@ -81,6 +81,21 @@ COPY apps/web/package.json                 ./apps/web/
 COPY apps/web/client/package.json          ./apps/web/client/
 COPY apps/web/server/package.json          ./apps/web/server/
 COPY apps/web/preload/package.json         ./apps/web/preload/
+COPY apps/web/product-video/package.json   ./apps/web/product-video/
+
+# Sibling apps that aren't built here but ARE bun workspace members: their
+# package.json must be present or `bun install --frozen-lockfile` rejects the
+# lockfile (the graph wouldn't match). None have install scripts except docs.
+COPY apps/backend/package.json             ./apps/backend/
+COPY apps/desktop/package.json             ./apps/desktop/
+COPY apps/video/package.json               ./apps/video/
+
+# @weblab/docs has `postinstall: fumadocs-mdx`, which bun runs during the
+# workspace install. It reads source.config.ts and scans content/docs, so both
+# must be copied alongside the manifest or the install fails.
+COPY apps/docs/package.json                ./apps/docs/
+COPY apps/docs/source.config.ts            ./apps/docs/
+COPY apps/docs/content                     ./apps/docs/content/
 
 COPY tooling/eslint/package.json           ./tooling/eslint/
 COPY tooling/prettier/package.json         ./tooling/prettier/
