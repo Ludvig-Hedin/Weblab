@@ -121,14 +121,16 @@ export const _ensureCustomDomainForVerification = internalMutation({
     args: {
         domain: v.string(),
         projectId: v.id('projects'),
+        // Pre-parsed apex + subdomain from the Node action layer. The action
+        // uses tldts (Public Suffix List), so multi-label TLDs like
+        // `foo.co.uk`, `mysite.github.io`, `app.vercel.app` are split
+        // correctly. The V8 runtime can't load tldts, so we accept the
+        // parsed pair as args instead of computing here.
+        apexDomain: v.string(),
+        subdomain: v.union(v.string(), v.null()),
     },
-    handler: async (ctx, { domain, projectId }) => {
+    handler: async (ctx, { domain: _domain, projectId, apexDomain, subdomain }) => {
         await requireCap(ctx, 'project.publish', { projectId });
-
-        // Parse apex without tldts (V8 runtime). Falls back to the full
-        // domain when we can't reliably split — Freestyle still accepts it
-        // as a single apex in that case.
-        const { apexDomain, subdomain } = simpleParseDomain(domain);
 
         const existing = await ctx.db
             .query('customDomains')
@@ -220,13 +222,31 @@ export const _verificationMarkVerified = internalMutation({
             verified: true,
             updatedAt: Date.now(),
         });
-        await ctx.db.insert('projectCustomDomains', {
-            customDomainId: args.customDomainId,
-            projectId: args.projectId,
-            fullDomain: args.domain,
-            status: 'active',
-            updatedAt: Date.now(),
-        });
+        // Re-verifying a previously cancelled / removed domain would otherwise
+        // insert a duplicate `projectCustomDomains` row. `customGet` then picks
+        // one arbitrarily via `.first()`, surfacing stale URLs in production.
+        // Look up by (customDomainId, projectId) and patch instead of insert.
+        const existing = await ctx.db
+            .query('projectCustomDomains')
+            .withIndex('by_domain_project', (q) =>
+                q.eq('customDomainId', args.customDomainId).eq('projectId', args.projectId),
+            )
+            .first();
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                fullDomain: args.domain,
+                status: 'active',
+                updatedAt: Date.now(),
+            });
+        } else {
+            await ctx.db.insert('projectCustomDomains', {
+                customDomainId: args.customDomainId,
+                projectId: args.projectId,
+                fullDomain: args.domain,
+                status: 'active',
+                updatedAt: Date.now(),
+            });
+        }
         await ctx.db.patch(args.verificationId, {
             status: 'verified',
             updatedAt: Date.now(),
@@ -292,10 +312,11 @@ export const _ensureCustomDomainForOwned = internalMutation({
     args: {
         fullDomain: v.string(),
         projectId: v.id('projects'),
+        // Pre-parsed apex from the Node action layer (tldts-backed).
+        apexDomain: v.string(),
     },
-    handler: async (ctx, { fullDomain, projectId }) => {
+    handler: async (ctx, { fullDomain: _fullDomain, projectId, apexDomain }) => {
         await requireCap(ctx, 'project.publish', { projectId });
-        const { apexDomain } = simpleParseDomain(fullDomain);
 
         const existing = await ctx.db
             .query('customDomains')
@@ -321,6 +342,23 @@ export const _insertOwnedProjectDomain = internalMutation({
         customDomainId: v.id('customDomains'),
     },
     handler: async (ctx, { projectId, fullDomain, customDomainId }) => {
+        // Dedup against the same domain previously attached then cancelled —
+        // mirrors `_verificationMarkVerified` to keep `customGet`'s `.first()`
+        // deterministic.
+        const existing = await ctx.db
+            .query('projectCustomDomains')
+            .withIndex('by_domain_project', (q) =>
+                q.eq('customDomainId', customDomainId).eq('projectId', projectId),
+            )
+            .first();
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                fullDomain,
+                status: 'active',
+                updatedAt: Date.now(),
+            });
+            return (await ctx.db.get(existing._id))!;
+        }
         const id = await ctx.db.insert('projectCustomDomains', {
             customDomainId,
             projectId,
@@ -332,25 +370,3 @@ export const _insertOwnedProjectDomain = internalMutation({
     },
 });
 
-/**
- * Best-effort apex extraction without tldts. Treats the last two labels as
- * apex (works for .com/.io/etc.) and the rest as subdomain. Edge TLDs like
- * .co.uk fall back to "entire string is apex"; Freestyle accepts this and
- * the verification flow will still surface DNS errors clearly.
- */
-function simpleParseDomain(domain: string): {
-    apexDomain: string;
-    subdomain: string | null;
-} {
-    const cleaned = domain.trim().toLowerCase();
-    if (!cleaned.includes('.')) {
-        throw new Error(`BAD_REQUEST: Invalid domain format ${domain}`);
-    }
-    const labels = cleaned.split('.');
-    if (labels.length <= 2) {
-        return { apexDomain: cleaned, subdomain: null };
-    }
-    const apex = labels.slice(-2).join('.');
-    const subdomain = labels.slice(0, -2).join('.');
-    return { apexDomain: apex, subdomain };
-}

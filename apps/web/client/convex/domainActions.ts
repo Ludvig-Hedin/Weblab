@@ -55,11 +55,18 @@ export const verificationCreate = action({
         projectId: v.id('projects'),
     },
     handler: async (ctx, { domain, projectId }): Promise<unknown> => {
+        // Parse apex + subdomain in Node (tldts handles multi-label TLDs
+        // like .co.uk / .github.io / .vercel.app correctly via the Public
+        // Suffix List). Pass the parsed pair down so the V8 mutation
+        // doesn't need to re-derive it with a heuristic that misclassifies
+        // ccTLDs.
+        const { apexDomain, subdomain } = parseDomain(domain);
+
         // Permission + customDomain upsert is done in the mutation. The
         // action only owns the external Freestyle call (must run in Node).
-        const { customDomainId, subdomain, existing } = await ctx.runMutation(
+        const { customDomainId, subdomain: returnedSubdomain, existing } = await ctx.runMutation(
             internal.domainActionsDb._ensureCustomDomainForVerification,
-            { domain, projectId },
+            { domain, projectId, apexDomain, subdomain },
         );
         if (existing) return existing;
 
@@ -72,7 +79,7 @@ export const verificationCreate = action({
             domain,
             freestyleVerificationId,
             txtRecord: buildTxtRecord(verificationCode),
-            aRecords: getARecords(subdomain),
+            aRecords: getARecords(returnedSubdomain),
         });
     },
 });
@@ -126,9 +133,12 @@ export const verificationVerifyOwnedDomain = action({
             return { success: false, failureReason: 'User does not own domain' };
         }
 
+        // Parse apex in Node (tldts) so multi-label TLDs are handled
+        // correctly; the V8 mutation just persists what we computed.
+        const { apexDomain: parsedApex } = parseDomain(fullDomain);
         const { apexDomain, customDomainId } = await ctx.runMutation(
             internal.domainActionsDb._ensureCustomDomainForOwned,
-            { fullDomain, projectId },
+            { fullDomain, projectId, apexDomain: parsedApex },
         );
 
         // KNOWN: Freestyle can fail when another verification request was
