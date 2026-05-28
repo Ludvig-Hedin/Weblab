@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@convex/_generated/api';
 import { useMutation } from 'convex/react';
 
@@ -17,7 +17,19 @@ import { env } from '@/env';
 export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation }) => {
     const initials = getInitials(invitation.inviteeEmail ?? '');
     const [isCopied, setIsCopied] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const cancelInvitation = useMutation(api.projectInvitations.revoke);
+    const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Clear the "Copied" indicator timer if the row unmounts before it
+    // resolves; without this React warns about setState-after-unmount and
+    // the timer keeps a stale closure alive.
+    useEffect(
+        () => () => {
+            if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+        },
+        [],
+    );
 
     const copyInvitationLink = async () => {
         try {
@@ -26,14 +38,30 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
             );
             setIsCopied(true);
             toast.success('Invitation link copied to clipboard');
-            setTimeout(() => {
+            if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+            copiedResetRef.current = setTimeout(() => {
                 setIsCopied(false);
+                copiedResetRef.current = null;
             }, 2000);
         } catch (error) {
             console.error('Failed to copy invitation link:', error);
             toast.error('Failed to copy invitation link');
             setIsCopied(false);
         }
+    };
+
+    const handleCancel = async () => {
+        if (isCancelling) return;
+        setIsCancelling(true);
+        try {
+            await cancelInvitation({ id: invitation.id as Id<'projectInvitations'> });
+        } catch (error) {
+            console.error('Failed to cancel invitation:', error);
+            toast.error('Failed to cancel invitation');
+            setIsCancelling(false);
+        }
+        // On success the row unmounts (invite list re-queries); no need to
+        // reset isCancelling.
     };
 
     return (
@@ -65,11 +93,8 @@ export const InvitationRow = ({ invitation }: { invitation: ProjectInvitation })
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                                void cancelInvitation({
-                                    id: invitation.id as Id<'projectInvitations'>,
-                                });
-                            }}
+                            disabled={isCancelling}
+                            onClick={() => void handleCancel()}
                         >
                             <Icons.MailX className="text-muted-foreground size-4 transition-colors" />
                         </Button>

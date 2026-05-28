@@ -78,9 +78,9 @@ export const ListView = observer(function ListView({ onOpenInteraction }: ListVi
         : [];
 
     const addElementTrigger = async (kind: TriggerKind) => {
-        if (!selected) return;
+        if (!selected?.oid) return;
         const ixId = await editorEngine.interactions.ensureIxIdForOid(
-            selected.oid ?? '',
+            selected.oid,
             selected.branchId,
         );
         if (!ixId) return;

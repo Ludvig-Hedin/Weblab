@@ -100,7 +100,10 @@ export const SiteTab = observer(() => {
                     await editorEngine.image.upload(uploadedImage, DefaultSettings.IMAGE_FOLDER);
                     imagePath = `/${uploadedImage.name}`;
                 } catch (error) {
-                    console.log(error);
+                    // Mirror the favicon branch above: surface the failure
+                    // so the user knows the OG image won't be saved.
+                    console.error('Failed to upload OG image:', error);
+                    toast.error('Failed to upload OG image. Please try again.');
                     return;
                 }
                 updatedMetadata.openGraph = {

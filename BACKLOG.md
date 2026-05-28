@@ -38,6 +38,148 @@ later without re-discovering the context.
 
 ## Open
 
+### F-437 — Uploaded favicon / OG image path uses raw `file.name`
+
+- **Discovered:** 2026-05-28 (validate-feature F-420..F-439 deeper pass)
+- **Where:** [apps/web/client/src/components/ui/settings-modal/site/index.tsx:88,101](apps/web/client/src/components/ui/settings-modal/site/index.tsx#L88-L101)
+- **Symptom:** `faviconPath = \`/${uploadedFavicon.name}\`` and the OG path are built from the raw `File.name`. If the user picks a file with spaces, unicode, parens, or path-separator characters in the name, the metadata URL ends up un-encoded and may fail to resolve in production (or, with crafted names like `../foo.png`, produce odd URLs).
+- **Next step:** sanitize the filename before constructing the URL — e.g. `encodeURIComponent(stripDirectorySegments(file.name))` — or read the canonical path returned by `editorEngine.image.upload(...)` instead of reconstructing it on the client.
+- **Risk if ignored:** broken favicon / OG image after upload for any user whose filename isn't `[a-z0-9.-]`.
+- **Tags:** `#bug` `#editor` `#cms`
+
+### F-360 — `projectInvitations.accept` does not trim whitespace before email lookup
+
+- **Discovered:** 2026-05-28 (validate-feature F-360 deeper pass)
+- **Where:** [apps/web/client/convex/projectInvitations.ts:421](apps/web/client/convex/projectInvitations.ts#L421)
+- **Symptom:** `args.inviteeEmail.toLowerCase()` is used as the key to look up the `users` row by email. If the upstream caller (sign-in flow, accept page) passes the email with leading/trailing whitespace — easy to do when a user pastes from another app — the lookup misses and the invitation can never be accepted by that account.
+- **Next step:** `const lcEmail = args.inviteeEmail.trim().toLowerCase();` (and apply the same trim everywhere `inviteeEmail` is read/written). Match the canonical form Clerk's `clerkWebhooks.ts` writes when it normalizes user emails.
+- **Risk if ignored:** silent invite-accept failures with no obvious user-facing diagnostic.
+- **Tags:** `#bug` `#convex` `#auth`
+
+### Vercel Sandbox returns 402 (Payment Required) — dev team on hobby plan
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-400..F-402 run)
+- **Where:** [apps/web/client/convex/projectActions.ts:239](apps/web/client/convex/projectActions.ts#L239) `VercelSandboxProvider.createProject` call → `@vercel/sandbox` SDK `inferScope` → `POST /v11/projects` returns 402
+- **Symptom:** Console floods with `[CONVEX A(projectActions:createBlank)] Server Error … Status code 402 is not ok at async handler (../convex/projectActions.ts:239:16)` after the user clicks **Start blank → Next.js** or **Start blank → Static HTML**. Project never created, dashboard stays in "Start your first project" state.
+- **Root cause:** Vercel team `team_06tI3EaV5vk3s9b5gwGlnMJA` (`ludvighedin15-gmailcoms-projects`) is on the **`hobby`** billing plan (`/v2/teams?limit=20` → `"billing":{"plan":"hobby","planIteration":"plus"}`). Vercel Sandbox is a paid feature. The SDK's `inferScope` (in `node_modules/@vercel/sandbox/dist/auth/project.cjs`) auto-creates a default project via `POST /v11/projects` inside `tryTeam`; the hobby plan rejects that with 402. The SDK's `isSkippableTeamError` treats 402 as "skip team", but with one explicit team it has nothing to skip to.
+- **Side observation:** Direct `POST /v1/sandboxes?teamId=…` with the same token returned HTTP 200 (sandbox actually provisioned). The 402 is specifically on the project auto-create step inside `inferScope`. The SDK ignores `VERCEL_PROJECT_ID` from `getCredentials()` — it always builds its own "vercel-sandbox-default-project".
+- **Adjacent fix already applied during this run:** the three `VERCEL_*` env vars in `.env.local` are double-quoted (e.g. `VERCEL_TOKEN="vcp_…"`). Previous `bunx convex env set` stored the quotes inside the value, so the SDK saw an invalid token and returned 403. Stripping quotes + re-setting via `… | tr -d '"'` cleared the 403 layer — the 402 underneath is the real blocker.
+- **Next step:** (a) upgrade the team to Pro, OR (b) point `VERCEL_TEAM_ID` / `VERCEL_PROJECT_ID` at a different team that has Sandbox enabled, OR (c) bake a snapshot via `scripts/create-vercel-template.mjs` and set `VERCEL_BLANK_SNAPSHOT_ID` so `VercelSandboxProvider.createProject` takes the snapshot-resume fast path (`packages/code-provider/src/providers/vercel-sandbox/index.ts:496`) which bypasses `inferScope`.
+- **Risk if ignored:** every project-create path on dev (F-121, F-122, F-135) is broken; no one can validate any `#editor` feature against dev Convex. Editor entry F-131 unreachable through normal flow.
+- **Tags:** `#bug` `#infra` `#blocker` `#convex` `#vercel` `#billing`
+
+### Convex dev deployment was stale before validate-feature run (now pushed)
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-400..F-402 run)
+- **Where:** dev Convex deployment `avid-gnat-539`
+- **Symptom:** `projectActions:createBlank` threw `CSB_API_KEY not configured at ../convex/projectActions.ts:198:24` even though source line 198 is a comment and `CSB_API_KEY` is not referenced in `apps/web/client/convex/**`.
+- **Root cause:** source contains the CodeSandbox→Vercel migration (commits `5e8dca441` + `de3dc9269`, 2026-05-24) but the dev Convex deployment had never been pushed since. Resolved this run via `bunx convex dev --once` from `apps/web/client`.
+- **Next step:** Add a "post-rebase / post-merge" step to `docs/agent-context/development-setup.md` documenting that backend changes under `apps/web/client/convex/**` are not picked up by Next.js HMR — they require `bunx convex dev` to be running OR a one-shot `--once` push. Consider a `predev` hook in `apps/web/client/package.json` that runs `bunx convex dev --once`.
+- **Risk if ignored:** every agent / contributor will lose hours to "I edited the Convex function but the error still references the old code" until they find this trap.
+- **Tags:** `#docs` `#dx` `#convex` `#infra`
+
+### Convex dev deployment missing VERCEL_* env vars (now set)
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-400..F-402 run)
+- **Where:** dev Convex deployment `avid-gnat-539`
+- **Symptom:** After the Convex deploy fix above, `createBlank` then threw `VERCEL_TOKEN not configured. Vercel Sandbox is the only runtime; set VERCEL_TEAM_ID, VERCEL_PROJECT_ID, and VERCEL_TOKEN` at `convex/projectActions.ts:227`.
+- **Root cause:** `bunx convex env list` showed only `CLERK_JWT_ISSUER_DOMAIN` + `CLERK_WEBHOOK_SECRET`. The Vercel-migration commits added Convex-side reads of three new env vars but the deployment env was never updated. Set this run via `bunx convex env set VERCEL_TOKEN/VERCEL_TEAM_ID/VERCEL_PROJECT_ID` (values pulled from `apps/web/client/.env.local`).
+- **Next step:** Add the three Vercel env vars to the canonical Convex env list in `docs/agent-context/development-setup.md` (currently undocumented). Consider a tiny `bunx convex env set` script that reads from `.env.local` for shared dev vars.
+- **Risk if ignored:** any future spin-up of a fresh Convex deployment, or any rotation of the dev env, has to re-discover this manually.
+- **Tags:** `#docs` `#dx` `#convex` `#infra`
+
+### Test-plan coverage gap — F-300..F-361 + F-400..F-402 have 0 unit tests
+
+- **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-400..F-402 run)
+- **Where:** `docs/test-plan.md` rows T-300 / T-301 / T-310..T-313 / T-330..T-334 / T-340..T-344 / T-360 / T-361 / T-400..T-402
+- **Symptom:** Every test row in scope is type `E` (end-to-end via preview) or `M` (manual). Zero `U` (unit) or `I` (integration) coverage for 32 features.
+- **Next step:** Add `U` tests for pure utilities in `editor-bar/utils/` (F-319) and pure helpers in `editor-bar/hooks/` (F-318) — these are testable without a live editor. Add RTL + Convex test-client `I` tests for F-301 (`projectComments` / `commentReplies`) and F-360 (`projectInvitations` / `projectMembers`) which exercise Convex mutations directly without the editor.
+- **Risk if ignored:** every validation pass on these 32 features blocks on Phase 3 — when Phase 3 infra breaks (as it did this run), validation has no fallback signal.
+- **Tags:** `#test-gap`
+
+### F-471 — Non-EDIT chat types skip the atomic usage increment
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:338-350](apps/web/client/src/app/api/chat/route.ts#L338)
+- **Symptom:** `incrementUsage` only fires when `chatType === ChatType.EDIT && !isLocalModel`. Every other chat type (`ASK`, `CREATE`, `PLAN`, …) is gated only by the upstream `checkMessageLimit` read.
+- **Root cause:** original design assumed only EDIT incurs paid spend; ASK/CREATE/PLAN now also burn OpenRouter tokens.
+- **Next step:** decide policy with product. Either (a) increment on every non-local chat type, or (b) keep current rule and document explicitly. If (a), mirror inline-edit's refund-on-failure path.
+- **Risk if ignored:** concurrent attackers can fan out ASK/PLAN requests under the daily limit and burn OpenRouter spend with only a read-then-act precheck protecting the budget.
+- **Tags:** `#bug` `#billing` `#concurrency`
+
+### F-471 / F-472 — TOCTOU between `checkMessageLimit` and `incrementUsage`
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:187](apps/web/client/src/app/api/chat/route.ts#L187), [apps/web/client/src/app/api/chat/summarize/route.ts:53](apps/web/client/src/app/api/chat/summarize/route.ts#L53), [apps/web/client/src/app/api/chat/helpers/usage.ts:18](apps/web/client/src/app/api/chat/helpers/usage.ts#L18)
+- **Symptom:** A user at `limit - 1` can race N concurrent requests; all pass the precheck, only one increment lands, the rest stream free.
+- **Root cause:** `checkMessageLimit` is a read-then-act gate; the only atomic gate is the increment mutation itself.
+- **Next step:** drop the precheck (rely solely on `incrementUsage`'s `USAGE_LIMIT_REACHED`) OR precheck + atomic increment on every paid path.
+- **Risk if ignored:** quota bypass under load — small but consistent revenue leak.
+- **Tags:** `#bug` `#billing` `#concurrency`
+
+### F-472 — Background summarizer charges credit every time client fires
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/chat/summarize/route.ts:146-156](apps/web/client/src/app/api/chat/summarize/route.ts#L146)
+- **Symptom:** `useConversationSummarizer` fires this route during typing / mid-stream. No server-side debounce — a buggy or malicious client can drain its own quota plus burn LLM spend.
+- **Next step:** server-side rate-limit per `conversationId` (e.g. one summary per N user messages since last summary), OR remove metering for summarization and cap absolute spend via Convex.
+- **Risk if ignored:** quota & cost amplification proportional to client misbehavior; one client bug page = N× OpenRouter bill.
+- **Tags:** `#bug` `#billing`
+
+### F-475 — Tab-complete metering is fire-and-forget AFTER generation
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/ai/tab-complete/route.ts:177](apps/web/client/src/app/api/ai/tab-complete/route.ts#L177)
+- **Symptom:** Increment is `void` and runs after `generateTabCompletion` resolves. A fast keystroke spammer never sees the limit because dozens of in-flight requests resolve before any increment lands.
+- **Next step:** either gate up-front (precheck + atomic increment), or add a per-user in-flight cap so concurrent completions can't exceed a small constant N.
+- **Risk if ignored:** cheap concurrent abuse with no daily-cap pressure.
+- **Tags:** `#bug` `#billing` `#concurrency`
+
+### F-476 — In-memory rate limit on transcription is per-process, not per-user
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/transcribe/helpers/rate-limit.ts:12](apps/web/client/src/app/api/transcribe/helpers/rate-limit.ts#L12)
+- **Symptom:** Counter lives in `Map` on each Node replica. On Railway with N replicas a user gets `N × 10`/min instead of 10/min. Compounded by the fact that transcription has no daily quota — only this anti-spam limiter — so cost cap is effectively `N × 10 × MAX_AUDIO_BYTES`/minute per attacker.
+- **Next step:** move to Convex (`api.rateLimits.*` already used by chat) so the limit is global. While there, add a daily Whisper-spend counter so the cost ceiling does not scale with replicas.
+- **Risk if ignored:** unbounded Whisper / OpenRouter spend under abuse; documented in code as "not a replacement for distributed rate limiting" but ops cap is the only safety net today.
+- **Tags:** `#bug` `#billing` `#infra`
+
+### F-471 — Chat path: `aiUsageEvents.insert` + `replaceConversationMessages` awaited inside `onFinish` with no timeout
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:434-458](apps/web/client/src/app/api/chat/route.ts#L434), 512-519
+- **Symptom:** If Convex stalls, the chat response close hangs because the SDK awaits these from `onFinish`.
+- **Next step:** wrap each in `Promise.race` with a 5–10s timeout; on timeout, log + best-effort fire-and-forget. The user-visible stream is already complete.
+- **Risk if ignored:** sporadic stuck connections; visible as "AI never finishes" in UI.
+- **Tags:** `#bug` `#reliability`
+
+### F-471 — Chat: client-supplied `messages` array has no schema on shape
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/chat/route.ts:133-142](apps/web/client/src/app/api/chat/route.ts#L133); also `summarize/route.ts:33`
+- **Symptom:** `messages: z.array(z.any())` — only byte-bounds enforced. If anything downstream trusts `role: 'system'` from the user-supplied array, a caller can inject system prompts.
+- **Next step:** narrow schema to `{ role: 'user' | 'assistant'; parts: ... }`. Confirm `buildChatRequest` / `toDbMessage` re-validate or strip roles.
+- **Risk if ignored:** prompt injection vector if any builder ever forwards role verbatim.
+- **Tags:** `#security` `#chat`
+
+### F-477 — `/api/email-capture` is unauthenticated with no rate-limit or captcha
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [apps/web/client/src/app/api/email-capture/route.ts](apps/web/client/src/app/api/email-capture/route.ts)
+- **Symptom:** Anyone can POST any volume of junk emails into n8n. Validation only catches bad shapes; not bots.
+- **Next step:** Cloudflare Turnstile or hCaptcha on the marketing form + per-IP rate-limit at the edge. Soft-fail to "captured locally only" on captcha failure.
+- **Risk if ignored:** n8n list pollution and outbound `fetch` amplification from Weblab IP.
+- **Tags:** `#abuse` `#marketing`
+
+### F-470..F-479 — Most REST routes have no automated test coverage
+
+- **Discovered:** 2026-05-28 (validate-feature F-470..F-479 run)
+- **Where:** [docs/test-plan.md](docs/test-plan.md) section 22 — T-471, T-472, T-473, T-474, T-475, T-476, T-477, T-478, T-479 all marked `[ ]`.
+- **Symptom:** 8 of 10 REST features rely on Clerk/Convex/Supabase context and have no Bun-level tests.
+- **Next step:** add a thin integration harness that mocks Clerk's `auth()`, Convex's `fetchQuery`/`fetchMutation`, and Supabase to exercise the POST/GET surface with synthetic bodies. Pattern lives in [apps/web/client/test/setup.ts](apps/web/client/test/setup.ts) for tRPC; extend for Convex/Clerk.
+- **Risk if ignored:** regressions in chat / inline-edit / tab-complete / transcribe / promo-resume land silently until users feel them.
+- **Tags:** `#test-gap`
+
 ### F-330..F-335 — Bottom-bar unguarded null/undefined access risks runtime crash
 
 - **Discovered:** 2026-05-28 (validate-feature F-300..F-361 + F-420..F-439 run)
@@ -99,6 +241,79 @@ later without re-discovering the context.
 - **Symptom:** Disconnect → Confirm → toast "Disconnect is temporarily unavailable". User cannot actually revoke connection from the app.
 - **Next step:** implement `users.disconnectGitHub` Convex mutation that revokes the GitHub App installation and clears `providerConnections` row; until then disable the button instead of pretending it works.
 - **Tags:** `#bug` `#integration`
+
+### F-491 — `checkout` allows multiple active subscriptions per user; downstream `.unique()` queries crash billing portal
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Where:** [apps/web/client/convex/subscriptionActions.ts:52-91](apps/web/client/convex/subscriptionActions.ts#L52-L91) (`checkout` action) +
+  [apps/web/client/convex/lib/stripeWebhook.ts:630-647](apps/web/client/convex/lib/stripeWebhook.ts#L630-L647) (`_findActiveSubscriptionForCaller`) +
+  [stripeWebhook.ts:587-598](apps/web/client/convex/lib/stripeWebhook.ts#L587-L598) (`_findActiveProSubscriptionForPromo`)
+- **Symptom (chain):**
+  1. User double-clicks **Subscribe** on the pricing modal, or two browser tabs race. `checkout` action does not check for an existing active subscription, so both calls create Stripe Checkout Sessions and both complete.
+  2. Stripe fires two `customer.subscription.created` events. `_handleSubCreated` is idempotent only on `stripeSubscriptionItemId` (different items per sub) → two rows inserted in `subscriptions` with `status='active'`.
+  3. User opens **Settings → Subscription → Manage** → `manageSubscription` action calls `_findActiveSubscriptionForCaller` which does `.query('subscriptions').withIndex('by_user_status', q => q.eq('userId', userId).eq('status', 'active')).unique()`. With 2 rows the `.unique()` throws `Unique constraint failed`. Billing portal never opens. User cannot cancel or change the duplicate.
+  4. Same throw blocks `startPromoCheckout` for affected users (`_findActiveProSubscriptionForPromo` also `.unique()`s on `by_user_status`).
+- **Root cause:** missing idempotency guard at the `checkout` entry point; helper queries assume the invariant "≤1 active sub per user" that the entry point doesn't enforce.
+- **Next step:**
+  - In `checkout` (subscriptionActions.ts:54) call `_findActiveSubscriptionForCaller` (or an equivalent internal query) first; if a row exists, throw `ALREADY_SUBSCRIBED` and surface a friendly message in [pro-card.tsx:52](apps/web/client/src/components/ui/pricing-modal/pro-card.tsx#L52).
+  - Defense-in-depth: change the two `.unique()` calls on `by_user_status` to `.first()` + log when more than one is found, so a future repeat doesn't lock the user out of the portal.
+- **Risk if ignored:** support tickets from double-billed users who also can't open the billing portal to fix it themselves. Revenue impact + churn.
+- **Tags:** `#bug` `#billing` `#critical`
+
+### F-491 — `update` action does not catch already-released schedule from Stripe; upgrade/downgrade aborts
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Where:** [apps/web/client/convex/subscriptionActions.ts:156-158](apps/web/client/convex/subscriptionActions.ts#L156-L158)
+- **Symptom:** User changes plan via the pricing modal while a previously scheduled downgrade is in-flight. `update` action sees `owned.stripeSubscriptionScheduleId` and calls `stripe.subscriptionSchedules.release(scheduleId)` without try/catch. If Stripe reports the schedule is already in `'released'` state (e.g. the scheduled phase fired and Stripe auto-released it just before this request, or the user released it manually from the portal), Stripe throws `StripeInvalidRequestError`. The action aborts; user sees a generic toast. Our DB still references the now-dead `stripeSubscriptionScheduleId`, so the next attempt repeats the failure.
+- **Root cause:** inconsistent error handling — `releaseSubscriptionSchedule` ([line 314-323](apps/web/client/convex/subscriptionActions.ts#L314-L323)) already handles this exact case by swallowing `invalid_request_error`; the `update` action does not.
+- **Next step:** wrap the `release` call in the same try/catch used by `releaseSubscriptionSchedule`; on swallowed error, fall through to the normal upgrade/downgrade path. Add a clearing patch (`_clearScheduleChange`) so our DB drops the stale schedule id.
+- **Risk if ignored:** users with pending schedules get permanently stuck — every plan change attempt aborts before reaching Stripe.
+- **Tags:** `#bug` `#billing`
+
+### F-491 — `startPromoCheckout` returns `not_authenticated` for users that are signed in but missing email
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Where:** [apps/web/client/convex/subscriptionActions.ts:228-231](apps/web/client/convex/subscriptionActions.ts#L228-L231)
+- **Symptom:** `_resolveCallerUserId` returns `null` only when there is no authenticated identity; an authenticated user without `email` returns a user object whose `email` is `undefined`. The check `if (!caller?.email)` then returns `errorCode: 'not_authenticated'`. Frontend renders a misleading "Please sign in" message even though the user is signed in.
+- **Root cause:** error code conflates two states (no identity vs identity-without-email).
+- **Next step:** split the check —
+  ```ts
+  if (!caller) return { errorCode: 'not_authenticated' };
+  if (!caller.email) return { errorCode: 'missing_email' };
+  ```
+  Add the new code to the promo banner's typed error handler.
+- **Risk if ignored:** support burden + confused users on the promo flow.
+- **Tags:** `#bug` `#billing` `#ux`
+
+### F-501 — `NAMED_FUNCTION_RE` / `DEFAULT_FUNCTION_RE` miss `export async function` (Next.js server components dropped)
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Where:** [apps/web/server/src/router/routes/components.ts:25,42](apps/web/server/src/router/routes/components.ts#L25)
+- **Symptom:** Every Next.js App Router server component (`export default async function Page()`, `export async function generateMetadata()` is correctly skipped because lowercase, but `export async function HeroSection()` would be dropped). Regex anchors `function` immediately after `export\s+(default\s+)?`, so the `async` keyword between `export` and `function` is never matched.
+- **Root cause:** regex written before App Router conventions were considered.
+- **Next step:** allow optional `async\s+` between `export` and `function`:
+  ```ts
+  const NAMED_FUNCTION_RE = /export\s+(?:async\s+)?function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
+  const DEFAULT_FUNCTION_RE = /export\s+default\s+(?:async\s+)?function\s+([A-Z][A-Za-z0-9_]*)\s*[(<]/gm;
+  ```
+  Add unit tests for both async forms to [`__tests__/components.test.ts`](apps/web/server/src/router/routes/__tests__/components.test.ts).
+- **Risk if ignored:** users importing a Next.js App-Router project see an incomplete component list in the editor's component picker (F-501 → editor → component browser).
+- **Tags:** `#bug` `#editor` `#test-gap`
+
+### F-501 — `scanDirectory` has no symlink-cycle guard; malicious project dir can OOM the Fastify server
+
+- **Discovered:** 2026-05-28 (validate-feature F-490..F-501 deep pass)
+- **Where:** [apps/web/server/src/router/routes/components.ts:132-159](apps/web/server/src/router/routes/components.ts#L132-L159)
+- **Symptom:** `walk()` recurses on every `entry.isDirectory()` without tracking visited inodes or skipping symlinks. A project containing a symlink that points at an ancestor (`src/loop -> ../..`) causes infinite recursion → V8 stack overflow → process restart, or runaway memory before that.
+- **Root cause:** missing `entry.isSymbolicLink()` skip + missing visited-set.
+- **Next step:** filter symlinks before recursing:
+  ```ts
+  if (entry.isSymbolicLink()) continue;
+  if (entry.isDirectory() && !SKIP_DIRS.has(entry.name)) await walk(join(current, entry.name));
+  ```
+  Optional: track visited real paths via `fs.realpath` + Set as defense-in-depth.
+- **Risk if ignored:** SANDBOX_BASE_DIR is operator-controlled today, so exposure is low — but the moment user-uploaded projects are scanned with this code path (or an attacker controls a file the scanner traverses), one symlink takes the Fastify server down. Latent denial-of-service.
+- **Tags:** `#bug` `#security` `#sandbox`
 
 ### F-491 — Stripe webhook accepts only one `v1=` signature; rotation will reject valid requests
 

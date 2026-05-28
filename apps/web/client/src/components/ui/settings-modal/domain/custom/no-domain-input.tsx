@@ -32,18 +32,26 @@ export const NoDomainInput = () => {
 
     const handleEnter = async () => {
         setIsLoading(true);
-        await createVerificationRequest();
-        setIsLoading(false);
+        try {
+            await createVerificationRequest();
+        } finally {
+            // Always clear the spinner — previously a thrown verification
+            // request left the button stuck in the loading state forever.
+            setIsLoading(false);
+        }
     };
 
     const handleButtonClick = async () => {
         setIsLoading(true);
-        if (verificationState === VerificationState.INPUTTING_DOMAIN) {
-            await createVerificationRequest();
-        } else {
-            await removeVerificationRequest();
+        try {
+            if (verificationState === VerificationState.INPUTTING_DOMAIN) {
+                await createVerificationRequest();
+            } else {
+                await removeVerificationRequest();
+            }
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     return (
@@ -68,9 +76,12 @@ export const NoDomainInput = () => {
                             onChange={(e) => setDomainInput(e.target.value)}
                             placeholder="example.com"
                             className="bg-background placeholder:text-muted-foreground"
-                            onKeyDown={async (e) => {
+                            onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                    handleEnter();
+                                    // Don't await — onKeyDown is sync; the
+                                    // promise is owned by handleEnter's own
+                                    // try/finally.
+                                    void handleEnter();
                                 }
                             }}
                         />

@@ -98,28 +98,31 @@ export const InputRange = ({
         }
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (rangeRef.current) {
-            setIsDragging(true);
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-        }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-        if (isDragging && rangeRef.current) {
+    // Attach / detach the document-level drag listeners via an effect so the
+    // handler identity is stable and `removeEventListener` actually matches
+    // the original `addEventListener`. The previous version recreated the
+    // handlers every render, which silently leaked listeners on every drag.
+    useEffect(() => {
+        if (!isDragging) return;
+        const onMove = (e: MouseEvent) => {
+            if (!rangeRef.current) return;
             const rect = rangeRef.current.getBoundingClientRect();
             const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             const newValue = Math.round((percentage * (max - min) + min) / step) * step;
             setLocalValue(String(newValue));
             debouncedOnChange(newValue);
-        }
-    };
+        };
+        const onUp = () => setIsDragging(false);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+        return () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        };
+    }, [isDragging, max, min, step, debouncedOnChange]);
 
-    const handleMouseUp = () => {
-        setIsDragging(false);
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+    const handleMouseDown = () => {
+        if (rangeRef.current) setIsDragging(true);
     };
 
     const body = (

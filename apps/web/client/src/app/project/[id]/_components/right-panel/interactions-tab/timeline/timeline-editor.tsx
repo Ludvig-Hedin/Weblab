@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { nanoid } from 'nanoid/non-secure';
 import { useTranslations } from 'next-intl';
@@ -209,6 +209,13 @@ function Header({
     const t = useTranslations();
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(name);
+    // Keep the draft in sync when the interaction is renamed externally
+    // (e.g. another collaborator edits it, or the parent updates the name
+    // after a save). Without this, opening the inline editor a second time
+    // shows the stale value the first edit started with.
+    useEffect(() => {
+        setDraft(name);
+    }, [name]);
 
     return (
         <div className="border-border-bar flex h-10 items-center gap-2 border-b px-2">
