@@ -59,20 +59,28 @@ async function loadBridgedUser(): Promise<BridgedUser | null> {
         return null;
     }
 
-    // Reuse Clerk's primary email for the synthetic user shape — Convex stores
-    // the same value but Clerk is the canonical source of truth.
+    // The Clerk Backend API lookup is DECORATIVE — it only enriches the
+    // synthetic user shape with name/avatar fallbacks. The authoritative
+    // identity is the already-verified Convex JWT (claims include name, email,
+    // picture) plus the Convex `users` row. A failure here (Clerk API blip,
+    // rate limit, or a FAPI/env misconfig that yields an empty body →
+    // "JSON Parse error: Unexpected EOF") must NOT sign the user out: doing so
+    // also short-circuits the JIT `users`-row creation below, which bricks
+    // every downstream `requireUser` query (usage:get, etc.) with UNAUTHORIZED
+    // and bounces a signed-in user back to the landing page. Degrade to using
+    // the Convex row instead of failing the whole request.
     const client = await clerkClient();
-    let clerkUser;
+    let clerkUser: Awaited<ReturnType<typeof client.users.getUser>> | null = null;
     try {
         clerkUser = await client.users.getUser(userId);
     } catch (err) {
-        // Clerk-side fetch failure (user deleted between auth check and now,
-        // Clerk API outage, rate limit). Treat as signed-out so the caller's
-        // protected-route guard kicks in — better than a 500.
-        console.error('[clerk-bridge] clerkClient.users.getUser failed for %s', userId, err);
-        return null;
+        console.error(
+            '[clerk-bridge] clerkClient.users.getUser failed for %s (non-fatal; falling back to Convex row + JWT claims)',
+            userId,
+            err,
+        );
     }
-    const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress;
+    const primaryEmail = clerkUser?.primaryEmailAddress?.emailAddress;
 
     let convexUser;
     try {
@@ -132,12 +140,13 @@ async function loadBridgedUser(): Promise<BridgedUser | null> {
         email: convexUser.email ?? primaryEmail ?? '',
         app_metadata: { provider: 'clerk', providers: ['clerk'] },
         user_metadata: {
-            first_name: convexUser.firstName ?? clerkUser.firstName ?? undefined,
-            last_name: convexUser.lastName ?? clerkUser.lastName ?? undefined,
+            first_name: convexUser.firstName ?? clerkUser?.firstName ?? undefined,
+            last_name: convexUser.lastName ?? clerkUser?.lastName ?? undefined,
             full_name:
                 convexUser.displayName ??
-                ([clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || undefined),
-            avatar_url: convexUser.avatarUrl ?? clerkUser.imageUrl ?? undefined,
+                ([clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') ||
+                    undefined),
+            avatar_url: convexUser.avatarUrl ?? clerkUser?.imageUrl ?? undefined,
         },
         identities: [],
         created_at: new Date(convexUser._creationTime).toISOString(),
