@@ -113,7 +113,7 @@ export const NonProjectSettingsModal = observer(() => {
                             <div className="flex h-full overflow-hidden">
                                 {/* Sidebar */}
                                 <div className="flex w-52 shrink-0 flex-col overflow-y-auto p-3 select-none">
-                                    <div className="mb-3 flex items-center justify-between px-2.5 pt-1">
+                                    <div className="mb-3 flex items-center justify-between px-2.5 pt-3">
                                         <h1 className="text-largePlus">Settings</h1>
                                         <Button
                                             variant="ghost"

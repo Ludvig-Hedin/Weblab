@@ -159,7 +159,7 @@ export const SubscriptionTab = observer(() => {
                 <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                         <h2 className="text-largePlus">Billing</h2>
-                        <p className="text-small text-foreground-tertiary">
+                        <p className="text-regular text-foreground-tertiary">
                             {isPro
                                 ? 'Manage your payment method, invoices, and cancellation in the Stripe portal.'
                                 : 'Upgrade to a paid plan to manage payment details and invoices.'}

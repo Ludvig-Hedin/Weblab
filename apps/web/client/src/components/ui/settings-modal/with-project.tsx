@@ -144,8 +144,8 @@ export const SettingsModalWithProjects = observer(() => {
                         <div className="bg-background pointer-events-auto h-[100dvh] w-screen overflow-hidden rounded-none border p-0 shadow-lg sm:h-[700px] sm:max-h-screen sm:w-[900px] sm:max-w-4xl sm:rounded-lg">
                             <div className="flex h-full overflow-hidden">
                                 {/* Sidebar */}
-                                <div className="flex w-52 shrink-0 flex-col overflow-y-auto p-3 select-none">
-                                    <div className="mb-3 flex items-center justify-between px-2.5 pt-1">
+                                <div className="flex w-44 shrink-0 flex-col overflow-y-auto p-3 select-none sm:w-52">
+                                    <div className="mb-3 flex items-center justify-between px-2.5 pt-3">
                                         <h1 className="text-largePlus">Settings</h1>
                                         <Button
                                             variant="ghost"

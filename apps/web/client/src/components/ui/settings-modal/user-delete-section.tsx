@@ -73,7 +73,7 @@ export const UserDeleteSection = observer(() => {
     return (
         <>
             {/* Delete Account Section */}
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between py-6">
                 <div className="space-y-1">
                     <p className="text-regularPlus font-medium">Delete Account</p>
                     <p className="text-small text-muted-foreground">
