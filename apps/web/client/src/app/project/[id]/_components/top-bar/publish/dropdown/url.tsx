@@ -11,20 +11,25 @@ export const UrlSection = ({ url, isCopyable }: { url: string; isCopyable: boole
     const [isCopied, setIsCopied] = useState(false);
     const validUrl = getValidUrl(url);
 
-    const copyUrl = () => {
-        navigator.clipboard.writeText(validUrl);
-        toast.success('Copied to clipboard');
-        setIsCopied(true);
-        setTimeout(() => {
-            setIsCopied(false);
-        }, 2000);
+    const copyUrl = async () => {
+        try {
+            await navigator.clipboard.writeText(validUrl);
+            toast.success('Copied to clipboard');
+            setIsCopied(true);
+            setTimeout(() => {
+                setIsCopied(false);
+            }, 2000);
+        } catch (error) {
+            console.error('Failed to copy URL to clipboard:', error);
+            toast.error('Failed to copy to clipboard');
+        }
     };
 
     return (
         <div className="flex flex-row items-center justify-between gap-2">
             <Input className="bg-background-secondary text-mini w-full" value={url} readOnly />
             {isCopyable ? (
-                <Button onClick={copyUrl} variant="outline" size="icon">
+                <Button onClick={() => void copyUrl()} variant="outline" size="icon">
                     {isCopied ? (
                         <Icons.Check className="h-4 w-4" />
                     ) : (

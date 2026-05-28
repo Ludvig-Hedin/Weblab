@@ -1,5 +1,41 @@
 # Code Review Backlog
 
+## Bug Hunt — 2026-05-28 — F-200..F-209 (Editor Top Bar — continued)
+
+Exhaustive deeper `/bug-hunt` sweep across all top-bar features. `bun typecheck` exit 0; `bun lint` exit 0 before and after all fixes.
+
+### Auto-fixed (1 issue)
+
+- **`top-bar/publish/dropdown/url.tsx:15` — Clipboard write not awaited; false "Copied!" toast on failure.**
+  `navigator.clipboard.writeText(validUrl)` was synchronous-fire-and-forget: the success toast and `setIsCopied(true)` fired before the Promise resolved, so permission-denied or unavailable clipboard APIs delivered a false success indicator to the user. Changed `copyUrl` to `async`, added `await`, wrapped in `try/catch`, and changed `onClick={copyUrl}` → `onClick={() => void copyUrl()}`. Error path shows `toast.error('Failed to copy to clipboard')`.
+
+### Deferred (6 issues)
+
+- **`top-bar/publish/dropdown/provider-switcher.tsx:17` — `useQuery(api.hostingConnections.list, {})` has no `skip` guard.**
+  Unlike `hosting-integrations-dialog.tsx` which guards with `open ? {} : 'skip'`, `ProviderSwitcher` fires unconditionally. Radix DropdownMenuContent unmounts content by default so the query is only active while the dropdown is open — acceptable for now, but should add explicit `skip` guard for parity and to protect against layout changes that keep content mounted. Low priority.
+
+- **`top-bar/connection-chip.tsx:21-24` — `useTranslations` cast bypasses next-intl key type checking.**
+  `const t = useTranslations('editor.topBar.connection') as (key: string, values?: Record<string, number>) => string;` strips the strict ICU key union. Renamed or missing translation keys won't be caught at compile time. Remove the cast and fix any resulting type errors against the messages JSON.
+
+- **`top-bar/git-actions.tsx:80` — `loadGitInfo` missing from `useEffect` deps.**
+  `loadGitInfo` closes over `editorEngine.activeSandbox?.gitManager`. If the sandbox ref changes while the dialog is open, it uses a stale manager. Low risk (stable MobX ref in practice). Fix: wrap `loadGitInfo` in `useCallback` and add to dep array.
+
+- **`top-bar/publish/dropdown/preview-domain-section.tsx:176` — `publish()` in "Update" `onClick` not wrapped in `void`.**
+  `onClick={() => publish()}` returns the unhandled promise. `publish()` catches all errors internally so this is lint-only. Change to `onClick={() => void publish()}`.
+
+- **`top-bar/publish/provider.tsx:154` — `toast.success('Deployment success!')` fires immediately after scheduling, not after completion.**
+  `runDeployment` (`api.publishActions.run`) likely returns before the build/host finishes (deployment status is tracked reactively via `deployments.getByType` live queries). The toast should say "Deployment started" or be removed in favour of the reactive status already tracked in `TriggerButton`.
+
+- **`top-bar/project-breadcrumb.tsx:61` — `captureScreenshot()` async rejections escape `try/catch`.**
+  `void editorEngine.screenshot.captureScreenshot()` discards the promise. The `try/catch` only catches synchronous throws. Async rejections after the first `await` inside `captureScreenshot` go unhandled. Fix: attach `.catch(console.error)` to the discarded promise, or `await` inside an inner async IIFE.
+
+### Not addressed (pre-existing, tracked separately)
+
+- `git-actions.tsx` commit-message divergence (`createCommit` auto-generates vs `commit` falls back to `'New Weblab backup'`) — tracked with `TODO(bug-hunt)` comment in code.
+- `trigger-button.tsx` `editorEngine.history.length` as "changes since deploy" proxy — tracked with `TODO(bug-hunt)` comment in code.
+
+---
+
 ## Bug Hunt — 2026-05-28 — F-380..F-392 (CMS workspace)
 
 Scoped `/bug-hunt` sweep over `apps/web/client/src/app/project/[id]/_components/cms-workspace/` (13 files, F-380..F-392). `bun typecheck` exit 0; `bunx eslint --max-warnings 0` exit 0 both before and after fixes.
