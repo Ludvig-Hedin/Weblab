@@ -412,13 +412,17 @@ export const _validateAndInsert = internalMutation({
             throw new Error('FORBIDDEN: actorUserId mismatch');
         }
 
+        // Canonical-form email — all comparisons + the persisted row use
+        // lowercase so casing variants (`Foo@bar.com` vs `foo@bar.com`)
+        // can't bypass the dedupe guards below.
+        const lcEmail = args.inviteeEmail.toLowerCase();
+
         // Conflict guard: already a member. Use the `by_email` index instead
         // of scanning all users — Convex's 16k document read limit per
         // mutation would otherwise cap invitations once the user base grows.
         // Email matching is case-insensitive: try lowercase first (canonical
         // form for new rows), fall back to the as-supplied value for legacy
         // rows that may have mixed casing.
-        const lcEmail = args.inviteeEmail.toLowerCase();
         const lcMatch = await ctx.db
             .query('users')
             .withIndex('by_email', (q) => q.eq('email', lcEmail))
@@ -443,11 +447,13 @@ export const _validateAndInsert = internalMutation({
             }
         }
 
-        // Conflict guard: another pending invitation already exists.
+        // Conflict guard: another pending invitation already exists. Use the
+        // canonical lowercase form so a re-invite with different casing can't
+        // create a duplicate pending row.
         const existingInvite = await ctx.db
             .query('projectInvitations')
             .withIndex('by_invitee_email_project', (q) =>
-                q.eq('inviteeEmail', args.inviteeEmail).eq('projectId', args.projectId),
+                q.eq('inviteeEmail', lcEmail).eq('projectId', args.projectId),
             )
             .first();
         if (existingInvite && existingInvite.status === PENDING) {
@@ -469,7 +475,9 @@ export const _validateAndInsert = internalMutation({
         const invitationId = await ctx.db.insert('projectInvitations', {
             projectId: args.projectId,
             inviterId: args.actorUserId,
-            inviteeEmail: args.inviteeEmail,
+            // Persist the canonical lowercase form so the `by_invitee_email_project`
+            // index lookup above stays consistent across casing variants.
+            inviteeEmail: lcEmail,
             token: args.token,
             role: MEMBER_TO_LEGACY[args.memberRole],
             memberRole: args.memberRole,
@@ -482,7 +490,7 @@ export const _validateAndInsert = internalMutation({
             event: 'project_member.invited',
             projectId: args.projectId,
             actorUserId: args.actorUserId,
-            payload: { email: args.inviteeEmail, memberRole: args.memberRole },
+            payload: { email: lcEmail, memberRole: args.memberRole },
         });
 
         return (await ctx.db.get(invitationId))!;

@@ -79,10 +79,13 @@ export const list = query({
     handler: async (ctx, { projectId, scope = 'all' }) => {
         const user = await requireUser(ctx);
         if (scope === 'project' && !projectId) return [];
+        // Defensive cap: skills are user-scoped and the canonical UI lists
+        // them all. 4k is well above any realistic personal-skill count;
+        // if a real user ever hits the cap, add proper pagination.
         const rows = await ctx.db
             .query('skills')
             .withIndex('by_user', (q) => q.eq('userId', user._id))
-            .collect();
+            .take(4000);
         let filtered: Doc<'skills'>[];
         if (scope === 'global') {
             filtered = rows.filter((r) => r.projectId === undefined);

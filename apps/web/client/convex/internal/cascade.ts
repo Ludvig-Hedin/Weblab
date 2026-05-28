@@ -356,6 +356,16 @@ export const deleteUserCascade = internalMutation({
             .collect();
         for (const u of usage) await ctx.db.delete(u._id);
 
+        // AI usage analytics events (token counts + cost per request). The
+        // FK is required (`v.id('users')`) so leaving rows behind would
+        // dangle the reference and surface deleted users on the admin
+        // /admin/usage dashboard (F-731).
+        const aiUsage = await ctx.db
+            .query('aiUsageEvents')
+            .withIndex('by_user_createdAt', (q) => q.eq('userId', userId))
+            .collect();
+        for (const e of aiUsage) await ctx.db.delete(e._id);
+
         // Feedback rows → SET NULL on userId (mirror Drizzle onDelete:setNull)
         const feedbacks = await ctx.db
             .query('feedbacks')

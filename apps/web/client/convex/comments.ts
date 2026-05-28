@@ -9,6 +9,15 @@ import { requireCap } from './lib/permissions';
 
 // Convex port of apps/web/client/src/server/api/routers/comment/comment.ts.
 
+// Cap user-supplied comment body length so any single comment row stays well
+// below the 1MB Convex doc limit and the `list` query payload stays bounded.
+const MAX_COMMENT_BYTES = 10_000;
+const assertContentSize = (content: string) => {
+    if (new TextEncoder().encode(content).length > MAX_COMMENT_BYTES) {
+        throw new Error(`BAD_REQUEST: content exceeds ${MAX_COMMENT_BYTES} bytes`);
+    }
+};
+
 const loadComment = async (
     ctx: QueryCtx | MutationCtx,
     commentId: Id<'projectComments'>,
@@ -33,11 +42,15 @@ export const list = query({
             .take(500);
         const enriched = await Promise.all(
             comments.map(async (comment) => {
+                // Defensive cap per thread: a single comment with thousands
+                // of replies would otherwise blow the canvas-overlay payload.
+                // 500 is well above any realistic thread length; add proper
+                // pagination if real-world threads ever hit it.
                 const replies = await ctx.db
                     .query('commentReplies')
                     .withIndex('by_comment', (q) => q.eq('commentId', comment._id))
                     .order('asc')
-                    .collect();
+                    .take(500);
                 return { ...comment, replies };
             }),
         );
@@ -57,6 +70,7 @@ export const create = mutation({
         if (args.content.trim().length === 0) {
             throw new Error('BAD_REQUEST: content empty');
         }
+        assertContentSize(args.content);
         const { user } = await requireCap(ctx, 'project.comment', {
             projectId: args.projectId,
         });
@@ -85,6 +99,7 @@ export const update = mutation({
         if (content.trim().length === 0) {
             throw new Error('BAD_REQUEST: content empty');
         }
+        assertContentSize(content);
         const existing = await loadComment(ctx, commentId);
         const { user } = await requireCap(ctx, 'project.comment', {
             projectId: existing.projectId,

@@ -150,7 +150,7 @@ export const generateSuggestions = action({
         const { object } = await generateObject({
             // Same cross-provider type bridge as `generateTitle` above; see
             // that comment for rationale.
-            model: openrouter('openai/gpt-5.5') as unknown as LanguageModel,
+            model: openrouter('openai/gpt-5') as unknown as LanguageModel,
             schema: ChatSuggestionsSchema,
             messages: [
                 { role: 'system', content: SUGGESTION_SYSTEM_PROMPT },
