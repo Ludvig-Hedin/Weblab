@@ -1,5 +1,92 @@
 # Code Review Backlog
 
+## Deep Hunt Round 2 — 2026-05-27 — reviewer pass on Round 1 edits
+
+Round 1 deep bug-hunt landed 10 auto-fixes across left-panel / right-panel /
+ai-prompt-composer (3 subagents in parallel). Re-running `claude-review` on
+the new edits surfaced **8 more real defects** the original fix pass missed,
+plus 5 lower-priority info items. `bun typecheck` exit 0 throughout;
+reviewer final pass returned `{"issues":[]}`.
+
+### Auto-fixed (8 high-confidence)
+
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:231` —
+  Hex `<input>` `onChange` blanket-uppercased every keystroke, but the same
+  field round-trips `var(--token)` / named-color raw values. `var(--accent)` →
+  `VAR(--ACCENT)` silently broke the binding (CSS custom-property names are
+  case-sensitive). Only uppercase when the input still looks hex-shaped.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:173` —
+  `commitAlpha` called `buildHexWithAlpha(hexDraft, …)` even when the value
+  was a raw `var()/named/hsl` — producing `#var(--accent)80` and corrupting
+  the color. Guard with `if (!hex) return` and pass the parsed `hex` instead
+  of the draft string.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:160` —
+  `commitHex` accepted 3-, 6-, and 8-digit hex but always appended
+  `alphaDraft` via `buildHexWithAlpha`. `#F00` + alpha 50 → `#F0080`
+  (invalid 5-digit color); 8-digit input (already alpha-embedded) → 10-digit
+  garbage. Expand 3-digit to 6-digit first; pass 8-digit through verbatim.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:240` —
+  Escape on the hex input restored `setHexDraft(hex)`, but the draft is
+  initialized as `hex || raw || ''`. For raw values (`var()`, named, hsl)
+  `hex` is empty, so Escape blanked the field instead of restoring the
+  original. Mirror the init/effect logic.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:259` —
+  Clearing the alpha field then blurring committed alpha `0`, making the
+  fill / stroke fully transparent from an accidental delete. Treat empty
+  input as "no change" — revert to current `alpha`.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/code-display/collapsible-code-block.tsx:68` —
+  `copyToClipboard` did `void navigator.clipboard.writeText(content)` and
+  immediately flipped to "Copied", showing fake success on permission-denied
+  / insecure-context rejection. Awaited the write with `try/catch +
+  toast.error`. (Same anti-pattern fixed in `provider-setup-dialog.tsx`.)
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/code-display/collapsible-code-block.tsx:79` —
+  `await editorEngine.activeSandbox?.writeFile(...)` resolved to `undefined`
+  when no sandbox was active, then `setApplyDone(true)` rendered "Applied"
+  without ever writing the file. Added an explicit `if (!sandbox)` branch
+  with `toast.error('No active sandbox to apply to'); return`.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/code-display/collapsible-code-block.tsx:48` —
+  Interface declared `applied: boolean` required, but the component
+  destructure omitted it. The Apply button's label was derived from local
+  `applyDone` state seeded `false`, so a file already applied always
+  rendered as "Apply" after remount / scroll-away-and-back. Wired
+  `useState(applied)` so persisted state survives remount.
+
+### Needs human review (5 info-level — not auto-fixed this round)
+
+These are real defects but lower-impact than the auto-fixed set. No source
+edits this pass — flagged for follow-up so they don't get lost.
+
+- `apps/web/client/src/app/project/[id]/_components/left-panel/code-panel/code-tab/index.tsx:360` —
+  `closeFileInternal` calls `setActiveEditorFile(...)` from inside
+  `setOpenedEditorFiles((prev) => …)`. React requires updater fns to be
+  pure; nested setState runs twice under StrictMode (dev). Currently
+  idempotent here but fragile.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/tool-call-display.tsx:39` —
+  `toolName = toolPart.type.split('-')[1]` truncates multi-hyphen tool
+  names (`tool-web-search` → `web`), making downstream equality checks
+  silently fall through to generic rendering. Use `slice('tool-'.length)`.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/chat-tab/chat-messages/message-content/plan-question-card.tsx:29` —
+  `submitted` initialized once from `answered ?? false`; never re-syncs if
+  the parent flips `answered` to `true` via a different path (e.g. another
+  client resolves the tool first). User can re-resolve an already-answered
+  tool. Add `useEffect(() => { if (answered) setSubmitted(true); }, [answered])`.
+- `apps/web/client/src/app/project/[id]/_components/left-panel/design-panel/windows-tab/frame-dimensions.tsx:40` —
+  `device` derived once via lazy `useState`; when the frame's dimensions
+  change from outside this panel, the Device dropdown shows a stale preset
+  label. Recompute from metadata on change.
+- `apps/web/client/src/app/project/[id]/_components/right-panel/style-tab-v4/controls/color-row.tsx:53` —
+  `cssColorToHex` parses `getComputedStyle().color` with
+  `/^rgba?\(([^)]+)\)$/` then splits on `,`. Works against current browser
+  serialization, but CSS Color 4 space-form (`rgb(0 0 0 / 0.5)`) would
+  parse as a single token and yield black with alpha 0. Defensive
+  `split(/[\s,/]+/)` future-proofs this.
+
+### Validation
+
+- `bun typecheck` → exit 0 after each fix.
+- `claude-review` re-run on `color-row.tsx` + `collapsible-code-block.tsx`
+  after both fix waves → final `{"issues":[]}`.
+
 ## Deep Bug Hunt — 2026-05-27 — F-291 (ai-prompt-composer)
 
 Deep recursion through `apps/web/client/src/components/ai-prompt-composer/` plus both callers (editor `chat-input/index.tsx` and public hero `_components/hero/create.tsx`). `bun typecheck` exits 0 after fixes.
@@ -1917,6 +2004,69 @@ unions or branded aliases that match the Convex schema.
   the existing not-found card. Pre-existing — not introduced by this
   pass. `/invitation/workspace/[id]` looks up by `token` (string), not
   `id`, so it doesn't trip the validator the same way.
+  **Update 2026-05-27 (round 3): RESOLVED via client-side ID pre-filter.**
+  Added `const CONVEX_ID_LIKE = /^[a-z0-9]{16,}$/i` test in
+  `Main`; when the path param fails the format check the `useQuery` call
+  passes `'skip'` instead of an invalid `Id`. Result: garbage URLs render
+  the page-local "Invitation not found" card; valid IDs that don't
+  resolve (deleted/expired invite) keep doing so. Cheaper than the
+  server-side `fetchQuery` refactor proposed above.
+
+## 2026-05-27 — Bug hunt round 3 (F-080..F-093 final pass)
+
+### Auto-fixed (1 issue)
+
+- `apps/web/client/src/app/invitation/[id]/_components/main.tsx:31-49` —
+  Convex `v.id('projectInvitations')` crash on malformed invitation URL.
+  See round-2 entry above for details; this round actually applied the
+  fix. Pattern matches 16+ char lowercase alphanumeric — passes every
+  real Convex Id, rejects words / numbers / emails. False positive
+  (malformed-but-plausible Id) still falls through to the existing
+  "Invitation not found" branch.
+
+### Examined and clean (round 3)
+
+- `invitation/workspace/[id]/_components/main.tsx` — looks up by token
+  (string), not Convex Id. Not affected by the same crash. Decline
+  button intentionally a navigation-only fallback (no decline mutation
+  in `api.workspaces.*` yet — backlog).
+- `sign-in-client.tsx` + `clerk-auth-form.tsx` `initialEmail` plumbing
+  — round-2 added `?email=` prefill; checked the threading through both
+  components. Prefill respects `localStorage` last-used email
+  (prefill < localStorage < user-typed). Sanitizer rejects emails with
+  markup / control chars.
+- `verify/page.tsx` `setActive` after success — single `await`, wrapped
+  in outer try/catch. Clerk's "MFA prompt mid-flow" status redirects to
+  `/sign-in?reason=...` — already backlog item.
+- `auth/redirect/page.tsx` — server-only redirect, sanitizer rejects
+  non-relative URLs on the server (no `window.location.origin`
+  fallback). Open-redirect path closed.
+- `profile-setup/layout.tsx` — server-side `getCurrentUser()` gate
+  returns `redirect(getSignInUrl('/profile-setup'))` for unauth users.
+  The bridged user check is `cache()`'d so layout + page share one
+  Clerk roundtrip.
+
+### Flagged for future (small UX, not user-blocking)
+
+- `verify/page.tsx handleResend` — resend updates the in-memory
+  countdown but does not refresh the `?sentAt=` URL param. Page refresh
+  after resend reads stale `sentAt`, so the countdown can show "0s
+  remaining" while Clerk's actual cooldown is still ticking. Fix:
+  `window.history.replaceState({}, '', \`${pathname}?sentAt=${Date.now()}\`)`
+  inside `handleResend`. Edge — only triggered by mid-flow refresh.
+- `invitation/workspace/[id]/_components/main.tsx:84-86` — Decline
+  button is a pure navigation (`router.push('/projects')`); the
+  workspace invite stays open in the DB. Should call an
+  `api.workspaces.inviteDecline` mutation that marks the invite as
+  declined. Convex module doesn't expose that yet — needs backend
+  scaffolding.
+
+### Validation
+
+- `bun typecheck` exit 0 on touched file (`bun typecheck` overall
+  exits 2 due to an unrelated WIP error in `convex/domainActions.ts`
+  from another agent — not caused by this pass; verified by `git diff`).
+- `bun lint` — zero new warnings on touched file.
 
 ### Examined and clean
 
@@ -1982,5 +2132,243 @@ These were candidate findings that I confirmed are safe under the actual code pa
 - `design-panel/brand-tab/font-panel/index.tsx:75-80` — `useCallback(debounce(performSearch, 300), [performSearch])` re-evaluates `debounce(...)` on every render but `useCallback` memoizes by `[performSearch]`, so the same debounced instance is returned between renders where `performSearch` is stable. Timer state is preserved across keystrokes.
 
 ### Validation
+
+- `bun typecheck` → exit 0 after fixes.
+
+## Bug Hunt — 2026-05-28 (deep pass on F-170..F-779 Convex/API surface)
+
+Scope: 263 unscanned paths from feature catalog (Convex backend, API routes,
+parser, models, framework). Dispatched 4 parallel scanners on highest-risk
+files (auth, payments, project data, CMS). Verified each finding before edits.
+
+### FIXED this pass (5)
+
+- `apps/web/client/convex/http.ts:107-151` — **Stripe sig rotation rejected
+  valid requests.** `Object.fromEntries` collapsed multiple `v1=` entries
+  into one — when Stripe sent both old + new signatures during secret
+  rotation, the wrong one was kept and verification failed. **Fix:** collect
+  every `v1` into a list and constant-time-compare against each; accept on
+  any match.
+- `apps/web/client/convex/usage.ts:233` — **`endedAt >= now` deducted from
+  expired buckets at boundary.** Aligned to `> now` (strict) matching
+  `proPlanUsage`'s display gate so a bucket at the exact expiry ms cannot
+  silently consume credits.
+- `apps/web/client/convex/usage.ts:81-83` — **Daily fence-post.**
+  `r.timestamp < now` undercounted records at exactly `now`. Aligned with
+  outer index bound `.lte('timestamp', now)`.
+- `apps/web/client/convex/comments.ts` + `commentReplies.ts` — **No
+  upper-bound on user-supplied content length.** Members could spam
+  multi-MB comments approaching the 1MB Convex doc limit and bloat
+  `comments.list` payload. Added `assertContentSize` with a 10KB UTF-8
+  byte budget on create + update mutations of both tables.
+- `apps/web/client/convex/subscriptionActions.ts:61-100` — **Checkout race
+  could create duplicate active subscriptions.** Added
+  `_findActiveSubscriptionForCaller` guard before
+  `stripe.checkout.sessions.create`; throws `ALREADY_SUBSCRIBED` instead
+  of letting two Stripe Checkout Sessions resolve to two active rows
+  (which then breaks `.unique()` in the billing portal flow). Mirrors
+  `startPromoCheckout`.
+
+### Verified NOT bugs (false alarms / already-mitigated)
+
+- `apps/web/client/src/app/api/chat/summarize/route.ts:128-138` — Agent
+  claimed a viewer could burn LLM spend. False: `incrementUsage` runs
+  against the caller's own quota at line 152, and the existing
+  `MAX_MESSAGES / MAX_MESSAGE_BYTES / MAX_TOTAL_BYTES` caps bound the
+  LLM bill. The `conversations.get` gate prevents enumeration.
+- `apps/web/client/convex/clerkWebhooks.ts:54-56` — Webhook only writes
+  after Clerk's primary selection; the no-email case returns 202 early.
+  Defense-in-depth `verification.status === 'verified'` could be added
+  but Clerk's API protects this in practice.
+- `apps/web/client/convex/utils.ts:65-87` — `assertSafeHttpUrl` octal
+  guard correct (regex catch-all at line 77).
+- `apps/web/client/convex/http.ts:50-89` — Svix verify already enforces
+  5-minute timestamp tolerance.
+
+### Remaining backlog — confirmed real but architectural / non-blocking
+
+**Webhooks / billing**
+- `apps/web/client/convex/http.ts` Stripe webhook — **no event-id
+  idempotency.** Retries can double-grant rate-limit buckets. Requires
+  new `stripeEventLog` table keyed by `evt.id`. Schema migration needed.
+- `apps/web/client/convex/lib/stripeWebhook.ts:265-282` — **pro-rated
+  upgrade grants full tier-delta credits even on day 29-of-30.** Scale
+  by remaining period fraction.
+- `apps/web/client/convex/lib/stripeWebhook.ts:308-326` — **unrelated
+  `customer.subscription.updated` events silently clear
+  `scheduledAction` / `scheduledChangeAt`.** Inspect event's
+  `previous_attributes` before clearing.
+- `apps/web/client/convex/lib/stripeWebhook.ts:495-517` —
+  `_clearScheduleChange` uses `.filter()` instead of an index; full
+  scan. Add `by_stripe_subscription_schedule_id`.
+- `apps/web/client/convex/lib/stripeWebhook.ts:170-172` — In existing-row
+  branch, `stripeSubscriptionItemId` not patched on item add/remove.
+- `apps/web/client/convex/subscriptionActions.ts:172-174` — `update`
+  action's `subscriptionSchedules.release` not wrapped in try/catch;
+  mirror `releaseSubscriptionSchedule` at line 335.
+- `apps/web/client/convex/subscriptionActions.ts:216` —
+  `scheduledChangeAt` fallback `Date.now()` shows wrong UI timestamp when
+  Stripe returns no `end_date`; throw instead.
+- `apps/web/client/convex/subscriptionActions.ts:243-251` —
+  `startPromoCheckout` returns `not_authenticated` for authenticated user
+  with no email; surface `missing_email` separately.
+- `packages/stripe/src/functions.ts:99-112` — `getPromotionCodeIdByCode`
+  in-memory cache never expires; rotated promo serves dead id.
+
+**Convex schemas / validators / writes**
+- `apps/web/client/convex/projects.ts:760-781` — **`runtimeMetadata:
+  v.optional(v.any())` lets a client patch wipe the `framework` field.**
+  Narrow validator or merge inside handler.
+- `apps/web/client/convex/messages.ts:90-104` — `upsert` with stale
+  `message.id` after cascade delete silently inserts a NEW row; client
+  cache desyncs.
+- `apps/web/client/convex/cmsBindings.ts:158` — `oid` length not capped.
+- `apps/web/client/convex/cmsBindings.ts:107-110` — `snapshot` drops
+  `current-field` / `page-item-field` kinds; preview-render gets no
+  data.
+- `apps/web/client/convex/cmsItems.ts:186-230` — `_upsertBatch` writes
+  adapter-supplied values without `validateAndCleanItemValues`.
+- `apps/web/client/convex/cmsCollections.ts:207-217` — Cascade only
+  removes bindings whose `payload.collectionId` matches; contextual
+  bindings remain.
+- `apps/web/client/convex/cmsFields.ts:151-152` — `reorder` patches
+  without validating `orderedFieldIds.length === existing.length`.
+- `apps/web/client/convex/conversations.ts:84-99` — `update` does not
+  cap `displayName` / `suggestions` size.
+
+**Auth defense-in-depth**
+- `apps/web/client/convex/domainActionsDb.ts:209-235` —
+  `_verificationMarkVerified` lacks `requireCap` at the write site.
+- `apps/web/client/convex/domainActionsDb.ts:317-333` — Same omission on
+  `_insertOwnedProjectDomain`.
+- `apps/web/client/convex/domainActionsDb.ts:209-235` — **Duplicate
+  `projectCustomDomains` rows on re-verify.** `customGet` picks
+  arbitrarily via `.first()`. Query + patch existing row first.
+- `apps/web/client/convex/domainActionsDb.ts:341-356` —
+  `simpleParseDomain` mishandles `.co.uk` / `.com.au` ccTLDs (already
+  in agent-memory).
+- `apps/web/client/convex/cmsActions.ts:155-172` —
+  `sourceListRemoteCollections` NOT_FOUND throw is an existence oracle.
+- `apps/web/client/convex/cmsActions.ts:238-247` — `sourceMapCollections`
+  initial-sync error swallowed; UI shows success.
+- `apps/web/client/convex/internal/cascade.ts:317-323` — User deletion
+  doesn't transfer ownership of team workspaces; orphan team workspaces
+  with dangling membership rows.
+- `apps/web/client/convex/workspaces.ts:541-552` (`inviteAccept`) —
+  Uses `identity.email` without checking `emailVerified`.
+- `apps/web/client/convex/projectInvitations.ts:330-335` — Concurrent
+  accepts can insert duplicate `projectMembers` rows.
+- `apps/web/client/convex/workspaces.ts:441-448` — Same race for
+  `inviteCreate` pending uniqueness.
+- `apps/web/client/convex/projectInvitations.ts:421-432` — `inviteeEmail`
+  stored unnormalized; re-invitations with different casing create
+  duplicate rows.
+- `apps/web/client/convex/projectInvitations.ts:330` — `memberRole`
+  fallback `?? 'viewer'` silently downgrades legacy `role: 'admin'`.
+- `apps/web/client/convex/storage.ts:40-47` — `getFileUrl` is a
+  global-namespace read (confirmed via in-file TODO).
+
+**Concurrency / performance**
+- `apps/web/client/convex/branches.ts:298-305` —
+  `_insertBranchWithFrames` silently returns 0 frames if canvas missing.
+- `apps/web/client/convex/presence.ts:80-91` — `leave` throws NOT_FOUND
+  when called against deleted project; swallow as no-op.
+- `apps/web/client/convex/internal/cleanup.ts:18-22` —
+  `purgeStaleCursors` collects without `.take` / loop; will exceed 8K
+  mutation limit at scale.
+- `apps/web/client/convex/crons.ts:14` — Single cron has no try/catch.
+- `apps/web/client/convex/projects.ts:106-135` — `list` query loops
+  `ctx.db.get(m.projectId)` serially.
+- `apps/web/client/convex/branchActions.ts:120-131` — `createBlank`
+  extra `api.projects.get` round-trip.
+- `apps/web/client/convex/aiUsageEvents.ts:247-253` —
+  `conversationTotals` filters by `userId` after `withIndex` — full
+  scan.
+- `apps/web/client/convex/aiUsageEvents.ts:188-209` — `aggregateAdmin`
+  `.collect()` over unbounded window.
+- `apps/web/client/convex/deployments.ts:243-247` —
+  `updateDeploymentRow` swallows errors; deploy reports success while
+  DB shows in_progress.
+- `apps/web/client/convex/publishActions.ts:163` — `provider.destroy()`
+  in `finally` can mask the original deploy error.
+
+**Misc**
+- `apps/web/client/convex/projectActions.ts:87` — **Dead `csb.app`
+  fallback URL** for screenshot. Replace with Vercel-preview convention
+  or throw.
+- `apps/web/client/convex/branchActions.ts:24-32` —
+  `generateUniqueBranchName` reads then inserts; race window.
+- `apps/web/client/convex/projectCreateRequests.ts:29-39` —
+  `updateStatus` patches first matching row.
+- `apps/web/client/convex/projectInvitationActions.ts:97-128` —
+  `_rollbackInvitation` best-effort; transient failure leaves invitation
+  half-committed.
+- `apps/web/client/convex/pageAccess.ts:99` — PBKDF2 100k iterations
+  below OWASP 600k+ guidance.
+
+### Validation (deep pass)
+
+- `bun typecheck` → exit 0.
+
+---
+
+## Deep Bug Hunt — 2026-05-27 — F-260..F-301 (right-panel)
+
+Deep recursion through `apps/web/client/src/app/project/[id]/_components/right-panel/` — chat-tab, interactions-tab, comments-tab, style-tab-v2/v3/v4 (sections, hooks, controls). Re-read in dependency-aware batches; verified each candidate by reading surrounding code + callers/callees. `bun typecheck` exits 0 after fixes.
+
+### Auto-fixed (5)
+
+- **`chat-tab/chat-messages/message-content/tool-call-display.tsx:262` — TypecheckTool failure double-rendered the error in stdout AND stderr.**
+  On failure (`result.success === false`), `defaultStdOut` was set to the raw ANSI-laden `result?.error` and `defaultStdErr` was set to the ANSI-stripped `error`. The same content rendered twice in the bash-output panel (once formatted with ANSI artifacts, once cleaned). Fixed: stdout = `'✅ Typecheck passed!'` only on success and `null` on failure; stderr carries the ANSI-stripped error only on failure.
+- **`style-tab-v4/controls/color-row.tsx:47-71` — `cssColorToHex` probe element leaks into the DOM when `getComputedStyle` throws.**
+  `removeChild` lived inside the try block AFTER the `getComputedStyle` call. If the browser threw on the read (cross-origin frame, detached document edge cases), the catch returned `null` but the `<span>` probe stayed grafted to `document.body`. Moved the cleanup into a `finally` so the probe is always removed.
+- **`chat-tab/chat-messages/message-content/plan-question-card.tsx:102-107` — "Answered: " rendered blank for already-answered questions on re-mount.**
+  `selected` is local-only state, populated only by user clicks in this session. When the parent renders the card with `answered=true` (history, page refresh, conversation switch), `selected` is the empty Set and the label rendered as `Answered: ` with nothing after the colon. Fixed: show plain `Answered` when `selected.size === 0`, keep the full `Answered: x, y` only when we can reproduce the picks locally.
+- **`chat-tab/code-display/collapsible-code-block.tsx:73-84` — `applyFile` swallowed write errors silently.**
+  `catch (e) { console.error(...) }` only logged; the button reverted to "Apply" with no user-visible signal that the write failed. Added `toast.error` with the message (or a generic fallback) on the catch path so the user can retry.
+
+(The TypecheckTool stdout/stderr de-duplication, color-row probe cleanup, plan-question-card answered label, and collapsible-code-block apply-error toast are 4 of the auto-fixed list above — the 5th was logged inline in the file as a TODO is unnecessary because the four cited are full file fixes; treat this section as 4 auto-fixes.)
+
+### Needs human review (12)
+
+- **`right-panel/index.tsx:127` — `useQuery(api.projectCreateRequests.getPendingRequest, { projectId: editorEngine.projectId as Id<'projects'> })` fires with an empty projectId.**
+  `editorEngine.projectId` is `''` until the engine loads. The query is dispatched immediately, triggering `Could not find document for the given id` on the Convex side until projectId is populated. Suggested fix: pass `'skip'` as arg 2 when `editorEngine.projectId` is falsy.
+- **`chat-tab/chat-messages/user-message.tsx:122-131` — `handleSubmit` awaits a non-promise-returning function.**
+  `handleSubmit` does `await sendMessage(editValue)` (line 127). `sendMessage` is `async (newContent) => { toast.promise(onEditMessage(...), {...}); }` — it calls `toast.promise` but DOES NOT return or await the inner promise, so the outer `await sendMessage(...)` resolves immediately. `isSubmittingEdit` is cleared before the underlying network call completes, so the spinner blinks for one render and disappears even though the request is still in-flight. Suggested fix: return the promise from `sendMessage` (`return toast.promise(...);`) so `handleSubmit`'s `finally` actually waits for completion.
+- **`chat-tab/chat-input/index.tsx:236-251` — `handleEnterSelection` is invoked twice on Enter in capture-phase listener.**
+  The capture-phase keydown handler checks `suggestionRef.current?.handleEnterSelection()` to decide whether to preventDefault, then calls it again inside the if-body ("Handle the suggestion selection"). The first call already executes the side effect (`setInput` + `setFocusedIndex(-1)`); the second call short-circuits at `focusedIndex === -1` and returns false. Redundant — and brittle if either branch changes. Suggested fix: store the result and gate side effect once: `const handled = suggestionRef.current?.handleEnterSelection(); if (handled) { e.preventDefault(); ...; return; }`.
+- **`chat-tab/chat-input/index.tsx:140-160` — `generateSuggestions` lacks a stale-response guard (re-flag from F-291 hunt).**
+  Earlier hunt flagged this for the composer side; same concern lives in chat-input. Two interleaved calls land out-of-order — older response overwrites newer suggestions. Capture conversation ID + seq, drop stale.
+- **`chat-tab/error.tsx:45-73` — Two effects both call `consumeFixErrorsRequest`, can fire the fix-prompt twice.**
+  Effect 1 (line 45-53) listens for the `FIX_ERRORS_EVENT` window event and calls `editorEngine.chat.consumeFixErrorsRequest() + sendFixError()` synchronously. Effect 2 (line 55-73) watches the MobX observable `pendingFixErrorsRequest` and ALSO calls `consumeFixErrorsRequest() + sendFixError()`. If a caller sets the store flag AND dispatches the window event (or vice versa), both effects fire — the second one's `consumeFixErrorsRequest()` returns false after the first consumed, so the duplicate is avoided by luck. Suggested fix: pick one path (the store observable is the cleaner contract) and route the window event through the store too.
+- **`style-tab-v4/sections/effects.tsx:166-173` / `transforms.tsx:45-52` — Auto-open/close `customOpen` overrides user toggles when prop count crosses zero.**
+  Both sections have two effects: one sets `customOpen(true)` when `advancedSetCount > 0`, the other sets `customOpen(false)` when count is zero. If the user manually toggles closed while a property is set, the state persists — until the user adds or removes a property, at which point the effect snaps `customOpen` back to track count. Acceptable optimistic behavior, but worth replacing with the `prevDivergentRef` pattern used in v3 OverlaysSection / v2 SpacingSection.
+- **`style-tab-v4/sections/layout.tsx:154-157` — Padding/margin H/V fields silently clobber per-side asymmetry on commit.**
+  `padHValue = padLeft.value` (left only). Committing through `commitPadH(value)` writes BOTH `padding-left` AND `padding-right` to that value — silently erasing any asymmetric per-side override the user set via the per-side popover. Same for V (top/bottom), margin H, margin V. Suggested fix: show "Mixed" placeholder when `padLeft.value !== padRight.value` (and analogously for V), and emit `commitPadH` only when the field was actually edited.
+- **`style-tab-v2/sections/spacing.tsx:100-105` — `BoxModel.setAll` writes four properties as separate undo entries (v2 fallback regression).**
+  Calls four separate `setter.set(value)` for top/right/bottom/left — produces 4 history entries for one gesture, so a single Cmd+Z only reverts one side. v3 OverlaysSection and v4 PadGroup correctly use `useStyleBatchSetter().setMultiple()`. Suggested fix: import `useStyleBatchSetter` and replace the 4 separate sets with one `setMultiple([...])` call.
+- **`style-tab-v2/controls/text-field.tsx:47-53` / `style-tab-v3/controls/text-field.tsx:47-53` / `style-tab-v4/controls/labeled-inputs.tsx:313-315` (LabeledTextInput) / `style-tab-v4/controls/trbl-grid.tsx:77` (SideField) — Stale-draft commit-on-blur in v2, v3, and parts of v4.**
+  All four input variants call `onBlur` ⇒ `if (draft !== value) onCommit(draft)` without the `userTouchedRef` defense v4's main `TextField` has. If the `value` prop updates from outside (undo/redo, sibling edit, multi-select change) while the input is focused but the user has not typed anything, `draft` is stale → blur writes the stale draft over the fresh value, silently reverting the external change. v4 TextField already fixed this pattern; port the defense to the others.
+- **`style-tab-v4/controls/pin-pad.tsx:180-184` — Blurring a PinPad side input without modification clobbers `auto` with `''`.**
+  `SideCell.onBlur` runs `if (next === '' && value !== 'auto' && value !== '') onCommit('auto'); else if (next !== value) onCommit(next);`. When the stored value is `'auto'`, the draft state is `''` (per line 152), so on blur `next === ''` and `value === 'auto'`, the first branch is skipped, then `next !== value` (`'' !== 'auto'`) fires `onCommit('')` — overwriting the explicit `auto` with an empty string. CSS-effectively equivalent, but the AST write fires unnecessarily and removes explicit author intent. Suggested fix: when `value === 'auto'` AND draft is empty AND the user didn't type, do nothing on blur. Same `userTouchedRef` pattern as v4 TextField would solve it.
+- **`style-tab-v4/controls/mode-number-cell.tsx:63-66, 100` — `CSS_TO_KEYWORD['100%'] = 'fill'` aliasing makes literal `100%` width unrepresentable.**
+  Any committed value of `100%` (e.g. typed manually) gets rendered as `fill` keyword on next paint, with no way to express "literally `100%`, not the fill mode". Designer intent for `width: 100%` is lost. If intentional (Figma-style "fill === 100%"), should be documented in JSDoc, and round-tripping should preserve raw `100%` until the user actively picks fill from the pill.
+- **`chat-tab/panel-dropdown.tsx:79-115` — Settings toggle UI lags 300ms behind user click (debounce eaten by UI state).**
+  Toggle item invokes `debouncedUpdateSettings({ showSuggestions: !showSuggestions })`. The UI reads from `userSettings?.showSuggestions` (Convex query), which doesn't update until the mutation resolves 300ms+ later. Click feels broken because the toggle pill stays unchanged. Suggested fix: maintain a local optimistic state that flips immediately on click and reconciles when the Convex query catches up.
+
+### Verified NOT bugs (10)
+
+- **`chat-tab/chat-tab-content/index.tsx:87-155` — Ollama probe AbortSignal.any fallback is correctly handled.** Both fallback `setTimeout` (line 103-106) AND controller-abort path on cleanup (line 152-153) are wired; double-abort on the same AbortController is a no-op.
+- **`chat-tab/chat-messages/index.tsx:47-48` — `[...messages].reverse().find(...)` is fine.** Mutating the reversed copy doesn't touch the original `messages` array.
+- **`chat-tab/chat-messages/multi-branch-revert-modal.tsx:64-74` — `restoreCheckpoint` never throws; promise-array always resolves.** Verified by reading `utils.ts`: every branch returns `{ success: boolean }` or `{ success: false }`, never rejects.
+- **`chat-tab/chat-messages/user-message.tsx:155-164` — `performRestore` catch is dead but harmless.** `restoreCheckpoint` swallows its own errors into a return value, so the outer try's catch only catches programmer errors. Toast on real failure is handled inside `restoreCheckpoint`.
+- **`chat-tab/chat-messages/message-content/actions-group.tsx:13` — `groupKey` prop is declared but unused in the function body.** Cosmetic — not a runtime defect.
+- **`chat-tab/chat-input/index.tsx:282-302` — ArrowUp / ArrowDown history navigation is fine.** Empty `messages` array correctly produces empty `userMessageHistory` via the `for` loop guard.
+- **`interactions-tab/controls/action-row.tsx:108-114, 125-131` — Duration/delay regex `[0-9.]+` cannot match empty.** `parsed[1] ?? '0'` is dead-code defense but harmless.
+- **`style-tab-v4/sections/background.tsx:65-67` — `extractUrl` non-greedy regex is correct for our use.** `(.*?)` + `['"]?\)$` matches the shortest substring ending with quote+paren; works for the URLs the panel ever writes.
+- **`style-tab-v4/sections/position.tsx:78-79` — `rawTransform.includes('scaleX(-1)')` substring match doesn't false-positive on `scaleX(-100)`.** The trailing `)` makes them non-overlapping substrings.
+- **`style-tab-v4/controls/icon-number-input.tsx:268-282` — Clicking the keyword button doesn't commit but is recoverable.** Local state desync on click-then-blur is reset by the sync effect at line 122-127 when the parent re-renders.
+
+### Validation (right-panel deep pass)
 
 - `bun typecheck` → exit 0 after fixes.

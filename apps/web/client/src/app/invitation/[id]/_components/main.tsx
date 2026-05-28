@@ -18,6 +18,19 @@ import { signOutEverywhere } from '@/utils/auth/sign-out';
 import { Routes } from '@/utils/constants';
 import { resetTelemetry } from '@/utils/telemetry';
 
+// Convex `Id` strings are lowercase base32-ish — alphanumeric, ~32 chars.
+// Anything else is a user-pasted garbage URL (`/invitation/abc?token=…`) that
+// would otherwise crash the page: the server-side `v.id('projectInvitations')`
+// validator throws, the throw bubbles to the root ErrorBoundary, and the user
+// sees "Unexpected error" instead of the page-local "Invitation not found"
+// card. Pre-filtering with `useQuery('skip')` keeps the failure mode polite.
+//
+// The pattern is intentionally loose (16+ chars) so any real Convex id passes;
+// real garbage (single words, integers, emails) is caught and a false-positive
+// on a malformed-but-plausible id falls through to the server validator and
+// still produces "Invitation not found" via the `!invitation` branch below.
+const CONVEX_ID_LIKE = /^[a-z0-9]{16,}$/i;
+
 export function Main({ invitationId }: { invitationId: string }) {
     const router = useRouter();
     const pathname = usePathname();
@@ -29,10 +42,13 @@ export function Main({ invitationId }: { invitationId: string }) {
     const [acceptInvitationError, setAcceptInvitationError] = useState<Error | null>(null);
     const [isAcceptingInvitation, setIsAcceptingInvitation] = useState(false);
 
-    const invitation = useQuery(api.projectInvitations.getWithoutToken, {
-        id: invitationId as Id<'projectInvitations'>,
-    });
-    const loadingInvitation = invitation === undefined;
+    const idLooksValid = CONVEX_ID_LIKE.test(invitationId);
+
+    const invitation = useQuery(
+        api.projectInvitations.getWithoutToken,
+        idLooksValid ? { id: invitationId as Id<'projectInvitations'> } : 'skip',
+    );
+    const loadingInvitation = idLooksValid && invitation === undefined;
 
     const acceptInvitationMutation = useMutation(api.projectInvitations.accept);
 
