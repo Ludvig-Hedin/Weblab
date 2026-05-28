@@ -342,7 +342,14 @@ export default function ClerkVerifyPage() {
                         </button>
                     </div>
                 </div>
-                <div />
+                {/* Clerk Smart CAPTCHA mount point. handleResend() in
+                    'sign-up' mode calls signUp.create(), which re-triggers
+                    bot protection — if the challenge fires with no
+                    `clerk-captcha` element present, Clerk falls back to the
+                    Invisible Turnstile widget and the resend dies with
+                    `[Cloudflare Turnstile] Error: 600010`. Same fix as the
+                    /sign-in form and the OAuth callback page. */}
+                <div id="clerk-captcha" className="w-full" />
             </div>
         </div>
     );
